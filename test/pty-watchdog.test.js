@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { _resetCacheForTests } from "../dist/runtime/heavyDeps.js";
 import {
   probePtyAllocation,
   assertConptyAllocatable,
@@ -130,6 +132,26 @@ describe("probePtyAllocation (ConPTY watchdog, issue #501)", function () {
     // but would NOT mention our path). This guards against a regression where
     // the worker silently doesn't execute the probe body.
     assert.match(res.detail, new RegExp(marker));
+  });
+
+  it("reports a missing package root as inconclusive, by name", async function () {
+    // Make packageRoot() come back undefined: drop its cache and fail every
+    // package.json read until the walk gives up.
+    _resetCacheForTests();
+    const readFileSync = fs.readFileSync;
+    fs.readFileSync = (p, ...rest) => {
+      if (String(p).endsWith("package.json")) throw new Error("no package.json");
+      return readFileSync(p, ...rest);
+    };
+    let res;
+    try {
+      res = await probePtyAllocation({ ptyModulePath: "unused" });
+    } finally {
+      fs.readFileSync = readFileSync;
+      _resetCacheForTests();
+    }
+    assert.equal(res.outcome, "inconclusive");
+    assert.match(res.detail, /package root/);
   });
 });
 

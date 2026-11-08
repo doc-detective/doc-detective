@@ -120,6 +120,16 @@ describe("HTML Reporter", function () {
     expect(html).to.include("test-report-001");
   });
 
+  it("keeps report-only timing fields out of the step input panel", async function () {
+    const outputFile = path.join(tmpDir, "report.html");
+    await outputResults({}, outputFile, sampleResults, {
+      reporters: ["html"],
+    });
+    const html = fs.readFileSync(outputFile, "utf-8");
+    expect(html).to.include("delete rest.durationMs;");
+    expect(html).to.include("delete rest.startedAt;");
+  });
+
   it("contains key CSS classes from the design", async function () {
     const outputFile = path.join(tmpDir, "report.html");
     await outputResults({}, outputFile, sampleResults, {
@@ -202,6 +212,25 @@ describe("HTML Reporter", function () {
     });
     const html = fs.readFileSync(outputFile, "utf-8");
     expect(html).to.include("body.dark");
+  });
+
+  // Reports carry the effective step (ADR 01167): goTo is an object and the
+  // method is lowercase. The label function is pulled from the page's script.
+  it("labels effective goTo and httpRequest steps", async function () {
+    const outputFile = path.join(tmpDir, "report.html");
+    await outputResults({}, outputFile, sampleResults, { reporters: ["html"] });
+    const source = /function stepLabel\(step\) \{[\s\S]*?\n\}/.exec(fs.readFileSync(outputFile, "utf-8"))?.[0];
+    expect(source, "stepLabel in the report script").to.be.a("string");
+    const stepLabel = new Function(`${source}; return stepLabel;`)();
+    expect(stepLabel({ goTo: { url: "https://example.com" } })).to.equal("Go to https://example.com");
+    expect(stepLabel({ httpRequest: { url: "https://api.example.com", method: "get" } })).to.equal(
+      "GET https://api.example.com"
+    );
+    // A step that never ran keeps a whole-variable value as authored, and an
+    // OpenAPI request gets its method from the operation, so neither is assumed.
+    expect(stepLabel({ goTo: "$URL" })).to.equal("Go to $URL");
+    expect(stepLabel({ httpRequest: "$REQ" })).to.equal("GET ");
+    expect(stepLabel({ httpRequest: { openApi: { operationId: "getUsers" } } })).to.equal("GET ");
   });
 
   it("embeds the canonical logo paths", async function () {

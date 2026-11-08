@@ -4,27 +4,28 @@
  * Do not edit manually
  */
 
-export type CheckLink = CheckLinkDetailed | CheckLinkDetailed1;
+export type CheckLink = CheckLinkSimple | CheckLinkDetailed;
 /**
- * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
+ * Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
-export type CheckLinkDetailed = string;
+export type CheckLinkSimple = string;
 /**
- * Headers to include in the HTTP request, as newline-separated values. For example, `X-Api-Key: abc123
- * Authorization: Bearer token`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
  */
+export type TargetURL = string;
+/**
+ * Additional HTTP headers to include in the request: an object with string values, or a string with one `Name: value` header per line. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
+ */
+export type RequestHeaders = RequestHeadersObject | RequestHeadersString;
 export type RequestHeadersString = string;
 
 /**
  * Check if an HTTP or HTTPS URL returns an acceptable status code from a GET request.
  */
-export interface CheckLinkDetailed1 {
+export interface CheckLinkDetailed {
+  url: TargetURL;
   /**
-   * URL to check. Can be a full URL or a path. If a path is provided, `origin` must be specified.
-   */
-  url: string;
-  /**
-   * Protocol and domain to navigate to. Prepended to `url`.
+   * Protocol and domain to join to a `url` that starts with `/`. Overrides `origin` in the config.
    */
   origin?: string;
   /**
@@ -34,17 +35,15 @@ export interface CheckLinkDetailed1 {
     [k: string]: string;
   };
   /**
-   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.
    */
   statusCodes?: number | number[];
   /**
-   * Additional HTTP headers to include in the request. Merged on top of Doc Detective's default browser-mimicking headers. Useful for sites behind bot protection or WAFs that allowlist specific headers (for example, a Cloudflare Access service token or a `Cookie` with a `cf_clearance` value).
+   * Time each request attempt may take, in milliseconds. If no response arrives in time, the step fails.
    */
-  headers?: RequestHeadersObject | RequestHeadersString;
+  timeout?: number;
+  headers?: RequestHeaders;
 }
-/**
- * Headers to include in the HTTP request, in key/value format. Values must be strings.
- */
 export interface RequestHeadersObject {
   [k: string]: string;
 }

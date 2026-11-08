@@ -65,7 +65,7 @@
           "attempts": {
             "type": "integer",
             "minimum": 2,
-            "description": "Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.",
+            "description": "Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.",
             "readOnly": true
           },
           "visit": {
@@ -78,6 +78,12 @@
             "type": "integer",
             "minimum": 0,
             "description": "Wall-clock duration of this step in milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. A step that was skipped or never executed reports `0`. Distinct from the `duration` input that some actions accept (for example a `click`'s press duration). Present only in test results; system-populated.",
+            "readOnly": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this step started, as an ISO 8601 UTC timestamp with milliseconds. When a routing `retry` action re-ran the step, this is the FINAL attempt's start, matching `durationMs`. Absent for a step that was skipped or never executed. Present only in test results; system-populated.",
             "readOnly": true
           }
         },
@@ -101,31 +107,31 @@
         ]
       },
       "onPass": {
-        "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.",
+        "description": "Routing entries evaluated when this step passes. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, `retry`, or `goToStep`.",
         "type": "array",
         "items": {
-          "$ref": "routing_v3.schema.json#"
+          "$ref": "routing_v3.schema.json#/components/schemas/step"
         }
       },
       "onFail": {
-        "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.",
+        "description": "Routing entries evaluated when this step fails. The first entry whose `if` matches applies; the default when none is set stops the test. Each entry is one of `continue`, `stop: \"test\"`, `retry`, or `goToStep`.",
         "type": "array",
         "items": {
-          "$ref": "routing_v3.schema.json#"
+          "$ref": "routing_v3.schema.json#/components/schemas/step"
         }
       },
       "onWarning": {
-        "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. `continue`, `stop`, `retry`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed.",
+        "description": "Routing entries evaluated when this step produces a warning. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, `retry`, or `goToStep`.",
         "type": "array",
         "items": {
-          "$ref": "routing_v3.schema.json#"
+          "$ref": "routing_v3.schema.json#/components/schemas/step"
         }
       },
       "onSkip": {
-        "description": "Routing entries evaluated when this step is skipped (reached but not run \u2014 unsafe-blocked or guard-`if` false). The first entry whose `if` matches applies. `continue`, `stop`, and `goToStep` are honored at runtime; `goToTest` is validated but not yet executed. (`retry` is a no-op here \u2014 a step that never ran cannot be re-run.)",
+        "description": "Routing entries evaluated when this step is SKIPPED: its action ran and reported SKIPPED (such as `wait: false`), or it was skipped before running because its `if` was false or it's an unsafe step that isn't allowed. A step skipped because an earlier step stopped the test fires no handler. The first entry whose `if` matches applies. Each entry is one of `continue`, `stop: \"test\"`, `retry`, or `goToStep`. `retry` re-runs only a step whose action ran and reported SKIPPED. For a step skipped before running, `retry` entries are passed over and the next matching entry applies.",
         "type": "array",
         "items": {
-          "$ref": "routing_v3.schema.json#"
+          "$ref": "routing_v3.schema.json#/components/schemas/step"
         }
       },
       "$schema": {
@@ -186,7 +192,7 @@
       "attempts": {
         "type": "integer",
         "minimum": 2,
-        "description": "Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). This is system-populated metadata and should not be set manually.",
+        "description": "Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.",
         "readOnly": true
       },
       "visit": {
@@ -264,6 +270,7 @@
     "attempts": {},
     "visit": {},
     "durationMs": {},
+    "startedAt": {},
     "checkLink": {},
     "click": {},
     "find": {},
@@ -903,11 +910,6 @@
     {
       "click": {
         "$ref": "click_v3.schema.json#/examples/2"
-      }
-    },
-    {
-      "click": {
-        "$ref": "click_v3.schema.json#/examples/3"
       }
     },
     {

@@ -37,6 +37,7 @@ autoScreenshot | unknown | Optional. No description provided. | —
 attempts | unknown | Optional. No description provided. | —
 visit | unknown | Optional. No description provided. | —
 durationMs | unknown | Optional. No description provided. | —
+startedAt | unknown | Optional. No description provided. | —
 checkLink | unknown | Optional. No description provided. | —
 click | unknown | Optional. No description provided. | —
 find | unknown | Optional. No description provided. | —
@@ -385,12 +386,6 @@ annotate | unknown | Optional. No description provided. | —
 
 ```json
 {
-  "click": true
-}
-```
-
-```json
-{
   "click": "Submit"
 }
 ```
@@ -422,8 +417,26 @@ annotate | unknown | Optional. No description provided. | —
 
 ```json
 {
+  "httpRequest": "$API_URL/users"
+}
+```
+
+```json
+{
   "httpRequest": {
     "url": "https://reqres.in/api/users"
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "/api/users",
+    "statusCodes": 200,
+    "request": {
+      "headers": "Accept: application/json\nAuthorization: Bearer $TOKEN"
+    }
   }
 }
 ```
@@ -576,35 +589,6 @@ annotate | unknown | Optional. No description provided. | —
       "descriptionPath": "https://api.example.com/openapi.json",
       "operationId": "createUser",
       "useExample": "both"
-    }
-  }
-}
-```
-
-```json
-{
-  "httpRequest": {
-    "openApi": {
-      "descriptionPath": "https://api.example.com/openapi.json",
-      "operationId": "updateUser",
-      "useExample": "request",
-      "exampleKey": "acme"
-    }
-  }
-}
-```
-
-```json
-{
-  "httpRequest": {
-    "openApi": {
-      "descriptionPath": "https://api.example.com/openapi.json",
-      "operationId": "updateUser",
-      "useExample": "request",
-      "exampleKey": "acme",
-      "headers": {
-        "Authorization": "Bearer $TOKEN"
-      }
     }
   }
 }

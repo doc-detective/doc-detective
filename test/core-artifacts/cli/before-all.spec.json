@@ -1,0 +1,74 @@
+{
+  "specId": "cli-before-all",
+  "description": "Config beforeAll runs setup specs before the input (ADR 01169), through the real CLI. The deprecated beforeAny alias still works and warns, and setting both exits 2.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the specs and configs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/before-all-setup.cjs",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "before-all-runs",
+      "description": "beforeAll as a string and as an array runs.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-before-all/before-all-string.json --output-dir .tmp/fixture-before-all/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-before-all/before-all-array.json --output-dir .tmp/fixture-before-all/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "before-any-alias-warns",
+      "description": "The deprecated beforeAny still runs, and warns on stderr.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-before-all/before-any.json --output-dir .tmp/fixture-before-all/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "stdio": "`beforeAny` is deprecated. Rename it to `beforeAll`."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "both-exit-2",
+      "description": "Setting both beforeAll and beforeAny exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-before-all/both.json --output-dir .tmp/fixture-before-all/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "beforeAll: set `beforeAll` or `beforeAny`, not both."
+          }
+        }
+      ]
+    }
+  ]
+}

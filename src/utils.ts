@@ -2,14 +2,13 @@ import { validate } from "./common/src/validate.js";
 import { diag, displayPath, palette } from "./cliOutput.js";
 import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
+import { renameDeprecatedConfigKeys } from "./core/config.js";
 import { getRunOutputDir, loadAxios, timestamp } from "./core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import os from "node:os";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
+import { ownVersion, readShimPackageJson } from "./runtime/heavyDeps.js";
 
 export {
   loadProjectEnv,
@@ -172,10 +171,17 @@ async function getConfigFromEnv() {
       );
     }
 
+    // Rename, then validate, as a config file does: setting both gets the same
+    // both-set error, and a null beforeAny counts as absent. It works on a
+    // copy, so envConfig is unchanged and setConfig still does the real rename
+    // and its warning.
+    const renamed = { ...envConfig };
+    renameDeprecatedConfigKeys([renamed], () => {});
+
     // Validate the environment variable config
     const envValidation = validate({
       schemaKey: "config_v3",
-      object: envConfig,
+      object: renamed,
     });
 
     if (!envValidation.valid) {
@@ -184,13 +190,16 @@ async function getConfigFromEnv() {
       );
     }
 
-    log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
+    // Log the validated shape, with beforeAny renamed.
+    log(`CLI:ENV_CONFIG:\n${JSON.stringify(renamed, null, 2)}`, "debug", renamed);
   } catch (error: any) {
     if (error instanceof SyntaxError) {
       throw new Error(
         `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
       );
     }
+    // Re-throw the rest on purpose: the shape error, the validation error, and
+    // renameDeprecatedConfigKeys' both-set error. Don't swallow them here.
     throw error;
   }
   return envConfig;
@@ -327,14 +336,21 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 
   // Project config beats user config. Both lose to the environment and to flags.
   const userConfig = await readUserConfig();
-  if (userConfig) config = { ...userConfig, ...config };
-
   // Check for DOC_DETECTIVE_CONFIG environment variable
   const envConfig = await getConfigFromEnv();
+  // Rename each source before the merge, so a later source wins whichever name
+  // it uses. The callback only captures the warning. The rename rejects both
+  // names in one source; config_v3's `not: {required}` is the backstop for API
+  // callers that skip the rename.
+  let deprecation: string | undefined;
+  renameDeprecatedConfigKeys([userConfig, config, envConfig], (message) => (deprecation = message));
+  if (userConfig) config = { ...userConfig, ...config };
   if (envConfig) {
     // Merge with file config, preferring environment variable config (use raw envConfig, not validated with defaults)
     config = { ...config, ...envConfig };
   }
+  // Emit after the merge, so the merged logLevel decides.
+  if (deprecation) log(deprecation, "warning", config);
 
   readCredentialFiles(config);
 
@@ -1340,9 +1356,8 @@ function setMeta() {
 
   // Set meta
   const meta: any = parseMeta(process.env["DOC_DETECTIVE_META"]);
-  const pkg = require("../package.json");
   meta.distribution = "doc-detective";
-  meta.dist_version = pkg.version;
+  meta.dist_version = ownVersion() ?? "unknown";
   meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();
@@ -1356,8 +1371,8 @@ function setMeta() {
 // Get version data programmatically (no console output)
 function getVersionData() {
   try {
-    // Get main package version
-    const mainPackage = require("../package.json");
+    // A published package.json can lack either map, so default both.
+    const mainPackage: any = { dependencies: {}, devDependencies: {}, ...readShimPackageJson() };
     const versionData: any = {
       main: {
         "doc-detective": {

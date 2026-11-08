@@ -1,0 +1,106 @@
+{
+  "specId": "url-and-headers",
+  "description": "One URL pattern and one request-header shape (ADR 01174): URLs that start with a variable, header strings on checkLink, httpRequest, and openApi, and a single status code. Runs against the 8092 test server.",
+  "openApi": [
+    {
+      "name": "local-echo",
+      "descriptionPath": "./reqres.openapi.json",
+      "server": "http://localhost:8092/api",
+      "useExample": "none",
+      "validateAgainstSchema": "none",
+      "headers": "X-Test: from-openapi\nX-Source: config"
+    }
+  ],
+  "tests": [
+    {
+      "testId": "url-starts-with-variable",
+      "description": "goTo and checkLink take a URL that starts with a variable and goes on.",
+      "steps": [
+        {
+          "loadVariables": "../env"
+        },
+        {
+          "checkLink": "$URL/enhanced-elements.html"
+        },
+        {
+          "checkLink": {
+            "url": "$URL/enhanced-elements.html",
+            "statusCodes": 200
+          }
+        },
+        {
+          "goTo": "$URL/enhanced-elements.html"
+        }
+      ]
+    },
+    {
+      "testId": "header-strings",
+      "description": "Each request-header field takes one `Name: value` header per line.",
+      "steps": [
+        {
+          "description": "checkLink headers as a string.",
+          "checkLink": {
+            "url": "http://localhost:8092",
+            "headers": "X-Test: checklink\nAccept: text/html"
+          }
+        },
+        {
+          "description": "httpRequest request.headers as a string reach the server.",
+          "httpRequest": {
+            "url": "http://localhost:8092/api/users",
+            "request": {
+              "headers": "X-Test: from-request\nAccept: application/json"
+            },
+            "response": {
+              "headers": {
+                "x-echo-test": "from-request"
+              }
+            }
+          }
+        },
+        {
+          "description": "openApi headers as a string reach the server.",
+          "httpRequest": {
+            "openApi": "getUsers",
+            "statusCodes": 200,
+            "response": {
+              "headers": {
+                "x-echo-test": "from-openapi"
+              }
+            }
+          }
+        },
+        {
+          "description": "request.headers override openApi headers by name.",
+          "httpRequest": {
+            "openApi": {
+              "operationId": "getUsers",
+              "headers": "X-Test: from-step-openapi"
+            },
+            "request": {
+              "headers": "X-Test: from-request"
+            },
+            "statusCodes": 200,
+            "response": {
+              "headers": {
+                "x-echo-test": "from-request"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "single-status-code",
+      "description": "A single status code is a one-item list.",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/status/404",
+            "statusCodes": 404
+          }
+        }
+      ]
+    }
+  ]
+}

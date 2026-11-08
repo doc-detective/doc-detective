@@ -1229,7 +1229,7 @@ function buildStepDetail(step) {
 
   // Input/output panels
   var rest = Object.assign({}, step);
-  delete rest.result; delete rest.resultDescription; delete rest.stepId; delete rest.outputs; delete rest.description; delete rest.duration; delete rest.durationMs;
+  delete rest.result; delete rest.resultDescription; delete rest.stepId; delete rest.outputs; delete rest.description; delete rest.duration; delete rest.durationMs; delete rest.startedAt;
   var inputJson = JSON.stringify(rest, null, 2);
   var outputJson = step.outputs && Object.keys(step.outputs).length ? JSON.stringify(step.outputs, null, 2) : null;
 
@@ -1248,15 +1248,23 @@ function stepKey(step, ctxId, idx) {
   return step.stepId || (ctxId + ":" + idx);
 }
 
+// A step's row label. Steps are effective (ADR 01167), with two exceptions the
+// fallbacks cover: a step that never ran keeps a whole-variable value such as
+// "goTo": "$URL" as a string, and an OpenAPI request has no method until the
+// operation supplies one.
+function stepLabel(step) {
+  return step.description
+    || (step.goTo && "Go to " + (step.goTo.url || step.goTo))
+    || (step.httpRequest && (step.httpRequest.method || "GET").toUpperCase() + " " + (step.httpRequest.url || ""))
+    || (step.runShell && (step.runShell.command || "") + " " + (step.runShell.args || []).join(" "))
+    || step.resultDescription || "(step)";
+}
+
 function buildStep(step, idx, ctxId, keyIdx) {
   var slug = statusSlug(step.result);
   var ak = actionKey(step);
   var sk = stepKey(step, ctxId, keyIdx == null ? idx : keyIdx);
-  var primary = step.description
-    || (step.goTo && "Go to " + step.goTo)
-    || (step.httpRequest && (step.httpRequest.method || "GET") + " " + (step.httpRequest.url || ""))
-    || (step.runShell && (step.runShell.command || "") + " " + (step.runShell.args || []).join(" "))
-    || step.resultDescription || "(step)";
+  var primary = stepLabel(step);
 
   var isOpen = !!state.openSteps[sk];
   var row = el("div", "step " + slug + (isOpen ? " open" : ""));

@@ -6,6 +6,8 @@ This repository contains files to generate a [Fern Docs](https://buildwithfern.c
 
 Before drafting or restructuring any page, consult the content strategy in [content-strategy/](content-strategy/). It holds the audiences, personas, Critical User Journeys (CUJs), and information architecture that govern this site. The site is **organized by user intent (persona + journey), not by document type**. Identify the persona and CUJ a page serves, then sequence the content by that journey. Deep-link into the Reference shelf rather than duplicating it, and record any new page in [content-strategy/information-architecture.md](content-strategy/information-architecture.md). See [content-strategy/README.md](content-strategy/README.md) for the full workflow.
 
+Pages describe what the tool does today, and quoted messages follow one style. See ["Plans and interfaces"](../CLAUDE.md#plans-and-interfaces-required) (rule 4) and ["Messages"](../CLAUDE.md#messages-required) in the root guide.
+
 ## Repository layout
 
 - `README.md` explains the repository, and provides onboarding instructions for working with the documentation.
@@ -40,7 +42,7 @@ This project uses Doc Detective to test its own documentation.
 
 Two Doc Detective configs live at the docs root:
 
-- `.doc-detective.json` is used in CI ([`.github/workflows/test-docs.yml`](../.github/workflows/test-docs.yml)). Its `beforeAny` and `afterAll` start and stop only the static fixture server (`test/server/start.js`, port `8092`), which the inline tests on the action reference pages target.
+- `.doc-detective.json` is used in CI ([`.github/workflows/test-docs.yml`](../.github/workflows/test-docs.yml)). Its `beforeAll` and `afterAll` start and stop only the static fixture server (`test/server/start.js`, port `8092`), which the inline tests on the action reference pages target.
 - `.doc-detective.preview.json` is for local runs. It layers a second background process on top of the static server, starting the **Fern docs preview server** (`fern docs dev --legacy`, port `3000`). You can then write and run tests against the rendered docs site itself. Run with:
 
   ```bash

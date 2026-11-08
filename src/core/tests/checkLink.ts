@@ -1,5 +1,11 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl, appendQueryParams, loadAxios } from "../utils.js";
+import {
+  isRelativeUrl,
+  appendQueryParams,
+  loadAxios,
+  parseHeaders,
+  redactUrlForOutput,
+} from "../utils.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
@@ -43,40 +49,18 @@ export function _setBaseBackoffMsForTests(
   return prev;
 }
 
-function parseHeaderString(raw: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const line of raw.split(/\r?\n/)) {
-    const idx = line.indexOf(":");
-    if (idx === -1) continue;
-    const key = line.slice(0, idx).trim();
-    const value = line.slice(idx + 1).trim();
-    // Match httpRequest's behavior: require a non-empty key AND a non-empty
-    // value. Silently dropping a header with no value avoids sending
-    // "X-Example:" lines that are almost always formatting mistakes.
-    if (key && value) out[key] = value;
-  }
-  return out;
-}
-
 function mergeHeaders(
-  userHeaders: Record<string, unknown> | string | undefined
+  userHeaders: Record<string, string> | string | undefined
 ): Record<string, string> {
   const merged: Record<string, string> = { ...DEFAULT_HEADERS };
-  if (!userHeaders) return merged;
-  const parsed: Record<string, unknown> =
-    typeof userHeaders === "string"
-      ? parseHeaderString(userHeaders)
-      : userHeaders;
+  const parsed = parseHeaders(userHeaders);
   // Case-insensitive override: strip any default with the same name (any casing)
   for (const userKey of Object.keys(parsed)) {
-    const raw = parsed[userKey];
-    if (raw === null || raw === undefined) continue;
-    const value = typeof raw === "string" ? raw : String(raw);
     const lower = userKey.toLowerCase();
     for (const existingKey of Object.keys(merged)) {
       if (existingKey.toLowerCase() === lower) delete merged[existingKey];
     }
-    merged[userKey] = value;
+    merged[userKey] = parsed[userKey];
   }
   return merged;
 }
@@ -106,19 +90,24 @@ function shouldRetry(statusCode: number | null): boolean {
   return statusCode === 429 || statusCode >= 500;
 }
 
-type AttemptResult = { statusCode: number | null; retryAfter: number | null };
+type AttemptResult = {
+  statusCode: number | null;
+  retryAfter: number | null;
+  errorCode?: string;
+};
 
 async function attemptRequest(
   method: "get" | "head",
   url: string,
-  headers: Record<string, string>
+  headers: Record<string, string>,
+  timeout: number
 ): Promise<AttemptResult> {
   try {
     const res = await (await loadAxios()).request({
       method,
       url,
       headers,
-      timeout: 10000,
+      timeout,
       maxRedirects: 5,
       validateStatus: () => true,
     });
@@ -136,17 +125,14 @@ async function attemptRequest(
         ),
       };
     }
-    return { statusCode: null, retryAfter: null };
+    return { statusCode: null, retryAfter: null, errorCode: error?.code };
   }
 }
 
+// `step` is the effective step (ADR 01167): checkLink is an object, and its
+// defaults, including the `statusCodes` list, are filled.
 async function checkLink({ config, step }: { config: any; step: any }) {
   let result: any = { status: "PASS", description: "Checked link." };
-
-  // Resolve to object
-  if (typeof step.checkLink === "string") {
-    step.checkLink = { url: step.checkLink };
-  }
 
   const relative = isRelativeUrl(step.checkLink.url);
 
@@ -204,15 +190,9 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   // Accept coerced and defaulted values
   step = isValidStep.object;
 
-  // Resolve to detailed object with defaults
-  if (typeof step.checkLink.statusCodes === "undefined") {
-    step.checkLink.statusCodes = [200, 301, 302, 307, 308];
-  } else if (typeof step.checkLink.statusCodes === "number") {
-    step.checkLink.statusCodes = [step.checkLink.statusCodes];
-  }
-
   const headers = mergeHeaders(step.checkLink.headers);
   const url = step.checkLink.url;
+  const timeout: number = step.checkLink.timeout;
 
   const acceptedCodes: number[] = step.checkLink.statusCodes;
   const isAccepted = (code: number | null) =>
@@ -222,7 +202,7 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   // Short-circuit retries if the response is already an accepted status code.
   let last: AttemptResult = { statusCode: null, retryAfter: null };
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    last = await attemptRequest("get", url, headers);
+    last = await attemptRequest("get", url, headers, timeout);
     if (isAccepted(last.statusCode)) break;
     if (!shouldRetry(last.statusCode)) break;
     if (attempt < MAX_ATTEMPTS - 1) {
@@ -238,7 +218,7 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     !isAccepted(last.statusCode) &&
     (last.statusCode === 429 || last.statusCode === 403)
   ) {
-    const headResult = await attemptRequest("head", url, headers);
+    const headResult = await attemptRequest("head", url, headers, timeout);
     if (isAccepted(headResult.statusCode)) {
       last = headResult;
     }
@@ -249,7 +229,10 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   // mirroring runShell's treatment of timeouts/spawn failures.
   if (last.statusCode === null) {
     result.status = "FAIL";
-    result.description = `Invalid or unresolvable URL: ${url}`;
+    result.description =
+      last.errorCode === "ECONNABORTED"
+        ? `Couldn't reach ${redactUrlForOutput(url)}: no response within ${timeout} ms (ECONNABORTED).`
+        : `Invalid or unresolvable URL: ${redactUrlForOutput(url)}`;
     return result;
   }
 

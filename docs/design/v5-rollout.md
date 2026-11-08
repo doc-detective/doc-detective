@@ -571,7 +571,7 @@ All additive and ordered by who's blocked and what later work depends on.
 
 | Release | Work | Persona, CUJ | Plan |
 |---|---|---|---|
-| 5.1 | Login ([#307](https://github.com/doc-detective/doc-detective/issues/307)) | Wren, W1, W2 | `saveState` and `loadState` for cookies plus `localStorage`, building on `saveCookie` and `loadCookie`. A TOTP expression using `node:crypto`, with no new dependency. A documented `beforeAny` login pattern, and a stated limit for SSO |
+| 5.1 | Login ([#307](https://github.com/doc-detective/doc-detective/issues/307)) | Wren, W1, W2 | `saveState` and `loadState` for cookies plus `localStorage`, building on `saveCookie` and `loadCookie`. A TOTP expression using `node:crypto`, with no new dependency. A documented `beforeAll` login pattern, and a stated limit for SSO |
 | 5.1 | File upload and iframes | Wren, W2 | Both block real UI procedures, and both sit near the login work |
 | 5.2 | Screenshot variants and reuse | Wren, W2, W3 | `locale`, `colorScheme`, `timezone`, and `deviceScaleFactor` on contexts. One generic `matrix` for user-defined dimensions, instead of a key per dimension. `include` for reusable steps |
 | 5.3 | `doc-detective audit` | Wren, W1 | Read-only: broken links, screenshots no test produces, untested procedures, and a rot ranking. Gives value before any test is written. Adds the coverage figures in [coverage.md](coverage.md), which verification can report. Replaces the `runCoverage` leftovers |

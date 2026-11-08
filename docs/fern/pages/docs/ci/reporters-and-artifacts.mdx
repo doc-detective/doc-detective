@@ -99,6 +99,10 @@ These parts of the results are a stable contract for scripts. A change to any of
 
 Doc Detective can add new fields at any time, so ignore the ones you don't recognize. The [`report_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/report_v3.schema.json) defines the full shape.
 
+### Steps show what ran
+
+Each step in the results is the effective step, the one Doc Detective ran. Its action is in object form, with every default filled, even if you wrote a shorthand. A step written as `{"goTo": "https://example.com"}` reports `goTo.url`, `goTo.timeout`, and the rest of the [goTo defaults](/reference/schemas/go-to-url-detailed). So read an action's fields from the object, such as `goTo.url`. Step-level fields you didn't set, such as `variables`, stay out.
+
 ### Find slow specs with `durationMs`
 
 Every node in the results carries a `durationMs` field in whole milliseconds. That covers the run, each spec, each test, each context, and each step. Doc Detective populates it. You never set it yourself.
@@ -138,10 +142,47 @@ jq '.specs | sort_by(-.durationMs) | .[:5] | .[] | {specId, durationMs}' results
 
 Anything that runs more than once reports the **final attempt** in `durationMs`. That's the attempt the reported result describes. What that costs you depends on which kind of retry happened:
 
-- A step re-run by [`onFail` retry routing](/reference/schemas/routing) reports only its last attempt. The enclosing context's duration still covers every attempt and the waits between them, so the time isn't lost from the totals. It isn't separable, though. The difference between a context and the sum of its steps also includes ordinary setup and cleanup. Read it as an upper limit on what retrying cost, not a measurement of it. Use `attempts` to tell whether a step retried at all.
+- A step re-run by [`onFail` retry routing](/reference/schemas/step-routing) reports only its last attempt. The enclosing context's duration still covers every attempt and the waits between them, so the time isn't lost from the totals. It isn't separable, though. The difference between a context and the sum of its steps also includes ordinary setup and cleanup. Read it as an upper limit on what retrying cost, not a measurement of it. Use `attempts` to tell whether a step retried at all.
 - A context re-run by the [`retries`](/reference/schemas/config) policy reports only its last attempt. No context, test, or spec duration absorbs the earlier ones. The run-level `durationMs` is wall-clock, so it does include them. The `retries` count is your signal that it happened.
 
 A step that never ran reports `0`. That covers a step that was skipped, guarded off, or downstream of a failure.
+
+### Tell environment changes from product changes
+
+When a test that passed yesterday fails today, check whether the environment changed before you debug the product. The results record what ran each run, and Doc Detective populates every field:
+
+```json
+{
+  "runId": "2026-11-06T02-33-28-631Z",
+  "startedAt": "2026-11-06T02:33:28.631Z",
+  "environment": {
+    "platform": "linux",
+    "arch": "x64",
+    "docDetectiveVersion": "4.42.0",
+    "nodeVersion": "24.15.0",
+    "osRelease": "6.8.0-1017-azure"
+  },
+  "specs": [{ "tests": [{ "contexts": [{
+    "contextId": "default",
+    "startedAt": "2026-11-06T02:33:28.640Z",
+    "browser": { "name": "chrome", "version": "131.0.6778.85" },
+    "driver": { "name": "chromedriver", "version": "131.0.6778.85" },
+    "steps": [{ "stepId": "open-home", "startedAt": "2026-11-06T02:33:28.645Z", "durationMs": 138 }]
+  }]}]}]
+}
+```
+
+- `environment` describes the machine that ran the tests: the Doc Detective and Node.js versions, the platform, the processor architecture, and the OS release. It leaves out the working directory.
+- Each context that started a browser records the `browser.version` and the `driver` that drove it. A context without a browser has neither. Safari's driver reports no version.
+- `startedAt` is an ISO 8601 UTC timestamp with milliseconds. It's on the run, each context, and each step that ran. A node ends at `startedAt` plus `durationMs`. Specs and tests have no `startedAt`, because their durations are sums rather than spans.
+
+To spot a changed browser between runs, print one line per results file with its start time and versions:
+
+```bash
+jq -r '"\(.startedAt) doc-detective \(.environment.docDetectiveVersion), " + ([.specs[].tests[].contexts[].browser | select(.version) | "\(.name) \(.version)"] | unique | join(", "))' testResults-*.json
+```
+
+Use `startedAt` for the time of a run, not `runId`. `runId` names the [run folder](#step-5-collect-the-run-folder-and-artifacts). It sorts by time, but its format can change.
 
 ### Read the warm-phase timings
 
@@ -180,7 +221,7 @@ The `runFolder` reporter archives each run into its own folder so you can attach
             └── recordings/<contextId>.mp4
 ```
 
-The file names inside the folder are constant, because the run ID lives in the folder name. Two run folders therefore compare cleanly. Auto-captured screenshots and recordings land beside the results in the same folder. The whole folder becomes a single artifact to upload from CI for reviewers to inspect.
+The file names inside the folder are constant, because the run ID lives in the folder name. Two run folders therefore compare cleanly. Auto-captured screenshots and recordings land beside the results in the same folder. When a `screenshot` step's `path` is a URL, its new screenshot goes in the context's `screenshots/` folder too, named `<stepId>_<timestamp>_` plus the URL's filename. That name has a timestamp in it, so it differs between runs. The whole folder becomes a single artifact to upload from CI for reviewers to inspect.
 
 ## Step 6: Fail CI when tests fail
 

@@ -295,7 +295,7 @@ async function qualifyFiles({ config }: { config: any }) {
   let files: string[] = [];
   // Same members as `files`, for the dedup check in isValidSourceFile.
   const seen = new Set<string>();
-  // Each sequence entry carries its phase so config-level beforeAny / afterAll
+  // Each sequence entry carries its phase so config-level beforeAll / afterAll
   // can be gated as execution barriers later (see runSpecs Phase 2). ditamap /
   // heretto splices inherit the triggering entry's phase. The per-file phase is
   // recorded in phaseByFile (keyed by resolved path, first-write-wins to match
@@ -319,6 +319,10 @@ async function qualifyFiles({ config }: { config: any }) {
   const parsedFileCache: Map<string, { rawContent: string; content: any }> =
     new Map();
   config._parsedFileCache = parsedFileCache;
+  // Specs downloaded from a URL, for parseTests (ADR 01173). Non-enumerable,
+  // like `_qualifiedFiles`, so local paths stay out of serialized config.
+  const remoteFiles = new Set<string>();
+  Object.defineProperty(config, "_remoteFiles", { value: remoteFiles, configurable: true, writable: true });
 
   const toEntries = (value: any, phase: string) =>
     (value == null ? [] : [].concat(value)).map((source: string) => ({
@@ -326,7 +330,7 @@ async function qualifyFiles({ config }: { config: any }) {
       phase,
     }));
 
-  sequence = sequence.concat(toEntries(config.beforeAny, "beforeAny"));
+  sequence = sequence.concat(toEntries(config.beforeAll, "beforeAll"));
   sequence = sequence.concat(toEntries(config.input, "main"));
   sequence = sequence.concat(toEntries(config.afterAll, "afterAll"));
 
@@ -427,10 +431,10 @@ async function qualifyFiles({ config }: { config: any }) {
         log(config, "warning", fetch.message);
         continue;
       }
-      // Success means a remote file was downloaded — a network fetch, not
-      // reproducible offline (the hermetic tests exercise the error arm above).
-      /* c8 ignore next */
+      // Success means a remote file was downloaded. parseTests resolves its
+      // relative paths against outputDir, not the temporary download's folder.
       source = fetch.path;
+      remoteFiles.add(path.resolve(source));
     }
     // Check if source is a file or directory. One statSync, reused for both
     // predicates (the value is the same for a given path — no reason to pay two
@@ -549,6 +553,13 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
   const parseOneFile = async (file: string): Promise<any | null> => {
     log(config, "debug", `file: ${file}`);
     const extension = path.extname(file).slice(1);
+    // A spec loaded from a URL has no folder of its own: its download is
+    // temporary. So its relative paths resolve against outputDir (ADR 01173).
+    // The trailing separator tells resolvePaths it's a folder, even one that
+    // doesn't exist yet and has a dot in its name.
+    const pathBase = config._remoteFiles?.has(path.resolve(file))
+      ? path.resolve(config.outputDir ?? ".") + path.sep
+      : file;
     let content: any = "";
     let rawContent: string | undefined;
 
@@ -595,7 +606,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       //   keeps the same ID across runs and machines.
       if (!content.specId) content.specId = generateSpecId(file);
       if (!content.contentPath) content.contentPath = file;
-      // Internal phase marker (beforeAny / main / afterAll) so runSpecs can gate
+      // Internal phase marker (beforeAll / main / afterAll) so runSpecs can gate
       // execution as barriers. Stripped before reporting; never in public schema.
       // Captured here and stamped after the validate / resolvePaths transforms
       // below, because spec_v3 rejects unknown keys.
@@ -682,7 +693,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       content = await resolvePaths({
         config: config,
         object: content,
-        filePath: file,
+        filePath: pathBase,
         // Detection only ever resolves specs; passing the known objectType skips
         // resolvePaths' config_v3-then-spec_v3 discovery probe (item 3.1).
         objectType: "spec",
@@ -802,7 +813,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       content = await resolvePaths({
         config: config,
         object: content,
-        filePath: file,
+        filePath: pathBase,
         // Detection only ever resolves specs; passing the known objectType skips
         // resolvePaths' config_v3-then-spec_v3 discovery probe (item 3.1).
         objectType: "spec",
@@ -909,7 +920,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           spec = await resolvePaths({
             config: config,
             object: spec,
-            filePath: file,
+            filePath: pathBase,
             // Detection only resolves specs — skip the discovery probe (3.1).
             objectType: "spec",
           });
@@ -963,12 +974,12 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         spec = await resolvePaths({
           config: config,
           object: spec,
-          filePath: file,
+          filePath: pathBase,
           // Detection only resolves specs — skip the discovery probe (3.1).
           objectType: "spec",
         });
         // Re-stamp the phase: resolvePaths isn't guaranteed to preserve unknown
-        // keys, so a text/markdown file referenced by beforeAny/afterAll would
+        // keys, so a text/markdown file referenced by beforeAll/afterAll would
         // otherwise silently fall back to "main". Mirrors the JSON/YAML branch.
         spec._phase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
         return spec;
