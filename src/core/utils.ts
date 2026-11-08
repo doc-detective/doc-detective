@@ -1586,7 +1586,8 @@ function hostKey(hostname: string): string {
 
 // Whether an HTTP(S) proxy is configured in the environment, the variables
 // axios and Node read. Only then can a lookup be for a name other than the
-// request's own host.
+// request's own host. It doesn't read NO_PROXY, and needn't. A proxy-exempt
+// host connects directly, so the only lookup is its own, and that one counts.
 function proxyConfigured(): boolean {
   return ["http_proxy", "https_proxy", "all_proxy"].some(
     (key) => process.env[key] || process.env[key.toUpperCase()]
@@ -1673,6 +1674,8 @@ async function getGuarded(
     // private only when every address is, so in the `fromPublic` check a hop
     // the connection saw as private still counts as public when the fresh
     // lookup finds any public address. That's the guard failing closed.
+    // `fresh` resets every iteration, and `current` stays this hop's URL until
+    // `current = next` at the end of the loop.
     let fresh: Promise<boolean> | undefined;
     const freshPublic = () =>
       (fresh ??= privateAddressOf(current, { every: true }).then((a) => !a, () => true));
@@ -1703,6 +1706,9 @@ async function getGuarded(
       // connection and a fresh lookup say every address is private. Through a
       // proxy the connection looked up the proxy, not this host, so the fresh
       // lookup is the only signal.
+      // The two `every` values differ on purpose, and both fail closed. This
+      // hop is public when any address is; the target is refused when any is
+      // private.
       const fromPublic = hopPublic || (await freshPublic());
       refuse = undefined;
       if (fromPublic) {
