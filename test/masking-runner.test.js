@@ -1,5 +1,6 @@
 // Where values get registered for masking, and what the runner masks
-// (ADR 01178). Shell-only specs, so no browser is needed.
+// (ADR 01178). Shell-only specs, except the runBrowserScript and saveCookie
+// save test, which needs headless Chrome and skips without it.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -391,7 +392,10 @@ describe("masking in a run", function () {
           ],
         },
       ]);
-      const steps = results.specs[0].tests[0].contexts[0].steps;
+      const context = results.specs[0].tests[0].contexts[0];
+      // A host without Chrome skips the context; there's nothing to check.
+      if (!context || context.result === "SKIPPED") return this.skip();
+      const steps = context.steps;
       assert.deepEqual(steps.map((s) => s.result), ["PASS", "PASS", "PASS"], JSON.stringify(steps));
       const script = fs.readFileSync(path.join(dir, "script.txt"), "utf8");
       assert.equal(script.includes("cookie-value-13579"), false, script);

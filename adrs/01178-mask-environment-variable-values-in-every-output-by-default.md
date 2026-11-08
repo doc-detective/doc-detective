@@ -160,7 +160,8 @@ Masking text can't reach pixels, so the page hides secrets itself:
   capture the page unblurred. If hiding a typed field fails, typing goes on and logs at debug. A later screenshot
   still blurs that field, because its value holds the secret.
 - Not covered, and documented: page text that shows a secret during a recording, and native app and device
-  captures. Text in iframes, shadow DOM, canvas, and CSS pseudo-elements isn't blurred either.
+  captures. Text in iframes, shadow DOM, canvas, and CSS pseudo-elements isn't blurred either. Neither is a
+  secret split across sibling elements whose parent has no text of its own.
 
 ### Messages
 
