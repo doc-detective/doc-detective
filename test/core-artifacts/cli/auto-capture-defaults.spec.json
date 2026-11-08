@@ -29,6 +29,19 @@
       ]
     },
     {
+      "testId": "html-media",
+      "description": "Both HTML copies, the run folder's and the html reporter's in outputDir, resolve every automatic screenshot and the context's MP4.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs html-media",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
       "testId": "spec-false",
       "description": "Spec-level autoScreenshot and autoRecord false: no screenshots and no recording.",
       "steps": [
