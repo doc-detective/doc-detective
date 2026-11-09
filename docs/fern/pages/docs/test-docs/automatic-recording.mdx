@@ -57,7 +57,7 @@ Doc Detective saves each video in the run folder, on a stable path. The same con
 
 In the results, the recording is the context's first step, with a `stepId` ending in `~autorecord`. It runs alongside any `record` and `stopRecord` steps you write. An untargeted `stopRecord` never stops it, so a stray `stopRecord: true` can't cut the video short. While recordings are on, the `runFolder` reporter runs even if `reporters` leaves it out. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
-To watch a recording, open `testResults.html` in the run folder. The run prints its path after `Run report:`. Each context's video plays at the top of its section, labeled **Automatic recording**. The report leaves the `~autorecord` start and stop steps out of the step list. If the recording didn't start or save, those steps stay in the list so you can read why. The report loads the video from the run folder, so in CI, upload the whole folder. See [Find the HTML report](/docs/ci/reporters-and-artifacts#step-4-find-the-html-report) and [Collect the run folder and artifacts](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts).
+To watch a recording, open `testResults.html` in the run folder. The run prints its path after `Run report:`. Each context's video plays at the top of its section, labeled **Automatic recording**. If the recording didn't start or save, the report shows its result and the reason. The report loads the video from the run folder, so in CI, upload the whole folder. See [Find the HTML report](/docs/ci/reporters-and-artifacts#step-4-find-the-html-report) and [Collect the run folder and artifacts](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts).
 
 ## Before you record
 
