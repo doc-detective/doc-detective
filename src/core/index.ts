@@ -12,7 +12,14 @@ import {
   flushRunTelemetry as awaitTelemetryFlush,
 } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
-import { legacyEnv, specWarnings, warnUpgrade } from "../upgradeNotice.js";
+import {
+  captureWarnings,
+  clearVariablesUsed,
+  legacyEnv,
+  maskingWarnings,
+  specWarnings,
+  warnUpgrade,
+} from "../upgradeNotice.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
@@ -75,6 +82,7 @@ async function runTests(config: any, options: any = {}) {
 }
 
 async function runTestsAndReport(config: any, options: any) {
+  clearVariablesUsed();
   let resolvedTests: any;
   let results: any;
 
@@ -391,6 +399,15 @@ async function runTestsAndReport(config: any, options: any) {
   } else {
     // Run test specs locally
     results = await runSpecs({ resolvedTests });
+    try {
+      warnUpgrade(
+        [...captureWarnings(resolvedTests, results), ...maskingWarnings(resolvedTests)],
+        effectiveConfig.logLevel
+      );
+    } catch (error: any) {
+      // A warning must never fail a run.
+      log(effectiveConfig, "debug", `Couldn't check the run for Doc Detective 5.0 changes: ${error?.message || error}`);
+    }
   }
   // The full results tree is a debug-only dump — the reporters (terminal
   // summary, json/runFolder files) already render results for the user, and at

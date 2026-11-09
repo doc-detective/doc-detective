@@ -36,6 +36,9 @@
     "openApi": {
       "$ref": "test_v3.schema.json#/properties/openApi"
     },
+    "publicVariables": {
+      "$ref": "test_v3.schema.json#/properties/publicVariables"
+    },
     "autoScreenshot": {
       "type": "boolean",
       "description": "If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level."

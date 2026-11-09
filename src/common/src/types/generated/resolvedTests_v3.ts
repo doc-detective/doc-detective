@@ -6647,6 +6647,10 @@ export type Test = (
    */
   contentPath?: string;
   /**
+   * Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.
+   */
+  publicVariables?: string[];
+  /**
    * Whether or not to detect steps in input files based on markup regex.
    */
   detectSteps?: boolean;
@@ -20004,6 +20008,10 @@ export interface Config {
   relativePathBase?: "cwd" | "file";
   loadVariables?: LoadVariables;
   /**
+   * Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.
+   */
+  publicVariables?: string[];
+  /**
    * Default protocol and domain to use for relative URLs.
    */
   origin?: string;
@@ -20071,12 +20079,12 @@ export interface Config {
    */
   dryRun?: boolean;
   /**
-   * If `true`, captures a screenshot after every browser-driven step that does not already define an explicit `screenshot`. Steps with an explicit `screenshot` are skipped for auto-capture since they already produce an image. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.
+   * If `true`, captures a screenshot after every browser-driven step that does not already define an explicit `screenshot`. Defaults to `false`. Steps with an explicit `screenshot` are skipped for auto-capture since they already produce an image. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.
    */
   autoScreenshot?: boolean;
   annotationDefaults?: AnnotationDefaults;
   /**
-   * If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.
+   * If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. Defaults to `false`. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.
    */
   autoRecord?: boolean;
   /**
@@ -29221,6 +29229,10 @@ export interface Specification {
    */
   runOn?: Context1[];
   openApi?: (OpenApi2 & OpenAPIDescriptionTest1)[];
+  /**
+   * Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.
+   */
+  publicVariables?: string[];
   /**
    * If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level.
    */

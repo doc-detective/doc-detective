@@ -82,6 +82,10 @@ export type Test = (
    */
   contentPath?: string;
   /**
+   * Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.
+   */
+  publicVariables?: string[];
+  /**
    * Whether or not to detect steps in input files based on markup regex.
    */
   detectSteps?: boolean;
@@ -13403,6 +13407,10 @@ export interface Specification {
    */
   runOn?: Context[];
   openApi?: (OpenApi & OpenAPIDescriptionTest)[];
+  /**
+   * Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.
+   */
+  publicVariables?: string[];
   /**
    * If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level.
    */

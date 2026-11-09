@@ -21,6 +21,11 @@
       "type": "string",
       "description": "Path to the content that the test is associated with."
     },
+    "publicVariables": {
+      "description": "Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "pattern": "\\S" }
+    },
     "detectSteps": {
       "type": "boolean",
       "description": "Whether or not to detect steps in input files based on markup regex.",

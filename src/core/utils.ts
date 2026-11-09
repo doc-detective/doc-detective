@@ -13,6 +13,7 @@ import {
 } from "../runtime/loader.js";
 import { resolveWindowsBash as defaultResolveWindowsBash } from "../runtime/windowsBash.js";
 import { ownVersion } from "../runtime/heavyDeps.js";
+import { noteVariablesUsed } from "../upgradeNotice.js";
 import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
@@ -1793,7 +1794,8 @@ async function loadEnvs(envsFile: string) {
   const fileExists = fs.existsSync(envsFile);
   if (fileExists) {
     const { default: dotenv } = await import("dotenv");
-    dotenv.config({ path: envsFile, override: true });
+    const { parsed } = dotenv.config({ path: envsFile, override: true });
+    if (parsed && Object.keys(parsed).length > 0) noteVariablesUsed();
     return { status: "PASS", description: "Envs set." };
   } else {
     return { status: "FAIL", description: "Invalid file." };
@@ -2289,6 +2291,7 @@ function replaceEnvs(stringOrObject: any): any {
       // Check if is declared variable
       let value: any = process.env[match.substring(1)];
       if (value) {
+        noteVariablesUsed();
         // If match is the entire string instead of just being a substring, try to convert value to object
         try {
           if (

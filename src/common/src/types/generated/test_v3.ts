@@ -27,6 +27,10 @@ export type Test = {
    */
   contentPath?: string;
   /**
+   * Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.
+   */
+  publicVariables?: string[];
+  /**
    * Whether or not to detect steps in input files based on markup regex.
    */
   detectSteps?: boolean;

@@ -167,14 +167,14 @@ import { schemas } from "../dist/index.js";
         expect(result.object.autoScreenshot).to.equal(true);
       });
 
-      it("should default autoScreenshot to false when unset", function () {
+      it("should leave autoScreenshot unset when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.autoScreenshot).to.equal(false);
+        expect(result.object.autoScreenshot).to.equal(undefined);
       });
 
       it("should reject a config_v3 object whose autoScreenshot is not a boolean", function () {
@@ -622,14 +622,14 @@ import { schemas } from "../dist/index.js";
         expect(result.object.autoRecord).to.equal(true);
       });
 
-      it("should default autoRecord to false when unset", function () {
+      it("should leave autoRecord unset when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.autoRecord).to.equal(false);
+        expect(result.object.autoRecord).to.equal(undefined);
       });
 
       it("should reject a config_v3 object whose autoRecord is not a boolean", function () {
@@ -888,6 +888,35 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("exitOnFail");
+      });
+
+      it("should accept publicVariables on config_v3, spec_v3, and test_v3", function () {
+        const steps = [{ goTo: { url: "https://example.com" } }];
+        const cases = [
+          { schemaKey: "config_v3", object: { publicVariables: ["BASE_URL", "DD_*"] } },
+          { schemaKey: "test_v3", object: { publicVariables: ["*"], steps } },
+          { schemaKey: "spec_v3", object: { publicVariables: [], tests: [{ publicVariables: ["A"], steps }] } },
+        ];
+        for (const { schemaKey, object } of cases) {
+          const result = validate({ schemaKey, object: structuredClone(object) });
+          expect(result.valid, `${schemaKey}: ${result.errors}`).to.be.true;
+          expect(result.object.publicVariables).to.deep.equal(object.publicVariables);
+        }
+      });
+
+      it("should reject a publicVariables that isn't an array of names", function () {
+        const steps = [{ goTo: { url: "https://example.com" } }];
+        for (const bad of ["BASE_URL", [""], ["  "]]) {
+          for (const [schemaKey, object] of [
+            ["config_v3", { publicVariables: bad }],
+            ["test_v3", { publicVariables: bad, steps }],
+            ["spec_v3", { publicVariables: bad, tests: [{ steps }] }],
+          ]) {
+            const result = validate({ schemaKey, object });
+            expect(result.valid, `${schemaKey}: ${JSON.stringify(bad)}`).to.be.false;
+            expect(result.errors).to.include("publicVariables");
+          }
+        }
       });
 
       it("should validate a config_v3 object with retries set (including 0)", function () {

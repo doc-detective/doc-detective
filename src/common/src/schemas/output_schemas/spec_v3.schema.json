@@ -883,6 +883,15 @@
         ]
       }
     },
+    "publicVariables": {
+      "description": "Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      }
+    },
     "autoScreenshot": {
       "type": "boolean",
       "description": "If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level."
@@ -1470,6 +1479,15 @@
               "contentPath": {
                 "type": "string",
                 "description": "Path to the content that the test is associated with."
+              },
+              "publicVariables": {
+                "description": "Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                }
               },
               "detectSteps": {
                 "type": "boolean",

@@ -3,6 +3,12 @@
 // module free of heavy imports: the bare bins load it too.
 import fs from "node:fs";
 import path from "node:path";
+import {
+  BROWSER_STEP_KEYS,
+  stepOpensAppSurface,
+  stepOpensBrowserSurface,
+  stepTargetsProcessSurface,
+} from "./runtime/browserStepKeys.js";
 
 const UPGRADE_GUIDE_URL = "https://docs.doc-detective.com/docs/ci/upgrade-to-v5";
 
@@ -384,6 +390,77 @@ export function specWarnings(resolvedTests: any): string[] {
     }
   }
   return [...new Set(messages)];
+}
+
+// A step that drives a browser, native app, or device, which is what 5.0
+// captures automatically. Matches `flags.ui` in 5.0's `classifyStep`.
+function drivesUi(step: any): boolean {
+  return (
+    (BROWSER_STEP_KEYS.some((key) => step[key] !== undefined) && !stepTargetsProcessSurface(step)) ||
+    stepOpensBrowserSurface(step) ||
+    stepOpensAppSurface(step)
+  );
+}
+
+/**
+ * Defaults 5.0 changes, from what a finished run did. `resolvedTests` says which
+ * keys are unset, since a report doesn't carry them. The report says what ran,
+ * and `browser.explicit` is the resolver's mark for a browser the author named.
+ */
+export function captureWarnings(resolvedTests: any, results: any): string[] {
+  const messages = new Set<string>();
+  for (const specReport of results?.specs ?? []) {
+    const spec = resolvedTests?.specs?.find((s: any) => s.specId === specReport.specId);
+    for (const testReport of specReport.tests ?? []) {
+      const test = spec?.tests?.find((t: any) => t.testId === testReport.testId);
+      const unset = (key: string) => (test?.[key] ?? spec?.[key] ?? resolvedTests?.config?.[key]) === undefined;
+      for (const context of testReport.contexts ?? []) {
+        if (!context?.steps?.some((step: any) => step.result !== "SKIPPED" && drivesUi(step))) continue;
+        if (context.browser?.name === "firefox" && !context.browser.explicit) {
+          messages.add(
+            "Doc Detective 5.0 uses Chrome when a context doesn't name a browser. To stay on Firefox, name `firefox` in the context's `runOn` entry, which works today."
+          );
+        }
+        if (unset("autoScreenshot")) {
+          messages.add(
+            "Doc Detective 5.0 saves a screenshot after every browser, app, and device step, in a run folder, by default. To keep today's behavior, set `autoScreenshot: false`, which works today."
+          );
+        }
+        if (unset("autoRecord")) {
+          messages.add(
+            "Doc Detective 5.0 records browser, app, and device tests by default, including headless Chrome by tab capture. To keep today's behavior, set `autoRecord: false`, which works today."
+          );
+        }
+      }
+    }
+  }
+  return [...messages];
+}
+
+// One flag per process, so this assumes `runTests` calls run one at a time. Overlapping
+// calls share it, and the only cost is a masking warning for a call that used no variables.
+let variablesUsed = false;
+
+/** Called when `runTests` starts, so one run's variables can't warn about a later run in the process. */
+export function clearVariablesUsed(): void {
+  variablesUsed = false;
+}
+
+/** Called when a run substitutes a `$NAME` or loads variables, which 5.0 masks. */
+export function noteVariablesUsed(): void {
+  variablesUsed = true;
+}
+
+export function maskingWarnings(resolvedTests: any): string[] {
+  const specs: any[] = resolvedTests?.specs ?? [];
+  const listed = [resolvedTests?.config, ...specs, ...specs.flatMap((spec) => spec.tests ?? [])].some(
+    (level) => level?.publicVariables !== undefined
+  );
+  return variablesUsed && !listed
+    ? [
+        "Doc Detective 5.0 masks environment variable values in logs, reports, saved output, and browser captures. To show the ones that aren't secret, list them in `publicVariables`, which 4.x accepts and ignores.",
+      ]
+    : [];
 }
 
 /**
