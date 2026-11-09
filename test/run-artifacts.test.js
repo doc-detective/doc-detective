@@ -6,6 +6,7 @@ import {
   resolveAutoRecord,
   buildAutoRecordStep,
   isSyntheticAutoRecordStart,
+  mergeAutoRecording,
   contextResultSources,
   runContext,
   stopAllRecordings,
@@ -1400,5 +1401,36 @@ describe("detected spec/test IDs from files", function () {
     expect(first.tests[0].testId).to.match(/~[0-9a-f]{8}$/);
     expect(second.specId).to.equal(first.specId);
     expect(second.tests[0].testId).to.equal(first.tests[0].testId);
+  });
+});
+
+// The worse result wins with its own description (ADR 01179).
+describe("mergeAutoRecording", function () {
+  it("doesn't let a worse result keep a milder result's description", function () {
+    const context = { autoRecording: { result: "SKIPPED", resultDescription: "Skipped: no display." } };
+    mergeAutoRecording(context, { result: "FAIL" });
+    expect(context.autoRecording).to.deep.equal({ result: "FAIL" });
+  });
+
+  it("gives a worse result its own description", function () {
+    const context = { autoRecording: { result: "SKIPPED", resultDescription: "Skipped: no display." } };
+    mergeAutoRecording(context, { result: "FAIL", resultDescription: "Couldn't save the recording." });
+    expect(context.autoRecording).to.deep.equal({ result: "FAIL", resultDescription: "Couldn't save the recording." });
+  });
+
+  it("keeps the worse result and its description when a milder one follows, and adds the fields", function () {
+    const context = { autoRecording: { result: "FAIL", resultDescription: "Couldn't start the recording." } };
+    mergeAutoRecording(context, { result: "PASS", resultDescription: "Stopped.", duration: 3 });
+    expect(context.autoRecording).to.deep.equal({
+      result: "FAIL",
+      resultDescription: "Couldn't start the recording.",
+      duration: 3,
+    });
+  });
+
+  it("leaves a first PASS with no description", function () {
+    const context = {};
+    mergeAutoRecording(context, { result: "PASS", resultDescription: "Started.", startedAt: "2026-11-09T00:00:00.000Z" });
+    expect(context.autoRecording).to.deep.equal({ result: "PASS", startedAt: "2026-11-09T00:00:00.000Z" });
   });
 });

@@ -285,6 +285,7 @@ export {
   autoScreenshotsOn,
   installAutoScreenshotPackages,
   isSyntheticAutoRecordStart,
+  mergeAutoRecording,
   contextResultSources,
   runContext,
   stopAllRecordings,
@@ -4269,10 +4270,13 @@ function mergeAutoRecording(
 ): void {
   const current = contextReport.autoRecording;
   const worse = !current || AUTO_RECORDING_RANK[result] > AUTO_RECORDING_RANK[current.result];
+  // A worse result replaces the description, so it can't keep a milder result's.
+  const { resultDescription: previous, ...kept } = current ?? {};
+  const description = worse ? result !== "PASS" && resultDescription : previous;
   contextReport.autoRecording = maskDeep({
-    ...current,
+    ...kept,
     ...(worse ? { result } : {}),
-    ...(worse && result !== "PASS" && resultDescription ? { resultDescription } : {}),
+    ...(description ? { resultDescription: description } : {}),
     ...fields,
   });
 }
