@@ -58,7 +58,7 @@ The other replacements in the table that say "use" already work on 4.x, except `
 
 Naming a browser in `runOn`, `autoScreenshot: false`, and `autoRecord: false` also work today, and each one silences its warning. Setting `autoScreenshot` or `autoRecord` to `true` silences its warning too, and turns that capture on with 4.x's behavior.
 
-4.x accepts `publicVariables` on the config, a spec, or a test. It doesn't mask anything, so the key has no effect until 5.0, but setting it silences the masking warning.
+4.x accepts `publicVariables` on the config, a spec, or a test. It doesn't mask anything, so the key has no effect until 5.0, but setting it silences the masking warning. On 5.0, a name listed at any level is public for the whole run. `*` matches any characters, so `["*"]` turns masking off.
 
 ## What's next
 

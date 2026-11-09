@@ -130,8 +130,9 @@ off. Each default stays documented in the field's description.
 ### `publicVariables` on 4.x
 
 4.x accepts `publicVariables` on the config, a spec, and a test, in the shape 5.0 reads. A user can
-then act on the masking row before upgrading. 4.x doesn't mask values, so the key has no effect until
-5.0, and its description says so. Specs accept unknown keys already. Declaring it there gives a
+then act on the masking row before upgrading. 4.x doesn't mask values, so the key has no effect yet.
+Its schema description says only what 4.x does, because interfaces describe the present. The upgrade
+guide explains what 5.0 does with it. Specs accept unknown keys already. Declaring it there gives a
 malformed value the error it gets on 5.0.
 
 ### Release wiring and major-release guard
