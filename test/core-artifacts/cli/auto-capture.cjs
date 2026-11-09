@@ -116,8 +116,8 @@ const cases = {
   },
   // Both HTML copies show the automatic media: the run folder's
   // testResults.html and the html reporter's copy in outputDir each point at
-  // every automatic screenshot and the context's MP4 through their
-  // REPORT_MEDIA_BASE.
+  // every automatic screenshot and the context's MP4 through the hrefs in their
+  // dd-report-view.
   "html-media": {
     spec: uiSpec("hm", "chrome"),
     args: ["-r", "html"],
@@ -132,11 +132,10 @@ const cases = {
       check(media.length === uiSteps.length + 1 && media.every(Boolean), "there are automatic screenshots and a recording");
       for (const file of copies) {
         const html = fs.readFileSync(file, "utf8");
-        const base = JSON.parse(/window\.REPORT_MEDIA_BASE = ("[^"]*");/.exec(html)?.[1] ?? "null");
-        check(typeof base === "string", `${path.basename(file)} sets REPORT_MEDIA_BASE`);
+        const hrefs = JSON.parse(/<script id="dd-report-view" type="application\/json">(.*?)<\/script>/s.exec(html)?.[1] ?? "{}").hrefs ?? {};
         for (const rel of media.filter(Boolean)) {
-          const resolved = path.join(path.dirname(file), base ?? "", rel);
-          check(fs.existsSync(resolved), `${path.basename(file)} resolves ${rel}`);
+          const resolved = path.join(path.dirname(file), decodeURIComponent(hrefs[rel] ?? ""));
+          check(hrefs[rel] && fs.existsSync(resolved), `${path.basename(file)} resolves ${rel}`);
         }
       }
     },

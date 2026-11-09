@@ -1,0 +1,58 @@
+{
+  "specId": "reporter-parity",
+  "description": "Every reporter names the same items, ID paths, and reasons (ADR 01180), through the real CLI. A reporter only runs after every spec in its own run finishes, so each test runs one case of reporter-parity.cjs, which runs a nested doc-detective in .tmp/frp/<case>/ and checks what each reporter wrote. The mixed case browses the 8092 test server in headless Chrome.",
+  "tests": [
+    {
+      "testId": "parity-mixed-results",
+      "description": "Headless Chrome with one passing test, one failing find, and one test that runOn skips: terminal, JUnit, Markdown, and both HTML copies name the same failing and skipped ID paths, and each one's media resolve from where the file sits.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/reporters/reporter-parity.cjs parity-mixed-results",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "parity-json-stdout",
+      "description": "--json -r junit,markdown,html: stdout parses as JSON, and stderr has the three announcement lines.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/reporters/reporter-parity.cjs parity-json-stdout",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "parity-no-run-folder",
+      "description": "--no-auto-screenshot --no-auto-record -r junit,markdown: no run folder, so no [[ATTACHMENT| lines and no Run artifacts line.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/reporters/reporter-parity.cjs parity-no-run-folder",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "parity-quiet",
+      "description": "-l warning -r junit: no JUnit report: line, and junit.xml exists.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/reporters/reporter-parity.cjs parity-quiet",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    }
+  ]
+}

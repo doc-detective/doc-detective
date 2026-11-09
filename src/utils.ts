@@ -9,11 +9,13 @@ import {
   getRunOutputDir,
   loadAxios,
   redactUrlForOutput,
+  reportOutputDir,
   summarizeSchemaErrors,
   timestamp,
 } from "./core/utils.js";
 import { checkEnvAliases, envFlag, isDebugRequested, setEnvWarningSink, warnOnce } from "./envFlag.js";
-import { splitList } from "./cliOptions.js";
+import { REPORTER_NAMES, splitList } from "./cliOptions.js";
+import { environmentLine, nonPassItems, writeReport } from "./reporters/model.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -613,41 +615,7 @@ async function setConfig({
   return config;
 }
 
-// Resolve the directory the runFolder reporter's `.doc-detective/` archive
-// root sits under, from its `output`. `output` is normally a directory, but
-// the reporter also accepts a file path (e.g. `results.json`), in which case
-// the run folder belongs *beside* the file, not inside it.
-//
-// A report-file extension (`.json`/`.html`/`.htm`/`.xml`/`.md`) always
-// resolves to the parent, matching getRunOutputDir exactly — even for an
-// existing directory oddly named `reports.json` — so the archive root never
-// diverges from the stamped runDir (a divergence would reject the stamp and
-// break runId/runDir correlation with autoScreenshot). Any other path is then
-// resolved by real filesystem type: an existing file (any extension) archives
-// beside it, an existing or not-yet-created directory (including a dotted name
-// like `reports.v1`) archives inside it.
-//
-// `.xml`/`.md` joined the list when the junit and markdown reporters landed;
-// getRunOutputDir carries the same two so the three resolvers stay in
-// agreement (see the note on the list below).
-function runFolderBaseDir(output: any): string {
-  const base = String(output ?? ".") || ".";
-  // Must match the lists in getRunOutputDir (src/core/utils.ts) and
-  // reportOutputDir (src/reporters/outputDir.ts). If `.xml`/`.md` were missing
-  // here, `--output junit.xml --reporters runFolder junit` would have the
-  // junit reporter write the file while this resolver tried to create a
-  // directory of the same name — concurrently, under Promise.all.
-  const reportFileExtensions = [".json", ".html", ".htm", ".xml", ".md"];
-  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
-    return path.dirname(base);
-  }
-  try {
-    return fs.statSync(base).isDirectory() ? base : path.dirname(base);
-  } catch {
-    // Not created yet — treat as a directory (matches getRunOutputDir).
-    return base;
-  }
-}
+const TERMINAL_RULE = "===============================";
 
 // Internal reporters
 const reporters: Record<string, (config: any, outputPath: any, results: any, options: any) => Promise<any>> = {
@@ -692,59 +660,20 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
   },
 
   jsonReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
-    // Define supported output extensions
-    const outputExtensions = [".json"];
-
-    // Normalize output path
-    outputPath = path.resolve(outputPath);
-
     // Reuse the results JSON serialized once by outputResults when present
     // (byte-identical to serializing `results` here); fall back for direct
     // callers that don't pass it.
-    const data =
+    const render = () =>
       typeof options.resultsJson === "string"
         ? options.resultsJson
         : JSON.stringify(results, null, 2);
-    let outputFile = "";
-    let outputDir = "";
-    let reportType = "doc-detective-results";
-    if (options.command) {
-      if (options.command === "runTests") {
-        reportType = "testResults";
-      }
-    }
-
-    // Detect if output ends with a supported extension
-    if (outputExtensions.some((ext) => outputPath.endsWith(ext))) {
-      outputDir = path.dirname(outputPath);
-      outputFile = outputPath;
-      // If outputFile already exists, add a counter to the filename
-      if (fs.existsSync(outputFile)) {
-        let counter = 0;
-        while (fs.existsSync(outputFile.replace(".json", `-${counter}.json`))) {
-          counter++;
-        }
-        outputFile = outputFile.replace(".json", `-${counter}.json`);
-      }
-    } else {
-      outputDir = outputPath;
-      outputFile = path.resolve(outputDir, `${reportType}-${results?.runId ?? timestamp()}.json`);
-    }
-
-    try {
-      // Create output directory if it doesn't exist
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-      }
-
-      // Write results to output file
-      fs.writeFileSync(outputFile, data);
-      log(`Results: ${displayPath(outputFile)}`, "info", config);
-      return outputFile;
-    } catch (err) {
-      console.error(`Error writing results to ${outputFile}. ${err}`);
-      return null;
-    }
+    const reportType = options.command === "runTests" ? "testResults" : "doc-detective-results";
+    // A path you name is overwritten, and a name Doc Detective picks is unique per
+    // run (ADR 01180). A run whose filter matched nothing has no runId.
+    const outputFile = /\.json$/i.test(String(outputPath ?? ""))
+      ? path.resolve(outputPath)
+      : path.resolve(reportOutputDir(outputPath), `${reportType}-${results?.runId ?? timestamp()}.json`);
+    return writeReport("Results", outputFile, render, config);
   },
 
   // runFolder reporter: archives each run's results in its per-run artifact
@@ -766,7 +695,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     // Resolve the output to a base directory once (file paths → parent), then
     // both the confinement root and the fresh-folder fallback below derive
     // from the same base, so a file-path output archives beside the file.
-    const baseDir = runFolderBaseDir(outputPath || config.output || ".");
+    const baseDir = reportOutputDir(outputPath || config.output);
     const expectedRunsRoot = path.resolve(baseDir, ".doc-detective", "runs");
     const stampedRunDir =
       typeof results?.runDir === "string" && results.runDir.length > 0
@@ -815,42 +744,19 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     // JSON outputResults already serialized. When we rewrote runId/runDir into a
     // fresh copy, that object differs from `results`, so serialize it directly —
     // keeping the written file byte-identical to before this optimization.
-    const persistedJson =
+    const renderJson = () =>
       useStampedRunDir && typeof options.resultsJson === "string"
         ? options.resultsJson
         : JSON.stringify(persistedResults, null, 2);
     const outputFile = path.resolve(runDir, `${reportType}.json`);
-
-    try {
-      fs.mkdirSync(runDir, { recursive: true });
-      fs.writeFileSync(outputFile, persistedJson);
-
-      // Archive a human-readable HTML report beside the JSON, so the run folder
-      // is a complete shareable artifact without the standalone `html` reporter.
-      // Best-effort and isolated: an HTML failure must not break the JSON
-      // archive (this reporter's primary contract). Dynamic import keeps the
-      // large inlined CSS/JS off the hot path, matching htmlReporter.
-      const htmlFile = path.resolve(runDir, `${reportType}.html`);
-      try {
-        const { buildHtml } = await import("./reporters/htmlReporter.js");
-        fs.writeFileSync(htmlFile, buildHtml(persistedResults, { htmlDir: runDir }));
-        log(`Run report: ${displayPath(htmlFile)}`, "info", config);
-      } catch (htmlErr) {
-        // Pass the error as a separate arg so its stack survives (string
-        // interpolation would flatten it, e.g. to "[object Object]").
-        console.error(
-          `Error writing per-run HTML report to ${htmlFile}.`,
-          htmlErr
-        );
-      }
-
-      log(`Run results: ${displayPath(outputFile)}`, "info", config);
-
-      return outputFile;
-    } catch (err) {
-      console.error(`Error writing results to ${outputFile}. ${err}`);
-      return null;
-    }
+    // A human-readable HTML report beside the JSON, so the run folder is a complete
+    // shareable artifact without the standalone `html` reporter. writeReport never
+    // throws, so a failed HTML write can't cost the JSON archive. Dynamic import
+    // keeps the large inlined CSS/JS off the hot path, matching htmlReporter.
+    const htmlFile = path.resolve(runDir, `${reportType}.html`);
+    const { buildHtml } = await import("./reporters/htmlReporter.js");
+    writeReport("Run report", htmlFile, () => buildHtml(persistedResults, htmlFile), config);
+    return writeReport("Run results", outputFile, renderJson, config);
   },
 
   // Terminal reporter: outputs a summary to the terminal
@@ -894,55 +800,30 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       return;
     }
 
-    // Handle results that have a summary section
+    console.log(TERMINAL_RULE);
     if (results.summary) {
-      // Extract summary data
       const { specs, tests, contexts, steps } = results.summary;
+      const totalOf = (c: any) => (c?.pass ?? 0) + (c?.fail ?? 0) + (c?.warning ?? 0) + (c?.skipped ?? 0);
 
-      // Calculate totals
-      const totalSpecs = specs
-        ? specs.pass + specs.fail + specs.warning + specs.skipped
-        : 0;
-      const totalTests = tests
-        ? tests.pass + tests.fail + tests.warning + tests.skipped
-        : 0;
-      const totalContexts = contexts
-        ? contexts.pass + contexts.fail + contexts.warning + contexts.skipped
-        : 0;
-      const totalSteps = steps
-        ? steps.pass + steps.fail + steps.warning + steps.skipped
-        : 0;
-
-      // Any failures overall?
-      const hasFailures =
-        (specs && specs.fail > 0) ||
-        (tests && tests.fail > 0) ||
-        (contexts && contexts.fail > 0) ||
-        (steps && steps.fail > 0);
-
-      // Any skipped overall?
-      const allSpecsSkipped =
-        specs && specs.pass === 0 && specs.fail === 0 && specs.skipped > 0;
-
-      const summaryLine = (label: string, counts: any, total: number) => {
+      const summaryLine = (label: string, counts: any) => {
         if (!counts) return;
+        const { pass = 0, fail = 0, warning = 0, skipped = 0 } = counts;
         const parts = [
-          `${total} total`,
-          `${counts.pass > 0 ? colors.green : ""}${counts.pass} passed${counts.pass > 0 ? colors.reset : ""}`,
-          `${counts.fail > 0 ? colors.red : ""}${counts.fail} failed${counts.fail > 0 ? colors.reset : ""}`,
+          `${totalOf(counts)} total`,
+          `${pass > 0 ? colors.green : ""}${pass} passed${pass > 0 ? colors.reset : ""}`,
+          `${fail > 0 ? colors.red : ""}${fail} failed${fail > 0 ? colors.reset : ""}`,
         ];
-        if (counts.warning > 0) parts.push(`${colors.yellow}${counts.warning} warnings${colors.reset}`);
-        if (counts.skipped > 0) parts.push(`${colors.yellow}${counts.skipped} skipped${colors.reset}`);
+        if (warning > 0) parts.push(`${colors.yellow}${warning} warnings${colors.reset}`);
+        if (skipped > 0) parts.push(`${colors.yellow}${skipped} skipped${colors.reset}`);
         console.log(`${colors.bold}${label}${colors.reset} ${parts.join(", ")}`);
       };
-      console.log("");
-      summaryLine("Specs:   ", specs, totalSpecs);
-      summaryLine("Tests:   ", tests, totalTests);
-      summaryLine("Contexts:", contexts, totalContexts);
-      summaryLine("Steps:   ", steps, totalSteps);
+      summaryLine("Specs:   ", specs);
+      summaryLine("Tests:   ", tests);
+      summaryLine("Contexts:", contexts);
+      summaryLine("Steps:   ", steps);
 
       // If all specs were skipped, call it out
-      if (allSpecsSkipped) {
+      if (specs && specs.pass === 0 && specs.fail === 0 && specs.skipped > 0) {
         console.log(
           `\n${colors.yellow}${warningMark}All items were skipped. No specs passed or failed.${colors.reset}`
         );
@@ -952,236 +833,42 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       // input matched, no tests detected, etc.), surface that as a warning
       // rather than letting the green "Passed: 0" line read like success.
       // The run still exits 0 — this is an empty run, not a failure.
-      if (totalTests === 0) {
+      if (totalOf(tests) === 0) {
         printNoTestsWarning();
       }
 
-      // If we have specs with failures, display them
-      if (results.specs && hasFailures) {
-        console.log(
-          `\n${colors.bold}${colors.red}Failed Items:${colors.reset}`
-        );
-
-        // Collect failures
-        const failedSpecs: any[] = [];
-        const failedTests: any[] = [];
-        const failedContexts: any[] = [];
-        const failedSteps: any[] = [];
-
-        // Collect skipped
-        const skippedSpecs: any[] = [];
-        const skippedTests: any[] = [];
-        const skippedContexts: any[] = [];
-        const skippedSteps: any[] = [];
-
-        // Process specs array to collect failures and skipped
-        results.specs.forEach((spec: any, specIndex: any) => {
-          // Check if spec has failed
-          if (spec.result === "FAIL") {
-            failedSpecs.push({
-              index: specIndex,
-              id: spec.specId || `Spec ${specIndex + 1}`,
-            });
-          }
-          // Check if spec was skipped
-          if (spec.result === "SKIPPED") {
-            skippedSpecs.push({
-              index: specIndex,
-              id: spec.specId || `Spec ${specIndex + 1}`,
-            });
-          }
-
-          // Process tests in this spec
-          if (spec.tests && spec.tests.length > 0) {
-            spec.tests.forEach((test: any, testIndex: any) => {
-              // Check if test has failed
-              if (test.result === "FAIL") {
-                failedTests.push({
-                  specIndex,
-                  testIndex,
-                  specId: spec.specId || `Spec ${specIndex + 1}`,
-                  id: test.testId || `Test ${testIndex + 1}`,
-                });
-              }
-              // Check if test was skipped
-              if (test.result === "SKIPPED") {
-                skippedTests.push({
-                  specIndex,
-                  testIndex,
-                  specId: spec.specId || `Spec ${specIndex + 1}`,
-                  id: test.testId || `Test ${testIndex + 1}`,
-                });
-              }
-
-              // Process contexts in this test
-              if (test.contexts && test.contexts.length > 0) {
-                test.contexts.forEach((context: any, contextIndex: any) => {
-                  // Check if context has failed
-                  if (
-                    context.result === "FAIL" ||
-                    (context.result && context.result.status === "FAIL")
-                  ) {
-                    failedContexts.push({
-                      specIndex,
-                      testIndex,
-                      contextIndex,
-                      specId: spec.specId || `Spec ${specIndex + 1}`,
-                      testId: test.testId || `Test ${testIndex + 1}`,
-                      platform: context.platform || "unknown",
-                      browser: context.browser
-                        ? context.browser.name
-                        : "unknown",
-                    });
-                  }
-                  // Check if context was skipped
-                  if (
-                    context.result === "SKIPPED" ||
-                    (context.result && context.result.status === "SKIPPED")
-                  ) {
-                    skippedContexts.push({
-                      specIndex,
-                      testIndex,
-                      contextIndex,
-                      specId: spec.specId || `Spec ${specIndex + 1}`,
-                      testId: test.testId || `Test ${testIndex + 1}`,
-                      platform: context.platform || "unknown",
-                      browser: context.browser
-                        ? context.browser.name
-                        : "unknown",
-                    });
-                  }
-
-                  // Process steps in this context
-                  if (context.steps && context.steps.length > 0) {
-                    context.steps.forEach((step: any, stepIndex: any) => {
-                      // Check if step has failed
-                      if (step.result === "FAIL") {
-                        failedSteps.push({
-                          specIndex,
-                          testIndex,
-                          contextIndex,
-                          stepIndex,
-                          specId: spec.specId || `Spec ${specIndex + 1}`,
-                          testId: test.testId || `Test ${testIndex + 1}`,
-                          platform: context.platform || "unknown",
-                          browser: context.browser
-                            ? context.browser.name
-                            : "unknown",
-                          stepId: step.stepId || `Step ${stepIndex + 1}`,
-                          error: step.resultDescription || "Unknown error",
-                        });
-                      }
-                      // Check if step was skipped
-                      if (step.result === "SKIPPED") {
-                        skippedSteps.push({
-                          specIndex,
-                          testIndex,
-                          contextIndex,
-                          stepIndex,
-                          specId: spec.specId || `Spec ${specIndex + 1}`,
-                          testId: test.testId || `Test ${testIndex + 1}`,
-                          platform: context.platform || "unknown",
-                          browser: context.browser
-                            ? context.browser.name
-                            : "unknown",
-                          stepId: step.stepId || `Step ${stepIndex + 1}`,
-                        });
-                      }
-                    });
-                  }
-                });
-              }
-            });
-          }
+      // The same items, in the same order, as every other reporter (ADR 01180).
+      const items = nonPassItems(results);
+      for (const [status, heading, color] of [
+        ["FAIL", "Failed", colors.red],
+        ["WARNING", "Warnings", colors.yellow],
+        ["SKIPPED", "Skipped", colors.yellow],
+      ]) {
+        const listed = items.filter((item) => item.status === status);
+        if (listed.length === 0) continue;
+        console.log(`\n${colors.bold}${color}${heading} (${listed.length}):${colors.reset}`);
+        listed.forEach((item, index) => {
+          console.log(`${color}${index + 1}. ${item.idPath}${item.description ? ` — ${item.description}` : ""}${colors.reset}`);
+          const details = [
+            item.reason,
+            item.hint && `Hint: ${item.hint}`,
+            item.screenshot && `Screenshot: ${item.screenshot}`,
+            item.recording && `Recording: ${item.recording}`,
+            item.skippedNote,
+          ];
+          for (const line of details.filter(Boolean)) console.log(`   ${line}`);
         });
-
-        // Display failures
-        if (failedSpecs.length > 0) {
-          console.log(`\n${colors.red}Failed Specs:${colors.reset}`);
-          failedSpecs.forEach((item, i) => {
-            console.log(`${colors.red}${i + 1}. ${item.id}${colors.reset}`);
-          });
-        }
-
-        if (failedTests.length > 0) {
-          console.log(`\n${colors.red}Failed Tests:${colors.reset}`);
-          failedTests.forEach((item, i) => {
-            console.log(
-              `${colors.red}${i + 1}. ${item.id} (from ${item.specId})${
-                colors.reset
-              }`
-            );
-          });
-        }
-
-        if (failedContexts.length > 0) {
-          console.log(`\n${colors.red}Failed Contexts:${colors.reset}`);
-          failedContexts.forEach((item, i) => {
-            console.log(
-              `${colors.red}${i + 1}. ${item.platform}/${item.browser} (from ${
-                item.testId
-              })${colors.reset}`
-            );
-          });
-        }
-
-        if (failedSteps.length > 0) {
-          console.log(`\n${colors.red}Failed Steps:${colors.reset}`);
-          failedSteps.forEach((item, i) => {
-            console.log(
-              `${colors.red}${i + 1}. ${item.platform}/${item.browser} - ${
-                item.stepId
-              }${colors.reset}`
-            );
-            console.log(`   Error: ${item.error}`);
-          });
-        }
-
-        // Display skipped items in yellow
-        if (skippedSpecs.length > 0) {
-          console.log(`\n${colors.yellow}Skipped Specs:${colors.reset}`);
-          skippedSpecs.forEach((item, i) => {
-            console.log(`${colors.yellow}${i + 1}. ${item.id}${colors.reset}`);
-          });
-        }
-        if (skippedTests.length > 0) {
-          console.log(`\n${colors.yellow}Skipped Tests:${colors.reset}`);
-          skippedTests.forEach((item, i) => {
-            console.log(
-              `${colors.yellow}${i + 1}. ${item.id} (from ${item.specId})${
-                colors.reset
-              }`
-            );
-          });
-        }
-        if (skippedContexts.length > 0) {
-          console.log(`\n${colors.yellow}Skipped Contexts:${colors.reset}`);
-          skippedContexts.forEach((item, i) => {
-            console.log(
-              `${colors.yellow}${i + 1}. ${item.platform}/${
-                item.browser
-              } (from ${item.testId})${colors.reset}`
-            );
-          });
-        }
-        if (skippedSteps.length > 0) {
-          console.log(`\n${colors.yellow}Skipped Steps:${colors.reset}`);
-          skippedSteps.forEach((item, i) => {
-            console.log(
-              `${colors.yellow}${i + 1}. ${item.platform}/${item.browser} - ${
-                item.stepId
-              }${colors.reset}`
-            );
-          });
-        }
       }
+
+      const footer = environmentLine(results);
+      if (footer) console.log(`\n${footer}`);
     } else {
       console.log(
         "No tests were executed or results are in an unknown format."
       );
     }
 
-    console.log("\n===============================\n");
+    console.log(TERMINAL_RULE);
   },
 };
 
@@ -1332,14 +1019,10 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
       // String reference to built-in or registered reporter
       return reporters[reporter](config, outputPath, results, reporterOptions);
     } else if (typeof reporter === "string" && !reporters[reporter]) {
-      console.error(
-        `Reporter "${reporter}" not found. Available reporters: ${Object.keys(
-          reporters
-        ).join(", ")}`
-      );
+      log(`Couldn't find reporter \`${reporter}\`. Available reporters: ${REPORTER_NAMES.join(", ")}.`, "error", config);
       return Promise.resolve();
     } else {
-      console.error(`Invalid reporter: ${reporter}`);
+      log(`Couldn't use reporter \`${String(reporter)}\`: it isn't a name or a function.`, "error", config);
       return Promise.resolve();
     }
   });
