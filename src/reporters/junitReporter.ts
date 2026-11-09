@@ -66,6 +66,7 @@ function buildJunitXml(results: any, outputFile?: string): string {
     const addCase = (owner: any, name: string, description: any, result: any, durationMs: any, recording?: any) => {
       const own = items.filter((item) => item.owner === owner);
       const ofStatus = (status: string) => own.filter((item) => item.status === status);
+      // The first skip of a skipped case becomes its <skipped> message; the rest go to <system-out>.
       const [failed, warned, stepSkips] = [ofStatus("FAIL"), ofStatus("WARNING"), ofStatus("SKIPPED")];
       const body: string[] = [];
       const out: string[] = [];
@@ -83,8 +84,8 @@ function buildJunitXml(results: any, outputFile?: string): string {
             .filter(Boolean)
             .join("\n")
         );
-        const type = failed[0].code ? ` type="${esc(failed[0].code)}"` : "";
-        body.push(`<failure${type} message="${esc(failed[0].reason || failed[0].idPath)}">${esc(detail.join("\n"))}</failure>`);
+        const type = failed[0]?.code ? ` type="${esc(failed[0].code)}"` : "";
+        body.push(`<failure${type} message="${esc(failed[0]?.reason || failed[0]?.idPath)}">${esc(detail.join("\n"))}</failure>`);
       } else if (result === "SKIPPED") {
         skipped++;
         suiteSkipped++;
