@@ -326,7 +326,7 @@ describe("iosSimulator: planSimulatorAcquisition", function () {
       { devices: [], runtimes: [], deviceTypes: parseSimctlDeviceTypes(deviceTypesJson) }
     );
     assert.equal(plan.action, "skip");
-    assert.match(plan.reason, /no installed iOS simulator runtime/i);
+    assert.match(plan.reason, /^Skipped: no installed iOS simulator runtime/);
   });
 
   it("SKIPs naming the version when the requested osVersion runtime is missing", function () {
@@ -611,7 +611,7 @@ describe("iosSimulator: acquireSimulator + teardown", function () {
     });
     const result = await acquireSimulator({ desc: { platform: "ios" }, registry, deps });
     assert.ok("skip" in result);
-    assert.match(result.skip, /no installed iOS simulator runtime/i);
+    assert.match(result.skip, /^Skipped: no installed iOS simulator runtime/);
   });
 
   it("reuses a named device already acquired this run without re-probing", async function () {

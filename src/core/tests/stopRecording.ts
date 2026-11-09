@@ -95,7 +95,7 @@ async function endRecording({
   // value here rather than in the schema (the boolean form stays valid).
   if (stopRecord === false) {
     result.status = "SKIPPED";
-    result.description = "Recording stop is disabled (stopRecord: false).";
+    result.description = "Skipped: `stopRecord` is `false`.";
     return result;
   }
 
@@ -137,13 +137,13 @@ async function endRecording({
     result.status = "SKIPPED";
     const target = stopRecordTargetName(stopRecord);
     if (target !== undefined) {
-      result.description = `No active recording named '${target}'.`;
+      result.description = `Skipped: no active recording named \`${target}\`.`;
     } else if (recordings.length > 0) {
       // An untargeted stop found only the synthetic autoRecord recording, which
-      // it deliberately skips — say so rather than the misleading "isn't started".
-      result.description = `No user-stoppable recording is active; an automatic (autoRecord) recording is still running and stops at the end of the context.`;
+      // it deliberately skips — say so rather than the misleading "no recording is active".
+      result.description = `Skipped: no user-stoppable recording is active. An automatic (\`autoRecord\`) recording is still running and stops at the end of the context.`;
     } else {
-      result.description = `Recording isn't started.`;
+      result.description = `Skipped: no recording is active.`;
     }
     return result;
   }
@@ -185,8 +185,8 @@ async function endRecording({
     // one, an existing target needs `overwrite` (or the file removed).
     const skipCause =
       recording.skipReason === "targetExists"
-        ? `Recording skipped (the target already exists)`
-        : `Recording skipped (headless)`;
+        ? `Skipped: the recording's target already exists`
+        : `Skipped: the headless context wasn't recorded`;
     const refreshRemedy =
       recording.skipReason === "targetExists"
         ? `Delete it, or set \`overwrite\` to "true" or "aboveVariation", to refresh it.`
@@ -228,12 +228,12 @@ async function endRecording({
       // An environment gap (missing host ffmpeg) is a gated SKIP; anything
       // else is a real start failure.
       result.status = recording.startSkip ? "SKIPPED" : "FAIL";
-      result.description = recording.startError;
+      result.description = recording.startSkip ? `${recording.startError.replace(/^Couldn't/, "Skipped: couldn't").replace(/\.\s*$/, "")}.` : recording.startError;
       return result;
     }
     result.status = "SKIPPED";
     result.description =
-      "The device recording never started (no app surface opened a device session), so there is nothing to save.";
+      "Skipped: the device recording never started (no app surface opened a device session), so there's nothing to save.";
     return result;
   }
 

@@ -362,7 +362,7 @@ describe("contextRequirementsSkipMessage", function () {
       context: { platform: "mac", requires: "claude" },
       deps: nothing,
     });
-    assert.match(message, /command "claude"/);
+    assert.match(message, /command `claude`/);
   });
 });
 

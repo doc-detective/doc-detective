@@ -3732,7 +3732,7 @@ async function prepareTestPreflight({
     log(
       config,
       "warning",
-      `Skipping test '${test.testId}': recording name '${recordingNameConflict}' is reused while a recording with that name is still active. Names must be unique among recordings that overlap in time.`
+      `Skipped: test \`${test.testId}\` reuses recording name \`${recordingNameConflict}\` while a recording with that name is still active. Names must be unique among recordings that overlap in time.`
     );
   }
   // Track contextIds within this test so the deterministic fallback can suffix
@@ -3864,7 +3864,7 @@ function prepareContextSlot({
         platform: context.platform,
         browser: context.browser,
         result: "SKIPPED",
-        resultDescription: `Skipped — recording name '${recordingNameConflict}' is reused while still active; names must be unique among overlapping recordings.`,
+        resultDescription: `Skipped: recording name \`${recordingNameConflict}\` is reused while a recording with that name is still active. Names must be unique among recordings that overlap in time.`,
         steps: [],
       },
     };
@@ -5248,7 +5248,7 @@ async function runContext({
     // the failure wording (the only way execution stopped before routing); a
     // non-failure routing `stop` (e.g. onPass/onSkip stop) overwrites it with an
     // accurate message so a passing step's stop isn't mislabeled as a failure.
-    let stopReason = "Skipped due to previous failure in context.";
+    let stopReason = "Skipped: a prior step failed.";
     const usedStepIds = new Set(
       context.steps.map((s: any) => s.stepId).filter(Boolean)
     );
@@ -5340,7 +5340,7 @@ async function runContext({
       if (decision.action === "stop") {
         stepExecutionFailed = true;
         stopReason =
-          "Skipped because a prior step stopped execution (routing).";
+          "Skipped: a prior step stopped execution (routing).";
         return false;
       }
       if (decision.action === "goToStep") {
@@ -5357,7 +5357,7 @@ async function runContext({
             resultDescription: `Routing goToStep target '${decision.stepId}' does not exist.`,
           });
           stepExecutionFailed = true;
-          stopReason = `Skipped because routing goToStep target '${decision.stepId}' does not exist.`;
+          stopReason = `Skipped: routing \`goToStep\` target \`${decision.stepId}\` doesn't exist.`;
           return false;
         }
         i = target; // JUMP (no stepExecutionFailed — flow != verdict)
@@ -5398,13 +5398,13 @@ async function runContext({
       if (step.unsafe && runnerDetails.allowUnsafeSteps === false) {
         clog(
           "warning",
-          `Skipping unsafe step: ${step.description} in test ${test.testId} context ${context.contextId}`
+          `Skipped: unsafe step \`${step.stepId}\` in test \`${test.testId}\`, context \`${context.contextId}\`.`
         );
         // Mark as skipped
         const stepReport = {
           ...step,
           result: "SKIPPED",
-          resultDescription: "Skipped because unsafe steps aren't allowed. Pass --allow-unsafe to run them.",
+          resultDescription: "Skipped: unsafe steps aren't allowed. Pass `--allow-unsafe` to run them.",
         };
         pushStepReport(stepReport);
         // onSkip fires only for a REACHED step. The unsafe check precedes the
@@ -5677,12 +5677,12 @@ async function runContext({
       // cleanup steps; its FAIL still counts in the rollup so failures surface.
       if (routingDecision.action === "stop" && !step._fromAfter) {
         stepExecutionFailed = true;
-        // Preserve the historical wording when a FAIL stops the test (the
+        // Name the failure when a FAIL stops the test (the
         // default onFail:stop); otherwise record that routing stopped it.
         stopReason =
           stepReport.result === "FAIL"
-            ? "Skipped due to previous failure in context."
-            : "Skipped because a prior step stopped execution (routing).";
+            ? "Skipped: a prior step failed."
+            : "Skipped: a prior step stopped execution (routing).";
         i++;
       } else if (routingDecision.action === "goToStep") {
         const target = indexByStepId.get(routingDecision.stepId);
@@ -5699,7 +5699,7 @@ async function runContext({
             resultDescription: `Routing goToStep target '${routingDecision.stepId}' does not exist.`,
           });
           stepExecutionFailed = true;
-          stopReason = `Skipped because routing goToStep target '${routingDecision.stepId}' does not exist.`;
+          stopReason = `Skipped: routing \`goToStep\` target \`${routingDecision.stepId}\` doesn't exist.`;
           i++;
         } else {
           i = target; // JUMP (no stepExecutionFailed — flow != verdict)

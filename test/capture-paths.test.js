@@ -124,7 +124,7 @@ describe("capture paths", function () {
         driver: {},
       });
       assert.equal(result.status, "SKIPPED");
-      assert.equal(result.description, `File already exists: ${target}`);
+      assert.equal(result.description, `Skipped: file already exists at \`${target}\`. Set \`overwrite\` to \`true\` to replace it.`);
     });
   }
 
@@ -139,7 +139,7 @@ describe("capture paths", function () {
       step: runnerStep({ stepId: "demo", record: "sub/demo.mp4" }, config),
       driver: {},
     });
-    assert.equal(result.description, `File already exists: ${target}`);
+    assert.equal(result.description, `Skipped: file already exists at \`${target}\`. Set \`overwrite\` to \`true\` to replace it.`);
   });
 
   // The normalizer names a capture for its step, so a step with neither a

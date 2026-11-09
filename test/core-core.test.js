@@ -121,7 +121,7 @@ describe("Run tests successfully", function () {
       assert.ok(unmet.contexts.length > 0, "gate-unmet resolved no contexts");
       for (const ctx of unmet.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /unmet requirements/);
+        assert.match(ctx.resultDescription, /^Skipped: this context's `requires` aren't met on /);
         assert.match(ctx.resultDescription, /doc-detective-no-such-binary-xyz/);
       }
       assert.equal(unmet.result, "SKIPPED");
@@ -1073,7 +1073,7 @@ describe("Run tests successfully", function () {
       assert.equal(result.summary.specs.skipped, 1);
       assert.equal(result.summary.specs.pass, 0);
       assert.equal(result.summary.contexts.skipped, 1);
-      // Also verify the actual test result
+      assert.match(result.specs[0].tests[0].contexts[0].resultDescription, /^Skipped: this context targets a different platform than `(windows|mac|linux)`\.$/);
       assert.equal(result.specs[0].result, "SKIPPED");
       assert.equal(result.specs[0].tests[0].result, "SKIPPED");
       assert.equal(result.specs[0].tests[0].contexts[0].result, "SKIPPED");
@@ -1147,7 +1147,7 @@ describe("Run tests successfully", function () {
       assert.equal(ctx.result, "SKIPPED");
       assert.match(
         ctx.resultDescription,
-        /recording name 'dup'/,
+        /^Skipped: recording name `dup` is reused/,
         `expected the skip reason to name the conflict, got: ${ctx.resultDescription}`
       );
     } finally {
@@ -2254,7 +2254,7 @@ describe("getRunner() function", function () {
     // NO routing. Step 1 fails -> the test stops (default onFail). Step 2 is
     // unsafe AND carries onSkip:[{stop:'test'}]; because it is downstream of the
     // stop its onSkip must NOT fire. Proof: step 3's skip reason stays the
-    // original failure reason ("previous failure"), not the routing reason — if
+    // original failure reason ("a prior step failed"), not the routing reason — if
     // step 2's onSkip had fired it would have overwritten the stop reason.
     const t = {
       tests: [
@@ -2290,7 +2290,7 @@ describe("getRunner() function", function () {
       // Step 3: still carries the ORIGINAL failure stop reason — proving step 2's
       // onSkip never fired (it would have rewritten the reason to "...routing").
       assert.equal(steps[2].result, "SKIPPED");
-      assert.match(steps[2].resultDescription, /previous failure/);
+      assert.equal(steps[2].resultDescription, "Skipped: a prior step failed.");
       assert.doesNotMatch(steps[2].resultDescription, /routing/);
     } finally {
       fs.unlinkSync(tempFilePath);
@@ -2407,7 +2407,7 @@ describe("getRunner() function", function () {
       assert.equal(steps[0].result, "FAIL");
       assert.equal(steps[0].attempts, 3); // 1 initial + 2 retries
       assert.equal(steps[1].result, "SKIPPED"); // default stop after exhaustion
-      assert.match(steps[1].resultDescription, /previous failure/);
+      assert.equal(steps[1].resultDescription, "Skipped: a prior step failed.");
     } finally {
       fs.unlinkSync(tempFilePath);
     }
@@ -2567,7 +2567,7 @@ describe("getRunner() function", function () {
       assert.equal(steps[1].result, "FAIL");
       assert.match(steps[1].resultDescription, /does not exist/);
       assert.equal(steps[2].result, "SKIPPED");
-      assert.match(steps[2].resultDescription, /does not exist/);
+      assert.equal(steps[2].resultDescription, "Skipped: routing `goToStep` target `nope` doesn't exist.");
       // A typo'd goToStep must NOT silently report green.
       assert.equal(result.specs[0].tests[0].result, "FAIL");
       assert.equal(result.summary.specs.fail, 1);

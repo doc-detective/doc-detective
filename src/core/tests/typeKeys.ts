@@ -408,7 +408,7 @@ async function typeKeys({
   // Skip if no keys to type
   if (!step.type.keys.length) {
     result.status = "SKIPPED";
-    result.description = "No keys to type.";
+    result.description = "Skipped: no keys to type.";
     return result;
   }
 

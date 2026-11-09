@@ -64,6 +64,8 @@ const cases = {
       const reason = contextOf("fails").steps[1].resultDescription;
       const verdict = "1 of 3 tests failed (1 skipped).";
       check(contextOf("skips").result === "SKIPPED", `the runOn test skipped (${contextOf("skips").result})`);
+      const skipReason = contextOf("skips").resultDescription;
+      check(/^Skipped: .+\.$/.test(skipReason), `the skip reads \`Skipped: <reason>.\` (${skipReason})`);
 
       // Terminal.
       const out = lines(stdout);
@@ -72,6 +74,7 @@ const cases = {
       check(out.includes(`1. ${failing} — Find what isn't there`), `the terminal names ${failing}`);
       check(out.includes(`1. ${skipping} — Skips`), `the terminal names ${skipping}`);
       check(out.includes(`   ${reason}`), "the terminal gives the reason");
+      check(out.includes(`   ${skipReason}`), "the terminal gives the skip reason");
       check(out.includes("   1 more step skipped after the failure."), "the terminal gives the fold count");
       check(out.at(-2) === verdict, `the terminal ends with the verdict (${out.at(-2)})`);
       const screenshot = out.find((line) => line.startsWith("   Screenshot: "))?.slice("   Screenshot: ".length);

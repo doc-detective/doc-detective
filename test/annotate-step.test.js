@@ -160,7 +160,7 @@ describe("annotate step", function () {
       driver: undefined,
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /No browser session/);
+    assert.match(result.description, /^Skipped: no browser session/);
   });
 
   it("FAILs an invalid annotate payload", async function () {

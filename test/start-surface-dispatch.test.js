@@ -279,7 +279,7 @@ describe("startSurfaceStep: parallel array form", function () {
     const { deps } = stubDeps({
       processResult: {
         status: "SKIPPED",
-        description: "PTY background requires the optional `node-pty` dependency.",
+        description: "Skipped: PTY background requires the optional `node-pty` dependency.",
       },
     });
     const result = await startSurfaceStep({

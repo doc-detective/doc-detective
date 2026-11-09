@@ -179,7 +179,7 @@ describe("routing: evaluateCustomAssertions", function () {
     // stay SKIPPED, and the action stays SKIPPED.
     const passing = {
       status: "SKIPPED",
-      description: "Wait skipped.",
+      description: "Skipped: `wait` is `false`.",
       outputs: { x: 1 },
     };
     await evaluateCustomAssertions({
@@ -193,7 +193,7 @@ describe("routing: evaluateCustomAssertions", function () {
 
     const failing = {
       status: "SKIPPED",
-      description: "Wait skipped.",
+      description: "Skipped: `wait` is `false`.",
       outputs: { x: 1 },
     };
     await evaluateCustomAssertions({
