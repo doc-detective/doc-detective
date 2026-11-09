@@ -728,6 +728,27 @@ describe("elementImage matching", function () {
       expect(await found.element.getLocation()).to.deep.equal({ x: 40, y: 50 });
     });
 
+    it("image-combined: reads the other criteria's elements one at a time", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 40, y: 50 }] });
+      const driver = fakeDriver(shot, { dom: { x: 20, y: 30, width: 80, height: 80 } });
+      const [element] = await driver.$$();
+      driver.$$ = async () => [element, { ...element }, { ...element }];
+      const execute = driver.execute;
+      let reading = 0;
+      let most = 0;
+      driver.execute = async (fn, ...args) => {
+        if (!String(fn).includes("getBoundingClientRect")) return execute(fn, ...args);
+        most = Math.max(most, ++reading);
+        await new Promise((resolve) => setTimeout(resolve, 1));
+        reading--;
+        return { x: 20, y: 30, width: 80, height: 80 };
+      };
+      const found = await findElementByCriteria({ selector: "#box", elementImage: { base64: b64(svg) }, driver, timeout: 0 });
+      expect(found.error).to.equal(null);
+      expect(most).to.equal(1);
+    });
+
     it("image-combined: one replaced element doesn't discard the others, even with timeout 0", async function () {
       const svg = icon(GEAR, "#333333", 24);
       const shot = await page({ items: [{ svg, x: 40, y: 50 }] });

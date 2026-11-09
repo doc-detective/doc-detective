@@ -11,7 +11,7 @@ jobs:
     # No path filter, because a code change is what makes a pinned claim go stale.
     steps:
       - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Without history, manni reads a reflowed sentence as a changed one, and fails.
           fetch-depth: 0
