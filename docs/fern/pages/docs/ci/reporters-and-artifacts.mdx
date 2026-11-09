@@ -391,7 +391,7 @@ Outcomes are `warmed` (Doc Detective performed the work), `skipped` (nothing to 
 
 The `html` reporter writes a self-contained HTML report you can open in a browser, as `testResults-<runId>.html` in `outputDir`. The default run folder also holds a copy, named `testResults.html`.
 
-The report embeds the same results as the JSON file. A single file is therefore enough to share a run with someone who doesn't have Doc Detective installed.
+The report embeds the same results as the JSON file. A single file is therefore enough to share a run with someone who doesn't have Doc Detective installed. Its header shows the run's ID, start time, and duration. It also shows the Doc Detective and Node.js versions and the operating system.
 
 The report also shows the run's automatic screenshots and recordings. Each step's automatic screenshot appears in its media strip, labeled **Automatic**, after any screenshot the step took itself. Each context's automatic recording plays at the top of its section, labeled **Automatic recording**. The media work in both copies, because each file links to them from where it sits. The two copies are otherwise the same page.
 
