@@ -185,23 +185,25 @@ export function reportCrash(
   print(`This is a bug in Doc Detective. Report it: ${issue}`);
 }
 
+// One verdict for every reporter, counted at the test level (ADR 01180).
+export function verdict(summary: any): { status: string; label: string; text: string } {
+  const counts = summary?.tests ?? {};
+  const [pass, fail, warning, skipped] = [counts.pass || 0, counts.fail || 0, counts.warning || 0, counts.skipped || 0];
+  const total = pass + fail + warning + skipped;
+  const noun = total === 1 ? "test" : "tests";
+  const extras = [warning > 0 && `${warning} with warnings`, skipped > 0 && `${skipped} skipped`].filter(Boolean);
+  const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
+  if (total === 0) return { status: "none", label: "No tests ran", text: "No tests ran." };
+  if (fail > 0) return { status: "fail", label: "Failed", text: `${fail} of ${total} ${noun} failed${suffix}.` };
+  if (pass === 0 && warning === 0) return { status: "skipped", label: "Skipped", text: `All ${total} ${noun} skipped.` };
+  const text = `${pass + warning} of ${total} ${noun} passed${suffix}.`;
+  return warning > 0 ? { status: "warning", label: "Passed with warnings", text } : { status: "pass", label: "Passed", text };
+}
+
 // The last line of a run: what happened, in one line.
 export function verdictLine(results: any, stream: NodeJS.WriteStream = process.stdout): string {
   const colors = palette(stream);
-  const tests = results?.summary?.tests;
-  const total = tests ? tests.pass + tests.fail + tests.warning + tests.skipped : 0;
-  const noun = total === 1 ? "test" : "tests";
-  if (total === 0) return `${colors.yellow}No tests ran.${colors.reset}`;
-  if (tests.fail > 0) {
-    return `${colors.red}${tests.fail} of ${total} ${noun} failed.${colors.reset}`;
-  }
-  if (tests.pass === 0 && tests.warning === 0) {
-    return `${colors.yellow}All ${total} ${noun} skipped.${colors.reset}`;
-  }
-  const extras = [
-    tests.warning > 0 ? `${tests.warning} with warnings` : "",
-    tests.skipped > 0 ? `${tests.skipped} skipped` : "",
-  ].filter(Boolean);
-  const suffix = extras.length > 0 ? ` (${extras.join(", ")})` : "";
-  return `${colors.green}${tests.pass + tests.warning} of ${total} ${noun} passed${suffix}.${colors.reset}`;
+  const { status, text } = verdict(results?.summary);
+  const color = status === "fail" ? colors.red : status === "pass" || status === "warning" ? colors.green : colors.yellow;
+  return `${color}${text}${colors.reset}`;
 }

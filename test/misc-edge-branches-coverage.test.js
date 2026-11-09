@@ -1099,72 +1099,36 @@ describe("utils.ts — reporters and helpers edge branches", function () {
     assert.match(text, /filters excluded every spec\/test/);
   });
 
-  it("terminalReporter falls back to default ids/labels for SKIPPED items without ids/browser", async function () {
+  it("terminalReporter lists SKIPPED items without ids by position", async function () {
     const logStub = sinon.stub(console, "log");
-    // The detail lists only print when `hasFailures` is truthy, so include one
-    // FAIL step alongside SKIPPED items that lack ids / platform / browser — the
-    // latter drive the `spec.specId || 'Spec N'` (and friends) fallback branches.
     const results = {
       summary: {
-        specs: { pass: 0, fail: 1, warning: 0, skipped: 1 },
-        tests: { pass: 0, fail: 1, warning: 0, skipped: 1 },
-        contexts: { pass: 0, fail: 1, warning: 0, skipped: 1 },
-        steps: { pass: 0, fail: 1, warning: 0, skipped: 1 },
+        specs: { pass: 0, fail: 0, warning: 0, skipped: 1 },
+        tests: { pass: 0, fail: 0, warning: 0, skipped: 1 },
+        contexts: { pass: 0, fail: 0, warning: 0, skipped: 1 },
+        steps: { pass: 0, fail: 0, warning: 0, skipped: 1 },
       },
       specs: [
         {
-          // FAIL spec WITH an id (so a failure exists → detail lists render).
-          specId: "spec-has-fail",
-          result: "FAIL",
-          tests: [
-            {
-              testId: "test-has-fail",
-              result: "FAIL",
-              contexts: [
-                {
-                  result: "FAIL",
-                  platform: "linux",
-                  browser: { name: "chrome" },
-                  steps: [{ result: "FAIL", stepId: "step-has-fail" }],
-                },
-              ],
-            },
-          ],
-        },
-        {
-          // SKIPPED spec/test/context/step WITHOUT ids or browser → fallbacks.
           result: "SKIPPED",
-          tests: [
-            {
-              result: "SKIPPED",
-              contexts: [
-                {
-                  result: { status: "SKIPPED" }, // nested-status skipped, no platform/browser
-                  steps: [{ result: "SKIPPED" }],
-                },
-              ],
-            },
-          ],
+          tests: [{ result: "SKIPPED", contexts: [{ result: "SKIPPED", steps: [{ result: "SKIPPED" }] }] }],
         },
       ],
     };
     await reporters.terminalReporter({}, "out", results, {});
     const text = logStub.getCalls().map((c) => c.args.join(" ")).join("\n");
-    // Skipped fallbacks: the second spec/test/context/step carry no ids.
-    assert.match(text, /Spec 2/); // default spec id for the skipped spec
-    assert.match(text, /Test 1/); // default test id for the skipped test
-    assert.match(text, /unknown\/unknown/); // default platform/browser
-    assert.match(text, /Step 1/); // default step id for the skipped step
+    assert.match(text, /Skipped \(1\):/);
+    assert.match(text, /1\. spec 1 › test 1 › context 1 › step 1/);
   });
 
-  it("jsonReporter appends a counter when the target .json file already exists", async function () {
+  it("jsonReporter overwrites the target .json file when it already exists", async function () {
     const dir = mkTmp("dd-edge-json-");
     const file = path.join(dir, "results.json");
-    sinon.stub(console, "log");
+    sinon.stub(console, "error");
     const first = await reporters.jsonReporter({}, file, { a: 1 }, {});
     const second = await reporters.jsonReporter({}, file, { a: 2 }, {});
     assert.equal(first, file);
-    assert.match(second, /results-0\.json$/);
+    assert.equal(second, file);
   });
 
   it("setMeta merges an existing DOC_DETECTIVE_META and stamps distribution fields", function () {
