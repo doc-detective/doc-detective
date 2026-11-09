@@ -105,7 +105,7 @@
                             "base64": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                             },
                             "threshold": {
                               "type": "number",
@@ -154,7 +154,7 @@
                               "base64": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                               },
                               "threshold": {
                                 "type": "number",
@@ -408,7 +408,7 @@
                             "base64": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                             },
                             "threshold": {
                               "type": "number",
@@ -457,7 +457,7 @@
                               "base64": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                               },
                               "threshold": {
                                 "type": "number",
@@ -711,7 +711,7 @@
                             "base64": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                             },
                             "threshold": {
                               "type": "number",
@@ -760,7 +760,7 @@
                               "base64": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                               },
                               "threshold": {
                                 "type": "number",
@@ -1014,7 +1014,7 @@
                             "base64": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                             },
                             "threshold": {
                               "type": "number",
@@ -1063,7 +1063,7 @@
                               "base64": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                               },
                               "threshold": {
                                 "type": "number",
@@ -1317,7 +1317,7 @@
                             "base64": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                             },
                             "threshold": {
                               "type": "number",
@@ -1366,7 +1366,7 @@
                               "base64": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                               },
                               "threshold": {
                                 "type": "number",
@@ -1620,7 +1620,7 @@
                             "base64": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                             },
                             "threshold": {
                               "type": "number",
@@ -1669,7 +1669,7 @@
                               "base64": {
                                 "type": "string",
                                 "minLength": 1,
-                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                               },
                               "threshold": {
                                 "type": "number",
@@ -2156,7 +2156,7 @@
                           "base64": {
                             "type": "string",
                             "minLength": 1,
-                            "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                            "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                           },
                           "threshold": {
                             "type": "number",
@@ -2205,7 +2205,7 @@
                             "base64": {
                               "type": "string",
                               "minLength": 1,
-                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                             },
                             "threshold": {
                               "type": "number",
@@ -2451,7 +2451,7 @@
                       "base64": {
                         "type": "string",
                         "minLength": 1,
-                        "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                        "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                       },
                       "threshold": {
                         "type": "number",
@@ -2500,7 +2500,7 @@
                         "base64": {
                           "type": "string",
                           "minLength": 1,
-                          "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                          "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                         },
                         "threshold": {
                           "type": "number",
@@ -2741,7 +2741,7 @@
                   "base64": {
                     "type": "string",
                     "minLength": 1,
-                    "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                    "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                   },
                   "threshold": {
                     "type": "number",
@@ -2790,7 +2790,7 @@
                     "base64": {
                       "type": "string",
                       "minLength": 1,
-                      "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value."
+                      "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
                     },
                     "threshold": {
                       "type": "number",

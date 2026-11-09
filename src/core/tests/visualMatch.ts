@@ -6,6 +6,7 @@
 import { isRecordingActive } from "./ffmpegRecorder.js";
 import {
   ImageReferenceError,
+  endSentence,
   loadImageReference,
   matchImageOnce,
   missMessage,
@@ -110,7 +111,7 @@ async function findByImage({
 }): Promise<{ element: any; elements: any[]; error: string | null }> {
   const failed = (error: string) => ({ element: null, elements: [], error });
   if (driver.isMobile === true) {
-    return failed("`elementImage` isn't supported on mobile browsers yet. Use a desktop browser, or other element criteria.");
+    return failed(`Couldn't find ${referenceLabel(elementImage)}: \`elementImage\` works only in desktop browsers. Use a desktop browser, or other element criteria.`);
   }
 
   try {
@@ -153,6 +154,7 @@ async function findByImage({
     if (error instanceof ImageReferenceError) return failed(error.message);
     // Anything else, such as a matcher that won't install, fails this step. A throw
     // would crash the context and lose the report of every step in it.
-    return failed(`Couldn't match ${referenceLabel(elementImage)}: ${error?.message ?? error}`);
+    const reason = typeof error?.message === "string" && error.message.trim() ? error.message.trim() : "no reason was given";
+    return failed(`Couldn't compare ${referenceLabel(elementImage)} with the page: ${endSentence(reason)}`);
   }
 }

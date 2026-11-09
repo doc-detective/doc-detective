@@ -36,7 +36,7 @@ export type ImageDetailed = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**
@@ -80,7 +80,7 @@ export type ImageDetailed1 = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**
@@ -124,7 +124,7 @@ export type ImageDetailed2 = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**
@@ -168,7 +168,7 @@ export type ImageDetailed3 = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**
@@ -212,7 +212,7 @@ export type ImageDetailed4 = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**
@@ -256,7 +256,7 @@ export type ImageDetailed5 = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**
@@ -316,7 +316,7 @@ export type ImageDetailed6 = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**
@@ -360,7 +360,7 @@ export type ImageDetailed7 = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**
@@ -404,7 +404,7 @@ export type ImageDetailed8 = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**
@@ -448,7 +448,7 @@ export type ImageDetailed9 = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**
@@ -492,7 +492,7 @@ export type ImageDetailed10 = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**
@@ -536,7 +536,7 @@ export type ImageDetailed11 = {
    */
   path?: string;
   /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it `base64 reference` rather than printing the value.
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
    */
   base64?: string;
   /**

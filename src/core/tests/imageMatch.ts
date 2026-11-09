@@ -15,6 +15,7 @@ export {
   loadImageReference,
   matchImageOnce,
   missMessage,
+  endSentence,
   redactElementImage,
   referenceLabel,
 };
@@ -158,14 +159,17 @@ const fromHex = (hex: string): Rgb => [
 
 // What a failure message calls this reference. Never the base64 value itself.
 function referenceLabel(elementImage: any): string {
-  if (typeof elementImage === "string") return elementImage;
-  return elementImage?.path ?? "base64 reference";
+  const file = typeof elementImage === "string" ? elementImage : elementImage?.path;
+  return file === undefined ? "the `base64` image" : `\`${file}\``;
 }
+
+// A reason from elsewhere, as the end of a sentence.
+const endSentence = (reason: string) => reason.replace(/\.?$/, ".");
 
 // A copy of a step's criteria that's safe to print. A base64 value can be megabytes.
 function redactElementImage(criteria: any): any {
   if (!criteria || typeof criteria !== "object" || !criteria.elementImage?.base64) return criteria;
-  return { ...criteria, elementImage: "base64 reference" };
+  return { ...criteria, elementImage: "base64 image" };
 }
 
 async function loadImageReference(
@@ -183,7 +187,8 @@ async function loadImageReference(
     try {
       buffer = fs.readFileSync(spec.path);
     } catch (error: any) {
-      throw new ImageReferenceError(`Couldn't read the image reference ${label}: ${error.code ?? error.message}.`);
+      const reason: Record<string, string> = { ENOENT: "there's no file at that path", EISDIR: "that path is a folder" };
+      throw new ImageReferenceError(`Couldn't read ${label}: ${endSentence(reason[error.code] ?? error.message)}`);
     }
   }
 
@@ -198,18 +203,18 @@ async function loadImageReference(
     width = raw.info.width;
     height = raw.info.height;
   } catch {
-    throw new ImageReferenceError(`The image reference ${label} isn't an image.`);
+    throw new ImageReferenceError(`Couldn't read ${label}: it isn't a PNG, JPEG, or SVG image.`);
   }
 
   const { kind, average, flat } = classify(rgba, width, height);
   if (flat) {
     throw new ImageReferenceError(
-      `The image reference ${label} is a single color, which would match any area of that color. Use a reference with a visible shape.`
+      `Couldn't use ${label}: it's a single color, which would match any area of that color. Use an image with a visible shape.`
     );
   }
   if (spec.color !== undefined && kind !== "oneColor") {
     throw new ImageReferenceError(
-      `\`color\` works only with a transparent file in one color, and ${label} ${kind === "opaque" ? "has no transparency" : "has several colors"}.`
+      `Couldn't use \`color\` with ${label}: it ${kind === "opaque" ? "has no transparency" : "has several colors"}. Remove \`color\`, or use a transparent file in one color.`
     );
   }
 
@@ -644,7 +649,7 @@ async function matchImageOnce({
     }
     if (!fits) {
       throw new ImageReferenceError(
-        `The image reference ${ref.label} is ${ref.width}×${ref.height} pixels, larger than the ${width}×${height} surface.`
+        `Couldn't use ${ref.label}: at ${ref.width}×${ref.height} pixels, it's larger than the browser's ${width}×${height} view. Crop it to the element you want to find.`
       );
     }
     let kept = onePerPlace(seen).filter((c) => c.score >= ref.threshold);
@@ -669,17 +674,17 @@ async function matchImageOnce({
 
 function missMessage(reference: ImageReference, best: Candidate | null, scale: number): string {
   const { label, threshold } = reference;
-  const surface = `the surface's display scale of ${Math.round(scale * 100) / 100}`;
-  if (!best) return `Couldn't find ${label}: no location could be scored, with ${surface}.`;
+  const display = `a display scale of ${Math.round(scale * 100) / 100}`;
+  if (!best) return `Couldn't find ${label}: no part of the page could be compared with it, at ${display}.`;
   let message =
     `Couldn't find ${label}. The closest match scored ${best.score.toFixed(2)} ` +
     `(shape ${best.shape.toFixed(2)}, color ${best.color.toFixed(2)}) ` +
-    `at (${Math.round(best.x)}, ${Math.round(best.y)}), below the threshold of ${threshold}, with ${surface}.`;
+    `at (${Math.round(best.x)}, ${Math.round(best.y)}), below the \`threshold\` of ${threshold}, at ${display}.`;
   // A faint texture can correlate with any shape, and its color isn't worth copying.
   if (best.shape >= threshold && best.color < threshold && best.contrast >= FAINT_CONTRAST) {
-    message += ` The shape matched, but the reference is ${best.fileColor} and the page shows ${best.pageColor}.`;
+    message += ` Its shape matched, but the image is \`${best.fileColor}\` and the page shows \`${best.pageColor}\`.`;
     if (reference.kind === "oneColor" && !reference.colorGiven && best.fileColor === "#000000") {
-      message += " A file drawn in currentColor renders black, so give the icon's color in `color`.";
+      message += " A file drawn in `currentColor` renders black, so set `color` to the icon's color.";
     }
   }
   return message;

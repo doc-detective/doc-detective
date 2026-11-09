@@ -206,13 +206,22 @@ describe("elementImage matching", function () {
       expect(cv.getBuildInformation).to.be.a("function");
     });
 
+    it("image-matcher-error: an error with no message says so, rather than printing the raw value", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      for (const thrown of [5, {}, new Error("")]) {
+        const driver = { isMobile: false, takeScreenshot: async () => { throw thrown; }, execute: async () => ({ width: 400 }) };
+        const found = await visual.findByImage({ elementImage: { base64: b64(svg) }, driver, timeout: 0 });
+        expect(found.error).to.equal("Couldn't compare the `base64` image with the page: no reason was given.");
+      }
+    });
+
     it("image-matcher-error: an error while matching fails the step with a reason", async function () {
       const svg = icon(GEAR, "#333333", 24);
       for (const capture of [Buffer.from("short"), Buffer.alloc(2048, 65)]) {
         const driver = { isMobile: false, takeScreenshot: async () => b64(capture), execute: async () => ({ width: 400 }) };
         const found = await visual.findByImage({ elementImage: { base64: b64(svg) }, driver, timeout: 0 });
         expect(found.element).to.equal(null);
-        expect(found.error).to.match(/^Couldn't match base64 reference: ./);
+        expect(found.error).to.match(/^Couldn't compare the `base64` image with the page: .+\.$/);
       }
     });
   });
@@ -250,7 +259,7 @@ describe("elementImage matching", function () {
         timeout: 5000,
       });
       expect(found.element).to.equal(null);
-      expect(found.error).to.match(/none\.png/);
+      expect(found.error).to.match(/^Couldn't read `.*none\.png`: there's no file at that path\.$/);
       expect(Date.now() - started).to.be.below(2000);
     });
 
@@ -261,8 +270,14 @@ describe("elementImage matching", function () {
         driver: fakeDriver(await page({})),
         timeout: 5000,
       });
-      expect(found.error).to.match(/isn't an image/);
+      expect(found.error).to.match(/^Couldn't read `.*`: it isn't a PNG, JPEG, or SVG image\.$/);
       expect(Date.now() - started).to.be.below(2000);
+    });
+
+    it("image-missing-file: a folder says so", async function () {
+      const found = await visual.findByImage({ elementImage: tmp, driver: fakeDriver(await page({})), timeout: 0 });
+      expect(found.element).to.equal(null);
+      expect(found.error).to.match(/^Couldn't read `.*`: that path is a folder\.$/);
     });
 
     it("image-missing-file: an invalid base64 value fails at once", async function () {
@@ -272,8 +287,7 @@ describe("elementImage matching", function () {
         driver: fakeDriver(await page({})),
         timeout: 5000,
       });
-      expect(found.error).to.match(/base64 reference/);
-      expect(found.error).to.match(/isn't an image/);
+      expect(found.error).to.equal("Couldn't read the `base64` image: it isn't a PNG, JPEG, or SVG image.");
       expect(Date.now() - started).to.be.below(2000);
     });
 
@@ -286,7 +300,7 @@ describe("elementImage matching", function () {
           timeout: 5000,
         });
         expect(found.element).to.equal(null);
-        expect(found.error).to.match(/image reference/);
+        expect(found.error).to.match(/^Couldn't read .+\.$/);
         expect(Date.now() - started).to.be.below(2000);
       }
     });
@@ -299,7 +313,7 @@ describe("elementImage matching", function () {
         timeout: 0,
       });
       expect(found.element).to.equal(null);
-      expect(found.error).to.match(/single color/i);
+      expect(found.error).to.match(/^Couldn't use `.*flat\.png`: it's a single color, which would match any area of that color\. Use an image with a visible shape\.$/);
     });
 
     it("image-uniform-reference: a fine pattern that averages out when resized doesn't match a plain page", async function () {
@@ -328,8 +342,7 @@ describe("elementImage matching", function () {
         driver: fakeDriver(await page({ width: 200, height: 150 })),
         timeout: 0,
       });
-      expect(found.error).to.match(/900×900/);
-      expect(found.error).to.match(/200×150/);
+      expect(found.error).to.match(/^Couldn't use `.*big\.png`: at 900×900 pixels, it's larger than the browser's 200×150 view\. Crop it to the element you want to find\.$/);
     });
 
     it("image-oversized-reference: a transparent file larger than the surface matches at a smaller size", async function () {
@@ -386,7 +399,7 @@ describe("elementImage matching", function () {
           timeout: 0,
         });
         expect(found.element).to.equal(null);
-        expect(found.error).to.match(/`color` works only/);
+        expect(found.error).to.match(/^Couldn't use `color` with the `base64` image: it (has no transparency|has several colors)\. Remove `color`, or use a transparent file in one color\.$/);
       }
     });
 
@@ -738,15 +751,13 @@ describe("elementImage matching", function () {
       const driver = fakeDriver(shot, { viewport: { width: 200, height: 150 } });
       const found = await visual.findByImage({ elementImage: fileOf("save.svg", icon(GEAR, "#e01b24", 24)), driver, timeout: 0 });
       expect(found.element).to.equal(null);
-      expect(found.error).to.match(/save\.svg/);
+      expect(found.error).to.match(/^Couldn't find `.*save\.svg`\. /);
       expect(found.error).to.match(/scored 0\.\d\d/);
       expect(found.error).to.match(/shape (0\.\d\d|1\.00)/);
       expect(found.error).to.match(/color 0\.\d\d/);
       expect(found.error).to.match(/\(40, 20\)/);
-      expect(found.error).to.match(/threshold of 0\.9/);
-      expect(found.error).to.match(/display scale of 2/);
-      expect(found.error).to.match(/#e01b24/);
-      expect(found.error).to.match(/#1[0-9a-f]5[0-9a-f]b[0-9a-f]/);
+      expect(found.error).to.match(/below the `threshold` of 0\.9, at a display scale of 2\./);
+      expect(found.error).to.match(/Its shape matched, but the image is `#e01b24` and the page shows `#1[0-9a-f]5[0-9a-f]b[0-9a-f]`\.$/);
     });
 
     it("image-miss-message: a multi-color file's changed colors show as a low shape score", async function () {
@@ -760,18 +771,18 @@ describe("elementImage matching", function () {
     it("image-color-field: a miss on a black file suggests `color`", async function () {
       const shot = await page({ items: [{ svg: icon(GEAR, "#1a5fb4", 24), x: 40, y: 50 }] });
       const found = await visual.findByImage({ elementImage: { base64: b64(icon(GEAR, "currentColor", 24)) }, driver: fakeDriver(shot), timeout: 0 });
-      expect(found.error).to.match(/`color`/);
+      expect(found.error).to.match(/A file drawn in `currentColor` renders black, so set `color` to the icon's color\.$/);
     });
 
     it("image-base64-not-printed: a failed step's message leaves the value out", async function () {
       const value = b64(icon(GEAR, "#e01b24", 24));
       const found = await visual.findByImage({ elementImage: { base64: value }, driver: fakeDriver(await page({})), timeout: 0 });
-      expect(found.error).to.match(/base64 reference/);
+      expect(found.error).to.match(/^Couldn't find the `base64` image\./);
       expect(found.error).to.not.include(value);
       const redacted = match.redactElementImage({ selector: "#a", elementImage: { base64: value, threshold: 0.8 } });
       expect(JSON.stringify(redacted)).to.not.include(value);
       expect(redacted.selector).to.equal("#a");
-      expect(redacted.elementImage).to.equal("base64 reference");
+      expect(redacted.elementImage).to.equal("base64 image");
     });
 
     it("image-base64-not-printed: a validation warning repeats the step", async function () {
@@ -797,7 +808,7 @@ describe("elementImage matching", function () {
       driver.isMobile = true;
       const found = await visual.findByImage({ elementImage: fileOf("m.svg", icon(GEAR, "#333333", 24)), driver, timeout: 5000 });
       expect(found.element).to.equal(null);
-      expect(found.error).to.match(/mobile/i);
+      expect(found.error).to.match(/^Couldn't find `.*m\.svg`: `elementImage` works only in desktop browsers\. Use a desktop browser, or other element criteria\.$/);
     });
   });
 
@@ -988,7 +999,7 @@ describe("elementImage matching", function () {
 
     it("image-miss-message: drag, crop, and annotations say why, too", async function () {
       const missing = path.join(tmp, "not-there.svg");
-      const why = /Couldn't read the image reference/;
+      const why = /Couldn't read `.*not-there\.svg`: there's no file at that path\./;
       const shot = await page({ items: [{ svg: icon(GEAR, BLUE, 24), x: 40, y: 50 }] });
 
       const { dragAndDropElement } = await import("../dist/core/tests/dragAndDrop.js");
@@ -1035,7 +1046,7 @@ describe("elementImage matching", function () {
         step: { dragAndDrop: { source: { elementImage }, target: { elementImage } } },
         driver: mobile(),
       });
-      expect(dragged.description).to.match(/mobile/);
+      expect(dragged.description).to.match(/works only in desktop browsers/);
 
       const { saveScreenshot } = await import("../dist/core/tests/saveScreenshot.js");
       const cropped = await saveScreenshot({
@@ -1043,7 +1054,7 @@ describe("elementImage matching", function () {
         step: { screenshot: { path: path.join(tmp, "mobile.png"), crop: { elementImage } } },
         driver: mobile(),
       });
-      expect(cropped.description).to.match(/mobile/);
+      expect(cropped.description).to.match(/works only in desktop browsers/);
     });
   });
 
@@ -1247,7 +1258,7 @@ describe("elementImage matching", function () {
       });
       expect(waited.ok).to.equal(false);
       expect(waited.message).to.not.include(blue().base64);
-      expect(waited.message).to.match(/base64 reference/);
+      expect(waited.message).to.match(/the `base64` image/);
     });
 
     it("image-wait: a wait passes once the image appears", async function () {
@@ -1346,9 +1357,9 @@ describe("elementImage in real browsers", function () {
     "image-drag-firefox: an image at the other end doesn't drop one either": "firefox",
   };
   const why = {
-    "image-missing-file: a missing file fails": /Couldn't read the image reference/,
-    "image-color-one-color-only: color fails on an opaque reference": /`color` works only/,
-    "image-wait: a goTo wait says why the image wasn't found": /Couldn't read the image reference/,
+    "image-missing-file: a missing file fails": /there's no file at that path/,
+    "image-color-one-color-only: color fails on an opaque reference": /Couldn't use `color` with/,
+    "image-wait: a goTo wait says why the image wasn't found": /there's no file at that path/,
   };
   let contexts, disc;
 
@@ -1431,8 +1442,8 @@ describe("elementImage in real browsers", function () {
     const ran = contexts.filter((c) => c.testId === name && c.context.result !== "SKIPPED");
     for (const { context } of ran) {
       const message = context.steps.at(-1).resultDescription;
-      expect(message).to.match(/shape matched/);
-      expect(message).to.include("#ff7800");
+      expect(message).to.match(/Its shape matched/);
+      expect(message).to.include("`#ff7800`");
       expect(message).to.match(/#1[0-9a-f]5[0-9a-f]b[0-9a-f]/);
     }
   });
