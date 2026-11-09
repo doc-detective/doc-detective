@@ -54175,6 +54175,65 @@
             },
             "title": "Driver"
           },
+          "autoRecording": {
+            "type": "object",
+            "title": "Automatic recording",
+            "description": "The video `autoRecord` made of this context. Absent when no automatic recording was attempted, including when `autoRecord` is unset and the run's recording check failed. Present only in test results. System-populated.",
+            "readOnly": true,
+            "additionalProperties": false,
+            "required": [
+              "result"
+            ],
+            "properties": {
+              "result": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "WARNING",
+                  "SKIPPED"
+                ],
+                "description": "Outcome of the automatic recording, from starting it through saving it. A `FAIL` or `WARNING` also sets the context's `result`. A `PASS` or `SKIPPED` doesn't."
+              },
+              "resultDescription": {
+                "type": "string",
+                "description": "Why the automatic recording had its outcome. Absent on a `PASS`."
+              },
+              "recordingPath": {
+                "type": "string",
+                "description": "Path of the saved video, relative to the run's artifact directory (the report's `runDir`), with forward slashes. Absent when no file was written."
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the recording started, as an ISO 8601 UTC timestamp with milliseconds. Absent when it didn't start."
+              },
+              "format": {
+                "type": "string",
+                "description": "File format of the saved video, for example `mp4`. Absent when no file was written."
+              },
+              "duration": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Length of the saved video in seconds. Absent when it couldn't be read from the file."
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Width of the saved video in pixels. Absent when it couldn't be read from the file."
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Height of the saved video in pixels. Absent when it couldn't be read from the file."
+              },
+              "fps": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Frame rate of the saved video. Absent when it couldn't be read from the file."
+              }
+            }
+          },
           "platform": {
             "type": "string",
             "description": "Platform to run the test on. This is a resolved version of the `platforms` property."

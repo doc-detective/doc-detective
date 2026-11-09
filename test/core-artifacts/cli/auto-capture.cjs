@@ -32,7 +32,10 @@ const steps = (report) =>
 const contexts = (report) =>
   report.specs.flatMap((s) => s.tests.flatMap((t) => t.contexts)).filter((c) => c.result !== "SKIPPED");
 const authored = (report) => steps(report).filter((s) => uiSteps.some((u) => u.stepId === s.stepId));
-const autoRecord = (report) => steps(report).find((s) => String(s.stepId).endsWith("~autorecord"));
+// The automatic recording is the context's field, not a step (ADR 01179).
+const autoRecording = (report) => contexts(report)[0]?.autoRecording;
+const savedRecording = (report, rec) =>
+  /\.mp4$/i.test(rec?.recordingPath ?? "") && fs.existsSync(path.join(report.runDir, rec.recordingPath));
 
 // Every authored UI step has an image in the run folder, and the first is 01-….
 function expectScreenshots(report, check) {
@@ -41,18 +44,31 @@ function expectScreenshots(report, check) {
   for (const shot of shots.filter(Boolean)) check(fs.existsSync(path.join(report.runDir, shot)), `${shot} exists in the run folder`);
   check(path.basename(String(shots[0])).startsWith("01-"), `the first authored image is 01-… (${shots[0]})`);
 }
+// A folder of links to everything on PATH except `binary`, to use as PATH.
+function pathWithout(binary, dir) {
+  const links = path.join(dir, "path");
+  fs.mkdirSync(links);
+  const seen = new Set([binary]);
+  for (const folder of process.env.PATH.split(path.delimiter)) {
+    for (const name of fs.existsSync(folder) ? fs.readdirSync(folder) : []) {
+      if (seen.has(name)) continue;
+      seen.add(name);
+      fs.symlinkSync(path.join(folder, name), path.join(links, name));
+    }
+  }
+  return links;
+}
 // A headed context records the screen with ffmpeg where the host can capture
 // it. A host that can't adds no recording (or skips a start that fails), and
 // the context passes either way.
 function expectScreenRecording(report, check, dir, stderr) {
   check(contexts(report).length === 1 && contexts(report)[0].result === "PASS", "the context passed");
-  const rec = autoRecord(report);
+  const rec = autoRecording(report);
   if (!rec) {
     check(stderr.includes("Not recording automatically:"), "a host that can't record says why");
     return;
   }
-  check(rec.record?.engine === "ffmpeg", `the recording used ffmpeg (${rec.record?.engine})`);
-  if (rec.result === "PASS") check(fs.existsSync(rec.record.path), "its MP4 exists");
+  if (rec.result === "PASS") check(savedRecording(report, rec), "its MP4 exists under runDir");
 }
 function expectNoScreenshots(report, check) {
   check(steps(report).every((s) => !s.autoScreenshot), "no step has an autoScreenshot");
@@ -68,11 +84,12 @@ const cases = {
     check(report, check) {
       check(contexts(report).length === 1 && contexts(report)[0].result === "PASS", "the context passed");
       expectScreenshots(report, check);
-      const rec = autoRecord(report);
-      check(rec?.result === "PASS", `there's a passing ~autorecord step (${rec?.result})`);
-      check(/\.mp4$/i.test(rec?.record?.path ?? "") && fs.existsSync(rec.record.path), "its MP4 exists");
-      check(rec?.record?.engine === "browser", `it used the browser engine (${rec?.record?.engine})`);
-      // The synthetic start and stop stay out of the step counts.
+      const rec = autoRecording(report);
+      check(rec?.result === "PASS", `the context's autoRecording passed (${rec?.result})`);
+      check(savedRecording(report, rec), "its MP4 exists under runDir");
+      check(rec?.format === "mp4", `its format is mp4 (${rec?.format})`);
+      // The report has no synthetic step, marker, or count for it.
+      check(!/__autoRecord|~autorecord/.test(JSON.stringify(report)), "the report has no synthetic step or marker");
       const counted = report.summary.steps;
       check(
         counted.pass === uiSteps.length && counted.fail + counted.warning + counted.skipped === 0,
@@ -87,11 +104,11 @@ const cases = {
     check(report, check) {
       check(contexts(report).length === 1 && contexts(report)[0].result === "PASS", "the context passed");
       expectScreenshots(report, check);
-      const rec = autoRecord(report);
+      const rec = autoRecording(report);
       const browser = contexts(report)[0].browser ?? {};
       if (rec) {
         check(browser.headless === false, "a recorded headless Firefox context ran headed");
-        check(fs.existsSync(rec.record.path), "its MP4 exists");
+        check(savedRecording(report, rec), "its MP4 exists under runDir");
       } else {
         check(browser.headless !== false, "an unrecorded headless Firefox context stayed headless");
       }
@@ -108,10 +125,9 @@ const cases = {
       const flat = fs.readdirSync(dir).find((f) => /^testResults-.*\.html$/.test(f));
       check(flat, "the html reporter wrote its copy");
       const copies = [path.join(report.runDir, "testResults.html"), flat && path.join(dir, flat)].filter(Boolean);
-      const rec = autoRecord(report);
       const media = [
         ...authored(report).map((s) => s.autoScreenshot).filter(Boolean),
-        rec ? path.relative(report.runDir, rec.record.path).split(path.sep).join("/") : null,
+        autoRecording(report)?.recordingPath,
       ];
       check(media.length === uiSteps.length + 1 && media.every(Boolean), "there are automatic screenshots and a recording");
       for (const file of copies) {
@@ -125,11 +141,50 @@ const cases = {
       }
     },
   },
+  // autoRecord: true where the start fails stops the context (ADR 01179, DR2).
+  // A path with an unset variable fails the start on every host.
+  "strict-start-fails": {
+    spec: uiSpec("ssf", "chrome", { autoRecord: true }, { testId: "ssf$DD_FAC_UNSET" }),
+    status: 1,
+    check(report, check) {
+      const context = contexts(report)[0];
+      check(context?.result === "FAIL", `the context failed (${context?.result})`);
+      check(context?.autoRecording?.result === "FAIL", `autoRecording failed (${context?.autoRecording?.result})`);
+      check(
+        /^Couldn't start the recording\./.test(context?.autoRecording?.resultDescription ?? ""),
+        `it says why (${context?.autoRecording?.resultDescription})`
+      );
+      check(!context?.autoRecording?.recordingPath, "it has no recordingPath");
+      const results = authored(report).map((s) => s.result);
+      check(results.length === uiSteps.length && results.every((r) => r === "SKIPPED"), `the steps were SKIPPED (${results})`);
+    },
+  },
+  // autoRecord: true where the preflight can't capture: SKIPPED with the fix
+  // (ADR 01179, DR3). Hides every display from the nested run, so this is
+  // Linux only.
+  "strict-no-display": {
+    spec: uiSpec("snd", "firefox", { autoRecord: true }),
+    env(env, dir) {
+      delete env.DISPLAY;
+      env.PATH = pathWithout("Xvfb", dir);
+    },
+    check(report, check) {
+      const context = contexts(report)[0];
+      check(context?.result === "PASS", `the context passed (${context?.result})`);
+      check(context?.browser?.headless !== false, "it stayed headless");
+      check(context?.autoRecording?.result === "SKIPPED", `autoRecording was SKIPPED (${context?.autoRecording?.result})`);
+      check(
+        context?.autoRecording?.resultDescription ===
+          "Skipped: there's no display to capture. To record, install Xvfb or set DISPLAY, and rerun.",
+        `it names the fix (${context?.autoRecording?.resultDescription})`
+      );
+    },
+  },
   "spec-false": {
     spec: uiSpec("sf", "chrome", { autoScreenshot: false, autoRecord: false }),
     check(report, check) {
       expectNoScreenshots(report, check);
-      check(!autoRecord(report), "there's no ~autorecord step");
+      check(!autoRecording(report), "there's no autoRecording");
     },
   },
   "test-false-under-spec-true": {
@@ -175,7 +230,7 @@ const cases = {
     },
     check(report, check, dir) {
       check(contexts(report).length === 1 && contexts(report)[0].result === "PASS", "the context passed");
-      check(!autoRecord(report), "there's no ~autorecord step");
+      check(!autoRecording(report), "there's no autoRecording");
       check(fs.existsSync(path.join(dir, "authored.mp4")), "the authored recording exists");
     },
   },
@@ -183,7 +238,7 @@ const cases = {
     spec: uiSpec("arf", "chrome", { autoRecord: false }),
     check(report, check) {
       check(contexts(report).length === 1 && contexts(report)[0].result === "PASS", "the context passed");
-      check(!autoRecord(report), "there's no ~autorecord step");
+      check(!autoRecording(report), "there's no autoRecording");
     },
   },
   "junit-both-false": {
@@ -224,6 +279,7 @@ const env = {
   DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
 };
 delete env.DOC_DETECTIVE;
+c.env?.(env, dir);
 const run = spawnSync(
   process.execPath,
   [path.join(root, "bin", "doc-detective.js"), "-i", "case.spec.json", "-o", "results.json", ...(c.args ?? [])],
@@ -235,7 +291,7 @@ const check = (ok, what) => {
   if (!ok) failures.push(what);
 };
 if (run.error) failures.push(`the run finished (${run.error.message})`);
-check(run.status === 0, `the run exited 0 (got ${run.status})`);
+check(run.status === (c.status ?? 0), `the run exited ${c.status ?? 0} (got ${run.status})`);
 let report;
 try {
   report = JSON.parse(fs.readFileSync(path.join(dir, "results.json"), "utf8"));

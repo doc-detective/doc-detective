@@ -278,12 +278,16 @@ describe("HTML Reporter automatic media", function () {
     // Each function ends at the first `}` in column 0, so these functions must
     // keep their closing brace there and no other line may start with `}`.
     const fn = (name) => new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`).exec(html)?.[0];
-    const source = ["runFolderSrc", "collectMedia", "autoRecording"].map(fn);
+    const source = ["runFolderSrc", "collectMedia", "autoRecordingPanel"].map(fn);
     expect(source.every(Boolean), "the page defines the media functions").to.equal(true);
-    return new Function("report", "MEDIA_BASE", `${source.join("\n")}; return { collectMedia, autoRecording };`)(
-      report,
-      mediaBase
-    );
+    return new Function(
+      "report",
+      "MEDIA_BASE",
+      "badge",
+      "esc",
+      "escAttr",
+      `${source.join("\n")}; return { collectMedia, autoRecordingPanel };`
+    )(report, mediaBase, (status) => `<badge ${status}>`, String, String);
   }
 
   const runDir = "/out/.doc-detective/runs/r1";
@@ -308,44 +312,49 @@ describe("HTML Reporter automatic media", function () {
     }
   });
 
-  it("shows the context's automatic recording once and leaves its synthetic steps out", async function () {
-    const { autoRecording } = await pageFunctions({ runDir }, "");
-    const video = `${runDir}/specs/s/tests/t/contexts/c/recordings/c.mp4`;
-    const start = { stepId: "t~autorecord", record: { path: video }, result: "PASS", __autoRecord: true };
-    const open = { stepId: "open", goTo: { url: "http://x" }, result: "PASS" };
-    const stop = {
-      stepId: "t~autorecord~stop",
-      stopRecord: true,
-      outputs: { recordingPath: video },
-      result: "PASS",
-      __autoRecordStop: true,
+  // The context's automatic recording plays once, in a panel above its steps
+  // (ADR 01179). A result that isn't PASS shows its badge and its reason there.
+  describe("the automatic recording's panel", function () {
+    const video = "specs/s/tests/t/contexts/c/recordings/c.mp4";
+    const panelFor = async (autoRecording, mediaBase = "") => {
+      const { autoRecordingPanel } = await pageFunctions({ runDir }, mediaBase);
+      return autoRecordingPanel({ autoRecording, steps: [] });
     };
-    const auto = autoRecording({ steps: [start, open, stop] });
-    expect(auto.video).to.equal("specs/s/tests/t/contexts/c/recordings/c.mp4");
-    expect(auto.steps.map((item) => item.step)).to.deep.equal([open]);
-    expect(auto.steps[0].origIdx).to.equal(1);
+
+    it("plays a saved recording through the media base, with no badge when it passed", async function () {
+      const panel = await panelFor({ result: "PASS", recordingPath: video }, ".doc-detective/runs/r1");
+      expect(panel).to.include("Automatic recording");
+      expect(panel).to.include(`<video src=".doc-detective/runs/r1/${video}"`);
+      expect(panel).to.not.include("<badge");
+    });
+
+    it("plays a WARNING recording and shows why", async function () {
+      const panel = await panelFor({ result: "WARNING", resultDescription: "It may be stale.", recordingPath: video });
+      expect(panel).to.include("<video");
+      expect(panel).to.include("<badge WARNING>");
+      expect(panel).to.include("It may be stale.");
+    });
+
+    for (const result of ["SKIPPED", "FAIL"]) {
+      it(`shows why a ${result} recording didn't save, with no video`, async function () {
+        const panel = await panelFor({ result, resultDescription: "Skipped: no display." });
+        expect(panel).to.not.include("<video");
+        expect(panel).to.include(`<badge ${result}>`);
+        expect(panel).to.include("Skipped: no display.");
+      });
+    }
+
+    it("is empty with nothing to show", async function () {
+      expect(await panelFor(undefined)).to.equal("");
+      expect(await panelFor({ result: "PASS" })).to.equal("");
+      expect(await panelFor({ result: "SKIPPED" })).to.equal("");
+    });
   });
 
-  // The runner's markers name the synthetic steps, as in the summary: a stop
-  // that reports another path still hides, and an authored step named like the
-  // start is an ordinary step.
-  it("finds the synthetic steps by their markers", async function () {
-    const { autoRecording } = await pageFunctions({ runDir }, "");
-    const start = { stepId: "t~autorecord", record: { path: `${runDir}/c.mp4` }, result: "PASS", __autoRecord: true };
-    const stop = { stepId: "t~autorecord~stop", stopRecord: true, result: "PASS", __autoRecordStop: true };
-    const authored = { stepId: "login~autorecord", record: { path: `${runDir}/mine.mp4` }, result: "PASS" };
-    const auto = autoRecording({ steps: [start, authored, stop] });
-    expect(auto.video).to.equal("c.mp4");
-    expect(auto.steps.map((item) => item.step)).to.deep.equal([authored]);
-    expect(autoRecording({ steps: [authored] }).video).to.equal(null);
-  });
-
-  it("keeps a recording that didn't save in the step list", async function () {
-    const { autoRecording } = await pageFunctions({ runDir }, "");
-    const start = { stepId: "t~autorecord", record: { path: `${runDir}/c.mp4` }, result: "SKIPPED", __autoRecord: true };
-    const auto = autoRecording({ steps: [start] });
-    expect(auto.video).to.equal(null);
-    expect(auto.steps.map((item) => item.step)).to.deep.equal([start]);
+  it("doesn't read the runner's recording markers", async function () {
+    const outputFile = path.join(tmpDir, "markers.html");
+    await outputResults({ autoScreenshot: false, autoRecord: false }, outputFile, sampleResults, { reporters: ["html"] });
+    expect(fs.readFileSync(outputFile, "utf-8")).to.not.match(/__autoRecord/);
   });
 
   // The "Automatic recording" label is a panel head like the step panels',
@@ -359,12 +368,10 @@ describe("HTML Reporter automatic media", function () {
   });
 
   it("renders a run with no automatic media as before", async function () {
-    const { collectMedia, autoRecording } = await pageFunctions({ runDir }, "x");
+    const { collectMedia, autoRecordingPanel } = await pageFunctions({ runDir }, "x");
     const step = { stepId: "s", goTo: { url: "http://x" } };
     expect(collectMedia(step)).to.deep.equal([]);
-    const auto = autoRecording({ steps: [step] });
-    expect(auto.video).to.equal(null);
-    expect(auto.steps).to.deep.equal([{ step, origIdx: 0 }]);
+    expect(autoRecordingPanel({ steps: [step] })).to.equal("");
   });
 
   it("points both HTML copies at the run folder", async function () {

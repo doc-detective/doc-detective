@@ -769,6 +769,7 @@ main {
   letter-spacing: 0.05em;
 }
 .auto-recording { margin: 8px 16px 10px; }
+.auto-recording-reason { padding: 8px 12px; font-size: 13px; color: var(--fg2); overflow-wrap: anywhere; }
 .auto-recording video {
   display: block; width: 100%; max-width: 720px; max-height: 420px;
   background: #000; border-radius: 6px;
@@ -1070,7 +1071,7 @@ var MEDIA_BASE = typeof window.REPORT_MEDIA_BASE === "string" ? window.REPORT_ME
 // A run-folder file's src from this page: a path relative to the report's
 // runDir, or an absolute path inside it, gets MEDIA_BASE in front. Any other
 // absolute path stays as it is.
-// test/htmlReporter.test.js extracts this function, autoRecording, and
+// test/htmlReporter.test.js extracts this function, autoRecordingPanel, and
 // collectMedia by regex: keep each closing } at column 0, and start no other
 // line in them with }.
 function runFolderSrc(p) {
@@ -1081,26 +1082,20 @@ function runFolderSrc(p) {
   return MEDIA_BASE ? MEDIA_BASE + "/" + s : s;
 }
 
-// A context's automatic recording, as a src for the player at the top of the
-// context, and its steps without the synthetic start and stop. The runner
-// marks those two (__autoRecord, __autoRecordStop), as the summary reads them.
-// A recording that didn't save keeps its steps in the list, so the reason
-// shows. Array.prototype.find is fine here: collectMedia already needs ES2015.
+// The panel at the top of a context for its automatic recording: the video
+// whenever a file was saved, and the result's badge and reason whenever it isn't
+// a PASS. Empty when there's nothing to show.
 // Extracted by test/htmlReporter.test.js, like runFolderSrc.
-function autoRecording(ctx) {
-  var all = (ctx.steps || []).map(function(s, i) { return { step: s, origIdx: i }; });
-  var start = all.find(function(item) {
-    return item.step.__autoRecord === true && item.step.record && item.step.record.path;
-  });
-  // No video: the synthetic start and stop stay listed, and their result
-  // descriptions say why the recording didn't save.
-  if (!start || start.step.result !== "PASS") return { video: null, steps: all };
-  var stop = all.find(function(item) { return item.step.__autoRecordStop === true; });
-  if (stop && stop.step.result !== "PASS") return { video: null, steps: all };
-  return {
-    video: runFolderSrc(start.step.record.path),
-    steps: all.filter(function(item) { return item !== start && item !== stop; })
-  };
+function autoRecordingPanel(ctx) {
+  var rec = ctx.autoRecording;
+  if (!rec) return "";
+  var reason = rec.result !== "PASS" && rec.resultDescription;
+  if (!reason && !rec.recordingPath) return "";
+  return '<div class="dp-head"><span>Automatic recording</span>' + (reason ? badge(rec.result) : "") + '</div>' +
+    (reason ? '<div class="auto-recording-reason">' + esc(reason) + '</div>' : "") +
+    (rec.recordingPath
+      ? '<video src="' + escAttr(runFolderSrc(rec.recordingPath)) + '" controls muted playsinline preload="metadata"></video>'
+      : "");
 }
 
 // Extracted by test/htmlReporter.test.js, like runFolderSrc.
@@ -1378,17 +1373,12 @@ function buildContext(ctx) {
     badge(ctx.result);
   block.appendChild(head);
 
-  // The context's automatic recording plays above its steps, and its
-  // synthetic start and stop steps stay out of the list.
-  var auto = autoRecording(ctx);
-  if (auto.video) {
-    var rec = el("div", "auto-recording");
-    rec.innerHTML = '<div class="dp-head"><span>Automatic recording</span></div>' +
-      '<video src="' + escAttr(auto.video) + '" controls muted playsinline preload="metadata"></video>';
-    block.appendChild(rec);
-  }
+  // The context's automatic recording shows above its steps.
+  var recordingPanel = autoRecordingPanel(ctx);
+  if (recordingPanel) block.appendChild(el("div", "auto-recording", recordingPanel));
 
-  var visibleSteps = auto.steps
+  var visibleSteps = (ctx.steps || [])
+    .map(function(s, i) { return { step: s, origIdx: i }; })
     .filter(function(item) {
       var s = item.step;
       if (state.statusFilters.size && !state.statusFilters.has(s.result)) return false;

@@ -74,7 +74,7 @@ import {
   captureRecordingCheckpoints,
 } from "./tests/recordingCheckpoints.js";
 import { startRecording } from "./tests/startRecording.js";
-import { stopRecording } from "./tests/stopRecording.js";
+import { stopRecording, defaultedStopSkip } from "./tests/stopRecording.js";
 import {
   browserCaptureTitle,
   browserDownloadDir,
@@ -285,6 +285,9 @@ export {
   autoScreenshotsOn,
   installAutoScreenshotPackages,
   isSyntheticAutoRecordStep,
+  contextResultSources,
+  runContext,
+  stopAllRecordings,
   specIsRouted,
   killTree,
   appiumServerCache,
@@ -2392,9 +2395,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // keeps a future gap from surfacing as a cryptic undefined read.
           if (!contextReport) continue;
           for (const stepReport of contextReport.steps) {
-            // autoRecord's synthetic start and stop aren't counted.
-            if (!isSyntheticAutoRecordStep(stepReport))
-              report.summary.steps[stepReport.result.toLowerCase()]++;
+            report.summary.steps[stepReport.result.toLowerCase()]++;
             // Default here rather than at each construction site: this pass is
             // the only place that sees EVERY node from both execution paths
             // (flat pool and routed sequencer), real and synthetic alike. A
@@ -4236,12 +4237,52 @@ async function installAutoScreenshotPackages({
   }
 }
 
-// The synthetic autoRecord start (`<testId>~autorecord`) and its end-of-context
-// stop (`<testId>~autorecord~stop`). They stay out of report.summary.steps, so an
-// autoRecord run doesn't count the synthetic steps (ADR 01177). The runner's
-// markers decide, so an authored step with a stepId like theirs still counts.
+// The synthetic autoRecord start (`<testId>~autorecord`) in `context.steps`. It
+// runs through the step loop but reports as the context's `autoRecording`, not
+// a step (ADR 01179). The runner's marker decides, so an authored step with a
+// stepId like it still counts.
 function isSyntheticAutoRecordStep(step: any): boolean {
-  return Boolean(step?.__autoRecord || step?.__autoRecordStop);
+  return Boolean(step?.__autoRecord);
+}
+
+// What a context's result rolls up from: its steps, and its automatic recording
+// when that's a FAIL or WARNING. A PASS or SKIPPED recording doesn't count, so an
+// all-SKIPPED context stays SKIPPED (ADR 01179, DR1).
+function contextResultSources(contextReport: any): Array<{ result?: string }> {
+  const recording = contextReport.autoRecording;
+  return recording?.result === "FAIL" || recording?.result === "WARNING"
+    ? [...contextReport.steps, recording]
+    : contextReport.steps;
+}
+
+// SKIPPED ranks above PASS: a start that passed and a stop that skipped saved no
+// video.
+const AUTO_RECORDING_RANK: Record<string, number> = { PASS: 0, SKIPPED: 1, WARNING: 2, FAIL: 3 };
+
+// Merge the automatic recording's start or stop into the context's
+// `autoRecording`: `fields` always land, and the worse result wins with its
+// description (ADR 01179). The merged field is masked like a step report
+// (ADR 01178).
+function mergeAutoRecording(
+  contextReport: any,
+  { result, resultDescription, ...fields }: { result: string; resultDescription?: string; [key: string]: any }
+): void {
+  const current = contextReport.autoRecording;
+  const worse = !current || AUTO_RECORDING_RANK[result] > AUTO_RECORDING_RANK[current.result];
+  contextReport.autoRecording = maskDeep({
+    result,
+    ...current,
+    ...(worse ? { result } : {}),
+    ...(worse && result !== "PASS" && resultDescription ? { resultDescription } : {}),
+    ...fields,
+  });
+}
+
+// A file's path relative to the run folder, with forward slashes, so the same
+// artifact has the same report value in every run. Consumers resolve it against
+// the report's `runDir`.
+function runRelativePath(config: any, file: string): string {
+  return path.relative(getRunOutputDir(config), file).split(path.sep).join("/");
 }
 
 // Capture a post-step screenshot for `autoScreenshot` runs. The relative
@@ -4282,7 +4323,6 @@ async function captureAutoScreenshot({
   surfaceTracker?: ActiveSurfaceTracker;
 }): Promise<string | null> {
   try {
-    const runDir = getRunOutputDir(config);
     const dir = contextScreenshotsDir({ config, spec, test, context });
     const fileName = stepArtifactFileName({
       step,
@@ -4315,14 +4355,9 @@ async function captureAutoScreenshot({
       );
       return null;
     }
-    // Report the path relative to the run folder (normalized to forward
-    // slashes) so the same step produces an identical report value in every
+    // Relative, so the same step produces an identical report value in every
     // run — absolute, timestamped paths would defeat run-over-run diffing.
-    // Consumers resolve it against the report's `runDir`.
-    return path
-      .relative(runDir, screenshotStep.screenshot.path)
-      .split(path.sep)
-      .join("/");
+    return runRelativePath(config, screenshotStep.screenshot.path);
   } catch (error: any) {
     log(
       config,
@@ -5253,6 +5288,16 @@ async function runContext({
     // `attempts`). Used for EVERY step-report push in the loop — ran, skipped,
     // and routing-error markers — so re-visited steps are stamped consistently.
     const pushStepReport = (rep: any) => {
+      // The automatic recording isn't a step: its start reports on the context
+      // (ADR 01179), and stopAllRecordings merges its stop there.
+      if (rep.__autoRecord) {
+        mergeAutoRecording(contextReport, {
+          result: rep.result,
+          resultDescription: rep.resultDescription,
+          ...(rep.result === "PASS" ? { startedAt: rep.startedAt } : {}),
+        });
+        return;
+      }
       if (rep.stepId) {
         const n = (visitCountById.get(rep.stepId) ?? 0) + 1;
         visitCountById.set(rep.stepId, n);
@@ -5651,7 +5696,8 @@ async function runContext({
 
     // Stop every recording still active at the end of the context (the
     // synthetic autoRecord capture plus any explicit record steps the author
-    // didn't stop). Each produces an ordered stopRecord step report.
+    // didn't stop). An authored one's stop is an ordered stopRecord step
+    // report; the synthetic one's merges into the context's autoRecording.
     // Recordings live per session, so sweep every registered driver — and the
     // app session's recordingHost, which holds app-only-context recordings.
     for (const d of sessionDrivers(browserSessions, driver)) {
@@ -5673,8 +5719,9 @@ async function runContext({
     // registered, before the finally tears it down. A dead session means the
     // FAIL is spurious and the whole context can be retried on a fresh session; a
     // live session means the FAIL is real and stands. Recording sweeps already
-    // ran above, so the probe never races an in-flight capture.
-    if (contextReport.steps.some((s: any) => s.result === "FAIL")) {
+    // ran above, so the probe never races an in-flight capture. A failed
+    // automatic stop counts: its report is the context's autoRecording.
+    if (contextResultSources(contextReport).some((s) => s.result === "FAIL")) {
       // Collect EVERY session the context holds — a multi-surface browser
       // context plus an app session — not just the first, so a dead app/native
       // session behind a live browser (or vice versa) is still caught. Which of
@@ -5806,7 +5853,7 @@ async function runContext({
     }
   }
 
-  contextReport.result = rollUpResults(contextReport.steps);
+  contextReport.result = rollUpResults(contextResultSources(contextReport));
   // Layer 5: a context that ran on a fallback engine is annotated so the
   // substitution is never silent. When the requested engine was explicitly
   // pinned and the run otherwise passed, downgrade PASS → WARNING so a degraded
@@ -5948,7 +5995,9 @@ function sessionDrivers(
 }
 
 // Stop every recording still active on the driver, pushing an ordered
-// stopRecord step report for each. Drains the per-context stack (LIFO) by
+// stopRecord step report for each, except the synthetic autoRecord recording,
+// whose stop merges into the context's autoRecording (ADR 01179). Drains the
+// per-context stack (LIFO) by
 // synthesizing `{ stopRecord: true, __stopAny: true }` steps — `__stopAny`
 // lets the generic stop also end the synthetic autoRecord recording (a plain
 // user `stopRecord: true` deliberately skips it). Each stop removes its handle
@@ -5970,8 +6019,6 @@ async function stopAllRecordings({
   if (!Array.isArray(driver?.state?.recordings)) return;
   let guard = driver.state.recordings.length + 1;
   while (driver.state.recordings.length > 0 && guard-- > 0) {
-    // The automatic recording's stop is `<testId>~autorecord~stop`, marked so
-    // the summary can leave it out (isSyntheticAutoRecordStep, ADR 01177).
     const next = selectRecordingToStop(driver.state.recordings, true, {
       includeSynthetic: true,
     });
@@ -5979,10 +6026,8 @@ async function stopAllRecordings({
       stopRecord: true,
       __stopAny: true,
       description: "Stopping recording",
-      stepId: next?.syntheticStepId ? `${next.syntheticStepId}~stop` : randomUUID(),
+      stepId: randomUUID(),
     };
-    // On the report entry only: step_v3 rejects unknown keys on the step.
-    const reportMarker = next?.synthetic ? { __autoRecordStop: true } : {};
     // These sweep steps really execute, so they carry a measured duration
     // rather than the Phase-3 zero default. Timed in both the success and the
     // failure path, so a stop that hangs before throwing still shows its cost.
@@ -5999,13 +6044,23 @@ async function stopAllRecordings({
       stepResult.resultDescription = stepResult.description;
       delete stepResult.status;
       delete stepResult.description;
+      if (next?.synthetic) {
+        const { result, resultDescription, outputs = {} } = stepResult;
+        const metadata = ["format", "duration", "width", "height", "fps"].filter((key) => outputs[key] !== undefined);
+        mergeAutoRecording(contextReport, {
+          result,
+          resultDescription,
+          ...(outputs.recordingPath ? { recordingPath: runRelativePath(config, outputs.recordingPath) } : {}),
+          ...Object.fromEntries(metadata.map((key) => [key, outputs[key]])),
+        });
+        continue;
+      }
       // Don't leak the internal routing marker into the report.
       delete stopRecordStep.__stopAny;
       contextReport.steps.push(
         maskDeep({
           ...stopRecordStep,
           ...stepResult,
-          ...reportMarker,
           startedAt: new Date(stopStart).toISOString(),
           durationMs: Date.now() - stopStart,
         })
@@ -6015,12 +6070,22 @@ async function stopAllRecordings({
       // Drop the top handle so the loop can't spin, and record the failure.
       delete stopRecordStep.__stopAny;
       driver.state.recordings.pop();
+      const failure = `Couldn't stop recording. ${error?.message ?? error}`;
+      if (next?.synthetic) {
+        // A defaulted recording never fails a test, even when its stop throws.
+        mergeAutoRecording(
+          contextReport,
+          next.defaulted
+            ? { result: "SKIPPED", resultDescription: defaultedStopSkip(failure) }
+            : { result: "FAIL", resultDescription: failure }
+        );
+        continue;
+      }
       contextReport.steps.push(
         maskDeep({
           ...stopRecordStep,
-          ...reportMarker,
           result: "FAIL",
-          resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+          resultDescription: failure,
           startedAt: new Date(stopStart).toISOString(),
           durationMs: Date.now() - stopStart,
         })
@@ -6200,7 +6265,6 @@ async function runStep({
       }
       if (step.__autoRecord) {
         handle.synthetic = true;
-        handle.syntheticStepId = step.stepId;
         // Desktop app-only context: no window exists yet to crop to. Mark the
         // handle so the first app surface to open late-binds its window rect
         // as the crop (startAppSurface), scoping the capture to the app under

@@ -29,7 +29,15 @@ import {
 } from "./recordingCheckpoints.js";
 import type { CheckpointsConfig } from "./recordingCheckpoints.js";
 
-export { stopRecording, saveBrowserRecording };
+export { stopRecording, saveBrowserRecording, defaultedStopSkip };
+
+// The skip for a recording autoRecord added while unset that couldn't be saved,
+// from the failure's own description (ADR 01177).
+function defaultedStopSkip(failure: any): string {
+  return `Skipped: couldn't save the automatic recording: ${recordingFailureCause(
+    failure
+  )}. Set \`autoRecord: false\` to turn it off.`;
+}
 
 // `deps` is a test seam for the pending-scale crop derivation (platform +
 // display probe); production callers omit it.
@@ -41,9 +49,7 @@ async function stopRecording(args: Omit<Parameters<typeof endRecording>[0], "onS
   // (ADR 01177). An explicit `autoRecord: true` keeps the FAIL.
   if (handle?.defaulted && result.status === "FAIL") {
     result.status = "SKIPPED";
-    result.description = `Skipped: couldn't save the automatic recording: ${recordingFailureCause(
-      result.description
-    )}. Set \`autoRecord: false\` to turn it off.`;
+    result.description = defaultedStopSkip(result.description);
   }
   return result;
 }
