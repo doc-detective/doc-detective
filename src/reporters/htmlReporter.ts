@@ -241,6 +241,10 @@ button { font: inherit; }
 }
 .hdr-title h1 .sub { color: var(--dd-gray-500); font-weight: 500; }
 .hdr-actions { display: flex; gap: 8px; align-items: center; }
+@media (max-width: 900px) {
+  .hdr-inner { flex-wrap: wrap; }
+  .hdr-title { order: 1; flex-basis: 100%; }
+}
 .hdr-btn {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 8px 12px; border-radius: 8px;
@@ -1113,6 +1117,24 @@ function collectMedia(step) {
   return media;
 }
 
+// What the header says about the run. It reads only the report, so tests can run it.
+function headerFacts(report) {
+  var env = report.environment || {};
+  var os = [env.platform, env.osRelease].filter(Boolean).join(" ");
+  if (env.arch) os += (os ? " " : "") + "(" + env.arch + ")";
+  return {
+    eyebrow: report.runId || "Report",
+    started: report.startedAt ? new Date(report.startedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "",
+    fields: [
+      ["Doc Detective", env.docDetectiveVersion],
+      ["Node.js", env.nodeVersion],
+      ["OS", os],
+      ["duration", report.durationMs == null ? "" : fmtDuration(report.durationMs)]
+    ].filter(function(f) { return f[1]; }),
+    download: "testResults" + (report.runId ? "-" + report.runId : "") + ".json"
+  };
+}
+
 // Build header
 function buildHeader() {
   var s = report.summary.specs;
@@ -1121,9 +1143,7 @@ function buildHeader() {
   var pctFailEnd = tot ? ((s.pass + s.fail) / tot * 100) + "%" : "0%";
   var pctWarnEnd = tot ? ((s.pass + s.fail + s.warning) / tot * 100) + "%" : "0%";
 
-  var meta = report.meta || {};
-  var started = meta.startedAt ? new Date(meta.startedAt) : null;
-  var reportIdShort = (report.reportId || "").slice(0, 8);
+  var facts = headerFacts(report);
 
   var hdr = el("header", "hdr");
   hdr.style.setProperty("--pct-pass", pctPass);
@@ -1139,8 +1159,8 @@ function buildHeader() {
 
   // Title
   var title = el("div", "hdr-title");
-  title.innerHTML = '<div class="eyebrow">Report' + (reportIdShort ? " \\u00B7 " + esc(reportIdShort) : "") + '</div>' +
-    '<h1>Test run<span class="sub"> \\u00B7 ' + (started ? started.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "\\u2014") + '</span></h1>';
+  title.innerHTML = '<div class="eyebrow">' + esc(facts.eyebrow) + '</div>' +
+    '<h1>Test run' + (facts.started ? '<span class="sub"> \\u00B7 ' + esc(facts.started) + '</span>' : "") + '</h1>';
   inner.appendChild(title);
 
   // Actions
@@ -1172,7 +1192,7 @@ function buildHeader() {
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
-    a.download = "testResults-" + (report.reportId || "report").slice(0, 8) + ".json";
+    a.download = facts.download;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
   };
@@ -1182,21 +1202,15 @@ function buildHeader() {
   hdr.appendChild(inner);
 
   // Meta strip
-  var ms = el("div", "metastrip");
-  var msInner = el("div", "metastrip-inner");
-  var fields = [
-    ["tool", (meta.tool || "doc-detective") + "@" + (meta.version || "\\u2014")],
-    ["runtime", (meta.platform || "\\u2014") + " \\u00B7 node " + (meta.node || "\\u2014")],
-    ["branch", meta.branch || meta.commit ? (meta.branch || "\\u2014") + (meta.commit ? "@" + meta.commit.slice(0, 7) : "") : "\\u2014"],
-    ["actor", meta.actor || "\\u2014"],
-    ["duration", fmtDuration(report.durationMs)],
-    ["cwd", meta.cwd || "\\u2014"]
-  ];
-  fields.forEach(function(f) {
-    msInner.innerHTML += '<span class="m"><span class="k">' + f[0] + '</span> <span class="v">' + esc(f[1]) + '</span></span>';
-  });
-  ms.appendChild(msInner);
-  hdr.appendChild(ms);
+  if (facts.fields.length) {
+    var ms = el("div", "metastrip");
+    var msInner = el("div", "metastrip-inner");
+    facts.fields.forEach(function(f) {
+      msInner.innerHTML += '<span class="m"><span class="k">' + f[0] + '</span> <span class="v">' + esc(f[1]) + '</span></span>';
+    });
+    ms.appendChild(msInner);
+    hdr.appendChild(ms);
+  }
 
   return hdr;
 }
