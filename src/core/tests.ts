@@ -284,7 +284,7 @@ export {
   autoScreenshotSurface,
   autoScreenshotsOn,
   installAutoScreenshotPackages,
-  isSyntheticAutoRecordStep,
+  isSyntheticAutoRecordStart,
   contextResultSources,
   runContext,
   stopAllRecordings,
@@ -4159,7 +4159,7 @@ function autoScreenshotSurface({
   processRegistry?: Map<string, any>;
   surfaceTracker?: ActiveSurfaceTracker;
 }): { kind: "browser" | "app"; surface?: any } | null {
-  if (!step || typeof step !== "object" || isSyntheticAutoRecordStep(step)) return null;
+  if (!step || typeof step !== "object" || isSyntheticAutoRecordStart(step)) return null;
   if (typeof step.screenshot !== "undefined") return null;
   const drivesUi =
     driverActions.some((action) => typeof step[action] !== "undefined") ||
@@ -4241,7 +4241,7 @@ async function installAutoScreenshotPackages({
 // runs through the step loop but reports as the context's `autoRecording`, not
 // a step (ADR 01179). The runner's marker decides, so an authored step with a
 // stepId like it still counts.
-function isSyntheticAutoRecordStep(step: any): boolean {
+function isSyntheticAutoRecordStart(step: any): boolean {
   return Boolean(step?.__autoRecord);
 }
 
@@ -5293,7 +5293,7 @@ async function runContext({
         mergeAutoRecording(contextReport, {
           result: rep.result,
           resultDescription: rep.resultDescription,
-          ...(rep.result === "PASS" ? { startedAt: rep.startedAt } : {}),
+          ...(rep.result === "PASS" && rep.startedAt ? { startedAt: rep.startedAt } : {}),
         });
         return;
       }
@@ -5601,7 +5601,7 @@ async function runContext({
           })
         : null;
       if (shotSurface) {
-        const synthetic = context.steps.filter(isSyntheticAutoRecordStep).length;
+        const synthetic = context.steps.filter(isSyntheticAutoRecordStart).length;
         const capturedPath = await captureAutoScreenshot({
           config,
           driver: autoScreenshotDriver,

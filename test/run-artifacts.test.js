@@ -5,7 +5,7 @@ import {
   resolveAutoScreenshot,
   resolveAutoRecord,
   buildAutoRecordStep,
-  isSyntheticAutoRecordStep,
+  isSyntheticAutoRecordStart,
   contextResultSources,
   runContext,
   stopAllRecordings,
@@ -688,13 +688,13 @@ describe("outputResults adds the runFolder reporter", function () {
 // The synthetic ~autorecord start stays out of the automatic screenshots'
 // numbering (ADR 01177). The runner's marker decides, not the stepId, so an
 // authored step named like it still counts.
-describe("isSyntheticAutoRecordStep", function () {
+describe("isSyntheticAutoRecordStart", function () {
   it("matches the synthetic start by its marker, and nothing authored", function () {
     expect(
-      isSyntheticAutoRecordStep({ stepId: "t~autorecord", record: { path: "x.mp4" }, __autoRecord: true })
+      isSyntheticAutoRecordStart({ stepId: "t~autorecord", record: { path: "x.mp4" }, __autoRecord: true })
     ).to.equal(true);
-    expect(isSyntheticAutoRecordStep({ stepId: "login~autorecord", record: { path: "x.mp4" } })).to.equal(false);
-    expect(isSyntheticAutoRecordStep({ stepId: "stop", stopRecord: true })).to.equal(false);
+    expect(isSyntheticAutoRecordStart({ stepId: "login~autorecord", record: { path: "x.mp4" } })).to.equal(false);
+    expect(isSyntheticAutoRecordStart({ stepId: "stop", stopRecord: true })).to.equal(false);
   });
 });
 
