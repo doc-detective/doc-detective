@@ -356,9 +356,36 @@ describe("CLI contract", function () {
       expect(r.stderr).to.not.match(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/);
     });
 
-    it("prints a result path relative to the current directory", function () {
+    it("announces report files with absolute paths on stderr", function () {
       const r = run(["-i", "pass.spec.json"]);
-      expect(r.stdout + r.stderr).to.not.include(cwd);
+      const real = fs.realpathSync(cwd);
+      const lines = r.stderr.split(/\r?\n/);
+      expect(lines.some((l) => l.startsWith("Run report: ") && l.endsWith("testResults.html") && l.includes(real)), r.stderr).to.equal(true);
+      expect(lines.some((l) => l.startsWith("Run results: ") && l.endsWith("testResults.json") && l.includes(real)), r.stderr).to.equal(true);
+    });
+
+    it("prints only JSON on stdout with --json -r junit,markdown,html, and announces on stderr", function () {
+      const r = run(["-i", "pass.spec.json", "--json", "-r", "junit,markdown,html"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
+      for (const kind of ["JUnit report: ", "Markdown summary: ", "HTML report: "]) {
+        expect(r.stderr, kind).to.include(kind);
+      }
+    });
+
+    it("hides report announcements at -l warning and never says results at", function () {
+      const quiet = run(["-i", "pass.spec.json", "-l", "warning", "-r", "junit"]);
+      expect(quiet.stderr).to.not.include("JUnit report:");
+      expect(fs.existsSync(path.join(cwd, "junit.xml"))).to.equal(true);
+      const loud = run(["-i", "pass.spec.json", "-r", "junit,markdown,html,json,runFolder,terminal"]);
+      expect(loud.stdout + loud.stderr).to.not.include("results at ");
+    });
+
+    it("keeps the exit code when a report can't be written", function () {
+      fs.writeFileSync(path.join(cwd, "blocked"), "a file, not a folder");
+      const r = run(["-i", "pass.spec.json", "-r", "junit", "--output-dir", "blocked/reports", "--no-auto-screenshot", "--no-auto-record"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(r.stderr).to.match(/Couldn't write the JUnit report to .*junit\.xml: /);
     });
 
     for (const args of [["--json"], ["-o", "-"]]) {

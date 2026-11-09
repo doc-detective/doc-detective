@@ -67,7 +67,15 @@ describe("rewriteRootError", function () {
 describe("verdictLine", function () {
   const verdict = (tests) => verdictLine({ summary: { tests } });
   it("reports failures", function () {
-    expect(verdict({ pass: 1, fail: 1, warning: 0, skipped: 0 })).to.include("1 of 2 tests failed");
+    expect(verdict({ pass: 1, fail: 1, warning: 0, skipped: 0 })).to.include("1 of 2 tests failed.");
+  });
+  it("counts warnings and skips on the fail line too", function () {
+    expect(verdict({ pass: 9, fail: 1, warning: 2, skipped: 3 })).to.include(
+      "1 of 15 tests failed (2 with warnings, 3 skipped)."
+    );
+  });
+  it("reports a warnings-only run as passed", function () {
+    expect(verdict({ pass: 0, fail: 0, warning: 2, skipped: 0 })).to.include("2 of 2 tests passed (2 with warnings).");
   });
   it("reports passes, with warnings and skips", function () {
     expect(verdict({ pass: 1, fail: 0, warning: 1, skipped: 1 })).to.include(

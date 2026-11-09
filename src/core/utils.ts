@@ -99,6 +99,7 @@ export {
   timestamp,
   getOrInitRunTimestamp,
   getRunOutputDir,
+  reportOutputDir,
   runArchivesArtifacts,
   replaceEnvs,
   spawnCommand,
@@ -3136,6 +3137,22 @@ function getOrInitRunTimestamp(config: any): string {
   return config.__runTimestamp;
 }
 
+// The folder a report lands in, given the run's `outputDir` or a report path. A
+// report extension always means a file, so `--output-dir results.json` puts
+// junit.xml beside it instead of making a folder where another reporter is writing
+// the file (reporters run concurrently). Anything else is checked on disk: a folder
+// is used as is, a file's folder is used, and a missing path is treated as a folder.
+// So a dotted folder name (`reports.v1`) stays a folder. Always absolute.
+function reportOutputDir(output: any): string {
+  const resolved = path.resolve(String(output ?? ".") || ".");
+  if (/\.(json|html?|xml|md)$/i.test(resolved)) return path.dirname(resolved);
+  try {
+    return fs.statSync(resolved).isDirectory() ? resolved : path.dirname(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
 // Per-run artifact directory: `<output>/.doc-detective/runs/<runId>/`, where
 // runId is the run timestamp — plus an ordinal suffix (`-2`, `-3`, …) on the
 // rare same-millisecond collision, so the effective runId stamped in the
@@ -3168,14 +3185,7 @@ function getRunOutputDir(
   // Coerce defensively: a programmatic caller could hand us a non-string
   // output (e.g. a PathLike), and the extension check / path ops below assume
   // a string. Mirrors the String() coercion in runFolderReporter.
-  let base = String(config?.outputDir ?? config?.output ?? ".");
-  // Must match the lists in runFolderBaseDir (src/utils.ts) and
-  // reportOutputDir (src/reporters/outputDir.ts) — a divergence would place
-  // the run folder inside a path another reporter writes as a file.
-  const reportFileExtensions = [".json", ".html", ".htm", ".xml", ".md"];
-  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
-    base = path.dirname(base);
-  }
+  const base = reportOutputDir(config?.outputDir ?? config?.output);
   const runsRoot = path.resolve(base, ".doc-detective", "runs");
   const runId = getOrInitRunTimestamp(config);
   let dir = path.join(runsRoot, runId);

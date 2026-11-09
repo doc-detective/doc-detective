@@ -174,7 +174,7 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 ## Summary format
 
-**What changed:** The terminal summary is shorter and ends with a one-line verdict, such as `1 of 1 test passed`. The `See detailed results at` line is gone. Run folder paths now print on stderr as `Run report:` and `Run results:`, relative to the current directory.
+**What changed:** The terminal summary ends with a one-line verdict, such as `1 of 1 test passed`. It lists every failure, warning, and skip by ID path, under `Failed (N):`, `Warnings (N):`, and `Skipped (N):`, which replace `Failed Items:` and the lists under it. Skips print whether or not a test failed. Doc Detective no longer prints the `See detailed results at` line.
 
 **What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead.
 
@@ -193,6 +193,32 @@ A test without its own `testId` gets a new generated ID when its steps change.
 Deprecation warnings print at the `warning` log level and above, so `-l silent` and `-l error` hide them, like `-q`.
 
 **What to do:** Don't match on message text. To triage a failure, read `result` and `resultCode`. See [Failed steps say what kind of failure it was](#failed-steps-say-what-kind-of-failure-it-was). See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
+
+## Report notices moved to stderr
+
+**What changed:** The `html`, `junit`, and `markdown` reporters no longer print `See … at <path>` on stdout. Every reporter that writes a file names it on stderr with its absolute path, as `Results:`, `Run report:`, `Run results:`, `HTML report:`, `JUnit report:`, or `Markdown summary:`. These lines follow the log level, so `-l warning` and quieter hide them. So `--json` stdout now holds only JSON, whichever reporters run.
+
+If Doc Detective can't write a report, it prints `Couldn't write the <report> to <path>: <cause>.` at error level. The exit code still doesn't change.
+
+**What to do:** Update anything that reads `See HTML report at`, `See JUnit report at`, or `See Markdown summary at` from stdout. Better still, use the fixed paths in [Find each report](/docs/ci/reporters-and-artifacts#find-each-report).
+
+## JUnit case names
+
+**What changed:** A test suite's `name` and a test case's `classname` are the spec ID. A test case's `name` is `<testId> › <contextId> — <description>`. Version 4 used the spec's description, and `<description> [browser / platform]`. Each context now has a name of its own, so GitLab can't drop duplicates. `junit.xml` also gains attachments, warnings in `<system-err>`, step skips in `<system-out>`, a suite `timestamp`, and suite `<properties>`. See [Read the JUnit report](/docs/ci/reporters-and-artifacts#read-the-junit-report).
+
+**What to do:** Expect your CI's test history to restart once. Update any rule that matches case names, such as a quarantine list. On GitLab, keep `junit.xml` at the project root and add `.doc-detective/` to `artifacts:paths`, so the attachments resolve.
+
+## Markdown and HTML verdicts count tests
+
+**What changed:** The Markdown summary and the HTML report count tests in their verdicts, as the terminal does. Both used to count specs. A run with only warnings now reads **Passed with warnings**, and Markdown used to call it **Passed**. The Markdown summary also lists warnings and skips, and its failures table has `Location` and `Details` columns instead of `Spec`, `Test`, and `Details`. Its paths are relative to the summary file.
+
+**What to do:** Update anything that reads those verdicts or columns. For counts, read `summary` from the results file instead. See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields).
+
+## A report path you name is overwritten
+
+**What changed:** When `outputDir` names a `.json` or `.html` file, the matching reporter overwrites that file, as `--output` already does. It used to write `report-0.html`, then `report-1.html`, and so on.
+
+**What to do:** To keep a file per run, point `outputDir` at a folder. The `json` and `html` reporters then name each file after the run ID.
 
 ## Results show the effective step
 
@@ -686,6 +712,6 @@ See [Run in CI with the GitHub Action](/docs/ci/github-action) for the full setu
 
    A `1` means tests failed, and `results.json` holds the details. A `2` means nothing valid was tested, and stderr says why.
 
-3. Search your pipelines and scripts for the removed items: `testResults-`, `See detailed results`, `install-agents`, `doc-detective-lsp`, `doc-detective-runner`, and `--output` with a folder.
+3. Search your pipelines and scripts for the removed items: `testResults-`, `See detailed results`, `See HTML report`, `See JUnit report`, `See Markdown summary`, `install-agents`, `doc-detective-lsp`, `doc-detective-runner`, and `--output` with a folder.
 
 For every flag, see the [CLI reference](/reference/reference/cli).

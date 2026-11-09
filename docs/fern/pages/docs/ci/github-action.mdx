@@ -230,7 +230,7 @@ GitHub discards the checkout when the job ends. To keep the reports, upload them
     include-hidden-files: true
 ```
 
-`if: always()` uploads the files even when a failing test fails the job. `upload-artifact` treats files in a folder whose name starts with `.` as hidden and skips them by default, so set `include-hidden-files: true` to upload the run folder.
+`if: always()` uploads the files even when a failing test fails the job. `upload-artifact` treats files in a folder whose name starts with `.` as hidden and skips them by default, so set `include-hidden-files: true` to upload the run folder. Upload the run folder with `junit.xml`, because its [attachments](/docs/ci/reporters-and-artifacts#read-the-junit-report) are relative to that file.
 
 ## Browser modes
 
