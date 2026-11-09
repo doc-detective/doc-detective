@@ -437,6 +437,8 @@ export function captureWarnings(resolvedTests: any, results: any): string[] {
   return [...messages];
 }
 
+// One flag per process, so this assumes `runTests` calls run one at a time. Overlapping
+// calls share it, and the only cost is a masking warning for a call that used no variables.
 let variablesUsed = false;
 
 /** Called when `runTests` starts, so one run's variables can't warn about a later run in the process. */
