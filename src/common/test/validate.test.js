@@ -167,14 +167,14 @@ import { schemas } from "../dist/index.js";
         expect(result.object.autoScreenshot).to.equal(true);
       });
 
-      it("should default autoScreenshot to false when unset", function () {
+      it("should leave autoScreenshot unset when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.autoScreenshot).to.equal(false);
+        expect(result.object.autoScreenshot).to.equal(undefined);
       });
 
       it("should reject a config_v3 object whose autoScreenshot is not a boolean", function () {
@@ -622,14 +622,14 @@ import { schemas } from "../dist/index.js";
         expect(result.object.autoRecord).to.equal(true);
       });
 
-      it("should default autoRecord to false when unset", function () {
+      it("should leave autoRecord unset when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.autoRecord).to.equal(false);
+        expect(result.object.autoRecord).to.equal(undefined);
       });
 
       it("should reject a config_v3 object whose autoRecord is not a boolean", function () {

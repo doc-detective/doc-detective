@@ -433,7 +433,7 @@ describe("Util tests", function () {
     expect(absent.autoScreenshot).to.equal(undefined);
   });
 
-  it("setConfig stores --auto-screenshot on config.autoScreenshot and applies schema default when absent", async function () {
+  it("setConfig stores --auto-screenshot on config.autoScreenshot and leaves it unset when absent", async function () {
     this.timeout(5000);
     const argsOn = setArgs(["node", "runTests.js", "--auto-screenshot"]);
     const configOn = await setConfig({ configPath: null, args: argsOn });
@@ -443,11 +443,11 @@ describe("Util tests", function () {
     const configOff = await setConfig({ configPath: null, args: argsOff });
     expect(configOff.autoScreenshot).to.equal(false);
 
-    // Schema default is false; absent flag yields false via AJV useDefaults.
+    // No schema default, so the upgrade notice can tell unset from off (ADR 01147).
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.autoScreenshot).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
-    expect(configAbsent.autoScreenshot).to.equal(false);
+    expect(configAbsent.autoScreenshot).to.equal(undefined);
   });
 
   it("Yargs parses --auto-record / --no-auto-record as boolean", function () {
@@ -461,7 +461,7 @@ describe("Util tests", function () {
     expect(absent.autoRecord).to.equal(undefined);
   });
 
-  it("setConfig stores --auto-record on config.autoRecord and applies schema default when absent", async function () {
+  it("setConfig stores --auto-record on config.autoRecord and leaves it unset when absent", async function () {
     this.timeout(5000);
     const argsOn = setArgs(["node", "runTests.js", "--auto-record"]);
     const configOn = await setConfig({ configPath: null, args: argsOn });
@@ -471,11 +471,11 @@ describe("Util tests", function () {
     const configOff = await setConfig({ configPath: null, args: argsOff });
     expect(configOff.autoRecord).to.equal(false);
 
-    // Schema default is false; absent flag yields false via AJV useDefaults.
+    // No schema default, so the upgrade notice can tell unset from off (ADR 01147).
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.autoRecord).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
-    expect(configAbsent.autoRecord).to.equal(false);
+    expect(configAbsent.autoRecord).to.equal(undefined);
   });
 
   it("Yargs parses --cache-dir as a string", function () {
