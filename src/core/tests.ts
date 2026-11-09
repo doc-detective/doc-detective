@@ -48,6 +48,7 @@ import {
   applyBrowserSize,
   isViewportFloored,
   loadAxios,
+  sessionVersions,
 } from "./utils.js";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { goTo } from "./tests/goTo.js";
@@ -129,6 +130,7 @@ import {
 } from "./warmPhase.js";
 import { locateManagedWda } from "../runtime/wdaProducts.js";
 import { getCacheDir } from "../runtime/cacheDir.js";
+import { packageRoot } from "../runtime/heavyDeps.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
 import {
   hostAbi,
@@ -211,9 +213,6 @@ import {
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
 import https from "node:https";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Idle browser-pool Appium servers kept between runs in this process, only
 // when DOC_DETECTIVE_REUSE_APPIUM is set (ADR 01125). Empty otherwise.
@@ -1362,6 +1361,8 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
           steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         },
         // Nothing ran, but the shape stays parity with runSpecs' short-circuit.
+        startedAt: new Date().toISOString(),
+        environment: getEnvironment(),
         durationMs: 0,
         specs: [],
       };
@@ -1531,6 +1532,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
       },
+      startedAt: new Date(runStart).toISOString(),
+      environment: getEnvironment(),
       durationMs: Date.now() - runStart,
       specs: [],
     };
@@ -1585,6 +1588,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const report: any = {
     runId,
     runDir,
+    // Run metadata (ADR 01163): when execution started and the host that ran
+    // it, so a consumer can tell product drift from environment drift.
+    startedAt: new Date(runStart).toISOString(),
+    environment: runnerDetails.environment,
     summary: {
       specs: {
         pass: 0,
@@ -2414,35 +2421,55 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     process.off("SIGTERM", onSignal);
   }
 
-  // Upload changed files back to source integrations (best-effort)
-  // This automatically syncs any changed screenshots back to their source CMS
-  // Only upload if uploadOnChange is enabled (defaults to true for backward compatibility)
-  // Check both global config.uploadOnChange and per-integration uploadOnChange settings
-  const herettoConfigs = config?.integrations?.heretto || [];
-  const hasUploadEnabledIntegration = herettoConfigs.some(
-    (h: any) => h.uploadOnChange !== false // Default to true if not explicitly set to false
-  );
-  const globalUploadOnChange = config?.uploadOnChange ?? true;
-  if (globalUploadOnChange && hasUploadEnabledIntegration && herettoConfigs.length > 0) {
-    try {
-      const uploadResults = await uploadChangedFiles({ config, report, log });
-      report.uploadResults = uploadResults;
-    } catch (error: any) {
-      log(config, "warning", `Failed to upload changed files: ${error.message}`);
-      report.uploadResults = {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        skipped: 0,
-        error: error.message,
-      };
-    }
-  }
+  // An absent `report.uploadResults` means no integration opted in, so no
+  // upload was attempted.
+  const uploadResults = await uploadChangedFilesIfEnabled({ config, report, log });
+  if (uploadResults) report.uploadResults = uploadResults;
 
   // Stamped last, after teardown and any Heretto upload, so the number matches
   // the elapsed time a user actually observes.
   report.durationMs = Date.now() - runStart;
   return report;
+}
+
+/**
+ * Upload changed files back to their source integrations (best-effort). Opt-in:
+ * runs only when some integration, of any type, sets `uploadOnChange: true`
+ * (schema default false); uploadChangedFiles then skips files from
+ * integrations that didn't. Returns undefined when nothing opted in. A thrown
+ * upload still returns the success shape, with empty `details` and `error`.
+ * `upload` is injectable for tests.
+ */
+export async function uploadChangedFilesIfEnabled({
+  config,
+  report,
+  log: logFn,
+  upload = uploadChangedFiles,
+}: {
+  config: any;
+  report: any;
+  log: any;
+  upload?: typeof uploadChangedFiles;
+}): Promise<any> {
+  const integrationEntries = Object.values(config?.integrations ?? {}).flatMap(
+    (entries: any) => (Array.isArray(entries) ? entries : [])
+  );
+  if (!integrationEntries.some((entry: any) => entry?.uploadOnChange === true)) {
+    return undefined;
+  }
+  try {
+    return await upload({ config, report, log: logFn });
+  } catch (error: any) {
+    logFn(config, "warning", `Failed to upload changed files: ${error.message}`);
+    return {
+      total: 0,
+      successful: 0,
+      failed: 0,
+      skipped: 0,
+      details: [],
+      error: error.message,
+    };
+  }
 }
 
 /**
@@ -4550,6 +4577,15 @@ async function runContext({
         engine: String(mobileWebBrowserName).toLowerCase(),
         driver,
       });
+      // Device browser versions, as far as the session reports them (ADR
+      // 01163); there's no desktop app entry to fall back on.
+      const versions = sessionVersions({ capabilities: driver?.capabilities });
+      if (versions.browserVersion)
+        contextReport.browser = {
+          ...contextReport.browser,
+          version: versions.browserVersion,
+        };
+      if (versions.driver) contextReport.driver = versions.driver;
       /* c8 ignore stop */
     } else if (driverRequired) {
       // Check out a server for this context's lifetime — released in the
@@ -4748,6 +4784,20 @@ async function runContext({
         };
         clog("warning", fellBackNote);
       }
+      // The browser and driver that actually ran, for the report (ADR 01163).
+      // A copy, so the version never feeds back into the context's settings.
+      const versions = sessionVersions({
+        capabilities: driver?.capabilities,
+        app: availableApps.find(
+          (app: any) => app.name === normalizeBrowserName(startedName)
+        ),
+      });
+      if (versions.browserVersion)
+        contextReport.browser = {
+          ...contextReport.browser,
+          version: versions.browserVersion,
+        };
+      if (versions.driver) contextReport.driver = versions.driver;
 
       // Multi-surface Phase 4 (ADR 01019): register the default session in the
       // context's session registry under its engine name, so it resolves like
@@ -5094,7 +5144,12 @@ async function runContext({
         // and `r` is the runStep result — neither may clobber the timing.
         // On retry the loop below discards this report wholesale, so the
         // surviving value is the FINAL attempt's, per ADR 01083.
-        return { ...step, ...r, durationMs: Date.now() - stepStart } as any;
+        return {
+          ...step,
+          ...r,
+          startedAt: new Date(stepStart).toISOString(),
+          durationMs: Date.now() - stepStart,
+        } as any;
       };
 
       // Run the step, then resolve routing. A `retry` decision re-runs the step
@@ -5494,6 +5549,7 @@ async function runContextWithRetries(
     const start = Date.now();
     const report = await runContextFn(a);
     if (report && typeof report === "object") {
+      report.startedAt = new Date(start).toISOString();
       report.durationMs = Date.now() - start;
     }
     return report;
@@ -5610,6 +5666,7 @@ async function stopAllRecordings({
       contextReport.steps.push({
         ...stopRecordStep,
         ...stepResult,
+        startedAt: new Date(stopStart).toISOString(),
         durationMs: Date.now() - stopStart,
       });
     } catch (error: any) {
@@ -5621,6 +5678,7 @@ async function stopAllRecordings({
         ...stopRecordStep,
         result: "FAIL",
         resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+        startedAt: new Date(stopStart).toISOString(),
         durationMs: Date.now() - stopStart,
       });
     }
@@ -6065,7 +6123,7 @@ async function spawnAppiumServer(
     ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      cwd: packageRoot(),
       env,
     }
   );
@@ -6497,7 +6555,7 @@ async function getRunner(options: any = {}) {
     ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      cwd: packageRoot(),
     }
   );
   // Without a listener an "error" event from spawn (e.g. ENOENT, EACCES)

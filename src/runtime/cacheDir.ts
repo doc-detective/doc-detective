@@ -1,9 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { packageRoot } from "./heavyDeps.js";
 
 export interface InstalledNpmPackage {
   installedVersion: string;
@@ -183,15 +181,11 @@ export function getBrowsersDir(ctx: CacheDirContext = {}): string {
 
 function legacyBrowserSnapshotCandidates(): string[] {
   const out = [path.resolve("browser-snapshots")];
-  // Compiled output lives at <pkgRoot>/dist/runtime/cacheDir.js, so
-  // `__dirname` is `<pkgRoot>/dist/runtime` and `path.resolve(..., "..", "..")`
-  // climbs two segments (`dist/runtime` → `dist` → `<pkgRoot>`) — that's
-  // the shim's package root, where the legacy postinstall would have
-  // written `browser-snapshots/`. (Mirrors the `../../package.json`
-  // pattern in src/runtime/heavyDeps.ts.)
-  const shimRoot = path.resolve(__dirname, "..", "..");
-  const fromShim = path.join(shimRoot, "browser-snapshots");
-  if (fromShim !== out[0]) out.push(fromShim);
+  // The shim's package root, where the legacy postinstall would have
+  // written `browser-snapshots/`.
+  const shimRoot = packageRoot();
+  const fromShim = shimRoot && path.join(shimRoot, "browser-snapshots");
+  if (fromShim && fromShim !== out[0]) out.push(fromShim);
   return out;
 }
 

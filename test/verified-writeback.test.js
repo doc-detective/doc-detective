@@ -1,5 +1,6 @@
 import { applyVerifiedMarkers, verifiedDate } from "../dist/core/utils.js";
 import { runTests, detectAndResolveTests } from "../dist/core/index.js";
+import { _resetCacheForTests } from "../dist/runtime/heavyDeps.js";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -60,6 +61,24 @@ describe("Verification metadata — write-back", function () {
       expect(read(f)).to.equal(
         `---\ntitle: Doc\nverified-by:\n  - tool: doc-detective\n    check: test~1\n    version: ${VERSION}\n    passed: ${TODAY}\nlast-verified: ${TODAY}\n---\n\n# Doc\n`
       );
+    });
+    it("writes version: unknown when its own package.json can't be found", function () {
+      const f = write("a.md", page("test~1"));
+      // Make ownVersion() come back undefined: drop its cache and fail every
+      // package.json read until the walk gives up.
+      _resetCacheForTests();
+      const readFileSync = fs.readFileSync;
+      fs.readFileSync = (p, ...rest) => {
+        if (String(p).endsWith("package.json")) throw new Error("no package.json");
+        return readFileSync(p, ...rest);
+      };
+      try {
+        applyVerifiedMarkers({ config: silent, results: report(f) });
+      } finally {
+        fs.readFileSync = readFileSync;
+        _resetCacheForTests();
+      }
+      expect(read(f)).to.contain("\n    version: unknown\n");
     });
     it("resolves a spec id as well as a test id", function () {
       const f = write("a.md", page("spec~1"));

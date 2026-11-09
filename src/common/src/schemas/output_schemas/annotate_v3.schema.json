@@ -75,19 +75,13 @@
                                 "type": "object",
                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                 "additionalProperties": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "boolean"
-                                    },
-                                    {
-                                      "type": "string"
-                                    }
+                                  "type": [
+                                    "boolean",
+                                    "number",
+                                    "string"
                                   ]
                                 },
-                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                               },
                               "elementAria": {
                                 "type": "string",
@@ -257,19 +251,13 @@
                                 "type": "object",
                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                 "additionalProperties": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "boolean"
-                                    },
-                                    {
-                                      "type": "string"
-                                    }
+                                  "type": [
+                                    "boolean",
+                                    "number",
+                                    "string"
                                   ]
                                 },
-                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                               },
                               "elementAria": {
                                 "type": "string",
@@ -439,19 +427,13 @@
                                 "type": "object",
                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                 "additionalProperties": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "boolean"
-                                    },
-                                    {
-                                      "type": "string"
-                                    }
+                                  "type": [
+                                    "boolean",
+                                    "number",
+                                    "string"
                                   ]
                                 },
-                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                               },
                               "elementAria": {
                                 "type": "string",
@@ -621,19 +603,13 @@
                                 "type": "object",
                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                 "additionalProperties": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "boolean"
-                                    },
-                                    {
-                                      "type": "string"
-                                    }
+                                  "type": [
+                                    "boolean",
+                                    "number",
+                                    "string"
                                   ]
                                 },
-                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                               },
                               "elementAria": {
                                 "type": "string",
@@ -803,19 +779,13 @@
                                 "type": "object",
                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                 "additionalProperties": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "boolean"
-                                    },
-                                    {
-                                      "type": "string"
-                                    }
+                                  "type": [
+                                    "boolean",
+                                    "number",
+                                    "string"
                                   ]
                                 },
-                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                               },
                               "elementAria": {
                                 "type": "string",
@@ -985,19 +955,13 @@
                                 "type": "object",
                                 "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                 "additionalProperties": {
-                                  "anyOf": [
-                                    {
-                                      "type": "number"
-                                    },
-                                    {
-                                      "type": "boolean"
-                                    },
-                                    {
-                                      "type": "string"
-                                    }
+                                  "type": [
+                                    "boolean",
+                                    "number",
+                                    "string"
                                   ]
                                 },
-                                "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                               },
                               "elementAria": {
                                 "type": "string",
@@ -1400,19 +1364,13 @@
                               "type": "object",
                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                               "additionalProperties": {
-                                "anyOf": [
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  },
-                                  {
-                                    "type": "string"
-                                  }
+                                "type": [
+                                  "boolean",
+                                  "number",
+                                  "string"
                                 ]
                               },
-                              "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                             },
                             "elementAria": {
                               "type": "string",
@@ -1574,19 +1532,13 @@
                           "type": "object",
                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                           "additionalProperties": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              },
-                              {
-                                "type": "string"
-                              }
+                            "type": [
+                              "boolean",
+                              "number",
+                              "string"
                             ]
                           },
-                          "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                          "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                         },
                         "elementAria": {
                           "type": "string",
@@ -1737,19 +1689,13 @@
                       "type": "object",
                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                       "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          },
-                          {
-                            "type": "string"
-                          }
+                        "type": [
+                          "boolean",
+                          "number",
+                          "string"
                         ]
                       },
-                      "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                     },
                     "elementAria": {
                       "type": "string",
@@ -2193,19 +2139,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -2375,19 +2315,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -2557,19 +2491,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -2739,19 +2667,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -2921,19 +2843,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -3103,19 +3019,13 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        },
-                                        {
-                                          "type": "string"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     },
-                                    "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                   },
                                   "elementAria": {
                                     "type": "string",
@@ -3518,19 +3428,13 @@
                                   "type": "object",
                                   "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                   "additionalProperties": {
-                                    "anyOf": [
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      },
-                                      {
-                                        "type": "string"
-                                      }
+                                    "type": [
+                                      "boolean",
+                                      "number",
+                                      "string"
                                     ]
                                   },
-                                  "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                                 },
                                 "elementAria": {
                                   "type": "string",
@@ -3692,19 +3596,13 @@
                               "type": "object",
                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                               "additionalProperties": {
-                                "anyOf": [
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  },
-                                  {
-                                    "type": "string"
-                                  }
+                                "type": [
+                                  "boolean",
+                                  "number",
+                                  "string"
                                 ]
                               },
-                              "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                             },
                             "elementAria": {
                               "type": "string",
@@ -3855,19 +3753,13 @@
                           "type": "object",
                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                           "additionalProperties": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              },
-                              {
-                                "type": "string"
-                              }
+                            "type": [
+                              "boolean",
+                              "number",
+                              "string"
                             ]
                           },
-                          "$comment": "Scalar branches precede the string branch: AJV runs with coerceTypes, so a leading string branch would coerce 5 into \"5\" and a number-valued attribute would silently change type before the runtime compared it. (crop_element in screenshot_v3 lists string first and predates this rule.)"
+                          "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
                         },
                         "elementAria": {
                           "type": "string",

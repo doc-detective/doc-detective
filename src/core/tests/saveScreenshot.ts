@@ -22,6 +22,7 @@ import { compositeAnnotations } from "../annotations/composite.js";
 import {
   log,
   fetchFile,
+  UrlGuardError,
   getOrInitRunTimestamp,
   redactUrlForOutput,
   sanitizeFilesystemName,
@@ -39,6 +40,7 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import { RENDER_SETTLE_MS } from "./timing.js";
 
 // pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
 // the first time a screenshot step needs it. Use `typeof import('…')`
@@ -541,7 +543,11 @@ async function captureScreenshot({
     const fetched: any = await fetchFile(originalUrlPath!, { binary: true });
     if (fetched.result !== "success") {
       result.status = "FAIL";
-      result.description = `Couldn't fetch remote reference image (${redactedUrl}): ${fetched.message}`;
+      // A guard error's message is complete; don't wrap it.
+      const msg = fetched.message?.message ?? String(fetched.message);
+      result.description = fetched.message instanceof UrlGuardError
+        ? msg
+        : `Couldn't fetch remote reference image (${redactedUrl}): ${msg}`;
       return result;
     }
     existFilePath = fetched.path;
@@ -732,7 +738,7 @@ async function captureScreenshot({
     );
 
     // Wait for scroll to complete
-    await driver.pause(100);
+    await driver.pause(RENDER_SETTLE_MS);
   }
 
   // Hide the synthetic cursor during capture so it isn't baked into the image,

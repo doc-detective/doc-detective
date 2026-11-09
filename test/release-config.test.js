@@ -86,11 +86,21 @@ describe("major-release guard", function () {
   it("fails a major for any value but true", function () {
     expect(guard(["major", "release"], "false").status).to.equal(1);
     expect(guard(["major", "release"], "").status).to.equal(1);
-    expect(guard(["major", "release"], "TRUE").status).to.equal(1);
+    expect(guard(["major", "release"], "1").status).to.equal(1);
   });
 
-  it("allows a major with ALLOW_MAJOR_RELEASE=true", function () {
-    expect(guard(["major", "release"], "true").status).to.equal(0);
+  it("allows a major with ALLOW_MAJOR_RELEASE=true, in any case and trimmed", function () {
+    for (const allow of ["true", "TRUE", "True", " true "]) {
+      expect(guard(["major", "release"], allow).status, allow).to.equal(0);
+    }
+  });
+
+  it("fails closed with a usage line when an argument is missing", function () {
+    for (const args of [[], ["minor"]]) {
+      const r = guard(args, "true");
+      expect(r.status, args.join(" ")).to.equal(1);
+      expect(r.stderr).to.include("Usage: verify-major-release.js <release-type> <release|prerelease>");
+    }
   });
 
   it("exempts prerelease channels", function () {

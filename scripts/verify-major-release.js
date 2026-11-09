@@ -8,7 +8,15 @@
 
 const [type, branchKind] = process.argv.slice(2);
 
-if (type === 'major' && branchKind !== 'prerelease' && process.env.ALLOW_MAJOR_RELEASE !== 'true') {
+// A safety guard fails closed: a missing argument isn't a pass.
+if (!type || !branchKind) {
+  console.error('Usage: verify-major-release.js <release-type> <release|prerelease>');
+  process.exit(1);
+}
+
+const allowed = (process.env.ALLOW_MAJOR_RELEASE || '').trim().toLowerCase() === 'true';
+
+if (type === 'major' && branchKind !== 'prerelease' && !allowed) {
   console.error(
     'Refusing a major release: the commits since the last release include a breaking change. ' +
       'If it is intended, set the ALLOW_MAJOR_RELEASE repository variable to true and rerun. ' +

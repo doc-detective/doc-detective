@@ -3,16 +3,23 @@
 // module free of heavy imports: the bare bins load it too.
 import fs from "node:fs";
 import path from "node:path";
+import {
+  BROWSER_STEP_KEYS,
+  stepOpensAppSurface,
+  stepOpensBrowserSurface,
+  stepTargetsProcessSurface,
+} from "./runtime/browserStepKeys.js";
 
 const UPGRADE_GUIDE_URL = "https://docs.doc-detective.com/docs/ci/upgrade-to-v5";
 
-const REMOVED_BINS: Record<string, string> = {
+const REMOVED_BINS = {
   "doc-detective-lsp": "Use `doc-detective lsp --stdio`, which works today.",
 };
 
 // Each exact message prints once per process. Spec rows name their file, so a
 // later `runTests` call in the same process still warns about a new file, but
-// not about the same issue in a file it already warned about.
+// not about the same issue in a file it already warned about. Every caller
+// shares this set, including programmatic `runTests` calls.
 const warned = new Set<string>();
 
 // The Action's legacy path runs v4 on purpose and has its own notice.
@@ -33,7 +40,7 @@ export function warnUpgrade(messages: string[], logLevel?: string): void {
   }
 }
 
-export function warnRemovedBin(bin: string): void {
+export function warnRemovedBin(bin: keyof typeof REMOVED_BINS): void {
   warnUpgrade([`\`${bin}\` is removed in Doc Detective 5.0. ${REMOVED_BINS[bin]}`]);
 }
 
@@ -42,7 +49,7 @@ export function warnRemovedBin(bin: string): void {
  * unparsed argv, because yargs fills in both `-a` and `--agent` and can't tell
  * which one the user typed.
  */
-export function commandWarnings(commands: string[], rawArgs: string[], silent: boolean): string[] {
+export function commandWarnings(commands: string[], rawArgs: string[]): string[] {
   const messages: string[] = [];
   const installAgents = commands[0] === "install-agents";
   if (installAgents) {
@@ -54,7 +61,7 @@ export function commandWarnings(commands: string[], rawArgs: string[], silent: b
   ) {
     messages.push("`-a` and `-s` are removed in Doc Detective 5.0. Use `--agent` and `--scope`, which work today.");
   }
-  if (commands[0] === "install" && silent) {
+  if (commands[0] === "install" && rawArgs.some((arg) => arg === "--silent" || arg.startsWith("--silent="))) {
     messages.push("`install --silent` is removed in Doc Detective 5.0. Use `--quiet`, which works today.");
   }
   return messages;
@@ -79,7 +86,7 @@ export function namesFolder(raw: unknown, resolved: string): boolean {
 export function outputWarnings(raw: unknown, resolved: string): string[] {
   return namesFolder(raw, resolved)
     ? [
-        `\`output\` names a folder ('${raw}'). In Doc Detective 5.0, \`--output\` and \`output\` name the results file, and a folder needs \`--output-dir\`.`,
+        `In Doc Detective 5.0, \`--output\` and \`output\` name the results file. Use \`--output-dir\` for a folder when you upgrade. Your output path ('${raw}') names a folder, and 4.x treats a path without a file extension as a folder.`,
       ]
     : [];
 }
@@ -105,7 +112,9 @@ export function flagWarnings(args: Record<string, unknown>): string[] {
   }
   for (const flag of ["test", "spec"]) {
     const values = args[flag];
-    if (Array.isArray(values)) {
+    // Relies on yargs collecting a repeated `type: "string"` option (`-t a -t b`) into an
+    // array; the "setup rows prints them from the CLI" test guards that.
+    if (Array.isArray(values) && values.length > 1) {
       messages.push(
         `\`--${flag}\` is given more than once, so 4.x ignores it and Doc Detective 5.0 exits with a usage error. Give one comma-separated value, \`--${flag} ${values.join(",")}\`, which works today.`
       );
@@ -231,8 +240,7 @@ function testWarnings(test: any, where: string): string[] {
 }
 
 // Subtrees that hold the user's own data, where a `timeout` key isn't one of ours.
-// Keep this in sync with the schemas' free-form boundaries: request and response
-// bodies, headers and params, `elementAttribute`, `variables`, and `outputs`.
+// Keep this in sync with the schemas' free-form boundaries.
 const FREE_FORM = new Set([
   "request",
   "response",
@@ -249,7 +257,8 @@ const FREE_FORM = new Set([
 ]);
 
 // Negative `wait`, `*timeout`, `*duration`, and `*delay` numbers in a step,
-// which 5.0 rejects anywhere.
+// which 5.0 rejects anywhere. It walks authored steps: shallow, parsed JSON/YAML
+// with no cycles, so the recursion needs no depth limit or cycle guard.
 function negatives(value: any, found: Set<string> = new Set()): Set<string> {
   if (value && typeof value === "object") {
     for (const [key, child] of Object.entries(value)) {
@@ -383,6 +392,77 @@ export function specWarnings(resolvedTests: any): string[] {
   return [...new Set(messages)];
 }
 
+// A step that drives a browser, native app, or device, which is what 5.0
+// captures automatically. Matches `flags.ui` in 5.0's `classifyStep`.
+function drivesUi(step: any): boolean {
+  return (
+    (BROWSER_STEP_KEYS.some((key) => step[key] !== undefined) && !stepTargetsProcessSurface(step)) ||
+    stepOpensBrowserSurface(step) ||
+    stepOpensAppSurface(step)
+  );
+}
+
+/**
+ * Defaults 5.0 changes, from what a finished run did. `resolvedTests` says which
+ * keys are unset, since a report doesn't carry them. The report says what ran,
+ * and `browser.explicit` is the resolver's mark for a browser the author named.
+ */
+export function captureWarnings(resolvedTests: any, results: any): string[] {
+  const messages = new Set<string>();
+  for (const specReport of results?.specs ?? []) {
+    const spec = resolvedTests?.specs?.find((s: any) => s.specId === specReport.specId);
+    for (const testReport of specReport.tests ?? []) {
+      const test = spec?.tests?.find((t: any) => t.testId === testReport.testId);
+      const unset = (key: string) => (test?.[key] ?? spec?.[key] ?? resolvedTests?.config?.[key]) === undefined;
+      for (const context of testReport.contexts ?? []) {
+        if (!context?.steps?.some((step: any) => step.result !== "SKIPPED" && drivesUi(step))) continue;
+        if (context.browser?.name === "firefox" && !context.browser.explicit) {
+          messages.add(
+            "Doc Detective 5.0 uses Chrome when a context doesn't name a browser. To stay on Firefox, name `firefox` in the context's `runOn` entry, which works today."
+          );
+        }
+        if (unset("autoScreenshot")) {
+          messages.add(
+            "Doc Detective 5.0 saves a screenshot after every browser, app, and device step, in a run folder, by default. To keep today's behavior, set `autoScreenshot: false`, which works today."
+          );
+        }
+        if (unset("autoRecord")) {
+          messages.add(
+            "Doc Detective 5.0 records browser, app, and device tests by default, including headless Chrome by tab capture. To keep today's behavior, set `autoRecord: false`, which works today."
+          );
+        }
+      }
+    }
+  }
+  return [...messages];
+}
+
+// One flag per process, so this assumes `runTests` calls run one at a time. Overlapping
+// calls share it, and the only cost is a masking warning for a call that used no variables.
+let variablesUsed = false;
+
+/** Called when `runTests` starts, so one run's variables can't warn about a later run in the process. */
+export function clearVariablesUsed(): void {
+  variablesUsed = false;
+}
+
+/** Called when a run substitutes a `$NAME` or loads variables, which 5.0 masks. */
+export function noteVariablesUsed(): void {
+  variablesUsed = true;
+}
+
+export function maskingWarnings(resolvedTests: any): string[] {
+  const specs: any[] = resolvedTests?.specs ?? [];
+  const listed = [resolvedTests?.config, ...specs, ...specs.flatMap((spec) => spec.tests ?? [])].some(
+    (level) => level?.publicVariables !== undefined
+  );
+  return variablesUsed && !listed
+    ? [
+        "Doc Detective 5.0 masks environment variable values in logs, reports, saved output, and browser captures. To show the ones that aren't secret, list them in `publicVariables`, which 4.x accepts and ignores.",
+      ]
+    : [];
+}
+
 /**
  * Warnings for a finished run. `exitOnFail` is the raw config value: undefined
  * means the user didn't choose, and false is already the 5.0 way to keep exit 0.
@@ -393,9 +473,11 @@ export function runResultWarnings(exitOnFail: boolean | undefined, failed: boole
   const testedNothing =
     !results || (!!specs && [specs.pass, specs.fail, specs.warning, specs.skipped].every((n) => !n));
   if (testedNothing) {
-    return [
-      "This run tested nothing. Doc Detective 5.0 will exit 2 instead of 0. To keep exit 0, set `--no-exit-on-fail`.",
-    ];
+    const fix =
+      exitOnFail === true
+        ? "Make sure your inputs always find tests."
+        : "To allow empty runs, set `--no-exit-on-fail`, which also stops failed tests from failing the run. Otherwise, make sure your inputs always find tests.";
+    return [`This run tested nothing. Doc Detective 5.0 will exit 2 instead of 0. ${fix}`];
   }
   if (failed && exitOnFail === undefined) {
     return [

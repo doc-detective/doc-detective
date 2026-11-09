@@ -15,6 +15,8 @@ playbook.
 > still owes a **docs-impact assessment**. See ["Documentation impact"](../../CLAUDE.md#documentation-impact-required)
 > and the [content strategy](../../docs/content-strategy/) in the root guide.
 
+> Hint text follows ["Messages"](../../CLAUDE.md#messages-required) and names only what ships today (["Plans and interfaces"](../../CLAUDE.md#plans-and-interfaces-required), rule 4).
+
 ---
 
 ## When to add a hint (and when not to)

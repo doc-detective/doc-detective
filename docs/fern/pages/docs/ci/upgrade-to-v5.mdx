@@ -4,7 +4,7 @@ sidebar-title: Prepare for 5.0
 description: What's changing in Doc Detective 5.0, and how to try the new behavior on 4.x today.
 ---
 
-Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking release. It isn't out yet. If you landed here from a warning in your logs, your setup uses something that changes in 5.0, and nothing breaks until you upgrade. Auto-update won't move you to 5.0 on its own.
+Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking release. It isn't out yet. If you landed here from a warning in your logs, your setup uses something that changes in 5.0, and nothing breaks until you upgrade. Auto-update won't move you to 5.0 on its own. To hide these warnings, pass `--log-level silent` on the command line. A config file's `logLevel: silent` hides most of them, but not the warnings about commands and flags.
 
 ## What's coming
 
@@ -40,6 +40,10 @@ Doc Detective 5.0 makes the CLI safer to rely on in CI, and it's a breaking rele
 | A `goTo` or `httpRequest` URL that starts with a `$VAR`, like `$URL/docs` | Exits `2`. A URL starts with `http://`, `https://`, or `/`, or is a whole `$VAR`. Put the whole URL in one variable |
 | A `saveCookie` or `loadCookie` path with a `/` that doesn't end in `.txt` | Exits `2`. End the path in `.txt` |
 | An app's `workingDirectory: "."` | Fails the step. Remove `workingDirectory` |
+| A context that names no browser runs Firefox, if it's installed | Runs Chrome first. To stay on Firefox, name `firefox` in the context's `runOn` entry |
+| `autoScreenshot` unset takes no screenshots | Saves a screenshot after every browser, app, and device step, in a run folder. Set `autoScreenshot: false` to keep today's behavior |
+| `autoRecord` unset records nothing | Records browser, app, and device tests, including headless Chrome by tab capture. Set `autoRecord: false` to keep today's behavior |
+| Environment variable values appear in logs, reports, saved output, and browser captures | Masks them. List the ones that aren't secret in `publicVariables` |
 
 Logs also move to stderr, so stdout carries only results.
 
@@ -54,6 +58,10 @@ npx doc-detective --exit-on-fail
 To keep exit code `0` after you upgrade, set `--no-exit-on-fail`, or `exitOnFail: false` in your config. Either one also works today, and it silences the warnings about exit codes.
 
 The fixes in the table already work on 4.x, except `--output-dir`, which arrives with 5.0, and `beforeAll`, which 4.x rejects.
+
+Naming a browser in `runOn`, `autoScreenshot: false`, and `autoRecord: false` also work today, and each one silences its warning. Setting `autoScreenshot` or `autoRecord` to `true` silences its warning too, and turns that capture on with 4.x's behavior.
+
+4.x accepts `publicVariables` on the config, a spec, or a test. It doesn't mask anything, so the key has no effect until 5.0. Setting it, even to an empty list, silences the masking warning. On 5.0, a name listed at any level is public for the whole run. `*` matches any characters, so `["*"]` turns masking off.
 
 ## What's next
 

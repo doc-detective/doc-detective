@@ -1,5 +1,5 @@
 import { runTests, awaitTelemetryFlush } from "./core/index.js";
-import { shouldFailRun } from "./core/utils.js";
+import { shouldFailRun, localUrlPolicy } from "./core/utils.js";
 import {
   buildYargs,
   setConfig,
@@ -22,9 +22,7 @@ import { debugCommand } from "./debug/command.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
-import { createRequire } from "node:module";
-
-const cliRequire = createRequire(import.meta.url);
+import { ownVersion } from "./runtime/heavyDeps.js";
 
 // Run
 setMeta();
@@ -42,10 +40,26 @@ main(processArgv).catch((err) => {
 });
 
 async function main(argv: string[]) {
+  // Conflicting local-URL switches are a usage error for every command
+  // (ADR 01162). The library throws; the CLI reports it and exits 2. Help
+  // and version still answer, since people reach for them to diagnose it.
+  const args = argv.slice(2);
+  const wantsHelpOrVersion =
+    args[0] === "help" || args.some((arg) => ["--help", "-h", "--version"].includes(arg));
+  try {
+    if (!wantsHelpOrVersion) localUrlPolicy();
+  } catch (error: any) {
+    log(`Error: ${error.message}`, "error");
+    process.exitCode = 2;
+    return;
+  }
+
   await buildYargs(argv)
+    // Runs before setConfig reads the config file, so only `--log-level silent`
+    // hides these command warnings; a config file's `logLevel: silent` doesn't.
     .middleware((args: any) =>
       warnUpgrade(
-        commandWarnings(args._.map(String), argv.slice(2), Boolean(args.silent)),
+        commandWarnings(args._.map(String), argv.slice(2)),
         args.logLevel
       )
     )
@@ -203,7 +217,7 @@ async function runTestsHandler(args: any) {
       const mapped = level === "warn" ? "warning" : level;
       if (logLevelEnabled(mapped, config)) console.error(msg);
     };
-    const currentVersion: string = cliRequire("../package.json").version;
+    const currentVersion = ownVersion();
     // Kick off the registry check now, concurrently with the detection /
     // resolution work that runTests is about to do. Self-contained error
     // handling so a rejected promise never becomes an unhandled rejection.

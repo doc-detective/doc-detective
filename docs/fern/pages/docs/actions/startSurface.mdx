@@ -61,7 +61,7 @@ The browser descriptor deliberately has no `url`, because [`goTo`](goto) stays t
 - `process`: (Required) The shell command, same semantics as [`runShell`](/docs/actions/runshell).
 - `name`: (Required) Surface-registry name. Required because background commands are generic interpreters (`node`, `docker`) whose derived defaults would collide.
 - `args`, `workingDirectory`: (Optional) Command arguments and working directory.
-- `tty`: (Optional) Spawn under a pseudo-terminal for full-screen/interactive TUIs (needs the optional `node-pty` dependency, whose absence skips the step).
+- `tty`: (Optional) Spawn under a pseudo-terminal for full-screen/interactive TUIs (needs the optional `node-pty` dependency, whose absence skips the step). `true` uses a terminal 120 columns by 30 rows. An object such as `{"cols": 100, "rows": 40}` sets the size, from 1 to 1000 each. Same shape as runShell's [`background.tty`](/docs/actions/runshell#full-screen-terminal-uis).
 - `waitUntil`: (Optional) Readiness: `port`, `stdio` (substring or `/regex/`), `httpGet`, and/or `delayMs`. Same conditions as runShell's `background.waitUntil`.
 - `timeout`: (Optional) Readiness ceiling in milliseconds (default 60000).
 

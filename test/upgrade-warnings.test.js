@@ -7,12 +7,14 @@ import os from "node:os";
 import { pathToFileURL } from "node:url";
 import {
   browsersDirWarnings,
+  captureWarnings,
   commandWarnings,
   configWarnings,
   envWarnings,
   legacyEnv,
   flagWarnings,
   namesFolder,
+  outputWarnings,
   runResultWarnings,
   specWarnings,
 } from "../dist/upgradeNotice.js";
@@ -25,7 +27,8 @@ before(async function () {
 const URL = "https://docs.doc-detective.com/docs/ci/upgrade-to-v5";
 const ACTION_META = JSON.stringify({ dist_interface: "github-actions" });
 
-function run(script, args, { env = {}, cwd, timeout = 60000, unset = [], nodeArgs = [] } = {}) {
+// Runs outside the repo, so a local .env or browser-snapshots folder there can't trip a quiet path.
+function run(script, args, { env = {}, cwd = os.tmpdir(), timeout = 60000, unset = [], nodeArgs = [] } = {}) {
   const { DOC_DETECTIVE, DOC_DETECTIVE_CONFIG, DOC_DETECTIVE_API, DOC_DETECTIVE_META, ...hostEnv } = process.env;
   for (const key of unset) delete hostEnv[key];
   return spawnSync(process.execPath, [...nodeArgs, path.resolve(script), ...args], {
@@ -111,6 +114,7 @@ describe("upgrade warnings", function () {
         const r = runCli(["--input", empty(), "--output", out(), ...flags]);
         expect(r.status).to.equal(0);
         expect(r.stderr).to.include("exit 2").and.include(URL);
+        expect(r.stderr).to.match(/make sure your inputs always find tests/i);
       }
     });
 
@@ -124,6 +128,7 @@ describe("upgrade warnings", function () {
     it("warns for a --output folder", function () {
       const r = runCli(["--input", spec("p.spec.json", PASSING_SPEC), "--output", dir]);
       expect(r.stderr).to.include("--output-dir").and.include(URL);
+      expect(r.stderr).to.include("without a file extension");
     });
 
     it("warns for an output folder from a config file", function () {
@@ -266,6 +271,7 @@ describe("upgrade warnings", function () {
       expect(test).to.include("`--test a,b`");
       expect(spec).to.include("`--spec foo,bar`");
       expect(flagWarnings({ test: "a,b", spec: "c" })).to.deep.equal([]);
+      expect(flagWarnings({ test: [], spec: ["c"] })).to.deep.equal([]);
     });
 
     it("a DOC_DETECTIVE_* boolean whose meaning flips, or that 5.0 won't read", function () {
@@ -474,29 +480,31 @@ describe("upgrade warnings", function () {
     });
 
     it("doesn't fail a run when a check throws", function () {
-      // Rewrite the built specWarnings to throw, through a module load hook.
-      const hook = path.join(dir, "hook.mjs");
-      fs.writeFileSync(
-        hook,
-        `import { registerHooks } from "node:module";
+      for (const check of ["specWarnings(resolvedTests)", "captureWarnings(resolvedTests, results)"]) {
+        // Rewrite the built check to throw, through a module load hook.
+        const hook = path.join(dir, "hook.mjs");
+        fs.writeFileSync(
+          hook,
+          `import { registerHooks } from "node:module";
 registerHooks({ load(url, ctx, next) {
   const result = next(url, ctx);
   if (!url.endsWith("/dist/upgradeNotice.js")) return result;
   const source = String(result.source).replace(
-    "export function specWarnings(resolvedTests) {",
-    'export function specWarnings(resolvedTests) { throw new Error("check failed");'
+    "export function ${check} {",
+    'export function ${check} { throw new Error("check failed");'
   );
   return { ...result, source };
 } });
 `
-      );
-      const file = spec("p.spec.json", PASSING_SPEC);
-      const r = run("bin/doc-detective.js", ["--input", file, "--output", out(), "--logLevel", "debug"], {
-        nodeArgs: ["--import", pathToFileURL(hook).href],
-      });
-      expect(r.status).to.equal(0);
-      expect(r.stdout + r.stderr).to.include("check failed");
-      expect(JSON.parse(fs.readFileSync(out(), "utf8")).summary.specs.pass).to.equal(1);
+        );
+        const file = spec("p.spec.json", PASSING_SPEC);
+        const r = run("bin/doc-detective.js", ["--input", file, "--output", out(), "--logLevel", "debug"], {
+          nodeArgs: ["--import", pathToFileURL(hook).href],
+        });
+        expect(r.status).to.equal(0);
+        expect(r.stdout + r.stderr).to.include("check failed");
+        expect(JSON.parse(fs.readFileSync(out(), "utf8")).summary.specs.pass).to.equal(1);
+      }
     });
 
     it("stays quiet when DOC_DETECTIVE sets logLevel silent", function () {
@@ -512,6 +520,222 @@ registerHooks({ load(url, ctx, next) {
     });
   });
 
+  describe("capture rows", function () {
+    const CHROME = "uses Chrome when a context doesn't name a browser";
+    const SCREENSHOT = "`autoScreenshot: false`";
+    const RECORD = "`autoRecord: false`";
+    const plan = ({ config = {}, spec: specLevel = {}, test = {} } = {}) => ({
+      config,
+      specs: [{ specId: "s", ...specLevel, tests: [{ testId: "t", ...test }] }],
+    });
+    const report = (...contexts) => ({ specs: [{ specId: "s", tests: [{ testId: "t", contexts }] }] });
+    const ran = (steps, browser = { name: "chrome" }) => ({ browser, steps });
+    const goTo = { goTo: "https://a.b", result: "PASS" };
+    const has = (messages, text) => messages.some((message) => message.includes(text));
+
+    it("a context that named no browser and ran on Firefox", function () {
+      const warned = captureWarnings(plan(), report(ran([goTo], { name: "firefox" })));
+      expect(has(warned, CHROME)).to.equal(true);
+      expect(has(warned, "`firefox`")).to.equal(true);
+      for (const browser of [{ name: "firefox", explicit: true }, { name: "chrome" }, undefined]) {
+        expect(has(captureWarnings(plan(), report(ran([goTo], browser))), CHROME)).to.equal(false);
+      }
+      // A skipped context ran nothing.
+      expect(captureWarnings(plan(), report({ browser: { name: "firefox" }, result: "SKIPPED", steps: [] }))).to.deep.equal([]);
+    });
+
+    it("autoScreenshot and autoRecord unset, for each step that drives a UI", function () {
+      for (const step of [
+        goTo,
+        { find: "Sign in", result: "FAIL" },
+        { startSurface: { browser: "chrome" }, result: "PASS" },
+        { startSurface: { app: "notepad" }, result: "PASS" },
+        { click: { selector: "#a", surface: { app: "notepad" } }, result: "PASS" },
+      ]) {
+        const warned = captureWarnings(plan(), report(ran([step])));
+        expect(has(warned, SCREENSHOT), JSON.stringify(step)).to.equal(true);
+        expect(has(warned, RECORD), JSON.stringify(step)).to.equal(true);
+      }
+    });
+
+    it("name what 5.0 captures", function () {
+      const warned = captureWarnings(plan(), report(ran([goTo]))).join(" ");
+      expect(warned).to.include("every browser, app, and device step").and.include("run folder");
+      expect(warned).to.include("browser, app, and device tests").and.include("headless Chrome");
+    });
+
+    it("stay quiet with no step that drives a UI", function () {
+      for (const step of [
+        { runShell: "echo", result: "PASS" },
+        { httpRequest: { url: "https://a.b" }, result: "PASS" },
+        { wait: 1, result: "PASS" },
+        { startSurface: { process: "npm", name: "p" }, result: "PASS" },
+        { type: { keys: "a", surface: { process: "p" } }, result: "PASS" },
+        { goTo: "https://a.b", result: "SKIPPED" },
+      ]) {
+        expect(captureWarnings(plan(), report(ran([step]))), JSON.stringify(step)).to.deep.equal([]);
+      }
+    });
+
+    it("stay quiet when a key is set at any level, true or false", function () {
+      for (const value of [true, false]) {
+        for (const level of ["config", "spec", "test"]) {
+          const warned = captureWarnings(plan({ [level]: { autoScreenshot: value } }), report(ran([goTo])));
+          expect(has(warned, SCREENSHOT), `${level} ${value}`).to.equal(false);
+          expect(has(warned, RECORD), `${level} ${value}`).to.equal(true);
+          const recorded = captureWarnings(plan({ [level]: { autoRecord: value } }), report(ran([goTo])));
+          expect(has(recorded, RECORD), `${level} ${value}`).to.equal(false);
+          expect(has(recorded, SCREENSHOT), `${level} ${value}`).to.equal(true);
+        }
+      }
+    });
+
+    it("warn for a test that leaves a key unset when another test sets it", function () {
+      const resolved = plan();
+      resolved.specs[0].tests = [{ testId: "off", autoScreenshot: false }, { testId: "unset" }];
+      const finished = (...ids) => ({
+        specs: [{ specId: "s", tests: ids.map((testId) => ({ testId, contexts: [ran([goTo])] })) }],
+      });
+      expect(has(captureWarnings(resolved, finished("off")), SCREENSHOT)).to.equal(false);
+      expect(has(captureWarnings(resolved, finished("off", "unset")), SCREENSHOT)).to.equal(true);
+    });
+
+    it("name each row once, and tolerate an unfinished report", function () {
+      const warned = captureWarnings(plan(), report(ran([goTo], { name: "firefox" }), undefined, ran([goTo], { name: "firefox" })));
+      expect(warned).to.have.length(3);
+      expect(new Set(warned).size).to.equal(3);
+      expect(captureWarnings(plan(), { specs: [{ specId: "s", tests: [{ testId: "t" }] }] })).to.deep.equal([]);
+      expect(captureWarnings(plan(), null)).to.deep.equal([]);
+    });
+
+    describe("from a real browser run", function () {
+      this.timeout(300000);
+      // No page to load: spawnSync blocks this process, which also hosts the 8092 test server.
+      const browserSpec = (extra) =>
+        spec("b.spec.json", { tests: [{ steps: [{ runBrowserScript: "return 1;" }], ...extra }] });
+      const browserOpts = (env) => ({ env, timeout: 120000 });
+
+      it("prints them on stderr, once each, with the link", function () {
+        const r = runCli(["--input", browserSpec(), "--output", out()], browserOpts());
+        expect(r.status, r.stderr).to.equal(0);
+        const [context] = JSON.parse(fs.readFileSync(out(), "utf8")).specs[0].tests[0].contexts;
+        expect(context.steps[0].result, JSON.stringify(context)).to.equal("PASS");
+        for (const row of [SCREENSHOT, RECORD]) {
+          expect(r.stderr.split(row).length - 1, row).to.equal(1);
+          expect(r.stdout).to.not.include(row);
+        }
+        expect(r.stderr).to.include(URL);
+        // Which browser a default context gets depends on what the host has installed.
+        expect(r.stderr.includes(CHROME)).to.equal(context.browser.name === "firefox");
+      });
+
+      it("stay quiet with the keys set and a browser named", function () {
+        const named = browserSpec({ runOn: [{ browsers: "firefox" }] });
+        const r = runCli(["--input", named, "--output", out(), "--no-auto-screenshot", "--no-auto-record"], browserOpts());
+        expect(r.stderr).to.not.include(URL);
+      });
+
+      it("stay quiet at logLevel silent and in the Action", function () {
+        const a = runCli(["--input", browserSpec(), "--output", out(), "--logLevel", "silent"], browserOpts());
+        const b = runCli(["--input", browserSpec(), "--output", out()], browserOpts({ DOC_DETECTIVE_META: ACTION_META }));
+        expect(a.stderr + b.stderr).to.not.include(URL);
+      });
+    });
+  });
+
+  describe("masking row", function () {
+    const MASK = "`publicVariables`";
+    const SUBSTITUTES = { tests: [{ steps: [{ wait: "$DD_NX_WAIT" }] }] };
+    const opts = { env: { DD_NX_WAIT: "1" } };
+    const envFile = (name, text) => {
+      const p = path.join(dir, name);
+      fs.writeFileSync(p, text);
+      return p;
+    };
+
+    it("warns once on stderr when the run substitutes a $NAME", function () {
+      const r = runCli(["--input", spec("v.spec.json", SUBSTITUTES), "--output", out()], opts);
+      expect(r.status).to.equal(0);
+      expect(r.stderr.split(MASK).length - 1).to.equal(1);
+      expect(r.stderr).to.include("logs, reports, saved output, and browser captures").and.include(URL);
+      expect(r.stdout).to.not.include(MASK);
+    });
+
+    it("warns when the run loads variables, from a project .env, the config, or a step", function () {
+      envFile(".env", "DD_NX_LOADED=value\n");
+      const project = runCli(["--input", spec("p.spec.json", PASSING_SPEC), "--output", out()], { cwd: dir });
+      expect(project.stderr).to.include(MASK);
+      fs.rmSync(path.join(dir, ".env"));
+
+      const config = spec("config.json", { loadVariables: envFile("vars.env", "DD_NX_LOADED=value\n") });
+      const fromConfig = runCli(["--config", config, "--input", spec("p.spec.json", PASSING_SPEC), "--output", out()], { cwd: dir });
+      expect(fromConfig.stderr).to.include(MASK);
+
+      const step = { tests: [{ steps: [{ loadVariables: envFile("step.env", "DD_NX_LOADED=value\n") }] }] };
+      const fromStep = runCli(["--input", spec("s.spec.json", step), "--output", out()], { cwd: dir });
+      expect(fromStep.stderr).to.include(MASK);
+    });
+
+    it("stays quiet when nothing was substituted or loaded", function () {
+      // A $NAME with no value stays as written, and an empty file loads nothing.
+      const unset = { tests: [{ steps: [{ wait: 1, description: "$DD_NX_UNSET" }] }] };
+      envFile(".env", "# nothing\n");
+      const r = runCli(["--input", spec("u.spec.json", unset), "--output", out()], { cwd: dir });
+      expect(r.stderr).to.not.include(MASK);
+    });
+
+    it("stays quiet with publicVariables on the config, a spec, or a test", function () {
+      const onConfig = runCli(
+        ["--config", spec("config.json", { publicVariables: [] }), "--input", spec("v.spec.json", SUBSTITUTES), "--output", out()],
+        opts
+      );
+      const onSpec = runCli(["--input", spec("v.spec.json", { ...SUBSTITUTES, publicVariables: ["A"] }), "--output", out()], opts);
+      const onTest = runCli(
+        ["--input", spec("v.spec.json", { tests: [{ ...SUBSTITUTES.tests[0], publicVariables: ["*"] }] }), "--output", out()],
+        opts
+      );
+      for (const r of [onConfig, onSpec, onTest]) {
+        expect(r.status).to.equal(0);
+        expect(r.stderr).to.not.include(MASK);
+      }
+    });
+
+    it("stays quiet at logLevel silent and in the Action", function () {
+      const file = spec("v.spec.json", SUBSTITUTES);
+      const a = runCli(["--input", file, "--output", out(), "--logLevel", "silent"], opts);
+      const b = runCli(["--input", file, "--output", out()], { env: { ...opts.env, DOC_DETECTIVE_META: ACTION_META } });
+      expect(a.stderr + b.stderr).to.not.include(MASK);
+    });
+
+    it("doesn't warn about a later runTests call that used no variables", function () {
+      const core = pathToFileURL(path.resolve("dist/core/index.js")).href;
+      const base = { input: spec("p.spec.json", PASSING_SPEC), telemetry: { send: false } };
+      const loads = { loadVariables: envFile("vars.env", "DD_NX_LOADED=value\n") };
+      // Neither first run prints the row: a dry run has no run rows, and the other lists publicVariables.
+      for (const first of [{ ...base, ...loads, dryRun: true }, { ...base, ...loads, publicVariables: [] }]) {
+        // Its own process, so the row can't have printed already in this one.
+        const script = envFile(
+          "two-runs.mjs",
+          [
+            `import { runTests } from ${JSON.stringify(core)};`,
+            `await runTests(${JSON.stringify(first)});`,
+            `const { summary } = await runTests(${JSON.stringify(base)});`,
+            `process.exit(summary.specs.pass === 1 ? 0 : 3);`,
+          ].join("\n")
+        );
+        const r = run(script, []);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(r.stderr).to.not.include(MASK);
+      }
+    });
+
+    it("waits for a run: a dry run stays quiet", function () {
+      const r = runCli(["--input", spec("v.spec.json", SUBSTITUTES), "--dry-run"], opts);
+      expect(r.stderr).to.not.include(MASK);
+      expect(() => JSON.parse(r.stdout)).to.not.throw();
+    });
+  });
+
   describe("helpers", function () {
     it("namesFolder: trailing slash, existing folder, or no extension", function () {
       expect(namesFolder("results/", path.resolve("results"))).to.equal(true);
@@ -522,12 +746,28 @@ registerHooks({ load(url, ctx, next) {
       expect(namesFolder(undefined, path.resolve("."))).to.equal(false);
     });
 
+    it("outputWarnings leads with what to do, then why it fired", function () {
+      expect(outputWarnings("results", path.resolve("results"))).to.deep.equal([
+        "In Doc Detective 5.0, `--output` and `output` name the results file. Use `--output-dir` for a folder when you upgrade. Your output path ('results') names a folder, and 4.x treats a path without a file extension as a folder.",
+      ]);
+    });
+
     it("commandWarnings doesn't take a flag's value for a command", function () {
-      expect(commandWarnings(["install", "status"], ["install", "status", "--cache-dir", "-a"], false)).to.deep.equal([]);
-      expect(commandWarnings(["install", "agents"], ["install", "agents", "--agent", "claude"], false)).to.deep.equal([]);
-      expect(commandWarnings(["install", "agents"], ["install", "agents", "-sy", "project"], false)).to.have.length(1);
+      expect(commandWarnings(["install", "status"], ["install", "status", "--cache-dir", "-a"])).to.deep.equal([]);
+      expect(commandWarnings(["install", "agents"], ["install", "agents", "--agent", "claude"])).to.deep.equal([]);
+      expect(commandWarnings(["install", "agents"], ["install", "agents", "-sy", "project"])).to.have.length(1);
       // Only the agents command has -a and -s.
-      expect(commandWarnings([], ["-a"], false)).to.deep.equal([]);
+      expect(commandWarnings([], ["-a"])).to.deep.equal([]);
+    });
+
+    it("commandWarnings reads --silent from the raw arguments, not a parsed key", function () {
+      expect(commandWarnings(["install", "status"], ["install", "status", "--silent"])).to.have.length(1);
+      expect(commandWarnings(["install", "status"], ["install", "status", "--quiet"])).to.deep.equal([]);
+    });
+
+    it("runResultWarnings doesn't suggest --no-exit-on-fail to an --exit-on-fail user", function () {
+      expect(runResultWarnings(true, false, null)[0]).to.not.include("--no-exit-on-fail");
+      expect(runResultWarnings(undefined, false, null)[0]).to.include("--no-exit-on-fail");
     });
 
     it("runResultWarnings counts a zero-spec summary as nothing tested", function () {

@@ -3,7 +3,7 @@
 ![Current version](https://img.shields.io/github/package-json/v/doc-detective/doc-detective?color=orange)
 [![NPM Shield](https://img.shields.io/npm/v/doc-detective)](https://www.npmjs.com/package/doc-detective)
 [![Discord Shield](https://img.shields.io/badge/chat-on%20discord-purple)](https://discord.gg/2M7wXEThfF)
-[![Docs Shield](https://img.shields.io/badge/docs-doc--detective.com-blue)](https://doc-detective.com)
+[![Docs Shield](https://img.shields.io/badge/docs-doc--detective.com-blue)](https://docs.doc-detective.com)
 
 Doc Detective is doc content testing framework that makes it easy to keep your docs accurate and up-to-date. You write tests, and Doc Detective runs them directly against your product to make sure your docs match your user experience. Whether it’s a UI-based process or a series of API calls, Doc Detective can help you find doc bugs before your users do.
 
@@ -15,9 +15,8 @@ This project handles test parsing and web-based UI testing---it doesn't support 
 
 Doc Detective has multiple components to integrate with your workflows as you need it to:
 
-- Doc Detective (this repo): A standalone tool that enables testing without a separate Node project.
-- [Doc Detective Core](https://github.com/doc-detective/doc-detective-core): An NPM package that provides the testing functionality.
-- [Doc Detective Docs](https://github.com/doc-detective/doc-detective.github.io): Source files for [doc-detective.com](https://doc-detective.com).
+- Doc Detective (this repo): A standalone tool that enables testing without a separate Node project. It includes the test runner, which was the separate Doc Detective Core package.
+- [Doc Detective Docs](https://github.com/doc-detective/doc-detective/tree/main/docs): Source files for [docs.doc-detective.com](https://docs.doc-detective.com), in this repo's `docs/` directory.
 
 ## Install
 
