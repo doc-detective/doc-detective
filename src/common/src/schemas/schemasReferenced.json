@@ -2469,6 +2469,14 @@
         "contentPath": {
           "type": "string"
         },
+        "publicVariables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
         "detectSteps": {
           "type": "boolean",
           "default": true
@@ -6934,6 +6942,9 @@
         "openApi": {
           "$ref": "test_v3.schema.json#/properties/openApi"
         },
+        "publicVariables": {
+          "$ref": "test_v3.schema.json#/properties/publicVariables"
+        },
         "autoScreenshot": {
           "type": "boolean"
         },
@@ -7144,6 +7155,9 @@
         },
         "loadVariables": {
           "$ref": "loadVariables_v3.schema.json#"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.schema.json#/properties/publicVariables"
         },
         "origin": {
           "type": "string"
@@ -9902,6 +9916,14 @@
         },
         "contentPath": {
           "type": "string"
+        },
+        "publicVariables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
         },
         "detectSteps": {
           "type": "boolean"
@@ -14265,6 +14287,9 @@
         "openApi": {
           "$ref": "test_v3.nodefaults.schema.json#/properties/openApi"
         },
+        "publicVariables": {
+          "$ref": "test_v3.nodefaults.schema.json#/properties/publicVariables"
+        },
         "autoScreenshot": {
           "type": "boolean"
         },
@@ -14460,6 +14485,9 @@
         },
         "loadVariables": {
           "$ref": "loadVariables_v3.nodefaults.schema.json#"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.nodefaults.schema.json#/properties/publicVariables"
         },
         "origin": {
           "type": "string"

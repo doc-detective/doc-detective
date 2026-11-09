@@ -27,6 +27,10 @@ export type Test = {
    */
   contentPath?: string;
   /**
+   * Environment variables whose values Doc Detective 5.0 shows in output. Doc Detective 4 doesn't mask values, so this has no effect until 5.0. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `["*"]` turns masking off.
+   */
+  publicVariables?: string[];
+  /**
    * Whether or not to detect steps in input files based on markup regex.
    */
   detectSteps?: boolean;

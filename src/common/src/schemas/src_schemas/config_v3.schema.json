@@ -84,6 +84,9 @@
     "loadVariables": {
       "$ref": "loadVariables_v3.schema.json#"
     },
+    "publicVariables": {
+      "$ref": "test_v3.schema.json#/properties/publicVariables"
+    },
     "origin": {
       "description": "Default protocol and domain to use for relative URLs.",
       "type": "string"

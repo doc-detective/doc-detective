@@ -114,6 +114,15 @@
             ".env"
           ]
         },
+        "publicVariables": {
+          "description": "Environment variables whose values Doc Detective 5.0 shows in output. Doc Detective 4 doesn't mask values, so this has no effect until 5.0. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
         "origin": {
           "description": "Default protocol and domain to use for relative URLs.",
           "type": "string"
@@ -116699,6 +116708,15 @@
                   ]
                 }
               },
+              "publicVariables": {
+                "description": "Environment variables whose values Doc Detective 5.0 shows in output. Doc Detective 4 doesn't mask values, so this has no effect until 5.0. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                }
+              },
               "autoScreenshot": {
                 "type": "boolean",
                 "description": "If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level."
@@ -117286,6 +117304,15 @@
                         "contentPath": {
                           "type": "string",
                           "description": "Path to the content that the test is associated with."
+                        },
+                        "publicVariables": {
+                          "description": "Environment variables whose values Doc Detective 5.0 shows in output. Doc Detective 4 doesn't mask values, so this has no effect until 5.0. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "\\S"
+                          }
                         },
                         "detectSteps": {
                           "type": "boolean",
