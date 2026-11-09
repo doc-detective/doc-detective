@@ -5293,6 +5293,8 @@ async function runContext({
         mergeAutoRecording(contextReport, {
           result: rep.result,
           resultDescription: rep.resultDescription,
+          // The step loop stamps every step's `startedAt`, so keep it only when the
+          // recording started: a start that failed or skipped has no start time.
           ...(rep.result === "PASS" && rep.startedAt ? { startedAt: rep.startedAt } : {}),
         });
         return;

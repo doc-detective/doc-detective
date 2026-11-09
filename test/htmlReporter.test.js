@@ -271,7 +271,7 @@ describe("HTML Reporter automatic media", function () {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  async function pageFunctions(report, mediaBase) {
+  async function pageFunctions(report, mediaBase, { esc = String, escAttr = String } = {}) {
     const outputFile = path.join(tmpDir, "fns.html");
     await outputResults({ autoScreenshot: false, autoRecord: false }, outputFile, sampleResults, { reporters: ["html"] });
     const html = fs.readFileSync(outputFile, "utf-8");
@@ -287,7 +287,7 @@ describe("HTML Reporter automatic media", function () {
       "esc",
       "escAttr",
       `${source.join("\n")}; return { collectMedia, autoRecordingPanel };`
-    )(report, mediaBase, (status) => `<badge ${status}>`, String, String);
+    )(report, mediaBase, (status) => `<badge ${status}>`, esc, escAttr);
   }
 
   const runDir = "/out/.doc-detective/runs/r1";
@@ -343,6 +343,19 @@ describe("HTML Reporter automatic media", function () {
         expect(panel).to.include("Skipped: no display.");
       });
     }
+
+    // `esc` needs a DOM, which the suite doesn't have, so these mark what goes through them.
+    it("escapes the reason and the recording's path", async function () {
+      const { autoRecordingPanel } = await pageFunctions({ runDir }, "", {
+        esc: (text) => `esc(${text})`,
+        escAttr: (text) => `escAttr(${text})`,
+      });
+      const panel = autoRecordingPanel({
+        autoRecording: { result: "WARNING", resultDescription: "<b>stale</b>", recordingPath: `a&b/${video}` },
+      });
+      expect(panel).to.include(">esc(<b>stale</b>)<");
+      expect(panel).to.include(`<video src="escAttr(a&b/${video})"`);
+    });
 
     it("is empty with nothing to show", async function () {
       expect(await panelFor(undefined)).to.equal("");
