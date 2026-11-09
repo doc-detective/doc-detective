@@ -192,7 +192,11 @@ const run = spawnSync(
   [path.join(root, "bin", "doc-detective.js"), "-i", "case.spec.json", "-o", "results.json", ...c.args],
   { cwd: dir, env, encoding: "utf8", timeout: 280_000 }
 );
-fs.rmSync(tmp, { recursive: true, force: true });
+// A browser the run left behind can hold this folder for a moment on Windows.
+// Cleaning up isn't what a case checks, so a leftover folder doesn't fail it.
+try {
+  fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
+} catch {}
 const failures = [];
 const check = (ok, what) => {
   if (!ok) failures.push(what);
