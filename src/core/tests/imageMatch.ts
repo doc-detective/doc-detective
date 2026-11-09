@@ -1,4 +1,4 @@
-// Finds a picture on a captured surface, by shape and by color (ADR 01164).
+// Finds a picture on a captured surface, by shape and by color (ADR 01179).
 //
 // `TM_CCOEFF_NORMED` removes each channel's mean and scale, so on its own it can't
 // see a recolored icon. Every candidate therefore gets a separate color check, and
