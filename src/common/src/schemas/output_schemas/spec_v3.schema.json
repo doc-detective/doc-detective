@@ -55705,7 +55705,23 @@
                           "minimum": 0,
                           "description": "Frame rate of the saved video. Absent when it couldn't be read from the file."
                         }
-                      }
+                      },
+                      "examples": [
+                        {
+                          "result": "PASS",
+                          "recordingPath": "specs/install-guide/tests/install/contexts/linux-chrome/recordings/linux-chrome.mp4",
+                          "startedAt": "2026-11-06T02:33:29.010Z",
+                          "format": "mp4",
+                          "duration": 8.1,
+                          "width": 1280,
+                          "height": 720,
+                          "fps": 30
+                        },
+                        {
+                          "result": "SKIPPED",
+                          "resultDescription": "Skipped: couldn't start the automatic recording: the host has no display. Set `autoRecord: false` to turn it off."
+                        }
+                      ]
                     },
                     "platform": {
                       "type": "string",

@@ -4270,7 +4270,6 @@ function mergeAutoRecording(
   const current = contextReport.autoRecording;
   const worse = !current || AUTO_RECORDING_RANK[result] > AUTO_RECORDING_RANK[current.result];
   contextReport.autoRecording = maskDeep({
-    result,
     ...current,
     ...(worse ? { result } : {}),
     ...(worse && result !== "PASS" && resultDescription ? { resultDescription } : {}),
