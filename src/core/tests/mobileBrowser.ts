@@ -57,7 +57,7 @@ function mobileBrowserSupport({
   if (browserName === supported) return { supported: true };
   return {
     supported: false,
-    reason: `Skipping context: '${browserName}' isn't available on ${platform}. '${supported}' is the supported ${platform} browser — set browsers: "${supported}" (or omit browsers) on the ${platform} runOn entry.`,
+    reason: `Skipped: \`${browserName}\` isn't available on \`${platform}\`. \`${supported}\` is the supported \`${platform}\` browser. Set \`browsers\` to \`${supported}\`, or omit it, on the \`${platform}\` \`runOn\` entry.`,
   };
 }
 
@@ -127,7 +127,7 @@ function mobileBrowserGate({
     return {
       action: "skip",
       level: "warning",
-      reason: `Skipping context on '${platform}': mixing native app surfaces and browser steps in one mobile context isn't supported yet — put the web steps and the app steps in separate tests or contexts. Mobile-web-only and native-app-only contexts both run today.`,
+      reason: `Skipped: mixing native app surfaces and browser steps in one mobile context isn't supported. Put the web steps and the app steps in separate tests or contexts.`,
     };
   }
   const configError = mobileBrowserConfigError(browser);

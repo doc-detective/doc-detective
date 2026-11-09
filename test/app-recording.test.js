@@ -288,7 +288,7 @@ describe("startRecording: app surfaces (desktop)", function () {
       appSession,
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /browser engine/);
+    assert.match(result.description, /^Skipped: the `browser` engine/);
   });
 
   it("records an app surface with an unscaled window crop rect (default window target)", async function () {
@@ -963,7 +963,7 @@ describe("stopRecording: device (appium) handles", function () {
       driver: host,
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /never started/);
+    assert.match(result.description, /^Skipped: the device recording never started/);
     assert.equal(host.state.recordings.length, 0);
   });
 

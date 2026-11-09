@@ -174,7 +174,7 @@ async function startBackgroundProcessSurface({
         }
         return {
           status: "SKIPPED",
-          description: `PTY background requires the optional \`node-pty\` dependency, which isn't available: ${error.message}`,
+          description: `Skipped: PTY background requires the optional \`node-pty\` dependency, which isn't available. ${error.message}`,
         };
       }
     } else {

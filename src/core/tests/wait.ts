@@ -20,7 +20,7 @@ async function wait({ config, step, driver }: { config?: any; step: any; driver:
   const duration = isValidStep.object.wait;
   if (duration === false) {
     result.status = "SKIPPED";
-    result.description = "Wait skipped.";
+    result.description = "Skipped: `wait` is `false`.";
     return result;
   }
   // Only a valid string reaches here: a $VAR that substitution left in place.

@@ -2608,16 +2608,16 @@ function evaluateContextRequirements({
 
   const missing: string[] = [];
   for (const command of commands) {
-    if (!commandExists(command)) missing.push(`command "${command}"`);
+    if (!commandExists(command)) missing.push(`command \`${command}\``);
   }
   for (const file of files) {
     if (!existsSync(expandRequirementPath(file, env)))
-      missing.push(`file "${file}"`);
+      missing.push(`file \`${file}\``);
   }
   for (const name of envVars) {
     const value = lookupEnvValue(env, name, platform);
     if (value === undefined || value === "")
-      missing.push(`environment variable "${name}"`);
+      missing.push(`environment variable \`${name}\``);
   }
   return { met: missing.length === 0, missing };
 }

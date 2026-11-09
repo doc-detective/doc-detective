@@ -198,6 +198,12 @@ If Doc Detective can't write a report, it prints `Couldn't write the <report> to
 
 **What to do:** Update anything that reads those verdicts or columns. For counts, read `summary` from the results file instead. See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields).
 
+## Skip reasons read the same way
+
+**What changed:** Every skip reason now reads `Skipped: <reason>.`, in `resultDescription` and in every reporter. Reasons that printed raw JSON now name the cause in words. The same contexts and steps skip as before.
+
+**What to do:** Update anything that matches skip text, such as `Skipping context on`. To find skips, read `result` instead, because it's `SKIPPED` for every one.
+
 ## A report path you name is overwritten
 
 **What changed:** When `outputDir` names a `.json` or `.html` file, the matching reporter overwrites that file, as `--output` already does. It used to write `report-0.html`, then `report-1.html`, and so on.
