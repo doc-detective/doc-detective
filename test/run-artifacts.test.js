@@ -1434,3 +1434,13 @@ describe("mergeAutoRecording", function () {
     expect(context.autoRecording).to.deep.equal({ result: "PASS", startedAt: "2026-11-09T00:00:00.000Z" });
   });
 });
+
+describe("contextResultSources", function () {
+  for (const result of ["PASS", "SKIPPED", "FAIL", "WARNING"]) {
+    it(`never hands back the report's own step list, with a ${result} recording`, function () {
+      const report = { steps: [{ result: "PASS" }], autoRecording: { result } };
+      contextResultSources(report).push({ result: "FAIL" });
+      expect(report.steps).to.have.lengthOf(1);
+    });
+  }
+});

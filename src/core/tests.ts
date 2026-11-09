@@ -4251,9 +4251,8 @@ function isSyntheticAutoRecordStart(step: any): boolean {
 // all-SKIPPED context stays SKIPPED (ADR 01179, DR1).
 function contextResultSources(contextReport: any): Array<{ result?: string }> {
   const recording = contextReport.autoRecording;
-  return recording?.result === "FAIL" || recording?.result === "WARNING"
-    ? [...contextReport.steps, recording]
-    : contextReport.steps;
+  const counts = recording?.result === "FAIL" || recording?.result === "WARNING";
+  return [...contextReport.steps, ...(counts ? [recording] : [])];
 }
 
 // SKIPPED ranks above PASS: a start that passed and a stop that skipped saved no
@@ -6049,6 +6048,8 @@ async function stopAllRecordings({
       stepResult.resultDescription = stepResult.description;
       delete stepResult.status;
       delete stepResult.description;
+      // Don't leak the internal routing marker into the report.
+      delete stopRecordStep.__stopAny;
       if (next?.synthetic) {
         const { result, resultDescription, outputs = {} } = stepResult;
         const metadata = ["format", "duration", "width", "height", "fps"].filter((key) => outputs[key] !== undefined);
@@ -6060,8 +6061,6 @@ async function stopAllRecordings({
         });
         continue;
       }
-      // Don't leak the internal routing marker into the report.
-      delete stopRecordStep.__stopAny;
       contextReport.steps.push(
         maskDeep({
           ...stopRecordStep,
