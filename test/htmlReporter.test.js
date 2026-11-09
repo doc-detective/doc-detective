@@ -357,10 +357,18 @@ describe("HTML Reporter automatic media", function () {
       expect(panel).to.include(`<video src="escAttr(a&b/${video})"`);
     });
 
+    for (const result of ["SKIPPED", "WARNING", "FAIL"]) {
+      it(`shows a ${result} recording's badge even with no reason`, async function () {
+        for (const panel of [await panelFor({ result }), await panelFor({ result, recordingPath: video })]) {
+          expect(panel).to.include(`<badge ${result}>`);
+          expect(panel).to.not.include("auto-recording-reason");
+        }
+      });
+    }
+
     it("is empty with nothing to show", async function () {
       expect(await panelFor(undefined)).to.equal("");
       expect(await panelFor({ result: "PASS" })).to.equal("");
-      expect(await panelFor({ result: "SKIPPED" })).to.equal("");
     });
   });
 

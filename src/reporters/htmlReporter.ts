@@ -1089,10 +1089,10 @@ function runFolderSrc(p) {
 function autoRecordingPanel(ctx) {
   var rec = ctx.autoRecording;
   if (!rec) return "";
-  var reason = rec.result !== "PASS" && rec.resultDescription;
-  if (!reason && !rec.recordingPath) return "";
-  return '<div class="dp-head"><span>Automatic recording</span>' + (reason ? badge(rec.result) : "") + '</div>' +
-    (reason ? '<div class="auto-recording-reason">' + esc(reason) + '</div>' : "") +
+  var notPass = rec.result !== "PASS";
+  if (!notPass && !rec.recordingPath) return "";
+  return '<div class="dp-head"><span>Automatic recording</span>' + (notPass ? badge(rec.result) : "") + '</div>' +
+    (notPass && rec.resultDescription ? '<div class="auto-recording-reason">' + esc(rec.resultDescription) + '</div>' : "") +
     (rec.recordingPath
       ? '<video src="' + escAttr(runFolderSrc(rec.recordingPath)) + '" controls muted playsinline preload="metadata"></video>'
       : "");
