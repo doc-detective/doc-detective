@@ -46,6 +46,7 @@ function nonPassItems(results: any): any[] {
       for (const [context, contextNumber] of contexts) {
         const ids = [specId, testId, context.contextId || `context ${contextNumber}`];
         const own: any[] = [];
+        // The last FAIL item, which the SKIPPED steps after it fold into.
         let failed: any = null;
         const recording = context.autoRecording;
         if (recording && NON_PASS.includes(recording.result)) {
@@ -132,7 +133,7 @@ function writeReport(kind: string, file: string, render: () => string, config: a
   } catch (error: any) {
     const cause = WRITE_CAUSES[error?.code] ?? String(error?.message ?? error).replace(/\.$/, "");
     // "Results" and "Run …" read lowercase mid-sentence; the others are names.
-    log(config, "error", `Couldn't write the ${kind.replace(/^R/, "r")} to ${file}: ${cause}.`);
+    log(config, "error", `Couldn't write the ${kind.replace(/^R(?=esults$|un )/, "r")} to ${file}: ${cause}.`);
     return null;
   }
 }
