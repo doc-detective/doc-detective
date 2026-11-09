@@ -13,7 +13,9 @@ import {
   envWarnings,
   legacyEnv,
   flagWarnings,
+  maskingWarnings,
   namesFolder,
+  noteVariablesUsed,
   outputWarnings,
   runResultWarnings,
   specWarnings,
@@ -705,6 +707,19 @@ registerHooks({ load(url, ctx, next) {
       const a = runCli(["--input", file, "--output", out(), "--logLevel", "silent"], opts);
       const b = runCli(["--input", file, "--output", out()], { env: { ...opts.env, DOC_DETECTIVE_META: ACTION_META } });
       expect(a.stderr + b.stderr).to.not.include(MASK);
+    });
+
+    it("reads each run's variables once, so a later run in the process starts clean", function () {
+      const plan = { config: {}, specs: [] };
+      maskingWarnings(plan); // Drain what other in-process tests noted.
+      expect(maskingWarnings(plan)).to.deep.equal([]);
+      noteVariablesUsed();
+      expect(maskingWarnings(plan)).to.have.length(1);
+      expect(maskingWarnings(plan)).to.deep.equal([]);
+      // A run that lists publicVariables doesn't leave its variables to warn about the next one.
+      noteVariablesUsed();
+      expect(maskingWarnings({ config: { publicVariables: [] }, specs: [] })).to.deep.equal([]);
+      expect(maskingWarnings(plan)).to.deep.equal([]);
     });
 
     it("waits for a run: a dry run stays quiet", function () {
