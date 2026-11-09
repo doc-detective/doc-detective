@@ -59,7 +59,7 @@ doc-tests:
       junit: reports/junit.xml
 ```
 
-On GitHub Actions, add `markdown` to the `reporters` list in your existing `.doc-detective.json`. If you already added `junit` for GitLab, keep it. Skip the list directly below, which leaves out `junit`. Instead, use the list under "If one config runs on both GitLab and GitHub Actions," after the workflow snippet.
+On GitHub Actions, add `markdown` to the `reporters` list in your existing `.doc-detective.json`:
 
 ```json title=".doc-detective.json"
 {
@@ -67,21 +67,21 @@ On GitHub Actions, add `markdown` to the `reporters` list in your existing `.doc
 }
 ```
 
-Then append the Markdown summary to the job summary:
+If the same config also runs on GitLab, keep `junit` in the list:
+
+```json title=".doc-detective.json"
+{
+  "reporters": ["terminal", "json", "html", "junit", "markdown"]
+}
+```
+
+Then, in your GitHub Actions workflow, append the Markdown summary to the job summary:
 
 ```yaml title=".github/workflows/docs.yml"
 # Reporters come from the reporters list in .doc-detective.json
 - run: doc-detective --input ./docs --output ./reports
 - if: always()
   run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"
-```
-
-If one config runs on both GitLab and GitHub Actions, use this `reporters` list:
-
-```json title=".doc-detective.json"
-{
-  "reporters": ["terminal", "json", "html", "junit", "markdown"]
-}
 ```
 
 ## Step 2: Read the terminal summary
