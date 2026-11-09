@@ -439,20 +439,22 @@ export function captureWarnings(resolvedTests: any, results: any): string[] {
 
 let variablesUsed = false;
 
+/** Called when `runTests` starts, so one run's variables can't warn about a later run in the process. */
+export function clearVariablesUsed(): void {
+  variablesUsed = false;
+}
+
 /** Called when a run substitutes a `$NAME` or loads variables, which 5.0 masks. */
 export function noteVariablesUsed(): void {
   variablesUsed = true;
 }
 
-/** Reads and clears the flag, so one run's variables can't warn about a later run in the process. */
 export function maskingWarnings(resolvedTests: any): string[] {
-  const used = variablesUsed;
-  variablesUsed = false;
   const specs: any[] = resolvedTests?.specs ?? [];
   const listed = [resolvedTests?.config, ...specs, ...specs.flatMap((spec) => spec.tests ?? [])].some(
     (level) => level?.publicVariables !== undefined
   );
-  return used && !listed
+  return variablesUsed && !listed
     ? [
         "Doc Detective 5.0 masks environment variable values in logs, reports, saved output, and browser captures. To show the ones that aren't secret, list them in `publicVariables`, which 4.x accepts and ignores.",
       ]

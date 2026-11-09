@@ -105,9 +105,9 @@ quiet. They follow the same log-level and error rules as spec rows.
   because a report doesn't carry them. `true` and `false` both silence a row, since either one means
   the user chose.
 - **Variables.** `replaceEnvs` and `loadEnvs` set a flag in `upgradeNotice.ts`. A `$NAME` with no value
-  and an empty `.env` don't set it. The row reads and clears the flag, so a later `runTests` call in the
-  same process starts clean. `publicVariables` at any level silences the row for the whole run, because
-  5.0 reads the levels as one list.
+  and an empty `.env` don't set it. Each `runTests` call clears the flag when it starts, so one call's
+  variables can't warn about a later one. `publicVariables` at any level
+  silences the row for the whole run, because 5.0 reads the levels as one list. An empty list counts.
 
 The official images set `DOC_DETECTIVE` themselves, with a `container` value that starts with
 `docdetective/docdetective:`. The `container` row skips that value, because the 5.0 images allow unsafe

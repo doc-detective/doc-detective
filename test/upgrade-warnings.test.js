@@ -13,9 +13,7 @@ import {
   envWarnings,
   legacyEnv,
   flagWarnings,
-  maskingWarnings,
   namesFolder,
-  noteVariablesUsed,
   outputWarnings,
   runResultWarnings,
   specWarnings,
@@ -709,17 +707,26 @@ registerHooks({ load(url, ctx, next) {
       expect(a.stderr + b.stderr).to.not.include(MASK);
     });
 
-    it("reads each run's variables once, so a later run in the process starts clean", function () {
-      const plan = { config: {}, specs: [] };
-      maskingWarnings(plan); // Drain what other in-process tests noted.
-      expect(maskingWarnings(plan)).to.deep.equal([]);
-      noteVariablesUsed();
-      expect(maskingWarnings(plan)).to.have.length(1);
-      expect(maskingWarnings(plan)).to.deep.equal([]);
-      // A run that lists publicVariables doesn't leave its variables to warn about the next one.
-      noteVariablesUsed();
-      expect(maskingWarnings({ config: { publicVariables: [] }, specs: [] })).to.deep.equal([]);
-      expect(maskingWarnings(plan)).to.deep.equal([]);
+    it("doesn't warn about a later runTests call that used no variables", function () {
+      const core = pathToFileURL(path.resolve("dist/core/index.js")).href;
+      const base = { input: spec("p.spec.json", PASSING_SPEC), telemetry: { send: false } };
+      const loads = { loadVariables: envFile("vars.env", "DD_NX_LOADED=value\n") };
+      // Neither first run prints the row: a dry run has no run rows, and the other lists publicVariables.
+      for (const first of [{ ...base, ...loads, dryRun: true }, { ...base, ...loads, publicVariables: [] }]) {
+        // Its own process, so the row can't have printed already in this one.
+        const script = envFile(
+          "two-runs.mjs",
+          [
+            `import { runTests } from ${JSON.stringify(core)};`,
+            `await runTests(${JSON.stringify(first)});`,
+            `const { summary } = await runTests(${JSON.stringify(base)});`,
+            `process.exit(summary.specs.pass === 1 ? 0 : 3);`,
+          ].join("\n")
+        );
+        const r = run(script, []);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(r.stderr).to.not.include(MASK);
+      }
     });
 
     it("waits for a run: a dry run stays quiet", function () {
