@@ -3,6 +3,7 @@ import { buildHtml } from "../dist/reporters/htmlReporter.js";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import vm from "node:vm";
 
 before(async function () {
   const { expect } = await import("chai");
@@ -90,6 +91,82 @@ const sampleResults = {
     },
   ],
 };
+
+// Runs the copy of headerFacts that ships in the page, so the test can't drift from
+// what browsers get. The header itself needs a DOM, and the suite has none.
+function headerFactsFor(results) {
+  const html = buildHtml(results);
+  const pick = (name, param) =>
+    html.match(new RegExp(`function ${name}\\(${param}\\) \\{[\\s\\S]*?\\n\\}`))?.[0];
+  const source = `${pick("fmtDuration", "ms")}\n${pick("headerFacts", "report")}`;
+  return JSON.parse(
+    vm.runInNewContext(`${source}\nJSON.stringify(headerFacts(${JSON.stringify(results)}))`)
+  );
+}
+
+describe("HTML Reporter header", function () {
+  const summary = sampleResults.summary;
+
+  it("describes the run from startedAt, runId, durationMs, and environment", function () {
+    const startedAt = "2026-11-06T02:33:28.631Z";
+    const facts = headerFactsFor({
+      runId: "2026-11-06T02-33-28-631Z",
+      startedAt,
+      durationMs: 14200,
+      environment: {
+        platform: "linux",
+        arch: "x64",
+        docDetectiveVersion: "5.0.0",
+        nodeVersion: "24.15.0",
+        osRelease: "6.8.0-1017-azure",
+      },
+      summary,
+      specs: [],
+    });
+    expect(facts).to.deep.equal({
+      eyebrow: "2026-11-06T02-33-28-631Z",
+      started: new Date(startedAt).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      fields: [
+        ["Doc Detective", "5.0.0"],
+        ["Node.js", "24.15.0"],
+        ["OS", "linux 6.8.0-1017-azure (x64)"],
+        ["duration", "14.2 s"],
+      ],
+      download: "testResults-2026-11-06T02-33-28-631Z.json",
+    });
+  });
+
+  it("leaves out what the report doesn't have, rather than showing a dash", function () {
+    const facts = headerFactsFor({ summary, specs: [] });
+    expect(facts).to.deep.equal({
+      eyebrow: "Report",
+      started: "",
+      fields: [],
+      download: "testResults.json",
+    });
+  });
+
+  it("shows the environment fields it has", function () {
+    const facts = headerFactsFor({
+      environment: { platform: "linux", nodeVersion: "24.15.0" },
+      summary,
+      specs: [],
+    });
+    expect(facts.fields).to.deep.equal([
+      ["Node.js", "24.15.0"],
+      ["OS", "linux"],
+    ]);
+  });
+
+  it("no longer reads fields the runner never writes", function () {
+    const html = buildHtml({ summary, specs: [] });
+    expect(html).to.not.include("report.meta");
+    expect(html).to.not.include("report.reportId");
+  });
+});
 
 describe("HTML Reporter", function () {
   let tmpDir;
