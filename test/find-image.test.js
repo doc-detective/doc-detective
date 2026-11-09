@@ -785,22 +785,26 @@ describe("elementImage matching", function () {
       expect(redacted.elementImage).to.equal("base64 image");
     });
 
-    it("image-base64-not-printed: a validation warning repeats the step", async function () {
+    it("image-base64-not-printed: a validation warning names the field and leaves the value out", async function () {
       const { runTests } = await import("../dist/core/index.js");
       const value = b64(icon(GEAR, "#e01b24", 24));
       const input = fileOf(
         "invalid.spec.json",
         JSON.stringify({ tests: [{ steps: [{ find: { elementImage: { base64: value, threshold: 5 } } }] }] })
       );
-      const { log } = console;
-      const printed = [];
-      console.log = (...args) => printed.push(...args.map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg))));
+      const write = process.stderr.write;
+      let printed = "";
+      process.stderr.write = (chunk) => {
+        printed += chunk;
+        return true;
+      };
       try {
         await runTests({ input, logLevel: "warning", telemetry: { send: false }, detectSteps: false });
       } finally {
-        console.log = log;
+        process.stderr.write = write;
       }
-      expect(printed.join("\n")).to.include(value);
+      expect(printed).to.match(/elementImage\.threshold/);
+      expect(printed).to.not.include(value);
     });
 
     it("image-no-mobile: fails on a mobile browser and says so", async function () {
@@ -1386,6 +1390,8 @@ describe("elementImage in real browsers", function () {
         logLevel: "silent",
         telemetry: { send: false },
         detectSteps: false,
+        autoScreenshot: false,
+        autoRecord: false,
         runOn: [
           {
             platforms: ["windows", "mac", "linux"],
