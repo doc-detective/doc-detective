@@ -587,7 +587,7 @@ describe("appSurfacePreflight", function () {
       deps: {
         probeIosToolchain: () => ({
           ok: false,
-          reason: "Skipping context on 'ios': iOS app surfaces require a macOS host.",
+          reason: "Skipped: iOS app surfaces require a macOS host.",
         }),
       },
     });
@@ -643,7 +643,7 @@ describe("appSurfacePreflight", function () {
       },
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /could not be installed/);
+    assert.match(outcome.reason, /^Skipped: .* couldn't be installed/);
     assert.match(outcome.reason, /offline/);
   });
 
@@ -750,7 +750,7 @@ describe("appSurfacePreflight", function () {
       deps: { resolvePathInCache: () => null, ensureInstalled: async () => {} },
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /did not resolve/);
+    assert.match(outcome.reason, /^Skipped: .* didn't resolve/);
   });
 });
 

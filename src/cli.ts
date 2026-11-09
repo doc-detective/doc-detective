@@ -264,7 +264,7 @@ async function runTestsHandler(args: any) {
     if (process.exitCode === 2 && results?.summary?.specs?.skipped > 0 && logLevelEnabled("error", config)) {
       const reason = firstSkipReason(results);
       diag(
-        `Nothing was tested: every test was skipped.${reason ? ` First reason: ${reason}` : ""} Run where these tests apply, or pass --no-exit-on-fail.`
+        `Nothing was tested: every test was skipped.${reason ? ` First reason: ${reason.replace(/^Skipped: /, "")}` : ""} Run where these tests apply, or pass --no-exit-on-fail.`
       );
     }
   }

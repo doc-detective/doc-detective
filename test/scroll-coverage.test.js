@@ -21,7 +21,7 @@ describe("scroll action (unit)", function () {
       { videoDetails: {}, debugRecording: {} }
     );
     assert.equal(result.status, "PASS");
-    assert.match(result.description, /No recordings are in progress/);
+    assert.equal(result.description, "Skipped: no recordings are in progress.");
   });
 
   it("PASSes and forwards deltas to mouse.wheel when a recording is active", async function () {

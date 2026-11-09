@@ -7,7 +7,7 @@ Doc Detective uses contexts to determine *where* tests should run. A context def
 
 Contexts are sometimes needed but not specified. Doc Detective then runs tests in the first supported browser it finds on the current platform, in this order: Chrome, Firefox, Safari. Browsers run headless unless a context sets `headless: false`. To keep a test on Firefox, name `firefox` in its context.
 
-If no supported browser is available, Doc Detective skips contexts that require browser automation and reports the platform it skipped, for example: `Skipping context on 'linux': no supported browser is available in the current environment.`. This lets tests complete gracefully instead of failing with a generic driver error.
+If no supported browser is available, Doc Detective skips contexts that require browser automation. Tests then complete gracefully instead of failing with a generic driver error. The report names the platform it skipped, such as ``Skipped: no supported browser is available on `linux` in the current environment.``.
 
 ## Browser fallback
 

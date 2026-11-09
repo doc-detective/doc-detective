@@ -109,6 +109,6 @@ describe("all-skipped runs through the CLI", function () {
     const r = run(["-i", "a.spec.json"]);
     assert.equal(r.status, 2, r.stderr);
     assert.match(r.stderr, /Nothing was tested/);
-    assert.match(r.stderr, /First reason:/);
+    assert.match(r.stderr, /First reason: this context targets a different platform than `/);
   });
 });

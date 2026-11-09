@@ -937,7 +937,7 @@ function probeIosToolchain(
     return {
       ok: false,
       reason:
-        "Skipping context on 'ios': iOS app surfaces require a macOS host with Xcode and Simulator tooling.",
+        "Skipped: iOS app surfaces require a macOS host with Xcode and Simulator tooling.",
     };
   }
   const xcodeSelect = run("xcode-select", ["-p"]);
@@ -945,7 +945,7 @@ function probeIosToolchain(
     return {
       ok: false,
       reason:
-        "Skipping context on 'ios': Xcode command-line tools are not configured. Install Xcode and run `xcode-select --install`.",
+        "Skipped: Xcode command-line tools aren't configured. Install Xcode and run `xcode-select --install`.",
     };
   }
   const developerDir = String(xcodeSelect.stdout ?? "").trim();
@@ -962,7 +962,7 @@ function probeIosToolchain(
         : `exit ${simctl.status}`);
     return {
       ok: false,
-      reason: `Skipping context on 'ios': \`xcrun simctl\` is unavailable (developer dir: ${developerDir || "unset"}; ${detail}). If \`xcode-select -p\` points at CommandLineTools, run \`sudo xcode-select -s /Applications/Xcode.app\`; otherwise open Xcode once to finish simulator components and rerun.`,
+      reason: `Skipped: \`xcrun simctl\` is unavailable (developer dir: ${developerDir || "unset"}; ${detail}). If \`xcode-select -p\` points at CommandLineTools, run \`sudo xcode-select -s /Applications/Xcode.app\`; otherwise open Xcode once to finish simulator components and rerun.`,
     };
   }
   return { ok: true };
@@ -995,7 +995,7 @@ async function appSurfacePreflight({
   if (!platformDriver) {
     return {
       ok: false,
-      reason: `Skipping context on '${platform}': native app surfaces run on Windows, macOS, Android, and iOS in this phase. Gate the test with runOn platforms so this skip is intentional.`,
+      reason: `Skipped: native app surfaces run on Windows, macOS, Android, and iOS, not \`${platform}\`. Gate the test with \`runOn\` platforms so this skip is intentional.`,
     };
   }
   if (platform === "ios") {
@@ -1021,7 +1021,7 @@ async function appSurfacePreflight({
     if (trusted === false) {
       return {
         ok: false,
-        reason: `Skipping context: macOS Accessibility (TCC) permission is not granted, so the macOS app driver cannot control apps. ${MAC_TCC_WALKTHROUGH}`,
+        reason: `Skipped: macOS Accessibility (TCC) permission isn't granted, so the macOS app driver can't control apps. ${MAC_TCC_WALKTHROUGH}`,
       };
     }
   }
@@ -1042,7 +1042,7 @@ async function appSurfacePreflight({
     } catch (error: any) {
       return {
         ok: false,
-        reason: `Skipping context: the ${driverLabel} (${driverPackage}) needs ${missing.join(" and ")}, which could not be installed (${error?.message ?? error}). Install with \`doc-detective install runtime ${missing.join(" ")}\` or check network access.`,
+        reason: `Skipped: the ${driverLabel} (${driverPackage}) needs ${missing.join(" and ")}, which couldn't be installed (${error?.message ?? error}). Install with \`doc-detective install runtime ${missing.join(" ")}\` or check network access.`,
       };
     }
   }
@@ -1050,7 +1050,7 @@ async function appSurfacePreflight({
   if (!appiumEntry || !resolvePathInCache(driverPackage, ctx)) {
     return {
       ok: false,
-      reason: `Skipping context: the ${driverLabel} (${driverPackage}) or Appium did not resolve from the runtime cache after install. Reinstall with \`doc-detective install runtime ${needed.join(" ")}\`.`,
+      reason: `Skipped: the ${driverLabel} (${driverPackage}) or Appium didn't resolve from the runtime cache after install. Reinstall with \`doc-detective install runtime ${needed.join(" ")}\`.`,
     };
   }
   const appiumHome = getRuntimeDir(ctx);

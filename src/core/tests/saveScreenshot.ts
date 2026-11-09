@@ -619,7 +619,7 @@ async function captureScreenshot({
       if (step.screenshot.overwrite == "false") {
         // File already exists
         result.status = "SKIPPED";
-        result.description = `File already exists: ${filePath}`;
+        result.description = `Skipped: file already exists at \`${filePath}\`. Set \`overwrite\` to \`true\` to replace it.`;
         // No verification specs were gathered (we short-circuit before capture
         // and comparison), but keep the `assertions` shape consistent with every
         // other return path — an empty array rather than undefined. The SKIPPED

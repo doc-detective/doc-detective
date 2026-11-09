@@ -474,8 +474,8 @@ describe("driverSkipDiagnostic", function () {
       attemptedFallback: true,
       lastError: "boom",
     });
-    assert.match(msg, /no other available browser/i);
-    assert.match(msg, /boom/);
+    assert.match(msg, /^Skipped: couldn't start a browser session for `firefox` on `windows`, and no other available browser could start either\./);
+    assert.match(msg, /Last error: boom\. A present-but-broken/);
   });
 
   it("reports a platform mismatch distinctly (no fallback implied)", function () {
@@ -485,7 +485,7 @@ describe("driverSkipDiagnostic", function () {
       platformMatches: false,
       attemptedFallback: false,
     });
-    assert.match(msg, /different platform/i);
+    assert.equal(msg, "Skipped: this context targets a different platform than `mac`.");
   });
 });
 
