@@ -1279,6 +1279,12 @@ export interface EnvironmentDetails {
    * The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.
    */
   osRelease?: string;
+  /**
+   * The browsers and drivers Doc Detective found on the host. Empty in a resolved test plan from `--dry-run`, and when no context needs a browser.
+   */
+  apps?: {
+    [k: string]: unknown;
+  }[];
 }
 /**
  * Default visual theme for screenshot and recording annotations. Specs and tests can override this value with their own `annotationDefaults` fields (test level wins over spec level, which wins over config level), and an individual annotation's `style` wins over all of them. Fields left unset fall back to Doc Detective's built-in theme. Setting a theme here keeps every annotated image in a doc set visually consistent.

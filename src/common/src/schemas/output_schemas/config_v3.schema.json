@@ -2965,6 +2965,13 @@
         "osRelease": {
           "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
           "type": "string"
+        },
+        "apps": {
+          "description": "The browsers and drivers Doc Detective found on the host. Empty in a resolved test plan from `--dry-run`, and when no context needs a browser.",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
         }
       },
       "title": "Environment details"
@@ -3639,6 +3646,13 @@
           "osRelease": {
             "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
             "type": "string"
+          },
+          "apps": {
+            "description": "The browsers and drivers Doc Detective found on the host. Empty in a resolved test plan from `--dry-run`, and when no context needs a browser.",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
           }
         },
         "title": "Environment details"

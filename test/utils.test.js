@@ -12,6 +12,7 @@ import {
 } from "../dist/core/utils.js";
 import path from "node:path";
 import fs from "node:fs";
+import http from "node:http";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -1509,6 +1510,62 @@ describe("runViaApi filter short-circuit", function () {
     // Run metadata matches runSpecs' short-circuit (ADR 01163).
     expect(new Date(result.startedAt).toISOString()).to.equal(result.startedAt);
     expect(result.environment.nodeVersion).to.equal(process.versions.node);
+  });
+
+  // ADR 01186: an API failure throws instead of resolving `{status, error}`,
+  // which reporters would have treated as a report.
+  describe("failures", function () {
+    let server;
+    let previousUrl;
+    const serve = (handler) =>
+      new Promise((resolve) => {
+        server = http.createServer(handler).listen(0, "127.0.0.1", () => {
+          process.env.DOC_DETECTIVE_API_URL = `http://127.0.0.1:${server.address().port}`;
+          resolve();
+        });
+      });
+    beforeEach(function () {
+      previousUrl = process.env.DOC_DETECTIVE_API_URL;
+    });
+    afterEach(function () {
+      if (previousUrl === undefined) delete process.env.DOC_DETECTIVE_API_URL;
+      else process.env.DOC_DETECTIVE_API_URL = previousUrl;
+      server?.close();
+      server = undefined;
+    });
+    const resolvedTests = { config: {}, specs: [{ specId: "s1", tests: [{ testId: "t1" }] }] };
+
+    it("throws when the API refuses the run", async function () {
+      await serve((req, res) => {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "bad key" }));
+      });
+      let error;
+      await runViaApi({ resolvedTests, apiKey: "fake-key" }).catch((e) => (error = e));
+      expect(error?.message).to.equal(
+        "Couldn't run tests through the Doc Detective API: creating the run returned HTTP 401 (bad key)."
+      );
+    });
+
+    it("throws when the API's report isn't JSON", async function () {
+      await serve((req, res) => {
+        res.writeHead(req.url === "/runs" ? 201 : 200, { "Content-Type": "application/json" });
+        if (req.url === "/runs") return res.end(JSON.stringify({ run: { runId: "r1" } }));
+        if (req.url === "/runs/r1/start") return res.end("{}");
+        res.end(JSON.stringify({ status: "completed", report: "not json" }));
+      });
+      let error;
+      await runViaApi({ resolvedTests, apiKey: "fake-key" }).catch((e) => (error = e));
+      expect(error?.message).to.equal("Couldn't run tests through the Doc Detective API: its report isn't valid JSON.");
+    });
+
+    it("throws when the API can't be reached", async function () {
+      await serve((req, res) => res.end());
+      await new Promise((resolve) => server.close(resolve));
+      let error;
+      await runViaApi({ resolvedTests, apiKey: "fake-key" }).catch((e) => (error = e));
+      expect(error?.message).to.match(/^Couldn't run tests through the Doc Detective API: couldn't reach it \(\w+\)\.$/);
+    });
   });
 });
 
