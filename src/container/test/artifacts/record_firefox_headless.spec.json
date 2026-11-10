@@ -1,0 +1,46 @@
+{
+  "specId": "Record headless Firefox in the Linux image",
+  "description": "The image ships Xvfb, so autoRecord (on by default) runs headless Firefox headed on an Xvfb display and the ffmpeg engine records it. Without Xvfb the record step is SKIPPED, stopRecord exports no path, and the assertion fails.",
+  "runOn": [
+    {
+      "browsers": {
+        "name": "firefox",
+        "headless": true
+      },
+      "platforms": [
+        "linux"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "steps": [
+        {
+          "loadVariables": "env"
+        },
+        {
+          "goTo": "$URL"
+        },
+        {
+          "record": {
+            "path": "output/firefox_headless.mp4",
+            "overwrite": "true"
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "FF_REC_PATH": "$$recordingPath"
+          }
+        },
+        {
+          "description": "Assert the recording exists and isn't empty.",
+          "runShell": "node -e \"const fs = require('fs'); const p = process.env.FF_REC_PATH; process.exit(p && fs.existsSync(p) && fs.statSync(p).size > 0 ? 0 : 1)\""
+        }
+      ]
+    }
+  ]
+}

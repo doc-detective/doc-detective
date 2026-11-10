@@ -8,17 +8,28 @@ const { spawn, execFileSync } = require("child_process");
 
 const version = process.env.VERSION || "latest";
 
+// The image's OS is the daemon's container mode, not the host's: Docker
+// Desktop on Windows runs Linux containers by default. Same probe as build.cjs.
+let dockerOSType;
+try {
+  dockerOSType = execFileSync("docker", ["info", "--format", "{{.OSType}}"], {
+    encoding: "utf8",
+  }).trim();
+} catch {
+  dockerOSType = process.platform === "win32" ? "windows" : "linux";
+}
+
 let os;
 let internalPath;
 let internalPublicDir;
-if (process.platform === "win32") {
+if (dockerOSType === "windows") {
   os = "windows";
   internalPath = "C:\\app";
   internalPublicDir = "C:\\srv";
 } else {
   os = "linux";
-  internalPath = path.join("/", "app");
-  internalPublicDir = path.join("/", "srv");
+  internalPath = path.posix.join("/", "app");
+  internalPublicDir = path.posix.join("/", "srv");
 }
 
 // Unique per-run names so parallel runs don't collide.
@@ -139,6 +150,25 @@ async function waitForTestServer(timeoutMs = 30_000, pollMs = 500) {
     `Test server did not become ready within ${timeoutMs}ms after ${attempts} probes.`
   );
 }
+
+// The Linux image ships Xvfb so the ffmpeg recording engine has a display to
+// capture with no host X server: headless Firefox, headed contexts, and native
+// apps record out of the box (ADR 01198).
+(os === "linux" ? describe : describe.skip)("Linux image display", function () {
+  this.timeout(0);
+
+  it("has Xvfb on the PATH", function () {
+    runDocker([
+      "run",
+      "--rm",
+      "--entrypoint",
+      "sh",
+      `docdetective/docdetective:${version}-${os}`,
+      "-c",
+      "command -v Xvfb",
+    ]);
+  });
+});
 
 // Run tests in Docker container
 describe("Run tests successfully", function () {
