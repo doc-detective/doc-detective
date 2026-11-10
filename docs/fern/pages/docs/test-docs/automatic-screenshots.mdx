@@ -53,6 +53,8 @@ The number is the step's place in the test, so the first step you wrote is `01-â
 
 While screenshots are on, the `runFolder` reporter runs even if `reporters` leaves it out. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
+To look through the screenshots, open `testResults.html` in the run folder. The run prints its path after `Run report:`. Each step's automatic screenshot appears with the step, labeled **Automatic**. The report loads the images from the run folder, so in CI, upload the whole folder. See [Find the HTML report](/docs/ci/reporters-and-artifacts#step-4-find-the-html-report) and [Collect the run folder and artifacts](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts).
+
 Like `screenshot` steps, automatic browser screenshots blur elements whose text or form value holds a secret environment variable value. The blur appears in the saved image. Text inside iframes, shadow DOM, or a canvas isn't blurred, and neither are native app and device screenshots. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
 
 Automatic screenshots don't compare against a reference. To gate on drift, add a `screenshot` step with `maxVariation`, as described in [Detect visual regressions](/docs/test-docs/screenshot-visual-regression).

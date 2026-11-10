@@ -55,7 +55,47 @@ Doc Detective saves each video in the run folder, on a stable path. The same con
 <outputDir>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4
 ```
 
-In the results, the recording is the context's first step, with a `stepId` ending in `~autorecord`. It runs alongside any `record` and `stopRecord` steps you write. An untargeted `stopRecord` never stops it, so a stray `stopRecord: true` can't cut the video short. While recordings are on, the `runFolder` reporter runs even if `reporters` leaves it out. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+The recording runs alongside any `record` and `stopRecord` steps you write. An untargeted `stopRecord` never stops it, so a stray `stopRecord: true` can't cut the video short. While recordings are on, the `runFolder` reporter runs even if `reporters` leaves it out. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+## Where the recording shows up
+
+The automatic recording isn't a step, so it isn't in a context's `steps`, and `summary.steps` doesn't count it. Each context in the results has its own `autoRecording` field:
+
+```json title="testResults.json (one context)"
+{
+  "autoRecording": {
+    "result": "PASS",
+    "recordingPath": "specs/install-guide/tests/install/contexts/linux-chrome/recordings/linux-chrome.mp4",
+    "startedAt": "2026-11-06T02:33:29.010Z",
+    "format": "mp4",
+    "duration": 8.1,
+    "width": 1280,
+    "height": 720,
+    "fps": 30
+  }
+}
+```
+
+| Field | What it holds |
+|---|---|
+| `result` | `PASS`, `FAIL`, `WARNING`, or `SKIPPED`, from starting the recording through saving it. |
+| `resultDescription` | Why, when the result isn't `PASS`. |
+| `recordingPath` | The video's path relative to the results' `runDir`, with forward slashes. It's there only when a file was saved. |
+| `startedAt` | When the recording started. It's left out when the recording didn't start. |
+| `format`, `duration`, `width`, `height`, `fps` | The saved video's file format, length in seconds, size in pixels, and frame rate. Each is left out when Doc Detective couldn't read it. |
+
+A `FAIL` or `WARNING` sets the context's `result`, the way a step's does. `PASS` and `SKIPPED` don't, so a context whose steps were all SKIPPED stays SKIPPED.
+
+The field is absent when Doc Detective didn't try to record the context. That means one of these is true:
+
+- `autoRecord` is `false`.
+- The context drives no browser, app, or device.
+- A headless Chrome context has its own `record` step.
+- `autoRecord` is unset and the host check below failed.
+
+The [HTML report](/docs/ci/reporters-and-artifacts) plays the video at the top of the context, in a panel named **Automatic recording**. When the result isn't `PASS`, the panel also shows the result and the reason.
+
+To watch a recording, open `testResults.html` in the run folder. The run prints its path after `Run report:`. Each context's video plays at the top of its section, labeled **Automatic recording**. If the recording didn't start or save, the report shows its result and the reason. The report loads the video from the run folder, so in CI, upload the whole folder. See [Find the HTML report](/docs/ci/reporters-and-artifacts#step-4-find-the-html-report) and [Collect the run folder and artifacts](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts).
 
 ## Before you record
 
@@ -77,7 +117,7 @@ When a check fails, your tests still run:
   ```
 - **Set to `true`**, the automatic recording is SKIPPED with the reason and the fix. So is any `record` step the check covers.
 
-If the checks pass but an automatic recording still can't start, it's SKIPPED too. With `autoRecord` set to `true`, that step fails instead.
+If the checks pass but an automatic recording still can't start, it's SKIPPED too. With `autoRecord` set to `true`, it fails instead: the context fails, and its steps are SKIPPED.
 
 To give a macOS app Screen Recording permission, turn it on in **System Settings > Privacy & Security > Screen Recording**.
 
@@ -101,7 +141,7 @@ The flag sets the config level, so a spec or test that sets `autoRecord` to `tru
 
 ## Verify it works
 
-- Each recorded context's first step has a `stepId` ending in `~autorecord`, and its video is in the run folder.
+- Each recorded context has an `autoRecording` field in the results, and its `recordingPath` names a video in the run folder.
 - A host that can't record prints one `Not recording automatically` warning, and the tests still run.
 
 ## Troubleshooting

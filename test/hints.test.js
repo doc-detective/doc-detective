@@ -604,6 +604,18 @@ describe("hints/context", function () {
         expect(data.producedRecordings).to.equal(true);
       });
     }
+    it("producedRecordings is true for a context's saved automatic recording", function () {
+      const data = walkResults({
+        specs: [{ tests: [{ contexts: [{ autoRecording: { result: "PASS", recordingPath: "c.mp4" }, steps: [] }] }] }],
+      });
+      expect(data.producedRecordings).to.equal(true);
+    });
+    it("producedRecordings is false for an automatic recording that saved no file", function () {
+      const data = walkResults({
+        specs: [{ tests: [{ contexts: [{ autoRecording: { result: "SKIPPED" }, steps: [] }] }] }],
+      });
+      expect(data.producedRecordings).to.equal(false);
+    });
     it("producedScreenshots is false when screenshot is explicitly disabled", function () {
       // `false` is the explicit opt-out form; treat it as non-producing.
       const data = walkResults({

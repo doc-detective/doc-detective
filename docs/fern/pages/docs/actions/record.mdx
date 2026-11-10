@@ -59,7 +59,7 @@ Skipped: there's no display to capture. To record, install Xvfb or set DISPLAY, 
 
 For every check, see [Before you record](/docs/test-docs/automatic-recording#before-you-record).
 
-Headless Firefox and Safari can't be recorded: their `record` steps are SKIPPED. To record them, set `headless: false`. On a Linux host with no display, Doc Detective runs a headed context on Xvfb, so install Xvfb to record there.
+Headless Firefox and Safari can't be recorded, so their `record` steps are SKIPPED. To record them, set `headless: false`. Firefox has one exception. While [`autoRecord`](/docs/test-docs/automatic-recording) is on, which is the default, Doc Detective runs headless Firefox headed when the host can record the screen. Its `record` steps then record too. On a Linux host with no display, Doc Detective runs a headed context on Xvfb, so install Xvfb to record there.
 
 ## Recording app surfaces
 

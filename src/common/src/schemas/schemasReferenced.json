@@ -2643,6 +2643,54 @@
                   }
                 }
               },
+              "autoRecording": {
+                "type": "object",
+                "readOnly": true,
+                "additionalProperties": false,
+                "required": [
+                  "result"
+                ],
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "PASS",
+                      "FAIL",
+                      "WARNING",
+                      "SKIPPED"
+                    ]
+                  },
+                  "resultDescription": {
+                    "type": "string"
+                  },
+                  "recordingPath": {
+                    "type": "string"
+                  },
+                  "startedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "format": {
+                    "type": "string"
+                  },
+                  "duration": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "width": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "fps": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                }
+              },
               "platform": {
                 "type": "string"
               },
@@ -10831,6 +10879,54 @@
                   },
                   "version": {
                     "type": "string"
+                  }
+                }
+              },
+              "autoRecording": {
+                "type": "object",
+                "readOnly": true,
+                "additionalProperties": false,
+                "required": [
+                  "result"
+                ],
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "PASS",
+                      "FAIL",
+                      "WARNING",
+                      "SKIPPED"
+                    ]
+                  },
+                  "resultDescription": {
+                    "type": "string"
+                  },
+                  "recordingPath": {
+                    "type": "string"
+                  },
+                  "startedAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "format": {
+                    "type": "string"
+                  },
+                  "duration": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "width": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "height": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "fps": {
+                    "type": "number",
+                    "minimum": 0
                   }
                 }
               },
