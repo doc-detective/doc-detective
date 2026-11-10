@@ -120,9 +120,16 @@ describe("summarizeSchemaErrors", function () {
 
   it("lists every allowed type, and the value it got", function () {
     expect(summarize(spec({ goTo: [] }))).to.equal("tests[0].steps[0].goTo: must be string or object (got []).");
-    expect(summarize({ concurrentRunners: "lots" }, "config_v3")).to.equal(
-      'concurrentRunners: must be integer or boolean (got "lots").'
+    expect(summarize({ concurrentRunners: [] }, "config_v3")).to.equal(
+      "concurrentRunners: must be integer or boolean (got [])."
     );
+  });
+
+  // ADR 01188: the only string `concurrentRunners` takes is `auto`, and a
+  // number isn't told it must be `auto`.
+  it("names the allowed string for a string, and the limit for a number", function () {
+    expect(summarize({ concurrentRunners: "lots" }, "config_v3")).to.equal('concurrentRunners: must be auto (got "lots").');
+    expect(summarize({ concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: must be >= 1.");
   });
 
   // A schema's own errorMessage stays whole, commas and parentheses included

@@ -636,7 +636,8 @@ async function typeKeys({
       elementClass: step.type.elementClass,
       elementAttribute: step.type.elementAttribute,
       elementAria: step.type.elementAria,
-      timeout: 5000,
+      // The step's own timeout bounds the search, so `0` checks once (ADR 01188).
+      timeout: step.type.timeout,
       driver,
     });
 
