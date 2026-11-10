@@ -484,7 +484,7 @@ This is the Phase 2 exit gate. GA waits until every check passes, with no calend
 In order:
 
 1. Confirm every Verification check passes. Change the `main` ruleset's required check from `node 22` to `node 24`.
-2. Merge agent-tools `feat/v5-rc` with `--merge`, which releases 2.0.0 and creates `v2`. Confirm `codeload.github.com/doc-detective/agent-tools/zip/v2` returns 200. Freeze that branch; don't delete it.
+2. Squash-merge agent-tools `feat/v5-rc` (`gh pr merge --squash`); the squash message keeps every commit's `BREAKING CHANGE:` footer, so semantic-release cuts 2.0.0 and the tag step creates `v2`. Confirm `codeload.github.com/doc-detective/agent-tools/zip/v2` returns 200. Freeze that branch; don't delete it.
 3. In the CLI GA PR, set `AGENT_TOOLS_REF = "v2"`, and update `test/agents-pinned-ref.test.js`, `install.mdx`, the Gemini and Qwen re-pin steps, and ADR 01164. Confirm `grep -rn "feat/v5-rc" src test docs/fern` finds nothing.
 4. Set `ALLOW_MAJOR_RELEASE`, then `gh pr merge --merge`. Unset it once `npm view doc-detective@5.0.0 version` returns.
 5. Let `promote.yml` run its smoke test, advance `@latest`, and build Docker. Deploy Online #54 with `RUNNER_IMAGE` back on `latest`.
