@@ -1,13 +1,14 @@
 ---
-title: Self-healing documentation
-sidebar-title: Self-healing
+title: Hand off test failures to an AI agent
+sidebar-title: Hand off failures
+description: Have the GitHub Action open an issue when tests fail and mention an AI agent that analyzes the failure and suggests a fix.
 ---
 
-Set up a documentation system that detects failures, diagnoses problems, and suggests fixes automatically. Combine Doc Detective's GitHub Action with AI integrations to create a feedback loop. Tests run on every push, failures trigger AI analysis, and the AI proposes repairs.
+When a test fails, Doc Detective's GitHub Action can open an issue with the results and mention an AI agent in it. The agent analyzes the failure and suggests a fix. You review the suggestion and decide what to change.
 
-## How self-healing works
+## How the handoff works
 
-The self-healing pattern connects three components:
+The handoff connects three components:
 
 1. **Automated testing**: Doc Detective runs on every push or pull request, catching documentation that no longer matches your product.
 2. **Failure detection**: When tests fail, the GitHub Action creates an issue with structured test results.
@@ -23,15 +24,17 @@ flowchart LR
     F --> G[AI suggests fix]
 ```
 
-This creates a low-effort repair cycle. When documentation drifts from reality, the system surfaces the problem and provides actionable guidance.
+A person reviews every change before it lands. When documentation drifts from your product, the issue surfaces the problem with the agent's analysis, and you decide on the fix. Tests can also update screenshots and command outputs. With `create_pr_on_change`, the action opens a pull request with those updates, and you review it before merging.
 
-## Set up self-healing
+## Set up the handoff
 
 Configure your workflow to create issues with AI integration when tests fail:
 
 ```yaml
 name: doc-detective
-on: [pull_request]
+on:
+  push:
+    branches: [main]
 
 jobs:
   runTests:
@@ -45,6 +48,7 @@ jobs:
         with:
           input: ./docs
           create_issue_on_fail: true
+          token: ${{ secrets.DOC_DETECTIVE_ISSUE_TOKEN }}
           integrations: claude
           prompt: |
             Analyze these Doc Detective test failures. For each failure:
@@ -54,10 +58,19 @@ jobs:
 ```
 
 This configuration:
-- Runs tests against the `./docs` directory
-- Creates a GitHub issue when any test fails
+- Runs tests against the `./docs` directory on every push to `main`
+- Creates a GitHub issue when any test fails, using the token in the `DOC_DETECTIVE_ISSUE_TOKEN` secret
 - Mentions Claude in the issue with a detailed diagnostic prompt
 - Passes the test results to Claude for analysis
+
+Claude Code answers from a GitHub Actions workflow that starts when an issue opens. GitHub doesn't start workflows for events that the default `GITHUB_TOKEN` creates. An issue the action opens with that token therefore never reaches Claude. Set `token` to one of these:
+
+- A fine-grained personal access token that can write issues, stored as a repository secret. Its owner needs write access to the repository, because Claude Code ignores issues from users without it.
+- A GitHub App token that the workflow generates on each run, for example with `actions/create-github-app-token`. Installation tokens expire after an hour, so don't store one as a secret. Claude Code ignores bots by default, so add the app's bot to `allowed_bots` in the Claude Code workflow.
+
+The action also opens pull requests with `token`. If you set `create_pr_on_change`, as the [weekly example](#example-weekly-docs-health-check) does, the token also needs **Pull requests: write**.
+
+The example runs on pushes to `main`, not on `pull_request`. By default, a pull request from a fork gets no secrets and a read-only `GITHUB_TOKEN`, so the action can't open the issue there. A private repository can change that under **Fork pull request workflows**, as [Tests are code](/docs/ci/github-action#tests-are-code) explains. To check pull requests, keep a separate `pull_request` workflow without `create_issue_on_fail`.
 
 ## Craft effective prompts
 
@@ -121,7 +134,7 @@ Each integration behaves differently. Choose based on your workflow:
 
 | Integration | Best for | Setup required |
 |-------------|----------|----------------|
-| `claude` | Deep analysis of complex failures | Install Claude GitHub app |
+| `claude` | Deep analysis of complex failures | Install the Claude GitHub app and the [Claude Code Action](https://github.com/anthropics/claude-code-action) workflow, and set `token` |
 | `copilot` | Quick triage within GitHub | Enable Copilot for your repo |
 | `promptless` | Automated documentation PRs | Connect repo to Promptless |
 | `cursor` | Developer-focused code suggestions | Install Cursor GitHub app |
@@ -152,7 +165,7 @@ issue_body: |
   $PROMPT
 ```
 
-### Scheduled healing runs
+### Scheduled runs
 
 Run tests on a schedule to catch drift before it reaches production:
 
@@ -173,19 +186,19 @@ issue_assignees: docs-team-lead,qa-engineer
 issue_labels: doc-detective,needs-triage,automated
 ```
 
-## Example: Complete self-healing workflow
+## Example: weekly docs health check
 
 This workflow combines scheduled runs, AI diagnosis, and automatic PR creation:
 
 ```yaml
-name: doc-detective-self-healing
+name: doc-detective-health-check
 on:
   schedule:
     - cron: '0 6 * * 1'  # Weekly on Monday
   workflow_dispatch:  # Allow manual triggers
 
 jobs:
-  test-and-heal:
+  test-and-triage:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -200,6 +213,7 @@ jobs:
           input: ./docs
           create_issue_on_fail: true
           create_pr_on_change: true
+          token: ${{ secrets.DOC_DETECTIVE_ISSUE_TOKEN }}
           integrations: claude,promptless
           prompt: |
             Analyze these documentation test failures and provide:
