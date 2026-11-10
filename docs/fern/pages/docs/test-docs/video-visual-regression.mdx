@@ -94,7 +94,7 @@ Doc Detective skips the capture in two situations. The first is a headless run, 
 
 Detection is cheap and continuous, so headless CI watches recording freshness on every run and you only re-record when something actually changed. Skipped spans never write: no video, no baseline seeding, no baseline updates.
 
-`stopRecord` reports the outcome of all of this in its outputs: `$$checkpoints` and `$$maxCheckpointVariation`, `$$seededBaselines`, `$$changed` and `$$changeReasons`, `$$stale`, `$$duration` / `$$width` / `$$height`, and `$$resolutionMatch` / `$$allBlack`. For the full list, see [Recording checkpoints](/docs/actions/record#recording-checkpoints), the [`stopRecord`](/docs/actions/stoprecord) action reference, and the [`stopRecord`](/reference/schemas/stoprecord) schema.
+`stopRecord` reports the outcome of all of this in its outputs: `$$checkpoints` and `$$maxCheckpointVariation`, `$$seededBaselines`, `$$changed` and `$$changeReasons`, `$$stale`, `$$duration` / `$$width` / `$$height`, and `$$resolutionMatches` / `$$allBlack`. For the full list, see [Recording checkpoints](/docs/actions/record#recording-checkpoints), the [`stopRecord`](/docs/actions/stoprecord) action reference, and the [`stopRecord`](/reference/schemas/stoprecord) schema.
 
 ## Verify it works
 

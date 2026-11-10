@@ -312,7 +312,7 @@ describeIfSharp("saveScreenshot: extra branches", function () {
     });
     // Same solid color at both sizes -> near-zero diff -> within variation.
     assert.equal(result.status, "PASS");
-    assert.equal(result.outputs.aspectRatioMatch, true);
+    assert.equal(result.outputs.aspectRatioMatches, true);
     assert.equal(typeof result.outputs.variation, "number");
   });
 

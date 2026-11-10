@@ -163,7 +163,7 @@ After sending the keys, use `waitUntil` to wait for the process before the step 
 
 `timeout` (default `5000` ms) caps how long Doc Detective waits for `waitUntil`. When you set a `stdio` condition, the step asserts that the output matched, so it fails if the expected output doesn't appear before `timeout` elapses. If you omit `waitUntil`, the step sends the keys and finishes without waiting.
 
-The step records the process `name`, the captured `stdout` and `stderr`, and whether the `stdio` condition matched in its `outputs`.
+The step records the process `name`, the captured `stdout` and `stderr`, and whether the `stdio` condition matched in its `outputs`. Read the match as `$$stdioMatches`.
 
 ## Type into an app surface
 

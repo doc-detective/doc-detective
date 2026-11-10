@@ -194,7 +194,7 @@ describe("routing: evaluateImplicitAssertions", function () {
   const ctx = buildConditionContext({
     outputs: {
       exitCode: 0,
-      stdioMatched: true,
+      stdioMatches: true,
       variation: 0.02,
     },
   });
@@ -208,7 +208,7 @@ describe("routing: evaluateImplicitAssertions", function () {
   it("a passing chain -> all PASS, status PASS", async function () {
     const specs = [
       { statement: "$$outputs.exitCode oneOf [0]", severity: "fail" },
-      { statement: "$$outputs.stdioMatched == true", severity: "fail" },
+      { statement: "$$outputs.stdioMatches == true", severity: "fail" },
       { statement: "$$outputs.variation <= 0.05", severity: "warning" },
     ];
     const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
@@ -222,7 +222,7 @@ describe("routing: evaluateImplicitAssertions", function () {
   it("a FAIL then a later applicable check -> [FAIL, SKIPPED], status FAIL", async function () {
     const specs = [
       { statement: "$$outputs.exitCode oneOf [1]", severity: "fail" },
-      { statement: "$$outputs.stdioMatched == true", severity: "fail" },
+      { statement: "$$outputs.stdioMatches == true", severity: "fail" },
     ];
     const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
     assert.equal(status, "FAIL");

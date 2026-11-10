@@ -234,10 +234,10 @@ describeIfSharp("saveScreenshot unified assertions", function () {
     assert.equal(result.status, "PASS");
     // aspect-ratio (PASS) then variation (PASS).
     assert.deepEqual(result.assertions, [
-      { statement: "$$outputs.aspectRatioMatch == true", source: "implicit", result: "PASS" },
+      { statement: "$$outputs.aspectRatioMatches == true", source: "implicit", result: "PASS" },
       { statement: "$$outputs.variation <= 0.05", source: "implicit", result: "PASS" },
     ]);
-    assert.equal(result.outputs.aspectRatioMatch, true);
+    assert.equal(result.outputs.aspectRatioMatches, true);
     assert.equal(typeof result.outputs.variation, "number");
     assert.ok(result.outputs.variation <= 0.05);
   });
@@ -260,10 +260,10 @@ describeIfSharp("saveScreenshot unified assertions", function () {
     });
     assert.equal(result.status, "WARNING");
     assert.deepEqual(result.assertions, [
-      { statement: "$$outputs.aspectRatioMatch == true", source: "implicit", result: "PASS" },
+      { statement: "$$outputs.aspectRatioMatches == true", source: "implicit", result: "PASS" },
       { statement: "$$outputs.variation <= 0.05", source: "implicit", result: "WARNING" },
     ]);
-    assert.equal(result.outputs.aspectRatioMatch, true);
+    assert.equal(result.outputs.aspectRatioMatches, true);
     assert.ok(result.outputs.variation > 0.05);
   });
 
@@ -299,9 +299,11 @@ describeIfSharp("saveScreenshot unified assertions", function () {
     });
     assert.equal(result.status, "FAIL");
     assert.deepEqual(result.assertions, [
-      { statement: "$$outputs.aspectRatioMatch == true", source: "implicit", result: "FAIL" },
+      { statement: "$$outputs.aspectRatioMatches == true", source: "implicit", result: "FAIL" },
     ]);
-    assert.equal(result.outputs.aspectRatioMatch, false);
+    assert.equal(result.outputs.aspectRatioMatches, false);
+    // ADR 01185: renamed with no alias.
+    assert.equal("aspectRatioMatch" in result.outputs, false);
     assert.equal(result.outputs.variation, undefined);
   });
 

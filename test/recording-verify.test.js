@@ -265,7 +265,9 @@ describe("stopRecording: record.verify structural guards", function () {
       "PASS",
       `expected the crop rect to be the expectation: ${result.description}`
     );
-    assert.equal(result.outputs.resolutionMatch, true);
+    assert.equal(result.outputs.resolutionMatches, true);
+    // ADR 01185: renamed with no alias.
+    assert.equal("resolutionMatch" in result.outputs, false);
     assert.equal(result.outputs.width, 32);
     assert.equal(result.outputs.height, 32);
   });
@@ -301,7 +303,7 @@ describe("stopRecording: record.verify structural guards", function () {
       "FAIL",
       `a clamped crop must not read as a match: ${result.description}`
     );
-    assert.equal(result.outputs.resolutionMatch, false);
+    assert.equal(result.outputs.resolutionMatches, false);
   });
 
   // A promote failure downgrades the step to WARNING ("we kept the old video").
@@ -380,7 +382,7 @@ describe("stopRecording: record.verify structural guards", function () {
     });
     assert.equal(result.status, "PASS");
     assert.equal(result.outputs.allBlack, false);
-    assert.equal(result.outputs.resolutionMatch, true);
+    assert.equal(result.outputs.resolutionMatches, true);
     assert.ok(
       (result.assertions || []).length >= 3,
       "verify guards recorded as assertion records"
@@ -402,7 +404,7 @@ describe("stopRecording: record.verify structural guards", function () {
       verify: { resolution: { width: 640, height: 480 } },
     });
     assert.equal(result.status, "FAIL");
-    assert.equal(result.outputs.resolutionMatch, false);
+    assert.equal(result.outputs.resolutionMatches, false);
   });
 
   it("tolerates even-dimension rounding (±2 px)", async function () {
@@ -410,7 +412,7 @@ describe("stopRecording: record.verify structural guards", function () {
       verify: { resolution: { width: 65, height: 63 } },
     });
     assert.equal(result.status, "PASS");
-    assert.equal(result.outputs.resolutionMatch, true);
+    assert.equal(result.outputs.resolutionMatches, true);
   });
 
   it("FAILs an all-black clip when notBlack is set", async function () {
@@ -425,7 +427,7 @@ describe("stopRecording: record.verify structural guards", function () {
   it("skips resolution:true with no capture expectation (device engine) without failing", async function () {
     const result = await stopWithVerify({ verify: { resolution: true } });
     assert.equal(result.status, "PASS");
-    assert.equal(result.outputs.resolutionMatch, undefined);
+    assert.equal(result.outputs.resolutionMatches, undefined);
   });
 
   // An unprobeable file (not real video) can't satisfy a demanded guard.
