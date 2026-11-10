@@ -567,6 +567,8 @@ redirects:
     destination: /ai/ai-agents/overview
   - source: /docs/contribute/docs/testing
     destination: /contribute/contribute/testing
+  - source: /reference/cli
+    destination: /reference/reference/cli
   - source: /reference/cli/install
     destination: /reference/reference/cli/install
   # Action slugs are now lowercase, so a :slug pattern can't map these
