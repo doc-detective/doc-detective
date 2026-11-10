@@ -135,6 +135,44 @@ Unset is the normal state. Prerelease channels are exempt.
 - **Stray `BREAKING CHANGE:` footer or `!`:** `git revert` the commit on main. The next release is then
   an ordinary patch.
 
+## Roll back a major release
+
+Fix forward first. Land a `fix:` on main, and the normal pipeline ships a 5.0.x and promotes it.
+
+Roll back only when 5.0 is unusable and no quick fix exists. `promote.yml` refuses to move `@latest`
+to an older version, so you do these steps by hand, in this order:
+
+1. **If the final 4.x update already shipped, remove its notice first.** That notice tells users to
+   move to 5, the release you're pulling. Revert it on the `4.x` branch as a `fix:` commit, so the
+   release publishes a 4.x patch without it. That patch is now the last 4.x.
+2. **Pin Online to the last 5.0.x image.** Set Online's `RUNNER_IMAGE` environment variable to
+   `docdetective/docdetective:<last-5.0.x>`. Online's entrypoint runs `doc-detective runner`, which
+   fails on 4.x images, so do this before Docker's `latest` moves.
+3. **Move npm `@latest` back.** With an npm login that can publish both packages, run:
+
+   ```bash
+   npm dist-tag add doc-detective@<last-4.x> latest
+   npm dist-tag add doc-detective-common@<last-4.x> latest
+   ```
+
+4. **Rebuild Docker's floating tags from the 4.x tag.** `--ref` runs the workflow and Dockerfile from
+   that release:
+
+   ```bash
+   gh workflow run docker-build.yml --ref v<last-4.x> -f version=<last-4.x> -f publish_latest_tags=true
+   ```
+
+5. **Verify.** `npm view doc-detective dist-tags` and `npm view doc-detective-common dist-tags` show
+   `latest` on `<last-4.x>`. `docker buildx imagetools inspect docdetective/docdetective:latest`
+   shows the same digest as `docdetective/docdetective:<last-4.x>`.
+
+While `latest` is on 4.x, every release from main promotes again, because any 5.0.x is newer than
+4.x. Merge only the fix that makes 5.0 usable. Its release moves npm and Docker back to 5, and then
+you unpin Online's `RUNNER_IMAGE`.
+
+Action v1 pins CLI `4`, so the rollback doesn't affect it. The 4.x upgrade notice goes quiet once
+`latest` is 4.x again.
+
 ## Stuck `@latest` releases
 
 The release pipeline promotes `@latest` only after `promote.yml`'s "Smoke-test staged release" job
