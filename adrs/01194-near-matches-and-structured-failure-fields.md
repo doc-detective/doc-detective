@@ -53,8 +53,9 @@ Behavior decided:
 4. **Never fails the step.** A driver that can't run the script, or a script that throws, gives an
    empty list.
 5. **Inheritance.** `click` reports `find`'s outputs, so it inherits the field. A failed
-   `dragAndDrop` reports the missing element's near matches. Annotations run the same lookup but
-   report only their own message. `type` locates its element without `find`, so it has none.
+   `dragAndDrop` reports the missing element's near matches. Annotations, a screenshot's `crop`, and
+   `goTo`'s `waitUntil.find` report only their own message, so they pass `nearMatches: false` and skip
+   the collector. `type` locates its element without `find`, so it has none.
 6. **`resultCode`.** Every `FAIL` step report gets one of three values. Non-empty `nearMatches` is
    `drift`. A description that names a network, session, or blank-page error is `environment`.
    Anything else is `assertion`. Other results get no `resultCode`.
@@ -64,6 +65,12 @@ Behavior decided:
    matches are masked like every other field.
 9. **Schema.** `step_v3` declares `resultCode` (enum) and `resultHint` (string) as read-only report
    fields.
+10. **Automatic recording.** ADR 01179 committed these fields to `contexts[].autoRecording` too.
+    `mergeAutoRecording` runs the same classifier on the merged record, so a `FAIL` recording gets a
+    `resultCode`. The `failureClass` that ADR 01179 names is `resultCode`; no separate field exists.
+    `test_v3` declares both fields on `autoRecording`.
+11. **Contract.** `resultCode` and `resultHint` join the result fields scripts can rely on in
+    "Reporters and artifacts."
 
 ### Consequences
 
@@ -71,7 +78,7 @@ Behavior decided:
 * Good: one helper classifies every action's failures, including routing and runner markers.
 * Bad: a failed browser `find` costs one more script round trip. It runs only on failure.
 * Neutral: `environment` is a text match on the description. A message that names none of the
-  patterns lands in `assertion`.
+  patterns lands in `assertion`. If that misclassifies, the fix is error codes carried on the result.
 
 ### Confirmation
 
@@ -80,6 +87,8 @@ call sites. Tests in `test/core-utils-coverage.test.js` cover `classifyStepFailu
 `test/core-core.test.js` run a real browser: a renamed button reports `drift` with its hint, and a miss
 with nothing close reports `assertion`. Fixtures can't carry these, since every case FAILs.
 `src/common/test/strictKeys.test.js` accepts the new fields and rejects an unknown `resultCode`.
+`test/run-artifacts.test.js` covers the recording's `resultCode`, and `src/common/test/validate.test.js`
+its schema. `test/annotations-geometry.test.js` checks that annotations skip the collector.
 
 ## Pros and Cons of the Options
 

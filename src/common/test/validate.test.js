@@ -2434,10 +2434,21 @@ import { schemas } from "../dist/index.js";
           expect(result.valid, result.errors).to.be.true;
         });
 
+        it("should accept a failed recording's resultCode and resultHint (ADR 01194)", function () {
+          const result = validates({
+            result: "FAIL",
+            resultDescription: "invalid session id",
+            resultCode: "environment",
+            resultHint: "Rerun the context.",
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
         for (const [name, broken] of [
           ["an unknown key", { result: "PASS", engine: "ffmpeg" }],
           ["no result", { recordingPath: "c.mp4" }],
           ["an unknown result", { result: "BROKEN" }],
+          ["an unknown resultCode", { result: "FAIL", resultCode: "network" }],
         ]) {
           it(`should reject ${name}`, function () {
             expect(validates(broken).valid).to.be.false;

@@ -56019,6 +56019,19 @@
                           "type": "string",
                           "description": "Why the automatic recording had its outcome. Absent on a `PASS`."
                         },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. The same field and values as a step's `resultCode`. `environment` means the network, the browser session, or the page load failed. `assertion` means anything else."
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed recording. The same field as a step's `resultHint`. Present only when Doc Detective has a suggestion."
+                        },
                         "recordingPath": {
                           "type": "string",
                           "description": "Path of the saved video, relative to the run's artifact directory (the report's `runDir`), with forward slashes. Absent when no file was written."

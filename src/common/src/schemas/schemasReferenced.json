@@ -2663,6 +2663,17 @@
                   "resultDescription": {
                     "type": "string"
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ]
+                  },
+                  "resultHint": {
+                    "type": "string"
+                  },
                   "recordingPath": {
                     "type": "string"
                   },
@@ -10921,6 +10932,17 @@
                     ]
                   },
                   "resultDescription": {
+                    "type": "string"
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ]
+                  },
+                  "resultHint": {
                     "type": "string"
                   },
                   "recordingPath": {

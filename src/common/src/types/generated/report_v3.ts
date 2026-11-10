@@ -21968,6 +21968,14 @@ export interface AutomaticRecording {
    */
   resultDescription?: string;
   /**
+   * What kind of failure this was, present only when `result` is `FAIL`. The same field and values as a step's `resultCode`. `environment` means the network, the browser session, or the page load failed. `assertion` means anything else.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed recording. The same field as a step's `resultHint`. Present only when Doc Detective has a suggestion.
+   */
+  resultHint?: string;
+  /**
    * Path of the saved video, relative to the run's artifact directory (the report's `runDir`), with forward slashes. Absent when no file was written.
    */
   recordingPath?: string;

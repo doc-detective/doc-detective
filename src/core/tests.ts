@@ -4271,14 +4271,16 @@ function mergeAutoRecording(
   const current = contextReport.autoRecording;
   const worse = !current || AUTO_RECORDING_RANK[result] > AUTO_RECORDING_RANK[current.result];
   // A worse result replaces the description, so it can't keep a milder result's.
-  const { resultDescription: previous, ...kept } = current ?? {};
+  // The failure fields are recomputed from what wins (ADR 01194).
+  const { resultDescription: previous, resultCode, resultHint, ...kept } = current ?? {};
   const description = worse ? (result !== "PASS" ? resultDescription : undefined) : previous;
-  contextReport.autoRecording = maskDeep({
+  const merged = {
     ...kept,
     ...(worse ? { result } : {}),
     ...(description ? { resultDescription: description } : {}),
     ...fields,
-  });
+  };
+  contextReport.autoRecording = maskDeep({ ...merged, ...classifyStepFailure(merged) });
 }
 
 // A file's path relative to the run folder, with forward slashes, so the same
