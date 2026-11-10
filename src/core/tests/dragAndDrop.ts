@@ -3,7 +3,7 @@ import { findElement } from "./findElement.js";
 import { switchToSurface } from "./browserSurface.js";
 import { performMovement } from "./movement.js";
 import { isVisualMatch, viewportCenter } from "./visualMatch.js";
-import { log } from "../utils.js";
+import { log, invalidStepMessage } from "../utils.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
@@ -97,7 +97,7 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   step = isValidStep.object;
@@ -150,6 +150,8 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
       result.description = `Couldn't find ${
         result.outputs.sourceFound ? "target" : "source"
       } element. ${missing.description}`;
+      // The missing element's near matches (ADR 01194).
+      if (missing.outputs?.nearMatches) result.outputs.nearMatches = missing.outputs.nearMatches;
       return result;
     }
     sourceElement = sourceResult.outputs.rawElement;

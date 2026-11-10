@@ -1,9 +1,9 @@
 # Design: Doc Detective v5 rollout
 
-Status: **accepted** (2026-11-04), with dates still proposed. This plan turns the November 2026 project review into a release
-sequence across the CLI, the GitHub Action, Online, and agent-tools. Claims about today's behavior
-were checked against the code or a run of published `doc-detective@4.41.5`. Anything only read, not
-run, says so. Dates are proposals, and line references are a snapshot that will drift.
+Status: **accepted**. This plan turns the v5 project review into a release sequence across the CLI,
+the GitHub Action, Online, and agent-tools. Claims about today's behavior were checked against the code
+or a run of published `doc-detective@4.41.5`. Anything only read, not run, says so. v5 ships when it's
+ready, with no dates. Line references are a snapshot that will drift.
 
 ## Summary
 
@@ -26,24 +26,23 @@ run, says so. Dates are proposals, and line references are a snapshot that will 
   matched."
 - **All CLI work lands on `feat/v5-rc`.** Main keeps shipping 4.x, and the branch reaches it as a single
   5.0.0.
-- **v4 users get told.** Two days after GA, a final 4.x update points to v5 and gives upgrade
+- **v4 users get told.** After GA, a final 4.x update points to v5 and gives upgrade
   instructions on every run. On GitHub Actions, that includes the run page.
 - **Online moves in lockstep.** The runner becomes `doc-detective runner`, so Online pins its image
   before GA and deploys the new entrypoint with Docker `latest` at GA.
 
-## Timeline
+## Phases
 
-| Phase | Window | What ships | Channel |
-|---|---|---|---|
-| 0. Safety | Nov 2 to Nov 15 | Runtime pins, auto-update guard, honest badges, trust model, package size | CLI 4.x |
-| 1. Prepare | Nov 16 to Dec 11 | Failure help, run fingerprint, Action v1.7, upgrade notice, `4.x` release branch wiring, major-release guard | CLI 4.x, Action v1.7 |
-| 2. RC | Now to Jan 8, feature-complete by Dec 14 | The ADR 01146 contract, Action v2 RC, downstream PRs, migration guide | `doc-detective@v5-rc` |
-| 3. GA | Jan 12, 2027 | CLI 5.0.0, Action v2.0.0, docs. Final 4.x update two days later | `@latest`, `@v2`, `release-4.x` |
-| 4. Build | Jan to Apr 2027 | Login, matrix, audit, run history, impact map | CLI 5.x, Action 2.x |
-| 5. Bets | Apr 2027 onward | Capture once, verified answers | agent-tools, Online |
+| Phase | What ships | Channel |
+|---|---|---|
+| 0. Safety | Runtime pins, auto-update guard, honest badges, trust model, package size | CLI 4.x |
+| 1. Prepare | Failure help, run fingerprint, Action v1.7, upgrade notice, `4.x` release branch wiring, major-release guard | CLI 4.x, Action v1.7 |
+| 2. RC | The ADR 01146 contract, Action v2 RC, downstream PRs, migration guide | `doc-detective@v5-rc` |
+| 3. GA | CLI 5.0.0, Action v2.0.0, docs. Then the final 4.x update | `@latest`, `@v2`, `release-4.x` |
+| 4. Build | Login, matrix, audit, run history, impact map | CLI 5.x, Action 2.x |
+| 5. Bets | Capture once, verified answers | agent-tools, Online |
 
-The notice window is eight weeks, from the Phase 1 warning to GA. GA lands in January, which keeps the
-flip away from the holidays.
+GA has no date and no notice clock. It happens when every [Verification](#verification) check passes.
 
 **Work-in-progress rule.** New surfaces wait until Phase 3 is done and login has shipped. That
 parks Phase A8 of [native-app-surfaces.md](native-app-surfaces.md) (Linux investigation and remote
@@ -223,14 +222,18 @@ an upgrade-notice row and accepts `publicVariables` as a no-op.
 
 ### 0.2 Pin runtime dependencies ([#722](https://github.com/doc-detective/doc-detective/issues/722))
 
-**Today:** `ddRuntimeDependencies` (`package.json:104`) uses caret ranges, and the runtime install has
-no lockfile. One upstream release broke every Chrome `find`.
+**Today:** The runtime dependencies use caret ranges, and the runtime install has no lockfile. One
+upstream release broke every Chrome `find`. The source `package.json` declares them in two places:
+most in `optionalDependencies`, and Appium, its drivers, and the PTY backend in `ddRuntimeDependencies`.
+The publish step merges both into `ddRuntimeDependencies` (`scripts/publish-manifest.js`).
 
-**Change:** Exact versions for direct entries. Dependabot proposes bumps, and CI tests them before
-users get them. Read [src/runtime/AGENTS.md](../../src/runtime/AGENTS.md) first for the prune hazard.
-Transitive dependencies still float, so add a shrinkwrap only if that causes a real break.
+**Change:** Exact versions for direct entries in both fields. Of the two, Dependabot reads only
+`optionalDependencies`. It proposes bumps there, and CI tests them before users get them. Bump the
+`ddRuntimeDependencies` entries by hand. Read [src/runtime/AGENTS.md](../../src/runtime/AGENTS.md) first
+for the prune hazard. Transitive dependencies still float, so add a shrinkwrap only if that causes a real
+break.
 
-**Verify:** A unit test that rejects `^` and `~` in `ddRuntimeDependencies`.
+**Verify:** A unit test that rejects `^` and `~` in `optionalDependencies` and `ddRuntimeDependencies`.
 
 ### 0.3 Stop auto-update from crossing a major
 
@@ -247,8 +250,8 @@ Outside CI, global and npx installs re-exec onto it, so v4 users would land on v
 - Name the exact version in the local-install message. It hard-codes `npm i doc-detective@latest`
   (`src/runtime/selfUpdate.ts:183`), which crosses the major.
 
-**Timing:** This has to ship early. Active 4.x installs auto-update to the guarded release during the
-window, so most are protected by GA. A bare `npx doc-detective` with an empty cache still resolves to
+**Timing:** This has to ship early. Active 4.x installs auto-update to the guarded release before GA,
+so most are protected by then. A bare `npx doc-detective` with an empty cache still resolves to
 `latest`, so the migration guide tells those users to pin.
 
 **Verify:** Unit tests for same-major, newer-major with and without `release-4.x`, and prerelease
@@ -263,7 +266,7 @@ received `verified-by` and `last-verified`.
 page only when its spec has a passing step beyond `checkLink` and `goTo`. Pages that declare their own
 entry keep working, since the author made that claim. Log why a page was skipped.
 
-`write: true` only landed on 2026-10-22, so this is a fix to new behavior. Measured coverage comes
+`write: true` landed shortly before this plan, so this is a fix to new behavior. Measured coverage comes
 with the audit in 5.3.
 
 **Verify:** Temp-file tests, the pattern ADR 01140 uses for features that write to source files.
@@ -305,13 +308,16 @@ reports 5.0.0, an installed 4.x stays on 4.x and logs the upgrade notice.
 
 **Change:**
 
-- After a failed `find`, collect visible candidates and rank them by normalized text. Add the top three
-  to the description and to `outputs.nearMatches`.
-- Save a failure screenshot in the run folder.
-- Add `failureClass` to failed steps: `environment` (DNS, driver, or page never loaded), `drift` (a
-  near match exists), or `assertion` (everything else).
-- Show all of it in the terminal and markdown reporters. Annotations and the agent fix loop read the
-  same fields.
+- After a failed browser `find`, collect visible candidates and rank them by normalized text, id, test
+  ID, and accessible name. Add the top three to `outputs.nearMatches`, and name them in `resultHint`
+  ([ADR 01194](../../adrs/01194-near-matches-and-structured-failure-fields.md)). Done.
+- Save a failure screenshot in the run folder. Automatic screenshots
+  ([ADR 01177](../../adrs/01177-capture-screenshots-and-recordings-by-default.md)) capture failed steps too.
+- Add `resultCode` to failed steps: `environment` (DNS, driver, or page never loaded), `drift` (a
+  near match exists), or `assertion` (everything else). Done, in ADR 01194. The field was planned as
+  `failureClass`. It took the `result*` name the reporters read.
+- Show all of it in the terminal and markdown reporters (#878). Annotations and the agent fix loop read
+  the same fields.
 
 **Verify:** Focused `it(...)` cases in `test/core-core.test.js`, since fixtures must resolve to PASS or
 SKIPPED and can't express these failures.
@@ -384,12 +390,12 @@ with the variable unset and with it set, a major on a prerelease channel, and a 
   `docs/fern/docs.yml` so it's served at `/docs/ci/upgrade-to-v5`, the route the notice links to, and
   record it in [information-architecture.md](../content-strategy/information-architecture.md). It
   says what's coming and how to try it now with `--exit-on-fail`. Without it, the 1.3 notice would link
-  to a missing page for eight weeks, because the guide itself lands at GA. The full guide replaces it.
+  to a missing page until GA, when the full guide lands and replaces it.
 - Draft the migration guide on `feat/v5-rc`.
 - Retitle `docs/fern/pages/docs/get-started/self-healing.mdx` to match what it does (open an issue and
   hand off to an agent), and adjust W2 and A2. Add a redirect.
 - Add a rollback recipe to [release-operations.md](../maintenance/release-operations.md).
-- Announce the date in a GitHub release note and discussion, and contact Promptless directly. Its repos
+- Announce v5 in a GitHub release note and discussion, and contact Promptless directly. Its repos
   are prominent in public Action usage, and `@promptless` is a built-in integration.
 
 ### Phase 1 exit gate
@@ -441,58 +447,67 @@ gate on. Move to Node 24.15 or later while still on 4.x. Pin `doc-detective@4` i
 
 **Branch rules:**
 
-- Rebase on main weekly. The branch will be large, so keep each PR into it reviewable on its own.
+- Merge main into it weekly with a merge commit, never a rebase. A rebase rewrites history that open PRs
+  into the branch build on. The branch will be large, so keep each PR into it reviewable on its own.
 - No `BREAKING CHANGE:` footer on main before GA, including in squash bodies. semantic-release would
   cut 5.0.0 immediately. The guard in 1.5 is the backstop.
 
-**Soak:** This repository's fixtures and docs tests, the Action RC, and Promptless if willing. Also run
-agent-tools' test suite with `doc-detective@v5-rc` installed in its checkout. Its bare `npx doc-detective`
-calls then resolve to the RC, not `latest`. The window spans the holidays, so expect little outside
-feedback from December 23 to January 2.
+**Testing:** This repository's fixtures and docs tests, the Action RC, and Promptless if willing. Also
+run agent-tools' test suite with `doc-detective@v5-rc` installed in its checkout. Its bare
+`npx doc-detective` calls then resolve to the RC, not `latest`.
 
-### Phase 2 exit gate
+### Verification
 
-Two weeks of calendar time pass with no open blocker. All contract table rows are covered by tests, and
-every Action compatibility row has been exercised. The migration guide has been followed end to end on a
-real repository. If a blocker is open on January 8, GA moves a week, to January 19.
+This is the Phase 2 exit gate. GA waits until every check passes, with no calendar wait:
+
+- No blocker is open.
+- Tests cover every row of the contract table. `test/cli-contract.test.js` and every fixture bundle pass.
+- `--json --plain`, `-o - --plain`, and `--dry-run --plain` each exit 2 with their message.
+- `--dry-run -o plan.json` writes a file equal to stdout.
+- Config `output: "-"` writes JSON to stdout and no file named `-`.
+- `--json -r html` stdout parses as one document.
+- Config `crawl: true`, step `breakpoint`, and step `autoScreenshot: false` each exit 2.
+- Config `concurrentRunners: "auto"` runs.
+- `require("doc-detective").runTests()` with a bad spec rejects with the spec error.
+- Pass, fail, skip, routed, empty, and browser reports validate against `report_v3`. A `--dry-run` plan
+  validates against `resolvedTests_v3`.
+- `onFail: goToStep` with a typo'd target keeps the step's own reason and adds the routing sentence.
+- A failed `find` with a near match has `resultCode: "drift"`, `resultHint`, and `outputs.nearMatches`.
+  Every reporter shows them.
+- A relative `outputDir` resolves per the path-rule table, from each source.
+- `promote.yml` dispatched with an RC version skips promote and Docker.
+- Every Action compatibility row has been exercised. The Action's test workflow updates an issue and a
+  PR, and compares a baseline.
+- agent-tools' suite passes on the RC. A real Online run succeeds.
+- Someone has followed the migration guide end to end on a real repository.
+- `node scripts/check-adr-numbers.cjs origin/main` passes.
 
 ## Phase 3: GA runbook
 
-Target: Tuesday, January 12, 2027. In order:
+In order:
 
-1. Confirm the Phase 2 gate, and that the auto-update guard has been out for at least eight weeks. Then
-   change the `main` ruleset's required test checks from `node 22` to `node 24`. The GA PR removes the
-   Node 22 cells, so without this it blocks with nothing visibly failing.
-2. Set the `ALLOW_MAJOR_RELEASE` repository variable, then merge the `feat/v5-rc` PR with
-   `gh pr merge --merge`, not the web UI. A squash could drop the footer, and then no 5.0.0 gets cut.
-   On the merge, semantic-release cuts 5.0.0 to the `staging-5.0.0` dist-tag, which publishes the docs. Unset the
-   variable once `npm view doc-detective@5.0.0 version` returns, so a failed release can still be re-run.
-3. `promote.yml` runs the smoke test, advances `@latest`, and builds Docker. Online moves here, because
-   it runs Docker `latest`.
-4. Publish Action v2.0.0, which moves `v2`.
-5. Update agent-tools (see [Downstream](#downstream)).
-6. Publish the announcement, led by what v5 means for users: a green result means something now. Include
-   everything shipped since November.
-7. Delete `feat/v5-rc`.
-8. Two days after GA, ship the [final 4.x update](#final-4x-update). That's Thursday, January 14, if GA
-   holds its date.
+1. Confirm every Verification check passes. Change the `main` ruleset's required check from `node 22` to `node 24`.
+2. Squash-merge agent-tools `feat/v5-rc` (`gh pr merge --squash`); the squash message keeps every commit's `BREAKING CHANGE:` footer, so semantic-release cuts 2.0.0 and the tag step creates `v2`. Confirm `codeload.github.com/doc-detective/agent-tools/zip/v2` returns 200. Freeze that branch; don't delete it.
+3. In the CLI GA PR, set `AGENT_TOOLS_REF = "v2"`, and update `test/agents-pinned-ref.test.js`, `install.mdx`, the Gemini and Qwen re-pin steps, and ADR 01164. Confirm `grep -rn "feat/v5-rc" src test docs/fern` finds nothing.
+4. Set `ALLOW_MAJOR_RELEASE`, then `gh pr merge --merge`. Unset it once `npm view doc-detective@5.0.0 version` returns.
+5. Let `promote.yml` run its smoke test, advance `@latest`, and build Docker. Deploy Online #54 with `RUNNER_IMAGE` back on `latest`.
+6. Merge the Action stack, which releases v2.0.0. Re-pin `promote.yml`, the fixture workflows, and `test-docs.yml` to `v2`.
+7. Merge the agent-tools `@5` PR, and re-sync Online's vendored skills.
+8. Publish the announcement, then delete CLI `feat/v5-rc`. After GA, ship the final 4.x update.
 
-**Watch for two weeks:** new issues, the Action's `test-current-release.yml`, and PostHog runs by
+**Watch after GA:** new issues, the Action's `test-current-release.yml`, and PostHog runs by
 `core_version` and `dist_interface` for adoption.
 
-**Rollback:** Fix forward with 5.0.x first. If 5.0 is unusable, repoint `latest` to the last 4.x using
-the new recipe and rebuild Docker with `publish_latest_tags`. `promote.yml` refuses to regress `@latest`,
-so this path has to be documented in advance. If the final 4.x update is already out, revert its notice
-on `4.x` first, because it tells people to move to the release being pulled. The notice from 0.3 goes
-quiet on its own once `latest` is 4.x again. Action v1 stays safe throughout because it pins `4`.
+**Rollback:** Fix forward with 5.0.x first. If 5.0 is unusable, follow "Roll back a major release" in
+[release-operations.md](../maintenance/release-operations.md#roll-back-a-major-release).
 
 **4.x support:** Security fixes only, as `fix:` commits on `4.x`, through the date from open decision 5.
 When support ends, run `npm deprecate` on 4.x so installs say so.
 
 ### Final 4.x update
 
-This release exists to tell v4 users that v5 is out and how to move. It waits two days after GA so that
-nobody is sent to 5.0 during the riskiest window.
+This release exists to tell v4 users that v5 is out and how to move. It ships after GA, once 5.0 has
+settled, so that nobody is sent to 5.0 during the riskiest window.
 
 1. Cut `4.x` from the last 4.x tag and push it. Every push there can publish to npm, and the `main` ruleset
    doesn't cover it, so add a ruleset that blocks deletion and force-pushes. Don't require PRs unless the
@@ -543,11 +558,11 @@ The Action reads results from the file it passes to `--output`, so the extra std
 | CI with a lockfile or exact pin | Their next bump, including Dependabot and Renovate PRs. Until then, only the announcement |
 | Docker on an exact tag | Their next bump. There's no floating `4` tag. Until then, only the announcement |
 | Action v1.6.1 or earlier, pinned exactly, on default `latest` | Already on CLI 5 with no notice. Only the announcement and the migration guide reach them |
-| Unversioned `npx doc-detective` in CI | Already on CLI 5, so there's nothing to update from. The 1.3 notice warned them only if a test failed during the eight weeks |
+| Unversioned `npx doc-detective` in CI | Already on CLI 5, so there's nothing to update from. The 1.3 notice warned them only if a test failed before GA |
 
 ### Phase 3 exit gate
 
-Two weeks pass with no open blocker. `@latest`, Docker `latest`, and Action `v2` are all on the new major,
+No blocker is open. `@latest`, Docker `latest`, and Action `v2` are all on the new major,
 and `ALLOW_MAJOR_RELEASE` is unset. `doc-detective@4` resolves to the final 4.x update, and a real `@v1` run
 shows its notice.
 
@@ -611,7 +626,7 @@ Online moves in lockstep with GA, because the `doc-detective-runner` bin becomes
 - Update `doc-detective-init` and `doc-detective-project-bootstrap`, where `--exit-on-fail` is described as
   a `--ci` choice.
 - Update `doc-detective-install-github-action` to `@v2` and its `exit_on_fail` default.
-- After Phase 1, teach the fix loop to read `nearMatches` and `failureClass`.
+- After Phase 1, teach the fix loop to read `nearMatches`, `resultCode`, and `resultHint`.
 
 ### GitLab, Docker, and direct CLI use
 
@@ -619,7 +634,7 @@ Online moves in lockstep with GA, because the `doc-detective-runner` bin becomes
   ([#685](https://github.com/doc-detective/doc-detective/issues/685)) in Phase 4 on the 5.x contract, with the same
   major-pinning rule as the Action.
 - **Docker and direct CLI:** These get the flip with no shim. The migration guide covers them, and they're
-  the main audience for the eight-week notice and the final 4.x update.
+  the main audience for the 1.3 notice and the final 4.x update.
 
 ## Definition of done
 
@@ -665,10 +680,9 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 - **An agent as reader, and self-healing built on it.** Doc Detective is deterministic: the same docs and
   product give the same result. An agent judging whether a page can be followed can't promise that, so
   it's outside the project's scope in any version.
-- **A Node floor of 26.** The floor for 5.0 is Node 24.15 or later. Node 22 reaches end of life about
-  three months after GA. Node 26 would add a year, but it excludes a supported LTS. Hosted runners also
-  don't cache it. CI tests 26. The next forced major is around April 2028, when Node 24 reaches end of
-  life.
+- **A Node floor of 26.** The floor for 5.0 is Node 24.15 or later. Node 22 is close to end of life.
+  Node 26 would add a year, but it excludes a supported LTS. Hosted runners also don't cache it. CI tests
+  26. The next forced major comes when Node 24 reaches end of life.
 - **Removing v2 specs.** They're under 1% of the schema bytes, so removal gains little and breaks authors.
   The LSP already warns.
 - **Removing the deprecated `debug` key.** It's harmless, and removal makes old configs fail validation.
@@ -681,25 +695,25 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
 
 | Risk | Effect | Mitigation |
 |---|---|---|
-| Users see a wall of red at the upgrade | They pin to 4 or remove the gate | Failure help first, an eight-week notice, and migration advice to triage before gating |
+| Users see a wall of red at the upgrade | They pin to 4 or remove the gate | Failure help first, the 1.3 notice, and migration advice to triage before gating |
 | A pinned old Action meets CLI 5 | Lost issue and PR flow | Accepted for exact pins. The moving `v1` tag gets v1.7, which refuses CLI 5 |
 | Every asset must move at GA | A missed asset breaks at promotion | Each downstream PR is ready and tested against `v5-rc` first, with a final sweep for removed flags and bins |
 | A stray `BREAKING CHANGE:` lands on main | 5.0.0 is cut early | The guard in 1.5 fails the release before it publishes, and reverting the commit recovers. The flip stays on the RC branch |
 | Masking misses a secret or over-masks | A false sense of safety, or noisy reports | Masked by default. `publicVariables` and a hint cover public values. The docs state the limits |
-| Solo-maintainer capacity | Dates slip | Phases 0 and 1 are valuable alone. Only the flip is date-bound, and it can move |
-| Action and CLI publish out of order | `version: 5` doesn't resolve | Runbook order. v2 publishes only after step 3 |
+| Solo-maintainer capacity | Work slips | Phases 0 and 1 are valuable alone. The flip has no date, so it waits for the Verification checks |
+| Action and CLI publish out of order | `version: 5` doesn't resolve | Runbook order. v2 publishes in step 6, after 5.0.0 is on npm |
 | A 5.0 regression reaches Online at promotion | Hosted runs break with no soak | Online deploys the new image deliberately at GA, after a real dispatch against `v5-rc`. `RUNNER_IMAGE` remains the override |
 | A fully passing suite gets no 1.3 notice | Its first failure after GA is a surprise | The change doesn't break it. The announcement and final 4.x update reach it, and the guide explains the new exit |
 | Pinned CI users miss the final 4.x update | They find out about v5 late | They aren't broken, since a pin holds. The announcement and dependency-bump PRs reach them |
 
 ## Open decisions
 
-1. **GA date.** Proposed January 12, 2027.
+1. **GA date.** Settled: none. GA happens when every [Verification](#verification) check passes.
 2. **Empty runs.** Settled by ADR 01146: exit 2 unless `exitOnFail: false`. Online's runner no longer
    sets that override, so a mistyped `input` reports `failed` there.
 3. **Badge rule.** Proposed: `goTo` and `checkLink` alone don't qualify under `write: true`.
 4. **Issue reuse in Action v2.** Proposed: on by default.
-5. **4.x end of support.** Proposed: July 12, 2027, six months after GA. The notice states the date, so
+5. **4.x end of support.** Proposed: six months after GA. The notice states the date, so
    it has to be settled before the final 4.x update's PR is drafted. It doesn't block GA.
 6. **What coverage measures.** Proposed in [coverage.md](coverage.md): separate counts by kind, led by
    procedure steps, with no model or combined score. Item 5.3 and verified answers both depend on it.

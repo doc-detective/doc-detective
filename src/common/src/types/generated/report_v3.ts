@@ -392,6 +392,8 @@ export type Step = (
   $schema?: unknown;
   result?: unknown;
   resultDescription?: unknown;
+  resultCode?: unknown;
+  resultHint?: unknown;
   stepId?: unknown;
   description?: unknown;
   unsafe?: unknown;
@@ -457,6 +459,8 @@ export type Step = (
     $schema?: unknown;
     result?: unknown;
     resultDescription?: unknown;
+    resultCode?: unknown;
+    resultHint?: unknown;
     stepId?: unknown;
     description?: unknown;
     unsafe?: unknown;
@@ -7488,6 +7492,8 @@ export type Step1 = (
   $schema?: unknown;
   result?: unknown;
   resultDescription?: unknown;
+  resultCode?: unknown;
+  resultHint?: unknown;
   stepId?: unknown;
   description?: unknown;
   unsafe?: unknown;
@@ -7553,6 +7559,8 @@ export type Step1 = (
     $schema?: unknown;
     result?: unknown;
     resultDescription?: unknown;
+    resultCode?: unknown;
+    resultHint?: unknown;
     stepId?: unknown;
     description?: unknown;
     unsafe?: unknown;
@@ -14625,6 +14633,9 @@ export interface ResultCounts2 {
   warning: number;
   skipped: number;
 }
+/**
+ * Counts of the steps in `contexts[].steps`. The automatic recording isn't a step and isn't counted.
+ */
 export interface ResultCounts3 {
   pass: number;
   fail: number;
@@ -15778,6 +15789,14 @@ export interface Common {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -16043,6 +16062,14 @@ export interface Common1 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep1;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -16349,6 +16376,14 @@ export interface Common2 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep2;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -16786,6 +16821,14 @@ export interface Common3 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep3;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -17080,6 +17123,14 @@ export interface Common4 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep4;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -17381,6 +17432,14 @@ export interface Common5 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep5;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -17710,6 +17769,14 @@ export interface Common6 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep6;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -18039,6 +18106,14 @@ export interface Common7 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep7;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -18363,6 +18438,14 @@ export interface Common8 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep8;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -18721,6 +18804,14 @@ export interface Common9 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep9;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -19571,6 +19662,14 @@ export interface Common10 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep10;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -19808,6 +19907,14 @@ export interface Common11 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep11;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -20188,6 +20295,14 @@ export interface Common12 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep12;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -20431,6 +20546,14 @@ export interface Common13 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep13;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -20818,6 +20941,14 @@ export interface Common14 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep14;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -21433,6 +21564,14 @@ export interface Common15 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep15;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -21670,6 +21809,14 @@ export interface Common16 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep16;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -21976,6 +22123,14 @@ export interface Common17 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep17;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -22213,6 +22368,14 @@ export interface Common18 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep18;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -22641,6 +22804,14 @@ export interface Common19 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep19;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -22878,6 +23049,14 @@ export interface Common20 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep20;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -24086,6 +24265,7 @@ export interface ResolvedContext {
    */
   startedAt?: string;
   driver?: Driver;
+  autoRecording?: AutomaticRecording;
   /**
    * Platform to run the test on. This is a resolved version of the `platforms` property.
    */
@@ -24112,6 +24292,55 @@ export interface Driver {
    * Version of the driver, for example `131.0.6778.85`. Absent when the session doesn't report one, as with Safari.
    */
   version?: string;
+}
+/**
+ * The video `autoRecord` made of this context. Absent when no automatic recording was attempted, including when `autoRecord` is unset and the run's recording check failed. Present only in test results. System-populated.
+ */
+export interface AutomaticRecording {
+  /**
+   * Outcome of the automatic recording, from starting it through saving it. A `FAIL` or `WARNING` also sets the context's `result`. A `PASS` or `SKIPPED` doesn't.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why the automatic recording had its outcome. Absent on a `PASS`.
+   */
+  resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. The same field and values as a step's `resultCode`. `environment` means the network, the browser session, or the page load failed. `assertion` means anything else.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed recording. The same field as a step's `resultHint`. Present only when Doc Detective has a suggestion.
+   */
+  resultHint?: string;
+  /**
+   * Path of the saved video, relative to the run's artifact directory (the report's `runDir`), with forward slashes. Absent when no file was written.
+   */
+  recordingPath?: string;
+  /**
+   * When the recording started, as an ISO 8601 UTC timestamp with milliseconds. Absent when it didn't start.
+   */
+  startedAt?: string;
+  /**
+   * File format of the saved video, for example `mp4`. Absent when no file was written.
+   */
+  format?: string;
+  /**
+   * Length of the saved video in seconds. Absent when it couldn't be read from the file.
+   */
+  duration?: number;
+  /**
+   * Width of the saved video in pixels. Absent when it couldn't be read from the file.
+   */
+  width?: number;
+  /**
+   * Height of the saved video in pixels. Absent when it couldn't be read from the file.
+   */
+  height?: number;
+  /**
+   * Frame rate of the saved video. Absent when it couldn't be read from the file.
+   */
+  fps?: number;
 }
 /**
  * Browser configuration.
@@ -24200,6 +24429,14 @@ export interface Common21 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep21;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -24465,6 +24702,14 @@ export interface Common22 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep22;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -24771,6 +25016,14 @@ export interface Common23 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep23;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -25208,6 +25461,14 @@ export interface Common24 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep24;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -25502,6 +25763,14 @@ export interface Common25 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep25;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -25803,6 +26072,14 @@ export interface Common26 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep26;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -26132,6 +26409,14 @@ export interface Common27 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep27;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -26461,6 +26746,14 @@ export interface Common28 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep28;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -26785,6 +27078,14 @@ export interface Common29 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep29;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -27143,6 +27444,14 @@ export interface Common30 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep30;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -27993,6 +28302,14 @@ export interface Common31 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep31;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -28230,6 +28547,14 @@ export interface Common32 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep32;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -28610,6 +28935,14 @@ export interface Common33 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep33;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -28853,6 +29186,14 @@ export interface Common34 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep34;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -29240,6 +29581,14 @@ export interface Common35 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep35;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -29855,6 +30204,14 @@ export interface Common36 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep36;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -30092,6 +30449,14 @@ export interface Common37 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep37;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -30398,6 +30763,14 @@ export interface Common38 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep38;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -30635,6 +31008,14 @@ export interface Common39 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep39;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -31063,6 +31444,14 @@ export interface Common40 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep40;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
@@ -31300,6 +31689,14 @@ export interface Common41 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
   variables?: VariablesStep41;
   /**
    * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.

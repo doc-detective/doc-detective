@@ -1,4 +1,5 @@
 import { validate } from "../../common/src/validate.js";
+import { invalidStepMessage } from "../utils.js";
 import { switchToSurface } from "./browserSurface.js";
 import {
   findAppElement,
@@ -19,6 +20,7 @@ import {
   findElementByShorthand,
   findElementByCriteria,
   setElementOutputs,
+  collectNearMatches,
 } from "./findStrategies.js";
 import { typeKeys } from "./typeKeys.js";
 import { moveTo } from "./moveTo.js";
@@ -59,8 +61,9 @@ async function finalizeFound({ result }: { result: any }) {
   return result;
 }
 
-// Find a single element
-async function findElement({ config, step, driver, click, appSession, processRegistry, surfaceTracker }: { config: any; step: any; driver: any; click?: any; appSession?: any; processRegistry?: Map<string, any>; surfaceTracker?: ActiveSurfaceTracker }) {
+// Find a single element. `nearMatches: false` skips the near-match collector
+// for a caller that doesn't report it, such as annotations (ADR 01194).
+async function findElement({ config, step, driver, click, appSession, processRegistry, surfaceTracker, nearMatches = true }: { config: any; step: any; driver: any; click?: any; appSession?: any; processRegistry?: Map<string, any>; surfaceTracker?: ActiveSurfaceTracker; nearMatches?: boolean }) {
   let result: any = {
     status: "PASS",
     description: "Found an element matching selector.",
@@ -71,7 +74,7 @@ async function findElement({ config, step, driver, click, appSession, processReg
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // Accept coerced and defaulted values
@@ -286,8 +289,9 @@ async function findElement({ config, step, driver, click, appSession, processReg
     } else {
       // No matching elements: expose found=false and still evaluate so the
       // existence assertion FAILs (don't early-return before the spec).
-      result.description = "No elements matched selector or text.";
+      result.description = `Couldn't find element \`${step.find}\`.`;
       result.outputs.found = false;
+      if (nearMatches) result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
       return await finalizeFound({ result });
     }
   }
@@ -314,19 +318,13 @@ async function findElement({ config, step, driver, click, appSession, processReg
   });
 
   if (!foundElement) {
-    result.description = error || "No elements matched criteria.";
+    result.description = error || "Couldn't find an element.";
     result.outputs.found = false;
+    if (nearMatches) result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
     return await finalizeFound({ result });
   }
   element = foundElement;
   result.description += ` Found element by ${foundBy}.`;
-
-  // No matching elements
-  if (!element.elementId) {
-    result.description = "No elements matched selector and/or text.";
-    result.outputs.found = false;
-    return await finalizeFound({ result });
-  }
 
   // Set element in outputs
   result.outputs = await setElementOutputs({ element });

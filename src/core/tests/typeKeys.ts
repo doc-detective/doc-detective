@@ -4,7 +4,7 @@ import {
 } from "./findStrategies.js";
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { isRecordingActive } from "./ffmpegRecorder.js";
-import { log, waitForOutputMatch } from "../utils.js";
+import { log, waitForOutputMatch, invalidStepMessage } from "../utils.js";
 import { hideTypedSecret } from "./hideSecrets.js";
 import {
   parseSurfaceRef,
@@ -400,7 +400,7 @@ async function typeKeys({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // The effective step (ADR 01167): `type` is an object, `keys` is a list, and

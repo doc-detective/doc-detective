@@ -119,7 +119,7 @@ You can append query parameters to a URL using the `params` option. This is usef
 When your URL contains a fragment such as `/page#section`, query parameters are inserted before the fragment, giving `/page?token=value#section`.
 
 <Warning>
-Values in `params` and `originParams` are embedded directly in request URLs and appear in test results, logs, and reports. Avoid storing long-lived secrets in these fields.
+Doc Detective embeds `params` and `originParams` values in request URLs. A value you write directly in these fields appears in test results, logs, and reports. To keep a secret out of output, reference an environment variable, such as `"token": "$API_TOKEN"`. The request uses the real value, and output shows `***API_TOKEN***`. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
 </Warning>
 
 ### Append query parameters to a URL

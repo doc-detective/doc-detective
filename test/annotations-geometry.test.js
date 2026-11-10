@@ -277,5 +277,27 @@ describe("annotations/geometry", function () {
         `expected the 300ms timeout to be honored, took ${elapsed}ms`
       );
     });
+
+    it("doesn't collect near matches it never reports (ADR 01194)", async function () {
+      let executed = 0;
+      const driver = {
+        async $$() {
+          return [];
+        },
+        async execute() {
+          executed++;
+          return [{ text: "Save changes", tag: "button" }];
+        },
+      };
+      const { errors } = await resolveAnnotationRects({
+        config: {},
+        annotations: [{ type: "blur", target: { elementText: "Save", timeout: 0 } }],
+        driver,
+        canvas: { width: 800, height: 600 },
+        scale: 1,
+      });
+      assert.equal(errors.length, 1);
+      assert.equal(executed, 0);
+    });
   });
 });

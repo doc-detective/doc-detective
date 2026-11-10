@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log } from "../utils.js";
+import { log, invalidStepMessage } from "../utils.js";
 import { maskString } from "../masking.js";
 import { syncHandles } from "./browserSurface.js";
 import { spawn } from "node:child_process";
@@ -15,6 +15,7 @@ import {
   detectDisplayPointSize,
   probeVideoMetadata,
   detectAllBlack,
+  probeDominantFrameSize,
   recordingFailureCause,
 } from "./ffmpegRecorder.js";
 import {
@@ -29,7 +30,15 @@ import {
 } from "./recordingCheckpoints.js";
 import type { CheckpointsConfig } from "./recordingCheckpoints.js";
 
-export { stopRecording, saveBrowserRecording };
+export { stopRecording, saveBrowserRecording, defaultedStopSkip };
+
+// The skip for a recording autoRecord added while unset that couldn't be saved,
+// from the failure's own description (ADR 01177).
+function defaultedStopSkip(failure: any): string {
+  return `Skipped: couldn't save the automatic recording: ${recordingFailureCause(
+    failure
+  )}. Set \`autoRecord: false\` to turn it off.`;
+}
 
 // `deps` is a test seam for the pending-scale crop derivation (platform +
 // display probe); production callers omit it.
@@ -41,9 +50,7 @@ async function stopRecording(args: Omit<Parameters<typeof endRecording>[0], "onS
   // (ADR 01177). An explicit `autoRecord: true` keeps the FAIL.
   if (handle?.defaulted && result.status === "FAIL") {
     result.status = "SKIPPED";
-    result.description = `Skipped: couldn't save the automatic recording: ${recordingFailureCause(
-      result.description
-    )}. Set \`autoRecord: false\` to turn it off.`;
+    result.description = defaultedStopSkip(result.description);
   }
   return result;
 }
@@ -78,7 +85,7 @@ async function endRecording({
   const isValidStep = validate({ schemaKey: "step_v3", object: authoredStep });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(authoredStep);
     return result;
   }
   const { stopRecord } = isValidStep.object;
@@ -326,12 +333,19 @@ async function endRecording({
         return result;
       }
 
-      // Convert the saved .webm into the target format/location.
+      // Convert the saved .webm into the target format/location, at the size
+      // of the frames that cover most of it. The first and last frames can
+      // come from the captured tab while it's behind the recorder tab, at
+      // another size, and ffmpeg would size the video by the first (ADR 01197).
       await transcode({
         config,
         sourcePath: recording.downloadPath,
         targetPath: writeTargetPath,
         deleteSource: true,
+        size: await probeDominantFrameSize({
+          cacheDir: config?.cacheDir,
+          filePath: recording.downloadPath,
+        }),
       });
       dropHandle();
     } else if (recording.type === "ffmpeg") {
@@ -810,26 +824,31 @@ async function endRecording({
 }
 
 // Transcode a recording into the requested target format/location with
-// ffmpeg, applying an optional crop and the gif scale filter. Deletes the
-// source on success when requested (and when it isn't the target itself).
+// ffmpeg, applying an optional size, crop, and the gif scale filter. Deletes
+// the source on success when requested (and when it isn't the target itself).
 async function transcode({
   config,
   sourcePath,
   targetPath,
   deleteSource,
   crop,
+  size,
 }: {
   config: any;
   sourcePath: string;
   targetPath: string;
   deleteSource: boolean;
   crop?: { x: number; y: number; w: number; h: number } | null;
+  size?: { width: number; height: number } | null;
 }): Promise<void> {
   // Drop audio (-an): doc recordings are visual, and the browser engine's
   // captured opus track fails to mux into mp4 ("Too many packets buffered for
   // output stream"). Silent video is the intended, reliable output.
   const ffmpegArgs = ["-y", "-i", `${sourcePath}`, "-an", "-pix_fmt", "yuv420p"];
   const filters: string[] = [];
+  // Only the browser engine passes `size` and only the ffmpeg engine passes
+  // `crop`; a crop after this scale would be in the scaled frame's pixels.
+  if (size) filters.push(`scale=${size.width}:${size.height}`);
   if (crop) {
     // Clamp the crop to the captured frame using ffmpeg expressions (iw/ih),
     // so a window/viewport rectangle larger than the captured display can't

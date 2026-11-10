@@ -49,6 +49,7 @@ import {
   hasVariable,
   evaluateContextRequirements,
   isRetryableSessionError,
+  classifyStepFailure,
   classifyContextRetry,
   guardBlankDocumentNavigation,
   applyBrowserSize,
@@ -74,7 +75,7 @@ import {
   captureRecordingCheckpoints,
 } from "./tests/recordingCheckpoints.js";
 import { startRecording } from "./tests/startRecording.js";
-import { stopRecording } from "./tests/stopRecording.js";
+import { stopRecording, defaultedStopSkip } from "./tests/stopRecording.js";
 import {
   browserCaptureTitle,
   browserDownloadDir,
@@ -284,7 +285,11 @@ export {
   autoScreenshotSurface,
   autoScreenshotsOn,
   installAutoScreenshotPackages,
-  isSyntheticAutoRecordStep,
+  isSyntheticAutoRecordStart,
+  mergeAutoRecording,
+  contextResultSources,
+  runContext,
+  stopAllRecordings,
   specIsRouted,
   killTree,
   appiumServerCache,
@@ -856,7 +861,7 @@ function contextRequirementsSkipMessage({
     deps,
   });
   if (met) return null;
-  return `Skipping context on '${context.platform}': unmet requirements — ${missing.join(", ")}.`;
+  return `Skipped: unmet requirements: ${missing.join(", ")}.`;
 }
 
 // The device descriptors a test needs: each APP startSurface descriptor's
@@ -967,7 +972,7 @@ async function androidContextPreflight({
     return {
       ok: false,
       level: "warning",
-      reason: `Skipping context on 'android': the Android SDK isn't installed, so emulator support can't be verified on this ${hostName} host. Install it with \`doc-detective install android\` — a machine with hardware virtualization (${accel}) can then run Android tests.`,
+      reason: `Skipped: the Android SDK isn't installed, so emulator support can't be verified on this ${hostName} host. Install it with \`doc-detective install android\` — a machine with hardware virtualization (${accel}) can then run Android tests.`,
     };
   }
 
@@ -992,7 +997,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipping context on 'android': the Android toolchain isn't fully installed and auto-install is off (DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL is on). Install it with \`doc-detective install android\`.`,
+        reason: `Skipped: the Android toolchain isn't fully installed, and \`DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL\` turns off auto-install. Install it with \`doc-detective install android\`.`,
       };
     }
     // Loud warning to the terminal AND the report, then run the installer.
@@ -1010,7 +1015,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipping context on 'android': the Android toolchain install failed (${error?.message ?? error}). Install it manually with \`doc-detective install android\`.`,
+        reason: `Skipped: the Android toolchain install failed (${error?.message ?? error}). Install it manually with \`doc-detective install android\`.`,
       };
     }
     // installAndroid reports terminal conditions by RETURN, not by throwing
@@ -1029,7 +1034,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipping context on 'android': the Android toolchain couldn't be installed — ${detail}. See \`doc-detective install android\`.`,
+        reason: `Skipped: the Android toolchain couldn't be installed: ${detail}. See \`doc-detective install android\`.`,
       };
     }
     sdk = detectAndroidSdk({ cacheDir: config.cacheDir });
@@ -1044,7 +1049,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipping context on 'android': the Android toolchain is still incomplete after an install attempt. Install it manually with \`doc-detective install android\`.`,
+        reason: `Skipped: the Android toolchain is still incomplete after an install attempt. Install it manually with \`doc-detective install android\`.`,
       };
     }
   }
@@ -1096,7 +1101,7 @@ async function androidContextPreflight({
     return {
       ok: false,
       level: "warning",
-      reason: `Skipping context on 'android': couldn't probe the Android environment (${error?.message ?? error}). Check the SDK / adb / emulator installation, or run \`doc-detective install android\`.`,
+      reason: `Skipped: couldn't probe the Android environment (${error?.message ?? error}). Check the SDK / adb / emulator installation, or run \`doc-detective install android\`.`,
     };
   }
   /* c8 ignore stop */
@@ -1169,7 +1174,7 @@ async function iosContextPreflight({
     return {
       ok: false,
       level: "info",
-      reason: `Skipping context on 'ios': couldn't probe the iOS simulator environment (${error?.message ?? error}). Check Xcode / simctl, or run \`doc-detective install ios --yes\`.`,
+      reason: `Skipped: couldn't probe the iOS simulator environment (${error?.message ?? error}). Check Xcode / simctl, or run \`doc-detective install ios --yes\`.`,
     };
   }
   return {
@@ -1333,15 +1338,20 @@ function driverSkipDiagnostic({
   platformMatches,
   attemptedFallback,
   lastError,
+  targetPlatform,
 }: {
   requestedName: string;
   platform: string;
   platformMatches: boolean;
   attemptedFallback: boolean;
   lastError?: string;
+  // The context's platform, for the mismatch message. `platform` is the host's.
+  targetPlatform?: string;
 }): string {
   if (!platformMatches) {
-    return `Skipping context on '${platform}': this context targets a different platform.`;
+    return targetPlatform
+      ? `Skipped: this context targets \`${targetPlatform}\`, not this host.`
+      : "Skipped: this context targets another platform, not this host.";
   }
   // Name the driver for the actual requested engine so the hint doesn't always
   // point users at geckodriver when Chrome or Safari is the broken one.
@@ -1353,12 +1363,12 @@ function driverSkipDiagnostic({
         : normalizeBrowserName(requestedName) === "safari"
           ? "safaridriver"
           : "driver";
-  let msg = `Skipping context: could not start a browser session for '${requestedName}' on '${platform}'`;
+  let msg = `Skipped: couldn't start a browser session for \`${requestedName}\` on \`${platform}\``;
   msg += attemptedFallback
     ? `, and no other available browser could start either.`
-    : ` and cross-browser fallback is disabled or unavailable.`;
-  if (lastError) msg += ` Last error: ${lastError}`;
-  msg += ` A present-but-broken driver (for example a partially downloaded ${driverHint}) can cause this; reinstall the driver or its browser.`;
+    : `, and cross-browser fallback is off or unavailable.`;
+  msg += ` A present-but-broken driver, such as a partially downloaded ${driverHint}, can cause this. Reinstall the driver or its browser.`;
+  if (lastError) msg += ` Last error: ${String(lastError).replace(/\.?\s*$/, ".")}`;
   return msg;
 }
 
@@ -2392,9 +2402,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // keeps a future gap from surfacing as a cryptic undefined read.
           if (!contextReport) continue;
           for (const stepReport of contextReport.steps) {
-            // autoRecord's synthetic start and stop aren't counted.
-            if (!isSyntheticAutoRecordStep(stepReport))
-              report.summary.steps[stepReport.result.toLowerCase()]++;
+            report.summary.steps[stepReport.result.toLowerCase()]++;
             // Default here rather than at each construction site: this pass is
             // the only place that sees EVERY node from both execution paths
             // (flat pool and routed sequencer), real and synthetic alike. A
@@ -4158,7 +4166,7 @@ function autoScreenshotSurface({
   processRegistry?: Map<string, any>;
   surfaceTracker?: ActiveSurfaceTracker;
 }): { kind: "browser" | "app"; surface?: any } | null {
-  if (!step || typeof step !== "object" || isSyntheticAutoRecordStep(step)) return null;
+  if (!step || typeof step !== "object" || isSyntheticAutoRecordStart(step)) return null;
   if (typeof step.screenshot !== "undefined") return null;
   const drivesUi =
     driverActions.some((action) => typeof step[action] !== "undefined") ||
@@ -4236,12 +4244,55 @@ async function installAutoScreenshotPackages({
   }
 }
 
-// The synthetic autoRecord start (`<testId>~autorecord`) and its end-of-context
-// stop (`<testId>~autorecord~stop`). They stay out of report.summary.steps, so an
-// autoRecord run doesn't count the synthetic steps (ADR 01177). The runner's
-// markers decide, so an authored step with a stepId like theirs still counts.
-function isSyntheticAutoRecordStep(step: any): boolean {
-  return Boolean(step?.__autoRecord || step?.__autoRecordStop);
+// The synthetic autoRecord start (`<testId>~autorecord`) in `context.steps`. It
+// runs through the step loop but reports as the context's `autoRecording`, not
+// a step (ADR 01179). The runner's marker decides, so an authored step with a
+// stepId like it still counts.
+function isSyntheticAutoRecordStart(step: any): boolean {
+  return Boolean(step?.__autoRecord);
+}
+
+// What a context's result rolls up from: its steps, and its automatic recording
+// when that's a FAIL or WARNING. A PASS or SKIPPED recording doesn't count, so an
+// all-SKIPPED context stays SKIPPED (ADR 01179, DR1).
+function contextResultSources(contextReport: any): Array<{ result?: string }> {
+  const recording = contextReport.autoRecording;
+  const counts = recording?.result === "FAIL" || recording?.result === "WARNING";
+  return [...contextReport.steps, ...(counts ? [recording] : [])];
+}
+
+// SKIPPED ranks above PASS: a start that passed and a stop that skipped saved no
+// video.
+const AUTO_RECORDING_RANK: Record<string, number> = { PASS: 0, SKIPPED: 1, WARNING: 2, FAIL: 3 };
+
+// Merge the automatic recording's start or stop into the context's
+// `autoRecording`: `fields` always land, and the worse result wins with its
+// description (ADR 01179). The merged field is masked like a step report
+// (ADR 01178).
+function mergeAutoRecording(
+  contextReport: any,
+  { result, resultDescription, ...fields }: { result: string; resultDescription?: string; [key: string]: any }
+): void {
+  const current = contextReport.autoRecording;
+  const worse = !current || AUTO_RECORDING_RANK[result] > AUTO_RECORDING_RANK[current.result];
+  // A worse result replaces the description, so it can't keep a milder result's.
+  // The failure fields are recomputed from what wins (ADR 01194).
+  const { resultDescription: previous, resultCode, resultHint, ...kept } = current ?? {};
+  const description = worse ? (result !== "PASS" ? resultDescription : undefined) : previous;
+  const merged = {
+    ...kept,
+    ...(worse ? { result } : {}),
+    ...(description ? { resultDescription: description } : {}),
+    ...fields,
+  };
+  contextReport.autoRecording = maskDeep({ ...merged, ...classifyStepFailure(merged) });
+}
+
+// A file's path relative to the run folder, with forward slashes, so the same
+// artifact has the same report value in every run. Consumers resolve it against
+// the report's `runDir`.
+function runRelativePath(config: any, file: string): string {
+  return path.relative(getRunOutputDir(config), file).split(path.sep).join("/");
 }
 
 // Capture a post-step screenshot for `autoScreenshot` runs. The relative
@@ -4282,7 +4333,6 @@ async function captureAutoScreenshot({
   surfaceTracker?: ActiveSurfaceTracker;
 }): Promise<string | null> {
   try {
-    const runDir = getRunOutputDir(config);
     const dir = contextScreenshotsDir({ config, spec, test, context });
     const fileName = stepArtifactFileName({
       step,
@@ -4315,14 +4365,9 @@ async function captureAutoScreenshot({
       );
       return null;
     }
-    // Report the path relative to the run folder (normalized to forward
-    // slashes) so the same step produces an identical report value in every
+    // Relative, so the same step produces an identical report value in every
     // run — absolute, timestamped paths would defeat run-over-run diffing.
-    // Consumers resolve it against the report's `runDir`.
-    return path
-      .relative(runDir, screenshotStep.screenshot.path)
-      .split(path.sep)
-      .join("/");
+    return runRelativePath(config, screenshotStep.screenshot.path);
   } catch (error: any) {
     log(
       config,
@@ -4584,7 +4629,7 @@ async function runContext({
   // browser object with no name), skip with an explicit reason instead of
   // letting it fail later as "Failed to start context 'undefined'".
   if (isBrowserRequired({ test: context }) && !context.browser?.name) {
-    const errorMessage = `Skipping context on '${context.platform}': no supported browser is available in the current environment.`;
+    const errorMessage = `Skipped: no supported browser is available on \`${context.platform}\`.`;
     clog("warning", errorMessage);
     contextReport.result = "SKIPPED";
     contextReport.resultDescription = errorMessage;
@@ -4689,8 +4734,8 @@ async function runContext({
   if (driverRequired && !mobileWebBrowserName && candidateEngines.length === 0) {
     const errorMessage = freshInstallRedetected
       ? freshInstallOutcome === "installed"
-        ? `Skipping context '${requestedBrowserName}' on '${context.platform}': the missing browser dependency was installed but still could not be detected.`
-        : `Skipping context '${requestedBrowserName}' on '${context.platform}': the on-demand install/repair of its browser dependency failed.`
+        ? `Skipped: Doc Detective installed \`${requestedBrowserName}\`'s missing browser dependency, but still couldn't detect it.`
+        : `Skipped: couldn't install or repair \`${requestedBrowserName}\`'s browser dependency.`
       : driverSkipDiagnostic({
           requestedName: requestedBrowserName ?? "<none>",
           // driverSkipDiagnostic treats `platform` as the *current* runner
@@ -4699,6 +4744,7 @@ async function runContext({
           platform,
           platformMatches,
           attemptedFallback: false,
+          targetPlatform: context.platform,
         });
     clog(platformMatches ? "warning" : "info", errorMessage);
     contextReport.result = "SKIPPED";
@@ -4710,9 +4756,7 @@ async function runContext({
   // (android) different from the host and already primed its app session in the
   // mobile branch above.
   if (!driverRequired && !platformMatches && !appSession) {
-    const errorMessage = `Skipping context. The current system doesn't support this context: {"platform": "${
-      context.platform
-    }", "apps": ${JSON.stringify(context.apps)}}`;
+    const errorMessage = `Skipped: this system can't run a \`${context.platform}\` context.`;
     clog("info", errorMessage);
     contextReport.result = "SKIPPED";
     contextReport.resultDescription = errorMessage;
@@ -4823,7 +4867,7 @@ async function runContext({
                 deps: appSession!.iosSimulatorDeps,
               });
       } catch (error: any) {
-        const errorMessage = `Skipping context on '${mobileTarget}': couldn't prepare the device for the ${mobileWebBrowserName} session (${error?.message ?? error}). Check the emulator/simulator toolchain (\`doc-detective install ${mobileTarget}\`).`;
+        const errorMessage = `Skipped: couldn't prepare the \`${mobileTarget}\` device for the ${mobileWebBrowserName} session (${error?.message ?? error}). Check the emulator or simulator toolchain with \`doc-detective install ${mobileTarget}\`.`;
         clog("warning", errorMessage);
         contextReport.result = "SKIPPED";
         contextReport.resultDescription = errorMessage;
@@ -4869,7 +4913,7 @@ async function runContext({
           mobileTarget === "android"
             ? " Chrome may not be present on this emulator image — managed Android mobile-web needs a `google_apis` system image (see `doc-detective install android`)."
             : " Check that the simulator runtime includes Safari and that WebDriverAgent can build (see `doc-detective install ios`).";
-        const errorMessage = `Skipping context on '${mobileTarget}': couldn't start the ${mobileWebBrowserName} session on device '${acquired.entry.name}' (${error?.message ?? error}).${hint}`;
+        const errorMessage = `Skipped: couldn't start the ${mobileWebBrowserName} session on the \`${mobileTarget}\` device \`${acquired.entry.name}\` (${error?.message ?? error}).${hint}`;
         clog("warning", errorMessage);
         contextReport.result = "SKIPPED";
         contextReport.resultDescription = errorMessage;
@@ -5253,6 +5297,18 @@ async function runContext({
     // `attempts`). Used for EVERY step-report push in the loop — ran, skipped,
     // and routing-error markers — so re-visited steps are stamped consistently.
     const pushStepReport = (rep: any) => {
+      // The automatic recording isn't a step: its start reports on the context
+      // (ADR 01179), and stopAllRecordings merges its stop there.
+      if (rep.__autoRecord) {
+        mergeAutoRecording(contextReport, {
+          result: rep.result,
+          resultDescription: rep.resultDescription,
+          // The step loop stamps every step's `startedAt`, so keep it only when the
+          // recording started: a start that failed or skipped has no start time.
+          ...(rep.result === "PASS" && rep.startedAt ? { startedAt: rep.startedAt } : {}),
+        });
+        return;
+      }
       if (rep.stepId) {
         const n = (visitCountById.get(rep.stepId) ?? 0) + 1;
         visitCountById.set(rep.stepId, n);
@@ -5262,6 +5318,9 @@ async function runContext({
       // `{...step}` report spread already drops it; delete defensively here so
       // it can never leak into a report through any push site.
       delete rep._fromAfter;
+      // A FAIL gets its `resultCode` and, from near matches, its `resultHint`
+      // (ADR 01194). Before the mask, so the hint is masked like the rest.
+      Object.assign(rep, classifyStepFailure(rep));
       // The report gets a masked copy; routing, `$$`, and `variables` keep
       // reading the real outputs (ADR 01178).
       contextReport.steps.push(maskDeep(rep));
@@ -5557,7 +5616,7 @@ async function runContext({
           })
         : null;
       if (shotSurface) {
-        const synthetic = context.steps.filter(isSyntheticAutoRecordStep).length;
+        const synthetic = context.steps.filter(isSyntheticAutoRecordStart).length;
         const capturedPath = await captureAutoScreenshot({
           config,
           driver: autoScreenshotDriver,
@@ -5651,7 +5710,8 @@ async function runContext({
 
     // Stop every recording still active at the end of the context (the
     // synthetic autoRecord capture plus any explicit record steps the author
-    // didn't stop). Each produces an ordered stopRecord step report.
+    // didn't stop). An authored one's stop is an ordered stopRecord step
+    // report; the synthetic one's merges into the context's autoRecording.
     // Recordings live per session, so sweep every registered driver — and the
     // app session's recordingHost, which holds app-only-context recordings.
     for (const d of sessionDrivers(browserSessions, driver)) {
@@ -5673,8 +5733,9 @@ async function runContext({
     // registered, before the finally tears it down. A dead session means the
     // FAIL is spurious and the whole context can be retried on a fresh session; a
     // live session means the FAIL is real and stands. Recording sweeps already
-    // ran above, so the probe never races an in-flight capture.
-    if (contextReport.steps.some((s: any) => s.result === "FAIL")) {
+    // ran above, so the probe never races an in-flight capture. A failed
+    // automatic stop counts: its report is the context's autoRecording.
+    if (contextResultSources(contextReport).some((s) => s.result === "FAIL")) {
       // Collect EVERY session the context holds — a multi-surface browser
       // context plus an app session — not just the first, so a dead app/native
       // session behind a live browser (or vice versa) is still caught. Which of
@@ -5806,7 +5867,7 @@ async function runContext({
     }
   }
 
-  contextReport.result = rollUpResults(contextReport.steps);
+  contextReport.result = rollUpResults(contextResultSources(contextReport));
   // Layer 5: a context that ran on a fallback engine is annotated so the
   // substitution is never silent. When the requested engine was explicitly
   // pinned and the run otherwise passed, downgrade PASS → WARNING so a degraded
@@ -5948,7 +6009,9 @@ function sessionDrivers(
 }
 
 // Stop every recording still active on the driver, pushing an ordered
-// stopRecord step report for each. Drains the per-context stack (LIFO) by
+// stopRecord step report for each, except the synthetic autoRecord recording,
+// whose stop merges into the context's autoRecording (ADR 01179). Drains the
+// per-context stack (LIFO) by
 // synthesizing `{ stopRecord: true, __stopAny: true }` steps — `__stopAny`
 // lets the generic stop also end the synthetic autoRecord recording (a plain
 // user `stopRecord: true` deliberately skips it). Each stop removes its handle
@@ -5970,8 +6033,6 @@ async function stopAllRecordings({
   if (!Array.isArray(driver?.state?.recordings)) return;
   let guard = driver.state.recordings.length + 1;
   while (driver.state.recordings.length > 0 && guard-- > 0) {
-    // The automatic recording's stop is `<testId>~autorecord~stop`, marked so
-    // the summary can leave it out (isSyntheticAutoRecordStep, ADR 01177).
     const next = selectRecordingToStop(driver.state.recordings, true, {
       includeSynthetic: true,
     });
@@ -5979,10 +6040,8 @@ async function stopAllRecordings({
       stopRecord: true,
       __stopAny: true,
       description: "Stopping recording",
-      stepId: next?.syntheticStepId ? `${next.syntheticStepId}~stop` : randomUUID(),
+      stepId: randomUUID(),
     };
-    // On the report entry only: step_v3 rejects unknown keys on the step.
-    const reportMarker = next?.synthetic ? { __autoRecordStop: true } : {};
     // These sweep steps really execute, so they carry a measured duration
     // rather than the Phase-3 zero default. Timed in both the success and the
     // failure path, so a stop that hangs before throwing still shows its cost.
@@ -6001,11 +6060,21 @@ async function stopAllRecordings({
       delete stepResult.description;
       // Don't leak the internal routing marker into the report.
       delete stopRecordStep.__stopAny;
+      if (next?.synthetic) {
+        const { result, resultDescription, outputs = {} } = stepResult;
+        const metadata = ["format", "duration", "width", "height", "fps"].filter((key) => outputs[key] !== undefined);
+        mergeAutoRecording(contextReport, {
+          result,
+          resultDescription,
+          ...(outputs.recordingPath ? { recordingPath: runRelativePath(config, outputs.recordingPath) } : {}),
+          ...Object.fromEntries(metadata.map((key) => [key, outputs[key]])),
+        });
+        continue;
+      }
       contextReport.steps.push(
         maskDeep({
           ...stopRecordStep,
           ...stepResult,
-          ...reportMarker,
           startedAt: new Date(stopStart).toISOString(),
           durationMs: Date.now() - stopStart,
         })
@@ -6015,12 +6084,22 @@ async function stopAllRecordings({
       // Drop the top handle so the loop can't spin, and record the failure.
       delete stopRecordStep.__stopAny;
       driver.state.recordings.pop();
+      const failure = `Couldn't stop recording. ${error?.message ?? error}`;
+      if (next?.synthetic) {
+        // A defaulted recording never fails a test, even when its stop throws.
+        mergeAutoRecording(
+          contextReport,
+          next.defaulted
+            ? { result: "SKIPPED", resultDescription: defaultedStopSkip(failure) }
+            : { result: "FAIL", resultDescription: failure }
+        );
+        continue;
+      }
       contextReport.steps.push(
         maskDeep({
           ...stopRecordStep,
-          ...reportMarker,
           result: "FAIL",
-          resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+          resultDescription: failure,
           startedAt: new Date(stopStart).toISOString(),
           durationMs: Date.now() - stopStart,
         })
@@ -6200,7 +6279,6 @@ async function runStep({
       }
       if (step.__autoRecord) {
         handle.synthetic = true;
-        handle.syntheticStepId = step.stepId;
         // Desktop app-only context: no window exists yet to crop to. Mark the
         // handle so the first app surface to open late-binds its window rect
         // as the crop (startAppSurface), scoping the capture to the app under

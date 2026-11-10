@@ -205,8 +205,9 @@ async function runTestsHandler(args: any) {
 
   // A dry run prints the resolved test plan here; runTests() only returns it.
   // Skip both reporters (which assume executed-result shape) and the
-  // orchestration-API report-back path.
+  // orchestration-API report-back path. `--output` gets the plan too.
   if (config.dryRun) {
+    writeResultsFile(config.output, results);
     if (results?.specs?.length > 0) {
       console.log(JSON.stringify(results, null, 2));
     } else if (config.exitOnFail !== false) {
@@ -244,7 +245,7 @@ async function runTestsHandler(args: any) {
 
   // Last on stdout, so it's what a person reads first. Modes that make stdout
   // machine-readable, and -l silent, leave it out.
-  if (!args.json && !args.plain && args.output !== "-" && config.logLevel !== "silent") {
+  if (!config._stdoutReporters?.length && config.logLevel !== "silent") {
     console.log(verdictLine(results));
   }
 

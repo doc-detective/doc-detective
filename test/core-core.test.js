@@ -8,8 +8,8 @@ import os from "node:os";
 
 const artifactPath = path.resolve("./test/core-artifacts");
 const config_base = JSON.parse(fs.readFileSync(`${artifactPath}/config.json`, "utf8"));
-// Screenshots and recordings are on by default (ADR 01177); tests that read
-// steps by position turn them off, so no automatic recording step leads.
+// Screenshots and recordings are on by default (ADR 01177); tests that aren't
+// about them turn them off.
 const NO_AUTO_CAPTURE = { autoScreenshot: false, autoRecord: false };
 
 describe("Run tests successfully", function () {
@@ -471,9 +471,9 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(
+        assert.equal(
           ctx.resultDescription,
-          /native app surfaces run on Windows, macOS, Android, and iOS/
+          "Skipped: native app surfaces don't run on `linux`. They run on Windows, macOS, Android, and iOS. Gate the test with `runOn` platforms so this skip is intentional."
         );
       }
       assert.equal(result.summary.specs.fail, 0);
@@ -510,7 +510,7 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /'firefox' isn't available on android/);
+        assert.match(ctx.resultDescription, /^Skipped: `firefox` isn't available on `android`\./);
         assert.match(ctx.resultDescription, /chrome/);
       }
       assert.equal(result.summary.specs.fail, 0);
@@ -544,7 +544,7 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /'chrome' isn't available on ios/);
+        assert.match(ctx.resultDescription, /^Skipped: `chrome` isn't available on `ios`\./);
         assert.match(ctx.resultDescription, /safari/);
       }
       assert.equal(result.summary.specs.fail, 0);
@@ -683,11 +683,48 @@ describe("Run tests successfully", function () {
       );
       assert.equal(miss.result, "FAIL");
       assert.equal(miss.outputs.found, false);
-      assert.equal(miss.resultDescription, "No elements matched selector or text.");
+      assert.equal(miss.resultDescription, "Couldn't find element `No such shorthand target`.");
+      // Nothing on the page is close, so it's an assertion failure (ADR 01194).
+      assert.deepEqual(miss.outputs.nearMatches, []);
+      assert.equal(miss.resultCode, "assertion");
+      assert.equal(miss.resultHint, undefined);
+      assert.equal(hit.resultCode, undefined);
       assert.ok(
         miss.durationMs >= 5000,
         `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
       );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("A find that misses a renamed element reports near matches as drift, with a hint (ADR 01194)", async () => {
+    // The page's button says "Start late arrival". A step that still says
+    // "Start late" FAILs, so the PASS/SKIPPED fixture gate can't carry it.
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/find-shorthand.html" },
+            { find: { elementText: "Start late", timeout: 0 } },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "near-matches-"));
+    const tempFilePath = path.join(tempDir, "near-matches.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
+      const context = result.specs[0].tests[0].contexts.find((c) => c.steps && c.steps.length);
+      assert.ok(context, "expected a context that ran steps");
+      const miss = context.steps[1];
+      assert.equal(miss.result, "FAIL");
+      assert.deepEqual(miss.outputs.nearMatches, [
+        { text: "Start late arrival", tag: "button", id: "start-late" },
+      ]);
+      assert.equal(miss.resultCode, "drift");
+      assert.equal(miss.resultHint, "Closest match: `Start late arrival`.");
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -1119,18 +1156,81 @@ describe("Run tests successfully", function () {
   });
 
   // autoRecord precedence (config > spec > test) end-to-end through runTests.
-  // The synthetic full-context recording carries this exact description, so its
-  // presence/absence in the executed steps proves whether autoRecord resolved
-  // true for the context. Headless here: the ffmpeg capture itself SKIPs without
-  // a display, but the synthetic step is still injected and reported, which is
-  // all these assertions need.
-  const AUTO_RECORD_DESC = "Automatic full-context recording";
-  const hasSyntheticRecord = (result) => {
-    const steps = result?.specs?.[0]?.tests?.[0]?.contexts?.[0]?.steps || [];
-    return steps.some(
-      (s) => s.description === AUTO_RECORD_DESC && typeof s.record !== "undefined"
-    );
-  };
+  // The context's `autoRecording` proves whether autoRecord resolved true for
+  // the context, whatever the recording's own result on this host.
+  const hasSyntheticRecord = (result) =>
+    Boolean(result?.specs?.[0]?.tests?.[0]?.contexts?.[0]?.autoRecording);
+
+  // The automatic recording is the context's field, not a step (ADR 01179).
+  describe("the automatic recording's report", function () {
+    let tempDir;
+    const runSpec = async (spec) => {
+      const input = path.join(tempDir, "spec.json");
+      fs.writeFileSync(input, JSON.stringify(spec, null, 2));
+      return runTests({ input, logLevel: "silent", outputDir: tempDir, autoScreenshot: false });
+    };
+    // This host only, so the run has one context.
+    const hostPlatform = { win32: "windows", darwin: "mac" }[process.platform] ?? "linux";
+    const headlessChrome = [{ platforms: [hostPlatform], browsers: { name: "chrome", headless: true } }];
+
+    beforeEach(function () {
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-auto-recording-"));
+    });
+    afterEach(function () {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    it("reports a default run's recording on its context, with no synthetic step or marker", async function () {
+      this.retries(2);
+      const result = await runSpec({
+        tests: [
+          {
+            runOn: headlessChrome,
+            steps: [
+              { stepId: "open", goTo: "http://localhost:8092" },
+              { stepId: "body", find: { selector: "body", timeout: 5000 } },
+            ],
+          },
+        ],
+      });
+      const context = result.specs[0].tests[0].contexts[0];
+      assert.equal(context.result, "PASS");
+      assert.deepEqual(context.steps.map((s) => s.stepId), ["open", "body"]);
+      assert.deepEqual(result.summary.steps, { pass: 2, fail: 0, warning: 0, skipped: 0 });
+
+      const recording = context.autoRecording;
+      assert.equal(recording.result, "PASS", recording.resultDescription);
+      assert.equal(recording.resultDescription, undefined);
+      assert.equal(path.isAbsolute(recording.recordingPath), false);
+      assert.equal(recording.recordingPath.includes("\\"), false);
+      assert.ok(fs.existsSync(path.join(result.runDir, recording.recordingPath)), "its MP4 exists under runDir");
+      assert.equal(recording.format, "mp4");
+      assert.equal(typeof recording.duration, "number");
+      assert.ok(recording.startedAt);
+      assert.doesNotMatch(JSON.stringify(result), /__autoRecord|~autorecord/);
+    });
+
+    // DR1: the recording doesn't make a test that skipped everything look like
+    // it ran. A tab that never drew anything may have no video to save, so the
+    // recording's own result isn't pinned here; the "the roll-up" block in
+    // run-artifacts.test.js pins each result's effect.
+    it("leaves an all-SKIPPED context SKIPPED", async function () {
+      this.retries(2);
+      const result = await runSpec({
+        tests: [
+          {
+            runOn: headlessChrome,
+            steps: [{ stepId: "guarded", goTo: "http://localhost:8092", if: "false" }],
+          },
+        ],
+      });
+      const context = result.specs[0].tests[0].contexts[0];
+      assert.ok(["PASS", "SKIPPED"].includes(context.autoRecording.result), JSON.stringify(context.autoRecording));
+      assert.deepEqual(context.steps.map((s) => s.result), ["SKIPPED"]);
+      assert.equal(context.result, "SKIPPED");
+      assert.deepEqual(result.summary.contexts, { pass: 0, fail: 0, warning: 0, skipped: 1 });
+    });
+  });
 
   it("autoRecord config-level injects a synthetic recording end-to-end", async function () {
     this.retries(2); // browser startup between sequential runTests calls can be flaky

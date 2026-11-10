@@ -2397,6 +2397,64 @@ import { schemas } from "../dist/index.js";
         expect(invalidStep.valid).to.be.false;
         expect(invalidStep.errors).to.include("result");
       });
+
+      describe("a context's autoRecording", function () {
+        const zero = { pass: 0, fail: 0, warning: 0, skipped: 0 };
+        const reportWith = (autoRecording) => ({
+          summary: { specs: zero, tests: zero, contexts: zero, steps: zero },
+          specs: [
+            {
+              tests: [
+                {
+                  contexts: [{ result: "PASS", autoRecording, steps: [{ goTo: { url: "https://example.com" } }] }],
+                },
+              ],
+            },
+          ],
+        });
+        const validates = (autoRecording) =>
+          validate({ schemaKey: "report_v3", object: reportWith(autoRecording), addDefaults: false });
+
+        it("should accept a saved recording and its metadata", function () {
+          const result = validates({
+            result: "PASS",
+            recordingPath: "specs/s/tests/t/contexts/c/recordings/c.mp4",
+            startedAt: "2026-11-06T02:33:29.010Z",
+            format: "mp4",
+            duration: 8.1,
+            width: 1280,
+            height: 720,
+            fps: 30,
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept a recording that has only a result and its reason", function () {
+          const result = validates({ result: "SKIPPED", resultDescription: "Skipped: no display." });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept a failed recording's resultCode and resultHint (ADR 01194)", function () {
+          const result = validates({
+            result: "FAIL",
+            resultDescription: "invalid session id",
+            resultCode: "environment",
+            resultHint: "Rerun the context.",
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        for (const [name, broken] of [
+          ["an unknown key", { result: "PASS", engine: "ffmpeg" }],
+          ["no result", { recordingPath: "c.mp4" }],
+          ["an unknown result", { result: "BROKEN" }],
+          ["an unknown resultCode", { result: "FAIL", resultCode: "network" }],
+        ]) {
+          it(`should reject ${name}`, function () {
+            expect(validates(broken).valid).to.be.false;
+          });
+        }
+      });
     });
 
     describe("report_v3 warm block", function () {

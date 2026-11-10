@@ -3,7 +3,7 @@
 Status: **pre-approved by hawkeyexl on 2026-11-01, revision 5, with the sentences changed by both rounds of verification approved by hawkeyexl**. This is the first change run
 through [docs as the spec](docs-as-spec-process.md). The user-facing half of the spec is
 [Find elements by image](../fern/pages/docs/test-docs/find-elements-by-image.mdx), and the decision
-record is [ADR 01179](../../adrs/01179-find-elements-by-image.md).
+record is [ADR 01198](../../adrs/01198-find-elements-by-image.md).
 
 ## Problem
 

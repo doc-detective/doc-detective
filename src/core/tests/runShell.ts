@@ -5,6 +5,7 @@ import {
   calculateFractionalDifference,
   resolveShellName,
   resolveShellExecutable,
+  invalidStepMessage,
 } from "../utils.js";
 import { startBackgroundProcessSurface } from "./processSurface.js";
 import {
@@ -51,7 +52,7 @@ async function runShell({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // The effective step: shorthand expanded and defaults filled (ADR 01167).

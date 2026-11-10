@@ -7,7 +7,7 @@ Doc Detective uses contexts to determine *where* tests should run. A context def
 
 Contexts are sometimes needed but not specified. Doc Detective then runs tests in the first supported browser it finds on the current platform, in this order: Chrome, Firefox, Safari. Browsers run headless unless a context sets `headless: false`. To keep a test on Firefox, name `firefox` in its context.
 
-If no supported browser is available, Doc Detective skips contexts that require browser automation and reports the platform it skipped, for example: `Skipping context on 'linux': no supported browser is available in the current environment.`. This lets tests complete gracefully instead of failing with a generic driver error.
+If no supported browser is available, Doc Detective skips contexts that require browser automation and reports the platform it skipped, for example: ``Skipped: no supported browser is available on `linux`.``. This lets tests complete gracefully instead of failing with a generic driver error.
 
 ## Browser fallback
 
@@ -157,7 +157,7 @@ Here's a basic Firefox context:
 
 #### Firefox Dimensions and Visibility
 
-You can specify dimensions and visibility (`headless`). To record Firefox with the [`record`](/docs/actions/record) action, set `headless` to `false`. Headless Firefox can't be recorded.
+You can specify dimensions and visibility (`headless`). Headless Firefox can't be recorded, so to record Firefox with the [`record`](/docs/actions/record) action, set `headless` to `false`. While [`autoRecord`](/docs/test-docs/automatic-recording) is on, which is the default, Doc Detective runs headless Firefox headed for you when the host can record the screen.
 
 ```json
 {
@@ -368,7 +368,7 @@ Specify contexts in the top-level `runOn` array. These apply to all tests unless
 ```json
 {
   "input": ".",
-  "output": "output",
+  "outputDir": "output",
   "runOn": [
     {
       "platforms": ["windows", "mac", "linux"],

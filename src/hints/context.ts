@@ -574,6 +574,10 @@ export function walkResults(results: any): WalkData {
           if (context?.viewportFloored === true) {
             data.viewportFloored = true;
           }
+          // The automatic recording isn't a step (ADR 01179).
+          if (context?.autoRecording?.recordingPath) {
+            data.producedRecordings = true;
+          }
           const steps = Array.isArray(context?.steps) ? context.steps : [];
           for (const step of steps) {
             inspectStep(step, data);

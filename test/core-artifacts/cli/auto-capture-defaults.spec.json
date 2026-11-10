@@ -4,7 +4,7 @@
   "tests": [
     {
       "testId": "headless-chrome",
-      "description": "Headless Chrome with no keys: every UI step has an automatic screenshot, the first authored image is 01-…, and a ~autorecord step saved an MP4 with the browser engine.",
+      "description": "Headless Chrome with no keys: every UI step has an automatic screenshot, and the first authored image is 01-…. The context's autoRecording passed with its MP4 under runDir, the report has no ~autorecord step or marker, and summary.steps counts only the authored steps.",
       "steps": [
         {
           "runShell": {
@@ -35,6 +35,39 @@
         {
           "runShell": {
             "command": "node test/core-artifacts/cli/auto-capture.cjs html-media",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "strict-start-fails",
+      "description": "autoRecord true where the start fails: the context is FAIL, its autoRecording is FAIL with the reason, and the authored steps are SKIPPED.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs strict-start-fails",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "strict-no-display",
+      "description": "autoRecord true on headless Firefox where the preflight can't capture: the context passes, and its autoRecording is SKIPPED with the fix text. It hides DISPLAY and Xvfb from the nested run, so it runs on Linux and is SKIPPED elsewhere.",
+      "runOn": [
+        {
+          "platforms": [
+            "linux"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs strict-no-display",
             "workingDirectory": "../../..",
             "timeout": 300000
           }

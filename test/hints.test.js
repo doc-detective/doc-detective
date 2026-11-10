@@ -604,6 +604,18 @@ describe("hints/context", function () {
         expect(data.producedRecordings).to.equal(true);
       });
     }
+    it("producedRecordings is true for a context's saved automatic recording", function () {
+      const data = walkResults({
+        specs: [{ tests: [{ contexts: [{ autoRecording: { result: "PASS", recordingPath: "c.mp4" }, steps: [] }] }] }],
+      });
+      expect(data.producedRecordings).to.equal(true);
+    });
+    it("producedRecordings is false for an automatic recording that saved no file", function () {
+      const data = walkResults({
+        specs: [{ tests: [{ contexts: [{ autoRecording: { result: "SKIPPED" }, steps: [] }] }] }],
+      });
+      expect(data.producedRecordings).to.equal(false);
+    });
     it("producedScreenshots is false when screenshot is explicitly disabled", function () {
       // `false` is the explicit opt-out form; treat it as non-producing.
       const data = walkResults({
@@ -2333,6 +2345,9 @@ describe("hints/hints (registry)", function () {
     const h = findHint("enableDebugLog");
     expect(h.when(fakeCtx({ failedCount: 0 }))).to.equal(false);
     expect(h.when(fakeCtx({ failedCount: 3 }))).to.equal(true);
+    // ADR 01195: hints name the current flag, not the deprecated --logLevel.
+    expect(h.markdown).to.include("doc-detective --log-level debug");
+    expect(h.markdown).to.not.include("--logLevel");
   });
 
   it("useDebugFlag: fires only when run failed", function () {

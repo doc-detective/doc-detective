@@ -2470,6 +2470,21 @@
                   "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                   "readOnly": true
                 },
+                "resultCode": {
+                  "type": "string",
+                  "enum": [
+                    "environment",
+                    "drift",
+                    "assertion"
+                  ],
+                  "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                  "readOnly": true
+                },
+                "resultHint": {
+                  "type": "string",
+                  "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                  "readOnly": true
+                },
                 "variables": {
                   "type": "object",
                   "description": "Environment variables to set from user-defined expressions.",
@@ -3955,6 +3970,21 @@
               "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
               "readOnly": true
             },
+            "resultCode": {
+              "type": "string",
+              "enum": [
+                "environment",
+                "drift",
+                "assertion"
+              ],
+              "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
+            "resultHint": {
+              "type": "string",
+              "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+              "readOnly": true
+            },
             "durationMs": {
               "type": "integer",
               "minimum": 0,
@@ -3996,6 +4026,8 @@
           "$schema": {},
           "result": {},
           "resultDescription": {},
+          "resultCode": {},
+          "resultHint": {},
           "stepId": {},
           "description": {},
           "unsafe": {},
@@ -4089,6 +4121,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -5119,6 +5166,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -6895,6 +6957,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -17872,6 +17949,21 @@
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
                   "variables": {
                     "type": "object",
                     "description": "Environment variables to set from user-defined expressions.",
@@ -20091,6 +20183,21 @@
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
                   "variables": {
                     "type": "object",
                     "description": "Environment variables to set from user-defined expressions.",
@@ -21958,6 +22065,21 @@
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
                   "variables": {
                     "type": "object",
                     "description": "Environment variables to set from user-defined expressions.",
@@ -23215,6 +23337,21 @@
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
                   "variables": {
                     "type": "object",
                     "description": "Environment variables to set from user-defined expressions.",
@@ -24415,6 +24552,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -25696,6 +25848,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -30985,6 +31152,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -43539,6 +43721,21 @@
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
                   "variables": {
                     "type": "object",
                     "description": "Environment variables to set from user-defined expressions.",
@@ -44596,6 +44793,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -46315,6 +46527,21 @@
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
                   "variables": {
                     "type": "object",
                     "description": "Environment variables to set from user-defined expressions.",
@@ -47170,6 +47397,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -49259,6 +49501,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -51839,6 +52096,21 @@
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
                   "variables": {
                     "type": "object",
                     "description": "Environment variables to set from user-defined expressions.",
@@ -52652,6 +52924,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -54593,6 +54880,21 @@
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
                   "variables": {
                     "type": "object",
                     "description": "Environment variables to set from user-defined expressions.",
@@ -55633,6 +55935,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -57803,6 +58120,21 @@
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
                   "variables": {
                     "type": "object",
                     "description": "Environment variables to set from user-defined expressions.",
@@ -58649,6 +58981,21 @@
                   "resultDescription": {
                     "type": "string",
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
                   "variables": {
@@ -66470,6 +66817,94 @@
             },
             "title": "Driver"
           },
+          "autoRecording": {
+            "type": "object",
+            "title": "Automatic recording",
+            "description": "The video `autoRecord` made of this context. Absent when no automatic recording was attempted, including when `autoRecord` is unset and the run's recording check failed. Present only in test results. System-populated.",
+            "readOnly": true,
+            "additionalProperties": false,
+            "required": [
+              "result"
+            ],
+            "properties": {
+              "result": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "WARNING",
+                  "SKIPPED"
+                ],
+                "description": "Outcome of the automatic recording, from starting it through saving it. A `FAIL` or `WARNING` also sets the context's `result`. A `PASS` or `SKIPPED` doesn't."
+              },
+              "resultDescription": {
+                "type": "string",
+                "description": "Why the automatic recording had its outcome. Absent on a `PASS`."
+              },
+              "resultCode": {
+                "type": "string",
+                "enum": [
+                  "environment",
+                  "drift",
+                  "assertion"
+                ],
+                "description": "What kind of failure this was, present only when `result` is `FAIL`. The same field and values as a step's `resultCode`. `environment` means the network, the browser session, or the page load failed. `assertion` means anything else."
+              },
+              "resultHint": {
+                "type": "string",
+                "description": "A suggested fix for a failed recording. The same field as a step's `resultHint`. Present only when Doc Detective has a suggestion."
+              },
+              "recordingPath": {
+                "type": "string",
+                "description": "Path of the saved video, relative to the run's artifact directory (the report's `runDir`), with forward slashes. Absent when no file was written."
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the recording started, as an ISO 8601 UTC timestamp with milliseconds. Absent when it didn't start."
+              },
+              "format": {
+                "type": "string",
+                "description": "File format of the saved video, for example `mp4`. Absent when no file was written."
+              },
+              "duration": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Length of the saved video in seconds. Absent when it couldn't be read from the file."
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Width of the saved video in pixels. Absent when it couldn't be read from the file."
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Height of the saved video in pixels. Absent when it couldn't be read from the file."
+              },
+              "fps": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Frame rate of the saved video. Absent when it couldn't be read from the file."
+              }
+            },
+            "examples": [
+              {
+                "result": "PASS",
+                "recordingPath": "specs/install-guide/tests/install/contexts/linux-chrome/recordings/linux-chrome.mp4",
+                "startedAt": "2026-11-06T02:33:29.010Z",
+                "format": "mp4",
+                "duration": 8.1,
+                "width": 1280,
+                "height": 720,
+                "fps": 30
+              },
+              {
+                "result": "SKIPPED",
+                "resultDescription": "Skipped: couldn't start the automatic recording: the host has no display. Set `autoRecord: false` to turn it off."
+              }
+            ]
+          },
           "platform": {
             "type": "string",
             "description": "Platform to run the test on. This is a resolved version of the `platforms` property."
@@ -66799,6 +67234,21 @@
                       "resultDescription": {
                         "type": "string",
                         "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                        "readOnly": true
+                      },
+                      "resultCode": {
+                        "type": "string",
+                        "enum": [
+                          "environment",
+                          "drift",
+                          "assertion"
+                        ],
+                        "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                        "readOnly": true
+                      },
+                      "resultHint": {
+                        "type": "string",
+                        "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                         "readOnly": true
                       },
                       "variables": {
@@ -68286,6 +68736,21 @@
                     "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                     "readOnly": true
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ],
+                    "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
+                  "resultHint": {
+                    "type": "string",
+                    "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                    "readOnly": true
+                  },
                   "durationMs": {
                     "type": "integer",
                     "minimum": 0,
@@ -68327,6 +68792,8 @@
                 "$schema": {},
                 "result": {},
                 "resultDescription": {},
+                "resultCode": {},
+                "resultHint": {},
                 "stepId": {},
                 "description": {},
                 "unsafe": {},
@@ -68420,6 +68887,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {
@@ -69450,6 +69932,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {
@@ -71226,6 +71723,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {
@@ -82203,6 +82715,21 @@
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
                         "variables": {
                           "type": "object",
                           "description": "Environment variables to set from user-defined expressions.",
@@ -84422,6 +84949,21 @@
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
                         "variables": {
                           "type": "object",
                           "description": "Environment variables to set from user-defined expressions.",
@@ -86289,6 +86831,21 @@
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
                         "variables": {
                           "type": "object",
                           "description": "Environment variables to set from user-defined expressions.",
@@ -87546,6 +88103,21 @@
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
                         "variables": {
                           "type": "object",
                           "description": "Environment variables to set from user-defined expressions.",
@@ -88746,6 +89318,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {
@@ -90027,6 +90614,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {
@@ -95316,6 +95918,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {
@@ -107870,6 +108487,21 @@
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
                         "variables": {
                           "type": "object",
                           "description": "Environment variables to set from user-defined expressions.",
@@ -108927,6 +109559,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {
@@ -110646,6 +111293,21 @@
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
                         "variables": {
                           "type": "object",
                           "description": "Environment variables to set from user-defined expressions.",
@@ -111501,6 +112163,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {
@@ -113590,6 +114267,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {
@@ -116170,6 +116862,21 @@
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
                         "variables": {
                           "type": "object",
                           "description": "Environment variables to set from user-defined expressions.",
@@ -116983,6 +117690,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {
@@ -118924,6 +119646,21 @@
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
                         "variables": {
                           "type": "object",
                           "description": "Environment variables to set from user-defined expressions.",
@@ -119964,6 +120701,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {
@@ -122134,6 +122886,21 @@
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
                         "variables": {
                           "type": "object",
                           "description": "Environment variables to set from user-defined expressions.",
@@ -122980,6 +123747,21 @@
                         "resultDescription": {
                           "type": "string",
                           "description": "Why this step had its outcome. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultCode": {
+                          "type": "string",
+                          "enum": [
+                            "environment",
+                            "drift",
+                            "assertion"
+                          ],
+                          "description": "What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.",
+                          "readOnly": true
+                        },
+                        "resultHint": {
+                          "type": "string",
+                          "description": "A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.",
                           "readOnly": true
                         },
                         "variables": {

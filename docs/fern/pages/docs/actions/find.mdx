@@ -69,6 +69,8 @@ On Windows, resolving a selector probes the app's candidate windows to read thei
 
 **Outputs:** the action also exposes `outputs.found`, a boolean indicating whether an element matching your criteria was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`.
 
+**Near matches:** when a browser `find` fails, `outputs.nearMatches` lists up to three visible elements closest to what you asked for, best first. Each entry has the element's `text` and `tag`, plus its `id`, `testId`, and `ariaLabel` when it has them. An empty list means nothing on the page was close. A `/regex/` target gets no near matches. The step's `resultHint` names them, and its `resultCode` is `drift`. See [Read the result](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
+
 > For comprehensive options, see the [`find`](/reference/schemas/find) reference.
 
 ## Examples

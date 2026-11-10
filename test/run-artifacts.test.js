@@ -1,14 +1,19 @@
-import { getRunOutputDir, runArchivesArtifacts } from "../dist/core/utils.js";
+import { getRunOutputDir, rollUpResults, runArchivesArtifacts } from "../dist/core/utils.js";
 import { resolveTests, detectTests } from "../dist/core/index.js";
 import { generateSpecId } from "../dist/core/detectTests.js";
 import {
   resolveAutoScreenshot,
   resolveAutoRecord,
   buildAutoRecordStep,
-  isSyntheticAutoRecordStep,
+  isSyntheticAutoRecordStart,
+  mergeAutoRecording,
+  contextResultSources,
+  runContext,
+  stopAllRecordings,
   runSpecs,
 } from "../dist/core/tests.js";
 import { getEnvironment } from "../dist/core/config.js";
+import { registerEnvValue } from "../dist/core/masking.js";
 import { reporters, outputResults } from "../dist/utils.js";
 import { buildHtml } from "../dist/reporters/htmlReporter.js";
 import path from "node:path";
@@ -681,21 +686,283 @@ describe("outputResults adds the runFolder reporter", function () {
   });
 });
 
-// The synthetic ~autorecord start and its end-of-context stop stay out of
-// report.summary.steps, so an autoRecord run doesn't count them (ADR 01177).
-// The runner's markers decide, not the stepId, so an authored step named like
-// one still counts.
-describe("isSyntheticAutoRecordStep", function () {
-  it("matches the synthetic start and stop by their markers, and nothing authored", function () {
+// The synthetic ~autorecord start stays out of the automatic screenshots'
+// numbering (ADR 01177). The runner's marker decides, not the stepId, so an
+// authored step named like it still counts.
+describe("isSyntheticAutoRecordStart", function () {
+  it("matches the synthetic start by its marker, and nothing authored", function () {
     expect(
-      isSyntheticAutoRecordStep({ stepId: "t~autorecord", record: { path: "x.mp4" }, __autoRecord: true })
+      isSyntheticAutoRecordStart({ stepId: "t~autorecord", record: { path: "x.mp4" }, __autoRecord: true })
     ).to.equal(true);
-    expect(
-      isSyntheticAutoRecordStep({ stepId: "t~autorecord~stop", stopRecord: true, __autoRecordStop: true })
-    ).to.equal(true);
-    expect(isSyntheticAutoRecordStep({ stepId: "login~autorecord", record: { path: "x.mp4" } })).to.equal(false);
-    expect(isSyntheticAutoRecordStep({ stepId: "login~autorecord~stop", stopRecord: true })).to.equal(false);
-    expect(isSyntheticAutoRecordStep({ stepId: "stop", stopRecord: true })).to.equal(false);
+    expect(isSyntheticAutoRecordStart({ stepId: "login~autorecord", record: { path: "x.mp4" } })).to.equal(false);
+    expect(isSyntheticAutoRecordStart({ stepId: "stop", stopRecord: true })).to.equal(false);
+  });
+});
+
+// The automatic recording isn't a step: it's the context's autoRecording field
+// (ADR 01179).
+describe("a context's autoRecording", function () {
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  const MARKERS = /__autoRecord|~autorecord/;
+  const RELATIVE_VIDEO = "specs/s/tests/t/contexts/c/recordings/c.mp4";
+  let tempOutput;
+  let config;
+  let video;
+
+  beforeEach(function () {
+    tempOutput = fs.mkdtempSync(path.join(os.tmpdir(), "dd-auto-recording-"));
+    config = { logLevel: "silent", output: tempOutput };
+    video = path.join(getRunOutputDir(config), ...RELATIVE_VIDEO.split("/"));
+    fs.mkdirSync(path.dirname(video), { recursive: true });
+  });
+
+  afterEach(function () {
+    fs.rmSync(tempOutput, { recursive: true, force: true });
+  });
+
+  describe("the roll-up (DR1)", function () {
+    const rollUp = (results, autoRecording) =>
+      rollUpResults(contextResultSources({ steps: results.map((result) => ({ result })), autoRecording }));
+
+    it("lets a FAIL or WARNING recording set the context's result", function () {
+      expect(rollUp(["PASS"], { result: "FAIL" })).to.equal("FAIL");
+      expect(rollUp(["SKIPPED"], { result: "FAIL" })).to.equal("FAIL");
+      expect(rollUp(["PASS"], { result: "WARNING" })).to.equal("WARNING");
+      expect(rollUp(["SKIPPED"], { result: "WARNING" })).to.equal("WARNING");
+      // A step's FAIL still outranks a recording's WARNING.
+      expect(rollUp(["FAIL"], { result: "WARNING" })).to.equal("FAIL");
+    });
+
+    it("doesn't let a PASS or SKIPPED recording change it", function () {
+      expect(rollUp(["SKIPPED"], { result: "PASS" })).to.equal("SKIPPED");
+      expect(rollUp(["SKIPPED"], { result: "SKIPPED" })).to.equal("SKIPPED");
+      expect(rollUp(["PASS"], { result: "SKIPPED" })).to.equal("PASS");
+      expect(rollUp(["WARNING"], { result: "PASS" })).to.equal("WARNING");
+    });
+
+    it("rolls up the steps alone when there's no recording", function () {
+      expect(rollUp(["PASS", "SKIPPED"], undefined)).to.equal("PASS");
+    });
+
+    // A failed automatic stop on a dead session is a retryable failure, so the
+    // end-of-context session probe reads the same list.
+    it("gives the dead-session probe a failed recording to find", function () {
+      const failed = (report) => contextResultSources(report).some((source) => source.result === "FAIL");
+      expect(failed({ steps: [{ result: "PASS" }], autoRecording: { result: "FAIL" } })).to.equal(true);
+      expect(failed({ steps: [{ result: "PASS" }], autoRecording: { result: "SKIPPED" } })).to.equal(false);
+      expect(failed({ steps: [{ result: "PASS" }] })).to.equal(false);
+    });
+  });
+
+  describe("the stop's merge (stopAllRecordings)", function () {
+    const stop = async (recordings, contextReport = { steps: [] }) => {
+      await stopAllRecordings({ config, context: {}, driver: { state: { recordings } }, contextReport });
+      return contextReport;
+    };
+    // The device engine's stop writes the payload it's handed, with no browser
+    // or ffmpeg. The probe can't read this payload, so there's no metadata.
+    const savedHandle = (overrides = {}) => ({
+      type: "appium",
+      synthetic: true,
+      targetPath: video,
+      driver: { stopRecordingScreen: async () => Buffer.from("video").toString("base64") },
+      ...overrides,
+    });
+    const unsavedHandle = (overrides = {}) => ({
+      type: "appium-pending",
+      synthetic: true,
+      targetPath: video,
+      startError: "Couldn't start the device recording: boom",
+      ...overrides,
+    });
+    const throwingHandle = (message, overrides = {}) => ({
+      synthetic: true,
+      get type() {
+        throw new Error(message);
+      },
+      ...overrides,
+    });
+    const startedAt = "2026-11-06T02:33:29.010Z";
+
+    it("adds a saved file's path, relative to the run folder, and no step", async function () {
+      const report = await stop([savedHandle()], { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(report.steps).to.deep.equal([]);
+      expect(report.autoRecording).to.deep.equal({
+        result: "PASS",
+        startedAt,
+        recordingPath: RELATIVE_VIDEO,
+        format: "mp4",
+      });
+      expect(fs.existsSync(video)).to.equal(true);
+    });
+
+    it("lets a stop that fails win, with its description and no path", async function () {
+      const report = await stop([unsavedHandle()], { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(report.steps).to.deep.equal([]);
+      expect(report.autoRecording).to.deep.equal({
+        result: "FAIL",
+        resultDescription: "Couldn't start the device recording: boom",
+        resultCode: "assertion",
+        startedAt,
+      });
+    });
+
+    it("never FAILs a defaulted recording's stop", async function () {
+      const report = await stop([unsavedHandle({ defaulted: true })], { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(report.autoRecording.result).to.equal("SKIPPED");
+      expect(report.autoRecording.resultDescription).to.equal(
+        "Skipped: couldn't save the automatic recording: boom. Set `autoRecord: false` to turn it off."
+      );
+      expect(report.autoRecording).to.not.have.property("recordingPath");
+    });
+
+    it("records a stop that throws, and drains the handle", async function () {
+      const handles = [throwingHandle("boom")];
+      const report = await stop(handles, { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(handles).to.deep.equal([]);
+      expect(report.steps).to.deep.equal([]);
+      expect(report.autoRecording).to.deep.equal({
+        result: "FAIL",
+        resultDescription: "Couldn't stop recording. boom",
+        resultCode: "assertion",
+        startedAt,
+      });
+    });
+
+    it("never FAILs a defaulted recording's stop that throws", async function () {
+      const report = await stop([throwingHandle("boom", { defaulted: true })], { steps: [], autoRecording: { result: "PASS" } });
+      expect(report.autoRecording).to.deep.equal({
+        result: "SKIPPED",
+        resultDescription:
+          "Skipped: couldn't save the automatic recording: boom. Set `autoRecord: false` to turn it off.",
+      });
+    });
+
+    it("lets a WARNING win over a PASS", async function () {
+      // A stale span reports WARNING, with nothing saved.
+      const stale = {
+        type: "phantom",
+        synthetic: true,
+        targetPath: video,
+        checkpoints: {
+          entries: [{ fileName: "01.png", baselineMissing: true }],
+          baselineDir: tempOutput,
+          maxVariation: 0.05,
+        },
+      };
+      const report = await stop([stale], { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(report.autoRecording.result).to.equal("WARNING");
+      expect(report.autoRecording.resultDescription).to.match(/appears stale/);
+    });
+
+    it("keeps the worse result when the later one is better, and still adds the file", async function () {
+      const earlier = { result: "WARNING", resultDescription: "Earlier warning." };
+      const report = await stop([savedHandle()], { steps: [], autoRecording: earlier });
+      expect(report.autoRecording).to.deep.equal({
+        ...earlier,
+        recordingPath: RELATIVE_VIDEO,
+        format: "mp4",
+      });
+    });
+
+    it("masks the merged description, on both paths", async function () {
+      registerEnvValue("DD_R2A_SECRET", "s3cr3t-value");
+      for (const handle of [
+        unsavedHandle({ startError: "Couldn't start the device recording: s3cr3t-value" }),
+        throwingHandle("s3cr3t-value"),
+      ]) {
+        const report = await stop([handle]);
+        expect(report.autoRecording.resultDescription).to.include("***DD_R2A_SECRET***");
+        expect(JSON.stringify(report)).to.not.include("s3cr3t-value");
+      }
+    });
+
+    it("leaves your own recording's teardown stop as a step with its own ID", async function () {
+      const own = unsavedHandle({ synthetic: undefined, startError: undefined });
+      const report = await stop([savedHandle(), own], { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(report.steps).to.have.lengthOf(1);
+      expect(report.steps[0].stopRecord).to.equal(true);
+      expect(report.steps[0].result).to.equal("SKIPPED");
+      expect(report.steps[0].stepId).to.match(UUID);
+      expect(report.autoRecording.result).to.equal("PASS");
+      expect(report.autoRecording.recordingPath).to.equal(RELATIVE_VIDEO);
+    });
+  });
+
+  describe("the start (runContext)", function () {
+    // No driver steps, so no browser starts: the synthetic start runs through
+    // the real step loop, and fails or skips before it needs a driver.
+    const runWith = (record, markers = {}, contextKeys = {}) => {
+      const environment = getEnvironment();
+      return runContext({
+        config,
+        spec: { specId: "s" },
+        test: { testId: "t" },
+        context: {
+          contextId: "c",
+          platform: environment.platform,
+          ...contextKeys,
+          steps: [
+            {
+              stepId: "t~autorecord",
+              description: "Automatic full-context recording",
+              record: { overwrite: "true", ...record },
+              __autoRecord: true,
+              ...markers,
+            },
+            { stepId: "shell", runShell: "node --version" },
+          ],
+        },
+        runnerDetails: { environment, availableApps: [] },
+        metaValues: { specs: { s: { tests: { t: { contexts: {} } } } } },
+        installAttempts: new Map(),
+        warmUpResults: new Map(),
+      });
+    };
+    // A path whose variable isn't set fails the start before anything else.
+    const unstartable = () => ({ path: path.join(path.dirname(video), "$DD_R2A_UNSET", "c.mp4") });
+    const failedPreflight = {
+      __recordingPreflight: { browser: { ok: false, reason: "ffmpeg isn't available (x)", fix: "run y" } },
+    };
+
+    // DR2: the start is the first step, so its failure stops the context.
+    it("stops the context when a strict start fails", async function () {
+      const report = await runWith(unstartable());
+      expect(report.result).to.equal("FAIL");
+      expect(Object.keys(report.autoRecording).sort()).to.deep.equal(["result", "resultCode", "resultDescription"]);
+      expect(report.autoRecording.result).to.equal("FAIL");
+      expect(report.autoRecording.resultDescription).to.match(/^Couldn't start the recording\./);
+      expect(report.steps.map((s) => [s.stepId, s.result])).to.deep.equal([["shell", "SKIPPED"]]);
+      expect(JSON.stringify(report)).to.not.match(MARKERS);
+    });
+
+    it("runs the steps when a defaulted start fails", async function () {
+      const report = await runWith(unstartable(), { __autoRecordDefaulted: true });
+      expect(report.result).to.equal("PASS");
+      expect(report.autoRecording.result).to.equal("SKIPPED");
+      expect(report.autoRecording.resultDescription).to.match(/^Skipped: couldn't start the automatic recording: /);
+      expect(report.autoRecording.resultDescription).to.match(/Set `autoRecord: false` to turn it off\.$/);
+      expect(report.steps.map((s) => [s.stepId, s.result])).to.deep.equal([["shell", "PASS"]]);
+      expect(JSON.stringify(report)).to.not.match(MARKERS);
+    });
+
+    // DR3: strict `true` with a failed preflight reports why.
+    it("reports a strict start's failed preflight as SKIPPED with its fix", async function () {
+      const report = await runWith({ path: video, engine: "browser" }, {}, failedPreflight);
+      expect(report.result).to.equal("PASS");
+      expect(report.autoRecording).to.deep.equal({
+        result: "SKIPPED",
+        resultDescription: "Skipped: ffmpeg isn't available (x). To record, run y, and rerun.",
+      });
+      expect(report.steps.map((s) => s.stepId)).to.deep.equal(["shell"]);
+    });
+
+    it("masks the start's description", async function () {
+      registerEnvValue("DD_R2A_SECRET", "s3cr3t-value");
+      const report = await runWith({ path: path.join(path.dirname(video), "s3cr3t-value", "$DD_R2A_UNSET", "c.mp4") });
+      expect(report.autoRecording.resultDescription).to.include("***DD_R2A_SECRET***");
+      expect(JSON.stringify(report)).to.not.include("s3cr3t-value");
+    });
   });
 });
 
@@ -1137,4 +1404,64 @@ describe("detected spec/test IDs from files", function () {
     expect(second.specId).to.equal(first.specId);
     expect(second.tests[0].testId).to.equal(first.tests[0].testId);
   });
+});
+
+// The worse result wins with its own description (ADR 01179).
+describe("mergeAutoRecording", function () {
+  it("doesn't let a worse result keep a milder result's description", function () {
+    const context = { autoRecording: { result: "SKIPPED", resultDescription: "Skipped: no display." } };
+    mergeAutoRecording(context, { result: "FAIL" });
+    expect(context.autoRecording).to.deep.equal({ result: "FAIL", resultCode: "assertion" });
+  });
+
+  it("gives a worse result its own description", function () {
+    const context = { autoRecording: { result: "SKIPPED", resultDescription: "Skipped: no display." } };
+    mergeAutoRecording(context, { result: "FAIL", resultDescription: "Couldn't save the recording." });
+    expect(context.autoRecording).to.deep.equal({
+      result: "FAIL",
+      resultDescription: "Couldn't save the recording.",
+      resultCode: "assertion",
+    });
+  });
+
+  it("keeps the worse result and its description when a milder one follows, and adds the fields", function () {
+    const context = { autoRecording: { result: "FAIL", resultDescription: "Couldn't start the recording." } };
+    mergeAutoRecording(context, { result: "PASS", resultDescription: "Stopped.", duration: 3 });
+    expect(context.autoRecording).to.deep.equal({
+      result: "FAIL",
+      resultDescription: "Couldn't start the recording.",
+      resultCode: "assertion",
+      duration: 3,
+    });
+  });
+
+  // ADR 01194, as ADR 01179 committed: a FAIL recording carries the step fields.
+  it("classifies a FAIL recording, and drops the code when a FAIL is replaced", function () {
+    const context = {};
+    mergeAutoRecording(context, { result: "FAIL", resultDescription: "invalid session id" });
+    expect(context.autoRecording).to.deep.equal({
+      result: "FAIL",
+      resultDescription: "invalid session id",
+      resultCode: "environment",
+    });
+    const warned = { autoRecording: { result: "WARNING", resultDescription: "Short video." } };
+    mergeAutoRecording(warned, { result: "PASS" });
+    expect(warned.autoRecording).to.not.have.property("resultCode");
+  });
+
+  it("leaves a first PASS with no description", function () {
+    const context = {};
+    mergeAutoRecording(context, { result: "PASS", resultDescription: "Started.", startedAt: "2026-11-09T00:00:00.000Z" });
+    expect(context.autoRecording).to.deep.equal({ result: "PASS", startedAt: "2026-11-09T00:00:00.000Z" });
+  });
+});
+
+describe("contextResultSources", function () {
+  for (const result of ["PASS", "SKIPPED", "FAIL", "WARNING"]) {
+    it(`never hands back the report's own step list, with a ${result} recording`, function () {
+      const report = { steps: [{ result: "PASS" }], autoRecording: { result } };
+      contextResultSources(report).push({ result: "FAIL" });
+      expect(report.steps).to.have.lengthOf(1);
+    });
+  }
 });

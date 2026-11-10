@@ -93,6 +93,8 @@ Logs, warnings, and progress go to stderr, so you can pipe stdout without filter
 | `--json` | Print the results as one JSON document on stdout. |
 | `--plain` | Print one tab-separated line per test context on stdout: result, spec ID, test ID, and platform and browser. |
 
+Only one mode can write stdout. `--plain` with `--json`, `--output -`, or `--dry-run` exits `2` with one line on stderr, such as ``Error: set `--json` or `--plain`, not both.`` The same goes for an `output` of `-` or a `dryRun` of `true` in config.
+
 ## Step 3: Find the JSON results
 
 Every default run saves its results to `.doc-detective/runs/<runId>/testResults.json`. For a path that stays the same between runs, pass `--output`:
@@ -102,6 +104,8 @@ doc-detective --input ./docs --output results.json
 ```
 
 - `--output` (or the `output` config key) names the results file, and Doc Detective overwrites it on each run. `-` writes the results to stdout instead. A folder exits `2`, so use `--output-dir` for folders.
+- The flag beats the config key. So `--output -` writes only to stdout, even when config names a file.
+- With `--dry-run`, `--output` gets the test plan, which still prints on stdout.
 - The `json` reporter writes `testResults-<runId>.json` in `outputDir`, named after the run's folder. Use it when you want to keep a file per run. Leave it out when you pass `--output`, or you get both files.
 
 The results carry a `summary` object with the pass, fail, warning, and skipped counts. The per-spec, per-test, per-context, and per-step detail follows it. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse the file. See [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail).
@@ -110,9 +114,15 @@ The results carry a `summary` object with the pass, fail, warning, and skipped c
 
 These parts of the results are a stable contract for scripts. A change to any of them needs a new major version:
 
-- `summary.specs`, `summary.tests`, `summary.contexts`, and `summary.steps`, each with whole-number `pass`, `fail`, `warning`, and `skipped` counts.
+- `summary.specs`, `summary.tests`, `summary.contexts`, and `summary.steps`, each with whole-number `pass`, `fail`, `warning`, and `skipped` counts. `summary.steps` counts steps only, and the automatic recording isn't a step.
 - `result` on every spec, test, context, and step, with the value `PASS`, `FAIL`, `WARNING`, or `SKIPPED`.
+- `resultCode` on every step and automatic recording whose `result` is `FAIL`, and only then. It says what kind of failure it was:
+  - `environment`: the network, the browser session, or the page load failed.
+  - `drift`: a `find` missed its element, but similar ones exist, so the page probably changed.
+  - `assertion`: anything else, such as a missing element with nothing close, or a wrong status code.
+- `resultHint` on a failed step or automatic recording, when Doc Detective has a suggested fix. A `drift` step's hint names the closest matches. See [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
 - `durationMs` on the run and on every spec, test, context, and step.
+- `autoRecording.result` on every context Doc Detective tried to record automatically, and `autoRecording.recordingPath`, relative to `runDir`, when it saved a video. See [Where the recording shows up](/docs/test-docs/automatic-recording#where-the-recording-shows-up).
 - `runId` and `runDir`, except when a filter matches nothing. That run has no run folder, and `specs` is empty.
 - The four `--plain` columns, in order. New columns only go at the end.
 

@@ -42,8 +42,10 @@ export function applyColorFlags(argv: string[], env: NodeJS.ProcessEnv = process
 
 // Commander would read --no-input as negating --input, so it's taken out of argv
 // before parsing and kept in the environment, where child processes see it too.
+// `lsp` and `runner` take no global flags, so it stays for commander to reject
+// there (ADR 01193).
 export function applyInputFlag(argv: string[], env: NodeJS.ProcessEnv = process.env): string[] {
-  if (!argv.includes("--no-input")) return argv;
+  if (!argv.includes("--no-input") || ["lsp", "runner"].includes(argv[2])) return argv;
   env.DOC_DETECTIVE_NO_INPUT = "1";
   return argv.filter((arg) => arg !== "--no-input");
 }

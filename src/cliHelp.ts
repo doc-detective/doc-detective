@@ -198,8 +198,9 @@ export function applyHelpText(command: Command) {
 
 // Edit distance, for "did you mean", with two swapped neighbors as one edit
 // (optimal string alignment). Commander suggests flags, but a root that has its
-// own action reports a mistyped command as an extra argument.
-function distance(a: string, b: string): number {
+// own action reports a mistyped command as an extra argument. A failed `find`
+// ranks its near matches with it too (ADR 01194).
+export function distance(a: string, b: string): number {
   const d = Array.from({ length: a.length + 1 }, (_, i) =>
     Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
   );

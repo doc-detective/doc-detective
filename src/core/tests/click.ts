@@ -1,4 +1,5 @@
 import { validate } from "../../common/src/validate.js";
+import { invalidStepMessage } from "../utils.js";
 import { findElement } from "./findElement.js";
 
 export { clickElement };
@@ -15,7 +16,7 @@ async function clickElement({ config, step, driver, appSession, processRegistry,
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // The effective step (ADR 01167): an object click has its defaults filled.

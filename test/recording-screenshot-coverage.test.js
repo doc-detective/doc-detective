@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import sinon from "sinon";
 
@@ -12,7 +13,11 @@ import {
 } from "../dist/core/tests/saveScreenshot.js";
 import { startRecording } from "../dist/core/tests/startRecording.js";
 import { stopRecording, saveBrowserRecording } from "../dist/core/tests/stopRecording.js";
-import { browserDownloadDir } from "../dist/core/tests/ffmpegRecorder.js";
+import {
+  browserDownloadDir,
+  dominantFrameSize,
+  getFfmpegPath,
+} from "../dist/core/tests/ffmpegRecorder.js";
 import { useEffectiveStep, placeCapturePaths } from "../dist/core/tests.js";
 
 const require = createRequire(import.meta.url);
@@ -200,7 +205,7 @@ describeIfSharp("saveScreenshot: extra branches", function () {
       driver: fakeDriver(buf),
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("boolean screenshot:true derives a <stepId>.png path under cwd-relative dir", async function () {
@@ -650,7 +655,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("record:false -> SKIPPED", async function () {
@@ -1161,7 +1166,7 @@ describe("stopRecording: guards + MediaRecorder", function () {
       driver: {},
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("stopRecord:false -> SKIPPED (explicit no-op)", async function () {
@@ -1437,5 +1442,120 @@ describe("stopRecording: a browser recording copy that throws", function () {
     assert.equal(closed, 1);
     assert.equal(switched[switched.length - 1], "content-tab");
     assert.equal(recordings.length, 0);
+  });
+});
+
+// A tab capture's first and last frames can come from the tab while it's in the
+// background, behind the recorder tab. On macOS Chrome sizes that hidden tab
+// differently, so a 1024x582 recording started with 940x640 frames, and the
+// transcode sized the whole video by its first frame. The video takes the size
+// that covers most of the recording instead.
+describe("browser recording frame size", function () {
+  const showinfo = (pts, size) =>
+    `[Parsed_showinfo_0 @ 0x1] n:   0 pts:      0 pts_time:${pts}  pos: 643 fmt:yuv420p sar:1/1 s:${size} i:P iskey:1 type:I\n`;
+
+  it("picks the size that covers the most time", function () {
+    const text = [
+      showinfo(0, "940x640"),
+      showinfo(0.1, "940x640"),
+      showinfo(0.3, "1024x582"),
+      showinfo(1, "1024x582"),
+      showinfo(3.3, "940x640"),
+      showinfo(3.5, "940x640"),
+    ].join("");
+    assert.deepEqual(dominantFrameSize(text), { width: 1024, height: 582 });
+  });
+
+  it("weighs a size by time, not by frame count", function () {
+    // A static page sends few frames once it's in front.
+    const text = [0, 0.03, 0.06, 0.09].map((t) => showinfo(t, "940x640")).join("") +
+      showinfo(0.12, "1024x582") + showinfo(3, "1024x582");
+    assert.deepEqual(dominantFrameSize(text), { width: 1024, height: 582 });
+  });
+
+  it("returns null when the size never changes, or there are no frames", function () {
+    assert.equal(dominantFrameSize(showinfo(0, "1024x582") + showinfo(1, "1024x582")), null);
+    assert.equal(dominantFrameSize(""), null);
+  });
+
+  describe("stopRecording (real ffmpeg)", function () {
+    this.timeout(60000);
+    let tmpDir;
+    let ffmpegPath;
+    before(async function () {
+      try {
+        ffmpegPath = await getFfmpegPath({ autoInstall: false });
+      } catch {
+        this.skip();
+      }
+    });
+    beforeEach(function () {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-frame-size-"));
+    });
+    afterEach(function () {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    const ffmpeg = (args) =>
+      new Promise((resolve, reject) => {
+        const child = spawn(ffmpegPath, ["-v", "error", "-y", ...args]);
+        let stderr = "";
+        child.stderr.on("data", (d) => (stderr += d));
+        child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(stderr))));
+        child.on("error", reject);
+      });
+
+    // A VP8 WebM like the recorder's: 0.3 s at 940x640, 3 s at 1024x582, then
+    // 0.2 s at 940x640 again.
+    async function mixedWebm() {
+      const parts = [
+        ["940x640", 0.3],
+        ["1024x582", 3],
+        ["940x640", 0.2],
+      ];
+      const list = path.join(tmpDir, "list.txt");
+      const lines = [];
+      for (const [i, [size, seconds]] of parts.entries()) {
+        const part = path.join(tmpDir, `part-${i}.webm`);
+        await ffmpeg(["-f", "lavfi", "-i", `testsrc=size=${size}:rate=30`, "-t", String(seconds), "-c:v", "libvpx", "-b:v", "1M", part]);
+        lines.push(`file '${part.replace(/\\/g, "/")}'`);
+      }
+      fs.writeFileSync(list, lines.join("\n"));
+      const webm = path.join(tmpDir, "mixed.webm");
+      await ffmpeg(["-f", "concat", "-safe", "0", "-i", list, "-c", "copy", webm]);
+      return fs.readFileSync(webm);
+    }
+
+    it("sizes the video by its steady frames, not its first frame", async function () {
+      const bytes = await mixedWebm();
+      const recordings = [
+        {
+          type: "MediaRecorder",
+          tab: "rec-tab",
+          downloadPath: path.join(tmpDir, "download.webm"),
+          targetPath: path.join(tmpDir, "out.mp4"),
+        },
+      ];
+      const driver = {
+        state: { recordings },
+        async switchToWindow() {},
+        async execute(fn, ...args) {
+          if (args.length === 0) return true; // the recorder exists
+          if (args.length === 1) return bytes.length; // the page finished it
+          return bytes.subarray(args[0], args[1]).toString("base64");
+        },
+        async getWindowHandle() {
+          return "content-tab";
+        },
+        async getWindowHandles() {
+          return ["rec-tab", "content-tab"];
+        },
+        async closeWindow() {},
+      };
+      const result = await stopRecording({ config: {}, step: { stopRecord: true }, driver });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(result.outputs.width, 1024);
+      assert.equal(result.outputs.height, 582);
+    });
   });
 });

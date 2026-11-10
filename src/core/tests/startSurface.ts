@@ -10,6 +10,7 @@ import {
   resolveShellName,
   resolveShellExecutable,
   applyBrowserSize,
+  invalidStepMessage,
 } from "../utils.js";
 import {
   openSession,
@@ -112,7 +113,7 @@ async function startSurfaceStep({
   if (!isValidStep.valid) {
     return {
       status: "FAIL",
-      description: `Invalid step definition: ${isValidStep.errors}`,
+      description: invalidStepMessage(step),
     };
   }
   step = isValidStep.object;

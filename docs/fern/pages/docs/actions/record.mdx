@@ -26,6 +26,10 @@ You can specify the recording action in several ways:
 
 **Where files go:** a path you write resolves against the spec file you wrote it in. A spec loaded from a URL (`--input https://…`) has no folder of its own, so its relative paths resolve against `outputDir`. A file Doc Detective names, such as `<stepId>.mp4`, goes in `outputDir`. `outputDir` defaults to `.`, which resolves against your config file's folder. With no config file, that's the current folder.
 
+## Secrets in recordings
+
+Doc Detective doesn't blur page text during a recording. A page that displays the value of a secret environment variable, such as an API key on a settings page, shows it in the video. End the recording before the test reaches that page. In a browser, a `type` step or the `type` option of a `find` step can type a secret into a field. The field then shows dots, so the typed value stays out of the video. Native app and device recordings don't hide typed values. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
+
 ## Recording engines
 
 Recording uses one of two engines, selected by the optional `engine` field in the object format:
@@ -55,7 +59,7 @@ Skipped: there's no display to capture. To record, install Xvfb or set DISPLAY, 
 
 For every check, see [Before you record](/docs/test-docs/automatic-recording#before-you-record).
 
-Headless Firefox and Safari can't be recorded: their `record` steps are SKIPPED. To record them, set `headless: false`. On a Linux host with no display, Doc Detective runs a headed context on Xvfb, so install Xvfb to record there.
+Headless Firefox and Safari can't be recorded, so their `record` steps are SKIPPED. To record them, set `headless: false`. Firefox has one exception. While [`autoRecord`](/docs/test-docs/automatic-recording) is on, which is the default, Doc Detective runs headless Firefox headed when the host can record the screen. Its `record` steps then record too. On a Linux host with no display, Doc Detective runs a headed context on Xvfb, so install Xvfb to record there.
 
 ## Recording app surfaces
 

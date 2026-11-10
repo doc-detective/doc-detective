@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findElement } from "../dist/core/tests/findElement.js";
 import { clickElement } from "../dist/core/tests/click.js";
+import { rankNearMatches, collectNearMatches } from "../dist/core/tests/findStrategies.js";
 
 const config = { logLevel: "silent" };
 
@@ -121,6 +122,7 @@ describe("findElement unified assertion model", function () {
     assert.equal(found.statement, "$$outputs.found == true");
     assert.equal(result.outputs.element, undefined);
     assert.equal(result.outputs.rawElement, undefined);
+    assert.equal(result.description, "Couldn't find an element within `timeout` (50 ms).");
   });
 
   it("not found (shorthand) → found==false, assertion FAIL, status FAIL", async () => {
@@ -133,6 +135,7 @@ describe("findElement unified assertion model", function () {
     assert.equal(result.status, "FAIL");
     assert.equal(result.outputs.found, false);
     assert.equal(findAssertion(result.assertions, "found").result, "FAIL");
+    assert.equal(result.description, "Couldn't find element `Nonexistent`.");
   });
 
   it("shorthand string + caller click request → click sub-effect runs", async () => {
@@ -339,5 +342,70 @@ describe("click with a boolean value", function () {
     const result = await clickElement({ config, step: { click: "true" }, driver });
     assert.equal(result.status, "PASS", result.description);
     assert.equal(clicks, 1);
+  });
+});
+
+// ADR 01194: a failed browser find lists the closest elements on the page.
+describe("near matches", function () {
+  const page = [
+    { text: "Cancel", tag: "button" },
+    { text: "Saved", tag: "span" },
+    { text: "Save  changes", tag: "button", id: "save", testId: "save-btn" },
+    { text: "", tag: "button", ariaLabel: "Close dialog" },
+  ];
+
+  it("ranks whole-word matches first, then close spellings, and drops the rest", () => {
+    assert.deepEqual(rankNearMatches("Save", page), [
+      { text: "Save changes", tag: "button", id: "save", testId: "save-btn" },
+      { text: "Saved", tag: "span" },
+    ]);
+  });
+
+  it("matches an id, test ID, or accessible name, not only text", () => {
+    assert.deepEqual(rankNearMatches("save-btm", page), [
+      { text: "Save changes", tag: "button", id: "save", testId: "save-btn" },
+    ]);
+    assert.deepEqual(rankNearMatches("Close dialg", page), [
+      { tag: "button", ariaLabel: "Close dialog" },
+    ]);
+  });
+
+  it("returns at most three", () => {
+    const many = ["Save 1", "Save 2", "Save 3", "Save 4"].map((text) => ({ text, tag: "a" }));
+    assert.equal(rankNearMatches("Save", many).length, 3);
+  });
+
+  it("ignores short words that differ, and a regex target", () => {
+    assert.deepEqual(rankNearMatches("Go", [{ text: "No", tag: "p" }]), []);
+    assert.deepEqual(rankNearMatches("/Sav.*/", page), []);
+  });
+
+  it("collects from the page, and returns none when the driver can't run a script", async () => {
+    const driver = { execute: async () => page };
+    assert.equal((await collectNearMatches({ driver, find: "Save" })).length, 2);
+    assert.equal((await collectNearMatches({ driver, find: { elementText: "Save" } })).length, 2);
+    assert.equal((await collectNearMatches({ driver, find: { selector: "#sav" } }))[0].id, "save");
+    assert.deepEqual(await collectNearMatches({ driver: {}, find: "Save" }), []);
+    const throwing = { execute: async () => { throw new Error("no such window"); } };
+    assert.deepEqual(await collectNearMatches({ driver: throwing, find: "Save" }), []);
+  });
+
+  it("a failed criteria find exposes outputs.nearMatches", async () => {
+    const driver = { ...makeDriver({ candidates: [] }), execute: async () => page };
+    const result = await findElement({
+      config,
+      step: { find: { elementText: "Save", timeout: 0 } },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.deepEqual(result.outputs.nearMatches.map((m) => m.text), ["Save changes", "Saved"]);
+  });
+
+  it("a failed shorthand find exposes outputs.nearMatches, empty when nothing is close", async function () {
+    this.timeout(15000);
+    const driver = { ...makeDriver({ $impl: async () => ({}) }), execute: async () => page };
+    const result = await findElement({ config, step: { find: "Nothing like it" }, driver });
+    assert.equal(result.status, "FAIL");
+    assert.deepEqual(result.outputs.nearMatches, []);
   });
 });

@@ -162,17 +162,20 @@ async function resolvePaths({
   objectType?: string;
   isStep?: boolean;
 }) {
-  // Config properties that contain paths
+  // Config properties that contain paths. Not `output` or `cacheDir`: the
+  // CLI anchors those itself, keeping `-` and a trailing separator (ADR 01192).
   const configPaths = [
     "input",
-    "output",
     "outputDir",
     "loadVariables",
     "setup",
     "cleanup",
     "configPath",
     "beforeAll",
+    "beforeAny",
     "afterAll",
+    "apiKeyFile",
+    "apiTokenFile",
     "mediaDirectory",
     "downloadDirectory",
     "descriptionPath",
