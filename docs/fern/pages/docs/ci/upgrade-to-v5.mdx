@@ -364,6 +364,17 @@ doc-detective --input ./docs --output ./reports
 doc-detective --input ./docs --output-dir ./reports
 ```
 
+## Output modes share stdout
+
+**What changed:** Only one output mode can write stdout at a time:
+
+- `--plain` with `--json`, `--output -`, or `--dry-run` exits `2`. So does `--plain` with an `output` of `-` or a `dryRun` of `true` in config. The error names both flags, as in ``Error: set `--dry-run` or `--plain`, not both.``
+- `--output -` beats an `output` file in config, so the results go only to stdout.
+- An `output` of `-` in config writes the results to stdout, like `--output -`.
+- `--dry-run --output <file>` writes the test plan to the file, and still prints it.
+
+**What to do:** Drop one of the two modes the error names. To keep a results file beside `--plain`, pass `--output <file>`.
+
 ## No default results file in the current directory
 
 **What changed:** The default reporters are now `terminal` and `runFolder`. A run no longer leaves `testResults-<timestamp>.json` in the current directory. Results land in `.doc-detective/runs/<runId>/testResults.json` instead.
@@ -418,7 +429,7 @@ An explicit `"reporters": []` now means no reporters. Version 4 fell back to the
 
 ## Flags apply only where they make sense
 
-**What changed:** Each subcommand accepts only its own flags. For example, `doc-detective install status --input ./docs` and `doc-detective install status --yes` both exit `2` with `unknown option`.
+**What changed:** Each subcommand accepts only its own flags. For example, `doc-detective install status --input ./docs` and `doc-detective install status --yes` both exit `2` with `unknown option`. `lsp` and the hidden `runner` command take none of the global flags, such as `--json` or `-q`, because neither prints results or logs those flags could change.
 
 **What to do:** Remove flags the error names. Run `doc-detective <command> --help` to see what a command accepts.
 
@@ -532,9 +543,12 @@ A `./browser-snapshots/` folder from version 4 isn't used anymore. Browsers alwa
 - `--cache-dir` beats `DOC_DETECTIVE_CACHE_DIR`. It used to lose.
 - `install` reads `cacheDir` from your project and user config, and loads the project `.env`, like a run does. So an invalid config now makes `install` exit `2`. It doesn't read `apiKeyFile` or `apiTokenFile`, so a missing secret file doesn't stop it.
 - A config-level `loadVariables` file fills only variables the shell left unset, and prints no banner. It used to replace them. The `loadVariables` step still replaces them.
-- A relative `output` or `cacheDir` in a config file resolves against the config file, like `input` and `outputDir`. It used to resolve against the current directory.
+- A relative path resolves against the source that set it. A config file's paths resolve against its folder. `DOC_DETECTIVE_CONFIG`, `DOC_DETECTIVE`, and flags resolve against the current directory. See [Configuration precedence](/reference/cli#configuration-precedence). That changes three cases:
+  - A relative `output` or `cacheDir` in a config file used to resolve against the current directory.
+  - A relative `input`, `outputDir`, `loadVariables`, `beforeAll`, `afterAll`, or `descriptionPath` in your user config or the environment used to resolve against the project config's folder.
+  - A relative `apiKeyFile` or `apiTokenFile` in a config file used to resolve against the current directory.
 
-**What to do:** If a job relied on `DOC_DETECTIVE_CACHE_DIR` beating `--cache-dir`, drop one of them. If it relied on a config-level `loadVariables` file beating the shell, unset the shell variable or use a `loadVariables` step.
+**What to do:** If a job relied on `DOC_DETECTIVE_CACHE_DIR` beating `--cache-dir`, drop one of them. If it relied on a config-level `loadVariables` file beating the shell, unset the shell variable or use a `loadVariables` step. If a relative path now points somewhere else, make it relative to the source that sets it, or make it absolute.
 
 ## `DOC_DETECTIVE` is deprecated
 

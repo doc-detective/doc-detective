@@ -195,7 +195,9 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
       object: config,
       filePath: path.join(dir, "config.json"),
     });
-    assert.ok(path.isAbsolute(out.output), "config `output` path should be absolutized");
+    assert.ok(path.isAbsolute(out.input[0]), "config `input` path should be absolutized");
+    // The CLI anchors `output` itself, keeping `-` and a trailing separator (ADR 01192).
+    assert.equal(out.output, "rel/out");
   });
 
   it("resolvePaths returns an empty nested object unchanged", async function () {

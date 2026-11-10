@@ -24,13 +24,13 @@ A bare invocation with no command runs tests; the available commands are `run`, 
 
 These flags apply when you run tests, with no command or with `run`. Each has a config-file equivalent; see [Configuration precedence](#configuration-precedence).
 
-The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, and `--no-input` work with every command. Other commands take only their own flags and the global flags, and reject anything else with an `unknown option` error.
+The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, and `--no-input` work with every command except `lsp`. Other commands take only their own flags and the global flags, and reject anything else with an `unknown option` error. `lsp` speaks the language server protocol on stdout, so it takes only `--stdio`.
 
 | Option | Alias | Type | Default | Description |
 |--------|-------|------|---------|-------------|
 | `--config` | `-c` | string |  | Path to a `config.json` or `config.yaml` file. |
 | `--input` | `-i` | string | `.` | Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. `-` reads a spec or document from stdin. Give one comma-separated list, once. Repeating the flag is a usage error. |
-| `--output` | `-o` | string |  | Path of the JSON results file. It's overwritten on each run. `-` prints the results to stdout, the same as `--json`. A folder isn't valid here: use `--output-dir`. |
+| `--output` | `-o` | string |  | Path of the JSON results file. It's overwritten on each run. `-` prints the results to stdout, the same as `--json`. Beats config `output`. With `--dry-run`, the file gets the test plan. A folder isn't valid here: use `--output-dir`. |
 | `--output-dir` |  | string | `.` | Path of the folder that holds the run folder (`.doc-detective/runs/<runId>/`) and the html, junit, and markdown reports. |
 | `--reporters` | `-r` | string | ``["terminal","runFolder"]`` | Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in &lt;outputDir&gt;/.doc-detective/runs/&lt;runId&gt;/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside &lt;output&gt; when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside &lt;output&gt; when it names a file). Give one comma-separated list, once (e.g. --reporters terminal,html). Repeating the flag is a usage error. |
 | `--test` | `-t` | string |  | Run only tests whose testId matches the given regex (case-insensitive). Give one comma-separated list of patterns, once; a test passes if any pattern matches. |
@@ -69,7 +69,7 @@ Notes on individual flags:
 - `--cache-dir`: see the [cache directory guidance](/reference/reference/cli/install#cache-directory).
 - `--shell`: [`runShell`](/docs/actions/runshell) documents its steps, and [shell selection](/docs/actions/runshell#shell-selection) covers how the default is chosen.
 - `--dry-run`: the resolved test plan is printed to stdout, so you can pipe it (for example, `npx doc-detective --dry-run | jq`).
-- `--json`, `--plain`, and `--output -`: stdout holds only results, and everything else goes to stderr.
+- `--json`, `--plain`, and `--output -`: stdout holds only results, and everything else goes to stderr. Only one mode can write stdout, so `--plain` with `--json`, `--output -`, or `--dry-run` exits `2`.
 - `--no-input`: also available as `DOC_DETECTIVE_NO_INPUT=1`.
 - `--auto-update`: skipped automatically when the `CI` environment variable is set, which GitHub Actions, GitLab CI, CircleCI, and most CI systems do—so CI pipelines usually don't need `--no-auto-update`. To pin the version deterministically everywhere (including runners that don't set `CI`), set `autoUpdate: false` in config or pass `--no-auto-update`.
 - `--test` and `--spec`: patterns match if they appear anywhere in the ID; anchor a pattern with `^` and `$` to require an exact `testId` or `specId` match. Each value is split on commas *before* the parts are compiled as regexes, so a pattern can't contain a literal comma (for example, `--test "step{1,3}"` is split into `step{1` and `3}`).
@@ -109,13 +109,6 @@ This is distinct from `install agents`: the language server (`lsp`) exposes edit
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--quiet` | boolean |  | Show only errors and a one-line verdict. |
-| `--debug` | boolean |  | Show debugging output. Also DEBUG and DOC_DETECTIVE_DEBUG. |
-| `--log-level` | string |  | Detail level of logging events. Accepted values: silent, error, warning, info (default), debug |
-| `--logLevel` | string |  | Detail level of logging events. [deprecated: use --log-level] |
-| `--json` | boolean |  | Print one JSON document to stdout. |
-| `--no-color` | boolean |  | Turn off color. Also NO_COLOR. |
-| `--no-input` | boolean |  | Never prompt; fail and name the flag to pass |
 | `--stdio` | boolean | `true` | Use stdio, the only transport. Accepted because LSP clients add it |
 
 ```bash
@@ -168,7 +161,16 @@ Doc Detective layers configuration in one order. A higher layer wins. Where a la
 
 A `loadVariables` step still replaces variables that are already set, because a step sets them on purpose.
 
-A relative path in a config file, such as `output` or `cacheDir`, resolves against that config file. A relative path in a flag or an environment variable resolves against the current directory.
+A relative path resolves against the source that set it. That covers every path key, such as `input`, `output`, `outputDir`, `cacheDir`, `loadVariables`, `beforeAll`, `afterAll`, `apiKeyFile`, and `apiTokenFile`:
+
+| Source | A relative path resolves against |
+|---|---|
+| The project config | Its folder. With `relativePathBase: "cwd"`, or for a config loaded from a URL, the current directory |
+| Your user config | Its folder |
+| `DOC_DETECTIVE_CONFIG` and `DOC_DETECTIVE` | The current directory |
+| Flags and single-purpose variables | The current directory |
+
+A path no source sets, such as the default `input` and `outputDir` of `.`, resolves the way the project config's paths do, or against the current directory without one.
 
 Each config source is validated against the [`config_v3` schema](/reference/schemas/config) on its own, and an invalid one exits `2` with an error that names it. Flags override the validated config; they don't bypass it.
 

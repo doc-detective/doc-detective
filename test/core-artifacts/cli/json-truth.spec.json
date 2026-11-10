@@ -1,0 +1,154 @@
+{
+  "specId": "cli-json-truth",
+  "description": "A command rejects a global flag it can't honor (ADR 01193). lsp speaks LSP on stdout and runner reports to its API, so neither takes --json, -q, -d, -l, --no-color, or --no-input. Each rejection exits 2 with unknown option. No browser or network.",
+  "tests": [
+    {
+      "testId": "lsp-rejects-global-flags",
+      "description": "lsp rejects each global flag with unknown option and exit 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js lsp --json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js lsp -q",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js lsp -d",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js lsp -l debug",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js lsp --no-color",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js lsp --no-input",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "runner-rejects-global-flags",
+      "description": "runner rejects each global flag with unknown option and exit 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runner --json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runner -q",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runner -d",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runner -l debug",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runner --no-color",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js runner --no-input",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/unknown option/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "lsp-help-still-works",
+      "description": "lsp --help still exits 0 and lists --stdio.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js lsp --help",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "stdio": "/--stdio/"
+          }
+        }
+      ]
+    }
+  ]
+}

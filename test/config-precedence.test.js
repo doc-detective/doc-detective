@@ -175,6 +175,102 @@ describe("config precedence", function () {
     });
   });
 
+  // One path rule (ADR 01192): a relative path resolves against the source
+  // that set it. A project config is always present, so a path that resolves
+  // against the project folder by mistake shows up as wrong.
+  describe("one path rule", function () {
+    const read = (pick) => (config) => [].concat(pick(config))[0];
+    const keys = [
+      { key: "input", set: (p) => ({ input: p }), get: read((c) => c.input) },
+      { key: "outputDir", set: (p) => ({ outputDir: p }), get: read((c) => c.outputDir) },
+      { key: "loadVariables", set: (p) => ({ loadVariables: p }), get: read((c) => c.loadVariables) },
+      { key: "beforeAll", set: (p) => ({ beforeAll: p }), get: read((c) => c.beforeAll) },
+      { key: "beforeAny", set: (p) => ({ beforeAny: p }), get: read((c) => c.beforeAll) },
+      { key: "afterAll", set: (p) => ({ afterAll: p }), get: read((c) => c.afterAll) },
+      {
+        key: "descriptionPath",
+        set: (p) => ({ integrations: { openApi: [{ name: "api", descriptionPath: p }] } }),
+        get: read((c) => c.integrations.openApi[0].descriptionPath),
+      },
+      {
+        key: "nested path",
+        set: (p) => ({ fileTypes: [{ name: "shell", extensions: ["sh"], runShell: { command: "echo", path: p } }] }),
+        get: read((c) => c.fileTypes.find((type) => type?.name === "shell").runShell.path),
+      },
+      // A credential file is read in setConfig, so the file exists only where
+      // the path should resolve, and a wrong base fails the read.
+      {
+        key: "apiKeyFile",
+        credential: true,
+        set: (p) => ({ integrations: { docDetectiveApi: { apiKeyFile: p } } }),
+        get: (c) => c.integrations.docDetectiveApi.apiKey,
+      },
+      {
+        key: "apiTokenFile",
+        credential: true,
+        set: (p) => ({
+          integrations: { heretto: [{ name: "h", organizationId: "o", username: "u", apiTokenFile: p }] },
+        }),
+        get: (c) => c.integrations.heretto[0].apiToken,
+      },
+    ];
+    const sources = [
+      { source: "the project config", base: () => path.join(tmp, "cfg"), apply: (value) => project(value) },
+      {
+        source: 'a project config with `relativePathBase: "cwd"`',
+        base: () => tmp,
+        apply: (value) => project({ ...value, relativePathBase: "cwd" }),
+      },
+      {
+        source: "the user config",
+        base: () => path.join(tmp, "xdg", "doc-detective"),
+        apply: (value) => (user(value), project({})),
+      },
+      {
+        source: "DOC_DETECTIVE_CONFIG",
+        base: () => tmp,
+        apply: (value) => ((process.env.DOC_DETECTIVE_CONFIG = JSON.stringify(value)), project({})),
+      },
+      {
+        source: "DOC_DETECTIVE",
+        base: () => tmp,
+        apply: (value) => ((process.env.DOC_DETECTIVE = JSON.stringify({ config: value })), project({})),
+      },
+    ];
+    for (const { source, base, apply } of sources) {
+      for (const { key, set, get, credential } of keys) {
+        it(`resolves ${key} from ${source}`, async function () {
+          if (credential) {
+            fs.mkdirSync(base(), { recursive: true });
+            fs.writeFileSync(path.join(base(), "secret.txt"), "s3cret");
+          }
+          const configPath = apply(set(credential ? "secret.txt" : "rel"));
+          const config = await setConfig({ configPath, args: {} });
+          expect(get(config)).to.equal(credential ? "s3cret" : path.join(base(), "rel"));
+        });
+      }
+    }
+
+    it('resolves the user config against its folder, even with `relativePathBase: "cwd"`', async function () {
+      user({ input: "rel", cacheDir: "c", relativePathBase: "cwd" });
+      const config = await setConfig({ configPath: project({}), args: {} });
+      expect(config.input).to.equal(path.join(tmp, "xdg", "doc-detective", "rel"));
+      expect(config.cacheDir).to.equal(path.join(tmp, "xdg", "doc-detective", "c"));
+    });
+
+    it("resolves --input and --output-dir against the working directory", async function () {
+      const config = await setConfig({ configPath: project({}), args: { input: "in", outputDir: "out" } });
+      expect(config.input).to.deep.equal([path.join(tmp, "in")]);
+      expect(config.outputDir).to.equal(path.join(tmp, "out"));
+    });
+
+    it("leaves a URL alone", async function () {
+      user({ input: "https://example.com/doc.md" });
+      const config = await setConfig({ configPath: project({}), args: {} });
+      expect(config.input).to.equal("https://example.com/doc.md");
+    });
+  });
+
   describe("DOC_DETECTIVE_SKIP_AUTO_UPDATE", function () {
     for (const [value, autoUpdate] of [
       ["1", false],

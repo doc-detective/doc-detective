@@ -99,6 +99,24 @@ describe("CLI parser", function () {
       }
     }
 
+    // A flag a command accepts says what's true of it (ADR 01193). Neither
+    // `lsp` nor `runner` prints a result or a log the global flags could shape.
+    for (const name of ["lsp", "runner"]) {
+      for (const flag of [["--json"], ["-q"], ["-d"], ["-l", "debug"], ["--no-color"], ["--no-input"]]) {
+        it(`\`${name}\` rejects ${flag[0]} with exit 2`, function () {
+          const r = runCli([name, ...flag]);
+          expect(r.status).to.equal(2);
+          expect(r.stderr).to.equal(`error: unknown option '${flag[0]}'\n(add --help for usage)\n`);
+          expect(r.stdout).to.equal("");
+        });
+      }
+    }
+
+    it("still accepts `lsp --stdio`", function () {
+      const lsp = buildProgram({ runTests: () => {} }).commands.find((command) => command.name() === "lsp");
+      expect(lsp.options.map((option) => option.long)).to.deep.equal(["--stdio", "--version"]);
+    });
+
     it("leaves `coverage` free for the coverage command", function () {
       expect(commands.map((c) => c.path[0])).to.not.include("coverage");
       const program = buildProgram({ runTests: () => {} });
