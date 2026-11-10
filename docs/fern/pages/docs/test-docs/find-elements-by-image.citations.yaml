@@ -418,7 +418,7 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         commit-sha: 03fba6153b03396d122f871826260047b32cb826
     - id: image-base64-not-printed
       claim:
-        integrity: sha256-ae30639c1b6189c4edcf4f12f2730d0eb259add59e09d46e4a4a5eac62b1c6c9
+        integrity: sha256-d651ca379caab141b1a1def197121aa5cc0ce27082507f0d89eec575d65a007c
       source:
         file: src/core/tests/imageMatch.ts
         lines: 160-164
@@ -426,7 +426,7 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         commit-sha: 33bd2f2e2707e348f39f081e23613b42e7055e67
     - id: image-base64-not-printed-proof
       claim:
-        integrity: sha256-ae30639c1b6189c4edcf4f12f2730d0eb259add59e09d46e4a4a5eac62b1c6c9
+        integrity: sha256-d651ca379caab141b1a1def197121aa5cc0ce27082507f0d89eec575d65a007c
       source:
         file: test/find-image.test.js
         lines: 807-816

@@ -23,7 +23,7 @@ Doc Detective installs the image matcher, `@appium/opencv`, the first time a run
 
 For an icon, use the icon's own file, with a transparent background. Your design system or icon library already has it.
 
-For anything else, crop a reference from a screenshot with a `screenshot` step. Then remove the step, or keep it behind its own test, so that it doesn't overwrite the reference on every run.
+For anything else, crop a reference from a screenshot with a `screenshot` step. Then remove the step, or set its `overwrite` to `"false"`, so that later runs don't replace the reference.
 
 {/* test {"testId":"find-by-image-guide","detectSteps":false} */}
 
@@ -92,7 +92,7 @@ To keep a small reference inside the spec, give its bytes as base64:
 The `base64` value works with or without a `data:image/png;base64,` prefix.
 
 {/* cite image-base64-not-printed image-base64-not-printed-proof */}
-A failed step's message leaves the value out. Results and validation warnings repeat the step as you wrote it, so a long value makes them longer. Prefer a path for anything but a small image.
+A failed step's message leaves the value out. Results repeat the step as you wrote it, so a long value makes them longer. Prefer a path for anything but a small image.
 
 ## How a reference matches
 
@@ -228,7 +228,7 @@ To reject near-identical images, set a higher `threshold`:
 { "find": { "elementImage": { "path": "chart.png", "threshold": 0.99 } } }
 ```
 
-Graphics scored above 0.99 across browsers, so a high threshold doesn't stop them from matching.
+Graphics scored above 0.99 across browsers at the same display scale, so a high threshold doesn't stop them from matching there. A reference from a screen at another display scale can score lower and miss, so capture it at the scale your tests use.
 
 Icons work the same way. An icon that differs from another of the same color by a small detail can pass when it's gone. For example, `square-check` scored up to 0.94 against `square`. If your test depends on that detail, such as whether a box is checked, set `threshold` to 0.97. This can miss thin icons, so check the match's score in `outputs.element.matchScore`.
 
