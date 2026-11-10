@@ -236,7 +236,24 @@ GitHub discards the checkout when the job ends. To keep the reports, upload them
 
 On Ubuntu runners, the action runs browsers headless. Chrome and Firefox contexts fall back to headless mode automatically when there's no display.
 
-Doc Detective records headless Chrome with the `browser` engine, so Chrome recordings work on Ubuntu. Headless Firefox can't record, because it needs the `ffmpeg` engine and a display. To run Firefox headed or record it on Ubuntu, install Xvfb in an earlier step, such as `run: sudo apt-get install -y xvfb`. Doc Detective then runs Firefox headed on an Xvfb display. You can also run the job on a macOS or Windows runner, which has a display:
+Doc Detective records headless Chrome with the `browser` engine, so Chrome recordings work on Ubuntu. Headless Firefox can't record, because it needs the `ffmpeg` engine and a display. To record Firefox on Ubuntu, install Xvfb in a step before the action:
+
+```yaml
+jobs:
+  doc-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: sudo apt-get install -y xvfb
+      - uses: doc-detective/github-action@v2
+```
+
+Installing the package is all you do. When a run records Firefox, Doc Detective finds the `Xvfb` binary, starts its own display for the recording, and runs Firefox headed on it. Without Xvfb, Doc Detective skips Firefox `record` steps instead of failing them.
+
+You can also run the job on a macOS or Windows runner, which has a display:
 
 ```yaml
 jobs:
