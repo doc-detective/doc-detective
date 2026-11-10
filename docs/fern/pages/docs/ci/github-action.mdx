@@ -142,8 +142,11 @@ jobs:
 | `issue_assignees` | None | Comma-separated usernames to assign. |
 | `integrations` | None | Comma-separated integrations to mention in the issue (see [Integrations](/docs/test-docs/integrations)). |
 | `prompt` | See README | Prompt text passed to integrations. |
+| `token` | `${{ github.token }}` | Token the action creates the issue with. |
 
 The `integrations` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [Integrations](/docs/test-docs/integrations). For prompts that get useful analysis back, see [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).
+
+The `claude` integration also needs `token`. Claude Code answers from a workflow, and GitHub doesn't start workflows for an issue that the default `GITHUB_TOKEN` opens. That page shows the setup.
 
 ## Step 6: Use the results in later steps
 
