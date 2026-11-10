@@ -90,7 +90,7 @@ The `terminal`, `markdown`, and `junit` reporters list the same results in the s
 | A context's [automatic recording](/docs/test-docs/automatic-recording), when it didn't pass | `<specId> › <testId> › <contextId> › autoRecording` |
 | A context that didn't pass and has neither, such as one `runOn` skipped | `<specId> › <testId> › <contextId>` |
 
-Steps that skip because an earlier step failed don't get a line of their own. The failure counts them instead, such as `3 more steps skipped after the failure.` A failed automatic recording can be the only reason a context failed, so it gets a line like a failed step.
+Steps that skip because an earlier step failed don't get a line of their own. Instead, the failure adds a line such as `3 more steps skipped after the failure`, with its count. A failed automatic recording can be the only reason a context failed, so it gets a line like a failed step.
 
 An item shows its reason and, when the files exist, the step's screenshot and the context's recording. Terminal paths are absolute. Markdown and JUnit paths are relative to the file they're in.
 

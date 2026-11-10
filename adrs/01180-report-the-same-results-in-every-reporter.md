@@ -101,18 +101,18 @@ Windows drive stays absolute.
 A case has `classname="<specId>"` and `name="<testId> › <contextId> — <description>"`. `contextId` is unique per test, so
 GitLab can't drop duplicates. CI test history restarts once, at this major.
 
-- Attachments go first in `<system-out>`, on every case that isn't skipped: the screenshot of the first non-PASS step
-  that has one, then the context's recording. GitLab reads only the first marker. They're relative to `junit.xml`'s
+- Attachments go first in `<system-out>`, on every case that isn't skipped. The screenshot comes first, from the first
+  non-PASS step that has one, then the context's recording. GitLab reads only the first marker. They're relative to `junit.xml`'s
   folder. Azure DevOps resolves them from there, and GitLab resolves them from the project folder, which is the same
   when `junit.xml` is at the project root.
-- One `<failure>`: `message` is the first failure's reason, `type` is its `resultCode` when present, and the body lists
-  each failing item with its ID path, reason, hint, and fold count.
+- One `<failure>`. Its `message` is the first failure's reason, and its `type` is that failure's `resultCode` when
+  present. The body lists each failing item with its ID path, reason, hint, and fold count.
 - Warnings go in `<system-err>` as `Warning:` lines. Step skips are `Skipped:` lines in `<system-out>`.
 - A whole-case skip is `<skipped message="X">X</skipped>`.
 - Each suite has a `timestamp` and `<properties>`: `runId`, `docDetectiveVersion`, `nodeVersion`, `platform`, `arch`, and
   `osRelease`. A missing field is left out.
-- A non-PASS test with no contexts, or a non-PASS spec with no tests, gets a case of its own, so it's counted and listed
-  the same way as everywhere else.
+- A non-PASS test with no contexts gets a case of its own, and so does a non-PASS spec with no tests. Each is counted
+  and listed the same way as everywhere else.
 
 XML 1.0 stripping and escaping are unchanged (ADR 01092).
 
@@ -125,9 +125,9 @@ The report doesn't record the host (ADR 01163), so JUnit doesn't either.
 The verdict leads, then the count table and the environment line. Failures are a `## Failures` table. Warnings and skips
 are tables inside `<details>`. `Run artifacts:` prints only when the run folder exists, relative to the summary file.
 
-Caps: 100 rows per section, then `… and N more`. Each reason, hint, description, and ID path is clamped to 300 characters,
-with evidence paths printed whole, because a clamp over the whole cell would cut off the evidence the row exists to
-show. The 1 MiB byte cap (ADR 01092) cuts Skipped, then Warnings, before Failures.
+Caps: 100 rows per section, then `… and N more`. Each reason, hint, description, and ID path is clamped to 300
+characters. Evidence paths print whole: a clamp over the whole cell would cut off the evidence the row exists to show.
+The 1 MiB byte cap (ADR 01092) cuts Skipped, then Warnings, before Failures.
 
 ### DR9: file announcements
 
@@ -167,8 +167,8 @@ Doc Detective picks are unique per run (`<runId>`) or fixed (`junit.xml`, `doc-d
 with no `runId`, when a filter matches nothing, keeps its timestamp name.
 
 One rule decides the folder, in `reportOutputDir`: a path ending in `.json`, `.html`, `.htm`, `.xml`, or `.md` is a file,
-so its folder is used. Otherwise it's checked on disk: a folder is used as is, a file's folder is used, and a missing path
-is treated as a folder. The result is always absolute. `getRunOutputDir`, the file-writing reporters, and `runFolder` all
+so its folder is used. Any other path is checked on disk. A folder is used as is, and a file's folder is used. A missing
+path is treated as a folder. The result is always absolute. `getRunOutputDir`, the file-writing reporters, and `runFolder` all
 call it.
 
 ### DR11: the standalone `html` report
@@ -200,11 +200,11 @@ themselves aren't part of this ADR.
 
 ### Confirmation
 
-- `test/reporters-model.test.js`: every rule above for `nonPassItems`, including holes, folding, context-only items, the
-  `autoRecording` item, and missing files; `mediaPath`, including another Windows drive; all five `verdict` rows;
-  `environmentLine`; `writeReport`'s announcement and every `<cause>` row.
-- `test/reporters-junit-markdown.test.js`: names, attachments, properties, and the three Markdown sections, all parsed
-  with the real XML parser where it applies, plus the caps and the byte-cap cut order.
+- `test/reporters-model.test.js`. It covers every rule above for `nonPassItems`: holes, folding, context-only items, the
+  `autoRecording` item, and missing files. It also covers `mediaPath`, including another Windows drive, and all five
+  `verdict` rows. Then `environmentLine`, and `writeReport`'s announcement with every `<cause>` row.
+- `test/reporters-junit-markdown.test.js`. It covers names, attachments, properties, and the three Markdown sections. It
+  parses them with the real XML parser where it applies, and checks the caps and the byte-cap cut order.
 - `test/htmlReporter.test.js`: hrefs relative to each copy, the two copies differing only in `hrefs`, the verdict, the
   hint, and the context label.
 - `test/utils-coverage.test.js` and `test/reporters-coverage.test.js`: the terminal's lists and footer, announcements on
