@@ -142,29 +142,49 @@ Fix forward first. Land a `fix:` on main, and the normal pipeline ships a 5.0.x 
 Roll back only when 5.0 is unusable and no quick fix exists. `promote.yml` refuses to move `@latest`
 to an older version, so you do these steps by hand, in this order:
 
-1. **If the final 4.x update already shipped, remove its notice first.** That notice tells users to
-   move to 5, the release you're pulling. Revert it on the `4.x` branch as a `fix:` commit, so the
-   release publishes a 4.x patch without it. That patch is now the last 4.x.
-2. **Pin Online to the last 5.0.x image.** Set Online's `RUNNER_IMAGE` environment variable to
+1. **Stop main from releasing, and settle the runs already going.** Merge nothing to main until the
+   rollback is done. Then list the runs in progress, and repeat with `--status queued`:
+
+   ```bash
+   gh run list --workflow release.yml --status in_progress
+   gh run list --workflow promote.yml --status in_progress
+   gh run list --workflow docker-build.yml --status in_progress
+   ```
+
+   A Release run includes the promote and Docker jobs it calls. Wait for each run to finish, or stop
+   it with `gh run cancel <run-id>`. Their concurrency groups key on the ref or version
+   (`release-<ref>`, `promote-<version>`, `docker-build-<ref>-<version>`), so nothing queues them
+   behind your rollback. A 5.x Docker job that finishes after step 5 moves `latest` back to 5.x.
+2. **If the final 4.x update already shipped, remove its notice.** That notice tells users to move
+   to 5, the release you're pulling. Revert it on the `4.x` branch as a `fix:` commit, so the
+   release publishes a 4.x patch without it. Wait for that release to finish. Its patch is now the
+   last 4.x.
+3. **Pin Online to the last 5.0.x image.** Set Online's `RUNNER_IMAGE` environment variable to
    `docdetective/docdetective:<last-5.0.x>`. Online's entrypoint runs `doc-detective runner`, which
    fails on 4.x images, so do this before Docker's `latest` moves.
-3. **Move npm `@latest` back.** With an npm login that can publish both packages, run:
+4. **Move npm `@latest` back.** With an npm login that can publish both packages, run:
 
    ```bash
    npm dist-tag add doc-detective@<last-4.x> latest
    npm dist-tag add doc-detective-common@<last-4.x> latest
    ```
 
-4. **Rebuild Docker's floating tags from the 4.x tag.** `--ref` runs the workflow and Dockerfile from
+5. **Rebuild Docker's floating tags from the 4.x tag.** `--ref` runs the workflow and Dockerfile from
    that release:
 
    ```bash
    gh workflow run docker-build.yml --ref v<last-4.x> -f version=<last-4.x> -f publish_latest_tags=true
    ```
 
-5. **Verify.** `npm view doc-detective dist-tags` and `npm view doc-detective-common dist-tags` show
-   `latest` on `<last-4.x>`. `docker buildx imagetools inspect docdetective/docdetective:latest`
-   shows the same digest as `docdetective/docdetective:<last-4.x>`.
+6. **Verify.** `gh run watch <run-id> --exit-status` on the Docker build exits 0. The Windows job
+   pushes its tags separately from Linux and can fail on its own. Then check:
+
+   - `npm view doc-detective dist-tags` and `npm view doc-detective-common dist-tags` show `latest`
+     on `<last-4.x>`.
+   - `docker buildx imagetools inspect` shows `docdetective/docdetective:latest` with the same digest
+     as `docdetective/docdetective:<last-4.x>`.
+   - It shows `docdetective/docdetective:latest-windows` and `docdetective/docdetective:windows` with
+     the same digest as `docdetective/docdetective:<last-4.x>-windows`.
 
 While `latest` is on 4.x, every release from main promotes again, because any 5.0.x is newer than
 4.x. Merge only the fix that makes 5.0 usable. Its release moves npm and Docker back to 5, and then
