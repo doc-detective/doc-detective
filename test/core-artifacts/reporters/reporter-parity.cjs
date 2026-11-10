@@ -106,6 +106,12 @@ const cases = {
       const shot = /Screenshot: `(.*?)`/.exec(md)?.[1];
       check(shot && fs.existsSync(path.join(dir, shot)), `Markdown's screenshot exists relative to the summary (${shot})`);
       check(/Run artifacts: `\.doc-detective\/runs\//.test(md), "Markdown points at the run folder");
+      // The run folder's own summary (ADR 01180, DR9), with paths relative to it.
+      const runMd = read(report.runDir, "testResults.md");
+      check(runMd.includes(`**Failed** — ${verdict}`), "the run folder's summary gives the verdict");
+      check(runMd.includes(`\`${failing}\``), `the run folder's summary names ${failing}`);
+      const runShot = /Screenshot: `(.*?)`/.exec(runMd)?.[1];
+      check(runShot && fs.existsSync(path.join(report.runDir, runShot)), `its screenshot exists relative to it (${runShot})`);
 
       // Both HTML copies.
       const flat = `testResults-${report.runId}.html`;
@@ -120,7 +126,7 @@ const cases = {
           check(fs.existsSync(path.join(path.dirname(copies[i]), decodeURIComponent(href))), `${name} resolves ${href}`);
         }
       });
-      for (const announced of [`HTML report: ${path.join(fs.realpathSync(dir), flat)}`, "JUnit report: ", "Markdown summary: ", "Run report: ", "Run results: "]) {
+      for (const announced of [`HTML report: ${path.join(fs.realpathSync(dir), flat)}`, "JUnit report: ", "Markdown summary: ", "Run report: ", "Run summary: ", "Run results: "]) {
         check(stderr.includes(announced), `stderr announces ${announced}`);
       }
     },
