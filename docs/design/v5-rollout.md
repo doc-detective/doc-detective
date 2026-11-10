@@ -458,9 +458,26 @@ run agent-tools' test suite with `doc-detective@v5-rc` installed in its checkout
 This is the Phase 2 exit gate. GA waits until every check passes, with no calendar wait:
 
 - No blocker is open.
-- Tests cover every row of the contract table.
-- Every Action compatibility row has been exercised.
+- Tests cover every row of the contract table. `test/cli-contract.test.js` and every fixture bundle pass.
+- `--json --plain`, `-o - --plain`, and `--dry-run --plain` each exit 2 with their message.
+- `--dry-run -o plan.json` writes a file equal to stdout.
+- Config `output: "-"` writes JSON to stdout and no file named `-`.
+- `--json -r html` stdout parses as one document.
+- Config `crawl: true`, step `breakpoint`, and step `autoScreenshot: false` each exit 2.
+- Config `concurrentRunners: "auto"` runs.
+- `require("doc-detective").runTests()` with a bad spec rejects with the spec error.
+- Pass, fail, skip, routed, empty, and browser reports validate against `report_v3`. A `--dry-run` plan
+  validates against `resolvedTests_v3`.
+- `onFail: goToStep` with a typo'd target keeps the step's own reason and adds the routing sentence.
+- A failed `find` with a near match has `resultCode: "drift"`, `resultHint`, and `outputs.nearMatches`.
+  Every reporter shows them.
+- A relative `outputDir` resolves per the path-rule table, from each source.
+- `promote.yml` dispatched with an RC version skips promote and Docker.
+- Every Action compatibility row has been exercised. The Action's test workflow updates an issue and a
+  PR, and compares a baseline.
+- agent-tools' suite passes on the RC. A real Online run succeeds.
 - Someone has followed the migration guide end to end on a real repository.
+- `node scripts/check-adr-numbers.cjs origin/main` passes.
 
 ## Phase 3: GA runbook
 
