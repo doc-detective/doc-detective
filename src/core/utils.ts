@@ -925,6 +925,9 @@ function isRetryableSessionError(
 // A failure the host or network caused rather than the docs or the product:
 // DNS, refused or dropped connections, a dead session, or a page that never
 // loaded (ADR 01194).
+// ponytail: a description-text heuristic, so a message that names none of
+// these lands in `assertion`. Move to error codes carried on the step result if
+// it misclassifies.
 const ENVIRONMENT_FAILURE =
   /ENOTFOUND|EAI_AGAIN|getaddrinfo|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|net::ERR_|no such window|blank document/i;
 

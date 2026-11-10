@@ -288,6 +288,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
                 config,
                 step: findStep,
                 driver,
+                nearMatches: false,
               });
 
               if (findResult.status === "PASS") {

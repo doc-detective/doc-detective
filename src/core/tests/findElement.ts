@@ -60,8 +60,9 @@ async function finalizeFound({ result }: { result: any }) {
   return result;
 }
 
-// Find a single element
-async function findElement({ config, step, driver, click, appSession, processRegistry, surfaceTracker }: { config: any; step: any; driver: any; click?: any; appSession?: any; processRegistry?: Map<string, any>; surfaceTracker?: ActiveSurfaceTracker }) {
+// Find a single element. `nearMatches: false` skips the near-match collector
+// for a caller that doesn't report it, such as annotations (ADR 01194).
+async function findElement({ config, step, driver, click, appSession, processRegistry, surfaceTracker, nearMatches = true }: { config: any; step: any; driver: any; click?: any; appSession?: any; processRegistry?: Map<string, any>; surfaceTracker?: ActiveSurfaceTracker; nearMatches?: boolean }) {
   let result: any = {
     status: "PASS",
     description: "Found an element matching selector.",
@@ -289,7 +290,7 @@ async function findElement({ config, step, driver, click, appSession, processReg
       // existence assertion FAILs (don't early-return before the spec).
       result.description = "No elements matched selector or text.";
       result.outputs.found = false;
-      result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
+      if (nearMatches) result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
       return await finalizeFound({ result });
     }
   }
@@ -316,7 +317,7 @@ async function findElement({ config, step, driver, click, appSession, processReg
   if (!foundElement) {
     result.description = error || "No elements matched criteria.";
     result.outputs.found = false;
-    result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
+    if (nearMatches) result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
     return await finalizeFound({ result });
   }
   element = foundElement;

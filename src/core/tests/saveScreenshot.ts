@@ -659,6 +659,7 @@ async function captureScreenshot({
       config,
       step: findStep,
       driver,
+      nearMatches: false,
     });
     // (1) Crop element existence is a VERIFICATION ASSERTION. findElement FAILs
     // when no element matches, so `findResult.status === "FAIL"` (or a missing
