@@ -34,6 +34,8 @@ The run folder holds the screenshots and recordings Doc Detective takes by defau
 | `junit` | A `junit.xml` report that CI platforms render in their test summary views, with each failure's screenshot and recording attached. See [Read the JUnit report](#read-the-junit-report). |
 | `markdown` | A `doc-detective-summary.md` run summary for a CI job summary or a merge request comment. See [Read the Markdown summary](#read-the-markdown-summary). |
 
+Doc Detective doesn't look for tests in folders named `.doc-detective`. That keeps a run from testing the files an earlier run saved there.
+
 On GitLab, point the test summary at the `junit.xml` file, and upload the run folder with it so the attachments resolve:
 
 ```yaml title=".gitlab-ci.yml"

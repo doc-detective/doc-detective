@@ -501,6 +501,8 @@ async function qualifyFiles({ config }: { config: any }) {
         for (const object of objects) {
           const content = path.resolve(dir + "/" + object);
           if (content.includes("node_modules")) continue;
+          // Doc Detective's own artifacts (run folders, summaries) aren't docs to test.
+          if (object === ".doc-detective") continue;
           // One statSync, reused for both predicates (same value per path).
           // statSync (not the Dirent from readdirSync withFileTypes) is kept
           // deliberately so symlink following is unchanged from before.
