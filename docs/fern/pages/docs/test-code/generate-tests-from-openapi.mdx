@@ -148,7 +148,7 @@ To override the header for a single request, set `request.headers.Authorization`
 
 When the same header is set in more than one place, the most specific value wins. From lowest to highest precedence: a header from an example (see [Step 4](#step-4-seed-requests-with-example-data)), then a config-level `openApi.headers`, then a step-level `openApi.headers`, then `request.headers`.
 
-To keep credentials out of your specs, store the token in an environment variable and reference it with `$VARIABLE_NAME`. Doc Detective substitutes `$TOKEN` and `$ADMIN_TOKEN` from the environment when it runs the step, so `"Bearer $TOKEN"` becomes the resolved value before the request is sent. See [Load variables](/docs/actions/loadvariables) for how Doc Detective reads variables from a `.env` file.
+To keep credentials out of your specs, store the token in an environment variable and reference it with `$VARIABLE_NAME`. Doc Detective substitutes `$TOKEN` and `$ADMIN_TOKEN` from the environment when it runs the step, so `"Bearer $TOKEN"` becomes the resolved value before the request is sent. Logs and reports show those values as `***TOKEN***` and `***ADMIN_TOKEN***`, so the real tokens stay out of CI output. For what Doc Detective masks, see [Keep secrets out of logs, reports, and captures](/docs/ci/secrets). For how it reads variables from a `.env` file, see [Load variables](/docs/actions/loadvariables).
 
 ## Step 4: Seed requests with example data
 
