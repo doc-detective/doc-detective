@@ -283,7 +283,7 @@ The results show these steps' effective forms. A `find.click` appears as the cli
 | `screenshot: true`, `screenshot: {}`, and `record: true` wrote `<stepId>.png` or `<stepId>.mp4` to the current folder. | They write to `outputDir`. |
 | A screenshot whose `path` is a URL saved the new screenshot to `./doc-detective-runs/<timestamp>/`. | It saves it in the context's `screenshots/` folder in the run folder, `<outputDir>/.doc-detective/runs/<runId>/`. |
 | A step with `screenshot: true` or `record: true` and no `stepId`, such as one passed to the JavaScript `getRunner()` API, wrote `undefined.png` or `undefined.mp4`. | The step fails: ``Couldn't name the screenshot. Set `path`, or set the step's `stepId`.`` A recording says ``Couldn't name the recording.`` |
-| A `path` or `directory` with a variable that isn't set, such as `$SHOTS_DIR`, wrote to a folder named after the variable. | The step fails: ``Couldn't save the screenshot. `directory` (`$SHOTS_DIR`) has a variable that isn't set.`` A recording says ``Couldn't start the recording.`` |
+| A `path` or `directory` with a variable that isn't set, such as `$SHOTS_DIR`, wrote to a folder named after the variable. | The step fails, and the message names whichever of `path` or `directory` holds the variable, such as ``Couldn't save the screenshot. `directory` (`$SHOTS_DIR`) has a variable that isn't set.`` A recording says ``Couldn't start the recording.`` |
 | `screenshot: false` took a screenshot. | It skips the step. |
 | `record: "Demo.MP4"` failed validation. | Extensions match in any case. |
 
