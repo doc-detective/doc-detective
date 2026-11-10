@@ -24,7 +24,7 @@ A bare invocation with no command runs tests; the available commands are `run`, 
 
 These flags apply when you run tests, with no command or with `run`. Each has a config-file equivalent; see [Configuration precedence](#configuration-precedence).
 
-The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, and `--no-input` work with every command. Other commands take only their own flags and the global flags, and reject anything else with an `unknown option` error.
+The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, and `--no-input` work with every command except `lsp`. Other commands take only their own flags and the global flags, and reject anything else with an `unknown option` error. `lsp` speaks the language server protocol on stdout, so it takes only `--stdio`.
 
 | Option | Alias | Type | Default | Description |
 |--------|-------|------|---------|-------------|
@@ -109,13 +109,6 @@ This is distinct from `install agents`: the language server (`lsp`) exposes edit
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--quiet` | boolean |  | Show only errors and a one-line verdict. |
-| `--debug` | boolean |  | Show debugging output. Also DEBUG and DOC_DETECTIVE_DEBUG. |
-| `--log-level` | string |  | Detail level of logging events. Accepted values: silent, error, warning, info (default), debug |
-| `--logLevel` | string |  | Detail level of logging events. [deprecated: use --log-level] |
-| `--json` | boolean |  | Print one JSON document to stdout. |
-| `--no-color` | boolean |  | Turn off color. Also NO_COLOR. |
-| `--no-input` | boolean |  | Never prompt; fail and name the flag to pass |
 | `--stdio` | boolean | `true` | Use stdio, the only transport. Accepted because LSP clients add it |
 
 ```bash

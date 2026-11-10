@@ -96,6 +96,53 @@ describe("CLI install commands", function () {
     }
   });
 
+  // `--json` says what happened, one report per AVD (ADR 01193).
+  for (const [args, action] of [
+    [[], "reset"],
+    [["--dry-run"], "dry-run"],
+  ]) {
+    it(`\`install android --reset-snapshot ${[...args, "--json"].join(" ")}\` prints a ${action} report per AVD`, function () {
+      const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cli-reset-json-"));
+      try {
+        const avdHome = path.join(tmpHome, ".android", "avd");
+        fs.mkdirSync(path.join(avdHome, "pixel.avd", "snapshots", "doc-detective-clean"), { recursive: true });
+        fs.writeFileSync(path.join(avdHome, "pixel.ini"), "target=android-36\n");
+        const r = runCli(["install", "android", "--reset-snapshot", ...args, "--json"], {
+          HOME: tmpHome,
+          USERPROFILE: tmpHome,
+          DOC_DETECTIVE_CACHE_DIR: path.join(tmpHome, "cache"),
+        });
+        expect(r.status, r.stderr).to.equal(0);
+        expect(JSON.parse(r.stdout)).to.deep.equal([{ kind: "tool", assetId: "pixel", action }]);
+      } finally {
+        fs.rmSync(tmpHome, { recursive: true, force: true });
+      }
+    });
+  }
+
+  it("`install android --reset-snapshot --json` prints [] with nothing to reset", function () {
+    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cli-reset-none-"));
+    try {
+      const r = runCli(["install", "android", "--reset-snapshot", "--json"], {
+        HOME: tmpHome,
+        USERPROFILE: tmpHome,
+        DOC_DETECTIVE_CACHE_DIR: path.join(tmpHome, "cache"),
+      });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout)).to.deep.equal([]);
+    } finally {
+      fs.rmSync(tmpHome, { recursive: true, force: true });
+    }
+  });
+
+  it("reports a snapshot it couldn't reset as failed, with the cause in notes", async function () {
+    const { snapshotResetReports } = await import("../dist/runtime/installCommand.js");
+    expect(snapshotResetReports({ reset: ["a"], failed: [{ name: "b", error: "EBUSY" }] }, false)).to.deep.equal([
+      { kind: "tool", assetId: "a", action: "reset" },
+      { kind: "tool", assetId: "b", action: "failed", notes: ["EBUSY"] },
+    ]);
+  });
+
   it("`install android --dry-run` previews a plan without java/network (native app phase A3)", function () {
     // Dry-run is a pure preview: it must never require java, hit the network,
     // or spawn sdkmanager. It runs on every host regardless of SDK presence —

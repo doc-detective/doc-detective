@@ -427,7 +427,7 @@ An explicit `"reporters": []` now means no reporters, so a run writes no run fol
 
 ## Flags apply only where they make sense
 
-**What changed:** Each subcommand accepts only its own flags. For example, `doc-detective install status --input ./docs` and `doc-detective install status --yes` both exit `2` with `unknown option`.
+**What changed:** Each subcommand accepts only its own flags. For example, `doc-detective install status --input ./docs` and `doc-detective install status --yes` both exit `2` with `unknown option`. `lsp` and the hidden `runner` command take none of the global flags, such as `--json` or `-q`, because neither prints results or logs those flags could change.
 
 **What to do:** Remove flags the error names. Run `doc-detective <command> --help` to see what a command accepts.
 
