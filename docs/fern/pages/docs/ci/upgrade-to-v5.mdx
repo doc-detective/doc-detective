@@ -216,7 +216,7 @@ Other shorthand appears in its full form too. For example, `"wait": true` appear
 
 ## Failed steps say what kind of failure it was
 
-**What changed:** Every `FAIL` step has a `resultCode`: `environment`, `drift`, or `assertion`. A browser `find` that misses lists the closest elements in `outputs.nearMatches`, and its `resultHint` names them. Version 4 had none of these fields.
+**What changed:** Every `FAIL` step has a `resultCode`: `environment`, `drift`, or `assertion`. A browser `find` or `click` that misses its element, or a `dragAndDrop` that misses its source or target, lists the closest elements in `outputs.nearMatches`, and its `resultHint` names them. Version 4 had none of these fields.
 
 **What to do:** Nothing, unless a script compares whole step objects. To triage failures, branch on `resultCode` instead of matching `resultDescription`. See [Read the result](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
 

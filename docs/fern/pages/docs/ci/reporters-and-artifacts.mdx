@@ -114,7 +114,7 @@ These parts of the results are a stable contract for scripts. A change to any of
 - `result` on every spec, test, context, and step, with the value `PASS`, `FAIL`, `WARNING`, or `SKIPPED`.
 - `resultCode` on every step and automatic recording whose `result` is `FAIL`, and only then. It says what kind of failure it was:
   - `environment`: the network, the browser session, or the page load failed.
-  - `drift`: a `find` missed its element, but similar ones exist, so the page probably changed.
+  - `drift`: a browser `find` or `click` missed its element, or a `dragAndDrop` missed its source or target, but similar ones exist, so the page probably changed.
   - `assertion`: anything else, such as a missing element with nothing close, or a wrong status code.
 - `resultHint` on a failed step or automatic recording, when Doc Detective has a suggested fix. A `drift` step's hint names the closest matches. See [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
 - `durationMs` on the run and on every spec, test, context, and step.
