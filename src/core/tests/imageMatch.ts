@@ -164,7 +164,7 @@ function referenceLabel(elementImage: any): string {
 }
 
 // A reason from elsewhere, as the end of a sentence.
-const endSentence = (reason: string) => reason.replace(/\.?$/, ".");
+const endSentence = (reason: string) => (/[.!?]$/.test(reason) ? reason : `${reason}.`);
 
 // A copy of a step's criteria that's safe to print. A base64 value can be megabytes.
 function redactElementImage(criteria: any): any {

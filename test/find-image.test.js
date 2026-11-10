@@ -215,6 +215,15 @@ describe("elementImage matching", function () {
       }
     });
 
+    it("image-matcher-error: a reason that already ends a sentence gets no extra period", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      for (const reason of ["Is the session gone?", "The session is gone!", "The session is gone."]) {
+        const driver = { isMobile: false, takeScreenshot: async () => { throw new Error(reason); }, execute: async () => ({ width: 400 }) };
+        const found = await visual.findByImage({ elementImage: { base64: b64(svg) }, driver, timeout: 0 });
+        expect(found.error).to.equal(`Couldn't compare the \`base64\` image with the page: ${reason}`);
+      }
+    });
+
     it("image-matcher-error: an error while matching fails the step with a reason", async function () {
       const svg = icon(GEAR, "#333333", 24);
       for (const capture of [Buffer.from("short"), Buffer.alloc(2048, 65)]) {
