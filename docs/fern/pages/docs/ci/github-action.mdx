@@ -173,7 +173,7 @@ The action exposes the run's results so later steps can act on them. Give the st
 
 Every run writes a Markdown summary of the results to the GitHub Actions run's Summary tab. No configuration or permissions are needed, and it happens whether tests pass or fail. You see the pass, fail, warning, and skipped counts on the run's Summary tab without opening the job logs.
 
-The action writes the summary before the `exit_on_fail` check, so it appears even when tests fail. Writing it is best-effort: if the action can't write the summary, it logs a warning and the run continues, so it never turns a passing run red or hides a failing test.
+The action writes the summary before the `exit_on_fail` check, so it appears even when tests fail. Writing the summary is best-effort. If that fails, the action logs a warning and the run continues. A failed write never turns a passing run red or hides a failing test.
 
 The Summary tab holds the results only. To collect the screenshots and recordings a run captures, write them to a run folder with the `runFolder` reporter and upload it yourself. For the output formats and the run folder layout, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts). To consume the JSON results in a later step, see [Use the results in later steps](#step-6-use-the-results-in-later-steps).
 
