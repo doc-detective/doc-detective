@@ -513,7 +513,7 @@ describe("local URL guard (ADR 01162)", function () {
   }
 
   // Help and version still work, for diagnosing the misconfiguration.
-  for (const args of [["--help"], ["-h"], ["help"], ["install", "--help"], ["--version"]]) {
+  for (const args of [["--help"], ["-h"], ["help"], ["install", "--help"], ["run", "--help"], ["--version"]]) {
     it(`still answers ${args.join(" ")} when both switches are set`, function () {
       this.timeout(60000);
       const run = runCli(args);
