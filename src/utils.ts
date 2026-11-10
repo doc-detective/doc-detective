@@ -842,13 +842,6 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       summaryLine("Contexts:", contexts);
       summaryLine("Steps:   ", steps);
 
-      // If all specs were skipped, call it out
-      if (specs && specs.pass === 0 && specs.fail === 0 && specs.skipped > 0) {
-        console.log(
-          `\n${colors.yellow}${warningMark}All items were skipped. No specs passed or failed.${colors.reset}`
-        );
-      }
-
       // If zero tests ran for any reason (filters excluded everything, no
       // input matched, no tests detected, etc.), surface that as a warning
       // rather than letting the green "Passed: 0" line read like success.
