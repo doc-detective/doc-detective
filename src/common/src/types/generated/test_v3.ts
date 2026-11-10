@@ -113,6 +113,10 @@ export type Test = {
    * Total time this test took, in milliseconds: the sum of the per-context durations. A sum rather than a wall-clock span, because this test's contexts share a concurrent pool with every other test's. Present only in test results. System-populated.
    */
   durationMs?: number;
+  /**
+   * Which run of this test this report is, when a `goToTest` routing entry ran it again. Present only in test results, from the second run on. System-populated.
+   */
+  visit?: number;
   contexts?: ResolvedContexts;
 };
 export type DeviceByName = string;
@@ -6265,72 +6269,7 @@ export type Step1 = (
   swipe?: unknown;
   wait?: unknown;
   annotate?: unknown;
-} & (
-    | (Common21 & CheckLink2)
-    | (Common22 & Click2)
-    | (Common23 & Find2)
-    | (Common24 & GoTo2)
-    | (Common25 & HttpRequest2)
-    | (Common26 & RunShell2)
-    | (Common27 & RunCode2)
-    | (Common28 & RunBrowserScript2)
-    | (Common29 & Type1)
-    | (Common30 & Screenshot2)
-    | (Common31 & SaveCookie2)
-    | (Common32 & Record2)
-    | (Common33 & StopRecord2)
-    | (Common34 & CloseSurface2)
-    | (Common35 & StartSurface2)
-    | (Common36 & LoadVariables2)
-    | (Common37 & DragAndDrop2)
-    | (Common38 & LoadCookie2)
-    | (Common39 & Swipe2)
-    | (Common40 & Wait2)
-    | (Common41 & Annotate2)
-  ) & {
-    $schema?: unknown;
-    result?: unknown;
-    resultDescription?: unknown;
-    stepId?: unknown;
-    description?: unknown;
-    unsafe?: unknown;
-    outputs?: unknown;
-    variables?: unknown;
-    breakpoint?: unknown;
-    if?: unknown;
-    assertions?: unknown;
-    onPass?: unknown;
-    onFail?: unknown;
-    onWarning?: unknown;
-    onSkip?: unknown;
-    location?: unknown;
-    autoScreenshotPath?: unknown;
-    attempts?: unknown;
-    visit?: unknown;
-    durationMs?: unknown;
-    startedAt?: unknown;
-    checkLink?: unknown;
-    click?: unknown;
-    find?: unknown;
-    goTo?: unknown;
-    httpRequest?: unknown;
-    runShell?: unknown;
-    runCode?: unknown;
-    runBrowserScript?: unknown;
-    type?: unknown;
-    screenshot?: unknown;
-    saveCookie?: unknown;
-    record?: unknown;
-    stopRecord?: unknown;
-    closeSurface?: unknown;
-    startSurface?: unknown;
-    loadVariables?: unknown;
-    dragAndDrop?: unknown;
-    loadCookie?: unknown;
-    swipe?: unknown;
-    wait?: unknown;
-    annotate?: unknown;
-  };
+};
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -6342,20 +6281,9 @@ export type Condition132 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting84 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting84 = {
+  [k: string]: unknown;
+} & {
   if?: Condition133;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6378,20 +6306,9 @@ export type Condition133 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting85 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting85 = {
+  [k: string]: unknown;
+} & {
   if?: Condition134;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6414,20 +6331,9 @@ export type Condition134 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting86 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting86 = {
+  [k: string]: unknown;
+} & {
   if?: Condition135;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6450,20 +6356,9 @@ export type Condition135 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting87 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting87 = {
+  [k: string]: unknown;
+} & {
   if?: Condition136;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6508,20 +6403,9 @@ export type Condition138 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting88 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting88 = {
+  [k: string]: unknown;
+} & {
   if?: Condition139;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6544,20 +6428,9 @@ export type Condition139 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting89 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting89 = {
+  [k: string]: unknown;
+} & {
   if?: Condition140;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6580,20 +6453,9 @@ export type Condition140 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting90 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting90 = {
+  [k: string]: unknown;
+} & {
   if?: Condition141;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6616,20 +6478,9 @@ export type Condition141 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting91 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting91 = {
+  [k: string]: unknown;
+} & {
   if?: Condition142;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6657,29 +6508,9 @@ export type Click3 = ClickElementSimple1 | ClickElementDetailed1;
  * Identifier for the element to click. Can be a selector, element text, ARIA name, ID, or test ID. The string always names the element, so `"click": "right"` clicks the element whose text is "right". To pick the mouse button, use the object form's `button`, or `find` with `click`.
  */
 export type ClickElementSimple1 = string;
-export type ClickElementDetailed1 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type ClickElementDetailed1 = {
+  [k: string]: unknown;
+} & {
   /**
    * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
@@ -6778,20 +6609,9 @@ export type Condition144 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting92 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting92 = {
+  [k: string]: unknown;
+} & {
   if?: Condition145;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6814,20 +6634,9 @@ export type Condition145 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting93 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting93 = {
+  [k: string]: unknown;
+} & {
   if?: Condition146;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6850,20 +6659,9 @@ export type Condition146 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting94 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting94 = {
+  [k: string]: unknown;
+} & {
   if?: Condition147;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6886,20 +6684,9 @@ export type Condition147 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting95 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting95 = {
+  [k: string]: unknown;
+} & {
   if?: Condition148;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -6927,29 +6714,9 @@ export type Find3 = FindElementSimple1 | FindElementDetailed1;
  * Identifier for the element to find. Can be a selector, element text, ARIA name, ID, or test ID.
  */
 export type FindElementSimple1 = string;
-export type FindElementDetailed1 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type FindElementDetailed1 = {
+  [k: string]: unknown;
+} & {
   /**
    * The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }).
    */
@@ -7151,29 +6918,9 @@ export type ByName44 = string;
 /**
  * Wait for a specific element to be present. At least one finding field must be specified.
  */
-export type ElementCriteria6 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type ElementCriteria6 = {
+  [k: string]: unknown;
+} & {
   /**
    * Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime.
    */
@@ -7208,29 +6955,9 @@ export type ElementCriteria6 = (
 /**
  * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
-export type ElementCriteria7 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type ElementCriteria7 = {
+  [k: string]: unknown;
+} & {
   /**
    * Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime.
    */
@@ -7273,20 +7000,9 @@ export type Condition150 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting96 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting96 = {
+  [k: string]: unknown;
+} & {
   if?: Condition151;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -7309,20 +7025,9 @@ export type Condition151 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting97 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting97 = {
+  [k: string]: unknown;
+} & {
   if?: Condition152;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -7345,20 +7050,9 @@ export type Condition152 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting98 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting98 = {
+  [k: string]: unknown;
+} & {
   if?: Condition153;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -7381,20 +7075,9 @@ export type Condition153 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting99 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting99 = {
+  [k: string]: unknown;
+} & {
   if?: Condition154;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -7485,29 +7168,9 @@ export type GoToURLDetailed1 = {
     /**
      * Wait for a specific element to be present in the DOM. At least one of selector or elementText must be specified.
      */
-    find?: (
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-      | {
-          [k: string]: unknown;
-        }
-    ) & {
+    find?: {
+      [k: string]: unknown;
+    } & {
       /**
        * CSS selector for the element to wait for.
        */
@@ -7586,20 +7249,9 @@ export type Condition156 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting100 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting100 = {
+  [k: string]: unknown;
+} & {
   if?: Condition157;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -7622,20 +7274,9 @@ export type Condition157 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting101 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting101 = {
+  [k: string]: unknown;
+} & {
   if?: Condition158;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -7658,20 +7299,9 @@ export type Condition158 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting102 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting102 = {
+  [k: string]: unknown;
+} & {
   if?: Condition159;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -7694,20 +7324,9 @@ export type Condition159 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting103 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting103 = {
+  [k: string]: unknown;
+} & {
   if?: Condition160;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -7735,14 +7354,9 @@ export type HttpRequest3 = HTTPRequestSimple1 | HTTPRequestDetailed1;
  * Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type HTTPRequestSimple1 = string;
-export type HTTPRequestDetailed1 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type HTTPRequestDetailed1 = {
+  [k: string]: unknown;
+} & {
   url?: TargetURL5;
   openApi?: (string & OperationID1) | (OpenApi3 & OpenAPIDefinitionHttpRequest1);
   /**
@@ -7788,14 +7402,9 @@ export type TargetURL5 = string;
 /**
  * OpenAPI description and configuration.
  */
-export type OpenApi3 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type OpenApi3 = {
+  [k: string]: unknown;
+} & {
   /**
    * Name of the OpenAPI description, as defined in your configuration.
    */
@@ -7872,20 +7481,9 @@ export type Condition162 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting104 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting104 = {
+  [k: string]: unknown;
+} & {
   if?: Condition163;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -7908,20 +7506,9 @@ export type Condition163 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting105 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting105 = {
+  [k: string]: unknown;
+} & {
   if?: Condition164;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -7944,20 +7531,9 @@ export type Condition164 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting106 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting106 = {
+  [k: string]: unknown;
+} & {
   if?: Condition165;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -7980,20 +7556,9 @@ export type Condition165 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting107 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting107 = {
+  [k: string]: unknown;
+} & {
   if?: Condition166;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8032,20 +7597,9 @@ export type Condition168 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting108 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting108 = {
+  [k: string]: unknown;
+} & {
   if?: Condition169;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8068,20 +7622,9 @@ export type Condition169 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting109 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting109 = {
+  [k: string]: unknown;
+} & {
   if?: Condition170;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8104,20 +7647,9 @@ export type Condition170 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting110 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting110 = {
+  [k: string]: unknown;
+} & {
   if?: Condition171;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8140,20 +7672,9 @@ export type Condition171 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting111 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting111 = {
+  [k: string]: unknown;
+} & {
   if?: Condition172;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8188,20 +7709,9 @@ export type Condition174 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting112 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting112 = {
+  [k: string]: unknown;
+} & {
   if?: Condition175;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8224,20 +7734,9 @@ export type Condition175 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting113 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting113 = {
+  [k: string]: unknown;
+} & {
   if?: Condition176;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8260,20 +7759,9 @@ export type Condition176 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting114 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting114 = {
+  [k: string]: unknown;
+} & {
   if?: Condition177;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8296,20 +7784,9 @@ export type Condition177 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting115 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting115 = {
+  [k: string]: unknown;
+} & {
   if?: Condition178;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8376,20 +7853,9 @@ export type Condition180 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting116 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting116 = {
+  [k: string]: unknown;
+} & {
   if?: Condition181;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8412,20 +7878,9 @@ export type Condition181 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting117 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting117 = {
+  [k: string]: unknown;
+} & {
   if?: Condition182;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8448,20 +7903,9 @@ export type Condition182 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting118 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting118 = {
+  [k: string]: unknown;
+} & {
   if?: Condition183;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8484,20 +7928,9 @@ export type Condition183 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting119 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting119 = {
+  [k: string]: unknown;
+} & {
   if?: Condition184;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8627,29 +8060,9 @@ export type ByName51 = string;
 /**
  * Wait for a specific element to be present. At least one finding field must be specified.
  */
-export type ElementCriteria8 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type ElementCriteria8 = {
+  [k: string]: unknown;
+} & {
   /**
    * Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime.
    */
@@ -8684,29 +8097,9 @@ export type ElementCriteria8 = (
 /**
  * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
-export type ElementCriteria9 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type ElementCriteria9 = {
+  [k: string]: unknown;
+} & {
   /**
    * Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime.
    */
@@ -8749,20 +8142,9 @@ export type Condition186 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting120 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting120 = {
+  [k: string]: unknown;
+} & {
   if?: Condition187;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8785,20 +8167,9 @@ export type Condition187 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting121 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting121 = {
+  [k: string]: unknown;
+} & {
   if?: Condition188;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8821,20 +8192,9 @@ export type Condition188 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting122 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting122 = {
+  [k: string]: unknown;
+} & {
   if?: Condition189;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8857,20 +8217,9 @@ export type Condition189 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting123 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting123 = {
+  [k: string]: unknown;
+} & {
   if?: Condition190;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -8954,29 +8303,9 @@ export type CropByElementSimple1 = string;
 /**
  * Crop the screenshot to a specific element.
  */
-export type CropByElementDetailed1 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type CropByElementDetailed1 = {
+  [k: string]: unknown;
+} & {
   /**
    * Display text of the element to screenshot.
    */
@@ -9025,28 +8354,9 @@ export type TargetByElementSimple18 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed18 = ElementFindingFields18 & AtLeastOneElementFindingField18;
-export type AtLeastOneElementFindingField18 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField18 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -9060,28 +8370,9 @@ export type TargetByElementSimple19 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed19 = ElementFindingFields19 & AtLeastOneElementFindingField19;
-export type AtLeastOneElementFindingField19 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField19 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -9095,28 +8386,9 @@ export type TargetByElementSimple20 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed20 = ElementFindingFields20 & AtLeastOneElementFindingField20;
-export type AtLeastOneElementFindingField20 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField20 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -9130,28 +8402,9 @@ export type TargetByElementSimple21 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed21 = ElementFindingFields21 & AtLeastOneElementFindingField21;
-export type AtLeastOneElementFindingField21 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField21 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -9165,28 +8418,9 @@ export type TargetByElementSimple22 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed22 = ElementFindingFields22 & AtLeastOneElementFindingField22;
-export type AtLeastOneElementFindingField22 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField22 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -9200,28 +8434,9 @@ export type TargetByElementSimple23 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed23 = ElementFindingFields23 & AtLeastOneElementFindingField23;
-export type AtLeastOneElementFindingField23 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField23 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -9232,25 +8447,9 @@ export type NamedRegion26 =
  */
 export type NamedRegion27 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
-export type ExactlyOneAnnotationType3 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type ExactlyOneAnnotationType3 = {
+  [k: string]: unknown;
+};
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -9262,20 +8461,9 @@ export type Condition192 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting124 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting124 = {
+  [k: string]: unknown;
+} & {
   if?: Condition193;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9298,20 +8486,9 @@ export type Condition193 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting125 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting125 = {
+  [k: string]: unknown;
+} & {
   if?: Condition194;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9334,20 +8511,9 @@ export type Condition194 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting126 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting126 = {
+  [k: string]: unknown;
+} & {
   if?: Condition195;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9370,20 +8536,9 @@ export type Condition195 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting127 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting127 = {
+  [k: string]: unknown;
+} & {
   if?: Condition196;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9411,14 +8566,9 @@ export type SaveCookie3 = CookieName3 | SaveCookieDetailed1;
  * A cookie file path ending in `.txt`, or a cookie name. `session.txt` saves the cookie named `session` to `session.txt` in `outputDir`. Any other value saves the cookie with that name to the environment variable of the same name.
  */
 export type CookieName3 = string;
-export type SaveCookieDetailed1 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type SaveCookieDetailed1 = {
+  [k: string]: unknown;
+} & {
   /**
    * Optional self-describing schema URI for linters
    */
@@ -9465,20 +8615,9 @@ export type Condition198 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting128 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting128 = {
+  [k: string]: unknown;
+} & {
   if?: Condition199;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9501,20 +8640,9 @@ export type Condition199 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting129 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting129 = {
+  [k: string]: unknown;
+} & {
   if?: Condition200;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9537,20 +8665,9 @@ export type Condition200 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting130 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting130 = {
+  [k: string]: unknown;
+} & {
   if?: Condition201;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9573,20 +8690,9 @@ export type Condition201 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting131 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting131 = {
+  [k: string]: unknown;
+} & {
   if?: Condition202;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9686,20 +8792,9 @@ export type Condition204 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting132 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting132 = {
+  [k: string]: unknown;
+} & {
   if?: Condition205;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9722,20 +8817,9 @@ export type Condition205 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting133 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting133 = {
+  [k: string]: unknown;
+} & {
   if?: Condition206;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9758,20 +8842,9 @@ export type Condition206 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting134 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting134 = {
+  [k: string]: unknown;
+} & {
   if?: Condition207;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9794,20 +8867,9 @@ export type Condition207 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting135 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting135 = {
+  [k: string]: unknown;
+} & {
   if?: Condition208;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9850,20 +8912,9 @@ export type Condition210 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting136 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting136 = {
+  [k: string]: unknown;
+} & {
   if?: Condition211;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9886,20 +8937,9 @@ export type Condition211 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting137 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting137 = {
+  [k: string]: unknown;
+} & {
   if?: Condition212;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9922,20 +8962,9 @@ export type Condition212 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting138 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting138 = {
+  [k: string]: unknown;
+} & {
   if?: Condition213;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -9958,20 +8987,9 @@ export type Condition213 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting139 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting139 = {
+  [k: string]: unknown;
+} & {
   if?: Condition214;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10094,20 +9112,9 @@ export type Condition216 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting140 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting140 = {
+  [k: string]: unknown;
+} & {
   if?: Condition217;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10130,20 +9137,9 @@ export type Condition217 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting141 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting141 = {
+  [k: string]: unknown;
+} & {
   if?: Condition218;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10166,20 +9162,9 @@ export type Condition218 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting142 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting142 = {
+  [k: string]: unknown;
+} & {
   if?: Condition219;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10202,20 +9187,9 @@ export type Condition219 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting143 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting143 = {
+  [k: string]: unknown;
+} & {
   if?: Condition220;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10243,29 +9217,9 @@ export type DeviceByName3 = string;
 /**
  * Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.
  */
-export type ElementCriteria10 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type ElementCriteria10 = {
+  [k: string]: unknown;
+} & {
   /**
    * Selector for the element to wait for. On browser surfaces, a CSS selector. On app surfaces, a native selector — an XPath (`//`), or `~` for an accessibility id; CSS is rejected at runtime.
    */
@@ -10375,20 +9329,9 @@ export type Condition222 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting144 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting144 = {
+  [k: string]: unknown;
+} & {
   if?: Condition223;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10411,20 +9354,9 @@ export type Condition223 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting145 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting145 = {
+  [k: string]: unknown;
+} & {
   if?: Condition224;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10447,20 +9379,9 @@ export type Condition224 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting146 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting146 = {
+  [k: string]: unknown;
+} & {
   if?: Condition225;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10483,20 +9404,9 @@ export type Condition225 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting147 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting147 = {
+  [k: string]: unknown;
+} & {
   if?: Condition226;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10531,20 +9441,9 @@ export type Condition228 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting148 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting148 = {
+  [k: string]: unknown;
+} & {
   if?: Condition229;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10567,20 +9466,9 @@ export type Condition229 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting149 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting149 = {
+  [k: string]: unknown;
+} & {
   if?: Condition230;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10603,20 +9491,9 @@ export type Condition230 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting150 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting150 = {
+  [k: string]: unknown;
+} & {
   if?: Condition231;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10639,20 +9516,9 @@ export type Condition231 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting151 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting151 = {
+  [k: string]: unknown;
+} & {
   if?: Condition232;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10676,29 +9542,9 @@ export type Condition232 = string | [string, ...string[]];
  * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
  */
 export type ElementSimple2 = string;
-export type ElementDetailed2 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type ElementDetailed2 = {
+  [k: string]: unknown;
+} & {
   /**
    * Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector.
    */
@@ -10738,29 +9584,9 @@ export type ElementDetailed2 = (
  * Display text, selector, or regex pattern (enclosed in forward slashes) of the element.
  */
 export type ElementSimple3 = string;
-export type ElementDetailed3 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type ElementDetailed3 = {
+  [k: string]: unknown;
+} & {
   /**
    * Display text or regex pattern (enclosed in forward slashes) of the element. If combined with `selector`, the element must match both the text and the selector.
    */
@@ -10835,20 +9661,9 @@ export type Condition234 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting152 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting152 = {
+  [k: string]: unknown;
+} & {
   if?: Condition235;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10871,20 +9686,9 @@ export type Condition235 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting153 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting153 = {
+  [k: string]: unknown;
+} & {
   if?: Condition236;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10907,20 +9711,9 @@ export type Condition236 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting154 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting154 = {
+  [k: string]: unknown;
+} & {
   if?: Condition237;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10943,20 +9736,9 @@ export type Condition237 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting155 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting155 = {
+  [k: string]: unknown;
+} & {
   if?: Condition238;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -10984,14 +9766,9 @@ export type LoadCookie3 = CookieNameOrFilePath1 | LoadCookieDetailed1;
  * A cookie file path ending in `.txt`, or a cookie name. `session.txt` loads the cookie named `session` from `session.txt` in `outputDir`. Any other value loads the cookie from the environment variable of the same name.
  */
 export type CookieNameOrFilePath1 = string;
-export type LoadCookieDetailed1 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type LoadCookieDetailed1 = {
+  [k: string]: unknown;
+} & {
   /**
    * Optional self-describing schema URI for linters
    */
@@ -11033,20 +9810,9 @@ export type Condition240 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting156 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting156 = {
+  [k: string]: unknown;
+} & {
   if?: Condition241;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11069,20 +9835,9 @@ export type Condition241 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting157 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting157 = {
+  [k: string]: unknown;
+} & {
   if?: Condition242;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11105,20 +9860,9 @@ export type Condition242 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting158 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting158 = {
+  [k: string]: unknown;
+} & {
   if?: Condition243;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11141,20 +9885,9 @@ export type Condition243 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting159 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting159 = {
+  [k: string]: unknown;
+} & {
   if?: Condition244;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11277,20 +10010,9 @@ export type Condition246 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting160 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting160 = {
+  [k: string]: unknown;
+} & {
   if?: Condition247;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11313,20 +10035,9 @@ export type Condition247 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting161 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting161 = {
+  [k: string]: unknown;
+} & {
   if?: Condition248;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11349,20 +10060,9 @@ export type Condition248 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting162 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting162 = {
+  [k: string]: unknown;
+} & {
   if?: Condition249;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11385,20 +10085,9 @@ export type Condition249 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting163 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting163 = {
+  [k: string]: unknown;
+} & {
   if?: Condition250;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11435,20 +10124,9 @@ export type Condition252 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting164 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting164 = {
+  [k: string]: unknown;
+} & {
   if?: Condition253;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11471,20 +10149,9 @@ export type Condition253 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting165 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting165 = {
+  [k: string]: unknown;
+} & {
   if?: Condition254;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11507,20 +10174,9 @@ export type Condition254 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting166 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting166 = {
+  [k: string]: unknown;
+} & {
   if?: Condition255;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11543,20 +10199,9 @@ export type Condition255 = string | [string, ...string[]];
 /**
  * A single routing entry on a step handler (`onPass`, `onFail`, `onWarning`, `onSkip`): an optional condition (`if`) plus exactly one of `continue`, `stop` (`test`), `retry`, or `goToStep`.
  */
-export type StepRouting167 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
+export type StepRouting167 = {
+  [k: string]: unknown;
+} & {
   if?: Condition256;
   /**
    * Continue execution with the next step. Use to explicitly suppress a default handler behavior.
@@ -11592,28 +10237,9 @@ export type TargetByElementSimple24 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed24 = ElementFindingFields24 & AtLeastOneElementFindingField24;
-export type AtLeastOneElementFindingField24 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField24 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -11627,28 +10253,9 @@ export type TargetByElementSimple25 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed25 = ElementFindingFields25 & AtLeastOneElementFindingField25;
-export type AtLeastOneElementFindingField25 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField25 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -11662,28 +10269,9 @@ export type TargetByElementSimple26 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed26 = ElementFindingFields26 & AtLeastOneElementFindingField26;
-export type AtLeastOneElementFindingField26 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField26 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -11697,28 +10285,9 @@ export type TargetByElementSimple27 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed27 = ElementFindingFields27 & AtLeastOneElementFindingField27;
-export type AtLeastOneElementFindingField27 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField27 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -11732,28 +10301,9 @@ export type TargetByElementSimple28 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed28 = ElementFindingFields28 & AtLeastOneElementFindingField28;
-export type AtLeastOneElementFindingField28 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField28 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -11767,28 +10317,9 @@ export type TargetByElementSimple29 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed29 = ElementFindingFields29 & AtLeastOneElementFindingField29;
-export type AtLeastOneElementFindingField29 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField29 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -11799,25 +10330,9 @@ export type NamedRegion33 =
  */
 export type NamedRegion34 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
-export type ExactlyOneAnnotationType4 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type ExactlyOneAnnotationType4 = {
+  [k: string]: unknown;
+};
 /**
  * An annotation that names the `id` of the annotation to replace.
  */
@@ -11834,28 +10349,9 @@ export type TargetByElementSimple30 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed30 = ElementFindingFields30 & AtLeastOneElementFindingField30;
-export type AtLeastOneElementFindingField30 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField30 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -11869,28 +10365,9 @@ export type TargetByElementSimple31 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed31 = ElementFindingFields31 & AtLeastOneElementFindingField31;
-export type AtLeastOneElementFindingField31 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField31 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -11904,28 +10381,9 @@ export type TargetByElementSimple32 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed32 = ElementFindingFields32 & AtLeastOneElementFindingField32;
-export type AtLeastOneElementFindingField32 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField32 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -11939,28 +10397,9 @@ export type TargetByElementSimple33 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed33 = ElementFindingFields33 & AtLeastOneElementFindingField33;
-export type AtLeastOneElementFindingField33 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField33 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -11974,28 +10413,9 @@ export type TargetByElementSimple34 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed34 = ElementFindingFields34 & AtLeastOneElementFindingField34;
-export type AtLeastOneElementFindingField34 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField34 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -12009,28 +10429,9 @@ export type TargetByElementSimple35 = string;
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
 export type TargetByElementDetailed35 = ElementFindingFields35 & AtLeastOneElementFindingField35;
-export type AtLeastOneElementFindingField35 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneElementFindingField35 = {
+  [k: string]: unknown;
+};
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
@@ -12041,25 +10442,9 @@ export type NamedRegion40 =
  */
 export type NamedRegion41 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
-export type ExactlyOneAnnotationType5 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type ExactlyOneAnnotationType5 = {
+  [k: string]: unknown;
+};
 /**
  * If `true`, clears every annotation currently on screen. If `false`, clears nothing.
  */
@@ -12068,16 +10453,9 @@ export type ClearAll1 = boolean;
  * Ids of the annotations to clear. Ids that aren't on screen are ignored.
  */
 export type ClearById1 = string[];
-export type AtLeastOneOfAddUpdateOrClear1 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
+export type AtLeastOneOfAddUpdateOrClear1 = {
+  [k: string]: unknown;
+};
 /**
  * Resolved contexts to run the test in. This is a resolved version of the `runOn` property. It is not user-defined and should not be used in test specifications.
  */
@@ -20308,11 +18686,59 @@ export interface ResolvedContext {
   browser?: Browser2;
   openApi?: (OpenApi2 & OpenAPIDescriptionTest1)[];
   /**
-   * Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed.
-   *
-   * @minItems 1
+   * Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed. In test results, a context that never ran, such as a skipped one, has an empty list.
    */
-  steps?: [Step1, ...Step1[]];
+  steps?: Step1[];
+  /**
+   * Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one.
+   */
+  contextId?: string;
+  /**
+   * Whether this context's test is marked `unsafe`. Present in a resolved test plan. System-populated.
+   */
+  unsafe?: boolean;
+  /**
+   * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
+   */
+  requires?: string | [string, ...string[]] | Requirements1;
+  /**
+   * Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).
+   */
+  browserFallback?: "auto" | "explicit" | "off";
+  /**
+   * In a resolved test plan, the `retries` policy from the `runOn` entry. In test results, how many times the context re-ran on a fresh session after its session died. Absent from results when it didn't re-run.
+   */
+  retries?: number;
+  /**
+   * The device a mobile (`android` or `ios`) context runs on. In a resolved test plan, the `device` from the `runOn` entry. In test results, an object with the device's `platform` and `name`. Absent for a desktop context.
+   */
+  device?:
+    | string
+    | {
+        [k: string]: unknown;
+      };
+  /**
+   * Warnings from this context's preflight checks, such as a toolchain that Doc Detective had to install first. Present only in test results, when there are any. System-populated.
+   */
+  warnings?: string[];
+  /**
+   * The browser this context asked for, and the one that ran instead because `browserFallback` allowed it. Present only in test results, when a fallback happened. System-populated.
+   */
+  fallback?: {
+    /**
+     * Name of the browser the context asked for.
+     */
+    requested?: string;
+    /**
+     * Name of the browser that ran.
+     */
+    used?: string;
+    [k: string]: unknown;
+  };
+  /**
+   * `true` when the browser couldn't shrink to the requested viewport and stopped at its smallest size. Present only in test results, when that happened. System-populated.
+   */
+  viewportFloored?: boolean;
   [k: string]: unknown;
 }
 /**
@@ -28097,4 +26523,24 @@ export interface AnnotationTransition6 {
 }
 export interface IdIsRequiredForUpdates1 {
   [k: string]: unknown;
+}
+export interface Requirements1 {
+  /**
+   * Commands that must be resolvable on the PATH.
+   *
+   * @minItems 1
+   */
+  commands?: [string, ...string[]];
+  /**
+   * Files that must exist. Entries support `$VAR` and `$HOME` expansion.
+   *
+   * @minItems 1
+   */
+  files?: [string, ...string[]];
+  /**
+   * Environment variables that must be set to a non-empty value.
+   *
+   * @minItems 1
+   */
+  env?: [string, ...string[]];
 }

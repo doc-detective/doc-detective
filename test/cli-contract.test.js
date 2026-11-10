@@ -176,6 +176,17 @@ describe("CLI contract", function () {
       expect(r.status, r.stderr).to.equal(0);
     });
 
+    // ADR 01186: an API failure is an error, not a report.
+    it("exits 2 when the Doc Detective API can't run the tests", function () {
+      fs.writeFileSync(path.join(cwd, "api.json"), JSON.stringify({ integrations: { docDetectiveApi: { apiKey: "k" } } }));
+      const r = run(["-c", "api.json", "-i", "pass.spec.json"], {
+        env: { DOC_DETECTIVE_API_URL: "http://127.0.0.1:1" },
+        unset: ["DOC_DETECTIVE_API"],
+      });
+      expect(r.status, r.stderr).to.equal(2);
+      expect(r.stderr).to.match(/Couldn't run tests through the Doc Detective API: couldn't reach it \(\w+\)\./);
+    });
+
     it("exits 2 from an invalid config with --no-exit-on-fail too", function () {
       fs.writeFileSync(path.join(cwd, "bad.json"), JSON.stringify({ logLevel: "loud" }));
       const r = run(["--no-exit-on-fail", "-c", "bad.json"], { env: { DOC_DETECTIVE_CONFIG: JSON.stringify(noFail) } });
@@ -410,12 +421,40 @@ describe("CLI contract", function () {
       });
     }
 
+    // ADR 01186: every report a run can write validates, including the
+    // skipped, routed, and empty ones.
+    const otherPlatform = { win32: "linux", darwin: "windows", linux: "mac" }[process.platform] ?? "mac";
+    const reportCases = {
+      "skipped.spec.json": {
+        specId: "skipped",
+        tests: [{ testId: "skipped-t", runOn: [{ platforms: [otherPlatform] }], steps: [{ runShell: "echo hi" }] }],
+      },
+      "routed.spec.json": {
+        specId: "routed",
+        tests: [
+          {
+            testId: "routed-t",
+            steps: [
+              { stepId: "first", runShell: "echo hi", onPass: [{ goToStep: "nope" }] },
+              { stepId: "second", runShell: "echo hi" },
+            ],
+          },
+        ],
+      },
+    };
     for (const [name, file, args, status] of [
       ["a passing run", "pass.spec.json", [], 0],
       ["a failing run", "fail.spec.json", [], 1],
       ["a run whose filter matches nothing", "pass.spec.json", ["-t", "no-such-test"], 2],
+      ["a run that skipped everything", "skipped.spec.json", [], 2],
+      ["a run whose routing named a missing step", "routed.spec.json", [], 1],
+      ["a run with no tests", "empty.md", [], 2],
     ]) {
       it(`matches report_v3 for ${name}`, function () {
+        for (const [specFile, spec] of Object.entries(reportCases)) {
+          fs.writeFileSync(path.join(cwd, specFile), JSON.stringify(spec));
+        }
+        fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
         const r = run(["-i", file, "--json", ...args]);
         expect(r.status, r.stderr).to.equal(status);
         const report = JSON.parse(r.stdout);
@@ -423,6 +462,34 @@ describe("CLI contract", function () {
         expect(result.valid, result.errors).to.equal(true);
       });
     }
+
+    it("reports a routing miss on the step that routed, not on a step of its own", function () {
+      fs.writeFileSync(path.join(cwd, "routed.spec.json"), JSON.stringify(reportCases["routed.spec.json"]));
+      const r = run(["-i", "routed.spec.json", "--json"]);
+      const report = JSON.parse(r.stdout);
+      const [first, second] = report.specs[0].tests[0].contexts[0].steps;
+      expect(report.specs[0].tests[0].contexts[0].steps).to.have.lengthOf(2);
+      expect(first.result).to.equal("FAIL");
+      expect(first.resultDescription).to.match(/Couldn't route to step `nope`: no step has that `stepId`\.$/);
+      expect(second.result).to.equal("SKIPPED");
+      expect(report.summary.steps).to.deep.equal({ pass: 0, fail: 1, warning: 0, skipped: 1 });
+    });
+
+    it("writes the same report shape for every run with no tests", function () {
+      fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+      for (const args of [["-i", "empty.md"], ["-i", "pass.spec.json", "-t", "no-such-test"]]) {
+        const report = JSON.parse(run([...args, "--json"]).stdout);
+        expect(Object.keys(report)).to.include.members(["summary", "startedAt", "environment", "durationMs", "specs"]);
+        expect(report.specs).to.deep.equal([]);
+      }
+    });
+
+    it("matches resolvedTests_v3 for a --dry-run plan", function () {
+      const r = run(["-i", "pass.spec.json", "-n"]);
+      expect(r.status, r.stderr).to.equal(0);
+      const result = validate({ schemaKey: "resolvedTests_v3", object: JSON.parse(r.stdout), addDefaults: false });
+      expect(result.valid, result.errors).to.equal(true);
+    });
 
     // ADR 01167: the report echoes the effective step, not the authored shorthand.
     // The page server lives in this process, so the CLI runs asynchronously
@@ -468,6 +535,9 @@ describe("CLI contract", function () {
         const status = await new Promise((resolve) => child.on("close", resolve));
         clearTimeout(stall);
         expect(status, stderr).to.equal(0);
+        // ADR 01186: a browser run's report validates too.
+        const validated = validate({ schemaKey: "report_v3", object: JSON.parse(stdout), addDefaults: false });
+        expect(validated.valid, validated.errors).to.equal(true);
         const [goTo, httpRequest, wholeVariable, shot] = JSON.parse(stdout).specs[0].tests[0].contexts[0].steps;
         expect(goTo.goTo).to.include({ url, timeout: 30000 });
         expect(httpRequest.httpRequest).to.deep.include({ method: "get", statusCodes: [200, 201], timeout: 60000 });

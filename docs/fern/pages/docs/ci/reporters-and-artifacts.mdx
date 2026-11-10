@@ -279,7 +279,7 @@ These parts of the results are a stable contract for scripts. A change to any of
 - `runId` and `runDir`, except when a filter matches nothing. That run has no run folder, and `specs` is empty.
 - The four `--plain` columns, in order. New columns only go at the end.
 
-Doc Detective can add new fields at any time, so ignore the ones you don't recognize. The [`report_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/report_v3.schema.json) defines the full shape.
+Doc Detective can add new fields at any time, so ignore the ones you don't recognize. The [`report_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/report_v3.schema.json) defines the full shape. Every results file validates against it, including a run that skipped everything or found no tests. A skipped context has an empty `steps` list. A run with no tests still has `startedAt`, `environment`, and `durationMs`. The `--dry-run` plan validates against the [`resolvedTests_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/resolvedTests_v3.schema.json).
 
 ### Steps show what ran
 
