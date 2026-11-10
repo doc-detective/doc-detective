@@ -1,8 +1,7 @@
-import fs from "node:fs";
 import path from "node:path";
 
 import { reportOutputDir } from "../core/utils.js";
-import { mediaPath, nonPassItems, writeReport } from "./model.js";
+import { existingFile, mediaPath, nonPassItems, writeReport } from "./model.js";
 
 export { junitReporter, buildJunitXml };
 
@@ -95,9 +94,10 @@ function buildJunitXml(results: any, outputFile?: string): string {
       if (result !== "SKIPPED") {
         // Attachments first: GitLab reads only the first marker.
         const shot = own.find((item) => item.screenshot)?.screenshot;
-        const video = recording && path.resolve(typeof runDir === "string" ? runDir : "", recording);
+        // Both are absolute and exist: the model checked the screenshot already.
+        const video = existingFile(recording, runDir);
         for (const file of [shot, video]) {
-          if (file && fs.existsSync(file)) out.push(`[[ATTACHMENT|${mediaPath(file, runDir, fromDir)}]]`);
+          if (file) out.push(`[[ATTACHMENT|${mediaPath(file, runDir, fromDir)}]]`);
         }
       }
       const line = (prefix: string, item: any) => {
@@ -137,7 +137,7 @@ function buildJunitXml(results: any, outputFile?: string): string {
       `  <testsuite name="${esc(specId)}"` +
         ` tests="${cases.length}" failures="${suiteFailures}" errors="0"` +
         ` skipped="${suiteSkipped}" time="${secs(spec.durationMs)}"${timestamp}>\n` +
-        (cases.length > 0 ? suiteHead : "") +
+        suiteHead +
         `${cases.join("\n")}${cases.length ? "\n" : ""}  </testsuite>`
     );
   });
