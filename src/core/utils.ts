@@ -17,7 +17,7 @@ import {
   ensureRuntimeInstalled,
 } from "../runtime/loader.js";
 import { resolveWindowsBash as defaultResolveWindowsBash } from "../runtime/windowsBash.js";
-import { ownVersion } from "../runtime/heavyDeps.js";
+import { ownVersion, packageRoot } from "../runtime/heavyDeps.js";
 import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
@@ -1246,10 +1246,14 @@ function shouldFailRun(results: any): boolean {
 }
 
 // Every bundled schema, by key. Loaded only here, on the way to an error: the
-// file is about 40 MB, so the first error in a process waits for it.
+// file is about 40 MB, so the first error in a process waits for it. Found from
+// the package root, not this module's URL: the dist/index.cjs bundle sits one
+// level shallower than dist/core/.
 let loadedAllSchemas: any;
 function allSchemas() {
-  return (loadedAllSchemas ??= createRequire(import.meta.url)("../common/src/schemas/schemas.json"));
+  return (loadedAllSchemas ??= createRequire(import.meta.url)(
+    path.join(packageRoot() ?? ".", "dist", "common", "src", "schemas", "schemas.json")
+  ));
 }
 
 // Every schema node that can describe the value at `parts`, following
@@ -1764,7 +1768,9 @@ function redactUrlForOutput(value: string): string {
 // Private/loopback/link-local IP ranges that binary URL fetches refuse to
 // reach by default. Covers IPv4 RFC1918, loopback, link-local (169.254/16),
 // carrier-grade NAT (100.64/10), and the cloud-metadata special cases
-// (169.254.169.254 is inside link-local and thus covered).
+// (169.254.169.254 is inside link-local and thus covered). Teredo
+// (2001:0::/32) isn't covered: routing HTTP through it needs Teredo relay
+// infrastructure, so it isn't a realistic SSRF path.
 function isPrivateOrLoopbackAddress(ip: string): boolean {
   if (!ip) return false;
   if (net.isIPv4(ip)) {

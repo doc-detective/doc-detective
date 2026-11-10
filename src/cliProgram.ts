@@ -59,7 +59,10 @@ export function buildProgram({ runTests }: { runTests: RunHandler }): Command {
   program.addCommand(buildLspCommand());
   program.addCommand(buildDebugCommand());
 
-  addGlobalOptions(program.command("runner", { hidden: true }))
+  // No global flags: the hosted runner reports to its API, not to stdout, and
+  // reads its settings from the environment (ADR 01193).
+  program
+    .command("runner", { hidden: true })
     .description(
       "Run a hosted test job: fetch its config, run the tests, and report back. Used by Doc Detective's hosted runner images. It reads its settings from the DD_RUN_ID, DD_RUN_TOKEN, DD_API_BASE, and DD_TIMEOUT_SECONDS environment variables."
     )

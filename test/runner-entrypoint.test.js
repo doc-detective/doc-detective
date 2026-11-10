@@ -260,6 +260,24 @@ describe("runner-entrypoint: buildEffectiveConfig", () => {
     const cfg = buildEffectiveConfig({ exitOnFail: false }, { type: "inline", specs: [] });
     assert.equal(cfg.exitOnFail, true);
   });
+
+  it("turns autoScreenshot and autoRecord off when the config leaves them unset", () => {
+    // Hosted runs don't capture customer pages unless a spec or test asks
+    // (ADR 01196). Spec and test values still win in core's
+    // `test ?? spec ?? config` resolution.
+    const cfg = buildEffectiveConfig({}, { type: "inline", specs: [] });
+    assert.equal(cfg.autoScreenshot, false);
+    assert.equal(cfg.autoRecord, false);
+  });
+
+  it("turns autoScreenshot and autoRecord off over a repository config that sets them", () => {
+    const cfg = buildEffectiveConfig(
+      { autoScreenshot: true, autoRecord: true },
+      { type: "github", repo: "x/y", ref: "main" }
+    );
+    assert.equal(cfg.autoScreenshot, false);
+    assert.equal(cfg.autoRecord, false);
+  });
 });
 
 describe("runner-entrypoint: finalizeBodyFor", () => {

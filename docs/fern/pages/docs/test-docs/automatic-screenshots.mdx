@@ -65,6 +65,8 @@ Each reporter points at the images its own way:
 | `junit` | An `[[ATTACHMENT|<path>]]` line, relative to `junit.xml`, for the first step in a test case that failed or warned. |
 | `json`, and the run folder's `testResults.json` | The step's `autoScreenshotPath` field, relative to the run folder, which the report names in `runDir`. |
 
+Like `screenshot` steps, automatic browser screenshots blur elements whose text or form value holds a secret environment variable value. The blur appears in the saved image. Text inside iframes, shadow DOM, or a canvas isn't blurred, and neither are native app and device screenshots. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
+
 Automatic screenshots don't compare against a reference. To gate on drift, add a `screenshot` step with `maxVariation`, as described in [Detect visual regressions](/docs/test-docs/screenshot-visual-regression).
 
 ## Turn them off

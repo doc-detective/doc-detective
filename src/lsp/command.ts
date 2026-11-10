@@ -1,13 +1,14 @@
 import { Command, Option } from "commander";
-import { addGlobalOptions } from "../cliOptions.js";
 
 /**
  * `doc-detective lsp` — start the Doc Detective language server. The action
  * imports the server (and its `vscode-languageserver` dependency graph) only
  * when this subcommand runs, so ordinary test runs never pay that import cost.
+ * No global flags: the server speaks LSP on stdout, which `--json` and the log
+ * flags can't change (ADR 01193).
  */
 export function buildLspCommand(): Command {
-  return addGlobalOptions(new Command("lsp"))
+  return new Command("lsp")
     .description(
       "Start the Doc Detective language server (LSP) over stdio for editors and AI agents."
     )

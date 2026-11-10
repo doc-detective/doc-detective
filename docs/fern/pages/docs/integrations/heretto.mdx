@@ -112,7 +112,7 @@ Example using environment variables with `loadVariables`:
 
 ### Read the token from a file
 
-If your CI system mounts secrets as files, you can keep the token out of your config file and the environment. Use `apiTokenFile` in place of `apiToken`:
+If your CI system mounts secrets as files, you can keep the token out of your config file and the environment. Use `apiTokenFile` in place of `apiToken`. A relative path resolves against the config file that sets it:
 
 ```json
 {

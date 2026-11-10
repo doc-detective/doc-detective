@@ -27,6 +27,8 @@ export {
   parseBlackdetect,
   createMatchingLineCollector,
   detectAllBlack,
+  dominantFrameSize,
+  probeDominantFrameSize,
   deriveCropScale,
   detectDisplayPointSize,
   jobIsFfmpegRecording,
@@ -846,12 +848,51 @@ function parseBlackdetect(
   return covered >= (duration - frameInterval) * 0.95;
 }
 
+// The frame size that covers the most time in an ffmpeg `showinfo` log, or
+// null when every frame has the same size. Time, not frame count: a captured
+// tab sends frames only when it repaints. A tab capture's first and last
+// frames can come from the tab while it's behind the recorder tab, at another
+// size (ADR 01197).
+function dominantFrameSize(showinfo: string): { width: number; height: number } | null {
+  const frames = [...(showinfo ?? "").matchAll(/pts_time:\s*(-?[\d.]+).*?\bs:(\d+)x(\d+)/g)];
+  const seconds = new Map<string, number>();
+  frames.forEach((frame, i) => {
+    const next = frames[i + 1];
+    const span = next ? Number(next[1]) - Number(frame[1]) : 0;
+    const size = `${frame[2]}x${frame[3]}`;
+    seconds.set(size, (seconds.get(size) ?? 0) + Math.max(0, span));
+  });
+  if (seconds.size < 2) return null;
+  const [size] = [...seconds].reduce((best, entry) => (entry[1] > best[1] ? entry : best));
+  const [width, height] = size.split("x").map(Number);
+  return { width, height };
+}
+
+// Decode a recording and return the frame size that covers most of it, or
+// null when its frames are all one size or it couldn't be probed. Bounded
+// like detectAllBlack.
+async function probeDominantFrameSize({
+  cacheDir,
+  filePath,
+}: {
+  cacheDir?: string;
+  filePath: string;
+}): Promise<{ width: number; height: number } | null> {
+  const showinfo = await collectFfmpegLines({
+    cacheDir,
+    args: ["-hide_banner", "-i", filePath, "-an", "-vf", "showinfo", "-f", "null", "-"],
+    needle: "pts_time:",
+    // Every frame's line counts toward the size, so don't cap at the
+    // collector's 64 KiB default; the 30-second kill timer bounds the run.
+    limit: Infinity,
+  });
+  return showinfo === null ? null : dominantFrameSize(showinfo);
+}
+
 // Run a bounded ffmpeg blackdetect pass over a produced recording and report
 // whether it is (essentially) all black. Returns null when the analysis
 // couldn't run (missing binary, spawn error, timeout) — the caller skips the
-// guard rather than guessing. Bounded like probeVideoMetadata: no JIT
-// install, and a kill timer sized for a real decode pass (30s — doc
-// recordings are short).
+// guard rather than guessing.
 async function detectAllBlack({
   cacheDir,
   filePath,
@@ -863,9 +904,43 @@ async function detectAllBlack({
   duration?: number;
   fps?: number;
 }): Promise<boolean | null> {
+  const stderr = await collectFfmpegLines({
+    cacheDir,
+    args: [
+      "-hide_banner",
+      "-i",
+      filePath,
+      "-vf",
+      "blackdetect=d=0.1:pix_th=0.10",
+      "-an",
+      "-f",
+      "null",
+      "-",
+    ],
+    needle: "black_",
+  });
+  return stderr === null ? null : parseBlackdetect(stderr, duration, fps);
+}
+
+// Run an ffmpeg analysis pass and return the stderr lines containing
+// `needle`, or null when it couldn't run (missing binary, spawn error,
+// non-zero exit, timeout). Bounded like probeVideoMetadata: no JIT install,
+// and a kill timer sized for a real decode pass (30s — doc recordings are
+// short).
+async function collectFfmpegLines({
+  cacheDir,
+  args,
+  needle,
+  limit,
+}: {
+  cacheDir?: string;
+  args: string[];
+  needle: string;
+  limit?: number;
+}): Promise<string | null> {
   try {
     const ffmpegPath = await getFfmpegPath({ cacheDir, autoInstall: false });
-    const stderr = await new Promise<string | null>((resolve) => {
+    return await new Promise<string | null>((resolve) => {
       let settled = false;
       let proc: any = null;
       let timer: NodeJS.Timeout | undefined;
@@ -881,22 +956,8 @@ async function detectAllBlack({
         resolve(v);
       };
       try {
-        proc = spawn(
-          ffmpegPath,
-          [
-            "-hide_banner",
-            "-i",
-            filePath,
-            "-vf",
-            "blackdetect=d=0.1:pix_th=0.10",
-            "-an",
-            "-f",
-            "null",
-            "-",
-          ],
-          { stdio: ["ignore", "ignore", "pipe"] }
-        );
-        const lines = createMatchingLineCollector("black_");
+        proc = spawn(ffmpegPath, args, { stdio: ["ignore", "ignore", "pipe"] });
+        const lines = createMatchingLineCollector(needle, limit);
         proc.stderr?.on("data", (chunk: Buffer) => lines.push(chunk.toString()));
         proc.on("error", () => done(null));
         proc.on("close", (code: number | null) =>
@@ -907,8 +968,6 @@ async function detectAllBlack({
         done(null);
       }
     });
-    if (stderr === null) return null;
-    return parseBlackdetect(stderr, duration, fps);
   } catch {
     return null;
   }

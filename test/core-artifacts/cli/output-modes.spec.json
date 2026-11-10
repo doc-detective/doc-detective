@@ -1,0 +1,138 @@
+{
+  "specId": "cli-output-modes",
+  "description": "Output modes compose or refuse (ADR 01191), through the real CLI. Each test runs one case of precedence.cjs, which sets up a folder under .tmp/fixture-precedence/, runs doc-detective there, and checks the exit code, stderr, stdout, and files. No browser or network.",
+  "tests": [
+    {
+      "testId": "json-plain-refused",
+      "description": "--json with --plain exits 2 with one line naming both flags.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs json-plain-refused",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "stdout-output-plain-refused",
+      "description": "--output - with --plain exits 2 with one line naming both flags.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs stdout-output-plain-refused",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "config-stdout-output-plain-refused",
+      "description": "A config output of - with --plain exits 2 with the --output - line.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs config-stdout-output-plain-refused",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "dry-run-plain-refused",
+      "description": "--dry-run with --plain exits 2 with one line naming both flags.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs dry-run-plain-refused",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "config-dry-run-plain-refused",
+      "description": "A config dryRun with --plain exits 2 with the --dry-run line.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs config-dry-run-plain-refused",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "no-dry-run-plain-beats-config",
+      "description": "--no-dry-run beats a config dryRun, so --plain runs.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs no-dry-run-plain-beats-config",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "plain-with-output-file",
+      "description": "--plain composes with --output <file>: lines on stdout, results in the file.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs plain-with-output-file",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "dry-run-writes-output",
+      "description": "--dry-run --output <file> writes the plan to the file and still prints it.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs dry-run-writes-output",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "config-stdout-output",
+      "description": "A config output of - prints the results on stdout and writes no file named -.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs config-stdout-output",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "stdout-output-beats-config-file",
+      "description": "--output - beats a config output file: results go only to stdout.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs stdout-output-beats-config-file",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "output-file-beats-config-stdout",
+      "description": "--output <file> beats a config output of -: the file gets the results.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs output-file-beats-config-stdout",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    }
+  ]
+}
