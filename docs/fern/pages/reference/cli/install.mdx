@@ -71,6 +71,8 @@ Without arguments, installs all heavy dependencies. Specify package names to ins
 doc-detective install runtime webdriverio appium
 ```
 
+Each Doc Detective release pins every runtime package to the exact version its CI tested. You don't need to fix a mismatch by hand. When a cached package is at any other version, for example after you upgrade Doc Detective, Doc Detective installs the pinned version in its place. That happens the next time a test loads the package or you run `install runtime`, needs network access, and downloads only the packages that changed. Until then, [`install status`](#install-status) marks the package `(outdated)`.
+
 ### `install browsers`
 
 Install browsers and their drivers into the cache directory.
