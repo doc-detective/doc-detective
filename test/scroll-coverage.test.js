@@ -7,7 +7,7 @@ import { scroll } from "../dist/core/tests/scroll.js";
 // a `mouse.wheel` stub covers all three — no browser/driver needed.
 
 describe("scroll action (unit)", function () {
-  it("skips with PASS when no recordings are in progress", async function () {
+  it("passes without scrolling, and without a skip reason, when no recordings are in progress", async function () {
     const page = {
       mouse: {
         wheel: async () => {
@@ -21,7 +21,8 @@ describe("scroll action (unit)", function () {
       { videoDetails: {}, debugRecording: {} }
     );
     assert.equal(result.status, "PASS");
-    assert.equal(result.description, "Skipped: no recordings are in progress.");
+    // A PASS never reads like a skip.
+    assert.equal(result.description, "No recordings are in progress, so there's nothing to scroll.");
   });
 
   it("PASSes and forwards deltas to mouse.wheel when a recording is active", async function () {
