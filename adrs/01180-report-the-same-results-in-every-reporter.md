@@ -142,9 +142,10 @@ The 1 MiB byte cap (ADR 01092) cuts Skipped, then Warnings, before Failures.
 All go through `log()`, so `-l warning` and quieter hide them, and they're masked like every other log line
 (ADR 01178). The string `results at ` never prints on any stream: GitHub Action tags up to v1.4.1 split stdout on it.
 
-A write failure, or a report that can't be built, logs at error level, and the reporter returns `null`. It doesn't change the exit code. The line carries `log()`'s usual `Error: ` label:
+A write failure, or a report that can't be built, logs at error level, and the reporter returns `null`. It doesn't change the exit code. The line carries `log()`'s usual `Error: ` label. `<name>` is one of `results`, `run results`, `run report`, `HTML report`, `JUnit report`, or `Markdown summary`.
 
-`Couldn't write the <results | run results | run report | HTML report | JUnit report | Markdown summary> to <abs>: <cause>.`
+- A report that can't be built: `Couldn't build the <name>: <message>.`, where `<message>` is the error's message without its trailing period. No file is written.
+- A write failure: `Couldn't write the <name> to <abs>: <cause>.`
 
 | Code | `<cause>` |
 |---|---|
@@ -202,7 +203,7 @@ themselves aren't part of this ADR.
 
 - `test/reporters-model.test.js`. It covers every rule above for `nonPassItems`: holes, folding, context-only items, the
   `autoRecording` item, and missing files. It also covers `mediaPath`, including another Windows drive, and all five
-  `verdict` rows. Then `environmentLine`, and `writeReport`'s announcement with every `<cause>` row.
+  `verdict` rows. Then `environmentLine`, and `writeReport`'s announcement, its build error, and every `<cause>` row.
 - `test/reporters-junit-markdown.test.js`. It covers names, attachments, properties, and the three Markdown sections. It
   parses them with the real XML parser where it applies, and checks the caps and the byte-cap cut order.
 - `test/htmlReporter.test.js`: hrefs relative to each copy, the two copies differing only in `hrefs`, the verdict, the

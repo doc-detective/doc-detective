@@ -106,7 +106,7 @@ function mediaPath(file: string, runDir: any, fromDir: string): string {
 function environmentLine(results: any): string | null {
   const env = results?.environment;
   if (!env) return null;
-  const host = `${[env.platform, env.osRelease].filter(Boolean).join(" ")}${env.arch ? ` (${env.arch})` : ""}`;
+  const host = [env.platform, env.osRelease, env.arch && `(${env.arch})`].filter(Boolean).join(" ");
   const parts = [
     env.docDetectiveVersion && `Doc Detective ${env.docDetectiveVersion}`,
     env.nodeVersion && `Node.js ${env.nodeVersion}`,
@@ -129,20 +129,27 @@ const WRITE_CAUSES: Record<string, string> = {
 // Build a report file, write it, and announce it on stderr, through log() so the
 // log level and masking apply. Reporters run under Promise.all, so this never
 // throws, including when the report can't be built: a rejection would skip the
-// CLI's exit-code gate (ADR 01092). Returns the path, or null after logging the
-// error. Never print "results at ": GitHub Action tags up to v1.4.1 split stdout
-// on it.
+// CLI's exit-code gate (ADR 01092). A render failure and a write failure log
+// different errors. Returns the path, or null after logging the error. Never
+// print "results at ": GitHub Action tags up to v1.4.1 split stdout on it.
 function writeReport(kind: string, file: string, render: () => string, config: any = {}): string | null {
+  // "Results" and "Run …" read lowercase mid-sentence; the others are names.
+  const noun = kind.replace(/^R(?=esults$|un )/, "r");
+  const message = (error: any) => String(error?.message ?? error).replace(/\.$/, "");
+  let text: string;
   try {
-    const text = render();
+    text = render();
+  } catch (error: any) {
+    void log(config, "error", `Couldn't build the ${noun}: ${message(error)}.`);
+    return null;
+  }
+  try {
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, text);
-    log(config, "info", `${kind}: ${file}`);
+    void log(config, "info", `${kind}: ${file}`);
     return file;
   } catch (error: any) {
-    const cause = WRITE_CAUSES[error?.code] ?? String(error?.message ?? error).replace(/\.$/, "");
-    // "Results" and "Run …" read lowercase mid-sentence; the others are names.
-    log(config, "error", `Couldn't write the ${kind.replace(/^R(?=esults$|un )/, "r")} to ${file}: ${cause}.`);
+    void log(config, "error", `Couldn't write the ${noun} to ${file}: ${WRITE_CAUSES[error?.code] ?? message(error)}.`);
     return null;
   }
 }

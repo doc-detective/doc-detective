@@ -206,6 +206,8 @@ If Doc Detective can't write a report, it prints an error and carries on. The ex
 Error: Couldn't write the JUnit report to /readonly/reports/junit.xml: permission denied.
 ```
 
+If the report itself can't be built, the line reads `Couldn't build the <report>: <cause>.` instead, and no file is written.
+
 ## Step 2: Read the terminal summary
 
 The `terminal` reporter prints a summary on stdout. It groups the counts by specs, tests, contexts, and steps, lists every failure, warning, and skip, and shows the run's environment. Then it ends with a one-line verdict:
