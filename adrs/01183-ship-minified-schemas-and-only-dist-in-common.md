@@ -48,7 +48,7 @@ Chosen option: A.
 
 * `src/common/scripts/generateValidators.js`, which already runs after `tsc` and writes into
   `dist/schemas/`, rewrites `dist/schemas/schemas.json` minified. It also writes every `*_v3` key
-  to `dist/schemas/<key>_v3.schema.json`, minified. `dereferenceSchemas` no longer writes into
+  to `dist/schemas/<key>.schema.json`, such as `spec_v3.schema.json`, minified. `dereferenceSchemas` no longer writes into
   `dist/`, since `compile` cleans it.
 * The root `copy:schemas` copies `schemas.json` from `src/common/dist/schemas/`, beside the
   validators, instead of from the committed source.
