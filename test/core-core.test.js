@@ -471,9 +471,9 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(
+        assert.equal(
           ctx.resultDescription,
-          /native app surfaces run on Windows, macOS, Android, and iOS/
+          "Skipped: native app surfaces don't run on `linux`. They run on Windows, macOS, Android, and iOS. Gate the test with `runOn` platforms so this skip is intentional."
         );
       }
       assert.equal(result.summary.specs.fail, 0);
