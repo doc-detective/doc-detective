@@ -57,6 +57,30 @@ The older `doc-detective install-agents` form still works as a hidden alias on 4
 
 </Note>
 
+Doc Detective 4.x installs agent-tools 1.x, the release line that matches its CLI, from the agent-tools `v1` tag. Every agent installs from that tag, and every agent's up-to-date check reads it. Claude Code and Copilot CLI add agent-tools as a plugin marketplace pinned to `v1`. When they update an existing install, they re-add the marketplace at `v1` first.
+
+#### Pin a Gemini CLI or Qwen Code install made by an earlier release
+
+A Gemini CLI or Qwen Code install made by an earlier Doc Detective 4.x release recorded no agent-tools ref. It keeps updating from the agent-tools default branch, which can carry skills for a newer Doc Detective major. `install agents --force` doesn't change that.
+
+To pin it, uninstall the extension, then install it again. Gemini CLI and Qwen Code extensions always install globally, so the commands use `--scope global`.
+
+For Gemini CLI:
+
+```bash
+gemini extensions uninstall doc-detective
+doc-detective install agents --agent gemini --scope global --yes
+```
+
+For Qwen Code:
+
+```bash
+qwen extensions uninstall doc-detective
+doc-detective install agents --agent qwen --scope global --yes
+```
+
+Uninstalling may reset the extension's own settings. Neither CLI documents what an uninstall keeps.
+
 ### `install runtime`
 
 Install heavy npm packages into the cache directory. Doc Detective downloads these packages (webdriverio, appium, sharp, etc.) on first use if not pre-installed.
