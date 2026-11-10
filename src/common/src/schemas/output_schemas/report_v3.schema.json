@@ -72,6 +72,13 @@
         "osRelease": {
           "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
           "type": "string"
+        },
+        "apps": {
+          "description": "The browsers and drivers Doc Detective found on the host. Empty in a resolved test plan from `--dry-run`, and when no context needs a browser.",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
         }
       },
       "title": "Environment details"
@@ -55290,6 +55297,12 @@
                           "description": "Total time this test took, in milliseconds: the sum of the per-context durations. A sum rather than a wall-clock span, because this test's contexts share a concurrent pool with every other test's. Present only in test results. System-populated.",
                           "readOnly": true
                         },
+                        "visit": {
+                          "type": "integer",
+                          "minimum": 2,
+                          "description": "Which run of this test this report is, when a `goToTest` routing entry ran it again. Present only in test results, from the second run on. System-populated.",
+                          "readOnly": true
+                        },
                         "contexts": {
                           "title": "Resolved contexts",
                           "type": "array",
@@ -55704,9 +55717,8 @@
                                 }
                               },
                               "steps": {
-                                "description": "Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed.",
+                                "description": "Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed. In test results, a context that never ran, such as a skipped one, has an empty list.",
                                 "type": "array",
-                                "minItems": 1,
                                 "items": {
                                   "$schema": "http://json-schema.org/draft-07/schema#",
                                   "title": "step",
@@ -106864,6 +106876,178 @@
                                     }
                                   ]
                                 }
+                              },
+                              "contextId": {
+                                "type": "string",
+                                "description": "Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one."
+                              },
+                              "unsafe": {
+                                "type": "boolean",
+                                "description": "Whether this context's test is marked `unsafe`. Present in a resolved test plan. System-populated.",
+                                "readOnly": true
+                              },
+                              "requires": {
+                                "description": "Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.",
+                                "examples": [
+                                  "node",
+                                  [
+                                    "node",
+                                    "ffmpeg"
+                                  ],
+                                  {
+                                    "commands": [
+                                      "adb"
+                                    ],
+                                    "files": [
+                                      "$HOME/.config/app.toml"
+                                    ],
+                                    "env": [
+                                      "API_TOKEN"
+                                    ]
+                                  }
+                                ],
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "pattern": "\\S",
+                                    "examples": [
+                                      "node",
+                                      "ffmpeg"
+                                    ]
+                                  },
+                                  {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "pattern": "\\S",
+                                      "examples": [
+                                        "node",
+                                        "ffmpeg"
+                                      ]
+                                    },
+                                    "minItems": 1
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "minProperties": 1,
+                                    "properties": {
+                                      "commands": {
+                                        "description": "Commands that must be resolvable on the PATH.",
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "pattern": "\\S",
+                                          "examples": [
+                                            "node",
+                                            "ffmpeg"
+                                          ]
+                                        },
+                                        "minItems": 1
+                                      },
+                                      "files": {
+                                        "description": "Files that must exist. Entries support `$VAR` and `$HOME` expansion.",
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "pattern": "\\S",
+                                          "examples": [
+                                            "node",
+                                            "ffmpeg"
+                                          ]
+                                        },
+                                        "minItems": 1
+                                      },
+                                      "env": {
+                                        "description": "Environment variables that must be set to a non-empty value.",
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "pattern": "\\S",
+                                          "examples": [
+                                            "node",
+                                            "ffmpeg"
+                                          ]
+                                        },
+                                        "minItems": 1
+                                      }
+                                    },
+                                    "title": "Requirements",
+                                    "examples": [
+                                      {
+                                        "commands": [
+                                          "node",
+                                          "ffmpeg"
+                                        ]
+                                      },
+                                      {
+                                        "commands": [
+                                          "adb"
+                                        ],
+                                        "files": [
+                                          "$HOME/.config/app.toml"
+                                        ],
+                                        "env": [
+                                          "API_TOKEN"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              "browserFallback": {
+                                "description": "Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).",
+                                "type": "string",
+                                "enum": [
+                                  "auto",
+                                  "explicit",
+                                  "off"
+                                ]
+                              },
+                              "retries": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "description": "In a resolved test plan, the `retries` policy from the `runOn` entry. In test results, how many times the context re-ran on a fresh session after its session died. Absent from results when it didn't re-run."
+                              },
+                              "device": {
+                                "type": [
+                                  "string",
+                                  "object"
+                                ],
+                                "description": "The device a mobile (`android` or `ios`) context runs on. In a resolved test plan, the `device` from the `runOn` entry. In test results, an object with the device's `platform` and `name`. Absent for a desktop context."
+                              },
+                              "warnings": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "description": "Warnings from this context's preflight checks, such as a toolchain that Doc Detective had to install first. Present only in test results, when there are any. System-populated.",
+                                "readOnly": true
+                              },
+                              "fallback": {
+                                "type": "object",
+                                "description": "The browser this context asked for, and the one that ran instead because `browserFallback` allowed it. Present only in test results, when a fallback happened. System-populated.",
+                                "readOnly": true,
+                                "properties": {
+                                  "requested": {
+                                    "type": "string",
+                                    "description": "Name of the browser the context asked for."
+                                  },
+                                  "used": {
+                                    "type": "string",
+                                    "description": "Name of the browser that ran."
+                                  }
+                                }
+                              },
+                              "viewportFloored": {
+                                "type": "boolean",
+                                "description": "`true` when the browser couldn't shrink to the requested viewport and stopped at its smallest size. Present only in test results, when that happened. System-populated.",
+                                "readOnly": true
                               }
                             },
                             "title": "Resolved context"

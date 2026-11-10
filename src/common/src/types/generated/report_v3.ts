@@ -173,6 +173,10 @@ export type Test = (
    * Total time this test took, in milliseconds: the sum of the per-context durations. A sum rather than a wall-clock span, because this test's contexts share a concurrent pool with every other test's. Present only in test results. System-populated.
    */
   durationMs?: number;
+  /**
+   * Which run of this test this report is, when a `goToTest` routing entry ran it again. Present only in test results, from the second run on. System-populated.
+   */
+  visit?: number;
   contexts?: ResolvedContexts;
 };
 export type DeviceByName1 = string;
@@ -6373,74 +6377,7 @@ export type Step1 = (
   swipe?: unknown;
   wait?: unknown;
   annotate?: unknown;
-} & (
-    | (Common21 & CheckLink2)
-    | (Common22 & Click2)
-    | (Common23 & Find2)
-    | (Common24 & GoTo2)
-    | (Common25 & HttpRequest2)
-    | (Common26 & RunShell2)
-    | (Common27 & RunCode2)
-    | (Common28 & RunBrowserScript2)
-    | (Common29 & Type1)
-    | (Common30 & Screenshot2)
-    | (Common31 & SaveCookie2)
-    | (Common32 & Record2)
-    | (Common33 & StopRecord2)
-    | (Common34 & CloseSurface2)
-    | (Common35 & StartSurface2)
-    | (Common36 & LoadVariables2)
-    | (Common37 & DragAndDrop2)
-    | (Common38 & LoadCookie2)
-    | (Common39 & Swipe2)
-    | (Common40 & Wait2)
-    | (Common41 & Annotate2)
-  ) & {
-    $schema?: unknown;
-    result?: unknown;
-    resultDescription?: unknown;
-    resultCode?: unknown;
-    resultHint?: unknown;
-    stepId?: unknown;
-    description?: unknown;
-    unsafe?: unknown;
-    outputs?: unknown;
-    variables?: unknown;
-    breakpoint?: unknown;
-    if?: unknown;
-    assertions?: unknown;
-    onPass?: unknown;
-    onFail?: unknown;
-    onWarning?: unknown;
-    onSkip?: unknown;
-    location?: unknown;
-    autoScreenshotPath?: unknown;
-    attempts?: unknown;
-    visit?: unknown;
-    durationMs?: unknown;
-    startedAt?: unknown;
-    checkLink?: unknown;
-    click?: unknown;
-    find?: unknown;
-    goTo?: unknown;
-    httpRequest?: unknown;
-    runShell?: unknown;
-    runCode?: unknown;
-    runBrowserScript?: unknown;
-    type?: unknown;
-    screenshot?: unknown;
-    saveCookie?: unknown;
-    record?: unknown;
-    stopRecord?: unknown;
-    closeSurface?: unknown;
-    startSurface?: unknown;
-    loadVariables?: unknown;
-    dragAndDrop?: unknown;
-    loadCookie?: unknown;
-    swipe?: unknown;
-    wait?: unknown;
-    annotate?: unknown;
-  };
+};
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -12294,6 +12231,12 @@ export interface EnvironmentDetails {
    * The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.
    */
   osRelease?: string;
+  /**
+   * The browsers and drivers Doc Detective found on the host. Empty in a resolved test plan from `--dry-run`, and when no context needs a browser.
+   */
+  apps?: {
+    [k: string]: unknown;
+  }[];
 }
 export interface ResultCounts {
   pass: number;
@@ -21305,11 +21248,59 @@ export interface ResolvedContext {
   browser?: Browser4;
   openApi?: (OpenApi3 & OpenAPIDescriptionTest2)[];
   /**
-   * Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed.
-   *
-   * @minItems 1
+   * Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed. In test results, a context that never ran, such as a skipped one, has an empty list.
    */
-  steps?: [Step1, ...Step1[]];
+  steps?: Step1[];
+  /**
+   * Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one.
+   */
+  contextId?: string;
+  /**
+   * Whether this context's test is marked `unsafe`. Present in a resolved test plan. System-populated.
+   */
+  unsafe?: boolean;
+  /**
+   * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
+   */
+  requires?: string | [string, ...string[]] | Requirements2;
+  /**
+   * Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).
+   */
+  browserFallback?: "auto" | "explicit" | "off";
+  /**
+   * In a resolved test plan, the `retries` policy from the `runOn` entry. In test results, how many times the context re-ran on a fresh session after its session died. Absent from results when it didn't re-run.
+   */
+  retries?: number;
+  /**
+   * The device a mobile (`android` or `ios`) context runs on. In a resolved test plan, the `device` from the `runOn` entry. In test results, an object with the device's `platform` and `name`. Absent for a desktop context.
+   */
+  device?:
+    | string
+    | {
+        [k: string]: unknown;
+      };
+  /**
+   * Warnings from this context's preflight checks, such as a toolchain that Doc Detective had to install first. Present only in test results, when there are any. System-populated.
+   */
+  warnings?: string[];
+  /**
+   * The browser this context asked for, and the one that ran instead because `browserFallback` allowed it. Present only in test results, when a fallback happened. System-populated.
+   */
+  fallback?: {
+    /**
+     * Name of the browser the context asked for.
+     */
+    requested?: string;
+    /**
+     * Name of the browser that ran.
+     */
+    used?: string;
+    [k: string]: unknown;
+  };
+  /**
+   * `true` when the browser couldn't shrink to the requested viewport and stopped at its smallest size. Present only in test results, when that happened. System-populated.
+   */
+  viewportFloored?: boolean;
   [k: string]: unknown;
 }
 /**
@@ -29270,4 +29261,24 @@ export interface AnnotationTransition7 {
 }
 export interface IdIsRequiredForUpdates1 {
   [k: string]: unknown;
+}
+export interface Requirements2 {
+  /**
+   * Commands that must be resolvable on the PATH.
+   *
+   * @minItems 1
+   */
+  commands?: [string, ...string[]];
+  /**
+   * Files that must exist. Entries support `$VAR` and `$HOME` expansion.
+   *
+   * @minItems 1
+   */
+  files?: [string, ...string[]];
+  /**
+   * Environment variables that must be set to a non-empty value.
+   *
+   * @minItems 1
+   */
+  env?: [string, ...string[]];
 }

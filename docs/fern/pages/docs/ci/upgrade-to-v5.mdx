@@ -265,8 +265,12 @@ Other shorthand appears in its full form too. For example, `"wait": true` appear
 | `runShell`, `runCode`, and `type` output `$$stdioMatched`. | It's `$$stdioMatches`. |
 | `screenshot` output `$$aspectRatioMatch`. | It's `$$aspectRatioMatches`. |
 | `stopRecord` output `$$resolutionMatch`. | It's `$$resolutionMatches`. |
+| A `goToStep` to a missing step, or a `goToStep` loop, added a step with no action to the results. `summary.steps` counted it. | The step that routed fails, and its `resultDescription` gains the reason. No step is added. |
+| A results file could fail its own `report_v3` schema, such as a skipped context's empty `steps`. | Every results file validates against `report_v3`, and every `--dry-run` plan against `resolvedTests_v3`. |
+| A run with no tests wrote only `summary` and `specs`. | It also writes `startedAt`, `environment`, and `durationMs`, like every other run. |
+| A run through the Doc Detective API that failed wrote `{status, error}` as its results. | It prints ``Couldn't run tests through the Doc Detective API: <cause>.`` and exits `2`. |
 
-**What to do:** Update scripts that read these fields. Rename these outputs in `variables`, `if`, and `assertions`. Move a step's `autoScreenshot` to its test.
+**What to do:** Update scripts that read these fields. Rename these outputs in `variables`, `if`, and `assertions`. Move a step's `autoScreenshot` to its test. To find a routing failure, read the failed step's `resultDescription`.
 
 ## `goTo` and `httpRequest` defaults
 
