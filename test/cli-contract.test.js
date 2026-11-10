@@ -372,6 +372,7 @@ describe("CLI contract", function () {
       const real = fs.realpathSync(cwd);
       const lines = r.stderr.split(/\r?\n/);
       expect(lines.some((l) => l.startsWith("Run report: ") && l.endsWith("testResults.html") && l.includes(real)), r.stderr).to.equal(true);
+      expect(lines.some((l) => l.startsWith("Run summary: ") && l.endsWith("testResults.md") && l.includes(real)), r.stderr).to.equal(true);
       expect(lines.some((l) => l.startsWith("Run results: ") && l.endsWith("testResults.json") && l.includes(real)), r.stderr).to.equal(true);
     });
 

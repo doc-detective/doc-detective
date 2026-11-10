@@ -30,7 +30,7 @@ The run folder holds the screenshots and recordings Doc Detective takes by defau
 | `terminal` | A summary on stdout with the counts, every failure, warning, and skip, the run's environment, and a one-line verdict. Writes no files. |
 | `json` | A JSON results file, `testResults-<runId>.json`, with the full step-by-step outcome. |
 | `html` | A self-contained HTML report you can open in a browser, with the run's screenshots and recordings. It's the same page as the run folder's copy. |
-| `runFolder` | A per-run folder containing the results (JSON and HTML) alongside the screenshots and recordings the run captured. |
+| `runFolder` | A per-run folder containing the results (JSON, HTML, and a Markdown summary) alongside the screenshots and recordings the run captured. |
 | `junit` | A `junit.xml` report that CI platforms render in their test summary views, with each failure's screenshot and recording attached. See [Read the JUnit report](#read-the-junit-report). |
 | `markdown` | A `doc-detective-summary.md` run summary for a CI job summary or a merge request comment. See [Read the Markdown summary](#read-the-markdown-summary). |
 
@@ -189,7 +189,7 @@ Reporters that write a file name it on stderr, with its absolute path:
 | Reporter | File | Line on stderr |
 |---|---|---|
 | `json` | `<outputDir>/testResults-<runId>.json` | `Results: <path>` |
-| `runFolder` | `<outputDir>/.doc-detective/runs/<runId>/testResults.html` and `testResults.json` | `Run report: <path>` and `Run results: <path>` |
+| `runFolder` | `<outputDir>/.doc-detective/runs/<runId>/testResults.html`, `testResults.md`, and `testResults.json` | `Run report: <path>`, `Run summary: <path>`, and `Run results: <path>` |
 | `html` | `<outputDir>/testResults-<runId>.html` | `HTML report: <path>` |
 | `junit` | `<outputDir>/junit.xml` | `JUnit report: <path>` |
 | `markdown` | `<outputDir>/doc-detective-summary.md` | `Markdown summary: <path>` |

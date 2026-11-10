@@ -625,8 +625,11 @@ describe("utils.ts coverage", function () {
       // HTML companion archived beside the JSON.
       const htmlFile = outPath.replace(/\.json$/, ".html");
       assert.ok(fs.existsSync(htmlFile));
+      // ADR 01180 DR9: the Markdown summary sits beside them too.
+      const mdFile = outPath.replace(/\.json$/, ".md");
+      assert.match(fs.readFileSync(mdFile, "utf8"), /^# Doc Detective results\n/);
       // Absolute paths, with the report first.
-      assert.deepEqual(cap.log.split("\n"), [`Run report: ${htmlFile}`, `Run results: ${outPath}`]);
+      assert.deepEqual(cap.log.split("\n"), [`Run report: ${htmlFile}`, `Run summary: ${mdFile}`, `Run results: ${outPath}`]);
     });
 
     it("uses the default doc-detective-results prefix when no command is given", async function () {
@@ -698,6 +701,22 @@ describe("utils.ts coverage", function () {
       assert.ok(fs.existsSync(out));
       assert.match(cap.error, /Couldn't write the run report to .*: html boom\./);
       assert.ok(cap.log.includes("Run results: "));
+    });
+
+    it("still archives the JSON when the Markdown summary write fails, and names the file", async function () {
+      const cap = captureConsole(sandbox);
+      const dir = makeTmpDir();
+      const real = fs.writeFileSync.bind(fs);
+      sandbox.stub(fs, "writeFileSync").callsFake((file, data) => {
+        if (String(file).endsWith(".md")) throw Object.assign(new Error("x"), { code: "EACCES" });
+        return real(file, data);
+      });
+      const out = await reporters.runFolderReporter({}, dir, { specs: [] }, { command: "runTests" });
+      assert.ok(fs.existsSync(out));
+      const mdFile = out.replace(/\.json$/, ".md");
+      assert.ok(path.isAbsolute(mdFile));
+      assert.ok(cap.error.includes(`Couldn't write the run summary to ${mdFile}: permission denied.`), cap.error);
+      assert.ok(!cap.log.includes("Run summary: "));
     });
 
     it("reuses a stamped runDir confined under the output's runs root", async function () {
