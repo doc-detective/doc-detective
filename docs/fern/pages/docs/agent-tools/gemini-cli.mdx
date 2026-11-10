@@ -33,11 +33,13 @@ Gemini CLI installs extensions user-globally, so the `--scope` flag has no effec
 If `npx doc-detective install agents` isn't an option, install the extension directly with `gemini extensions install`:
 
 ```bash
-gemini extensions install https://github.com/doc-detective/agent-tools.git --ref v1 --auto-update
+gemini extensions install https://github.com/doc-detective/agent-tools.git --ref v1
 gemini
 ```
 
 The `--ref v1` flag pins the extension to the agent-tools `v1` tag, which carries the agent tools for Doc Detective 4.x. Without it, the extension follows the agent-tools default branch, which can carry tools for a newer Doc Detective major version.
+
+To update the extension later, run `gemini extensions update doc-detective`. The update reuses the `v1` ref recorded at install.
 
 ## Bootstrap a project
 
