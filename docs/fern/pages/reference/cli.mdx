@@ -166,7 +166,7 @@ A relative path resolves against the source that set it. That covers every path 
 | Source | A relative path resolves against |
 |---|---|
 | The project config | Its folder. With `relativePathBase: "cwd"`, or for a config loaded from a URL, the current directory |
-| Your user config | Its folder |
+| Your user config | Its folder, even with `relativePathBase: "cwd"` |
 | `DOC_DETECTIVE_CONFIG` and `DOC_DETECTIVE` | The current directory |
 | Flags and single-purpose variables | The current directory |
 
