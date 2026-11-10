@@ -238,6 +238,75 @@ describe("CLI contract", function () {
     });
   });
 
+  // Output modes compose or refuse (ADR 01191).
+  describe("output modes", function () {
+    const writeConfig = (config) => fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify(config));
+
+    for (const { name, args, config, line } of [
+      { name: "--json --plain", args: ["--json", "--plain"], line: "set `--json` or `--plain`, not both." },
+      { name: "-o - --plain", args: ["-o", "-", "--plain"], line: "set `--output -` or `--plain`, not both." },
+      {
+        name: 'config `output: "-"` with --plain',
+        args: ["--plain"],
+        config: { output: "-" },
+        line: "set `--output -` or `--plain`, not both.",
+      },
+      { name: "--dry-run --plain", args: ["--dry-run", "--plain"], line: "set `--dry-run` or `--plain`, not both." },
+      {
+        name: "config `dryRun` with --plain",
+        args: ["--plain"],
+        config: { dryRun: true },
+        line: "set `--dry-run` or `--plain`, not both.",
+      },
+    ]) {
+      it(`refuses ${name} with one line and exit 2`, function () {
+        if (config) writeConfig(config);
+        const r = run(["-i", "pass.spec.json", ...args]);
+        expect(r.status, r.stdout + r.stderr).to.equal(2);
+        expect(r.stderr).to.equal(`Error: ${line}\n`);
+        expect(r.stdout).to.equal("");
+      });
+    }
+
+    it("lets --no-dry-run --plain beat a config `dryRun`", function () {
+      writeConfig({ dryRun: true });
+      const r = run(["-i", "pass.spec.json", "--no-dry-run", "--plain"]);
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("writes the plan to --output on a dry run, and still prints it", function () {
+      const r = run(["-i", "pass.spec.json", "--dry-run", "-o", "plan.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      const printed = JSON.parse(r.stdout);
+      expect(printed.specs).to.have.lengthOf(1);
+      expect(JSON.parse(fs.readFileSync(path.join(cwd, "plan.json"), "utf8"))).to.deep.equal(printed);
+    });
+
+    it('prints results to stdout for config `output: "-"`, and writes no file', function () {
+      writeConfig({ output: "-" });
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
+      expect(fs.existsSync(path.join(cwd, "-"))).to.equal(false);
+    });
+
+    it("lets -o - beat a config results file", function () {
+      writeConfig({ output: "results.json" });
+      const r = run(["-i", "pass.spec.json", "-o", "-"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
+      expect(fs.existsSync(path.join(cwd, "results.json"))).to.equal(false);
+    });
+
+    it('lets -o <file> beat a config `output: "-"`', function () {
+      writeConfig({ output: "-" });
+      const r = run(["-i", "pass.spec.json", "-o", "results.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(r.stdout).to.match(/1 of 1 test passed/);
+      expect(fs.existsSync(path.join(cwd, "results.json"))).to.equal(true);
+    });
+  });
+
   describe("stdin", function () {
     it("reads a spec from `-i -`", function () {
       const r = run(["-i", "-"], {

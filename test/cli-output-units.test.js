@@ -662,7 +662,8 @@ describe("beforeAll in the CLI config", function () {
       process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ [envKey]: "b.spec.json" });
       try {
         const { result, lines } = await captureConsoleError(() => withConfig({ [fileKey]: "a.spec.json" }));
-        expect(result.beforeAll).to.equal(path.join(dir, "b.spec.json"));
+        // The environment's paths resolve against the working directory (ADR 01192).
+        expect(result.beforeAll).to.equal(path.resolve("b.spec.json"));
         expect(result).to.not.have.property("beforeAny");
         expect(lines.filter((line) => line.includes("beforeAny"))).to.have.lengthOf(1);
       } finally {
@@ -678,7 +679,7 @@ describe("beforeAll in the CLI config", function () {
     process.env.DOC_DETECTIVE = JSON.stringify({ config: { beforeAny: "b.spec.json" } });
     try {
       const { result, lines } = await captureConsoleError(() => withConfig({ beforeAll: "a.spec.json" }));
-      expect(result.beforeAll).to.equal(path.join(dir, "b.spec.json"));
+      expect(result.beforeAll).to.equal(path.resolve("b.spec.json"));
       expect(result).to.not.have.property("beforeAny");
       expect(lines.filter((line) => line.includes("`beforeAny`"))).to.have.lengthOf(1);
     } finally {

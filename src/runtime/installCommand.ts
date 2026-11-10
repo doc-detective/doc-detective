@@ -146,6 +146,17 @@ const browsersSubcommand: InstallSubcommand = {
   },
 };
 
+// One `--json` report per AVD that `--reset-snapshot` touched (ADR 01193).
+export function snapshotResetReports(
+  { reset, failed }: { reset: string[]; failed: { name: string; error: string }[] },
+  dryRun: boolean
+) {
+  return [
+    ...reset.map((assetId) => ({ kind: "tool", assetId, action: dryRun ? "dry-run" : "reset" })),
+    ...failed.map(({ name, error }) => ({ kind: "tool", assetId: name, action: "failed", notes: [error] })),
+  ];
+}
+
 const androidSubcommand: InstallSubcommand = {
   command: "android",
   configure: (command) => {
@@ -173,6 +184,7 @@ const androidSubcommand: InstallSubcommand = {
       const { resetCleanSnapshots } = await import("./androidInstaller.js");
       const dryRun = Boolean(argv["dry-run"]);
       const { reset, failed } = resetCleanSnapshots({ dryRun });
+      jsonReports?.push(...snapshotResetReports({ reset, failed }, dryRun));
       if (reset.length) {
         logger(
           dryRun

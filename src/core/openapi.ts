@@ -111,7 +111,7 @@ async function loadDescription(descriptionPath: string = "") {
     );
 
   // Dereference the definition (ref parser imported lazily — see top of file)
-  const { default: parser, FileResolver } = await import(
+  const { default: parser, FileResolver, getJsonSchemaRefParserDefaultOptions } = await import(
     "@apidevtools/json-schema-ref-parser"
   );
   // Written against @apidevtools/json-schema-ref-parser 16.0.5, whose own
@@ -120,6 +120,15 @@ async function loadDescription(descriptionPath: string = "") {
   if (typeof FileResolver.read !== "function") {
     throw new Error(
       "Couldn't load the OpenAPI description: json-schema-ref-parser's FileResolver.read isn't a function."
+    );
+  }
+  // The options below override the parser's `http` resolver, its `read` and
+  // `safeUrlResolver`, behind an `as any` cast. If an update reshapes it,
+  // fail loudly: the override would be ignored, and the guard skipped.
+  const httpDefaults: any = getJsonSchemaRefParserDefaultOptions?.()?.resolve?.http;
+  if (typeof httpDefaults?.read !== "function" || !("safeUrlResolver" in httpDefaults)) {
+    throw new Error(
+      "Couldn't load the OpenAPI description: json-schema-ref-parser's http resolver has no read function or safeUrlResolver option, so Doc Detective can't guard its $refs."
     );
   }
   // Bound to its owner, so it keeps working if `read` ever uses `this`.
@@ -139,7 +148,8 @@ async function loadDescription(descriptionPath: string = "") {
       },
       http: {
         // The parser's own guard refuses every private address, even from a
-        // local description. getGuarded applies Doc Detective's policy instead.
+        // local description. Doc Detective's read() below enforces
+        // localUrlPolicy() in its place, so don't remove this.
         safeUrlResolver: false,
         async read(file: { url: string }) {
           const ref = redactUrlForOutput(file.url);
