@@ -150,10 +150,10 @@ describe("summarizeSchemaErrors", function () {
 
   it("suggests a nested key, in place of the missing key it means", function () {
     expect(summarize(spec({ runShell: { comand: "echo hi" } }))).to.equal(
-      "tests[0].steps[0].runShell: unknown key 'comand'. Did you mean command?"
+      "tests[0].steps[0].runShell: unknown key `comand`. Did you mean `command`?"
     );
     expect(summarize(spec({ goTo: { url: "https://example.com", waitUntil: { netwrkIdleTime: 1 } } }))).to.equal(
-      "tests[0].steps[0].goTo.waitUntil: unknown key 'netwrkIdleTime'. Did you mean networkIdleTime?"
+      "tests[0].steps[0].goTo.waitUntil: unknown key `netwrkIdleTime`. Did you mean `networkIdleTime`?"
     );
   });
 
@@ -165,7 +165,7 @@ describe("summarizeSchemaErrors", function () {
   it("lets a suggestion stand in for the choice it names", function () {
     const object = { integrations: { heretto: [{ name: "x", organizationId: "o", username: "u", apiTokn: "t" }] } };
     expect(summarize(object, "config_v3")).to.equal(
-      "integrations.heretto[0]: unknown key 'apiTokn'. Did you mean apiToken?"
+      "integrations.heretto[0]: unknown key `apiTokn`. Did you mean `apiToken`?"
     );
   });
 

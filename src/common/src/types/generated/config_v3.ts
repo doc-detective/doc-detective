@@ -661,22 +661,6 @@ export type HerettoCMSIntegration = {
    */
   outputPath?: string;
   /**
-   * Mapping of local file paths to Heretto file metadata. Set automatically during content loading.
-   */
-  fileMapping?: {
-    [k: string]: {
-      /**
-       * The UUID of the file in Heretto.
-       */
-      fileId?: string;
-      /**
-       * The path of the file in Heretto.
-       */
-      filePath?: string;
-      [k: string]: unknown;
-    };
-  };
-  /**
    * If `true`, uploads changed screenshots and other media files back to Heretto CMS after test execution.
    */
   uploadOnChange?: boolean;
@@ -794,10 +778,6 @@ export interface Config {
    * Whether or not to run potentially unsafe steps, such as those that might modify files or system state.
    */
   allowUnsafeSteps?: boolean;
-  /**
-   * If `true`, crawls sitemap.xml files specified by URL to find additional files to test.
-   */
-  crawl?: boolean;
   /**
    * If `true`, processes DITA maps and includes generated files as inputs.
    */

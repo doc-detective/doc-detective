@@ -5485,7 +5485,6 @@ import { schemas } from "../dist/index.js";
               app: "/Applications/Calculator.app",
               name: "calc",
               args: ["--reset"],
-              workingDirectory: "./sandbox",
               env: { LOG_LEVEL: "debug" },
               driverOptions: { "appium:newCommandTimeout": 300 },
               waitUntil: { delayMs: 500, find: { elementText: "Ready" } },

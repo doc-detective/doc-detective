@@ -3970,11 +3970,6 @@
                             },
                             "title": "Variables (step)"
                           },
-                          "breakpoint": {
-                            "type": "boolean",
-                            "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                            "default": false
-                          },
                           "if": {
                             "title": "Condition",
                             "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -5327,11 +5322,6 @@
                         },
                         "title": "Variables (step)"
                       },
-                      "breakpoint": {
-                        "type": "boolean",
-                        "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                        "default": false
-                      },
                       "autoScreenshotPath": {
                         "type": "string",
                         "minLength": 1,
@@ -5430,7 +5420,6 @@
                     "unsafe": {},
                     "outputs": {},
                     "variables": {},
-                    "breakpoint": {},
                     "if": {},
                     "assertions": {},
                     "onPass": {},
@@ -5546,11 +5535,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -6553,11 +6537,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -8056,11 +8035,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -15759,11 +15733,6 @@
                               },
                               "title": "Variables (step)"
                             },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
-                            },
                             "if": {
                               "title": "Condition",
                               "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -17705,11 +17674,6 @@
                               },
                               "title": "Variables (step)"
                             },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
-                            },
                             "if": {
                               "title": "Condition",
                               "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -19549,11 +19513,6 @@
                               },
                               "title": "Variables (step)"
                             },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
-                            },
                             "if": {
                               "title": "Condition",
                               "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -20783,11 +20742,6 @@
                               },
                               "title": "Variables (step)"
                             },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
-                            },
                             "if": {
                               "title": "Condition",
                               "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -21961,11 +21915,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -23219,11 +23168,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -26985,11 +26929,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -35613,11 +35552,6 @@
                               },
                               "title": "Variables (step)"
                             },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
-                            },
                             "if": {
                               "title": "Condition",
                               "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -36329,11 +36263,6 @@
                                   "type": "object",
                                   "additionalProperties": false,
                                   "properties": {
-                                    "$schema": {
-                                      "description": "Optional self-describing schema URI for linters",
-                                      "type": "string",
-                                      "format": "uri-reference"
-                                    },
                                     "name": {
                                       "type": "string",
                                       "title": "Cookie name",
@@ -36439,11 +36368,6 @@
                                     "type": "object",
                                     "additionalProperties": false,
                                     "properties": {
-                                      "$schema": {
-                                        "description": "Optional self-describing schema URI for linters",
-                                        "type": "string",
-                                        "format": "uri-reference"
-                                      },
                                       "name": {
                                         "type": "string",
                                         "title": "Cookie name",
@@ -36648,11 +36572,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -38343,11 +38262,6 @@
                               },
                               "title": "Variables (step)"
                             },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
-                            },
                             "if": {
                               "title": "Condition",
                               "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -39176,11 +39090,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -41243,11 +41152,6 @@
                               },
                               "title": "Variables (step)"
                             },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
-                            },
                             "if": {
                               "title": "Condition",
                               "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -41979,11 +41883,6 @@
                                       },
                                       "description": "Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. \"\\\"My File.txt\\\"\")."
                                     },
-                                    "workingDirectory": {
-                                      "type": "string",
-                                      "minLength": 1,
-                                      "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
-                                    },
                                     "env": {
                                       "type": "object",
                                       "additionalProperties": {
@@ -42394,11 +42293,6 @@
                                               "type": "string"
                                             },
                                             "description": "Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. \"\\\"My File.txt\\\"\")."
-                                          },
-                                          "workingDirectory": {
-                                            "type": "string",
-                                            "minLength": 1,
-                                            "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
                                           },
                                           "env": {
                                             "type": "object",
@@ -43016,11 +42910,6 @@
                                         },
                                         "description": "Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. \"\\\"My File.txt\\\"\")."
                                       },
-                                      "workingDirectory": {
-                                        "type": "string",
-                                        "minLength": 1,
-                                        "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
-                                      },
                                       "env": {
                                         "type": "object",
                                         "additionalProperties": {
@@ -43422,11 +43311,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -44214,11 +44098,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -45631,11 +45510,6 @@
                               },
                               "title": "Variables (step)"
                             },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
-                            },
                             "if": {
                               "title": "Condition",
                               "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -46382,11 +46256,6 @@
                                     }
                                   ],
                                   "properties": {
-                                    "$schema": {
-                                      "description": "Optional self-describing schema URI for linters",
-                                      "type": "string",
-                                      "format": "uri-reference"
-                                    },
                                     "name": {
                                       "type": "string",
                                       "title": "Cookie name",
@@ -46486,11 +46355,6 @@
                                       }
                                     ],
                                     "properties": {
-                                      "$schema": {
-                                        "description": "Optional self-describing schema URI for linters",
-                                        "type": "string",
-                                        "format": "uri-reference"
-                                      },
                                       "name": {
                                         "type": "string",
                                         "title": "Cookie name",
@@ -46649,11 +46513,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -48795,11 +48654,6 @@
                               },
                               "title": "Variables (step)"
                             },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
-                            },
                             "if": {
                               "title": "Condition",
                               "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -49619,11 +49473,6 @@
                                 }
                               },
                               "title": "Variables (step)"
-                            },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
                             },
                             "if": {
                               "title": "Condition",
@@ -54992,16 +54841,6 @@
                       }
                     },
                     {
-                      "stepId": "breakpoint-example",
-                      "description": "Step with breakpoint enabled",
-                      "goTo": "https://www.example.com",
-                      "breakpoint": true
-                    },
-                    {
-                      "checkLink": "https://www.google.com",
-                      "breakpoint": false
-                    },
-                    {
                       "dragAndDrop": {
                         "source": {
                           "selector": "#sourceElement"
@@ -55571,11 +55410,6 @@
                                     }
                                   },
                                   "title": "Variables (step)"
-                                },
-                                "breakpoint": {
-                                  "type": "boolean",
-                                  "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                  "default": false
                                 },
                                 "if": {
                                   "title": "Condition",
@@ -56929,11 +56763,6 @@
                               },
                               "title": "Variables (step)"
                             },
-                            "breakpoint": {
-                              "type": "boolean",
-                              "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                              "default": false
-                            },
                             "autoScreenshotPath": {
                               "type": "string",
                               "minLength": 1,
@@ -57032,7 +56861,6 @@
                           "unsafe": {},
                           "outputs": {},
                           "variables": {},
-                          "breakpoint": {},
                           "if": {},
                           "assertions": {},
                           "onPass": {},
@@ -57148,11 +56976,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -58155,11 +57978,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -59658,11 +59476,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -67361,11 +67174,6 @@
                                     },
                                     "title": "Variables (step)"
                                   },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
-                                  },
                                   "if": {
                                     "title": "Condition",
                                     "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -69307,11 +69115,6 @@
                                     },
                                     "title": "Variables (step)"
                                   },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
-                                  },
                                   "if": {
                                     "title": "Condition",
                                     "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -71151,11 +70954,6 @@
                                     },
                                     "title": "Variables (step)"
                                   },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
-                                  },
                                   "if": {
                                     "title": "Condition",
                                     "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -72385,11 +72183,6 @@
                                     },
                                     "title": "Variables (step)"
                                   },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
-                                  },
                                   "if": {
                                     "title": "Condition",
                                     "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -73563,11 +73356,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -74821,11 +74609,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -78587,11 +78370,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -87215,11 +86993,6 @@
                                     },
                                     "title": "Variables (step)"
                                   },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
-                                  },
                                   "if": {
                                     "title": "Condition",
                                     "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -87931,11 +87704,6 @@
                                         "type": "object",
                                         "additionalProperties": false,
                                         "properties": {
-                                          "$schema": {
-                                            "description": "Optional self-describing schema URI for linters",
-                                            "type": "string",
-                                            "format": "uri-reference"
-                                          },
                                           "name": {
                                             "type": "string",
                                             "title": "Cookie name",
@@ -88041,11 +87809,6 @@
                                           "type": "object",
                                           "additionalProperties": false,
                                           "properties": {
-                                            "$schema": {
-                                              "description": "Optional self-describing schema URI for linters",
-                                              "type": "string",
-                                              "format": "uri-reference"
-                                            },
                                             "name": {
                                               "type": "string",
                                               "title": "Cookie name",
@@ -88250,11 +88013,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -89945,11 +89703,6 @@
                                     },
                                     "title": "Variables (step)"
                                   },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
-                                  },
                                   "if": {
                                     "title": "Condition",
                                     "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -90778,11 +90531,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -92845,11 +92593,6 @@
                                     },
                                     "title": "Variables (step)"
                                   },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
-                                  },
                                   "if": {
                                     "title": "Condition",
                                     "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -93581,11 +93324,6 @@
                                             },
                                             "description": "Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. \"\\\"My File.txt\\\"\")."
                                           },
-                                          "workingDirectory": {
-                                            "type": "string",
-                                            "minLength": 1,
-                                            "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
-                                          },
                                           "env": {
                                             "type": "object",
                                             "additionalProperties": {
@@ -93996,11 +93734,6 @@
                                                     "type": "string"
                                                   },
                                                   "description": "Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. \"\\\"My File.txt\\\"\")."
-                                                },
-                                                "workingDirectory": {
-                                                  "type": "string",
-                                                  "minLength": 1,
-                                                  "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
                                                 },
                                                 "env": {
                                                   "type": "object",
@@ -94618,11 +94351,6 @@
                                               },
                                               "description": "Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. \"\\\"My File.txt\\\"\")."
                                             },
-                                            "workingDirectory": {
-                                              "type": "string",
-                                              "minLength": 1,
-                                              "description": "Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters."
-                                            },
                                             "env": {
                                               "type": "object",
                                               "additionalProperties": {
@@ -95024,11 +94752,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -95816,11 +95539,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -97233,11 +96951,6 @@
                                     },
                                     "title": "Variables (step)"
                                   },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
-                                  },
                                   "if": {
                                     "title": "Condition",
                                     "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -97984,11 +97697,6 @@
                                           }
                                         ],
                                         "properties": {
-                                          "$schema": {
-                                            "description": "Optional self-describing schema URI for linters",
-                                            "type": "string",
-                                            "format": "uri-reference"
-                                          },
                                           "name": {
                                             "type": "string",
                                             "title": "Cookie name",
@@ -98088,11 +97796,6 @@
                                             }
                                           ],
                                           "properties": {
-                                            "$schema": {
-                                              "description": "Optional self-describing schema URI for linters",
-                                              "type": "string",
-                                              "format": "uri-reference"
-                                            },
                                             "name": {
                                               "type": "string",
                                               "title": "Cookie name",
@@ -98251,11 +97954,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -100397,11 +100095,6 @@
                                     },
                                     "title": "Variables (step)"
                                   },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
-                                  },
                                   "if": {
                                     "title": "Condition",
                                     "description": "A condition expression, or an array of expressions combined with logical AND.",
@@ -101221,11 +100914,6 @@
                                       }
                                     },
                                     "title": "Variables (step)"
-                                  },
-                                  "breakpoint": {
-                                    "type": "boolean",
-                                    "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-                                    "default": false
                                   },
                                   "if": {
                                     "title": "Condition",
@@ -106592,16 +106280,6 @@
                                 "useExample": "both"
                               }
                             }
-                          },
-                          {
-                            "stepId": "breakpoint-example",
-                            "description": "Step with breakpoint enabled",
-                            "goTo": "https://www.example.com",
-                            "breakpoint": true
-                          },
-                          {
-                            "checkLink": "https://www.google.com",
-                            "breakpoint": false
                           },
                           {
                             "dragAndDrop": {

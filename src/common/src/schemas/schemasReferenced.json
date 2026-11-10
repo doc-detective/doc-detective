@@ -3862,10 +3862,6 @@
                   "type": "string"
                 }
               },
-              "workingDirectory": {
-                "type": "string",
-                "minLength": 1
-              },
               "env": {
                 "type": "object",
                 "additionalProperties": {
@@ -4000,10 +3996,6 @@
                 "$ref": "#/components/schemas/variables",
                 "default": {}
               },
-              "breakpoint": {
-                "$ref": "#/components/schemas/breakpoint",
-                "default": false
-              },
               "if": {
                 "$ref": "#/components/schemas/if"
               },
@@ -4120,10 +4112,6 @@
               }
             }
           },
-          "breakpoint": {
-            "type": "boolean",
-            "default": false
-          },
           "autoScreenshotPath": {
             "type": "string",
             "minLength": 1,
@@ -4209,7 +4197,6 @@
         "unsafe": {},
         "outputs": {},
         "variables": {},
-        "breakpoint": {},
         "if": {},
         "assertions": {},
         "onPass": {},
@@ -5251,10 +5238,6 @@
               }
             ],
             "properties": {
-              "$schema": {
-                "type": "string",
-                "format": "uri-reference"
-              },
               "name": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9_.-]+$",
@@ -5696,10 +5679,6 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "$schema": {
-                "type": "string",
-                "format": "uri-reference"
-              },
               "name": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9_.-]+$",
@@ -7620,10 +7599,6 @@
         "allowUnsafeSteps": {
           "type": "boolean"
         },
-        "crawl": {
-          "type": "boolean",
-          "default": false
-        },
         "processDitaMaps": {
           "type": "boolean",
           "default": true
@@ -7807,21 +7782,6 @@
                   "outputPath": {
                     "type": "string",
                     "readOnly": true
-                  },
-                  "fileMapping": {
-                    "type": "object",
-                    "readOnly": true,
-                    "additionalProperties": {
-                      "type": "object",
-                      "properties": {
-                        "fileId": {
-                          "type": "string"
-                        },
-                        "filePath": {
-                          "type": "string"
-                        }
-                      }
-                    }
                   },
                   "uploadOnChange": {
                     "type": "boolean",
@@ -12131,10 +12091,6 @@
                   "type": "string"
                 }
               },
-              "workingDirectory": {
-                "type": "string",
-                "minLength": 1
-              },
               "env": {
                 "type": "object",
                 "additionalProperties": {
@@ -12262,9 +12218,6 @@
               "variables": {
                 "$ref": "step_v3.nodefaults.schema.json#/components/schemas/variables"
               },
-              "breakpoint": {
-                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/breakpoint"
-              },
               "if": {
                 "$ref": "step_v3.nodefaults.schema.json#/components/schemas/if"
               },
@@ -12378,9 +12331,6 @@
               }
             }
           },
-          "breakpoint": {
-            "type": "boolean"
-          },
           "autoScreenshotPath": {
             "type": "string",
             "minLength": 1,
@@ -12466,7 +12416,6 @@
         "unsafe": {},
         "outputs": {},
         "variables": {},
-        "breakpoint": {},
         "if": {},
         "assertions": {},
         "onPass": {},
@@ -13502,10 +13451,6 @@
               }
             ],
             "properties": {
-              "$schema": {
-                "type": "string",
-                "format": "uri-reference"
-              },
               "name": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9_.-]+$",
@@ -13942,10 +13887,6 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "$schema": {
-                "type": "string",
-                "format": "uri-reference"
-              },
               "name": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9_.-]+$",
@@ -15803,9 +15744,6 @@
         "allowUnsafeSteps": {
           "type": "boolean"
         },
-        "crawl": {
-          "type": "boolean"
-        },
         "processDitaMaps": {
           "type": "boolean"
         },
@@ -15980,21 +15918,6 @@
                   "outputPath": {
                     "type": "string",
                     "readOnly": true
-                  },
-                  "fileMapping": {
-                    "type": "object",
-                    "readOnly": true,
-                    "additionalProperties": {
-                      "type": "object",
-                      "properties": {
-                        "fileId": {
-                          "type": "string"
-                        },
-                        "filePath": {
-                          "type": "string"
-                        }
-                      }
-                    }
                   },
                   "uploadOnChange": {
                     "type": "boolean"
