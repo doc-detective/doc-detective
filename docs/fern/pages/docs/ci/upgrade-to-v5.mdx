@@ -95,6 +95,7 @@ Custom metadata needs to move out of the step. To skip these specs and run the r
 | A condition with a broken `jq()` query, or one that finds nothing, was true. | It's false. |
 | A `jq()` comparison like `jq($$body, ".x") == 1` compared the wrong value. | It compares the query's result. |
 | A condition that's only text, such as an unset `$VARIABLE`, was true. | It's false, so an assertion fails and an `if` skips. |
+| A condition that's a number or a word, such as `if: "1"` or `if: "yes"`, was true. | It's false, so the spec, test, or step it guards skips. Write `"true"`, or a comparison. |
 | A broken `jq()` query in step `variables` set the variable to the query's text. | The step fails. |
 | `assertions` written as objects, like the ones in a report, never ran. | The step fails. Write assertions as strings. |
 | A step with two actions ran only one of them. | The spec is invalid. Split it into two steps. |
@@ -282,6 +283,7 @@ The results show these steps' effective forms. A `find.click` appears as the cli
 | `screenshot: true`, `screenshot: {}`, and `record: true` wrote `<stepId>.png` or `<stepId>.mp4` to the current folder. | They write to `outputDir`. |
 | A screenshot whose `path` is a URL saved the new screenshot to `./doc-detective-runs/<timestamp>/`. | It saves it in the context's `screenshots/` folder in the run folder, `<outputDir>/.doc-detective/runs/<runId>/`. |
 | A step with `screenshot: true` or `record: true` and no `stepId`, such as one passed to the JavaScript `getRunner()` API, wrote `undefined.png` or `undefined.mp4`. | The step fails: ``Couldn't name the screenshot. Set `path`, or set the step's `stepId`.`` A recording says ``Couldn't name the recording.`` |
+| A `path` or `directory` with a variable that isn't set, such as `$SHOTS_DIR`, wrote to a folder named after the variable. | The step fails: ``Couldn't save the screenshot. `directory` (`$SHOTS_DIR`) has a variable that isn't set.`` A recording says ``Couldn't start the recording.`` |
 | `screenshot: false` took a screenshot. | It skips the step. |
 | `record: "Demo.MP4"` failed validation. | Extensions match in any case. |
 
@@ -390,7 +392,7 @@ doc-detective --concurrent-runners auto
 
 - `--reporters` no longer takes space-separated names. `-r terminal html` exits `2`, because `html` reads as a command, and the error shows the comma form. `-r json docs/` used to treat `docs/` as a reporter name. `run -r json docs/` now tests `docs/`.
 - Repeating one of these flags exits `2`. A repeated `-i a -i b` used to keep only `b`.
-- An empty `reporters` list means no reporters. With `--json`, `--plain`, or `--output -`, `-r terminal` leaves only the stdout output and no run folder.
+- An empty `reporters` list means no reporters. With `--json`, `--plain`, or `--output -`, `-r terminal` leaves only the stdout output. The run still writes a run folder unless `autoScreenshot` and `autoRecord` are both `false`.
 - `--agent` no longer takes space-separated or repeated IDs.
 
 **What to do:** Join the values with commas:
@@ -404,9 +406,9 @@ doc-detective install agents --agent claude,copilot --scope project --yes
 
 **What changed:** Config `reporters` accepts only `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`, spelled exactly. `"JSON"` and internal names such as `"plainReporter"` used to pass. Now they exit `2` with an error that lists the allowed names.
 
-An explicit `"reporters": []` now means no reporters, so a run writes no run folder. Version 4 fell back to the default reporters.
+An explicit `"reporters": []` now means no reporters. Version 4 fell back to the default reporters. The run still writes a run folder for its automatic screenshots and recordings, unless `autoScreenshot` and `autoRecord` are both `false`.
 
-**What to do:** Use the exact names. For one JSON document on stdout, pass `--json`. For one line per test, pass `--plain`. To keep the default reporters, leave `reporters` out.
+**What to do:** Use the exact names. For one JSON document on stdout, pass `--json`. For one line per test context, pass `--plain`. To keep the default reporters, leave `reporters` out.
 
 ## Invalid flag values exit 2
 
@@ -560,7 +562,15 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 
 ## JavaScript API
 
-**What changed:** If you import `doc-detective` in code, it now exports only `runTests` and `getRunner`. The `detectTests`, `detectAndResolveTests`, `resolveTests`, `readFile`, and `resolvePaths` exports and the `doc-detective/cli` path are gone. In `doc-detective-common`, the built-in `defaultFileTypes` hold [selector](/docs/test-docs/input-formats/selectors) definitions, so code that reads their `regex` patterns finds none.
+**What changed:** If you import `doc-detective` in code, it now exports only `runTests` and `getRunner`. The `detectTests`, `detectAndResolveTests`, `resolveTests`, `readFile`, and `resolvePaths` exports and the `doc-detective/cli` path are gone.
+
+`doc-detective-common` changed too:
+
+| Version 4 | Version 5 |
+|---|---|
+| `validate()` returned a valid step as you wrote it, such as `{"goTo": "https://example.com"}`. | It returns the effective step, with shorthand expanded and defaults filled, as the results show it. That applies to steps inside a test or spec too. Pass `addDefaults: false` to get your object back unchanged. |
+| `report_v3` required only `specs`. | It requires `summary` and `specs`, so a report without `summary` is invalid. |
+| The built-in `defaultFileTypes` held `regex` patterns. | They hold [selector](/docs/test-docs/input-formats/selectors) definitions, so code that reads their `regex` patterns finds none. |
 
 `runTests()` also changed:
 
@@ -596,7 +606,16 @@ These still work, and each prints a warning on stderr. Rename them when you can.
 
 **What changed:** Action `@v2` runs CLI 5. Its `version` input defaults to `5`, `exit_on_fail` defaults to `true`, and it removes the `ios` input. Exit code `2` always fails the job, whatever `exit_on_fail` says. The moving `@v1` tag stays on CLI 4 and refuses `version` 5 or later.
 
-Action `@v2` also writes the results file, the run folder, and reporter files to the runner's temporary directory, overriding any `outputDir` in your config. It drops the undocumented `issueUrl` output, so read `issue_url` instead.
+Action `@v2` passes `--output-dir` with the runner's temporary directory, which overrides any `outputDir` in your config. Every file version 5 writes to `outputDir` lands there:
+
+| File | Action `@v1` with CLI 4 | Action `@v2` |
+|---|---|---|
+| The results file, which sets the `results` output | `${{ runner.temp }}/doc-detective-output.json` | Unchanged. |
+| Reporter files, such as `junit.xml` | `${{ runner.temp }}` | Unchanged. |
+| The run folder | `${{ runner.temp }}/.doc-detective/runs/<runId>/`, when `reporters` listed `runFolder` | The same folder, which version 5 writes by default. |
+| Files from `screenshot: true` and `record: true` | The working directory, so `create_pr_on_change` committed them | `${{ runner.temp }}`, so `create_pr_on_change` leaves them out. |
+
+Action `@v2` drops the undocumented `issueUrl` output, so read `issue_url` instead.
 
 Two inputs have new names: `integrations` is now `issue_mentions`, and `prompt` is now `issue_prompt`. The old names still work in `@v2`, with a deprecation warning.
 
@@ -614,6 +633,7 @@ Exact pins to v1.6.1 or earlier are the risky case. They default to `version: la
 3. If you set `integrations` or `prompt`, rename them to `issue_mentions` and `issue_prompt`. Remove the old names rather than keeping them beside the new ones, because setting both fails the job before the run.
 4. If you pin an exact version of v1.6.1 or earlier and can't move to `@v2` yet, set `version: 4` on the step.
 5. If a later step reads reports or the run folder from your repository, read them from `${{ runner.temp }}` instead. See [Find reports and the run folder](/docs/ci/github-action#find-reports-and-the-run-folder).
+6. If `create_pr_on_change` should commit a screenshot or recording, give that step a `path`. A relative `path` written in a spec or doc resolves against that file's folder, not `outputDir`, so the file stays in your repository.
 
 See [Run in CI with the GitHub Action](/docs/ci/github-action) for the full setup.
 
