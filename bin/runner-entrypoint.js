@@ -395,6 +395,7 @@ function makeLogShipper(apiBase, runId, token) {
  *     sources we leave the user's `input` alone so their committed
  *     paths resolve from the cloned repo cwd)
  *   * `exitOnFail` → true (the exit code carries the run's outcome)
+ *   * `autoScreenshot`, `autoRecord` → false (spec and test values still win)
  */
 function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_DIR) {
 	const effective = { ...(configSnapshot ?? {}) };
@@ -418,6 +419,10 @@ function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_D
 	// The exit code is the run's outcome (finalizeBodyFor). `exitOnFail: false`
 	// would turn failed, empty, and all-skipped runs into 0 (ADR 01146).
 	effective.exitOnFail = true;
+	// Hosted runs don't capture customer pages unless a spec or test asks
+	// (ADR 01196). Core resolves `test ?? spec ?? config`, so those still win.
+	effective.autoScreenshot = false;
+	effective.autoRecord = false;
 	return effective;
 }
 
