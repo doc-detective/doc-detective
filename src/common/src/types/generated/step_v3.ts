@@ -26,7 +26,7 @@ export type Step = {
   onWarning?: unknown;
   onSkip?: unknown;
   location?: unknown;
-  autoScreenshot?: unknown;
+  autoScreenshotPath?: unknown;
   attempts?: unknown;
   visit?: unknown;
   durationMs?: unknown;
@@ -4324,9 +4324,9 @@ export interface Common {
   onSkip?: StepRouting3[];
   location?: SourceLocation;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -4387,34 +4387,6 @@ export interface Assertion {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -4595,9 +4567,9 @@ export interface Common1 {
   onSkip?: StepRouting7[];
   location?: SourceLocation1;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -4658,34 +4630,6 @@ export interface Assertion1 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -4907,9 +4851,9 @@ export interface Common2 {
   onSkip?: StepRouting11[];
   location?: SourceLocation2;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -4970,34 +4914,6 @@ export interface Assertion2 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -5350,9 +5266,9 @@ export interface Common3 {
   onSkip?: StepRouting15[];
   location?: SourceLocation3;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -5413,34 +5329,6 @@ export interface Assertion3 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -5650,9 +5538,9 @@ export interface Common4 {
   onSkip?: StepRouting19[];
   location?: SourceLocation4;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -5713,34 +5601,6 @@ export interface Assertion4 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -5957,9 +5817,9 @@ export interface Common5 {
   onSkip?: StepRouting23[];
   location?: SourceLocation5;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -6020,34 +5880,6 @@ export interface Assertion5 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -6292,9 +6124,9 @@ export interface Common6 {
   onSkip?: StepRouting27[];
   location?: SourceLocation6;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -6355,34 +6187,6 @@ export interface Assertion6 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -6627,9 +6431,9 @@ export interface Common7 {
   onSkip?: StepRouting31[];
   location?: SourceLocation7;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -6690,34 +6494,6 @@ export interface Assertion7 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -6957,9 +6733,9 @@ export interface Common8 {
   onSkip?: StepRouting35[];
   location?: SourceLocation8;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -7020,34 +6796,6 @@ export interface Assertion8 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -7321,9 +7069,9 @@ export interface Common9 {
   onSkip?: StepRouting39[];
   location?: SourceLocation9;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -7384,34 +7132,6 @@ export interface Assertion9 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -8171,9 +7891,9 @@ export interface Common10 {
   onSkip?: StepRouting43[];
   location?: SourceLocation10;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -8234,34 +7954,6 @@ export interface Assertion10 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -8414,9 +8106,9 @@ export interface Common11 {
   onSkip?: StepRouting47[];
   location?: SourceLocation11;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -8477,34 +8169,6 @@ export interface Assertion11 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -8800,9 +8464,9 @@ export interface Common12 {
   onSkip?: StepRouting51[];
   location?: SourceLocation12;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -8863,34 +8527,6 @@ export interface Assertion12 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -9049,9 +8685,9 @@ export interface Common13 {
   onSkip?: StepRouting55[];
   location?: SourceLocation13;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -9112,34 +8748,6 @@ export interface Assertion13 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -9442,9 +9050,9 @@ export interface Common14 {
   onSkip?: StepRouting59[];
   location?: SourceLocation14;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -9505,34 +9113,6 @@ export interface Assertion14 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -10063,9 +9643,9 @@ export interface Common15 {
   onSkip?: StepRouting63[];
   location?: SourceLocation15;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -10126,34 +9706,6 @@ export interface Assertion15 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -10306,9 +9858,9 @@ export interface Common16 {
   onSkip?: StepRouting67[];
   location?: SourceLocation16;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -10369,34 +9921,6 @@ export interface Assertion16 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -10618,9 +10142,9 @@ export interface Common17 {
   onSkip?: StepRouting71[];
   location?: SourceLocation17;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -10681,34 +10205,6 @@ export interface Assertion17 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -10861,9 +10357,9 @@ export interface Common18 {
   onSkip?: StepRouting75[];
   location?: SourceLocation18;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -10924,34 +10420,6 @@ export interface Assertion18 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -11295,9 +10763,9 @@ export interface Common19 {
   onSkip?: StepRouting79[];
   location?: SourceLocation19;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -11358,34 +10826,6 @@ export interface Assertion19 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -11538,9 +10978,9 @@ export interface Common20 {
   onSkip?: StepRouting83[];
   location?: SourceLocation20;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -11601,34 +11041,6 @@ export interface Assertion20 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.

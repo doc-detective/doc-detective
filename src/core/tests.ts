@@ -5632,7 +5632,7 @@ async function runContext({
           processRegistry,
           surfaceTracker,
         });
-        if (capturedPath) stepReport.autoScreenshot = capturedPath;
+        if (capturedPath) stepReport.autoScreenshotPath = capturedPath;
       }
 
       // Recording checkpoints (ADR 01075): while a checkpoint-enabled

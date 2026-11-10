@@ -380,16 +380,16 @@ describe("HTML Reporter media and view", function () {
   describe("the page's functions", function () {
     it("adds a step's automatic screenshot after its authored one, labeled Automatic, through its href", async function () {
       const { collectMedia } = await pageFunctions({ "/x/authored.png": "../x/authored.png", [shot]: `r1/${shot}` });
-      const media = collectMedia({ screenshot: { path: "/x/authored.png" }, autoScreenshot: shot });
+      const media = collectMedia({ screenshot: { path: "/x/authored.png" }, autoScreenshotPath: shot });
       expect(media).to.deep.equal([
         { kind: "image", path: "../x/authored.png", changed: undefined },
         { kind: "image", path: `r1/${shot}`, label: "Automatic" },
       ]);
     });
 
-    it("reads the field's future name, and prefers it", async function () {
+    it("doesn't read the field's pre-5.0 name", async function () {
       const { collectMedia } = await pageFunctions({ [shot]: `r1/${shot}` });
-      expect(collectMedia({ autoScreenshotPath: shot })[0].path).to.equal(`r1/${shot}`);
+      expect(collectMedia({ autoScreenshot: shot })).to.deep.equal([]);
     });
 
     it("looks up outputs and recordings too, and doesn't repeat a screenshot", async function () {
@@ -555,7 +555,7 @@ describe("HTML Reporter media and view", function () {
                     autoRecording: { result: "PASS", recordingPath: video },
                     steps: [
                       null,
-                      { stepId: "a", result: "PASS", autoScreenshot: shot, screenshot: { path: authored }, outputs: { screenshotPath: authored } },
+                      { stepId: "a", result: "PASS", autoScreenshotPath: shot, screenshot: { path: authored }, outputs: { screenshotPath: authored } },
                       { stepId: "url", result: "PASS", screenshot: { path: "https://example.com/a.png" } },
                     ],
                   },

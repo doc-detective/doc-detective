@@ -701,7 +701,7 @@ function inspectStep(step: any, data: WalkData): void {
   }
   // Auto screenshots land in a separate result field (a relative path string),
   // not `step.screenshot`. Tracked separately from authored screenshots.
-  if (typeof step.autoScreenshot === "string" && step.autoScreenshot.length > 0) {
+  if (typeof step.autoScreenshotPath === "string" && step.autoScreenshotPath.length > 0) {
     data.producedAutoScreenshots = true;
   }
   if (step.record !== undefined) {

@@ -42,7 +42,6 @@ function mediaHrefs(results: any, htmlFile?: string): Record<string, string> {
             step?.screenshot?.path,
             step?.record?.path,
             step?.autoScreenshotPath,
-            step?.autoScreenshot,
           ]) {
             add(stored);
           }
@@ -1108,9 +1107,8 @@ function collectMedia(step) {
   if (typeof step.stopRecord !== "undefined" && outs.recordingPath) {
     media.push({ kind: "video", path: mediaHref(outs.recordingPath) });
   }
-  // The automatic screenshot, relative to runDir; reads the field's future
-  // name (autoScreenshotPath) too.
-  var auto = step.autoScreenshotPath || step.autoScreenshot;
+  // The automatic screenshot, relative to runDir.
+  var auto = step.autoScreenshotPath;
   if (typeof auto === "string" && auto) {
     media.push({ kind: "image", path: mediaHref(auto), label: "Automatic" });
   }
