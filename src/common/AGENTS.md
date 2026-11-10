@@ -28,8 +28,12 @@ This is a dependency package, not a standalone application. Changes here affect 
 - Updates `$ref` paths to absolute file paths
 - Dereferences all references using `@apidevtools/json-schema-ref-parser`
 - Removes `$id` properties
-- Generates `schemas.json` (all schemas as single object)
-- Publishes v3 schemas to `dist/schemas/` for external consumption
+- Generates `schemas.json` (all schemas as single object), pretty-printed because it's committed and reviewed
+
+`compile` then cleans `dist/`, and `scripts/generateValidators.js` minifies the `dist/schemas/schemas.json`
+that `tsc` emits and writes every v3 schema beside it as `dist/schemas/<name>_v3.schema.json`. Published
+`$schema` URLs on unpkg point at those files. The package's `files` allowlist ships only `dist/`, and
+the CJS bundle `require`s `schemas.json` instead of inlining it ([ADR 01164](../../adrs/01164-ship-minified-schemas-and-only-dist-in-common.md)).
 
 **Schema versioning:**
 - v2 schemas: Legacy, supported via `compatibleSchemas` transformation map
@@ -124,7 +128,7 @@ Two hazards come with generation:
 2. Add/update `examples` array (required for tests)
 3. If adding new file, add to `files` array in `dereferenceSchemas.js`
 4. Run `npm run build`, which sequences `dereferenceSchemas`, `generate:types`, and `compile`. It does NOT run tests. Run `npm run test:coverage` separately, per ADR 01057.
-5. If creating v3 schema, add to published list in `dereferenceSchemas.js` (line ~130)
+5. A new v3 schema is published to `dist/schemas/` automatically; no list to update
 
 ### Dual-build requirement (schema edits aren't live until BOTH builds run)
 
@@ -136,9 +140,8 @@ are regenerated:
 2. **Root `dist/common`**, a separate copy the **runner** imports `validate` from. Regenerate
    it from the repo root with `npm run build`. That sequences `build:common`, which rebuilds
    `src/common`, then `compile`, which runs `copy:schemas` between `tsc` and the CJS bundle.
-   Running `compile` alone can copy a **stale** `src/common/src/schemas/schemas.json`. It can
-   also copy stale precompiled validators from `src/common/dist/schemas/validators*.cjs`, if
-   `src/common` wasn't rebuilt first. It fails outright when `src/common` was never built.
+   It copies `schemas.json` and the precompiled validators from `src/common/dist/schemas/`.
+   Running `compile` alone can copy **stale** ones, if `src/common` wasn't rebuilt first. It fails outright when `src/common` was never built.
    Root `npm run watch` builds `src/common` once at startup, then reruns only `compile` on `.ts`
    changes. A schema edit during watch leaves the schemas and validators stale. Rerun
    `npm run build:common`, or restart watch, after editing a schema.
