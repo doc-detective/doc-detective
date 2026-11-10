@@ -226,7 +226,7 @@ Unlike checkpoint drift (a WARNING), a violated guard **fails** the `stopRecord`
 - `resolution`: the video's dimensions, with a ±2 pixel tolerance (encoders round to even dimensions). `true` compares against the capture plan's expectation. That's the crop rectangle for `window` and `viewport` targets, and otherwise the capture frame size. The check is skipped when the engine reports no expectation. Pass `{ "width": …, "height": … }` to compare literal dimensions.
 - `notBlack`: fails when black frames cover 95% or more of the video, the symptom of a broken screen capture.
 
-The measured values land in the [`stopRecord` outputs](stoprecord) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatch` and `$$allBlack` when the matching guard ran).
+The measured values land in the [`stopRecord` outputs](stoprecord) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatches` and `$$allBlack` when the matching guard ran).
 
 ### Detecting staleness without re-recording
 

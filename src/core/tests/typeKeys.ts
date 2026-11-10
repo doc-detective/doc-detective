@@ -189,7 +189,7 @@ import type { WdioModule } from "./wdioTypes.js";
 
 // Send keystrokes to a background process's stdin. Mirrors runShell's outputs
 // and assertion model: `outputs.stdio` carries the captured stdout/stderr, and
-// `outputs.stdioMatched` (when waitUntil.stdio is set) is asserted via the
+// `outputs.stdioMatches` (when waitUntil.stdio is set) is asserted via the
 // shared expression engine — so the engine, not this function, decides PASS/FAIL.
 async function typeToProcess({
   step,
@@ -256,11 +256,11 @@ async function typeToProcess({
   // 6. Readiness / assertions.
   if (matchPromise) {
     const matched = await matchPromise;
-    result.outputs.stdioMatched = matched;
+    result.outputs.stdioMatches = matched;
     // Re-snapshot stdio after waiting so the captured output reflects the match.
     result.outputs.stdio = { stdout: bg.getStdout(), stderr: bg.getStderr() };
     const specs: ImplicitAssertionSpec[] = [
-      { statement: "$$outputs.stdioMatched == true", severity: "fail" },
+      { statement: "$$outputs.stdioMatches == true", severity: "fail" },
     ];
     const { assertions, status } = await evaluateImplicitAssertions(
       specs,

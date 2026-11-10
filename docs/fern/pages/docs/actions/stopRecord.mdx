@@ -43,7 +43,7 @@ With [`overwrite: "aboveVariation"`](record#refreshing-stale-recordings-automati
 
 With [`verify` guards](record#verifying-the-video-file-itself):
 
-- `$$resolutionMatch`: whether the video's dimensions match the expected resolution (±2 pixels). Present only when the `resolution` guard ran.
+- `$$resolutionMatches`: whether the video's dimensions match the expected resolution (±2 pixels). Present only when the `resolution` guard ran.
 - `$$allBlack`: whether black frames cover 95% or more of the video. Present only when the `notBlack` guard ran. A violated guard fails the step.
 
 In a headless run of an `aboveVariation` or checkpointed span (the recording itself is skipped):

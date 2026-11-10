@@ -701,13 +701,13 @@ async function endRecording({
           `verify.resolution: true has no capture expectation for this engine; skipping the check.`
         );
       } else {
-        result.outputs.resolutionMatch =
+        result.outputs.resolutionMatches =
           typeof result.outputs.width === "number" &&
           typeof result.outputs.height === "number" &&
           Math.abs(result.outputs.width - expected.width) <= 2 &&
           Math.abs(result.outputs.height - expected.height) <= 2;
         specs.push({
-          statement: `$$outputs.resolutionMatch == true`,
+          statement: `$$outputs.resolutionMatches == true`,
           severity: "fail",
         });
       }

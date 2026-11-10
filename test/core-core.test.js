@@ -1340,11 +1340,11 @@ describe("Run tests successfully", function () {
       assert.equal(exit.result, "PASS");
       assert.equal(exit.statement, "$$outputs.exitCode oneOf [0]");
       const stdio = step.assertions.find((a) =>
-        a.statement.includes("stdioMatched")
+        a.statement.includes("stdioMatches")
       );
       assert.ok(stdio, "expected a stdio assertion record");
       assert.equal(stdio.result, "PASS");
-      assert.equal(stdio.statement, "$$outputs.stdioMatched == true");
+      assert.equal(stdio.statement, "$$outputs.stdioMatches == true");
     } finally {
       fs.unlinkSync(tempFilePath);
     }
@@ -3079,7 +3079,7 @@ describe("getRunner() function", function () {
 
   it("type with a stdio waitUntil that can't match within a tiny timeout FAILs via the assertion", async () => {
     // Start node -i, then type expecting output that will never appear within a
-    // very small timeout. The stdioMatched assertion must FAIL the step.
+    // very small timeout. The stdioMatches assertion must FAIL the step.
     const t = {
       tests: [
         {
@@ -3114,7 +3114,7 @@ describe("getRunner() function", function () {
     try {
       result = await runTests(config);
       const steps = result.specs[0].tests[0].contexts[0].steps;
-      // Step 0 (start) PASS; step 1 (type) FAIL via stdioMatched assertion.
+      // Step 0 (start) PASS; step 1 (type) FAIL via stdioMatches assertion.
       assert.equal(steps[0].result, "PASS");
       assert.equal(steps[1].result, "FAIL");
       const implicit = (steps[1].assertions || []).filter(
@@ -3122,7 +3122,7 @@ describe("getRunner() function", function () {
       );
       assert.ok(
         implicit.some((a) => a.result === "FAIL"),
-        "expected an implicit stdioMatched assertion to FAIL"
+        "expected an implicit stdioMatches assertion to FAIL"
       );
     } finally {
       fs.unlinkSync(tempFilePath);
