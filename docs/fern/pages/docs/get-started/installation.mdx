@@ -134,6 +134,8 @@ See what's installed versus what the current version expects:
 doc-detective install status
 ```
 
+Each Doc Detective release expects an exact version of every runtime npm package, the version its CI tested. `install status` marks a cached package at any other version, newer or older, as `(outdated)`. You don't need to fix it by hand. Doc Detective replaces it with the expected version, downgrading a newer one, on the first run that loads it or on the next `doc-detective install runtime`. If you build a CI image or warm a shared cache, run `doc-detective install runtime` there after each upgrade. Test jobs then skip the download.
+
 ### Override the cache location
 
 The default cache location is `~/.doc-detective/`, which persists across reboots. For containers, shared CI caches, or any environment where the cache belongs somewhere else, set a custom location:
