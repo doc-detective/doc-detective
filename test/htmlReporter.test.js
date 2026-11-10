@@ -94,10 +94,15 @@ const sampleResults = {
 
 // Runs the copy of headerFacts that ships in the page, so the test can't drift from
 // what browsers get. The header itself needs a DOM, and the suite has none.
+// A top-level function in the page closes with a `}` at column 0, and its inner
+// blocks are indented, so the first `\n}` ends it.
 function headerFactsFor(results) {
   const html = buildHtml(results);
-  const pick = (name, param) =>
-    html.match(new RegExp(`function ${name}\\(${param}\\) \\{[\\s\\S]*?\\n\\}`))?.[0];
+  const pick = (name, param) => {
+    const source = html.match(new RegExp(`function ${name}\\(${param}\\) \\{[\\s\\S]*?\\n\\}`))?.[0];
+    if (!source) throw new Error(`Couldn't find \`${name}\` in the page.`);
+    return source;
+  };
   const source = `${pick("fmtDuration", "ms")}\n${pick("headerFacts", "report")}`;
   return JSON.parse(
     vm.runInNewContext(`${source}\nJSON.stringify(headerFacts(${JSON.stringify(results)}))`)

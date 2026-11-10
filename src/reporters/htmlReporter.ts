@@ -1206,7 +1206,7 @@ function buildHeader() {
     var ms = el("div", "metastrip");
     var msInner = el("div", "metastrip-inner");
     facts.fields.forEach(function(f) {
-      msInner.innerHTML += '<span class="m"><span class="k">' + f[0] + '</span> <span class="v">' + esc(f[1]) + '</span></span>';
+      msInner.innerHTML += '<span class="m"><span class="k">' + esc(f[0]) + '</span> <span class="v">' + esc(f[1]) + '</span></span>';
     });
     ms.appendChild(msInner);
     hdr.appendChild(ms);
