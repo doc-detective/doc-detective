@@ -208,7 +208,7 @@ async function getConfigFromEnv() {
 // DOC_DETECTIVE_CONFIG (ADR 01165). It sits just below that variable, and its
 // other keys, such as `container`, do nothing. Warnings wait for setConfig to
 // know the log level.
-function readLegacyEnvConfig() {
+async function readLegacyEnvConfig() {
   if (!process.env.DOC_DETECTIVE) return null;
   let legacy: any;
   try {
@@ -226,24 +226,30 @@ function readLegacyEnvConfig() {
   const config = legacy?.config;
   if (config === null || typeof config !== "object" || Array.isArray(config)) return null;
   warnOnce("DOC_DETECTIVE", '`DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.');
-  return anchorPaths(assertValidConfig(config, "DOC_DETECTIVE"), process.cwd());
+  return await anchorPaths(assertValidConfig(config, "DOC_DETECTIVE"), process.cwd());
 }
 
-// A relative `output` or `cacheDir` resolves against the source that set it:
-// a config file's folder, or the working directory for the environment and
-// flags (ADR 01165). `path.join` keeps a trailing separator, so `output: "x/"`
-// still reads as a folder. Returns a copy; the input is left as it was.
-// Other path keys, such as `outputDir`, still resolve in resolvePaths, as
-// before; one rule for all of them is later work (ADR 01165, R6).
-function anchorPaths(config: any, base: string) {
-  const anchored = { ...config };
+// A relative path resolves against the source that set it: a config file's
+// folder, or the working directory for the environment and flags (ADR 01165,
+// ADR 01192). `output` and `cacheDir` resolve here, with `path.join`, so `-`
+// stays stdout and `output: "x/"` still reads as a folder. resolvePaths does
+// the rest, nested keys such as a credential file included. Returns a copy;
+// the input is left as it was.
+async function anchorPaths(config: any, base: string) {
+  const anchored = structuredClone(config);
   for (const key of ["output", "cacheDir"]) {
     const value = anchored[key];
     if (typeof value === "string" && value !== "-" && !path.isAbsolute(value) && !/^https?:\/\//.test(value)) {
       anchored[key] = path.join(base, value);
     }
   }
-  return anchored;
+  // The trailing separator marks `base` as a folder, even one with a dot in its name.
+  return resolvePaths({
+    config: { relativePathBase: "file" },
+    object: anchored,
+    filePath: base + path.sep,
+    objectType: "config",
+  });
 }
 
 // Where a config file's relative paths resolve: its folder, unless it sets
@@ -319,7 +325,9 @@ async function readUserConfig() {
     throw new Error(`Could not parse user config at ${file}: it isn't valid JSON.`);
   }
   const valid = assertValidConfig(config, `user config ${file}`);
-  return anchorPaths(valid, configFileBase(valid, file));
+  // Always its own folder, even with `relativePathBase: "cwd"`: this file
+  // serves every project on the machine (ADR 01165, ADR 01192).
+  return await anchorPaths(valid, path.dirname(path.resolve(file)));
 }
 
 // Validate one config source on its own, so an error names where it came from.
@@ -432,7 +440,7 @@ async function setConfig({
     }
     // A remote config's URL can carry a token in its query string; name it without.
     config = assertValidConfig(config, /^https?:\/\//.test(configPath) ? redactUrlForOutput(configPath) : displayPath(path.resolve(configPath)));
-    config = anchorPaths(config, configFileBase(config, configPath));
+    config = await anchorPaths(config, configFileBase(config, configPath));
   }
 
   // Lowest first: the user config, the project config, the deprecated
@@ -441,7 +449,7 @@ async function setConfig({
   // readUserConfig and readLegacyEnvConfig anchor their own relative paths;
   // the project config, above, and DOC_DETECTIVE_CONFIG are anchored here.
   const userConfig = await readUserConfig();
-  const legacyConfig = readLegacyEnvConfig();
+  const legacyConfig = await readLegacyEnvConfig();
   const envConfig = await getConfigFromEnv();
   // Rename each source before the merge, so a later source wins whichever name
   // it uses (ADR 01169). Each was validated as a renamed copy, so both names in
@@ -451,7 +459,7 @@ async function setConfig({
   renameDeprecatedConfigKeys([userConfig, config, legacyConfig, envConfig], (message) => (deprecation = message));
   config = deepMerge(userConfig ?? {}, config);
   if (legacyConfig) config = deepMerge(config, legacyConfig);
-  if (envConfig) config = deepMerge(config, anchorPaths(envConfig, process.cwd()));
+  if (envConfig) config = deepMerge(config, await anchorPaths(envConfig, process.cwd()));
 
   if (readCredentials) readCredentialFiles(config);
 
@@ -608,7 +616,8 @@ async function setConfig({
   if (config.output && Array.isArray(config.reporters)) {
     config.reporters = config.reporters.filter((reporter: any) => reporter !== "json");
   }
-  // Resolve paths
+  // Every source and flag resolved its own paths already. This resolves what
+  // none of them set, such as the default `input` and `outputDir`.
   config = await resolvePaths({
     config: config,
     object: config,

@@ -1,5 +1,6 @@
 // Config and environment precedence permutations (ADR 01165), run by
-// config-precedence.spec.json in this directory, and output-mode permutations
+// config-precedence.spec.json in this directory. Also path permutations
+// (ADR 01192), run by path-rule.spec.json, and output-mode permutations
 // (ADR 01191), run by output-modes.spec.json.
 //
 //   node test/core-artifacts/cli/precedence.cjs <case>
@@ -77,6 +78,53 @@ const cases = {
     args: ["-c", "sub/dd.json", "-i", "pass.spec.json"],
     exists: ["sub/results.json"],
     missing: ["results.json"],
+  },
+  // One path rule (ADR 01192), run by path-rule.spec.json. Each config sets
+  // a relative path, and a wrong base finds no file, so the run exits 2.
+  "project-config-input-beside-config": {
+    files: { "sub/pass.spec.json": passSpec, "sub/dd.json": { input: "pass.spec.json" } },
+    env: {},
+    args: ["-c", "sub/dd.json"],
+  },
+  "project-config-cwd-base-input": {
+    files: { "pass.spec.json": passSpec, "sub/dd.json": { input: "pass.spec.json", relativePathBase: "cwd" } },
+    env: {},
+    args: ["-c", "sub/dd.json"],
+  },
+  "user-config-input-beside-user-config": {
+    files: {
+      "xdg/doc-detective/config.json": { input: "pass.spec.json" },
+      "xdg/doc-detective/pass.spec.json": passSpec,
+      "proj/dd.json": {},
+    },
+    env: { XDG_CONFIG_HOME: "xdg" },
+    args: ["-c", "proj/dd.json"],
+  },
+  "env-config-input-against-cwd": {
+    files: { "pass.spec.json": passSpec, "proj/dd.json": {} },
+    env: {
+      DOC_DETECTIVE_CONFIG: JSON.stringify({ input: "pass.spec.json", telemetry: { send: false }, autoUpdate: false }),
+    },
+    args: ["-c", "proj/dd.json"],
+  },
+  "legacy-env-input-against-cwd": {
+    files: { "pass.spec.json": passSpec, "proj/dd.json": {} },
+    env: { DOC_DETECTIVE: legacy({ input: "pass.spec.json" }) },
+    args: ["-c", "proj/dd.json"],
+  },
+  "flag-input-against-cwd": {
+    files: { "pass.spec.json": passSpec, "proj/dd.json": {} },
+    env: {},
+    args: ["-c", "proj/dd.json", "-i", "pass.spec.json"],
+  },
+  "config-token-file-beside-config": {
+    files: {
+      "pass.spec.json": passSpec,
+      "sub/token.txt": "t0ken",
+      "sub/dd.json": { integrations: { heretto: [{ name: "h", organizationId: "o", username: "u", apiTokenFile: "token.txt" }] } },
+    },
+    env: {},
+    args: ["-c", "sub/dd.json", "-i", "pass.spec.json"],
   },
   // Output modes compose or refuse (ADR 01191), run by output-modes.spec.json.
   "json-plain-refused": {
