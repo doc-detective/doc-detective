@@ -21,7 +21,7 @@ default branch, `main`:
   installed it as a git extension with no ref. All four followed the default branch.
 
 agent-tools 1.x teaches CLI 4, and 2.x teaches CLI 5. When agent-tools merges its 2.x work to `main`, every 4.x
-`install agents` would start installing skills that teach flags and exit codes 4.x doesn't have.
+`install agents` would follow it. The 2.x skills teach flags and exit codes 4.x doesn't have.
 
 ADR 01164 on `feat/v5-rc` pins CLI 5 to agent-tools' `v2` through one constant, `AGENT_TOOLS_REF`. 4.x needs the
 same pin, at `v1`, before agent-tools' 2.x reaches `main`.
@@ -51,7 +51,7 @@ mechanism matches ADR 01164 on `feat/v5-rc`:
 - Claude Code's settings-file fallback writes `ref: "v1"` on the marketplace's `github` source, and rewrites an
   entry without it in place.
 
-Precondition: the `v1` tag must exist on agent-tools before this merges. The maintainer creates it on agent-tools'
+The `v1` tag must exist on agent-tools before this merges. The maintainer creates it on agent-tools'
 `main` tip from before the 2.x merge. A later 1.x fix reaches 4.x users when `v1` moves to it.
 
 When 5.0 merges to `main`, ADR 01164 supersedes this ADR and `AGENT_TOOLS_REF` becomes the CLI 5 ref.

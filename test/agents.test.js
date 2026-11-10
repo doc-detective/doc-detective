@@ -596,12 +596,15 @@ describe("ClaudeCodeAdapter.install() — Path A (claude on PATH)", function () 
       );
     });
 
-    it("ends the warning with the exit code when the re-add prints nothing", async function () {
+    it("names the exit code in a full-sentence warning when the re-add prints nothing", async function () {
       const { adapter, logged, opts } = makeFailingAdapter({ "marketplace add": {} });
       await adapter.install(opts);
       const warning = logged.find((m) => /Couldn't re-add/.test(m));
       assert.ok(warning, `expected a re-add warning; got ${JSON.stringify(logged)}`);
-      assert.match(warning, /\(exit code 1\)$/);
+      assert.equal(
+        warning,
+        `Couldn't re-add the \`doc-detective\` marketplace at \`${AGENT_TOOLS_REF}\` (exit code 1). Updating it as is.`
+      );
     });
 
     it("warns and continues when the re-add's spawn throws", async function () {
