@@ -16,16 +16,16 @@ capture starts. It switches back once the recorder runs. To stop, it switches to
 recording's first and last frames can come from the captured tab while it's hidden.
 
 Chrome doesn't size a hidden tab the same way on every platform. On Windows (Chrome 150), a hidden captured tab
-renders at the visible size, sharing bar included: 1024x582 for a 1024x640 viewport. On the macOS 26 runner image
-(Chrome 157), the same recording came out 940x640 in some runs and 1024x582 in others, on the same commit and
-image: frames at a taller aspect ratio than the visible tab's. The capture can't start until the recorder tab is in
-front, so whether the first frame comes from the hidden tab is a race.
+renders at the visible size, sharing bar included: 1024x582 for a 1024x640 viewport. The macOS 26 runner image
+(Chrome 157) differs. On the same commit and image, the same recording came out 940x640 in some runs and 1024x582
+in others. The 940x640 frames have a taller aspect ratio than the visible tab's. The capture can't start until the
+recorder tab is in front, so whether the first frame comes from the hidden tab is a race.
 
 The `MediaRecorder` WebM carries frames of more than one size. ffmpeg sizes its output by the first decoded frame
 and scales every later frame to it. So when the race went one way, a 1024x582 recording came out 940x640, with
 every visible frame squeezed to that aspect ratio. The `headless-chrome-auto-engine` fixture failed on macOS three
 runs in a row. Its sibling `headless-chrome-browser-engine` produced 940x640 too, unnoticed, because it asserted no
-size. ADR 01176 noted the milder form of the same flaw: a first frame from before the sharing bar appears gives a
+size. ADR 01176 noted a milder form of the same flaw. A first frame from before the sharing bar appears gives a
 full-height, slightly stretched video.
 
 What size should a browser recording be, when its frames don't all have the same size?
@@ -42,8 +42,8 @@ What size should a browser recording be, when its frames don't all have the same
   ffmpeg's `showinfo` filter. When the frames have more than one size, scale every frame to the size that covers
   the most of the recording's time.
 - **B. Open the recorder in its own window** in headless Chrome, so the captured tab never goes to the background.
-- **C. Start `MediaRecorder` only once the recorder tab is hidden**, meaning the captured tab is in front again,
-  and pause it when the recorder tab comes back to the front.
+- **C. Start `MediaRecorder` only once the recorder tab is hidden**, meaning the captured tab is in front again.
+  Pause it when the recorder tab comes back to the front.
 - **D. Ask `getDisplayMedia` for an exact size**, so every frame is letterboxed to the viewport's size.
 
 ## Decision Outcome
@@ -70,7 +70,7 @@ headed or headless.
 
 ### Consequences
 
-- Good: a browser recording's size is the size the page rendered at for most of the recording, and it no longer
+- Good: a browser recording's size is the size the page rendered at for most of the recording. It no longer
   changes from run to run.
 - Good: it also fixes the full-height, stretched video ADR 01176 described.
 - Bad: the WebM is decoded one extra time before the transcode. That's quick for short doc recordings, and at most
@@ -81,9 +81,9 @@ headed or headless.
 ### Confirmation
 
 - `test/recording-screenshot-coverage.test.js`: `dominantFrameSize` picks the size that covers the most time, weighs
-  by time rather than frame count, and returns `null` for one size or no frames. With real ffmpeg, `stopRecording`
-  turns a WebM of 0.3 s at 940x640, 3 s at 1024x582, and 0.2 s at 940x640 into a 1024x582 MP4. Before this change it
-  came out 940x640.
+  by time rather than frame count, and returns `null` for one size or no frames. The real-ffmpeg case builds a WebM
+  of 0.3 s at 940x640, 3 s at 1024x582, and 0.2 s at 940x640. `stopRecording` turns it into a 1024x582 MP4. Before
+  this change it came out 940x640.
 - Fixture `test/core-artifacts/recording/headless-chrome.spec.json`: `headless-chrome-auto-engine` and now
   `headless-chrome-browser-engine` assert the viewport's width, and a height no taller than the viewport, on Windows,
   macOS, and Linux.
