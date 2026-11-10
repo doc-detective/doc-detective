@@ -888,7 +888,7 @@ describe("CLI contract", function () {
         [
           "Error: Invalid config in bad.json:",
           "unknown key `logLevl`. Did you mean `logLevel`?",
-          'concurrentRunners: must be integer or boolean (got "lots").',
+          'concurrentRunners: must be auto (got "lots").',
           'shell: must be one of bash, cmd, powershell (got "zsh").',
           "See https://docs.doc-detective.com/reference/schemas/config",
           "",

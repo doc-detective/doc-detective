@@ -970,6 +970,19 @@ describe("utils.ts coverage", function () {
       assert.equal(cfgTrue.concurrentRunners, true);
     });
 
+    // ADR 01188: `auto` in a config file means `true` too.
+    it("reads concurrentRunners auto from config as true", async function () {
+      const previous = process.env.DOC_DETECTIVE_CONFIG;
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ concurrentRunners: "auto" });
+      try {
+        const cfg = await setConfig({ args: {} });
+        assert.equal(cfg.concurrentRunners, true);
+      } finally {
+        if (previous === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+        else process.env.DOC_DETECTIVE_CONFIG = previous;
+      }
+    });
+
     it("overrides the config shell from --shell", async function () {
       const cfg = await setConfig({ args: { shell: "cmd" } });
       assert.equal(cfg.shell, "cmd");

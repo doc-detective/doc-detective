@@ -1140,6 +1140,10 @@ describe("debug/provenance", function () {
     ]);
   });
 
+  it("reports --concurrent-runners auto, which setConfig applies (ADR 01188)", function () {
+    expect(collectCliOverrides({ concurrentRunners: "auto" }).map((o) => o.flag)).to.deep.equal(["concurrent-runners"]);
+  });
+
   it("returns [] for non-object args", function () {
     expect(collectCliOverrides(undefined)).to.deep.equal([]);
     expect(collectCliOverrides(null)).to.deep.equal([]);

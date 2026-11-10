@@ -1490,9 +1490,15 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     if (deeper) continue;
     // An object never matches a list of scalars, so that list came from another branch.
     const isObject = value !== null && typeof value === "object";
-    const allowed = [
+    // When a branch lists values of another type, such as `concurrentRunners`'
+    // `auto` against a number, and another branch types this value, the value
+    // meant the typed branch, so those values don't print.
+    const listed = [
       ...new Set([...of("enum").flatMap((error) => error.params.allowedValues), ...of("const").map((error) => error.params.allowedValue)]),
     ];
+    const sameType = listed.filter((option) => typeof option === typeof value);
+    const explainedElsewhere = rest.some((error) => error.keyword !== "enum" && error.keyword !== "const");
+    const allowed = sameType.length > 0 ? sameType : explainedElsewhere ? [] : listed;
     // Allowed values print bare, here and in the list below; only `got` is JSON.
     if (!isObject && allowed.length === 1) lines.push(`${prefix}must be ${allowed[0]}${got}`);
     else if (!isObject && allowed.length) lines.push(`${prefix}must be one of ${allowed.join(", ")}${got}`);

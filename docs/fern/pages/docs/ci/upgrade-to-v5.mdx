@@ -334,6 +334,7 @@ Two behaviors changed too:
 
 - A `dragAndDrop` with `duration: 0` drags instantly. Version 4 replaced `0` with the 1000-millisecond default.
 - A `find` with `"click": false` finds without clicking. Earlier 4.x releases clicked anyway.
+- A `type` step's `timeout` also bounds finding its target element in a browser, and `0` checks once. Version 4 always searched for 5 seconds.
 
 The results show these steps' effective forms. A `find.click` appears as the click that ran, such as `{ "button": "left" }` for `true`. A `type` step's `keys` is always a list. A `swipe` direction appears as `{ "direction": "up", "distance": 0.5, "duration": 500 }`.
 
@@ -456,7 +457,7 @@ The `json` reporter still exists, and it still writes a timestamped file in `out
 
 **What changed:** A bare `--concurrent-runners` exits `2`.
 
-**What to do:** Pass a positive whole number, or `auto`. `true` works too, as it does in config:
+**What to do:** Pass a positive whole number, or `auto`. `true` works too. In config, `"concurrentRunners": "auto"` now validates and means the same as `true`:
 
 ```bash
 doc-detective --concurrent-runners auto

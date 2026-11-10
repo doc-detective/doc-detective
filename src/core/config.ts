@@ -306,7 +306,7 @@ async function setConfig({ config, detectApps = true }: any) {
  * @returns {number} The resolved concurrent runners value (integer >= 1)
  */
 function resolveConcurrentRunners(config: any) {
-  if (config.concurrentRunners === true) {
+  if (config.concurrentRunners === true || config.concurrentRunners === "auto") {
     // Cap at 4 for the boolean convenience option; floor at 1 in case
     // os.cpus() reports 0 (some restricted containers) so the pool is never
     // sized to 0.
