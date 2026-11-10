@@ -146,6 +146,10 @@ passes. If that job fails, the version is published to `staging-<version>` (and 
 - **Recover:** fix the cause on `main`, then run `gh workflow run promote.yml -f version=<X.Y.Z>`.
   The smoke→promote→docker chain re-runs, and the promote step is an idempotent
   `npm dist-tag add`.
+- **Smoke-test a prerelease:** dispatch the same workflow with the prerelease version, for example
+  `gh workflow run promote.yml -f version=5.0.0-v5-rc.12`. Only the smoke test runs. The promote and
+  Docker jobs skip for any version that contains a `-`, so an RC never reaches `@latest` or Docker's
+  floating tags.
 - One historical example: a committed screenshot baseline (`reference.png`) drifted from what
   headless Chrome captures on CI, and blocked two releases. It was removed in #395. Keep smoke-test
   fixtures baseline-free. The smoke test's purpose is exercising the action end-to-end, not visual
