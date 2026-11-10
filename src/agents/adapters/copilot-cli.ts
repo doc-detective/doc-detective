@@ -10,6 +10,7 @@ import type {
   Scope,
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
+import { AGENT_TOOLS_REF, agentToolsRawUrl } from "../fetcher.js";
 
 export interface RunResult {
   stdout: string;
@@ -26,10 +27,10 @@ export interface CopilotCliDeps {
 }
 
 const MARKETPLACE_NAME = "doc-detective";
+const MARKETPLACE_REPO = "doc-detective/agent-tools";
 const PLUGIN_NAME = "doc-detective";
 const PLUGIN_KEY = `${PLUGIN_NAME}@${MARKETPLACE_NAME}`;
-const LATEST_PLUGIN_JSON_URL =
-  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/plugins/doc-detective/.claude-plugin/plugin.json";
+const LATEST_PLUGIN_JSON_URL = agentToolsRawUrl("plugins/doc-detective/.claude-plugin/plugin.json");
 
 export function defaultCopilotCliDeps(): CopilotCliDeps {
   return {
@@ -171,16 +172,24 @@ export class CopilotCliAdapter implements AgentAdapter {
     }
 
     type Cmd = [string, ...string[]];
-    const commands: Cmd[] = isInstalled
-      ? [["copilot", "plugin", "update", PLUGIN_KEY]]
-      : [
-          ["copilot", "plugin", "marketplace", "add", "doc-detective/agent-tools"],
-          ["copilot", "plugin", "install", PLUGIN_KEY],
-        ];
+    // A `bestEffort` step logs a warning when it fails instead of throwing.
+    type Step = { argv: Cmd; bestEffort?: boolean };
+    // `owner/repo#ref` pins the marketplace to agent-tools' ref (ADR 01181).
+    const addMarketplace: Cmd = [
+      "copilot", "plugin", "marketplace", "add", `${MARKETPLACE_REPO}#${AGENT_TOOLS_REF}`,
+    ];
+    const steps: Step[] = isInstalled
+      ? [
+          // Re-add first so an install made before the ref pin moves to it.
+          // Best effort: a failed re-add never blocks the update below.
+          { argv: addMarketplace, bestEffort: true },
+          { argv: ["copilot", "plugin", "update", PLUGIN_KEY] },
+        ]
+      : [{ argv: addMarketplace }, { argv: ["copilot", "plugin", "install", PLUGIN_KEY] }];
 
     if (opts.dryRun) {
-      for (const cmd of commands) {
-        opts.logger(`[dry-run] would run: ${cmd.join(" ")}`, "info");
+      for (const { argv } of steps) {
+        opts.logger(`[dry-run] would run: ${argv.join(" ")}`, "info");
       }
       return {
         adapterId: this.id,
@@ -190,12 +199,21 @@ export class CopilotCliAdapter implements AgentAdapter {
       };
     }
 
-    for (const [cmd, ...args] of commands) {
+    const warnSkipped = (detail: string) =>
+      opts.logger(
+        `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (${detail})`,
+        "warn"
+      );
+    for (const { argv: [cmd, ...args], bestEffort } of steps) {
       opts.logger(`Running: ${cmd} ${args.join(" ")}`, "debug");
       let result: RunResult;
       try {
         result = await this.deps.run(cmd, args);
       } catch (err) {
+        if (bestEffort) {
+          warnSkipped(String(err));
+          continue;
+        }
         // ENOENT from safeSpawn = binary missing. Surface an actionable
         // install hint rather than the raw spawn error.
         const code = (err as NodeJS.ErrnoException | undefined)?.code;
@@ -214,6 +232,10 @@ export class CopilotCliAdapter implements AgentAdapter {
         // a generic "exited with code 1" instead.
         const output = [result.stderr, result.stdout].filter(Boolean).join("\n");
         const msg = output || `exit code ${result.exitCode}`;
+        if (bestEffort) {
+          warnSkipped(msg);
+          continue;
+        }
         if (/auth|login|token|unauthori[sz]ed/i.test(msg)) {
           throw new Error(
             `GitHub Copilot CLI is not authenticated. Run \`copilot login\` and re-run \`install agents\`. (copilot said: ${msg})`
