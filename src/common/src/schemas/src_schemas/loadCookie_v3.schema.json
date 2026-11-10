@@ -45,11 +45,6 @@
           }
         ],
         "properties": {
-          "$schema": {
-            "description": "Optional self-describing schema URI for linters",
-            "type": "string",
-            "format": "uri-reference"
-          },
           "name": {
             "type": "string",
             "title": "Cookie name",

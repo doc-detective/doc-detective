@@ -887,10 +887,40 @@ describe("CLI contract", function () {
       expect(r.stderr).to.equal(
         [
           "Error: Invalid config in bad.json:",
-          "unknown key 'logLevl'. Did you mean logLevel?",
+          "unknown key `logLevl`. Did you mean `logLevel`?",
           'concurrentRunners: must be integer or boolean (got "lots").',
           'shell: must be one of bash, cmd, powershell (got "zsh").',
           "See https://docs.doc-detective.com/reference/schemas/config",
+          "",
+        ].join("\n")
+      );
+    });
+
+    // ADR 01187: a key that did nothing is now an unknown key.
+    it("rejects config `crawl` as an unknown key", function () {
+      fs.writeFileSync(path.join(cwd, "bad.json"), JSON.stringify({ crawl: true }));
+      const r = run(["-c", "bad.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid config in bad.json:",
+          "unknown key `crawl`.",
+          "See https://docs.doc-detective.com/reference/schemas/config",
+          "",
+        ].join("\n")
+      );
+    });
+
+    it("rejects step `breakpoint` as an unknown key", function () {
+      writeSpec("bp.spec.json", { runShell: "echo hi", breakpoint: true });
+      const r = run(["-i", "bp.spec.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid test specifications, so nothing ran:",
+          "bp.spec.json",
+          "tests[0].steps[0]: unknown key `breakpoint`.",
+          "Fix them, or pass --no-exit-on-fail to skip them.",
           "",
         ].join("\n")
       );
@@ -911,7 +941,7 @@ describe("CLI contract", function () {
       expect(r.stderr).to.equal(
         [
           "Error: Invalid config in DOC_DETECTIVE_CONFIG:",
-          "unknown key 'logLevl'. Did you mean logLevel?",
+          "unknown key `logLevl`. Did you mean `logLevel`?",
           "See https://docs.doc-detective.com/reference/schemas/config",
           "",
         ].join("\n")
@@ -924,7 +954,7 @@ describe("CLI contract", function () {
       expect(r.stderr).to.include(
         [
           "Error: Invalid config in DOC_DETECTIVE:",
-          "unknown key 'logLevl'. Did you mean logLevel?",
+          "unknown key `logLevl`. Did you mean `logLevel`?",
           "See https://docs.doc-detective.com/reference/schemas/config",
         ].join("\n")
       );
@@ -980,9 +1010,9 @@ describe("CLI contract", function () {
         [
           "Error: Invalid test specifications, so nothing ran:",
           "enum.spec.json",
-          "tests[0]: unknown key 'stepz'. Did you mean steps?",
+          "tests[0]: unknown key `stepz`. Did you mean `steps`?",
           'tests[0].steps[0].click.button: must be one of left, right, middle (got "middle-ish").',
-          "tests[0].steps[1].runShell: unknown key 'comand'. Did you mean command?",
+          "tests[0].steps[1].runShell: unknown key `comand`. Did you mean `command`?",
           "Fix them, or pass --no-exit-on-fail to skip them.",
           "",
         ].join("\n")
@@ -1266,7 +1296,7 @@ describe("CLI contract", function () {
       fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ logLevl: "info" }));
       const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: path.join(cwd, "cache") } });
       expect(r.status).to.equal(2);
-      expect(r.stderr).to.include("unknown key 'logLevl'. Did you mean logLevel?");
+      expect(r.stderr).to.include("unknown key `logLevl`. Did you mean `logLevel`?");
     });
 
     describe("precedence", function () {

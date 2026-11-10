@@ -1447,7 +1447,7 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     for (const key of unknownKeys) {
       const near = nearestCommand(key, known);
       if (near) suggested.add(near);
-      lines.push(`${prefix}unknown key '${key}'.${near ? ` Did you mean ${near}?` : ""}`);
+      lines.push(`${prefix}unknown key \`${key}\`.${near ? ` Did you mean \`${near}\`?` : ""}`);
     }
     // An error deeper down means the value took a branch that got further, so a
     // key only one branch requires came from a branch it didn't take. A key the

@@ -485,11 +485,8 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         // NovaWindows (like WinAppDriver) takes appArguments as one string.
         capabilities["appium:appArguments"] = descriptor.args.join(" ");
       }
-      // `workingDirectory` is NOT mapped: NovaWindows v1.4.1 silently ignores
-      // the appWorkingDir capability (the launched process inherits the
-      // driver's PowerShell session cwd), so mapping it would be a no-op the
-      // author can't see. It's rejected in unsupportedFields below instead —
-      // see the upstream report referenced in ADR 01036.
+      // No app descriptor has `workingDirectory` (ADR 01187): NovaWindows
+      // v1.4.1 ignores appWorkingDir, and no other app driver honors one.
       return capabilities;
     },
     unsupportedFields: [
@@ -499,12 +496,6 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         isSet: (value) => value !== undefined,
         guidance:
           "Set environment variables in the shell that launches Doc Detective, or launch the app via runShell instead.",
-      },
-      {
-        field: "workingDirectory",
-        isSet: (value) => value !== undefined,
-        guidance:
-          "The Windows app driver (NovaWindows) doesn't honor a launch working directory — the app inherits the driver's own working directory — so Doc Detective can't set it; launch the app via runShell if the cwd matters.",
       },
     ],
   },
@@ -544,15 +535,7 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       capabilities["appium:serverStartupTimeout"] = Math.max(timeout, 120000);
       return capabilities;
     },
-    unsupportedFields: [
-      ...DESKTOP_UNSUPPORTED_MOBILE_FIELDS,
-      {
-        field: "workingDirectory",
-        isSet: (value) => value !== undefined,
-        guidance:
-          "The macOS app driver launches apps through LaunchServices, which offers no working-directory control; launch via runShell if the cwd matters.",
-      },
-    ],
+    unsupportedFields: [...DESKTOP_UNSUPPORTED_MOBILE_FIELDS],
   },
   android: {
     driverPackage: "appium-uiautomator2-driver",
@@ -599,12 +582,6 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         isSet: (value) => value !== undefined,
         guidance:
           "The Android driver can't set app environment variables; use driverOptions for driver-specific launch controls.",
-      },
-      {
-        field: "workingDirectory",
-        isSet: (value) => value !== undefined,
-        guidance:
-          "A working directory is meaningless for an Android package launch.",
       },
     ],
   },
@@ -661,11 +638,6 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         isSet: (value) => Array.isArray(value) && value.length > 0,
         guidance:
           "The iOS driver does not honor desktop-style process arguments for AUT launch.",
-      },
-      {
-        field: "workingDirectory",
-        isSet: (value) => value !== undefined,
-        guidance: "A working directory is not meaningful for iOS app launches.",
       },
       {
         field: "env",
@@ -1260,7 +1232,7 @@ async function startAppSurface({
     return result;
   }
   // Per-platform unsupported fields (desktop rows reject the mobile-only
-  // device/install/activity; Android rejects args/env/workingDirectory) — fail
+  // device/install/activity; Android rejects args/env) — fail
   // with the alternative named rather than silently ignoring the author's ask.
   for (const { field, isSet, guidance } of platformDriver.unsupportedFields) {
     if (isSet(descriptor[field])) {

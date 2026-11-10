@@ -8,7 +8,7 @@
       "steps": [
         {
           "runShell": {
-            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-strict';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/unknown-step-key.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',asertions:[]}]}]}));fs.writeFileSync(d+'/unknown-spec-key.spec.json',JSON.stringify({runon:[],tests:[{steps:[{runShell:'echo hi'}]}]}));fs.writeFileSync(d+'/unknown-action-key.spec.json',JSON.stringify({tests:[{steps:[{runCode:{language:'python',code:'print(1)',typo:1}}]}]}));fs.writeFileSync(d+'/step-autoscreenshot.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',autoScreenshot:false}]}]}));\"",
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-strict';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/unknown-step-key.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',asertions:[]}]}]}));fs.writeFileSync(d+'/unknown-spec-key.spec.json',JSON.stringify({runon:[],tests:[{steps:[{runShell:'echo hi'}]}]}));fs.writeFileSync(d+'/unknown-action-key.spec.json',JSON.stringify({tests:[{steps:[{runCode:{language:'python',code:'print(1)',typo:1}}]}]}));fs.writeFileSync(d+'/step-autoscreenshot.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',autoScreenshot:false}]}]}));fs.writeFileSync(d+'/breakpoint.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',breakpoint:true}]}]}));fs.writeFileSync(d+'/cookie-schema.spec.json',JSON.stringify({tests:[{steps:[{saveCookie:{name:'c',path:'c.txt',['\\x24schema']:'x'}}]}]}));fs.writeFileSync(d+'/app-working-directory.spec.json',JSON.stringify({tests:[{steps:[{startSurface:{app:'com.apple.TextEdit',workingDirectory:'.'}}]}]}));fs.writeFileSync(d+'/crawl.json',JSON.stringify({crawl:true}));\"",
             "workingDirectory": "../../.."
           }
         }
@@ -59,6 +59,52 @@
               2
             ],
             "stdio": "tests[0].steps[0]: unknown key"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "noop-keys-exit-2",
+      "description": "ADR 01187: keys that used to validate but did nothing are unknown keys, so each exits 2: step `breakpoint`, `$schema` inside `saveCookie`, `workingDirectory` on a `startSurface` app, and config `crawl`.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/breakpoint.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0].steps[0]: unknown key `breakpoint`."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/cookie-schema.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/saveCookie: unknown key `.schema`\\./"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/app-working-directory.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0].steps[0].startSurface: "
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-strict/crawl.json -i .tmp/fixture-strict/unknown-step-key.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "unknown key `crawl`."
           }
         }
       ]

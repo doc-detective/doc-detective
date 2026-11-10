@@ -45,7 +45,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "tests[0].steps[0].onFail[0]: unknown key 'goToTest'"
+            "stdio": "tests[0].steps[0].onFail[0]: unknown key `goToTest`"
           }
         }
       ]
@@ -71,7 +71,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "tests[0].onFail[0]: unknown key 'retry'"
+            "stdio": "tests[0].onFail[0]: unknown key `retry`"
           }
         },
         {
@@ -81,7 +81,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "tests[0].onFail[0]: unknown key 'goToStep'"
+            "stdio": "tests[0].onFail[0]: unknown key `goToStep`"
           }
         }
       ]

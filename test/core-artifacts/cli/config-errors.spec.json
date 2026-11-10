@@ -25,7 +25,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "/unknown key 'logLevl'\\. Did you mean logLevel\\?/"
+            "stdio": "/unknown key `logLevl`\\. Did you mean `logLevel`\\?/"
           }
         },
         {
@@ -61,7 +61,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "integrations.heretto[0]: unknown key 'apiTokn'. Did you mean apiToken?"
+            "stdio": "integrations.heretto[0]: unknown key `apiTokn`. Did you mean `apiToken`?"
           }
         },
         {
@@ -87,7 +87,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "tests[0].steps[1].runShell: unknown key 'comand'. Did you mean command?"
+            "stdio": "tests[0].steps[1].runShell: unknown key `comand`. Did you mean `command`?"
           }
         },
         {
@@ -107,7 +107,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "tests[0]: unknown key 'stepz'. Did you mean steps?"
+            "stdio": "tests[0]: unknown key `stepz`. Did you mean `steps`?"
           }
         }
       ]

@@ -16,7 +16,6 @@ export type Step = {
   unsafe?: unknown;
   outputs?: unknown;
   variables?: unknown;
-  breakpoint?: unknown;
   if?: unknown;
   assertions?: unknown;
   onPass?: unknown;
@@ -2372,10 +2371,6 @@ export type CookieName = string;
 export type SaveCookieDetailed = {
   [k: string]: unknown;
 } & {
-  /**
-   * Optional self-describing schema URI for linters
-   */
-  $schema?: string;
   name: CookieName1;
   variable?: EnvironmentVariableName;
   path?: CookieFilePath;
@@ -3572,10 +3567,6 @@ export type CookieNameOrFilePath = string;
 export type LoadCookieDetailed = {
   [k: string]: unknown;
 } & {
-  /**
-   * Optional self-describing schema URI for linters
-   */
-  $schema?: string;
   name: CookieName2;
   variable?: EnvironmentVariableName1;
   path?: CookieFilePath1;
@@ -4287,10 +4278,6 @@ export interface Common {
    */
   resultDescription?: string;
   variables?: VariablesStep;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -4522,10 +4509,6 @@ export interface Common1 {
    */
   resultDescription?: string;
   variables?: VariablesStep1;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition6;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -4798,10 +4781,6 @@ export interface Common2 {
    */
   resultDescription?: string;
   variables?: VariablesStep2;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition12;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -5205,10 +5184,6 @@ export interface Common3 {
    */
   resultDescription?: string;
   variables?: VariablesStep3;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition18;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -5469,10 +5444,6 @@ export interface Common4 {
    */
   resultDescription?: string;
   variables?: VariablesStep4;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition24;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -5740,10 +5711,6 @@ export interface Common5 {
    */
   resultDescription?: string;
   variables?: VariablesStep5;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition30;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -6039,10 +6006,6 @@ export interface Common6 {
    */
   resultDescription?: string;
   variables?: VariablesStep6;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition36;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -6338,10 +6301,6 @@ export interface Common7 {
    */
   resultDescription?: string;
   variables?: VariablesStep7;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition42;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -6632,10 +6591,6 @@ export interface Common8 {
    */
   resultDescription?: string;
   variables?: VariablesStep8;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition48;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -6960,10 +6915,6 @@ export interface Common9 {
    */
   resultDescription?: string;
   variables?: VariablesStep9;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition54;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -7774,10 +7725,6 @@ export interface Common10 {
    */
   resultDescription?: string;
   variables?: VariablesStep10;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition60;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -7981,10 +7928,6 @@ export interface Common11 {
    */
   resultDescription?: string;
   variables?: VariablesStep11;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition66;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -8331,10 +8274,6 @@ export interface Common12 {
    */
   resultDescription?: string;
   variables?: VariablesStep12;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition72;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -8544,10 +8483,6 @@ export interface Common13 {
    */
   resultDescription?: string;
   variables?: VariablesStep13;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition78;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -8901,10 +8836,6 @@ export interface Common14 {
    */
   resultDescription?: string;
   variables?: VariablesStep14;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition84;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -9095,10 +9026,6 @@ export interface AppDescriptor {
    */
   args?: string[];
   /**
-   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
-   */
-  workingDirectory?: string;
-  /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */
   env?: {
@@ -9283,10 +9210,6 @@ export interface AppDescriptor1 {
    * Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
    */
   args?: string[];
-  /**
-   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
-   */
-  workingDirectory?: string;
   /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */
@@ -9486,10 +9409,6 @@ export interface Common15 {
    */
   resultDescription?: string;
   variables?: VariablesStep15;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition90;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -9693,10 +9612,6 @@ export interface Common16 {
    */
   resultDescription?: string;
   variables?: VariablesStep16;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition96;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -9969,10 +9884,6 @@ export interface Common17 {
    */
   resultDescription?: string;
   variables?: VariablesStep17;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition102;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -10176,10 +10087,6 @@ export interface Common18 {
    */
   resultDescription?: string;
   variables?: VariablesStep18;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition108;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -10574,10 +10481,6 @@ export interface Common19 {
    */
   resultDescription?: string;
   variables?: VariablesStep19;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition114;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -10781,10 +10684,6 @@ export interface Common20 {
    */
   resultDescription?: string;
   variables?: VariablesStep20;
-  /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
-   */
-  breakpoint?: boolean;
   if?: Condition120;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
