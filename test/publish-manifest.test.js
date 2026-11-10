@@ -86,4 +86,24 @@ describe("scripts/publish-manifest transformForPublish", function () {
       ...pkg.optionalDependencies,
     });
   });
+
+  it("pins every just-in-time runtime dependency to an exact version (#722)", function () {
+    // These install with no lockfile, so a range lets one upstream release
+    // reach every user at once. Only exact versions CI has tested may ship.
+    const pkg = require("../package.json");
+    const exact = /^\d+\.\d+\.\d+(-[\w.]+)?$/;
+    const ranged = [];
+    for (const field of ["ddRuntimeDependencies", "optionalDependencies"]) {
+      for (const [name, spec] of Object.entries(pkg[field] ?? {})) {
+        if (!exact.test(spec)) ranged.push(`${field}.${name}: ${spec}`);
+      }
+    }
+    expect(ranged).to.deep.equal([]);
+    // A package listed in both fields must carry the same pin.
+    for (const [name, spec] of Object.entries(pkg.optionalDependencies ?? {})) {
+      if (pkg.ddRuntimeDependencies?.[name]) {
+        expect(pkg.ddRuntimeDependencies[name], name).to.equal(spec);
+      }
+    }
+  });
 });
