@@ -231,17 +231,20 @@ Other shorthand appears in its full form too. For example, `"wait": true` appear
 
 **What to do:** If a script reads a step's action as a string, read the object instead. For example, read `goTo.url` instead of `goTo`.
 
-## Renamed and removed report fields
+## Renamed and removed report fields and outputs
 
-**What changed:** Some fields in the results have new names, and some that nothing wrote are gone.
+**What changed:** Some fields in the results and some step outputs have new names. Some fields that nothing wrote are gone. An old output name has no alias, so `$$stdioMatched` and the others resolve to nothing.
 
 | Version 4 | Version 5 |
 |---|---|
 | A step's automatic screenshot was its `autoScreenshot` field. | It's `autoScreenshotPath`. |
 | `"autoScreenshot": false` on a step validated, but the step still took a screenshot. | The spec is invalid, and the run exits `2`. Set `autoScreenshot` on the test, spec, or config instead. |
 | The `assertion` schema listed `expected`, `actual`, and `description`, which no record had. | The schema doesn't list them, and a record with one is invalid. |
+| `runShell`, `runCode`, and `type` output `$$stdioMatched`. | It's `$$stdioMatches`. |
+| `screenshot` output `$$aspectRatioMatch`. | It's `$$aspectRatioMatches`. |
+| `stopRecord` output `$$resolutionMatch`. | It's `$$resolutionMatches`. |
 
-**What to do:** Update scripts that read these fields. Move a step's `autoScreenshot` to its test.
+**What to do:** Update scripts that read these fields. Rename these outputs in `variables`, `if`, and `assertions`. Move a step's `autoScreenshot` to its test.
 
 ## `goTo` and `httpRequest` defaults
 

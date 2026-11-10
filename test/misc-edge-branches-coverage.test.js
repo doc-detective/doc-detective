@@ -512,7 +512,7 @@ describe("core/tests/runShell.ts — stdio + saved-file edge branches", function
       config,
       step: { runShell: { command: "echo", args: ["abc123"], stdio: "/[a-z]+\\d+/" } },
     });
-    assert.equal(result.outputs.stdioMatched, true);
+    assert.equal(result.outputs.stdioMatches, true);
   });
 
   it("reports the regex-specific 'Couldn't find' message when a /regex/ does not match", async function () {
@@ -522,7 +522,7 @@ describe("core/tests/runShell.ts — stdio + saved-file edge branches", function
         runShell: { command: "echo", args: ["hello"], stdio: "/\\d{5,}/", exitCodes: [0] },
       },
     });
-    assert.equal(result.outputs.stdioMatched, false);
+    assert.equal(result.outputs.stdioMatches, false);
     assert.match(result.description, /Couldn't find expected output/);
   });
 

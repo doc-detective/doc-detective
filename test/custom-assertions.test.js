@@ -11,7 +11,7 @@ import {
 // without touching the 8 implicit call sites.
 describe("routing: evaluateImplicitAssertions (generalized)", function () {
   const ctx = buildConditionContext({
-    outputs: { exitCode: 0, stdioMatched: true },
+    outputs: { exitCode: 0, stdioMatches: true },
   });
 
   it("defaults: source 'implicit', no short-circuit (unchanged)", async function () {
@@ -33,7 +33,7 @@ describe("routing: evaluateImplicitAssertions (generalized)", function () {
   it("startFailed=true forces every spec to SKIPPED (no evaluation)", async function () {
     const specs = [
       { statement: "$$outputs.exitCode == 0", severity: "fail" },
-      { statement: "$$outputs.stdioMatched == true", severity: "fail" },
+      { statement: "$$outputs.stdioMatches == true", severity: "fail" },
     ];
     const { assertions, status } = await evaluateImplicitAssertions(specs, ctx, {
       source: "custom",

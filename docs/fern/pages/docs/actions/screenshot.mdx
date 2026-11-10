@@ -156,7 +156,7 @@ URL paths must end in `.png` (or `.PNG`) and can include query strings for signe
 - `$$fitsViewport`: whether the cropped element fits within the viewport (when `crop` is set).
 - `$$annotationTargetsFound`: whether every annotation's target resolved (when `annotations` is set). The step fails if any target is missing.
 - `$$annotationsInBounds`: whether every annotation landed inside the image (when `annotations` is set). The step returns WARNING if one falls outside, which usually means the crop left it out of frame.
-- `$$aspectRatioMatch`: whether the new capture and the reference image share an aspect ratio (when comparing against a reference image).
+- `$$aspectRatioMatches`: whether the new capture and the reference image share an aspect ratio (when comparing against a reference image).
 - `$$variation`: the fractional difference between the new capture and the reference image (when comparing against a reference image).
 - `$$resizedToReference`: the pixel sizes of the first screenshot (`from`) and the reference image (`to`), when Doc Detective resized the window to match the reference image. See **Size mismatches**.
 
