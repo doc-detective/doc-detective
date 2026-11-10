@@ -684,10 +684,47 @@ describe("Run tests successfully", function () {
       assert.equal(miss.result, "FAIL");
       assert.equal(miss.outputs.found, false);
       assert.equal(miss.resultDescription, "No elements matched selector or text.");
+      // Nothing on the page is close, so it's an assertion failure (ADR 01194).
+      assert.deepEqual(miss.outputs.nearMatches, []);
+      assert.equal(miss.resultCode, "assertion");
+      assert.equal(miss.resultHint, undefined);
+      assert.equal(hit.resultCode, undefined);
       assert.ok(
         miss.durationMs >= 5000,
         `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
       );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("A find that misses a renamed element reports near matches as drift, with a hint (ADR 01194)", async () => {
+    // The page's button says "Start late arrival". A step that still says
+    // "Start late" FAILs, so the PASS/SKIPPED fixture gate can't carry it.
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/find-shorthand.html" },
+            { find: { elementText: "Start late", timeout: 0 } },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "near-matches-"));
+    const tempFilePath = path.join(tempDir, "near-matches.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
+      const context = result.specs[0].tests[0].contexts.find((c) => c.steps && c.steps.length);
+      assert.ok(context, "expected a context that ran steps");
+      const miss = context.steps[1];
+      assert.equal(miss.result, "FAIL");
+      assert.deepEqual(miss.outputs.nearMatches, [
+        { text: "Start late arrival", tag: "button", id: "start-late" },
+      ]);
+      assert.equal(miss.resultCode, "drift");
+      assert.equal(miss.resultHint, "Closest match: `Start late arrival`.");
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

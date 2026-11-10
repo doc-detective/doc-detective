@@ -3425,6 +3425,12 @@
               "resultDescription": {
                 "$ref": "#/components/schemas/resultDescription"
               },
+              "resultCode": {
+                "$ref": "#/components/schemas/resultCode"
+              },
+              "resultHint": {
+                "$ref": "#/components/schemas/resultHint"
+              },
               "variables": {
                 "$ref": "#/components/schemas/variables",
                 "default": {}
@@ -3583,6 +3589,19 @@
             "type": "string",
             "readOnly": true
           },
+          "resultCode": {
+            "type": "string",
+            "enum": [
+              "environment",
+              "drift",
+              "assertion"
+            ],
+            "readOnly": true
+          },
+          "resultHint": {
+            "type": "string",
+            "readOnly": true
+          },
           "durationMs": {
             "type": "integer",
             "minimum": 0,
@@ -3618,6 +3637,8 @@
         "$schema": {},
         "result": {},
         "resultDescription": {},
+        "resultCode": {},
+        "resultHint": {},
         "stepId": {},
         "description": {},
         "unsafe": {},
@@ -11635,6 +11656,12 @@
               "resultDescription": {
                 "$ref": "step_v3.nodefaults.schema.json#/components/schemas/resultDescription"
               },
+              "resultCode": {
+                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/resultCode"
+              },
+              "resultHint": {
+                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/resultHint"
+              },
               "variables": {
                 "$ref": "step_v3.nodefaults.schema.json#/components/schemas/variables"
               },
@@ -11787,6 +11814,19 @@
             "type": "string",
             "readOnly": true
           },
+          "resultCode": {
+            "type": "string",
+            "enum": [
+              "environment",
+              "drift",
+              "assertion"
+            ],
+            "readOnly": true
+          },
+          "resultHint": {
+            "type": "string",
+            "readOnly": true
+          },
           "durationMs": {
             "type": "integer",
             "minimum": 0,
@@ -11822,6 +11862,8 @@
         "$schema": {},
         "result": {},
         "resultDescription": {},
+        "resultCode": {},
+        "resultHint": {},
         "stepId": {},
         "description": {},
         "unsafe": {},

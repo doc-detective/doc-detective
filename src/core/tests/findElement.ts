@@ -19,6 +19,7 @@ import {
   findElementByShorthand,
   findElementByCriteria,
   setElementOutputs,
+  collectNearMatches,
 } from "./findStrategies.js";
 import { typeKeys } from "./typeKeys.js";
 import { moveTo } from "./moveTo.js";
@@ -288,6 +289,7 @@ async function findElement({ config, step, driver, click, appSession, processReg
       // existence assertion FAILs (don't early-return before the spec).
       result.description = "No elements matched selector or text.";
       result.outputs.found = false;
+      result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
       return await finalizeFound({ result });
     }
   }
@@ -314,17 +316,11 @@ async function findElement({ config, step, driver, click, appSession, processReg
   if (!foundElement) {
     result.description = error || "No elements matched criteria.";
     result.outputs.found = false;
+    result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
     return await finalizeFound({ result });
   }
   element = foundElement;
   result.description += ` Found element by ${foundBy}.`;
-
-  // No matching elements
-  if (!element.elementId) {
-    result.description = "No elements matched selector and/or text.";
-    result.outputs.found = false;
-    return await finalizeFound({ result });
-  }
 
   // Set element in outputs
   result.outputs = await setElementOutputs({ element });

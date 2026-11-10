@@ -132,6 +132,7 @@ export {
   hasVariable,
   compileFilter,
   isRetryableSessionError,
+  classifyStepFailure,
   isSessionAlive,
   isPageBroken,
   isPageUnnavigated,
@@ -919,6 +920,32 @@ function isRetryableSessionError(
   if (typeof message !== "string" || !message) return false;
   if (TRANSIENT_SESSION_ERROR.test(message)) return true;
   return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
+}
+
+// A failure the host or network caused rather than the docs or the product:
+// DNS, refused or dropped connections, a dead session, or a page that never
+// loaded (ADR 01194).
+const ENVIRONMENT_FAILURE =
+  /ENOTFOUND|EAI_AGAIN|getaddrinfo|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|net::ERR_|no such window|blank document/i;
+
+// The structured failure fields on a FAIL step report (ADR 01194): `resultCode`
+// says what kind of failure it was, and near matches become `resultHint`.
+// Any other result gets neither.
+function classifyStepFailure(step: any): { resultCode?: "environment" | "drift" | "assertion"; resultHint?: string } {
+  if (step?.result !== "FAIL") return {};
+  const near = step.outputs?.nearMatches;
+  if (Array.isArray(near) && near.length > 0) {
+    const names = near.map((m: any) => `\`${m.text || m.ariaLabel || m.id || m.testId}\``);
+    return {
+      resultCode: "drift",
+      resultHint: `${names.length > 1 ? "Closest matches" : "Closest match"}: ${names.join(", ")}.`,
+    };
+  }
+  const text = String(step.resultDescription ?? "");
+  if (TRANSIENT_SESSION_ERROR.test(text) || ENVIRONMENT_FAILURE.test(text)) {
+    return { resultCode: "environment" };
+  }
+  return { resultCode: "assertion" };
 }
 
 // Active liveness probe for the `retries` context-retry policy. A dead session

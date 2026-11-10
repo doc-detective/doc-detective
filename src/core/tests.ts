@@ -49,6 +49,7 @@ import {
   hasVariable,
   evaluateContextRequirements,
   isRetryableSessionError,
+  classifyStepFailure,
   classifyContextRetry,
   guardBlankDocumentNavigation,
   applyBrowserSize,
@@ -5311,6 +5312,9 @@ async function runContext({
       // `{...step}` report spread already drops it; delete defensively here so
       // it can never leak into a report through any push site.
       delete rep._fromAfter;
+      // A FAIL gets its `resultCode` and, from near matches, its `resultHint`
+      // (ADR 01194). Before the mask, so the hint is masked like the rest.
+      Object.assign(rep, classifyStepFailure(rep));
       // The report gets a masked copy; routing, `$$`, and `variables` keep
       // reading the real outputs (ADR 01178).
       contextReport.steps.push(maskDeep(rep));

@@ -147,6 +147,9 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
       result.description = `Couldn't find ${
         result.outputs.sourceFound ? "target" : "source"
       } element.`;
+      // The missing element's near matches (ADR 01194).
+      const missing = result.outputs.sourceFound ? targetResult : sourceResult;
+      if (missing.outputs?.nearMatches) result.outputs.nearMatches = missing.outputs.nearMatches;
       return result;
     }
     sourceElement = sourceResult.outputs.rawElement;
