@@ -455,11 +455,11 @@ npx doc-detective@5 install agents --scope project
 npx doc-detective@5 install agents --scope global
 ```
 
-Each command prompts you to choose which agents to update. To run without prompts, such as in a script, pass `--yes`, which requires `--scope` and an `--agent` flag for each agent you installed. Run one command per scope:
+Each command prompts you to choose which agents to update. To run without prompts, such as in a script, pass `--yes` with `--scope` and `--agent`. List every agent you installed in one comma-separated `--agent`, such as `--agent claude,copilot`. Run one command per scope:
 
 ```bash
-npx doc-detective@5 install agents --agent claude --scope project --yes
-npx doc-detective@5 install agents --agent claude --scope global --yes
+npx doc-detective@5 install agents --agent claude,copilot --scope project --yes
+npx doc-detective@5 install agents --agent claude,copilot --scope global --yes
 ```
 
 If you installed them through your agent's own plugin or extension manager, update them there. See the guide for [your agent](/ai/ai-agents/overview). For Gemini CLI or Qwen Code, see [Gemini CLI and Qwen Code agent installs](#gemini-cli-and-qwen-code-agent-installs).
@@ -615,6 +615,16 @@ Action `@v2` drops the undocumented `issueUrl` output, so read `issue_url` inste
 
 Two inputs have new names: `integrations` is now `issue_mentions`, and `prompt` is now `issue_prompt`. The old names still work in `@v2`, with a deprecation warning.
 
+The pull requests and issues the action opens changed too:
+
+| Action `@v1` | Action `@v2` |
+|---|---|
+| `create_pr_on_change` opened a new pull request from a new `doc-detective-<timestamp>` branch on each run. | It commits to one branch, `pr_branch`, which defaults to `doc-detective-changes`. Each run force-pushes that branch and updates its open pull request, or opens one. |
+| The pull request targeted the branch checked out in the job. | It targets `GITHUB_BASE_REF`, the base of the pull request that triggered the run. Otherwise it targets `GITHUB_REF_NAME`, the branch the run is on. |
+| The pull request's Git commands ran in the job's directory. | They run in `working_directory`, so a `working_directory` inside another checkout gets its pull request from that checkout. |
+| `create_issue_on_fail` opened a new issue on each failing run. | It updates the open issue with the same title and the first label in `issue_labels`. Otherwise it creates one. |
+| The default `issue_body` held the results JSON, `$RESULTS`. | It holds the run's Markdown summary, `$SUMMARY`. |
+
 Exact pins to v1.6.1 or earlier are the risky case. They default to `version: latest`, so they get CLI 5 with no protection. A failing test then fails the job and skips the results, issue, and pull request steps.
 
 **What to do:**
@@ -630,6 +640,12 @@ Exact pins to v1.6.1 or earlier are the risky case. They default to `version: la
 4. If you pin an exact version of v1.6.1 or earlier and can't move to `@v2` yet, set `version: 4` on the step.
 5. If a later step reads reports from `${{ runner.temp }}`, read them from your `outputDir` instead.
 6. If you set `create_pr_on_change`, set `pr_paths` to a comma-separated list of the paths to stage. By default it stages everything, so the run's screenshots get committed.
+7. If you set `create_pr_on_change`, don't commit to `pr_branch` by hand, because the next run force-pushes it. If more than one workflow or job sets `create_pr_on_change`, give each its own `pr_branch`.
+8. To keep the results JSON in the issue, set `issue_body` to the `@v1` default:
+
+   ```yaml
+   issue_body: "A Doc Detective run ($RUN_URL) failed with the following results:$RESULTS"
+   ```
 
 See [Run in CI with the GitHub Action](/docs/ci/github-action) for the full setup.
 

@@ -4,7 +4,7 @@ sidebar-title: AI issue mentions
 description: Have the GitHub Action mention AI assistants in the issue it opens when tests fail, so they investigate the failures and suggest fixes.
 ---
 
-When tests fail in CI, the [Doc Detective GitHub Action](/docs/ci/github-action) can open an issue with the results. It can also mention AI assistants in that issue, so they investigate the failures and suggest fixes.
+When tests fail in CI, the [Doc Detective GitHub Action](/docs/ci/github-action) can open or update an issue with a summary of the run. It can also mention AI assistants in that issue, so they investigate the failures and suggest fixes.
 
 <Note>
 `issue_mentions` and `issue_prompt` are inputs of the GitHub Action. They're unrelated to the `integrations` key in your Doc Detective config, which connects to services such as Heretto. For that key, see [Integrations options](/reference/schemas/integrations-options).
@@ -12,7 +12,7 @@ When tests fail in CI, the [Doc Detective GitHub Action](/docs/ci/github-action)
 
 ## Before you begin
 
-- A workflow that runs `doc-detective/github-action@v2`. See [Run in CI with the GitHub Action](/docs/ci/github-action).
+- A workflow that runs `doc-detective/github-action@v2` on Node.js 24.15 or later, which the example sets up with `actions/setup-node`. See [Run in CI with the GitHub Action](/docs/ci/github-action).
 - Each assistant you plan to mention, set up for the repository. See [Supported assistants](#supported-assistants).
 
 ## Mention an assistant
@@ -32,13 +32,16 @@ jobs:
       issues: write
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - uses: doc-detective/github-action@v2
         with:
           create_issue_on_fail: true
           issue_mentions: claude,copilot
 ```
 
-When a test fails, the action opens an issue with the results. It adds a collapsible section to the issue body that mentions each assistant, followed by the `issue_prompt` text. For `copilot`, the action assigns the issue to Copilot instead of adding a text mention.
+When a test fails, the action opens an issue, which by default holds the run's Markdown summary. If an open issue already has the same title and first label, the action updates that issue instead. See [File an issue when tests fail](/docs/ci/github-action#step-5-file-an-issue-when-tests-fail). The action adds a collapsible section to the issue body that mentions each assistant, followed by the `issue_prompt` text. For `copilot`, the action assigns the issue to Copilot instead of adding a text mention.
 
 ## Customize the prompt
 

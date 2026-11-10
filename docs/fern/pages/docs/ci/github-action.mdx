@@ -178,13 +178,13 @@ jobs:
 | `issue_mentions` | None | Comma-separated AI assistants to mention in the issue. See [AI issue mentions](/docs/ci/issue-mentions). |
 | `issue_prompt` | `Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes.` | Text that follows each mention. |
 
-If an open issue has the same title and the first label in `issue_labels`, the action updates that issue. Otherwise it creates one. A daily schedule then keeps one issue current rather than opening one per run.
+If an open issue has the same title and the first label in `issue_labels`, the action updates that issue. Otherwise it creates one. A daily schedule then keeps one issue current rather than opening one per run. In a `pull_request` workflow, every pull request shares that issue. To keep one issue per pull request, put the number in the title, such as `issue_title: Doc Detective failures in PR #${{ github.event.pull_request.number }}`.
 
-`$SUMMARY` is the run folder's `testResults.md`, the run's Markdown summary. When the run wrote no run folder, it reads `Doc Detective wrote no summary for this run. See the workflow run.`
+`$SUMMARY` is the run folder's `testResults.md`, the run's Markdown summary. When the run wrote no run folder, or the run folder has no `testResults.md`, it reads `Doc Detective wrote no summary for this run. See the workflow run.`
 
 `$SUMMARY` and `$RESULTS` come from masked output, so environment variable values appear as `***NAME***`. GitHub masks secrets in logs but not in issue bodies, so this keeps them out of the issue. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
 
-GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$SUMMARY` or `$RESULTS` to fit. A shortened `$RESULTS` ends with a link to the workflow run. If `issue_body` and `issue_prompt` leave no room for results, the action logs an error and doesn't create the issue.
+GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$SUMMARY` or `$RESULTS` to fit. Each shortened value ends with a note that links to the workflow run. A shortened `$SUMMARY` ends on a whole line. If `issue_body` and `issue_prompt` leave no room for results, the action logs an error and doesn't create the issue.
 
 The `issue_mentions` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [AI issue mentions](/docs/ci/issue-mentions).
 
@@ -234,9 +234,9 @@ GitHub discards the checkout when the job ends. To keep the reports, upload them
 
 ## Browser modes
 
-On Ubuntu runners, the action runs browsers headless. Chrome and Firefox contexts fall back to headless mode automatically.
+On Ubuntu runners, the action runs browsers headless. Chrome and Firefox contexts fall back to headless mode automatically when there's no display.
 
-Some tests need a display, such as recording video with the `ffmpeg` engine. Run those jobs on a macOS or Windows runner instead:
+Doc Detective records headless Chrome with the `browser` engine, so Chrome recordings work on Ubuntu. Headless Firefox can't record, because it needs the `ffmpeg` engine and a display. To run Firefox headed or record it on Ubuntu, install Xvfb in an earlier step, such as `run: sudo apt-get install -y xvfb`. Doc Detective then runs Firefox headed on an Xvfb display. You can also run the job on a macOS or Windows runner, which has a display:
 
 ```yaml
 jobs:
