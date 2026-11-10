@@ -59,6 +59,7 @@ import {
 import { instantiateCursor } from "./tests/moveTo.js";
 import { validate } from "../common/src/validate.js";
 import { normalize } from "../common/src/normalize/index.js";
+import type { AutomaticRecording } from "../common/src/types/generated/report_v3.js";
 import { goTo } from "./tests/goTo.js";
 import { findElement } from "./tests/findElement.js";
 import { runShell } from "./tests/runShell.js";
@@ -4264,13 +4265,13 @@ const AUTO_RECORDING_RANK: Record<string, number> = { PASS: 0, SKIPPED: 1, WARNI
 // description (ADR 01179). The merged field is masked like a step report
 // (ADR 01178).
 function mergeAutoRecording(
-  contextReport: any,
-  { result, resultDescription, ...fields }: { result: string; resultDescription?: string; [key: string]: any }
+  contextReport: { autoRecording?: AutomaticRecording },
+  { result, resultDescription, ...fields }: AutomaticRecording
 ): void {
   const current = contextReport.autoRecording;
   const worse = !current || AUTO_RECORDING_RANK[result] > AUTO_RECORDING_RANK[current.result];
   // A worse result replaces the description, so it can't keep a milder result's.
-  const { resultDescription: previous, ...kept } = current ?? {};
+  const { resultDescription: previous, ...kept } = current ?? { result };
   const description = worse ? (result !== "PASS" ? resultDescription : undefined) : previous;
   contextReport.autoRecording = maskDeep({
     ...kept,
