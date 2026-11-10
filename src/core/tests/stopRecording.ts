@@ -228,7 +228,7 @@ async function endRecording({
       // An environment gap (missing host ffmpeg) is a gated SKIP; anything
       // else is a real start failure.
       result.status = recording.startSkip ? "SKIPPED" : "FAIL";
-      result.description = recording.startSkip ? `${recording.startError.replace(/^Couldn't/, "Skipped: couldn't").replace(/\.\s*$/, "")}.` : recording.startError;
+      result.description = recording.startSkip || recording.startError;
       return result;
     }
     result.status = "SKIPPED";

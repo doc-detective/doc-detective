@@ -10,7 +10,7 @@ async function scroll(action: any, page: any, config: any) {
     Object.keys(config.debugRecording).length === 0
   ) {
     status = "PASS";
-    description = "Skipped: no recordings are in progress.";
+    description = "No recordings are in progress, so there's nothing to scroll.";
     result = { status, description };
     return { result };
   }

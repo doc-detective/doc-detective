@@ -1391,7 +1391,10 @@ describe("startAppSurface", function () {
     });
     assert.equal(result.status, "PASS");
     assert.match(handle.startError, /ffmpeg/);
-    assert.equal(handle.startSkip, true);
+    assert.equal(
+      handle.startSkip,
+      "Skipped: couldn't start the pending device recording: 'ffmpeg' binary is not found in PATH."
+    );
   });
 
   it("android: a failed late-start stashes the error on the pending handle", async function () {

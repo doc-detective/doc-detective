@@ -1525,10 +1525,13 @@ async function startAppSurface({
         // Stash the real error on the handle so stopRecording surfaces it as
         // a FAIL instead of the misleading "never started" skip. A missing
         // host ffmpeg (the XCUITest encoder dependency) is an environment
-        // gap, so it degrades to a SKIP instead.
-        const message = `Couldn't start the pending device recording: ${error?.message ?? error}`;
+        // gap, so it degrades to a SKIP instead, with its reason worded here.
+        const cause = String(error?.message ?? error).replace(/\.\s*$/, "");
+        const message = `Couldn't start the pending device recording: ${cause}.`;
         handle.startError = message;
-        if (/ffmpeg.*not found/i.test(message)) handle.startSkip = true;
+        if (/ffmpeg.*not found/i.test(message)) {
+          handle.startSkip = `Skipped: couldn't start the pending device recording: ${cause}.`;
+        }
         log(config, "warning", message);
       }
     }
