@@ -106,7 +106,7 @@ function mediaPath(file: string, runDir: any, fromDir: string): string {
 function environmentLine(results: any): string | null {
   const env = results?.environment;
   if (!env) return null;
-  const host = `${[env.platform, env.osRelease].filter(Boolean).join(" ")}${env.arch ? ` (${env.arch})` : ""}`;
+  const host = [env.platform, env.osRelease, env.arch && `(${env.arch})`].filter(Boolean).join(" ");
   const parts = [
     env.docDetectiveVersion && `Doc Detective ${env.docDetectiveVersion}`,
     env.nodeVersion && `Node.js ${env.nodeVersion}`,

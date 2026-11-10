@@ -353,6 +353,10 @@ describe("reporters/model", function () {
       assert.equal(environmentLine({ environment: { platform: "mac" } }), "mac");
     });
 
+    it("starts the host with the architecture when it's the only host field", function () {
+      assert.equal(environmentLine({ environment: { arch: "arm64", nodeVersion: "24.15.0" } }), "Node.js 24.15.0 · (arm64)");
+    });
+
     it("returns null when environment is missing or empty", function () {
       assert.equal(environmentLine({}), null);
       assert.equal(environmentLine(undefined), null);
