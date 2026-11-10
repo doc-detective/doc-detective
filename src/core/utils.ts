@@ -1763,7 +1763,9 @@ function redactUrlForOutput(value: string): string {
 // Private/loopback/link-local IP ranges that binary URL fetches refuse to
 // reach by default. Covers IPv4 RFC1918, loopback, link-local (169.254/16),
 // carrier-grade NAT (100.64/10), and the cloud-metadata special cases
-// (169.254.169.254 is inside link-local and thus covered).
+// (169.254.169.254 is inside link-local and thus covered). Teredo
+// (2001:0::/32) isn't covered: routing HTTP through it needs Teredo relay
+// infrastructure, so it isn't a realistic SSRF path.
 function isPrivateOrLoopbackAddress(ip: string): boolean {
   if (!ip) return false;
   if (net.isIPv4(ip)) {
