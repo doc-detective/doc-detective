@@ -43,8 +43,8 @@ describe("doc-detective-common build contract (ADR 01057)", function () {
   });
 });
 
-// What the built packages ship (ADR 01164). Reads the output of `npm run build`.
-describe("published schema files (ADR 01164)", function () {
+// What the built packages ship (ADR 01183). Reads the output of `npm run build`.
+describe("published schema files (ADR 01183)", function () {
   const common = path.join(process.cwd(), "src", "common");
   const head = (file) => {
     const fd = fs.openSync(file, "r");

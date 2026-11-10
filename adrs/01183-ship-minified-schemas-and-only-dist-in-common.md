@@ -6,6 +6,8 @@ decision-makers: hawkeyexl
 
 # Ship minified schemas, and only `dist/`, in the published packages
 
+If another ADR takes 01183 before this one merges, this ADR gets the next free number at merge.
+
 ## Context and Problem Statement
 
 The published packages were mostly whitespace. In a local `npm pack` of 4.43.0:

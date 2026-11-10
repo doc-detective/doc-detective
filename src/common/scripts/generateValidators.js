@@ -13,7 +13,7 @@ for (const [file, code] of Object.entries(standaloneValidatorFiles())) {
 }
 
 // tsc re-emits schemas.json pretty-printed (~100 MB); ship it minified. Also
-// publish each v3 schema where `$schema` URLs on unpkg point. ADR 01164.
+// publish each v3 schema where `$schema` URLs on unpkg point. ADR 01183.
 const schemas = JSON.parse(await readFile(path.join(outDir, "schemas.json"), "utf8"));
 await writeFile(path.join(outDir, "schemas.json"), JSON.stringify(schemas));
 for (const [key, schema] of Object.entries(schemas)) {

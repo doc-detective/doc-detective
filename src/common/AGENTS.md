@@ -33,7 +33,7 @@ This is a dependency package, not a standalone application. Changes here affect 
 `compile` then cleans `dist/`, and `scripts/generateValidators.js` minifies the `dist/schemas/schemas.json`
 that `tsc` emits and writes every v3 schema beside it as `dist/schemas/<name>_v3.schema.json`. Published
 `$schema` URLs on unpkg point at those files. The package's `files` allowlist ships only `dist/`, and
-the CJS bundle `require`s `schemas.json` instead of inlining it ([ADR 01164](../../adrs/01164-ship-minified-schemas-and-only-dist-in-common.md)).
+the CJS bundle `require`s `schemas.json` instead of inlining it ([ADR 01183](../../adrs/01183-ship-minified-schemas-and-only-dist-in-common.md)).
 
 **Schema versioning:**
 - v2 schemas: Legacy, supported via `compatibleSchemas` transformation map
