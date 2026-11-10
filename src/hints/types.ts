@@ -107,7 +107,7 @@ export interface HintContext {
   /**
    * True if any step produced an auto screenshot (the `--auto-screenshot` /
    * config/spec/test `autoScreenshot` feature), which lands in the separate
-   * `step.autoScreenshot` result field rather than `step.screenshot`.
+   * `step.autoScreenshotPath` result field rather than `step.screenshot`.
    */
   producedAutoScreenshots: boolean;
   /** True if any step produced a recording. */

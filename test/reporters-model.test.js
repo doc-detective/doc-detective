@@ -267,10 +267,11 @@ describe("reporters/model", function () {
       const items = nonPassItems(
         report(
           [
-            { stepId: "both", result: "FAIL", autoScreenshot: auto, outputs: { screenshotPath: authored } },
-            { stepId: "future", result: "FAIL", autoScreenshotPath: auto, autoScreenshot: "gone.png" },
-            { stepId: "authored", result: "FAIL", autoScreenshot: "gone.png", outputs: { screenshotPath: authored } },
-            { stepId: "gone", result: "FAIL", autoScreenshot: "gone.png" },
+            { stepId: "both", result: "FAIL", autoScreenshotPath: auto, outputs: { screenshotPath: authored } },
+            { stepId: "authored", result: "FAIL", autoScreenshotPath: "gone.png", outputs: { screenshotPath: authored } },
+            { stepId: "gone", result: "FAIL", autoScreenshotPath: "gone.png" },
+            // The pre-5.0 field name isn't read (ADR 01184).
+            { stepId: "old", result: "FAIL", autoScreenshot: auto },
           ],
           { result: "FAIL", autoRecording: { result: "PASS", recordingPath: video } },
           { runDir: dir }
@@ -278,8 +279,9 @@ describe("reporters/model", function () {
       );
       assert.deepEqual(
         items.map((i) => i.screenshot),
-        [path.join(dir, auto), path.join(dir, auto), authored, undefined]
+        [path.join(dir, auto), authored, undefined, undefined]
       );
+      assert.ok(!("screenshot" in items[2]));
       assert.ok(!("screenshot" in items[3]));
       assert.ok(items.every((i) => i.recording === path.join(dir, video)));
     });
@@ -298,7 +300,7 @@ describe("reporters/model", function () {
       assert.deepEqual(nonPassItems(undefined), []);
       assert.deepEqual(nonPassItems({}), []);
       assert.deepEqual(nonPassItems({ specs: [] }), []);
-      const [item] = nonPassItems(report([{ stepId: "f", result: "FAIL", autoScreenshot: "gone.png" }], { result: "FAIL" }));
+      const [item] = nonPassItems(report([{ stepId: "f", result: "FAIL", autoScreenshotPath: "gone.png" }], { result: "FAIL" }));
       assert.equal(item.idPath, "sp › te › co › f");
       assert.equal(item.reason, "");
     });

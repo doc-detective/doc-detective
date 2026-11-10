@@ -63,7 +63,7 @@ Each reporter points at the images its own way:
 | `terminal` | A `Screenshot:` line with the absolute path, on a step that failed or warned. |
 | `markdown` | A `Screenshot:` path, relative to the summary file, on a step that failed or warned. |
 | `junit` | An `[[ATTACHMENT|<path>]]` line, relative to `junit.xml`, for the first step in a test case that failed or warned. |
-| `json`, and the run folder's `testResults.json` | The step's `autoScreenshot` field, relative to `runDir`. |
+| `json`, and the run folder's `testResults.json` | The step's `autoScreenshotPath` field, relative to `runDir`. |
 
 Like `screenshot` steps, automatic browser screenshots blur elements whose text or form value holds a secret environment variable value. The blur appears in the saved image. Text inside iframes, shadow DOM, or a canvas isn't blurred, and neither are native app and device screenshots. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
 
@@ -71,7 +71,7 @@ Automatic screenshots don't compare against a reference. To gate on drift, add a
 
 ## Turn them off
 
-Set `autoScreenshot` to `false` at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
+Set `autoScreenshot` to `false` at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's. A step can't set it: `autoScreenshot` on a step is an unknown key, so the spec fails validation.
 
 ```json title=".doc-detective.json"
 {
@@ -101,7 +101,7 @@ The flag sets the config level, so a spec or test that sets `autoScreenshot` to 
 
 ## Verify it works
 
-- Each UI step in the results has an `autoScreenshot` path.
+- Each UI step in the results has an `autoScreenshotPath`.
 - The run folder holds a `screenshots/` folder per context.
 
 ## Troubleshooting

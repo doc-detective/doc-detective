@@ -8,7 +8,7 @@
       "steps": [
         {
           "runShell": {
-            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-strict';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/unknown-step-key.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',asertions:[]}]}]}));fs.writeFileSync(d+'/unknown-spec-key.spec.json',JSON.stringify({runon:[],tests:[{steps:[{runShell:'echo hi'}]}]}));fs.writeFileSync(d+'/unknown-action-key.spec.json',JSON.stringify({tests:[{steps:[{runCode:{language:'python',code:'print(1)',typo:1}}]}]}));\"",
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-strict';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/unknown-step-key.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',asertions:[]}]}]}));fs.writeFileSync(d+'/unknown-spec-key.spec.json',JSON.stringify({runon:[],tests:[{steps:[{runShell:'echo hi'}]}]}));fs.writeFileSync(d+'/unknown-action-key.spec.json',JSON.stringify({tests:[{steps:[{runCode:{language:'python',code:'print(1)',typo:1}}]}]}));fs.writeFileSync(d+'/step-autoscreenshot.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',autoScreenshot:false}]}]}));\"",
             "workingDirectory": "../../.."
           }
         }
@@ -43,6 +43,22 @@
             "exitCodes": [
               2
             ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "step-autoscreenshot-exit-2",
+      "description": "`autoScreenshot` on a step is an unknown key, so the spec exits 2 (ADR 01184). Set it on the test, spec, or config instead.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/step-autoscreenshot.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0].steps[0]: unknown key"
           }
         }
       ]

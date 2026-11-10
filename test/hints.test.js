@@ -624,8 +624,8 @@ describe("hints/context", function () {
       expect(data.producedScreenshots).to.equal(false);
     });
 
-    it("producedAutoScreenshots is true when a step carries an autoScreenshot path", function () {
-      // Auto screenshots land in the separate `autoScreenshot` result field
+    it("producedAutoScreenshots is true when a step carries an autoScreenshotPath", function () {
+      // Auto screenshots land in the separate `autoScreenshotPath` result field
       // (a relative path string), not `screenshot`.
       const data = walkResults({
         specs: [
@@ -633,7 +633,7 @@ describe("hints/context", function () {
             tests: [
               {
                 contexts: [
-                  { steps: [{ goTo: "x", autoScreenshot: "screenshots/a/01-goTo.png" }] },
+                  { steps: [{ goTo: "x", autoScreenshotPath: "screenshots/a/01-goTo.png" }] },
                 ],
               },
             ],
@@ -645,11 +645,13 @@ describe("hints/context", function () {
       expect(data.producedScreenshots).to.equal(false);
     });
 
-    it("producedAutoScreenshots is false for an empty autoScreenshot string", function () {
-      const data = walkResults({
-        specs: [{ tests: [{ contexts: [{ steps: [{ goTo: "x", autoScreenshot: "" }] }] }] }],
-      });
-      expect(data.producedAutoScreenshots).to.equal(false);
+    it("producedAutoScreenshots is false for an empty autoScreenshotPath or the old field name", function () {
+      for (const step of [{ autoScreenshotPath: "" }, { autoScreenshot: "screenshots/a/01-goTo.png" }]) {
+        const data = walkResults({
+          specs: [{ tests: [{ contexts: [{ steps: [{ goTo: "x", ...step }] }] }] }],
+        });
+        expect(data.producedAutoScreenshots).to.equal(false);
+      }
     });
 
     it("flags usedSelectorOnlyFinds when find uses selector with no stable sibling", function () {
