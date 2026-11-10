@@ -172,13 +172,13 @@ jobs:
 |---|---|---|
 | `create_issue_on_fail` | `false` | Open or update an issue if one or more tests fail. |
 | `issue_title` | `Doc Detective Failure` | Issue title. |
-| `issue_body` | `A Doc Detective run ($RUN_URL) failed:`, a blank line, then `$SUMMARY` | Issue body. `$SUMMARY` inserts the run's summary, `$RESULTS` the results object, `$RUN_URL` the workflow run URL, and `$PROMPT` the `issue_prompt` text. |
+| `issue_body` | `A Doc Detective run ($RUN_URL) failed:`, a blank line, then `$SUMMARY` | Issue body. `$SUMMARY` inserts the run's summary, `$RESULTS` the results object, `$RUN_URL` the workflow run URL, and `$PROMPT` the `issue_prompt` text. `$RESULTS` adds a blank line, then the results object as a JSON code block. |
 | `issue_labels` | `doc-detective` | Comma-separated labels. |
 | `issue_assignees` | None | Comma-separated usernames to assign. |
 | `issue_mentions` | None | Comma-separated AI assistants to mention in the issue. See [AI issue mentions](/docs/ci/issue-mentions). |
 | `issue_prompt` | `Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes.` | Text that follows each mention. |
 
-If an open issue has the same title and the first label in `issue_labels`, the action updates that issue. Otherwise it creates one. A daily schedule then keeps one issue current rather than opening one per run. In a `pull_request` workflow, every pull request shares that issue. To keep one issue per pull request, put the number in the title, such as `issue_title: Doc Detective failures in PR #${{ github.event.pull_request.number }}`.
+If an open issue has the same title and the first label in `issue_labels`, the action updates that issue. Otherwise it creates one. A daily schedule then keeps one issue current rather than opening one per run. In a `pull_request` workflow, every pull request shares that issue. To keep one issue per pull request, put the number in the title, such as `issue_title: "Doc Detective failures in PR #${{ github.event.pull_request.number }}"`. Quote the value, because YAML treats a space followed by `#` as the start of a comment and drops the rest of the title.
 
 `$SUMMARY` is the run folder's `testResults.md`, the run's Markdown summary. When the run wrote no run folder, or the run folder has no `testResults.md`, it reads `Doc Detective wrote no summary for this run. See the workflow run.`
 
