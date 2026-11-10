@@ -62,7 +62,7 @@
     },
     {
       "testId": "headless-chrome-browser-engine",
-      "description": "An explicit browser engine on headless Chrome records the tab.",
+      "description": "An explicit browser engine on headless Chrome records the tab, at the viewport's size.",
       "runOn": [
         {
           "platforms": [
@@ -99,7 +99,16 @@
           "wait": 1500
         },
         {
-          "stopRecord": true
+          "stopRecord": true,
+          "variables": {
+            "HC_BROWSER_FORMAT": "$$format",
+            "HC_BROWSER_WIDTH": "$$width",
+            "HC_BROWSER_HEIGHT": "$$height"
+          }
+        },
+        {
+          "description": "Assert a WebM at the viewport's width, and no taller than the viewport, even when the capture's first frames come from the tab while it's behind the recorder tab (ADR 01197).",
+          "runShell": "node -e \"const e=process.env; const w=Number(e.HC_BROWSER_WIDTH), h=Number(e.HC_BROWSER_HEIGHT); const ok = e.HC_BROWSER_FORMAT === 'webm' && Math.abs(w-1024) <= 2 && h >= 500 && h <= 642; if (!ok) { console.error(JSON.stringify({w,h})); process.exit(1) }\""
         }
       ]
     },
