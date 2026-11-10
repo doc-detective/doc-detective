@@ -68,6 +68,8 @@ Claude Code answers from a GitHub Actions workflow that starts when an issue ope
 - A fine-grained personal access token that can write issues, stored as a repository secret. Its owner needs write access to the repository, because Claude Code ignores issues from users without it.
 - A GitHub App token that the workflow generates on each run, for example with `actions/create-github-app-token`. Installation tokens expire after an hour, so don't store one as a secret. Claude Code ignores bots by default, so add the app's bot to `allowed_bots` in the Claude Code workflow.
 
+The action also opens pull requests with `token`. If you set `create_pr_on_change`, as the [weekly example](#example-weekly-docs-health-check) does, the token also needs **Pull requests: write**.
+
 The example runs on pushes to `main`, not on `pull_request`. By default, a pull request from a fork gets no secrets and a read-only `GITHUB_TOKEN`, so the action can't open the issue there. A private repository can change that under **Fork pull request workflows**, as [Tests are code](/docs/ci/github-action#tests-are-code) explains. To check pull requests, keep a separate `pull_request` workflow without `create_issue_on_fail`.
 
 ## Craft effective prompts

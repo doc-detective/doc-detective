@@ -143,13 +143,15 @@ Roll back only when 5.0 is unusable and no quick fix exists. `promote.yml` refus
 to an older version, so you do these steps by hand, in this order:
 
 1. **Stop main from releasing, and settle the runs already going.** Merge nothing to main until the
-   rollback is done. Then list every run that hasn't completed, whatever its status. That includes
-   `queued`, and `pending` runs waiting on a concurrency group:
+   rollback is done. Then list every run that hasn't completed, in each unfinished status. That
+   includes `pending` runs waiting on a concurrency group. `--status` filters on GitHub's side, so
+   the limit counts only matching runs:
 
    ```bash
    for wf in release.yml promote.yml docker-build.yml; do
-     gh run list --workflow "$wf" --json databaseId,status,displayTitle \
-       --jq '.[] | select(.status != "completed")'
+     for s in requested waiting pending queued in_progress; do
+       gh run list --workflow "$wf" --status "$s" --limit 100
+     done
    done
    ```
 

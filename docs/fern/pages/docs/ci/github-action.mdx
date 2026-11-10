@@ -147,7 +147,7 @@ This workflow runs on pushes to `main`. By default, a fork's pull request gets a
 | `issue_assignees` | None | Comma-separated usernames to assign. |
 | `integrations` | None | Comma-separated integrations to mention in the issue (see [Integrations](/docs/test-docs/integrations)). |
 | `prompt` | See README | Prompt text passed to integrations. |
-| `token` | `${{ github.token }}` | Token the action creates the issue with. |
+| `token` | `${{ github.token }}` | Token the action creates issues and pull requests with. |
 
 The `integrations` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [Integrations](/docs/test-docs/integrations). For prompts that get useful analysis back, see [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).
 
