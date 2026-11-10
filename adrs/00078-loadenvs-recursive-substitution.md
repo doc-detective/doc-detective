@@ -10,13 +10,14 @@ decision-makers: doc-detective maintainers
 
 Env-var substitution (`loadEnvs`) only resolved a `$VAR` when it constituted the whole value, and it
 unconditionally `JSON.parse`d substituted strings to coerce types. That meant `$VAR` embedded inside
-a larger string (a URL, a header value) was left unresolved, and the forced JSON coercion corrupted
-plain strings that happened to look parseable. How should `$VAR` references be resolved across the
+a larger string, such as a URL or a header value, was left unresolved. The forced JSON coercion also
+corrupted plain strings that happened to look parseable. How should `$VAR` references be resolved
+across the
 nested structures a step or config can contain?
 
 ## Decision Drivers
 
-* `$VAR` must resolve wherever it appears — embedded in a substring, not only as a whole value.
+* `$VAR` must resolve wherever it appears, embedded in a substring, not only as a whole value.
 * Substitution must walk nested objects/arrays, not just top-level string fields.
 * A whole-string `$VAR` match should be able to substitute a structured (object) value.
 * Forced `JSON.parse` coercion corrupted strings and must be dropped.

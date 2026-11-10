@@ -133,6 +133,80 @@ describe("resolveTests coverage: fetchOpenApiDocuments", function () {
     );
   });
 
+  it("memoizes loadDescription across tests sharing one description path (item 3.3)", async function () {
+    // Two tests each declare their OWN openApi entry pointing at the SAME
+    // description file. With no spec-level openApi to pre-attach a definition,
+    // the first test loads + caches the path and the second hits the per-run
+    // cache (distinct entry object, so it can't reuse an attached definition —
+    // this is the path-keyed branch). Both must resolve identically.
+    const file = path.join(tmp, "shared.json");
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        openapi: "3.0.0",
+        info: { title: "shared", version: "1" },
+        paths: {},
+      })
+    );
+    const spec = {
+      specId: "docs/shared.json",
+      contentPath: path.join(process.cwd(), "docs", "shared.json"),
+      openApi: [],
+      runOn: [],
+      tests: [
+        {
+          testId: "t1",
+          steps: [{ runShell: { command: "echo hi" } }],
+          openApi: [{ name: "shared", descriptionPath: file }],
+        },
+        {
+          testId: "t2",
+          steps: [{ runShell: { command: "echo hi" } }],
+          openApi: [{ name: "shared", descriptionPath: file }],
+        },
+      ],
+    };
+    const resolved = await resolveTests({ config, detectedTests: [spec] });
+    const [t1, t2] = resolved.specs[0].tests;
+    const d1 = t1.openApi.find((d) => d.name === "shared");
+    const d2 = t2.openApi.find((d) => d.name === "shared");
+    assert.ok(d1?.definition, "first test attached the dereferenced definition");
+    assert.ok(d2?.definition, "second test attached the dereferenced definition");
+    // Reference identity proves memoization: both tests `await` the SAME cached
+    // promise, so they must receive the exact same dereferenced object — not two
+    // independently-loaded but structurally-equal ones (which deepEqual would
+    // also accept, missing a memoization regression).
+    assert.strictEqual(d2.definition, d1.definition);
+  });
+
+  it("evicts a failed description load from the per-run cache so a later caller retries (item 3.3)", async function () {
+    // A rejected loadDescription must NOT stay cached — otherwise one failure
+    // (e.g. a transient remote error) would poison every later test for the same
+    // path. After a failing resolve the run cache must not hold the key, so the
+    // next test/run re-attempts (matching the old per-call behavior).
+    const missing = path.join(tmp, "transient-missing.json");
+    const spec = {
+      specId: "docs/x.json",
+      contentPath: path.join(process.cwd(), "docs", "x.json"),
+      openApi: [],
+      runOn: [],
+      tests: [
+        {
+          testId: "t1",
+          steps: [{ runShell: { command: "echo hi" } }],
+          openApi: [{ name: "api", descriptionPath: missing }],
+        },
+      ],
+    };
+    await resolveTests({ config, detectedTests: [spec] });
+    assert.ok(config._openApiDescriptionCache, "run seeded the description cache");
+    assert.equal(
+      config._openApiDescriptionCache.has(missing),
+      false,
+      "the failed load was evicted, not left as a sticky rejected promise"
+    );
+  });
+
   it("assigns a random-UUID specId when neither specId nor contentPath is present", async function () {
     const spec = {
       openApi: [],

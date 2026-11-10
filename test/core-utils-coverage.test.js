@@ -13,6 +13,7 @@ import sinon from "sinon";
 import dnsPromises from "node:dns/promises";
 import {
   log,
+  logLevelEnabled,
   outputResults,
   replaceEnvs,
   timestamp,
@@ -22,13 +23,23 @@ import {
   matchesExpectedOutput,
   isRelativeUrl,
   appendQueryParams,
+  computeSettleCeiling,
   redactUrlForOutput,
-  assertUrlHostIsPublic,
+  privateAddressOf,
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
+  isSessionAlive,
+  isPageBroken,
+  isPageUnnavigated,
+  issueNavigation,
+  probeStuckOnBlankDocument,
+  guardBlankDocumentNavigation,
+  classifyContextRetry,
+  isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
+  shouldFailRun,
   findFreePort,
   evaluateContextRequirements,
 } from "../dist/core/utils.js";
@@ -102,6 +113,34 @@ describe("core/utils coverage", function () {
     });
   });
 
+  describe("shouldFailRun", function () {
+    it("returns true when the spec fail count is greater than zero", function () {
+      assert.equal(
+        shouldFailRun({ summary: { specs: { pass: 1, fail: 2, warning: 0, skipped: 0 } } }),
+        true
+      );
+    });
+    it("returns false when there are no spec failures", function () {
+      assert.equal(
+        shouldFailRun({ summary: { specs: { pass: 3, fail: 0, warning: 0, skipped: 1 } } }),
+        false
+      );
+    });
+    it("treats warnings as non-fatal (fail stays 0)", function () {
+      assert.equal(
+        shouldFailRun({ summary: { specs: { pass: 0, fail: 0, warning: 5, skipped: 0 } } }),
+        false
+      );
+    });
+    it("returns false for a missing or malformed results/summary shape", function () {
+      assert.equal(shouldFailRun(undefined), false);
+      assert.equal(shouldFailRun(null), false);
+      assert.equal(shouldFailRun({}), false);
+      assert.equal(shouldFailRun({ summary: {} }), false);
+      assert.equal(shouldFailRun({ summary: { specs: {} } }), false);
+    });
+  });
+
   describe("isRelativeUrl", function () {
     it("returns false for absolute URLs, true for relative paths", function () {
       assert.equal(isRelativeUrl("https://example.com/x"), false);
@@ -157,6 +196,32 @@ describe("core/utils coverage", function () {
     it("falls back to manual stripping for non-URL strings", function () {
       assert.equal(redactUrlForOutput("not a url?token=x#y"), "not a url");
     });
+    it("strips basic-auth credentials from a valid URL", function () {
+      // `new URL(...).toString()` preserves userinfo, so dropping only the
+      // query and fragment would publish the password: these strings land in
+      // step descriptions, warnings, reports and CI logs.
+      assert.equal(
+        redactUrlForOutput("https://user:s3cret@host/path?token=x"),
+        "https://host/path"
+      );
+    });
+    it("strips a username-only userinfo segment", function () {
+      assert.equal(
+        redactUrlForOutput("https://user@host/path"),
+        "https://host/path"
+      );
+    });
+    it("strips credentials on the non-URL fallback path too", function () {
+      // The fallback sees anything `new URL` rejects (here: no scheme), so it
+      // cannot lean on URL parsing.
+      assert.equal(
+        redactUrlForOutput("//user:s3cret@host/path?token=x"),
+        "//host/path"
+      );
+      // Only the authority segment carries credentials. An `@` after the host
+      // is part of the path, and a port is not a password.
+      assert.equal(redactUrlForOutput("//host:8080/a:b@c"), "//host:8080/a:b@c");
+    });
   });
 
   describe("sanitizeFilesystemName", function () {
@@ -178,80 +243,51 @@ describe("core/utils coverage", function () {
     });
   });
 
-  describe("assertUrlHostIsPublic (IP literal + scheme + allow-list paths)", function () {
-    let prevAllow;
-    beforeEach(function () {
-      prevAllow = process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    });
-    afterEach(function () {
-      if (prevAllow === undefined) delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-      else process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = prevAllow;
-    });
-
-    it("short-circuits when DOC_DETECTIVE_ALLOW_LOCAL_URLS=true", async function () {
-      process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = "true";
-      // would otherwise reject (loopback) — must resolve
-      await assertUrlHostIsPublic("http://127.0.0.1/x");
-    });
+  describe("privateAddressOf (IP literal + scheme + hostname paths)", function () {
     it("throws on an invalid URL", async function () {
-      await assert.rejects(() => assertUrlHostIsPublic("::not a url::"), /Invalid URL/);
+      await assert.rejects(() => privateAddressOf("::not a url::"), /Invalid URL/);
     });
     it("throws on an unsupported scheme", async function () {
       await assert.rejects(
-        () => assertUrlHostIsPublic("ftp://example.com/x"),
+        () => privateAddressOf("ftp://example.com/x"),
         /Unsupported URL scheme/
       );
     });
-    it("rejects a private IPv4 literal", async function () {
-      await assert.rejects(
-        () => assertUrlHostIsPublic("http://10.0.0.5/x"),
-        /private\/loopback/
-      );
+    it("returns a private IPv4 literal", async function () {
+      assert.equal(await privateAddressOf("http://10.0.0.5/x"), "10.0.0.5");
     });
-    it("rejects a loopback IPv6 literal in brackets", async function () {
-      await assert.rejects(
-        () => assertUrlHostIsPublic("http://[::1]/x"),
-        /private\/loopback/
-      );
+    it("returns a loopback IPv6 literal in brackets", async function () {
+      assert.equal(await privateAddressOf("http://[::1]/x"), "::1");
     });
-    it("allows a public IP literal without DNS", async function () {
-      await assertUrlHostIsPublic("https://8.8.8.8/x");
+    it("returns undefined for a public IP literal without DNS", async function () {
+      assert.equal(await privateAddressOf("https://8.8.8.8/x"), undefined);
     });
-    it("rejects localhost and *.localhost hostnames before any DNS lookup", async function () {
-      // Stub dns.lookup so we can prove the guard short-circuits *before* it.
+    it("returns localhost and *.localhost hostnames before any DNS lookup", async function () {
+      // Stub dns.lookup so we can prove the check short-circuits *before* it.
       sandbox = sinon.createSandbox();
       const lookup = sandbox
         .stub(dnsPromises, "lookup")
         .resolves([{ address: "8.8.8.8" }]);
-      await assert.rejects(
-        () => assertUrlHostIsPublic("http://localhost/x"),
-        /Refusing to fetch localhost/
-      );
-      await assert.rejects(
-        () => assertUrlHostIsPublic("http://app.localhost/x"),
-        /Refusing to fetch localhost/
-      );
+      assert.equal(await privateAddressOf("http://localhost/x"), "localhost");
+      assert.equal(await privateAddressOf("http://app.localhost/x"), "app.localhost");
       assert.equal(lookup.callCount, 0);
     });
 
     // The DNS-resolution branch is covered hermetically by stubbing
     // dns.lookup (the utils module shares this exact promises-API object).
-    it("resolves when a hostname's resolved addresses are all public", async function () {
+    it("returns undefined when a hostname's resolved addresses are all public", async function () {
       sandbox = sinon.createSandbox();
       sandbox
         .stub(dnsPromises, "lookup")
         .resolves([{ address: "93.184.216.34" }]);
-      await assertUrlHostIsPublic("https://example.test/x");
+      assert.equal(await privateAddressOf("https://example.test/x"), undefined);
     });
-    it("rejects when a hostname resolves to a private address", async function () {
+    it("returns the private address a hostname resolves to", async function () {
       sandbox = sinon.createSandbox();
       sandbox
         .stub(dnsPromises, "lookup")
-        .resolves([{ address: "10.1.2.3" }]);
-      await assert.rejects(
-        () => assertUrlHostIsPublic("https://internal.test/x"),
-        /resolves to a private\/loopback address/
-      );
+        .resolves([{ address: "93.184.216.34" }, { address: "10.1.2.3" }]);
+      assert.equal(await privateAddressOf("https://internal.test/x"), "10.1.2.3");
     });
     it("rejects with a resolution error when DNS lookup fails", async function () {
       sandbox = sinon.createSandbox();
@@ -259,15 +295,15 @@ describe("core/utils coverage", function () {
         .stub(dnsPromises, "lookup")
         .rejects(new Error("ENOTFOUND"));
       await assert.rejects(
-        () => assertUrlHostIsPublic("https://nonexistent.test/x"),
+        () => privateAddressOf("https://nonexistent.test/x"),
         /Couldn't resolve host .* ENOTFOUND/
       );
     });
   });
 
-  // isPrivateOrLoopbackAddress is exercised indirectly through assertUrlHostIsPublic,
+  // isPrivateOrLoopbackAddress is exercised indirectly through privateAddressOf,
   // covering its many branches: IPv4 ranges, IPv6 forms, IPv4-mapped recursion.
-  describe("assertUrlHostIsPublic IP-literal branch coverage", function () {
+  describe("privateAddressOf IP-literal branch coverage", function () {
     const privateLiterals = [
       "127.0.0.1", // loopback
       "0.0.0.0", // 0.x
@@ -280,13 +316,25 @@ describe("core/utils coverage", function () {
       "fc00::1", // unique local fc
       "fd00::1", // unique local fd
       "fe80::1", // IPv6 link-local
+      "fe90::1", // link-local is fe80::/10, so fe80 through febf
+      "febf::1",
+      "::a9fe:a9fe", // IPv4-compatible 169.254.169.254
+      "::169.254.169.254", // same, dotted (the parser normalizes it to hex)
+      "::a00:1", // IPv4-compatible 10.0.0.1
+      "64:ff9b::a9fe:a9fe", // NAT64 169.254.169.254
+      "64:ff9b::10.0.0.1", // NAT64, dotted
+      "64:ff9b::7f00:1", // NAT64 127.0.0.1
+      "::ffff:0:a00:1", // IPv4-translated (::ffff:0:0/96) 10.0.0.1
+      "2002:a00:1::1", // 6to4 (2002::/16) 10.0.0.1
+      "2002:a9fe:a9fe::1", // 6to4 169.254.169.254
+      "fec0::1", // site-local fec0::/10 (deprecated, still internal)
       // IPv4-mapped IPv6 private addresses are asserted in the mappedPrivate
       // set below (the #427 fix); historically they bypassed the guard.
     ];
     for (const ip of privateLiterals) {
-      it(`rejects private literal ${ip}`, async function () {
+      it(`flags private literal ${ip}`, async function () {
         const url = ip.includes(":") ? `http://[${ip}]/x` : `http://${ip}/x`;
-        await assert.rejects(() => assertUrlHostIsPublic(url), /refusing|private\/loopback/i);
+        assert.ok(await privateAddressOf(url));
       });
     }
     const publicLiterals = [
@@ -296,11 +344,17 @@ describe("core/utils coverage", function () {
       "::ffff:8.8.8.8", // dotted public mapped (parser normalizes to hex)
       "::ffff:808:808", // hex public mapped form (8.8.8.8) stays allowed
       "::ffff:1", // a normal IPv6 address, not IPv4-mapped → not private
+      "ff02::1", // multicast: not a unicast destination
+      "::808:808", // IPv4-compatible 8.8.8.8
+      "::ffff:0:808:808", // IPv4-translated 8.8.8.8
+      "2002:808:808::1", // 6to4 8.8.8.8
+      "64:ff9b::808:808", // NAT64 8.8.8.8
+      "64:ff9b:1::a00:1", // outside 64:ff9b::/96
     ];
     for (const ip of publicLiterals) {
       it(`allows public literal ${ip}`, async function () {
         const url = ip.includes(":") ? `http://[${ip}]/x` : `http://${ip}/x`;
-        await assertUrlHostIsPublic(url);
+        assert.equal(await privateAddressOf(url), undefined);
       });
     }
 
@@ -315,11 +369,17 @@ describe("core/utils coverage", function () {
       "::ffff:0:1", // 0.0.0.1 (real mapped form of 0.0.0.x, high group is 0)
     ];
     for (const ip of mappedPrivate) {
-      it(`rejects IPv4-mapped private literal [${ip}]`, async function () {
-        await assert.rejects(
-          () => assertUrlHostIsPublic(`http://[${ip}]/x`),
-          /private\/loopback/
-        );
+      it(`flags IPv4-mapped private literal [${ip}]`, async function () {
+        assert.equal(await privateAddressOf(`http://[${ip}]/x`), ip);
+      });
+    }
+
+    // DNS answers aren't URL-normalized, so embedded IPv4 can arrive dotted.
+    for (const answer of ["::ffff:10.0.0.1", "::169.254.169.254", "64:ff9b::127.0.0.1", "febf::1"]) {
+      it(`flags the DNS answer ${answer}`, async function () {
+        sandbox = sinon.createSandbox();
+        sandbox.stub(dnsPromises, "lookup").resolves([{ address: answer }]);
+        assert.equal(await privateAddressOf("https://rebind.test/x"), answer);
       });
     }
   });
@@ -362,10 +422,92 @@ describe("core/utils coverage", function () {
       assert.equal(logged[0], "(INFO)");
       assert.equal(logged[1], JSON.stringify({ a: 1 }, null, 2));
     });
-    it("supports the 2-arg form log(message, level) with empty config (no match)", async function () {
-      // config defaults to {} so logLevel is undefined → no match → nothing logged
+    it("2-arg form log(message, level) defaults an undefined logLevel to info and emits", async function () {
+      // config defaults to {} so logLevel is undefined → treated as "info" (parity
+      // with src/utils.ts#log). error/warning/info messages must surface rather
+      // than being silently dropped (regression: 2-arg expressions.ts log sites).
       await log("just a message", "info");
+      await log("an error", "error");
+      await log("a warning", "warning");
+      assert.deepEqual(logged, ["(INFO) just a message", "(ERROR) an error", "(WARNING) a warning"]);
+    });
+    it("2-arg form still suppresses debug under the info default", async function () {
+      // The info default surfaces error/warning/info but NOT debug — matching the
+      // configured-info semantics, so 2-arg calls don't force debug spam.
+      await log("a debug line", "debug");
       assert.equal(logged.length, 0);
+    });
+    it("3-arg form with explicit logLevel is unaffected by the default", async function () {
+      // A caller that DOES supply logLevel keeps exact configured semantics: an
+      // explicit "error" level still suppresses info.
+      await log({ logLevel: "error" }, "info", "quiet");
+      assert.equal(logged.length, 0);
+    });
+  });
+
+  describe("logLevelEnabled (lazy-log gate, mirrors log's level policy)", function () {
+    let logged;
+    beforeEach(function () {
+      sandbox = sinon.createSandbox();
+      logged = [];
+      sandbox.stub(console, "log").callsFake((m) => logged.push(m));
+    });
+    afterEach(function () {
+      sandbox.restore();
+      sandbox = undefined;
+    });
+    it("error level: only error is enabled", function () {
+      const c = { logLevel: "error" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), false);
+      assert.equal(logLevelEnabled(c, "info"), false);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("warning level: error + warning enabled", function () {
+      const c = { logLevel: "warning" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), true);
+      assert.equal(logLevelEnabled(c, "info"), false);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("info level: error/warning/info enabled, debug not", function () {
+      const c = { logLevel: "info" };
+      assert.equal(logLevelEnabled(c, "info"), true);
+      assert.equal(logLevelEnabled(c, "debug"), false);
+    });
+    it("debug level: everything enabled", function () {
+      const c = { logLevel: "debug" };
+      assert.equal(logLevelEnabled(c, "error"), true);
+      assert.equal(logLevelEnabled(c, "warning"), true);
+      assert.equal(logLevelEnabled(c, "info"), true);
+      assert.equal(logLevelEnabled(c, "debug"), true);
+    });
+    it("undefined/empty logLevel defaults to info (parity with log's 2-arg default)", function () {
+      // Undefined/empty logLevel is treated as "info": error/warning/info enabled,
+      // debug not. This mirrors log()'s default so the guard never drifts from the
+      // emit — the fix that stopped 2-arg calls being silently dropped.
+      assert.equal(logLevelEnabled({}, "error"), true);
+      assert.equal(logLevelEnabled({}, "warning"), true);
+      assert.equal(logLevelEnabled({}, "info"), true);
+      assert.equal(logLevelEnabled({}, "debug"), false);
+      assert.equal(logLevelEnabled({ logLevel: "" }, "error"), true);
+      assert.equal(logLevelEnabled({ logLevel: "" }, "debug"), false);
+    });
+    it("explicit silent logLevel suppresses everything", function () {
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "error"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "warning"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "info"), false);
+      assert.equal(logLevelEnabled({ logLevel: "silent" }, "debug"), false);
+    });
+    it("agrees with log(): guarding a debug dump prints iff enabled", async function () {
+      // At info level the guard is false, so the expensive message is never
+      // built or printed; at debug it prints exactly once.
+      const infoCfg = { logLevel: "info" };
+      if (logLevelEnabled(infoCfg, "debug")) await log(infoCfg, "debug", "X");
+      assert.equal(logged.length, 0);
+      const dbgCfg = { logLevel: "debug" };
+      if (logLevelEnabled(dbgCfg, "debug")) await log(dbgCfg, "debug", "X");
+      assert.deepEqual(logged, ["(DEBUG) X"]);
     });
   });
 
@@ -459,6 +601,31 @@ describe("core/utils coverage", function () {
     });
     it("leaves an undefined env var reference in place", function () {
       assert.equal(replaceEnvs("$DD_DOES_NOT_EXIST_123"), "$DD_DOES_NOT_EXIST_123");
+    });
+    it("module-hoisted regex is safe across multiple matches and repeated calls (1.5)", function () {
+      // The matcher is now a single module-scoped /g RegExp reused on every
+      // string node. `String.prototype.match` with /g does not depend on or
+      // leave mutated lastIndex, so multiple matches in one string and repeated
+      // calls must all resolve correctly (a shared stateful regex would drop
+      // matches on alternate calls).
+      const prev = process.env.DD_TEST_VAL;
+      process.env.DD_TEST_VAL = "X";
+      try {
+        // Two references in one string → both replaced in a single call.
+        assert.equal(
+          replaceEnvs("$DD_TEST_VAL-$DD_TEST_VAL"),
+          "X-X"
+        );
+        // Repeated invocations stay correct (no lastIndex carry-over).
+        for (let i = 0; i < 3; i++) {
+          assert.equal(replaceEnvs("a $DD_TEST_VAL b"), "a X b");
+        }
+      } finally {
+        // Restore so this mutation can't make later env-sensitive tests
+        // order-dependent.
+        if (prev === undefined) delete process.env.DD_TEST_VAL;
+        else process.env.DD_TEST_VAL = prev;
+      }
     });
   });
 
@@ -798,6 +965,25 @@ describe("core/utils coverage", function () {
       }
     });
 
+    it("treats mid-run session-death markers as retryable (for context retry)", function () {
+      // When a session dies mid-run, a later command — or the context-retry
+      // health-probe (getPageSource) — hits the dead session and surfaces one of
+      // these. The `retries` policy keys on this classification to re-provision a
+      // fresh session instead of accepting the spurious FAIL. These can't occur
+      // before a session exists, so adding them is inert for driverStart's
+      // creation-retry path.
+      for (const message of [
+        "invalid session id: Tried to run command without establishing a connection",
+        "WebDriverError: invalid session id",
+        "no such session",
+        "unknown error: session deleted because of page crash",
+        "chrome not reachable",
+      ]) {
+        assert.equal(isRetryableSessionError(message, 0), true, message);
+        assert.equal(isRetryableSessionError(message, 900000), true, message);
+      }
+    });
+
     it("retries a session-creation timeout abort only when a slow-startup ceiling was declared", function () {
       // Native sessions (XCUITest/Mac2) declare wdaLaunchTimeout etc., which
       // raises the ceiling past the 2-minute default: the server-side WDA
@@ -821,6 +1007,493 @@ describe("core/utils coverage", function () {
         assert.equal(isRetryableSessionError(message, 900000), false, message);
       }
       assert.equal(isRetryableSessionError(undefined, 900000), false);
+    });
+  });
+
+  describe("isSessionAlive", function () {
+    it("returns true when the session-scoped probe resolves", async function () {
+      const driver = { getPageSource: async () => "<html></html>" };
+      assert.equal(await isSessionAlive(driver), true);
+    });
+    it("returns false when the probe throws a classified session-death error", async function () {
+      for (const msg of [
+        "invalid session id",
+        "no such session",
+        "connect ECONNREFUSED 127.0.0.1:9515",
+        "chrome not reachable",
+        "unknown error: session deleted because of page crash",
+      ]) {
+        const driver = {
+          getPageSource: async () => {
+            throw new Error(msg);
+          },
+        };
+        assert.equal(await isSessionAlive(driver), false, msg);
+      }
+    });
+    it("assumes alive (true) when the probe throws a non-session error", async function () {
+      // A live session that legitimately failed a step must not be retried, so a
+      // non-session probe error is treated as alive.
+      const driver = {
+        getPageSource: async () => {
+          throw new Error("some unrelated transient blip");
+        },
+      };
+      assert.equal(await isSessionAlive(driver), true);
+    });
+    it("returns false for a null/undefined driver", async function () {
+      assert.equal(await isSessionAlive(null), false);
+      assert.equal(await isSessionAlive(undefined), false);
+    });
+    it("treats a wedged (never-resolving) probe as alive within the probe timeout", async function () {
+      // A wedged session (socket open, no response): getPageSource never
+      // settles. The bounded probe must return within probeTimeoutMs and treat
+      // it as alive (conservative — never retry a real failure on a slow probe),
+      // rather than hang for the transport timeout.
+      const driver = { getPageSource: () => new Promise(() => {}) };
+      const start = Date.now();
+      const alive = await isSessionAlive(driver, 100);
+      assert.equal(alive, true);
+      assert.ok(Date.now() - start < 2000, "probe should return promptly, not hang");
+    });
+  });
+
+  describe("isPageBroken", function () {
+    const brokenDriver = (url) => ({ getUrl: async () => url });
+    it("returns true for a browser crash/error page", async function () {
+      for (const url of [
+        "chrome-error://chromewebdata/",
+        "about:neterror?e=dnsNotFound&u=http%3A//x",
+        "about:certerror?e=nssBadCert",
+      ]) {
+        assert.equal(await isPageBroken(brokenDriver(url)), true, url);
+      }
+    });
+    it("returns false for a normal page (a real assertion failure must not retry)", async function () {
+      for (const url of [
+        "http://localhost:8092/enhanced-elements.html",
+        "https://example.com/",
+      ]) {
+        assert.equal(await isPageBroken(brokenDriver(url)), false, url);
+      }
+    });
+    it("does NOT treat about:blank as broken (a test may legitimately be there)", async function () {
+      assert.equal(await isPageBroken(brokenDriver("about:blank")), false);
+    });
+    it("returns false for an app/mobile session with no getUrl, or when getUrl throws", async function () {
+      assert.equal(await isPageBroken({}), false);
+      assert.equal(await isPageBroken(null), false);
+      assert.equal(
+        await isPageBroken({ getUrl: async () => { throw new Error("invalid session id"); } }),
+        false
+      );
+    });
+    it("does NOT treat the initial blank document as broken (isPageUnnavigated owns that)", async function () {
+      // Keeps the two predicates disjoint: `data:,` is a never-navigated page,
+      // not a crashed one, and they carry different diagnostics.
+      assert.equal(await isPageBroken(brokenDriver("data:,")), false);
+    });
+  });
+
+  describe("isPageUnnavigated", function () {
+    // Chromium parks a brand-new session on `data:,` until the first
+    // navigation. A context that FAILs while still there never got started —
+    // see adrs/01084-retry-unnavigated-context.md.
+    const at = (url) => ({ getUrl: async () => url });
+
+    it("returns true for Chromium's initial blank document", async function () {
+      assert.equal(await isPageUnnavigated(at("data:,")), true);
+      assert.equal(await isPageUnnavigated(at("data:")), true);
+    });
+
+    it("does NOT treat about:blank as unnavigated (a test may legitimately be there)", async function () {
+      // Mirrors the isPageBroken contract: about:blank is a reachable, valid
+      // target, so a genuine element-not-found there must still FAIL.
+      assert.equal(await isPageUnnavigated(at("about:blank")), false);
+    });
+
+    it("does NOT treat a real data: URL as unnavigated", async function () {
+      // Only the EMPTY data URL is the initial document; a data: page with
+      // content is a deliberate navigation target.
+      assert.equal(
+        await isPageUnnavigated(at("data:text/html,<h1>hello</h1>")),
+        false
+      );
+      assert.equal(await isPageUnnavigated(at("data:,notempty")), false);
+    });
+
+    it("returns false for a normal page (a real assertion failure must not retry)", async function () {
+      for (const url of [
+        "http://localhost:8092/enhanced-elements.html",
+        "https://example.com/",
+      ]) {
+        assert.equal(await isPageUnnavigated(at(url)), false, url);
+      }
+    });
+
+    it("returns false for an app/mobile session with no getUrl, or when getUrl throws", async function () {
+      assert.equal(await isPageUnnavigated({}), false);
+      assert.equal(await isPageUnnavigated(null), false);
+      assert.equal(
+        await isPageUnnavigated({
+          getUrl: async () => {
+            throw new Error("invalid session id");
+          },
+        }),
+        false
+      );
+    });
+  });
+
+  describe("issueNavigation / probeStuckOnBlankDocument", function () {
+    // The two halves of the ADR 01088 verify-left-the-blank-document guard,
+    // factored out of goTo so getRunner can reuse them (ADR 01102).
+    //
+    // `session` is the sequence of URLs the browser reports after each
+    // successive `url()` call, so a fake can act out "parked, then recovered"
+    // and "parked, stayed parked" without a real driver.
+    const fakeDriver = (session) => {
+      const calls = [];
+      let index = -1;
+      return {
+        calls,
+        async url(target) {
+          calls.push(target);
+          index += 1;
+        },
+        async getUrl() {
+          return session[Math.min(Math.max(index, 0), session.length - 1)];
+        },
+      };
+    };
+
+    it("issues the navigation once when the page actually loaded", async function () {
+      const driver = fakeDriver(["http://localhost:8092/index.html"]);
+      assert.equal(
+        await issueNavigation(driver, "http://localhost:8092/index.html"),
+        false
+      );
+      assert.deepEqual(driver.calls, ["http://localhost:8092/index.html"]);
+    });
+
+    it("re-issues the navigation when the browser is still on data:,", async function () {
+      const driver = fakeDriver(["data:,", "http://localhost:8092/index.html"]);
+      assert.equal(
+        await issueNavigation(driver, "http://localhost:8092/index.html"),
+        true
+      );
+      assert.deepEqual(driver.calls, [
+        "http://localhost:8092/index.html",
+        "http://localhost:8092/index.html",
+      ]);
+    });
+
+    it("probes nothing when no retry fired", async function () {
+      // The healthy path must not pay an extra round trip: a first attempt
+      // that landed on a real page proves nothing by being re-read.
+      let probed = false;
+      const driver = {
+        async getUrl() {
+          probed = true;
+          return "data:,";
+        },
+      };
+      assert.equal(await probeStuckOnBlankDocument(driver, false), null);
+      assert.equal(probed, false);
+    });
+
+    it("reports the blank document the browser is stuck on", async function () {
+      assert.equal(
+        await probeStuckOnBlankDocument({ getUrl: async () => " data:, " }, true),
+        "data:,"
+      );
+    });
+
+    it("reports null once the retried navigation took", async function () {
+      assert.equal(
+        await probeStuckOnBlankDocument(
+          { getUrl: async () => "http://localhost:8092/index.html" },
+          true
+        ),
+        null
+      );
+    });
+
+    it("treats an unreadable URL as not stuck", async function () {
+      // Matches isPageUnnavigated's own swallow: a thrown getUrl is evidence
+      // of a dead session, which other probes own, not of a blank page.
+      assert.equal(
+        await probeStuckOnBlankDocument(
+          {
+            getUrl: async () => {
+              throw new Error("invalid session id");
+            },
+          },
+          true
+        ),
+        null
+      );
+    });
+  });
+
+  describe("guardBlankDocumentNavigation", function () {
+    // getRunner hands callers a raw WebdriverIO session, so `runner.url(...)`
+    // never passed through goTo's guard. This wraps it (ADR 01102).
+    const fakeRunner = (session) => {
+      const calls = [];
+      let index = -1;
+      const runner = {
+        calls,
+        async url(target) {
+          calls.push(target);
+          index += 1;
+          return "navigated";
+        },
+        async getUrl() {
+          return session[Math.min(Math.max(index, 0), session.length - 1)];
+        },
+        overwriteCommand(name, wrapper) {
+          const original = runner[name].bind(runner);
+          runner[name] = (...args) => wrapper.call(runner, original, ...args);
+        },
+      };
+      return runner;
+    };
+
+    it("leaves a healthy navigation at one url() call", async function () {
+      const runner = fakeRunner(["http://localhost:8092/index.html"]);
+      guardBlankDocumentNavigation(runner, {});
+      assert.equal(
+        await runner.url("http://localhost:8092/index.html"),
+        "navigated"
+      );
+      assert.deepEqual(runner.calls, ["http://localhost:8092/index.html"]);
+    });
+
+    it("recovers a navigation that parked on the blank document", async function () {
+      const runner = fakeRunner(["data:,", "http://localhost:8092/index.html"]);
+      guardBlankDocumentNavigation(runner, {});
+      await runner.url("http://localhost:8092/index.html");
+      assert.deepEqual(runner.calls, [
+        "http://localhost:8092/index.html",
+        "http://localhost:8092/index.html",
+      ]);
+    });
+
+    it("throws naming the blank document when the navigation never takes", async function () {
+      // The failure mode this guard exists for: without it the session stays
+      // on data:, and the caller's next getTitle() returns "" with nothing
+      // pointing at the navigation.
+      const runner = fakeRunner(["data:,", "data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      await assert.rejects(
+        () => runner.url("http://localhost:8092/index.html?token=secret"),
+        (error) => {
+          assert.match(error.message, /never left its initial blank document/);
+          assert.match(error.message, /data:,/);
+          assert.match(error.message, /localhost:8092\/index\.html/);
+          // Query strings can carry tokens; step descriptions and logs are
+          // shared artifacts, so the reported URL is redacted.
+          assert.ok(
+            !error.message.includes("secret"),
+            `query string must be redacted, got: ${error.message}`
+          );
+          return true;
+        }
+      );
+    });
+
+    it("keeps basic-auth credentials out of the warning and the error", async function () {
+      // Both diagnostics print the target, and the warning fires at the default
+      // log level, so a credentialed URL would publish its password to anyone
+      // reading the output or the CI log.
+      const runner = fakeRunner(["data:,", "data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      const written = [];
+      const originalLog = console.log;
+      console.log = (...args) => written.push(args.join(" "));
+      try {
+        await assert.rejects(
+          () => runner.url("https://admin:hunter2@localhost:8092/index.html"),
+          (error) => {
+            assert.match(error.message, /never left its initial blank document/);
+            assert.ok(
+              !error.message.includes("hunter2"),
+              `error must redact credentials, got: ${error.message}`
+            );
+            return true;
+          }
+        );
+      } finally {
+        console.log = originalLog;
+      }
+      const warning = written.join("\n");
+      assert.match(warning, /still on its initial blank document/);
+      assert.ok(
+        !warning.includes("hunter2"),
+        `warning must redact credentials, got: ${warning}`
+      );
+    });
+
+    it("passes a deliberate blank-document target straight through", async function () {
+      // Asking for data:, itself would otherwise read as stuck forever.
+      const runner = fakeRunner(["data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      await runner.url("data:,");
+      assert.deepEqual(runner.calls, ["data:,"]);
+    });
+
+    it("passes a non-string target through to WebdriverIO's own validation", async function () {
+      const runner = fakeRunner(["data:,"]);
+      guardBlankDocumentNavigation(runner, {});
+      await runner.url(undefined);
+      await runner.url("");
+      assert.deepEqual(runner.calls, [undefined, ""]);
+    });
+
+    it("is a no-op on a runner with no overwriteCommand", async function () {
+      const runner = { url: async () => "navigated" };
+      guardBlankDocumentNavigation(runner, {});
+      assert.equal(await runner.url("http://localhost:8092/index.html"), "navigated");
+    });
+  });
+
+  describe("classifyContextRetry", function () {
+    // The retry DECISION, composed from the three probes. Covers the rules the
+    // probes themselves can't express: which sessions each check applies to,
+    // and the precedence between them (ADR 01084).
+    const alive = (url) => ({
+      getPageSource: async () => "<html></html>",
+      getUrl: async () => url,
+    });
+    const dead = () => ({
+      getPageSource: async () => {
+        throw new Error("invalid session id");
+      },
+    });
+    const REAL = "http://localhost:8092/enhanced-elements.html";
+
+    it("returns null when every session is alive on a real page", async function () {
+      assert.equal(await classifyContextRetry([alive(REAL), alive(REAL)]), null);
+    });
+
+    it("returns null for no sessions at all", async function () {
+      assert.equal(await classifyContextRetry([]), null);
+    });
+
+    it("reports a dead session anywhere in the context", async function () {
+      assert.equal(await classifyContextRetry([alive(REAL), dead()]), "session-died");
+      assert.equal(await classifyContextRetry([dead(), alive(REAL)]), "session-died");
+    });
+
+    it("reports a browser error page anywhere in the context", async function () {
+      assert.equal(
+        await classifyContextRetry([alive(REAL), alive("chrome-error://chromewebdata/")]),
+        "page-broken"
+      );
+    });
+
+    it("reports an unnavigated PRIMARY session", async function () {
+      assert.equal(await classifyContextRetry([alive("data:,")]), "unnavigated");
+      assert.equal(await classifyContextRetry([alive("data:,"), alive(REAL)]), "unnavigated");
+    });
+
+    it("does NOT retry when only a SECONDARY session is unnavigated", async function () {
+      // The rule that keeps this from firing on a `goTo newTab` surface the
+      // test deliberately never navigated: the real assertion failed on the
+      // primary page, so the context must FAIL rather than retry.
+      assert.equal(await classifyContextRetry([alive(REAL), alive("data:,")]), null);
+    });
+
+    it("does NOT retry an unnavigated primary when the context never navigated", async function () {
+      // A context with no goTo (say, process-surface steps only) legitimately
+      // leaves its browser on `data:,`, so its FAIL is real and must stand
+      // (ADR 01119). Broken sessions still retry regardless.
+      assert.equal(await classifyContextRetry([alive("data:,")], { navigated: false }), null);
+      assert.equal(
+        await classifyContextRetry([dead()], { navigated: false }),
+        "session-died"
+      );
+      assert.equal(
+        await classifyContextRetry([alive("data:,")], { navigated: true }),
+        "unnavigated"
+      );
+    });
+
+    it("prefers a dead session over an unnavigated primary", async function () {
+      // A dead session is the stronger, more actionable signal; both retry, but
+      // only one of them is worth logging as 'never navigated'.
+      assert.equal(await classifyContextRetry([dead(), alive("data:,")]), "session-died");
+    });
+  });
+
+  describe("isTransientProcessInitError", function () {
+    // The two Windows NTSTATUS init/console crashes a fresh spawn recovers from,
+    // as they appear in waitForReady's early-exit rejection.
+    const DLL_INIT_FAILED =
+      "Process exited before becoming ready (exit code -1073741502)."; // 0xC0000142
+    const CONTROL_C_EXIT =
+      "Process exited before becoming ready (exit code -1073741510)."; // 0xC000013A (observed in CI)
+
+    it("flags the transient win32 init exit codes on win32", function () {
+      assert.equal(isTransientProcessInitError(DLL_INIT_FAILED, "win32"), true);
+      assert.equal(isTransientProcessInitError(CONTROL_C_EXIT, "win32"), true);
+    });
+
+    it("does not flag the same codes off win32 (NTSTATUS is Windows-only)", function () {
+      assert.equal(isTransientProcessInitError(DLL_INIT_FAILED, "linux"), false);
+      assert.equal(isTransientProcessInitError(CONTROL_C_EXIT, "darwin"), false);
+    });
+
+    it("does not flag ordinary exit codes or a readiness timeout", function () {
+      assert.equal(
+        isTransientProcessInitError(
+          "Process exited before becoming ready (exit code 1).",
+          "win32"
+        ),
+        false
+      );
+      assert.equal(
+        isTransientProcessInitError(
+          "Process exited before becoming ready (exit code 0).",
+          "win32"
+        ),
+        false
+      );
+      // A stuck process that never exits reports a probe timeout, not an exit
+      // code — not retryable (a fresh spawn would just hang again).
+      assert.equal(
+        isTransientProcessInitError("Port 8080 did not open in time.", "win32"),
+        false
+      );
+    });
+
+    it("is safe on empty / undefined messages", function () {
+      assert.equal(isTransientProcessInitError("", "win32"), false);
+      assert.equal(isTransientProcessInitError(undefined, "win32"), false);
+    });
+  });
+
+  // The device-web post-navigation settle's budget arithmetic (goTo). Pure, so
+  // the `settleCeiling > 0` guard is proven here deterministically instead of
+  // racing wall-clock timing through the runner.
+  describe("computeSettleCeiling", function () {
+    it("returns the remaining budget when under the 3s cap", function () {
+      assert.equal(computeSettleCeiling(2500, 1000), 1500);
+      assert.equal(computeSettleCeiling(500, 100), 400);
+      assert.equal(computeSettleCeiling(3000, 100), 2900);
+    });
+
+    it("caps at 3000ms no matter how much budget remains", function () {
+      assert.equal(computeSettleCeiling(30000, 0), 3000);
+      assert.equal(computeSettleCeiling(10000, 5000), 3000);
+      assert.equal(computeSettleCeiling(4000, 1000), 3000); // 3000 remaining == cap boundary
+    });
+
+    it("floors at 0 when the budget is spent (the guard then skips the settle)", function () {
+      assert.equal(computeSettleCeiling(50, 50), 0); // exactly spent
+      assert.equal(computeSettleCeiling(50, 120), 0); // overspent -> not negative
+      assert.equal(computeSettleCeiling(1, 1_000_000), 0);
     });
   });
 });

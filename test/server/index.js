@@ -92,8 +92,12 @@ function createServer(options = {}) {
     }
   });
 
-  // Echo API endpoint that returns the request body (catch-all)
-  app.all("/api/:path", (req, res) => {
+  // Echo API endpoint that returns the request body (catch-all). Matches any
+  // number of path segments after /api/ (e.g. /api/users, /api/users/2,
+  // /api/users/2/orders/5) so docs examples that mirror a real multi-segment
+  // REST API (reqres.in-style /api/users/:id) can point straight at this
+  // fixture instead of being adapted to a single hyphenated segment.
+  app.all("/api/{*splat}", (req, res) => {
     try {
       const requestBody = req.method === "GET" ? req.query : req.body;
       const modifiedResponse = modifyResponse(req, requestBody);
@@ -106,6 +110,12 @@ function createServer(options = {}) {
       });
 
       res.set("x-server", "doc-detective-echo-server");
+      // Reflects the resolved request path (post-substitution, e.g. after a
+      // captured $VARIABLE lands in the URL) as a header rather than a body
+      // field, so tests can assert real path-segment substitution happened
+      // without adding a field that would trip an allowAdditionalFields:false
+      // check on the echoed body.
+      res.set("x-echo-path", req.path);
 
       console.log("Response:", { Body: modifiedResponse });
 

@@ -1,0 +1,7 @@
+---
+title: doc-detective-core (merged)
+---
+
+`doc-detective-core` was a separate package that held the test runner. It's no longer developed on its own. The runner merged into the [`doc-detective`](doc-detective) repo, where it lives in `src/core/`. For the reasoning, see [ADR 00145](https://github.com/doc-detective/doc-detective/blob/main/adrs/00145-merge-core-into-monorepo.md).
+
+To change how tests run, open your pull request against [`doc-detective`](https://github.com/doc-detective/doc-detective). Don't install `doc-detective-core` from npm. Install `doc-detective`, which includes the runner.

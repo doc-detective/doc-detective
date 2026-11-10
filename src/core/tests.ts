@@ -8,7 +8,9 @@ import fs from "node:fs";
 // optional package on disk — webdriverio is an optionalDependency that npm may
 // skip on a CI runner, and a hard compile-time type reference would otherwise
 // turn that skipped install into an intermittent build failure.
-import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import { loadHeavyDep, prefetchHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
+import { resolveTheme } from "./annotations/model.js";
+import { annotate, pruneExpired, renderLayer } from "./tests/annotate.js";
 import type { WdioModule } from "./tests/wdioTypes.js";
 import {
   requiredBrowserAssets,
@@ -20,10 +22,14 @@ import {
   BROWSER_STEP_KEYS as driverActions,
   startSurfaceDescriptors,
   stepOpensBrowserSurface,
+  stepTargetsProcessSurface,
+  stepIsSurfacelessInteraction,
+  testHasNonBrowserSurfaceSignal,
 } from "../runtime/browserStepKeys.js";
 import os from "node:os";
 import {
   log,
+  logLevelEnabled,
   replaceEnvs,
   selectSpecsForRun,
   findFreePort,
@@ -37,8 +43,13 @@ import {
   sanitizeFilesystemName,
   evaluateContextRequirements,
   isRetryableSessionError,
+  classifyContextRetry,
+  guardBlankDocumentNavigation,
+  applyBrowserSize,
+  isViewportFloored,
+  loadAxios,
+  sessionVersions,
 } from "./utils.js";
-import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { goTo } from "./tests/goTo.js";
 import { findElement } from "./tests/findElement.js";
@@ -48,6 +59,12 @@ import { typeKeys } from "./tests/typeKeys.js";
 import { swipeSurface } from "./tests/swipe.js";
 import { wait } from "./tests/wait.js";
 import { saveScreenshot } from "./tests/saveScreenshot.js";
+import {
+  capPathSegment,
+  stepArtifactFileName,
+  resolveCheckpointsConfig,
+  captureRecordingCheckpoints,
+} from "./tests/recordingCheckpoints.js";
 import { startRecording } from "./tests/startRecording.js";
 import { stopRecording } from "./tests/stopRecording.js";
 import {
@@ -80,15 +97,40 @@ import {
   isAppDriverRequired,
   stepTargetsAppSurface,
   teardownAppSession,
+  createAppServerPool,
+  APP_DRIVER_PLATFORMS,
+  probeIosToolchain,
   type AppSessionState,
+  type AppServerPool,
 } from "./tests/appSurface.js";
 import { startSurfaceStep } from "./tests/startSurface.js";
+import {
+  createActiveSurfaceTracker,
+  type ActiveSurfaceTracker,
+} from "./tests/activeSurface.js";
 import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
+import {
+  GECKODRIVER_EXECUTABLE_ARGS,
+  applyDriverOptions,
+} from "./tests/geckoDriver.js";
 import {
   mobileBrowserGate,
   buildMobileBrowserCapabilities,
+  CHROMEDRIVER_AUTODOWNLOAD_ARGS,
 } from "./tests/mobileBrowser.js";
+import {
+  planWarmTasks,
+  executeWarmTasks,
+  raceBootInitiation,
+  wrapInitiationEffects,
+  RUNTIME_INSTALL_RESOURCE,
+  type WarmPlanDeps,
+  type WarmTask,
+  type WarmOutcome,
+} from "./warmPhase.js";
+import { locateManagedWda } from "../runtime/wdaProducts.js";
 import { getCacheDir } from "../runtime/cacheDir.js";
+import { packageRoot } from "../runtime/heavyDeps.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
 import {
   hostAbi,
@@ -97,6 +139,7 @@ import {
 } from "../runtime/androidInstaller.js";
 import {
   buildAcquireDeviceDeps,
+  findUia2Helpers,
   checkEmulatorAcceleration,
   hostHasKvm,
   planDeviceAcquisition,
@@ -105,6 +148,7 @@ import {
   acquireDevice,
   createDeviceRegistry,
   teardownDeviceRegistry,
+  shutdownEmulator,
   type DeviceRegistry,
 } from "./tests/androidEmulator.js";
 import {
@@ -113,6 +157,7 @@ import {
   acquireSimulator,
   createSimulatorRegistry,
   teardownSimulatorRegistry,
+  iosMajorOfRuntime,
   type SimulatorRegistry,
 } from "./tests/iosSimulator.js";
 import { runBrowserScript } from "./tests/runBrowserScript.js";
@@ -127,9 +172,26 @@ import {
 } from "./tests/browserSessions.js";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { randomUUID, createHash } from "node:crypto";
-import { setAppiumHome } from "./appium.js";
-import { contentHash } from "../common/src/detectTests.js";
+import { randomUUID } from "node:crypto";
+import {
+  setAppiumHome,
+  appiumHomeForDriverPath,
+  useDriversArgs,
+  browserPoolDriverPackages,
+} from "./appium.js";
+import {
+  reuseAppiumEnabled,
+  appiumServerKey,
+  createServerCache,
+  takeServer,
+  handBackServer,
+  probeStatus,
+  listSessions,
+  allowSessionDiscovery,
+  APPIUM_WATCHDOG_IMPORT,
+} from "./appiumReuse.js";
+import type { Server as AppiumServer } from "./appiumReuse.js";
+import { contentHash } from "../common/src/textUtils.js";
 import { resolveExpression } from "./expressions.js";
 import {
   evaluateCustomAssertions,
@@ -151,9 +213,32 @@ import {
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
 import https from "node:https";
-import { fileURLToPath } from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Idle browser-pool Appium servers kept between runs in this process, only
+// when DOC_DETECTIVE_REUSE_APPIUM is set (ADR 01125). Empty otherwise.
+// killTree is a hoisted function declaration, called only when a server dies.
+// Background kill failures log at debug under the last reusing run's config.
+// Used only for that log line, so last-writer-wins across concurrent runs is fine.
+// Only logLevel is read (by log()).
+let lastReuseConfig: { logLevel?: string } | undefined;
+const appiumServerCache = createServerCache({
+  kill: (server) => killTree(server.process?.pid),
+  onKillError: (server, err) =>
+    log(
+      lastReuseConfig ?? {},
+      "debug",
+      `Failed to close idle Appium server on port ${server.port}: ${(err as Error)?.message ?? err}`
+    ),
+  idleMs: 60000,
+  maxIdle: 4,
+});
+
+// The runner's appiumIsReady call sites poll at this interval. A refused
+// /status on loopback fails in about a millisecond, so a tighter poll costs
+// nothing and trims the lag between Appium coming up and the run noticing
+// (ADR 01124). appiumIsReady's own 250ms default stays for callers that don't
+// pass `pollMs`.
+const APPIUM_READY_POLL_MS = 50;
 
 export {
   runSpecs,
@@ -165,11 +250,13 @@ export {
   warmUpDecision,
   selectWarmUpTargets,
   getDriverCapabilities,
-  withChromedriverPort,
+  withDriverPort,
   getDefaultBrowser,
   buildFallbackCandidates,
   driverSkipDiagnostic,
   resolveBrowserFallbackPolicy,
+  resolveRetryPolicy,
+  runContextWithRetries,
   shouldRepairBeforeFallback,
   isSupportedContext,
   contextRequirementsSkipMessage,
@@ -178,11 +265,15 @@ export {
   buildAutoRecordStep,
   specIsRouted,
   killTree,
+  appiumServerCache,
   jobDisplayResources,
+  buildWarmPlanDeps,
+  warmBrowserInstall,
+  prefetchMobileChromedriver,
+  appiumIsReady,
+  APPIUM_READY_POLL_MS,
+  driverStart,
 };
-// exports.appiumStart = appiumStart;
-// exports.appiumIsReady = appiumIsReady;
-// exports.driverStart = driverStart;
 
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
 // rewritten to `webkit` during context resolution, so both appear here.
@@ -279,6 +370,29 @@ function warmUpDecision(prev: "ok" | "failed" | undefined): "attempt" | "skip" {
   return prev === "failed" ? "skip" : "attempt";
 }
 
+/**
+ * Bind the real selection predicates for the warm-phase planner
+ * (planWarmTasks in warmPhase.ts). The planner takes these as an injected
+ * bag because most of them live in this module — importing them from
+ * warmPhase.ts would create a tests.ts ⇄ warmPhase.ts cycle — and because
+ * the bag keeps the planner hermetically unit-testable. Exported so planner
+ * tests exercise production selection logic, not stand-ins.
+ */
+function buildWarmPlanDeps(): WarmPlanDeps {
+  return {
+    isBrowserRequired,
+    isAppDriverRequired,
+    isMobileTargetPlatform,
+    getDefaultBrowser,
+    requiredBrowserAssets,
+    collectDeviceDescriptors,
+    normalizeDeviceDescriptor,
+    mobileBrowserGate,
+    contextRequirementsSkipMessage,
+    appDriverPlatforms: APP_DRIVER_PLATFORMS,
+  };
+}
+
 // Get Appium driver capabilities and apply options.
 function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails: any; name: any; options: any }): any {
   let capabilities: any = {};
@@ -312,6 +426,18 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         "appium:newCommandTimeout": 600, // 10 minutes
         browserName: "MozillaFirefox",
         "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
+        // Pin the geckodriver Doc Detective manages. appium-geckodriver
+        // resolves its binary from this capability or `which geckodriver` and
+        // nothing else, so without it the managed install in the browsers cache
+        // (version-suffixed, off PATH) can never be used — Firefox then only
+        // works where some other geckodriver happens to be on PATH, which is
+        // why containers fail and GitHub-hosted runners don't. The pool's
+        // servers always carry GECKODRIVER_EXECUTABLE_ARGS, which is what makes
+        // this insecure-gated capability legal to send. Omitted when no path
+        // was resolved, leaving the PATH lookup as the Layer 4 fallback.
+        ...(firefox.driver
+          ? { "appium:geckodriverExecutable": firefox.driver }
+          : {}),
         "moz:firefoxOptions": {
           // Reference: https://developer.mozilla.org/en-US/docs/Web/WebDriver/Capabilities/firefoxOptions
           args,
@@ -382,6 +508,10 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:newCommandTimeout": 600, // 10 minutes
           "appium:executable": chromium.driver,
           browserName: "chrome",
+          // Classic WebDriver, no BiDi socket. Enabling `webSocketUrl` for
+          // viewport emulation (driver.setViewport) crashed headed recording
+          // contexts with a stack overflow and can't be gated off recording
+          // (viewport+recording is a supported combo) — see ADR 01072 (rejected).
           "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
@@ -413,19 +543,28 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
 // the other's connection is REFUSED, surfacing later as a mid-session
 // `ECONNREFUSED 127.0.0.1:9515` when a command proxies to the wrong/dead
 // chromedriver (ADR 01039). Assigning a unique free port per session removes the
-// collision. Gecko/Safari are unaffected — geckodriver auto-selects a free
-// `systemPort` from a range, and Safari has no such port — so this only touches
-// Chromium caps, leaving every other engine's caps byte-identical. An explicit
-// `appium:chromedriverPort` (a caller opting into a fixed port) is preserved.
-function withChromedriverPort(capabilities: any, port: number): any {
-  if (
-    !capabilities ||
-    capabilities["appium:automationName"] !== "Chromium" ||
-    capabilities["appium:chromedriverPort"] !== undefined
-  ) {
-    return capabilities;
-  }
-  return { ...capabilities, "appium:chromedriverPort": port };
+// collision. Gecko races the same way, just less often: appium-geckodriver
+// picks the lowest free port in 5200..5300 for `systemPort` but only reserves
+// it once geckodriver binds, so two concurrent Appium servers can both pick
+// 5200 and one proxies into the other's geckodriver session ("Got unexpected
+// session id"; ADR 01105). Safari has no such port, so its caps (and every
+// other engine's) stay byte-identical. An explicit port capability (a caller
+// opting into a fixed port) is preserved.
+const DRIVER_PORT_CAPABILITY: Record<string, string> = {
+  Chromium: "appium:chromedriverPort",
+  Gecko: "appium:systemPort",
+};
+
+// The port capability these caps still need, or undefined when the engine has
+// none or the caller already pinned one.
+function driverPortCapability(capabilities: any): string | undefined {
+  const key = DRIVER_PORT_CAPABILITY[capabilities?.["appium:automationName"]];
+  return key && capabilities[key] === undefined ? key : undefined;
+}
+
+function withDriverPort(capabilities: any, port: number): any {
+  const key = driverPortCapability(capabilities);
+  return key ? { ...capabilities, [key]: port } : capabilities;
 }
 
 
@@ -595,21 +734,55 @@ function isSupportedContext({ context, apps, platform }: { context: any; apps: a
 }
 
 // Like isDriverRequired, but only counts driver steps that need a BROWSER: a
-// step whose payload targets an app surface (object form) is driven by the
-// app session instead, and the synthetic autoRecord capture is an ffmpeg
-// screen grab — neither may force a default browser into existence (in a
-// browser test the authored steps already require one, so excluding the
-// synthetic step never changes the outcome there).
+// step whose payload targets an app or process surface (object form) is
+// driven by the app session / process registry instead, and the synthetic
+// autoRecord capture is an ffmpeg screen grab — none may force a default
+// browser into existence (in a browser test the authored steps already
+// require one, so excluding the synthetic step never changes the outcome
+// there). Uniform routing (ADR 01081) adds one more exclusion: a
+// surface-less interaction step in a test that opens or targets a
+// non-browser surface routes to the active surface at runtime, so it doesn't
+// force a browser either — a test with no such signal keeps the browser
+// default unchanged.
 function isBrowserRequired({ test }: { test: any }): boolean {
   if (!Array.isArray(test?.steps)) return false;
+  const hasNonBrowserSignal = testHasNonBrowserSurfaceSignal(test.steps);
   return test.steps.some(
     (step: any) =>
       !step?.__autoRecord &&
       ((driverActions.some((action) => typeof step[action] !== "undefined") &&
-        !stepTargetsAppSurface(step)) ||
+        !stepTargetsAppSurface(step) &&
+        !stepTargetsProcessSurface(step) &&
+        !(hasNonBrowserSignal && stepIsSurfacelessInteraction(step))) ||
         // Phase 6: `startSurface: { browser: … }` opens a browser session
         // (the goTo-opener sibling); app/process descriptors don't.
         stepOpensBrowserSurface(step))
+  );
+}
+
+// Whether any context in `specs` could read the available-apps list: it names a
+// browser, targets a mobile platform, or has a step that drives a browser or
+// opens/closes a surface. A deliberate superset of every availableApps reader in
+// this file, so a run where it's false never consults the list and can skip
+// detection (ADR 01133). Falls back to the test's steps only when a context has
+// no steps array; an explicit `steps: []` is a context with nothing to run.
+export function runNeedsAvailableApps(specs: any[]): boolean {
+  const list = (v: any) => (Array.isArray(v) ? v : []);
+  const stepNeedsApps = (step: any) =>
+    Boolean(step) &&
+    typeof step === "object" &&
+    (step.startSurface !== undefined ||
+      step.closeSurface !== undefined ||
+      driverActions.some((key) => step[key] !== undefined));
+  return list(specs).some((spec: any) =>
+    list(spec?.tests).some((test: any) =>
+      list(test?.contexts).some(
+        (context: any) =>
+          Boolean(context?.browser) ||
+          isMobileTargetPlatform(context?.platform) ||
+          list(Array.isArray(context?.steps) ? context.steps : test?.steps).some(stepNeedsApps)
+      )
+    )
   );
 }
 
@@ -624,6 +797,13 @@ export function browserJobCount(jobs: any[]): number {
   if (!Array.isArray(jobs)) return 0;
   return jobs.filter((job: any) => isBrowserRequired({ test: job?.context }))
     .length;
+}
+
+// Whether a job's context has a screenshot step: gates the sharp prefetch
+// during Appium's boot (ADR 01135).
+export function jobTakesScreenshot(job: any): boolean {
+  const steps = job?.context?.steps;
+  return Array.isArray(steps) && steps.some((s: any) => s?.screenshot !== undefined);
 }
 
 // Evaluate a context's `requires` capability gate. Returns null when the gate
@@ -838,8 +1018,11 @@ async function androidContextPreflight({
     }
   }
 
-  const deviceDeps = buildAcquireDeviceDeps(sdk!, abi, (m: string) =>
-    clog("debug", m)
+  const deviceDeps = buildAcquireDeviceDeps(
+    sdk!,
+    abi,
+    (m: string) => clog("debug", m),
+    uia2HelpersResolver(config)
   );
 
   // Device plan: every device the test needs must resolve (reuse an existing
@@ -1053,6 +1236,21 @@ function resolveBrowserFallbackPolicy({
   return context?.browserFallback || config?.browserFallback || "auto";
 }
 
+// Resolve the mid-run session-death context-retry budget (the `retries` policy):
+// how many times to re-run a whole context on a fresh session when its session
+// dies mid-run. Context overrides config; default 1. Uses `??` (NOT `||`) so an
+// explicit `retries: 0` (disable) is preserved instead of falling through to the
+// default the way a falsy `||` would. Pure and exported for unit testing.
+function resolveRetryPolicy({
+  context,
+  config,
+}: {
+  context: any;
+  config: any;
+}): number {
+  return context?.retries ?? config?.retries ?? 1;
+}
+
 /**
  * Whether to attempt a driver repair before falling back away from a browser
  * whose session just failed to start. We only repair the *requested* engine
@@ -1120,32 +1318,6 @@ function driverSkipDiagnostic({
   return msg;
 }
 
-// Set window size to match target viewport size
-async function setViewportSize(context: any, driver: any) {
-  if (context.browser?.viewport?.width || context.browser?.viewport?.height) {
-    // Get viewport size, not window size
-    const viewportSize = await driver.execute(
-      "return { width: window.innerWidth, height: window.innerHeight }",
-      []
-    );
-    // Get window size
-    const windowSize = await driver.getWindowSize();
-    // Get viewport size delta
-    const deltaWidth =
-      (context.browser?.viewport?.width || viewportSize.width) -
-      viewportSize.width;
-    const deltaHeight =
-      (context.browser?.viewport?.height || viewportSize.height) -
-      viewportSize.height;
-    // Resize window if necessary
-    await driver.setWindowSize(
-      windowSize.width + deltaWidth,
-      windowSize.height + deltaHeight
-    );
-    // Confirm viewport size
-  }
-}
-
 async function allowUnsafeSteps({ config }: { config: any }) {
   // If allowUnsafeSteps is set to true, return true
   if (config.allowUnsafeSteps === true) return true;
@@ -1165,6 +1337,7 @@ async function allowUnsafeSteps({ config }: { config: any }) {
 
 // Run specifications via API.
 async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests: any; apiKey: any; config?: any }): Promise<any> {
+  const axios = await loadAxios();
   // Apply specFilter / testFilter before sending. Without this the API run
   // path silently ignores --test / --spec, since the orchestration server
   // sees the full unfiltered payload.
@@ -1187,6 +1360,10 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
           contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
           steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         },
+        // Nothing ran, but the shape stays parity with runSpecs' short-circuit.
+        startedAt: new Date().toISOString(),
+        environment: getEnvironment(),
+        durationMs: 0,
         specs: [],
       };
     }
@@ -1322,6 +1499,14 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
  */
 async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const config: any = resolvedTests.config;
+  // Run-level wall clock, scoped to the EXECUTION phase — detection,
+  // resolution, and JIT dependency installs happen in runTests before this
+  // point and are deliberately excluded (see ADR 01083). Started before the
+  // filter short-circuit so a zero-spec run reports a real (tiny) duration
+  // rather than omitting the field. Unlike the spec/test sums, this IS elapsed
+  // time — so under concurrency it can be LESS than the sum of the per-spec
+  // durations.
+  const runStart = Date.now();
   // Narrow the spec set to what specFilter / testFilter allow before running.
   // Filtered-out specs / tests do not appear in the report (true filter, not
   // skip). Pass-through when neither filter is set.
@@ -1347,14 +1532,23 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
       },
+      startedAt: new Date(runStart).toISOString(),
+      environment: getEnvironment(),
+      durationMs: Date.now() - runStart,
       specs: [],
     };
   }
 
-  // Get runner details
+  // Get runner details. Browser detection is skipped when no context can use
+  // its result (ADR 01133); APPIUM_HOME is still set, as detection would have.
+  const needsApps = runNeedsAvailableApps(specs);
+  if (!needsApps) {
+    log(config, "debug", "No context in this run uses a browser; skipping browser detection.");
+    setAppiumHome({ cacheDir: config?.cacheDir });
+  }
   const runnerDetails = {
     environment: getEnvironment(),
-    availableApps: await getAvailableApps({ config }),
+    availableApps: needsApps ? await getAvailableApps({ config }) : [],
     allowUnsafeSteps: await allowUnsafeSteps({ config }),
   };
 
@@ -1394,6 +1588,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const report: any = {
     runId,
     runDir,
+    // Run metadata (ADR 01163): when execution started and the host that ran
+    // it, so a consumer can tell product drift from environment drift.
+    startedAt: new Date(runStart).toISOString(),
+    environment: runnerDetails.environment,
     summary: {
       specs: {
         pass: 0,
@@ -1421,6 +1619,11 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       },
     },
     specs: [],
+    // Inline warm phase results (docs/design/warm-phase.md). Present on the
+    // skeleton so a run that plans nothing (or whose planning fails —
+    // best-effort) still reports the structural empty block; the phase
+    // overwrites it with real task results below.
+    warm: { durationMs: 0, tasks: [] },
   };
 
   // Resolve concurrency up front (defensive re-resolve: API callers can hand
@@ -1546,6 +1749,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         description: test.description,
         contentPath: test.contentPath,
         detectSteps: test.detectSteps,
+        // Resolved by position via applyBadgeAnchoredTests (ADR 01141), not by name.
+        badge: test.badge,
+        location: test.location,
         contexts: new Array(test.contexts.length),
       };
       specReport.tests.push(testReport);
@@ -1680,8 +1886,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // (see startAppSurface) and are excluded here, so an app-only run starts no
   // browser server. Non-driver runs start none.
   const browserPoolJobCount = browserJobCount(sizingJobs);
-  let appiumServers: Array<{ port: number; process: any; display?: string }> =
-    [];
+  let appiumServers: AppiumServer[] = [];
   let appiumPool:
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
@@ -1691,16 +1896,17 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const xvfbProcesses: any[] = [];
   const useXvfbDisplays = concurrency.xvfbContexts.length > 0;
   let portToDisplay: Map<number, string> | undefined;
+  // Set only when this run takes and hands back idle servers (ADR 01125).
+  // Xvfb runs never reuse: their displays die with the run.
+  let reuseKey: string | undefined;
 
   if (browserPoolJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
-    // Resolve appium's actual JS entrypoint via `require.resolve` (shim
-    // node_modules first, runtime cache second) and invoke it with
-    // `node <entry>`. This sidesteps every shell-injection trap at once: no
-    // `.cmd` shim, so no Windows-requires-shell:true; no `npx`, so no PATH
-    // lookup; no user-controlled paths in a shell-interpreted string. Works
-    // for both `--omit=optional` users (appium in cache only) and default
-    // installs (appium in shim).
+    // Resolve appium's actual JS entrypoint via `require.resolve` (always
+    // from the runtime cache, the shared APPIUM_HOME — ADR 01111) and invoke
+    // it with `node <entry>`. This sidesteps every shell-injection trap at
+    // once: no `.cmd` shim, so no Windows-requires-shell:true; no `npx`, so no
+    // PATH lookup; no user-controlled paths in a shell-interpreted string.
     const appiumEntry = resolveHeavyDepPath("appium", {
       cacheDir: config?.cacheDir,
     });
@@ -1718,16 +1924,79 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // that removes the port race and fails fast on the first server that can't
     // come up, tearing down any already started so they don't leak.
     try {
+      // Spawn servers one at a time (serial spawn keeps the findFreePort race
+      // protection + avoids a CPU spike), but collect their readiness polls and
+      // await them together so the waits OVERLAP — total ≈ max(readiness)
+      // instead of the sum of serial waits.
+      const readinessWaits: Promise<boolean>[] = [];
+      // Load only the desktop browser drivers (ADR 01117): the shared home
+      // also holds the mobile drivers, which roughly doubled startup.
+      const poolDriverPackages = browserPoolDriverPackages(process.platform);
+      const useDrivers = useDriversArgs(process.env.APPIUM_HOME!, poolDriverPackages);
+      // Every desktop pool server allows the geckodriver-path insecure
+      // feature, not just the ones a Firefox context lands on: these servers
+      // are shared across contexts and cross-browser fallback can route a
+      // chrome-authored context to Firefox mid-run, so gating the flag on the
+      // run's authored browsers would leave the capability illegal exactly
+      // when the fallback needs it. See GECKODRIVER_EXECUTABLE_ARGS.
+      let serverArgs = [...GECKODRIVER_EXECUTABLE_ARGS, ...useDrivers];
+      if (reuseAppiumEnabled() && !useXvfbDisplays) {
+        // Hand-back must be able to list leftover sessions.
+        serverArgs = allowSessionDiscovery(serverArgs);
+        lastReuseConfig = config;
+        reuseKey = appiumServerKey({
+          entry: appiumEntry,
+          args: serverArgs,
+          env: process.env,
+          appiumHome: process.env.APPIUM_HOME!,
+          packages: ["appium", ...poolDriverPackages],
+        });
+      }
       for (let i = 0; i < serverCount; i++) {
+        const reused = reuseKey
+          ? await takeServer(appiumServerCache, reuseKey, { isReady: probeStatus })
+          : undefined;
+        if (reused) {
+          log(config, "debug", `Reusing idle Appium server on port ${reused.port}.`);
+          // A spawn would prefetch webdriverio (ADR 01135); a reused server
+          // skips the spawn, so start the import here instead.
+          prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir });
+          appiumServers.push(reused);
+          continue;
+        }
         let display: string | undefined;
         if (useXvfbDisplays) {
           display = xvfbDisplay(i);
           xvfbProcesses.push(await startXvfb(display));
           log(config, "debug", `Started Xvfb on ${display} for recording.`);
         }
-        appiumServers.push(
-          await startAppiumServer(appiumEntry, config, display)
+        // A reusable server exits once this process dies (ADR 01125).
+        const server = await spawnAppiumServer(
+          appiumEntry,
+          config,
+          display,
+          undefined,
+          serverArgs,
+          reuseKey ? ["--import", APPIUM_WATCHDOG_IMPORT] : undefined
         );
+        appiumServerCache.resetPort(server.port);
+        appiumServers.push(server);
+        const wait = appiumIsReady(server.port, undefined, {
+          pollMs: APPIUM_READY_POLL_MS,
+        });
+        // Attach a no-op catch so that once Promise.all rejects on the FIRST
+        // failing server, the other still-pending readiness rejections don't
+        // surface as unhandled promise rejections. Promise.all still sees the
+        // original `wait`, so it fails fast on the first error; the catch
+        // block below tears down every spawned server (ready or not).
+        wait.catch(() => {});
+        readinessWaits.push(wait);
+      }
+      if (sizingJobs.some(jobTakesScreenshot))
+        prefetchHeavyDep("sharp", { cacheDir: config?.cacheDir });
+      await Promise.all(readinessWaits);
+      for (const server of appiumServers) {
+        log(config, "debug", `Appium is ready on port ${server.port}.`);
       }
     } catch (error) {
       await Promise.all(
@@ -1777,6 +2046,21 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // shut down (launch-ownership).
   const simulatorRegistry: SimulatorRegistry = createSimulatorRegistry();
 
+  // Run-level pool of iOS app Appium servers (ADR 01115): sequential iOS
+  // contexts reuse one server instead of starting and killing their own.
+  // Drained in the `finally` below.
+  const appServerPool: AppServerPool = createAppServerPool();
+
+  // One resource registry per run, shared by the warm phase, every phase's
+  // flat pool, AND the routed sequencer — so warm's cache-mutating tasks,
+  // flat-pool recordings, and routed-spec recordings all contend on the same
+  // named mutexes. Warm is awaited before Phase 2 dispatch and
+  // runResourceAware releases every tag in a `finally`, so the pools always
+  // start with an empty registry. Only consulted where items carry tags
+  // (warm tasks always do; jobs only at limit>1 — at limit===1 the pools
+  // stay on the byte-identical runConcurrent path).
+  const resourceRegistry = createResourceRegistry();
+
   // Kill every still-registered background process (and its child tree) and
   // remove any deferred temp scripts. Awaits the kills so the process tree is
   // actually gone before the run returns. Idempotent: closeSurface already
@@ -1816,7 +2100,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     (async () => {
       await killAllRegistered();
       await Promise.all(
-        appiumServers.map((server) => killTree(server.process?.pid))
+        [...appiumServers, ...appServerPool.drain()].map((server) =>
+          killTree(server.process?.pid)
+        )
       );
       for (const xvfb of xvfbProcesses) {
         try {
@@ -1835,25 +2121,59 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // warmUpContexts (e.g. getAvailableApps failing during the re-detect) would
   // leak the started servers, leaving orphaned processes bound to their ports.
   try {
-    // For concurrent runs, resolve missing browser dependencies and warm up
-    // each unique driver combination serially *before* the pool. Two contexts
-    // can't then race on an on-demand install (which mutates the shared app
-    // cache), and a combination that can't start a driver is recorded once here
-    // so every parallel context sharing it skips instantly instead of re-paying
-    // driverStart's backoff. This pre-populates installAttempts /
-    // warmUpResults / runnerDetails.availableApps, so runContext's own gates
-    // below collapse to fast cache hits. Sequential runs (limit 1) keep #338's
-    // natural first-context-warms-up behavior in runContext — no pre-pass, no
-    // extra driver start, byte-identical to before.
-    if (limit > 1 && appiumPool) {
-      await warmUpContexts({
-        jobs: sizingJobs,
-        config,
+    // Inline warm phase (docs/design/warm-phase.md): always-on, best-effort
+    // provisioning between resolution and execution. The planner derives
+    // every task the run's contexts would JIT-provision anyway (browser and
+    // app-driver installs, device boots, the WDA availability check, the
+    // mobile chromedriver prefetch, the folded-in session probe) and the
+    // executor overlaps them under the run's resource registry — so boot ∥
+    // npm install ∥ browser download overlap each other even for a serial
+    // test run. A failed task is a warning; the per-context paths retry or
+    // skip with exactly the semantics they have today. The historical
+    // `limit > 1 && appiumPool` gate now guards only the session-probe TASK
+    // (inside planWarmTasks), preserving #338's natural
+    // first-context-warms-up behavior for serial runs, whose memo state is
+    // byte-identical by the warmBrowserInstall mirror contract. Device
+    // boots resolve at initiation; only the chromedriver prefetch awaits
+    // readiness (and only runs with android mobile-web contexts pay it —
+    // they'd pay the same boot + session at their first mobile context).
+    // The never-gates contract covers the whole phase, planning included: a
+    // throw from the planner or its bound predicates must degrade to a
+    // warning + the skeleton's empty warm block, never abort the run
+    // (executeWarmTasks already isolates per-task failures internally).
+    try {
+      const warmTasks = planWarmTasks({
+        sizingJobs,
         runnerDetails,
-        appiumPool,
-        installAttempts,
-        warmUpResults,
+        limit,
+        hasAppiumPool: !!appiumPool,
+        deps: buildWarmPlanDeps(),
       });
+      if (warmTasks.length > 0) {
+        log(config, "debug", `Warm phase: ${warmTasks.length} task(s).`);
+        report.warm = await executeWarmTasks({
+          tasks: warmTasks,
+          registry: resourceRegistry,
+          runTask: buildWarmTaskRunner({
+            config,
+            runnerDetails,
+            sizingJobs,
+            appiumPool,
+            installAttempts,
+            warmUpResults,
+            deviceRegistry,
+            simulatorRegistry,
+            resourceRegistry,
+          }),
+          log: (level, message) => log(config, level, message),
+        });
+      }
+    } catch (error: any) {
+      log(
+        config,
+        "warning",
+        `Warm phase skipped (planning failed; the run proceeds with on-demand provisioning): ${error?.message ?? error}`
+      );
     }
 
     // Phase 2: run context jobs through the worker pool, gated into three
@@ -1866,7 +2186,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // ordering to a single pool over input-ordered jobs.
     const runJob = async (job: any) => {
       try {
-        job.contexts[job.slot] = await runContext({
+        job.contexts[job.slot] = await runContextWithRetries({
           config,
           spec: job.spec,
           test: job.test,
@@ -1880,6 +2200,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           processRegistry,
           deviceRegistry,
           simulatorRegistry,
+          appServerPool,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -1944,12 +2265,6 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         : "main";
       routedByPhase[phase].push(entry);
     }
-    // One resource registry per run, shared by every phase's flat pool AND the
-    // routed sequencer, so a flat-pool recording and a routed-spec recording
-    // never hold the shared "display" at the same time. Only consulted at
-    // limit>1 (where jobs were tagged); at limit===1 the pools stay on the
-    // byte-identical runConcurrent path.
-    const resourceRegistry = createResourceRegistry();
     for (const phase of PHASES) {
       if (limit > 1) {
         await runResourceAware(
@@ -1976,6 +2291,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           processRegistry,
           deviceRegistry,
           simulatorRegistry,
+          appServerPool,
           platform,
           markAutoRecord,
           limit,
@@ -1988,7 +2304,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // Phase 3: roll results up the tree and count the summary in one
     // deterministic pass after all contexts have finished.
     for (const specReport of report.specs) {
+      let specDurationMs = 0;
       for (const testReport of specReport.tests) {
+        let testDurationMs = 0;
         for (const contextReport of testReport.contexts) {
           // Every slot is assigned by the pool callback (even on crash), so
           // this guard should never fire — it documents the invariant and
@@ -1996,13 +2314,30 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           if (!contextReport) continue;
           for (const stepReport of contextReport.steps) {
             report.summary.steps[stepReport.result.toLowerCase()]++;
+            // Default here rather than at each construction site: this pass is
+            // the only place that sees EVERY node from both execution paths
+            // (flat pool and routed sequencer), real and synthetic alike. A
+            // node that never ran — a guard-skipped context, a routing marker
+            // — has no clock, and a future synthetic site can't forget the
+            // field. Nodes that ran keep their measured value (ADR 01083).
+            stepReport.durationMs ??= 0;
           }
           report.summary.contexts[contextReport.result.toLowerCase()]++;
+          contextReport.durationMs ??= 0;
+          testDurationMs += contextReport.durationMs;
         }
         testReport.result = rollUpResults(testReport.contexts.filter(Boolean));
+        // Test and spec durations are SUMS of their children, not wall-clock
+        // spans: contexts from every test and spec share one concurrent pool,
+        // so a span would count idle time while unrelated specs ran. The sum
+        // is total work — what slow-test triage and JUnit's `<testsuite time>`
+        // both want. See ADR 01083.
+        testReport.durationMs = testDurationMs;
+        specDurationMs += testDurationMs;
         report.summary.tests[testReport.result.toLowerCase()]++;
       }
       specReport.result = rollUpResults(specReport.tests);
+      specReport.durationMs = specDurationMs;
       report.summary.specs[specReport.result.toLowerCase()]++;
     }
   } finally {
@@ -2016,12 +2351,40 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // (shells out to `taskkill /T /F` on Windows); firing it without
     // awaiting let the run finish before the browser was really dead,
     // orphaning it.
+    // With reuse on (ADR 01125), a server with no sessions left goes back to
+    // the cache instead; one that still has a session is killed the same way.
     await Promise.all(
-      appiumServers.map((server) => {
+      appiumServers.map(async (server) => {
+        if (reuseKey) {
+          const outcome = await handBackServer(appiumServerCache, reuseKey, server, {
+            listSessions,
+          });
+          log(
+            config,
+            "debug",
+            outcome === "parked"
+              ? `Keeping idle Appium server on port ${server.port} for reuse.`
+              : `Closed Appium server on port ${server.port}`
+          );
+          return;
+        }
         log(config, "debug", `Closing Appium server on port ${server.port}`);
         return killTree(server.process?.pid);
       })
     );
+    // Close the pooled iOS app servers (ADR 01115) through the same teardown a
+    // per-context server gets, so the Windows orphan sweep still applies.
+    for (const server of appServerPool.drain()) {
+      log(config, "debug", `Closing app Appium server on port ${server.port}`);
+      // A fresh state with no `release` sends teardown down the kill path.
+      const owner = createAppSessionState();
+      owner.server = { port: server.port, process: server.process };
+      try {
+        await teardownAppSession(owner, (pid) => killTree(pid));
+      } catch (error: any) {
+        log(config, "debug", `Couldn't close app Appium server: ${error?.message ?? error}`);
+      }
+    }
     // Tear down any Xvfb virtual displays started for recording.
     for (const xvfb of xvfbProcesses) {
       try {
@@ -2038,7 +2401,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     if (deviceRegistry.size > 0) {
       await teardownDeviceRegistry(deviceRegistry, async (entry) => {
         log(config, "debug", `Shutting down emulator "${entry.name}" (${entry.udid}).`);
-        await killTree(entry.process?.pid);
+        // Graceful, not a tree-kill: a hard kill can leave the AVD's disk
+        // images (and the clean boot snapshot inside them) inconsistent.
+        await shutdownEmulator(entry);
       });
     }
     // Sweep the iOS simulator registry (native app phase A4): shut down only the
@@ -2056,32 +2421,55 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     process.off("SIGTERM", onSignal);
   }
 
-  // Upload changed files back to source integrations (best-effort)
-  // This automatically syncs any changed screenshots back to their source CMS
-  // Only upload if uploadOnChange is enabled (defaults to true for backward compatibility)
-  // Check both global config.uploadOnChange and per-integration uploadOnChange settings
-  const herettoConfigs = config?.integrations?.heretto || [];
-  const hasUploadEnabledIntegration = herettoConfigs.some(
-    (h: any) => h.uploadOnChange !== false // Default to true if not explicitly set to false
-  );
-  const globalUploadOnChange = config?.uploadOnChange ?? true;
-  if (globalUploadOnChange && hasUploadEnabledIntegration && herettoConfigs.length > 0) {
-    try {
-      const uploadResults = await uploadChangedFiles({ config, report, log });
-      report.uploadResults = uploadResults;
-    } catch (error: any) {
-      log(config, "warning", `Failed to upload changed files: ${error.message}`);
-      report.uploadResults = {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        skipped: 0,
-        error: error.message,
-      };
-    }
-  }
+  // An absent `report.uploadResults` means no integration opted in, so no
+  // upload was attempted.
+  const uploadResults = await uploadChangedFilesIfEnabled({ config, report, log });
+  if (uploadResults) report.uploadResults = uploadResults;
 
+  // Stamped last, after teardown and any Heretto upload, so the number matches
+  // the elapsed time a user actually observes.
+  report.durationMs = Date.now() - runStart;
   return report;
+}
+
+/**
+ * Upload changed files back to their source integrations (best-effort). Opt-in:
+ * runs only when some integration, of any type, sets `uploadOnChange: true`
+ * (schema default false); uploadChangedFiles then skips files from
+ * integrations that didn't. Returns undefined when nothing opted in. A thrown
+ * upload still returns the success shape, with empty `details` and `error`.
+ * `upload` is injectable for tests.
+ */
+export async function uploadChangedFilesIfEnabled({
+  config,
+  report,
+  log: logFn,
+  upload = uploadChangedFiles,
+}: {
+  config: any;
+  report: any;
+  log: any;
+  upload?: typeof uploadChangedFiles;
+}): Promise<any> {
+  const integrationEntries = Object.values(config?.integrations ?? {}).flatMap(
+    (entries: any) => (Array.isArray(entries) ? entries : [])
+  );
+  if (!integrationEntries.some((entry: any) => entry?.uploadOnChange === true)) {
+    return undefined;
+  }
+  try {
+    return await upload({ config, report, log: logFn });
+  } catch (error: any) {
+    logFn(config, "warning", `Failed to upload changed files: ${error.message}`);
+    return {
+      total: 0,
+      successful: 0,
+      failed: 0,
+      skipped: 0,
+      details: [],
+      error: error.message,
+    };
+  }
 }
 
 /**
@@ -2133,6 +2521,7 @@ async function runRoutedSpec({
   processRegistry,
   deviceRegistry,
   simulatorRegistry,
+  appServerPool,
   platform,
   markAutoRecord,
   limit,
@@ -2154,6 +2543,7 @@ async function runRoutedSpec({
   processRegistry?: Map<string, any>;
   deviceRegistry?: DeviceRegistry;
   simulatorRegistry?: SimulatorRegistry;
+  appServerPool?: AppServerPool;
   platform: string | undefined;
   markAutoRecord: () => void;
   limit: number;
@@ -2230,6 +2620,8 @@ async function runRoutedSpec({
       description: test.description,
       contentPath: test.contentPath,
       detectSteps: test.detectSteps,
+      badge: test.badge,
+      location: test.location,
       contexts: new Array(test.contexts.length),
     };
     // Stamp the visit number when a backward goToTest re-ran this test (additive
@@ -2327,7 +2719,7 @@ async function runRoutedSpec({
     // limit===1 keep the byte-identical runConcurrent path.
     const runRoutedJob = async (job: any) => {
       try {
-        job.contexts[job.slot] = await runContext({
+        job.contexts[job.slot] = await runContextWithRetries({
           config,
           spec: job.spec,
           test: job.test,
@@ -2341,6 +2733,7 @@ async function runRoutedSpec({
           processRegistry,
           deviceRegistry,
           simulatorRegistry,
+          appServerPool,
           logPrefix:
             limit > 1 ? `[${job.test.testId}/${job.context.contextId}]` : "",
         });
@@ -2545,30 +2938,20 @@ async function warmUpContexts({
       Array.isArray(context?.steps) &&
       requiredBrowserAssets(context.browser?.name).length > 0
     ) {
-      const firstAttempt = !installAttempts.has(
-        (context.browser?.name ?? "<none>").toLowerCase()
-      );
-      const outcome = await ensureContextBrowserInstalled({
+      // Extracted install + first-attempt re-detect (shared with the warm
+      // phase's browser-install task) — the memo state it leaves is exactly
+      // what this loop produced inline before.
+      await warmBrowserInstall({
         browserName: context.browser?.name,
         config,
+        runnerDetails,
         installAttempts,
-        deps: {
-          ensureBrowser: (asset, options) =>
-            ensureBrowserInstalled(asset, options),
-          log,
-        },
-        // Repair a present-but-broken driver, not just install-if-missing.
-        repair: true,
       });
-      if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
-        clearAppCache(config);
-        runnerDetails.availableApps = await getAvailableApps({ config });
-        supported = isSupportedContext({
-          context,
-          apps: runnerDetails.availableApps,
-          platform,
-        });
-      }
+      supported = isSupportedContext({
+        context,
+        apps: runnerDetails.availableApps,
+        platform,
+      });
     }
     // Unsupported combinations are left unmarked; runContext skips each with the
     // appropriate per-context reason (install-but-undetected vs unsupported).
@@ -2633,6 +3016,549 @@ async function warmUpContexts({
         }
       }
       appiumPool.release(port);
+    }
+  }
+}
+
+/**
+ * On-demand browser install + first-attempt re-detect — the install half of
+ * warmUpContexts, extracted so the warm phase's browser-install task and the
+ * session-probe loop share ONE implementation of the mirror contract: the
+ * `installAttempts` / `runnerDetails.availableApps` state left behind is
+ * exactly what the first same-browser consuming context would have produced
+ * serially (no more, no less), so every later gate collapses to a cache hit.
+ * Deps are injected for hermetic tests; production callers use the defaults.
+ */
+async function warmBrowserInstall({
+  browserName,
+  config,
+  runnerDetails,
+  installAttempts,
+  deps = {},
+}: {
+  browserName: string | undefined;
+  config: any;
+  runnerDetails: any;
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  deps?: {
+    ensureBrowser?: (asset: any, options: any) => Promise<any>;
+    clearAppCache?: (config: any) => void;
+    getAvailableApps?: (args: { config: any }) => Promise<any[]>;
+  };
+}): Promise<{ outcome: WarmOutcome; note?: string }> {
+  // Already-detected engines need no install — and, mirroring the serial
+  // path (which only reaches the install when the support gate failed),
+  // no memo entry either.
+  const appName = normalizeBrowserName(browserName);
+  if (
+    runnerDetails.availableApps?.find((app: any) => app.name === appName)
+  ) {
+    return {
+      outcome: "skipped",
+      note: `'${browserName}' is already available`,
+    };
+  }
+  const firstAttempt = !installAttempts.has(
+    (browserName ?? "<none>").toLowerCase()
+  );
+  const outcome = await ensureContextBrowserInstalled({
+    browserName,
+    config,
+    installAttempts,
+    deps: {
+      ensureBrowser:
+        deps.ensureBrowser ??
+        ((asset, options) => ensureBrowserInstalled(asset, options)),
+      log,
+    },
+    // Repair a present-but-broken driver, not just install-if-missing.
+    repair: true,
+  });
+  // Re-detect only after a FIRST install attempt (installed or failed):
+  // the app cache is stale either way, and later gates must read the
+  // refreshed list or they'd misread the memo as installed-but-undetected.
+  if (firstAttempt && (outcome === "installed" || outcome === "failed")) {
+    (deps.clearAppCache ?? clearAppCache)(config);
+    runnerDetails.availableApps = await (deps.getAvailableApps ??
+      getAvailableApps)({ config });
+  }
+  if (outcome === "installed") return { outcome: "warmed" };
+  if (outcome === "failed") {
+    return { outcome: "failed", note: `couldn't install '${browserName}'` };
+  }
+  return {
+    outcome: "skipped",
+    note: `'${browserName}' has no installable assets`,
+  };
+}
+
+// Resolves the UiAutomator2 driver's helper APKs (and its version) from
+// wherever the driver is installed, for baking into clean snapshots (ADR
+// 01108). Lazy: the warm-phase boot can start before the driver install ends.
+function uia2HelpersResolver(config: any) {
+  return () => {
+    const entry = resolveHeavyDepPath("appium-uiautomator2-driver", {
+      cacheDir: config?.cacheDir,
+    });
+    const home = entry ? appiumHomeForDriverPath(entry) : null;
+    return home
+      ? findUia2Helpers(path.join(home, "node_modules", "appium-uiautomator2-driver"))
+      : null;
+  };
+}
+
+/**
+ * Light per-run Android environment probe for warm tasks: SDK + emulator
+ * binary + acceleration (or a running emulator). Null means "not ready" —
+ * the warm task reports skipped and the consuming context performs the full
+ * androidContextPreflight (including the loud lazy toolchain install, which
+ * warm deliberately never triggers — that decision and its warning belong on
+ * the context report).
+ */
+/* c8 ignore start — real SDK/emulator probes; exercised on the CI emulator
+   legs and dev boxes. Unit coverage targets the pure planner/executor. */
+async function resolveAndroidWarmEnv(
+  config: any
+): Promise<{ sdkRoot: string; deviceDeps: any } | null> {
+  try {
+    const abi = hostAbi();
+    const sdk = detectAndroidSdk({ cacheDir: config?.cacheDir });
+    if (!sdk?.emulator) return null;
+    const deviceDeps = buildAcquireDeviceDeps(
+      sdk,
+      abi,
+      (m: string) => log(config, "debug", m),
+      uia2HelpersResolver(config)
+    );
+    const running = await deviceDeps.listRunning();
+    const capable =
+      running.length > 0 || (await checkEmulatorAcceleration(sdk.emulator));
+    if (!capable) return null;
+    return { sdkRoot: sdk.sdkRoot, deviceDeps };
+  } catch {
+    return null;
+  }
+}
+/* c8 ignore stop */
+
+/**
+ * Async twin of probeIosToolchain for the warm executor: the sync probe's
+ * spawnSync (up to 120s on a cold CoreSimulator service) would block the
+ * event loop and stall every "concurrent" warm task. Pre-run both probe
+ * commands with async spawns (in parallel), then hand the collected results
+ * to the real probe via its injected runner — the decision logic and every
+ * skip message stay in ONE place.
+ */
+/* c8 ignore start — real xcode-select/xcrun spawns; the decision logic is
+   probeIosToolchain's and is unit-tested there. */
+async function probeIosToolchainWarm(): Promise<
+  ReturnType<typeof probeIosToolchain>
+> {
+  if (process.platform !== "darwin") return probeIosToolchain();
+  const runAsync = (
+    command: string,
+    args: string[],
+    timeout: number
+  ): Promise<{ status: number | null; stdout: string; stderr: string }> =>
+    new Promise((resolve) => {
+      let stdout = "";
+      let stderr = "";
+      try {
+        const child = spawn(command, args, { windowsHide: true, timeout });
+        child.stdout?.on("data", (d: any) => (stdout += String(d)));
+        child.stderr?.on("data", (d: any) => (stderr += String(d)));
+        child.on("error", () => resolve({ status: null, stdout, stderr }));
+        child.on("close", (status: number | null) =>
+          resolve({ status, stdout, stderr })
+        );
+      } catch {
+        resolve({ status: null, stdout, stderr });
+      }
+    });
+  const [xcodeSelect, simctl] = await Promise.all([
+    runAsync("xcode-select", ["-p"], 15000),
+    // Same generous ceiling as the sync probe's xcrun spawn: the first cold
+    // simctl call launches CoreSimulatorService.
+    runAsync("xcrun", ["simctl", "list", "devices", "available"], 120000),
+  ]);
+  return probeIosToolchain({
+    run: (command: string) => (command === "xcrun" ? simctl : xcodeSelect),
+  });
+}
+/* c8 ignore stop */
+
+/**
+ * Bind the effectful per-kind warm task bodies to the run's state. Every
+ * body upholds the warm contract: best-effort (a throw is caught by the
+ * executor and recorded as failed), and memo effects identical to what the
+ * first consuming context would have produced serially. Device boots resolve
+ * at boot initiation (raceBootInitiation); the chromedriver prefetch is the
+ * one task that awaits device readiness (it needs a live session).
+ */
+/* c8 ignore start — thin dispatch over injected/imported effects; the pure
+   pieces (planner, executor, raceBootInitiation, warmBrowserInstall) carry
+   the unit coverage, and the wiring is exercised end-to-end by the fixture
+   matrix + core-core.test.js. */
+function buildWarmTaskRunner({
+  config,
+  runnerDetails,
+  sizingJobs,
+  appiumPool,
+  installAttempts,
+  warmUpResults,
+  deviceRegistry,
+  simulatorRegistry,
+  resourceRegistry,
+}: {
+  config: any;
+  runnerDetails: any;
+  sizingJobs: any[];
+  appiumPool?: { acquire(): Promise<number>; release(port: number): void };
+  installAttempts: Map<string, "installed" | "failed" | "notInstallable">;
+  warmUpResults: Map<string, "ok" | "failed">;
+  deviceRegistry: DeviceRegistry;
+  simulatorRegistry: SimulatorRegistry;
+  resourceRegistry: ReturnType<typeof createResourceRegistry>;
+}): (task: WarmTask) => Promise<{ outcome: WarmOutcome; note?: string }> {
+  // One Android env probe per run, shared by device boots and the
+  // chromedriver prefetch.
+  let androidEnv:
+    | Promise<{ sdkRoot: string; deviceDeps: any } | null>
+    | undefined;
+  const getAndroidEnv = () => (androidEnv ??= resolveAndroidWarmEnv(config));
+  // One iOS toolchain probe per run, async so the (potentially slow) xcrun
+  // spawn never blocks the executor's event loop; device boots and the
+  // driver install share the single result.
+  let iosToolchain: Promise<ReturnType<typeof probeIosToolchain>> | undefined;
+  const getIosToolchain = () => (iosToolchain ??= probeIosToolchainWarm());
+  // Manual leases on the run's resource registry, for work that must
+  // serialize on a named mutex but can't express its hold window as a task
+  // tag (runResourceAware releases tags at task RESOLUTION, and warm tasks
+  // deliberately resolve before their background work finishes). The
+  // returned release is idempotent.
+  const acquireLease = async (names: string[]): Promise<() => void> => {
+    while (!resourceRegistry.tryAcquire(names)) {
+      await resourceRegistry.waitForFree();
+    }
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      resourceRegistry.release(names);
+    };
+  };
+  const withRuntimeInstallLock = async <T>(fn: () => Promise<T>): Promise<T> => {
+    const release = await acquireLease([RUNTIME_INSTALL_RESOURCE]);
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
+  };
+  // One android app preflight (driver install + Appium co-homing) per run,
+  // always performed under the install lease.
+  let androidPreflight:
+    | ReturnType<typeof appSurfacePreflight>
+    | undefined;
+  const getAndroidPreflight = () =>
+    (androidPreflight ??= withRuntimeInstallLock(() =>
+      appSurfacePreflight({ config, platform: "android" })
+    ));
+
+  return async (task: WarmTask) => {
+    switch (task.kind) {
+      case "browser-install":
+        return warmBrowserInstall({
+          browserName: task.payload.browserName,
+          config,
+          runnerDetails,
+          installAttempts,
+        });
+
+      case "driver-install": {
+        // Mirror the per-context preflights' host-capability gates BEFORE
+        // installing: they probe the environment first and skip without
+        // installing on hosts that can never run the platform, and warm
+        // must not install what those gates would refuse.
+        if (task.payload.platform === "android") {
+          const env = await getAndroidEnv();
+          if (!env) {
+            return {
+              outcome: "skipped",
+              note: "Android toolchain not ready; the driver install stays with the consuming context",
+            };
+          }
+        }
+        if (task.payload.platform === "ios") {
+          const toolchain = await getIosToolchain();
+          if (!toolchain.ok) {
+            return { outcome: "skipped", note: toolchain.reason };
+          }
+        }
+        // Same lazy-loaded install path appSurfacePreflight uses; it skips
+        // packages already resolvable, so the later per-context preflight
+        // finds the driver present and pays only Appium co-homing.
+        const { ensureRuntimeInstalled } = await import(
+          "../runtime/loader.js"
+        );
+        await ensureRuntimeInstalled([task.payload.driverPackage], {
+          ctx: { cacheDir: config?.cacheDir },
+          deps: { logger: (m: string) => log(config, "debug", m) },
+        });
+        return { outcome: "warmed" };
+      }
+
+      case "device-boot": {
+        const desc = task.payload.desc;
+        const onError = (error: unknown) =>
+          log(
+            config,
+            "warning",
+            `Warm boot of '${task.name}' failed (a consuming context will retry): ${
+              (error as any)?.message ?? String(error)
+            }`
+          );
+        if (task.payload.platform === "android") {
+          const env = await getAndroidEnv();
+          if (!env) {
+            return {
+              outcome: "skipped",
+              note: "Android toolchain not ready; device setup stays with the consuming context",
+            };
+          }
+          // Hold the run's "android-emulator" mutex from before initiation
+          // until the boot settles — in the BACKGROUND, past this task's
+          // resolution — so warm's boot and any Phase-2 job's boot (which
+          // tag the same name) can never run two emulators at once: on a
+          // small CI runner concurrent boots starve each other and the
+          // sessions that follow. Released via the acquire promise's settle
+          // chain (both branches handled — no unhandled rejection), not a
+          // finally, precisely because the task resolves first.
+          const releaseEmulatorLease = await acquireLease([
+            "android-emulator",
+          ]);
+          return raceBootInitiation({
+            onError,
+            startAcquire: (signalInitiated) => {
+              const acquiring = acquireDevice({
+                desc,
+                registry: deviceRegistry,
+                sdkRoot: env.sdkRoot,
+                deps: wrapInitiationEffects(
+                  env.deviceDeps,
+                  ["createAvd", "boot"],
+                  signalInitiated
+                ),
+              });
+              acquiring.then(
+                () => releaseEmulatorLease(),
+                () => releaseEmulatorLease()
+              );
+              return acquiring;
+            },
+          });
+        }
+        const toolchain = await getIosToolchain();
+        if (!toolchain.ok) {
+          return { outcome: "skipped", note: toolchain.reason };
+        }
+        const simDeps = buildAcquireSimulatorDeps((m: string) =>
+          log(config, "debug", m)
+        );
+        return raceBootInitiation({
+          onError,
+          startAcquire: (signalInitiated) =>
+            acquireSimulator({
+              desc,
+              registry: simulatorRegistry,
+              deps: wrapInitiationEffects(
+                simDeps,
+                ["create", "boot"],
+                signalInitiated
+              ),
+            }),
+        });
+      }
+
+      case "wda-check": {
+        const hit = locateManagedWda({ ctx: { cacheDir: config?.cacheDir } });
+        if (hit) {
+          return {
+            outcome: "warmed",
+            note: `prebuilt WebDriverAgent available (${hit.key})`,
+          };
+        }
+        return {
+          outcome: "skipped",
+          note: "no prebuilt WebDriverAgent for the current toolchain — `doc-detective install ios` prebuilds it",
+        };
+      }
+
+      case "session-probe": {
+        if (!appiumPool) {
+          return { outcome: "skipped", note: "no browser Appium pool" };
+        }
+        await warmUpContexts({
+          jobs: sizingJobs,
+          config,
+          runnerDetails,
+          appiumPool,
+          installAttempts,
+          warmUpResults,
+        });
+        const ok = [...warmUpResults.values()].filter(
+          (v) => v === "ok"
+        ).length;
+        const failed = warmUpResults.size - ok;
+        // Failed combinations are a warm-level note, not a task failure:
+        // they already have per-context recorded-skip semantics downstream.
+        return {
+          outcome: "warmed",
+          note: `${ok} combination${ok === 1 ? "" : "s"} ok${
+            failed ? `, ${failed} failed` : ""
+          }`,
+        };
+      }
+
+      case "chromedriver-prefetch":
+        return prefetchMobileChromedriver({
+          config,
+          desc: task.payload.desc,
+          deviceRegistry,
+          getAndroidEnv,
+          deps: {
+            // The cache-mutating half (driver install + Appium co-homing)
+            // runs once per run under the manual runtime-install lease, so
+            // the prefetch task itself only holds its device tag while it
+            // awaits readiness and runs the throwaway session.
+            appSurfacePreflight: () => getAndroidPreflight(),
+            acquireEmulatorLease: () => acquireLease(["android-emulator"]),
+          },
+        });
+    }
+  };
+}
+/* c8 ignore stop */
+
+/**
+ * Pre-pay the on-device chromedriver download for android mobile-web: the
+ * UiAutomator2 server only fetches a chromedriver matching the device's
+ * Chrome at SESSION creation, so this task awaits the device (the one warm
+ * task that blocks on readiness), opens a disposable mobile-web session on a
+ * dedicated short-lived Appium server with the scoped autodownload feature —
+ * the exact shape runContext's mobile-web branch uses — and tears both down.
+ * The downloaded chromedriver lands in the shared cache, so the first real
+ * session skips the download. Because the warm phase is awaited before
+ * Phase 2 dispatch, this throwaway session can never overlap the first real
+ * session on the same device. A throw is the executor's problem (recorded
+ * as failed, run proceeds). Effects are injected for hermetic tests.
+ */
+async function prefetchMobileChromedriver({
+  config,
+  desc,
+  deviceRegistry,
+  getAndroidEnv,
+  deps = {},
+}: {
+  config: any;
+  desc: any;
+  deviceRegistry: DeviceRegistry;
+  getAndroidEnv: () => Promise<{ sdkRoot: string; deviceDeps: any } | null>;
+  deps?: {
+    appSurfacePreflight?: typeof appSurfacePreflight;
+    acquireDevice?: typeof acquireDevice;
+    startAppiumServer?: typeof startAppiumServer;
+    driverStart?: typeof driverStart;
+    killTree?: typeof killTree;
+    // Serializes any boot this task's acquire performs with every other
+    // emulator boot in the run (warm's and Phase 2's).
+    acquireEmulatorLease?: () => Promise<() => void>;
+  };
+}): Promise<{ outcome: WarmOutcome; note?: string }> {
+  const preflight = deps.appSurfacePreflight ?? appSurfacePreflight;
+  const acquire = deps.acquireDevice ?? acquireDevice;
+  const startServer = deps.startAppiumServer ?? startAppiumServer;
+  const startDriver = deps.driverStart ?? driverStart;
+  const kill = deps.killTree ?? killTree;
+
+  const env = await getAndroidEnv();
+  if (!env) {
+    return {
+      outcome: "skipped",
+      note: "Android toolchain not ready; the first mobile-web session downloads chromedriver as needed",
+    };
+  }
+  // Driver install + Appium co-homing, idempotent: usually a no-op after
+  // the driver-install task (the shared runtime-install exclusivity tag
+  // keeps the two from ever mutating the cache concurrently), and android
+  // has no platform probes, so this is exactly the install half.
+  const pre = await preflight({ config, platform: "android" });
+  if (!pre.ok) return { outcome: "skipped", note: pre.reason };
+  // Await the device. If the device-boot task already initiated this boot,
+  // this acquire converges on the same registry entry and awaits its
+  // in-flight `ready`; otherwise it performs the full acquire itself —
+  // under the shared emulator lease, so a boot this task performs never
+  // overlaps another emulator boot in the run.
+  const releaseLease = deps.acquireEmulatorLease
+    ? await deps.acquireEmulatorLease()
+    : undefined;
+  let acquired;
+  try {
+    acquired = await acquire({
+      desc,
+      registry: deviceRegistry,
+      sdkRoot: env.sdkRoot,
+      deps: env.deviceDeps,
+    });
+  } finally {
+    releaseLease?.();
+  }
+  if ("skip" in acquired) return { outcome: "skipped", note: acquired.skip };
+
+  let server: any;
+  let driver: any;
+  try {
+    server = await startServer(
+      pre.appiumEntry,
+      config,
+      undefined,
+      {
+        APPIUM_HOME: pre.appiumHome,
+        ANDROID_HOME: env.sdkRoot,
+        ANDROID_SDK_ROOT: env.sdkRoot,
+      },
+      [
+        ...CHROMEDRIVER_AUTODOWNLOAD_ARGS,
+        // Load only UiAutomator2 (ADR 01117).
+        ...useDriversArgs(pre.appiumHome, [
+          APP_DRIVER_PLATFORMS.android.driverPackage,
+        ]),
+      ]
+    );
+    driver = await startDriver(
+      buildMobileBrowserCapabilities({
+        platform: "android",
+        udid: acquired.entry.udid,
+        cacheDir: getCacheDir({ cacheDir: config?.cacheDir }),
+      }),
+      server.port,
+      2,
+      { cacheDir: config?.cacheDir }
+    );
+    return {
+      outcome: "warmed",
+      note: `chromedriver ready for device '${acquired.entry.name}'`,
+    };
+  } finally {
+    if (driver) {
+      try {
+        await driver.deleteSession();
+      } catch {
+        // best-effort teardown of the throwaway session
+      }
+    }
+    if (server) {
+      await kill(server.process?.pid);
     }
   }
 }
@@ -3004,28 +3930,6 @@ function buildAutoRecordStep({
   };
 }
 
-// Directory/file segments built from IDs are capped so deeply nested doc
-// trees can't push the full path past Windows' MAX_PATH. The default cap is
-// 32: the REST artifact tree nests several id segments
-// (specs/<id>/tests/<id>/contexts/<id>/…), so a larger default could exceed
-// MAX_PATH on Windows.
-//
-// Plain tail truncation alone is unsafe: two distinct ids that share the same
-// trailing `max` characters (e.g. mirror directory trees that differ only in a
-// long prefix) would collapse into the same path segment, so one context's
-// screenshots/recording could overwrite another's and the reported relative
-// path would resolve to the wrong artifact. When a segment exceeds the cap,
-// prepend a short deterministic hash of the *full* segment so distinct ids stay
-// distinct, and keep the trailing chars (where generated ids carry their
-// content hash) for human correlation. Deterministic — the same id maps to the
-// same segment every run, preserving run-over-run comparison.
-function capPathSegment(segment: string, max: number = 32): string {
-  if (segment.length <= max) return segment;
-  const hash = createHash("sha1").update(segment).digest("hex").slice(0, 8);
-  const tail = segment.slice(segment.length - (max - hash.length - 1));
-  return `${hash}-${tail}`;
-}
-
 // Capture a post-step screenshot for `autoScreenshot` runs. The relative
 // path follows the REST resource tree — stable IDs (spec/test/context) as
 // nested collections plus the step's order, action, and ID (e.g.
@@ -3054,41 +3958,27 @@ async function captureAutoScreenshot({
   stepCount: number;
 }): Promise<string | null> {
   try {
-    const action =
-      driverActions.find((key) => typeof step[key] !== "undefined") || "step";
-    const sanitizedTestId = sanitizeFilesystemName(
-      String(test.testId ?? ""),
-      "test"
-    );
     const runDir = getRunOutputDir(config);
     const dir = path.join(
       runDir,
       "specs",
       capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
       "tests",
-      capPathSegment(sanitizedTestId),
+      capPathSegment(
+        sanitizeFilesystemName(String(test.testId ?? ""), "test")
+      ),
       "contexts",
       capPathSegment(
         sanitizeFilesystemName(String(context.contextId ?? ""), "context")
       ),
       "screenshots"
     );
-    // The stepId usually embeds the testId (its parent folder) — strip that
-    // prefix so filenames stay short while still carrying the step's ID.
-    const stepIdString = sanitizeFilesystemName(
-      String(step.stepId ?? ""),
-      "step"
-    );
-    const stepRef = capPathSegment(
-      stepIdString.startsWith(`${sanitizedTestId}~`)
-        ? stepIdString.slice(sanitizedTestId.length + 1)
-        : stepIdString
-    );
-    // Zero-pad the step ordinal to the width of the context's step count
-    // (min 2), so file listings sort naturally even past 99 steps (100 would
-    // otherwise sort before 11).
-    const pad = Math.max(2, String(stepCount).length);
-    const fileName = `${String(stepIndex + 1).padStart(pad, "0")}-${action}-${stepRef}.png`;
+    const fileName = stepArtifactFileName({
+      step,
+      stepIndex,
+      stepCount,
+      testId: test.testId,
+    });
     const screenshotStep = {
       stepId: `${step.stepId}_auto`,
       description: "Automatic post-step screenshot",
@@ -3150,6 +4040,7 @@ async function runContext({
   processRegistry,
   deviceRegistry,
   simulatorRegistry,
+  appServerPool,
   logPrefix = "",
 }: {
   config: any;
@@ -3167,6 +4058,7 @@ async function runContext({
   processRegistry?: Map<string, any>;
   deviceRegistry?: DeviceRegistry;
   simulatorRegistry?: SimulatorRegistry;
+  appServerPool?: AppServerPool;
   logPrefix?: string;
 }): Promise<any> {
   const platform = runnerDetails.environment.platform;
@@ -3245,6 +4137,11 @@ async function runContext({
   // context that passes its preflight (phase A3b). Declared here so the mobile
   // branch can set it and fall through to the shared step-execution path.
   let appSession: AppSessionState | undefined;
+  // Cross-kind active-surface tracker (ADR 01081): one MRU per context,
+  // shared by the browser session registry, the app session, and the process
+  // lanes, so surface-less steps route to the most recently active surface
+  // regardless of kind.
+  const surfaceTracker = createActiveSurfaceTracker();
   // Mobile web (phase A5): set when the mobile preflight resolved a device
   // browser for this context. The try block below then opens the browser
   // session on the device (through the app session's Appium server) instead
@@ -3308,6 +4205,7 @@ async function runContext({
       appSession.appiumHome = pre.appiumHome;
       appSession.iosSimulatorRegistry = simulatorRegistry;
       appSession.iosSimulatorDeps = pre.simulatorDeps;
+      appSession.appServerPool = appServerPool;
       gateBrowserName = pre.mobileWebBrowserName;
       /* c8 ignore stop */
     }
@@ -3362,6 +4260,9 @@ async function runContext({
     appSession.appiumEntry = preflight.appiumEntry;
     appSession.appiumHome = preflight.appiumHome;
   }
+  // Whichever branch created the app session (android/ios/desktop), it shares
+  // the context's active-surface tracker with the browser registry below.
+  if (appSession) appSession.tracker = surfaceTracker;
 
   // If a driver is required but no browser could be resolved (e.g.
   // getDefaultBrowser found nothing installed, or the context supplied a
@@ -3502,7 +4403,7 @@ async function runContext({
     contextReport.resultDescription = errorMessage;
     return contextReport;
   }
-  clog("debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
+  if (logLevelEnabled(config, "debug")) clog("debug", `CONTEXT:\n${JSON.stringify(context, null, 2)}`);
 
   let driver: any;
   let appiumPort: number | undefined;
@@ -3516,6 +4417,10 @@ async function runContext({
   // WARNING when an explicitly pinned engine was substituted.
   let fellBackNote = "";
   let fellBackPinned = false;
+  // Set by the post-loop liveness probe: true when the context failed AND its
+  // session was found dead mid-run. The caller (runContextWithRetries) reads
+  // this off the returned report to decide whether to retry on a fresh session.
+  let sessionDiedMidRun = false;
   if (driverRequired && !appiumPool) {
     throw new Error(
       "Browser driver requested but no Appium server pool was created; " +
@@ -3546,24 +4451,45 @@ async function runContext({
       // Chromedriver autodownload is an Appium insecure feature; opt in
       // scoped to the uiautomator2 driver on this run-owned server so it can
       // fetch the chromedriver matching the device's Chrome.
-      const extraArgs =
-        mobileTarget === "android"
-          ? ["--allow-insecure", "uiautomator2:chromedriver_autodownload"]
-          : [];
+      const extraArgs = [
+        ...(mobileTarget === "android" ? CHROMEDRIVER_AUTODOWNLOAD_ARGS : []),
+        // Load only the device's driver (ADR 01117).
+        ...useDriversArgs(appSession!.appiumHome!, [
+          (mobileTarget === "android"
+            ? APP_DRIVER_PLATFORMS.android
+            : APP_DRIVER_PLATFORMS.ios
+          ).driverPackage,
+        ]),
+      ];
       // Server start + device boot are environment work: any failure there
       // (port pressure, an emulator that can't finish booting on this host,
       // simctl trouble) is a gating SKIP with the reason named — never a
       // FAIL — matching the mobile rule that every environment gap SKIPs.
       let acquired: any;
       try {
-        const server = await startAppiumServer(
-          appSession!.appiumEntry!,
-          config,
-          undefined,
-          env,
-          extraArgs
-        );
-        appSession!.server = { port: server.port, process: server.process };
+        const start = async () =>
+          startAppiumServer(
+            appSession!.appiumEntry!,
+            config,
+            undefined,
+            env,
+            extraArgs
+          );
+        // iOS shares the run's pooled server for this launch environment
+        // (ADR 01115); `release` hands it back at context teardown.
+        const pool = appSession!.appServerPool;
+        const server: { port: number; process: any; release?: () => void } =
+          pool
+            ? await pool.acquire(
+                JSON.stringify({ appiumEntry: appSession!.appiumEntry, env, extraArgs }),
+                start
+              )
+            : await start();
+        appSession!.server = {
+          port: server.port,
+          process: server.process,
+          release: server.release,
+        };
         const desc = normalizeDeviceDescriptor({
           contextDevice: context.device,
           platform: mobileTarget as "android" | "ios",
@@ -3609,12 +4535,18 @@ async function runContext({
         // The resolved cache root (not the raw config field, which is
         // usually unset) — the chromedriver autodownload dir lives here.
         cacheDir: getCacheDir({ cacheDir: config?.cacheDir }),
+        // iOS: the simulator's version picks the WDA launch mode (ADR 01110).
+        iosMajor: iosMajorOfRuntime(acquired.entry.runtime),
       });
       try {
         driver = await driverStart(capabilities, appSession!.server.port, 2, {
           cacheDir: config?.cacheDir,
+          log: (m) => clog("warning", m),
         });
       } catch (error: any) {
+        // A client-side timeout can abort while the server is still creating
+        // the session, so keep a pooled server out of reuse (ADR 01115).
+        appSession!.sessionLeftOpen = true;
         // A capable host that can't open the device browser is an
         // environment gap (the absent-browser precedent): SKIP with the
         // likely cause named, never FAIL.
@@ -3638,12 +4570,22 @@ async function runContext({
           );
         },
         isNameTaken: (name: string) => !!processRegistry?.has(name),
+        tracker: surfaceTracker,
       });
       registerSession(browserSessions, {
         name: String(mobileWebBrowserName).toLowerCase(),
         engine: String(mobileWebBrowserName).toLowerCase(),
         driver,
       });
+      // Device browser versions, as far as the session reports them (ADR
+      // 01163); there's no desktop app entry to fall back on.
+      const versions = sessionVersions({ capabilities: driver?.capabilities });
+      if (versions.browserVersion)
+        contextReport.browser = {
+          ...contextReport.browser,
+          version: versions.browserVersion,
+        };
+      if (versions.driver) contextReport.driver = versions.driver;
       /* c8 ignore stop */
     } else if (driverRequired) {
       // Check out a server for this context's lifetime — released in the
@@ -3691,19 +4633,20 @@ async function runContext({
             runnerDetails,
             name: browserName,
             options: {
-              width:
-                overrides?.size?.width ||
-                context.browser?.window?.width ||
-                1200,
-              height:
-                overrides?.size?.height ||
-                context.browser?.window?.height ||
-                800,
               headless,
               ...recordOptions,
             },
           });
-          if (overrides?.driverOptions) Object.assign(caps, overrides.driverOptions);
+          // Merge the authored escape hatch, minus the capabilities that are
+          // only legal because we opted the server in to an insecure feature.
+          // A plain Object.assign here would let a spec-authored
+          // `appium:geckodriverExecutable` overwrite the managed path and have
+          // Appium spawn any local binary. See PROTECTED_CAPABILITIES.
+          if (overrides?.driverOptions) {
+            applyDriverOptions(caps, overrides.driverOptions, (message) =>
+              log(config, "warning", message)
+            );
+          }
           return caps;
         };
         const startFailure = () => {
@@ -3841,6 +4784,20 @@ async function runContext({
         };
         clog("warning", fellBackNote);
       }
+      // The browser and driver that actually ran, for the report (ADR 01163).
+      // A copy, so the version never feeds back into the context's settings.
+      const versions = sessionVersions({
+        capabilities: driver?.capabilities,
+        app: availableApps.find(
+          (app: any) => app.name === normalizeBrowserName(startedName)
+        ),
+      });
+      if (versions.browserVersion)
+        contextReport.browser = {
+          ...contextReport.browser,
+          version: versions.browserVersion,
+        };
+      if (versions.driver) contextReport.driver = versions.driver;
 
       // Multi-surface Phase 4 (ADR 01019): register the default session in the
       // context's session registry under its engine name, so it resolves like
@@ -3855,9 +4812,30 @@ async function runContext({
           open: async (engine: string, overrides?: BrowserOpenOverrides) => {
             const res = await startDriverForBrowser(engine, overrides);
             if (!res.ok) throw new Error(res.error);
+            // A later session takes the context's size unless its
+            // startSurface descriptor sets `size`. A sizing failure leaves
+            // the session usable at its default size, so warn, don't fail.
+            try {
+              await applyBrowserSize(
+                res.driver,
+                Number(overrides?.size?.width) > 0 ||
+                  Number(overrides?.size?.height) > 0
+                  ? { window: overrides!.size }
+                  : context.browser,
+                config,
+                `browser session for ${engine}`
+              );
+            } catch (error: any) {
+              log(
+                config,
+                "warning",
+                `Couldn't size the new ${engine} session: ${error?.message ?? error}`
+              );
+            }
             return res.driver;
           },
           isNameTaken: (name: string) => !!processRegistry?.has(name),
+          tracker: surfaceTracker,
         });
         registerSession(browserSessions, {
           name: String(startedName).toLowerCase(),
@@ -3866,28 +4844,41 @@ async function runContext({
         });
       }
 
+      // Size the session: the authored viewport, else the authored window,
+      // else the default viewport (ADR 01144). The label attributes a floor
+      // warning to this context in a multi-context run.
+      const sizing = await applyBrowserSize(
+        driver,
+        context.browser,
+        config,
+        `viewport for ${context.browser?.name ?? "browser"} on ${
+          context.platform ?? "host"
+        }`
+      );
+      // Stamp the context REPORT (not the context object — the report is a
+      // curated copy) when the browser floored an authored viewport. A
+      // context-level viewport has no step output to carry the realized size,
+      // so this is the only signal the post-run `useMobilePlatforms` hint can
+      // read.
       if (
-        context.browser?.viewport?.width ||
-        context.browser?.viewport?.height
+        sizing.target.kind === "viewport" &&
+        isViewportFloored(sizing.target, sizing.realized)
       ) {
-        // Set driver viewport size
-        await setViewportSize(context, driver);
-      } else if (
-        context.browser?.window?.width ||
-        context.browser?.window?.height
-      ) {
-        // Get driver window size
-        const windowSize = await driver.getWindowSize();
-        // Resize window if necessary
-        await driver.setWindowSize(
-          context.browser?.window?.width || windowSize.width,
-          context.browser?.window?.height || windowSize.height
-        );
+        contextReport.viewportFloored = true;
       }
     }
 
     // Effective autoScreenshot for this context (test > spec > config).
     const autoScreenshotEnabled = resolveAutoScreenshot({ config, spec, test });
+
+    // Effective annotation theme for this context, same precedence. Resolved
+    // here because spec/test are only in scope at this level; steps get it
+    // through `options` since runStep has no view of the spec or test.
+    const annotationTheme = resolveTheme([
+      config?.annotationDefaults,
+      spec?.annotationDefaults,
+      test?.annotationDefaults,
+    ]);
 
     // Iterates steps
     let stepExecutionFailed = false;
@@ -4019,7 +5010,7 @@ async function runContext({
         break;
       }
 
-      clog("debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
+      if (logLevelEnabled(config, "debug")) clog("debug", `STEP:\n${JSON.stringify(step, null, 2)}`);
 
       if (step.unsafe && runnerDetails.allowUnsafeSteps === false) {
         clog(
@@ -4125,6 +5116,7 @@ async function runContext({
       // it. Surface-less browser steps in that (pathological) state fail on the
       // dead session — acceptable; the run closed its own browser mid-test.
       const runStepOnce = async () => {
+        const stepStart = Date.now();
         const r = await runStep({
           config: config,
           context: context,
@@ -4133,11 +5125,13 @@ async function runContext({
           metaValues: metaValues,
           options: {
             openApiDefinitions: context.openApi || [],
+            annotationTheme,
           },
           processRegistry: processRegistry,
           appSession: appSession,
+          surfaceTracker: surfaceTracker,
         });
-        clog(
+        if (logLevelEnabled(config, "debug")) clog(
           "debug",
           `RESULT: ${r.status}\n${JSON.stringify(r, null, 2)}`
         );
@@ -4145,7 +5139,17 @@ async function runContext({
         r.resultDescription = r.description;
         delete r.status;
         delete r.description;
-        return { ...step, ...r } as any;
+        // Stamp AFTER the spread: `step` may carry an authored `duration`
+        // input (a click's press duration, an annotation's display duration),
+        // and `r` is the runStep result — neither may clobber the timing.
+        // On retry the loop below discards this report wholesale, so the
+        // surviving value is the FINAL attempt's, per ADR 01083.
+        return {
+          ...step,
+          ...r,
+          startedAt: new Date(stepStart).toISOString(),
+          durationMs: Date.now() - stepStart,
+        } as any;
       };
 
       // Run the step, then resolve routing. A `retry` decision re-runs the step
@@ -4234,6 +5238,36 @@ async function runContext({
         if (capturedPath) stepReport.autoScreenshot = capturedPath;
       }
 
+      // Recording checkpoints (ADR 01075): while a checkpoint-enabled
+      // recording is active, capture a compare-only screenshot per handle
+      // after every step (final attempt only, same placement rationale as
+      // autoScreenshot — retry frames would poison the staged captures).
+      // The record step's own post-step capture is the opening bookend.
+      // The host is the ACTIVE session's driver — the same driver runStep
+      // pushed the handle onto — falling back to the app session's host for
+      // app-only contexts (which skip capture inside the helper: no browser
+      // driver to capture with).
+      // Recordings live per SESSION, so sweep every live session driver the
+      // way stopAllRecordings does — not just the active one. A span started
+      // on a second browser surface keeps its handle on that session's
+      // driver; checking only the active session would silently capture
+      // nothing for it. Each driver is both the host (whose recordings we
+      // read) and the capture source, so a checkpoint always photographs the
+      // surface its own recording is filming.
+      for (const checkpointDriver of sessionDrivers(browserSessions, driver)) {
+        await captureRecordingCheckpoints({
+          config,
+          driver: checkpointDriver,
+          recordingHost: checkpointDriver,
+          step,
+          stepStatus: stepReport.result,
+          stepIndex,
+          stepCount: context.steps.length,
+          testId: test.testId,
+          appSession,
+        });
+      }
+
       pushStepReport(stepReport);
 
       // Apply the terminal routing decision. `continue` runs the next step; a
@@ -4300,6 +5334,72 @@ async function runContext({
         contextReport,
       });
     }
+
+    // Mid-run session-death detection for the `retries` context-retry policy.
+    // A dead session's step FAIL is indistinguishable from a real assertion FAIL
+    // at the result level (handlers catch driver errors and return FAIL), so if
+    // any step failed we probe the session directly here — while it is still
+    // registered, before the finally tears it down. A dead session means the
+    // FAIL is spurious and the whole context can be retried on a fresh session; a
+    // live session means the FAIL is real and stands. Recording sweeps already
+    // ran above, so the probe never races an in-flight capture.
+    if (contextReport.steps.some((s: any) => s.result === "FAIL")) {
+      // Collect EVERY session the context holds — a multi-surface browser
+      // context plus an app session — not just the first, so a dead app/native
+      // session behind a live browser (or vice versa) is still caught. Which of
+      // these each check applies to differs, and classifyContextRetry owns that
+      // distinction. Primary session first (Map values() is insertion-ordered).
+      const probeDrivers = sessionDrivers(browserSessions, driver);
+      if (appSession?.recordingHost) probeDrivers.push(appSession.recordingHost);
+      // Which sessions each probe applies to, and how they rank, lives in
+      // classifyContextRetry so it can be unit tested without a real context.
+      // A dead session is the silent case: it needs no explanation beyond the
+      // retry warning the wrapper already logs. The alive-but-unusable cases do,
+      // because "the session responded and we retried anyway" is otherwise
+      // surprising in a log.
+      const retryReason = await classifyContextRetry(probeDrivers, {
+        navigated: contextReport.steps.some(
+          (s: any) => s.goTo !== undefined && s.result !== "SKIPPED"
+        ),
+      });
+      if (retryReason) {
+        sessionDiedMidRun = true;
+        if (retryReason === "page-broken") {
+          clog(
+            "debug",
+            "Context session is alive but on a browser error page; treating it as a broken context for retry."
+          );
+        } else if (retryReason === "unnavigated") {
+          clog(
+            "debug",
+            "Context session is alive but still on its initial blank document (never navigated); treating it as a broken context for retry."
+          );
+        }
+      }
+      if (
+        !sessionDiedMidRun &&
+        probeDrivers.length > 0 &&
+        logLevelEnabled(config, "debug") &&
+        typeof probeDrivers[0].getUrl === "function"
+      ) {
+        // Diagnostic for whatever live-session modes remain uncovered: log the
+        // page URL of a live-session FAIL that was NOT retried. This is how the
+        // long-running `windows-chrome` flake was characterized — every
+        // occurrence, across both the recording and nav-capture bundles, logged
+        // `url=data:,`, which ADR 01084 now retries. What's left for it to catch
+        // is the same-URL-blank mode (page blanks without changing URL), which
+        // stays unretried because it can't be told apart from a genuine
+        // element-not-found on a correctly-loaded page.
+        try {
+          clog(
+            "debug",
+            `Context FAILed on a live, non-error-page session (url=${await probeDrivers[0].getUrl()}); not retried.`
+          );
+        } catch {
+          /* best-effort diagnostic */
+        }
+      }
+    }
   } finally {
     // Safety net: if the context threw before the normal sweep above, recordings
     // are still active. Stop them now — while the driver session is still alive
@@ -4329,17 +5429,22 @@ async function runContext({
     // start, so the sweep covers it; sessions a closeSurface step already
     // ended are gone from the registry). In a finally so an unexpected throw
     // can't leak sessions while sibling contexts keep running.
+    // A session left open (a failed delete) must keep a pooled iOS app server
+    // from being reused: the mobile-web session runs on it (ADR 01115).
+    let sessionsClosed = true;
     if (browserSessions) {
-      await sweepSessions(browserSessions);
+      sessionsClosed = await sweepSessions(browserSessions);
     } else if (driver) {
       // Registry creation is unconditional after a driver starts, so this
       // fallback only runs if the start path threw between the two.
       try {
         await driver.deleteSession();
       } catch (error: any) {
+        sessionsClosed = false;
         clog("error", `Failed to delete driver session: ${error.message}`);
       }
     }
+    if (appSession && !sessionsClosed) appSession.sessionLeftOpen = true;
     // Tear down app surfaces: close every remaining app session (the driver
     // terminates apps it launched) and stop the app Appium server. Tree-kill
     // in callback form so the server process is actually gone before the
@@ -4383,7 +5488,113 @@ async function runContext({
       ? `${fellBackNote} ${contextReport.resultDescription}`
       : fellBackNote;
   }
+  // Internal hint for runContextWithRetries — a FAIL whose session died mid-run
+  // is retryable. Non-enumerable so it never leaks into the serialized report,
+  // and only set on the retryable case so the wrapper's check is a plain read.
+  if (contextReport.result === "FAIL" && sessionDiedMidRun) {
+    Object.defineProperty(contextReport, "_sessionDied", {
+      value: true,
+      enumerable: false,
+      configurable: true,
+    });
+  }
   return contextReport;
+}
+
+// Context fields runContext mutates non-idempotently: `openApi` appends the
+// config's definitions, and `browser` narrows to a fallback engine/headless
+// mode. A retry re-invokes runContext, so these are snapshotted and restored
+// before each attempt (`__display`/`__displaySize` too, so a retry re-resolves
+// them rather than reusing a stale display) — everything else runContext derives
+// fresh (contextReport is rebuilt each call; step IDs assign idempotently).
+const RUN_CONTEXT_MUTATED_KEYS = ["openApi", "browser", "__display", "__displaySize"];
+
+// SHALLOW clone — one level. Sufficient for the current RUN_CONTEXT_MUTATED_KEYS
+// (`openApi` entries are appended, never mutated in place; `browser`/`__display*`
+// are flat). If a future mutated field nests a value that runContext mutates *in
+// place*, the snapshot and the live context would share that nested reference and
+// restore wouldn't protect it — deepen this (or that key's snapshot) then.
+function cloneMutable(value: any): any {
+  if (Array.isArray(value)) return [...value];
+  if (value && typeof value === "object") return { ...value };
+  return value;
+}
+
+// Runs a context and retries the WHOLE context on a fresh session when its
+// session dies mid-run — an early step passes, then a later step fails on a
+// now-dead session (WebDriver ECONNREFUSED / invalid session id, or an element
+// that can't be found because the DOM is dead). Bounded by the resolved
+// `retries` policy (config/context, default 1). Detection is runContext's active
+// liveness probe, surfaced as the non-enumerable `_sessionDied` flag on a FAIL
+// report, so a live-session assertion FAIL is NEVER retried — a real bug still
+// fails all attempts. Retrying re-invokes runContext, which re-runs setup,
+// re-provisions every session, and restarts recordings cleanly; the job keeps
+// its concurrency slot and any exclusive resource (display / native-app-driver /
+// android-emulator), so only the Appium pool port churns. `runContextFn` is
+// injectable for unit testing. Exported for that test.
+async function runContextWithRetries(
+  args: any,
+  runContextFn: (a: any) => Promise<any> = runContext,
+  // Backoff before each retry. Injectable so unit tests pass `() => 0` instead
+  // of paying the real 500ms-per-attempt sleep.
+  delayMs: (attempt: number) => number = (attempt) => 500 * (attempt + 1)
+): Promise<any> {
+  const { context, config } = args;
+  // Time each attempt here rather than inside runContext: runContext has a
+  // dozen exits (eleven early `requires`/preflight SKIPPED returns plus the
+  // normal one), and this wrapper is its only caller, so one clock here stamps
+  // every one of them. A retried context keeps the FINAL attempt's elapsed
+  // time — the attempt the reported `result` describes (ADR 01083).
+  const timedRunContext = async (a: any) => {
+    const start = Date.now();
+    const report = await runContextFn(a);
+    if (report && typeof report === "object") {
+      report.startedAt = new Date(start).toISOString();
+      report.durationMs = Date.now() - start;
+    }
+    return report;
+  };
+  const retries = resolveRetryPolicy({ context, config });
+  if (!(retries > 0)) return timedRunContext(args);
+
+  // Snapshot the non-idempotent context fields so each retry starts from the
+  // originally-requested state instead of the prior attempt's narrowed one.
+  const had: Record<string, boolean> = {};
+  const snapshot: Record<string, any> = {};
+  for (const key of RUN_CONTEXT_MUTATED_KEYS) {
+    had[key] = key in context;
+    if (had[key]) snapshot[key] = cloneMutable(context[key]);
+  }
+  const restore = () => {
+    for (const key of RUN_CONTEXT_MUTATED_KEYS) {
+      if (!had[key]) delete context[key];
+      else context[key] = cloneMutable(snapshot[key]);
+    }
+  };
+
+  let report: any;
+  let attempt = 0;
+  for (; ; attempt++) {
+    report = await timedRunContext(args);
+    const retryable = report?.result === "FAIL" && report?._sessionDied === true;
+    if (!retryable || attempt >= retries) break;
+    log(
+      config,
+      "warning",
+      `Context '${context?.contextId}' session died mid-run; retrying on a fresh session (attempt ${attempt + 2} of ${retries + 1}).`
+    );
+    restore();
+    // Linear backoff (mirrors driverStart's session-creation retry) so a
+    // transient runner blip has a moment to clear before the fresh session.
+    await new Promise((resolve) => setTimeout(resolve, delayMs(attempt)));
+  }
+  // Surface how many retries were spent, so a report consumer can tell a clean
+  // PASS from one recovered after a mid-run session death (the warning log alone
+  // isn't machine-readable). Stamped only when a retry actually happened.
+  if (attempt > 0 && report && typeof report === "object") {
+    report.retries = attempt;
+  }
+  return report;
 }
 
 // Every live session driver in the context, falling back to the lone default
@@ -4434,6 +5645,10 @@ async function stopAllRecordings({
       description: "Stopping recording",
       stepId: randomUUID(),
     };
+    // These sweep steps really execute, so they carry a measured duration
+    // rather than the Phase-3 zero default. Timed in both the success and the
+    // failure path, so a stop that hangs before throwing still shows its cost.
+    const stopStart = Date.now();
     try {
       const stepResult = await runStep({
         config,
@@ -4448,7 +5663,12 @@ async function stopAllRecordings({
       delete stepResult.description;
       // Don't leak the internal routing marker into the report.
       delete stopRecordStep.__stopAny;
-      contextReport.steps.push({ ...stopRecordStep, ...stepResult });
+      contextReport.steps.push({
+        ...stopRecordStep,
+        ...stepResult,
+        startedAt: new Date(stopStart).toISOString(),
+        durationMs: Date.now() - stopStart,
+      });
     } catch (error: any) {
       // A throw from runStep would otherwise strand the remaining handles.
       // Drop the top handle so the loop can't spin, and record the failure.
@@ -4458,6 +5678,8 @@ async function stopAllRecordings({
         ...stopRecordStep,
         result: "FAIL",
         resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+        startedAt: new Date(stopStart).toISOString(),
+        durationMs: Date.now() - stopStart,
       });
     }
   }
@@ -4473,6 +5695,7 @@ async function runStep({
   options = {},
   processRegistry,
   appSession,
+  surfaceTracker,
 }: {
   config?: any;
   context?: any;
@@ -4482,6 +5705,7 @@ async function runStep({
   options?: any;
   processRegistry?: Map<string, any>;
   appSession?: AppSessionState;
+  surfaceTracker?: ActiveSurfaceTracker;
 }): Promise<any> {
   let actionResult: any;
   // Load values from environment variables
@@ -4492,6 +5716,8 @@ async function runStep({
       step: step,
       driver: driver,
       appSession,
+      processRegistry,
+      surfaceTracker,
     });
   } else if (typeof step.dragAndDrop !== "undefined") {
     actionResult = await dragAndDropElement({
@@ -4502,7 +5728,7 @@ async function runStep({
   } else if (typeof step.checkLink !== "undefined") {
     actionResult = await checkLink({ config: config, step: step });
   } else if (typeof step.find !== "undefined") {
-    actionResult = await findElement({ config: config, step: step, driver, appSession });
+    actionResult = await findElement({ config: config, step: step, driver, appSession, processRegistry, surfaceTracker });
   } else if (typeof step.stopRecord !== "undefined") {
     actionResult = await stopRecording({
       config: config,
@@ -4568,6 +5794,22 @@ async function runStep({
       const handle = actionResult.recording;
       handle.id = handle.id ?? randomUUID();
       handle.name = handle.name ?? recordStepName(step.record);
+      // Recording checkpoints (ADR 01075): resolve the step's `checkpoints`
+      // field once, here, where the handle and its target path are both at
+      // hand — the post-step hook and stopRecord read the resolved config
+      // off the handle. resolveCheckpointsConfig returns null for every
+      // record form without a checkpoints field (string/boolean included),
+      // so `null` is the single "disabled" encoding. `overwrite` rides along
+      // for stopRecord's aboveVariation staging/promote decision (ADR 01078).
+      handle.overwrite = (step.record as any)?.overwrite;
+      handle.verify = (step.record as any)?.verify;
+      if (handle.targetPath) {
+        handle.checkpoints = resolveCheckpointsConfig({
+          record: step.record,
+          targetPath: handle.targetPath,
+          handleId: handle.id,
+        });
+      }
       if (step.__autoRecord) {
         handle.synthetic = true;
         // Desktop app-only context: no window exists yet to crop to. Mark the
@@ -4609,6 +5851,7 @@ async function runStep({
         appSession,
         driver,
         processRegistry,
+        surfaceTracker,
         platform: context?.platform ?? "",
         serverDeps: {
           startServer: async (appiumEntry: string, appiumHome: string) => {
@@ -4640,16 +5883,39 @@ async function runStep({
                 /* best-effort */
               }
             }
-            const server = await startAppiumServer(
-              appiumEntry,
-              config,
-              undefined,
-              env
-            );
-            return { port: server.port, process: server.process };
+            // Load only this platform's app driver (ADR 01117).
+            const driverPackage = context?.platform
+              ? APP_DRIVER_PLATFORMS[context.platform]?.driverPackage
+              : undefined;
+            const extraArgs = driverPackage
+              ? useDriversArgs(appiumHome, [driverPackage])
+              : [];
+            const start = async () => {
+              const server = await startAppiumServer(
+                appiumEntry,
+                config,
+                undefined,
+                env,
+                extraArgs
+              );
+              return { port: server.port, process: server.process };
+            };
+            // iOS contexts share the run's pooled server for this exact launch
+            // environment and argument list (ADR 01115); teardown releases it
+            // via `release`. Deliberately a different key from the mobile-web
+            // site: app servers also carry the ffmpeg PATH, so the two never
+            // share a server.
+            const pool = appSession?.appServerPool;
+            if (pool) {
+              return pool.acquire(JSON.stringify({ appiumEntry, env, extraArgs }), start);
+            }
+            return start();
           },
           startDriver: (capabilities: any, port: number) =>
-            driverStart(capabilities, port, 2, { cacheDir: config?.cacheDir }),
+            driverStart(capabilities, port, 2, {
+              cacheDir: config?.cacheDir,
+              log: (m) => log(config, "warning", m),
+            }),
           // Mobile device acquisition (boot/create-and-boot, or reuse), bound
           // to the run-level registry stashed on the app session. Android uses
           // the emulator layer; iOS uses the simctl simulator layer. Both
@@ -4683,6 +5949,16 @@ async function runStep({
       step: step,
       driver: driver,
       appSession,
+      processRegistry,
+      surfaceTracker,
+      annotationTheme: options?.annotationTheme,
+    });
+  } else if (typeof step.annotate !== "undefined") {
+    actionResult = await annotate({
+      config: config,
+      step: step,
+      driver: driver,
+      annotationTheme: options?.annotationTheme,
     });
   } else if (typeof step.swipe !== "undefined") {
     actionResult = await swipeSurface({
@@ -4690,6 +5966,8 @@ async function runStep({
       step: step,
       driver: driver,
       appSession,
+      processRegistry,
+      surfaceTracker,
     });
   } else if (typeof step.type !== "undefined") {
     actionResult = await typeKeys({
@@ -4698,6 +5976,7 @@ async function runStep({
       driver: driver,
       processRegistry,
       appSession,
+      surfaceTracker,
     });
   } else if (typeof step.wait !== "undefined") {
     actionResult = await wait({ step: step, driver: driver });
@@ -4707,14 +5986,47 @@ async function runStep({
       description: `Unknown step action: ${JSON.stringify(step)}`,
     };
   }
-  // If recording, wait until browser is loaded, then instantiate cursor.
-  // The `getUrl` guard skips the synthetic-cursor dance when `driver` is the
-  // app session's recordingHost (a bare state holder, not a browser session).
-  if (isRecordingActive(driver) && typeof driver.getUrl === "function") {
+  // Re-inject anything we've drawn into the page after a navigation wiped it.
+  // A fresh document has neither the synthetic cursor nor the annotation
+  // layer, so both are re-mounted here rather than in `goTo` — every step that
+  // can navigate lands on this hook.
+  //
+  // The `getUrl` guard skips the dance when `driver` is the app session's
+  // recordingHost (a bare state holder, not a browser session). The condition
+  // is broader than the recording check it started as: persistent annotations
+  // must survive navigation whether or not a recording is running, since a
+  // screenshot taken after a `goTo` should still show them.
+  const persistedAnnotations: any[] = Array.isArray(driver?.state?.annotations)
+    ? driver.state.annotations
+    : [];
+  const recordingActive = isRecordingActive(driver);
+  if (
+    (recordingActive || persistedAnnotations.length > 0) &&
+    typeof driver?.getUrl === "function"
+  ) {
     const currentUrl = await driver.getUrl();
     if (currentUrl !== driver.state.url) {
       driver.state.url = currentUrl;
-      await instantiateCursor(driver);
+      if (recordingActive) await instantiateCursor(driver);
+      if (persistedAnnotations.length > 0) {
+        const kept = pruneExpired(persistedAnnotations, Date.now());
+        driver.state.annotations = kept;
+        try {
+          // Re-mounted annotations are not "new", so they don't replay their
+          // enter transition — a fade-in on every navigation would read as a
+          // glitch in the recording.
+          await renderLayer({
+            config,
+            driver,
+            entries: kept,
+            annotationTheme: options?.annotationTheme,
+          });
+        } catch {
+          // Best-effort: losing the overlay after a navigation shouldn't turn
+          // an otherwise-passing step into a failure. The next annotate step
+          // re-renders from the same state.
+        }
+      }
     }
   }
   // Clean up actionResult outputs
@@ -4767,15 +6079,22 @@ async function runStep({
 // Start one Appium server on a free port and resolve once it answers /status.
 // Each concurrent runner gets its own server (own port) so parallel contexts
 // never create sessions on the same Appium instance.
-async function startAppiumServer(
+// Spawn an Appium server process WITHOUT waiting for readiness. Split out from
+// startAppiumServer so the browser-pool startup (below) can spawn servers
+// SERIALLY — preserving the findFreePort close-to-rebind race protection and
+// avoiding a startup CPU spike — while OVERLAPPING their readiness polls. A
+// single-server caller uses startAppiumServer, which spawns then awaits.
+async function spawnAppiumServer(
   appiumEntry: string,
   config: any,
   display?: string,
   extraEnv?: Record<string, string>,
   // Extra CLI args for the server, e.g. the scoped `--allow-insecure`
   // chromedriver-autodownload opt-in for android mobile-web sessions.
-  extraArgs?: string[]
-): Promise<{ port: number; process: any; display?: string }> {
+  extraArgs?: string[],
+  // Node args placed before the entry, e.g. the reuse watchdog (ADR 01125).
+  nodeArgs?: string[]
+): Promise<AppiumServer> {
   const port = await findFreePort();
   log(config, "debug", `Starting Appium on port ${port}`);
   // When a virtual display is supplied (Linux Xvfb recording), launch the
@@ -4791,12 +6110,20 @@ async function startAppiumServer(
           ...(extraEnv ?? {}),
         }
       : process.env;
-  const proc: any = spawn(
+  const proc = spawn(
     process.execPath,
-    [appiumEntry, "-a", "127.0.0.1", "-p", String(port), ...(extraArgs ?? [])],
+    [
+      ...(nodeArgs ?? []),
+      appiumEntry,
+      "-a",
+      "127.0.0.1",
+      "-p",
+      String(port),
+      ...(extraArgs ?? []),
+    ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      cwd: packageRoot(),
       env,
     }
   );
@@ -4809,38 +6136,92 @@ async function startAppiumServer(
   });
   proc.stdout.on("data", () => {});
   proc.stderr.on("data", () => {});
+  // Overlap webdriverio's ~350 ms import with Appium's boot (ADR 01135).
+  prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir });
+  return { port, process: proc, display };
+}
+
+async function startAppiumServer(
+  appiumEntry: string,
+  config: any,
+  display?: string,
+  extraEnv?: Record<string, string>,
+  // Extra CLI args for the server, e.g. the scoped `--allow-insecure`
+  // chromedriver-autodownload opt-in for android mobile-web sessions.
+  extraArgs?: string[]
+): Promise<AppiumServer> {
+  const server = await spawnAppiumServer(
+    appiumEntry,
+    config,
+    display,
+    extraEnv,
+    extraArgs
+  );
   try {
-    await appiumIsReady(port);
+    await appiumIsReady(server.port, undefined, {
+      pollMs: APPIUM_READY_POLL_MS,
+    });
   } catch (error) {
     // appiumIsReady threw or timed out — the spawned child is still alive and
     // would leak (orphan process, port still bound). Tear it down before
     // propagating so subsequent runs don't trip on the stale state. Awaited
     // so the process is confirmed gone before this function returns control
     // to the caller.
-    await killTree(proc?.pid);
+    await killTree(server.process?.pid);
     throw error;
   }
-  log(config, "debug", `Appium is ready on port ${port}.`);
-  return { port, process: proc, display };
+  log(config, "debug", `Appium is ready on port ${server.port}.`);
+  return server;
 }
 
-// Delay execution until Appium server is available.
-async function appiumIsReady(port: number, timeoutMs: number = 120000) {
-  let isReady = false;
+// Per-probe HTTP timeout for the Appium `/status` check. Bounds a single
+// hung request so the overall readiness timeout can still fire; a healthy
+// server answers in milliseconds.
+const STATUS_PROBE_TIMEOUT_MS = 10000;
+
+// Delay execution until Appium server is available. Probe `/status`
+// IMMEDIATELY, then poll on a short 250ms interval until ready or the overall
+// timeout — a server that is already up returns in ~one round-trip instead of
+// paying a fixed leading 1s sleep (the old loop slept before its first probe).
+// `probe`/`sleep` are injectable for hermetic unit tests; the overall timeout
+// cap (default 120s) is unchanged.
+async function appiumIsReady(
+  port: number,
+  timeoutMs: number = 120000,
+  deps: {
+    probe?: (port: number) => Promise<boolean>;
+    sleep?: (ms: number) => Promise<void>;
+    pollMs?: number;
+  } = {}
+) {
+  const pollMs = deps.pollMs ?? 250;
+  const probe =
+    deps.probe ??
+    (async (p: number) => {
+      try {
+        // Bound each probe: without a per-request timeout a hung /status
+        // response would block this await indefinitely, and the overall
+        // `timeoutMs` guard (checked only between probes) could never fire.
+        const resp = await (await loadAxios()).get(`http://127.0.0.1:${p}/status`, {
+          timeout: STATUS_PROBE_TIMEOUT_MS,
+        });
+        return resp.status === 200;
+      } catch {
+        return false;
+      }
+    });
+  const sleep =
+    deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const start = Date.now();
-  while (!isReady) {
+  while (true) {
+    if (await probe(port)) return true;
     if (Date.now() - start > timeoutMs) {
       throw new Error(
         `Appium server on port ${port} failed to start within ${timeoutMs / 1000} seconds`
       );
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    try {
-      let resp = await axios.get(`http://127.0.0.1:${port}/status`);
-      if (resp.status === 200) isReady = true;
-    } catch {}
+    await sleep(pollMs);
   }
-  return isReady;
 }
 
 // Start the Appium driver specified in `capabilities`.
@@ -4848,7 +6229,14 @@ async function driverStart(
   capabilities: any,
   port: number,
   maxAttempts: number = 4,
-  ctx: { cacheDir?: string } = {}
+  ctx: {
+    cacheDir?: string;
+    // Reports each failed attempt that gets retried (a hung iOS launch
+    // otherwise shows as a silent stall up to the startup ceiling).
+    log?: (message: string) => void;
+    // Test seam for the WebDriver client.
+    remote?: (options: any) => Promise<any>;
+  } = {}
 ) {
   // Retryable session-creation failures (transient races/contention, plus the
   // client-side timeout abort for slow-startup native sessions) are enumerated
@@ -4874,20 +6262,23 @@ async function driverStart(
   let lastError: any;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      // Chromium sessions get a unique free chromedriver port so concurrent
-      // browser contexts never collide on chromedriver's fixed default (9515);
-      // see withChromedriverPort (ADR 01039). A FRESH port is allocated per
+      // Chromium and Gecko sessions get a unique free driver port so
+      // concurrent browser contexts never collide on chromedriver's fixed
+      // default (9515) or geckodriver's lowest-free-in-range pick; see
+      // withDriverPort (ADR 01039, 01105). A FRESH port is allocated per
       // attempt so a retryable ECONNREFUSED — the very rebind-race the Appium
       // path already retries — moves to a new free port instead of re-racing
-      // the same one. Only Chromium caps need a port; every other engine skips
-      // the allocation and keeps a byte-identical wdio.remote payload.
-      const needsChromedriverPort =
-        capabilities?.["appium:automationName"] === "Chromium" &&
-        capabilities?.["appium:chromedriverPort"] === undefined;
-      const attemptCaps = needsChromedriverPort
-        ? withChromedriverPort(capabilities, await findFreePort())
+      // the same one. Engines without a driver port skip the allocation and
+      // keep a byte-identical wdio.remote payload.
+      const attemptCaps = driverPortCapability(capabilities)
+        ? withDriverPort(capabilities, await findFreePort())
         : capabilities;
-      const driver: any = await wdio.remote({
+      // Every attempt is reported to the reuse cache: a failed or abandoned
+      // start may still register a session on this server, so it must not be
+      // handed to a later run (ADR 01125).
+      const settle = appiumServerCache.sessionStarting(port);
+      // Start from a resolved promise so a synchronous throw still settles.
+      const driver: any = await Promise.resolve().then(() => (ctx.remote ?? wdio.remote)({
         protocol: "http",
         hostname: "127.0.0.1",
         port,
@@ -4896,7 +6287,19 @@ async function driverStart(
         capabilities: attemptCaps,
         connectionRetryTimeout: startupCeiling,
         waitforTimeout: 120000, // 2 minutes
-      });
+        // webdriverio 10's `$` throws when a selector matches several
+        // elements. Keep the documented first-match behavior (ADR 01143).
+        strictSelectors: false,
+      })).then(
+        (d: any) => {
+          settle(true);
+          return d;
+        },
+        (e: any) => {
+          settle(false);
+          throw e;
+        }
+      );
       // Per-context mutable state. `recordings` lives here (not on config)
       // so concurrent contexts can't clobber each other's recordings. It is a
       // stack of active recording handles (LIFO) so several can overlap within
@@ -4909,6 +6312,10 @@ async function driverStart(
       if (!isRetryableSessionError(String(err && err.message), startupCeiling))
         throw err;
       if (attempt < maxAttempts) {
+        const reason = String(err?.message ?? err).split("\n")[0];
+        ctx.log?.(
+          `Session start attempt ${attempt} of ${maxAttempts} failed (${reason}); retrying.`
+        );
         await new Promise((r) => setTimeout(r, 500 * attempt));
       }
     }
@@ -4948,18 +6355,30 @@ async function driverStart(
  * ensureBrowserInstalled calls the runTests pre-flight makes. Heavy deps are
  * imported dynamically so a pure HTTP/CLI consumer never loads them.
  */
-async function provisionChromeRuntime(config: any): Promise<void> {
-  const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
-  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
-  const ctx = { cacheDir: config?.cacheDir };
-  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
-  // "warn" → "warning" the same way the runTests pre-flight does.
-  const logger = (msg: string, level: string = "info") =>
+// Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
+// "warn" → "warning" the same way the runTests pre-flight does.
+function chromeRuntimeLogger(config: any) {
+  return (msg: string, level: string = "info") =>
     log(config, level === "warn" ? "warning" : level, msg);
+}
+
+/**
+ * Install the npm half of the Chrome runtime, or reinstall any cached package
+ * whose version no longer matches its pin. A no-op when the cache is current.
+ */
+async function refreshChromeNpmRuntime(config: any): Promise<void> {
+  const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
   await ensureRuntimeInstalled(
     ["webdriverio", "appium", "@puppeteer/browsers", "appium-chromium-driver"],
-    { ctx, deps: { logger } }
+    { ctx: { cacheDir: config?.cacheDir }, deps: { logger: chromeRuntimeLogger(config) } }
   );
+}
+
+async function provisionChromeRuntime(config: any): Promise<void> {
+  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
+  const ctx = { cacheDir: config?.cacheDir };
+  const logger = chromeRuntimeLogger(config);
+  await refreshChromeNpmRuntime(config);
   await ensureBrowserInstalled("chrome", { ctx, deps: { logger } });
   await ensureBrowserInstalled("chromedriver", { ctx, deps: { logger } });
 }
@@ -4981,12 +6400,26 @@ async function ensureChromeAvailable(
   deps: {
     detect: (config: any) => Promise<any[]>;
     provision: (config: any) => Promise<void>;
+    /** Bring cached npm packages up to their pins when Chrome is already present. */
+    refresh?: (config: any) => Promise<void>;
     invalidate: (config: any) => void;
     log?: (config: any, level: string, msg: string) => void;
   }
 ): Promise<any[]> {
   let availableApps = await deps.detect(config);
   if (availableApps.some((app: any) => app.name === "chrome")) {
+    try {
+      await deps.refresh?.(config);
+    } catch (err: any) {
+      // Offline or a failed install: the cached versions still run.
+      deps.log?.(
+        config,
+        "warning",
+        `Couldn't update the cached browser runtime, so this run uses the cached versions: ${
+          err?.message ?? err
+        }`
+      );
+    }
     return availableApps;
   }
   // Chrome not detected — attempt to provision it, then re-detect.
@@ -5115,6 +6548,7 @@ async function getRunner(options: any = {}) {
     availableApps: await ensureChromeAvailable(config, {
       detect: (c: any) => getAvailableApps({ config: c }),
       provision: provisionChromeRuntime,
+      refresh: refreshChromeNpmRuntime,
       invalidate: clearAppCache,
       log,
     }),
@@ -5134,10 +6568,21 @@ async function getRunner(options: any = {}) {
   }
   const appium = spawn(
     process.execPath,
-    [appiumEntry, "-a", "127.0.0.1", "-p", String(appiumPort)],
+    [
+      appiumEntry,
+      "-a",
+      "127.0.0.1",
+      "-p",
+      String(appiumPort),
+      // Load only the desktop browser drivers (ADR 01117).
+      ...useDriversArgs(
+        process.env.APPIUM_HOME!,
+        browserPoolDriverPackages(process.platform)
+      ),
+    ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      cwd: packageRoot(),
     }
   );
   // Without a listener an "error" event from spawn (e.g. ENOENT, EACCES)
@@ -5146,12 +6591,15 @@ async function getRunner(options: any = {}) {
   appium.on("error", (err: any) => {
     log(config, "warning", `Appium process error: ${err?.stack ?? err?.message ?? String(err)}`);
   });
+  prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir }); // ADR 01135
 
   // Wait for Appium to be ready. Same kill-on-throw guard as in
   // runSpecs above — without it, a startup timeout would leave an
   // orphan Appium child holding the ephemeral port.
   try {
-    await appiumIsReady(appiumPort);
+    await appiumIsReady(appiumPort, undefined, {
+      pollMs: APPIUM_READY_POLL_MS,
+    });
   } catch (error) {
     try {
       if (appium && appium.pid) kill(appium.pid);
@@ -5193,6 +6641,16 @@ async function getRunner(options: any = {}) {
       throw new Error(`Failed to start Chrome runner: ${error.message}`);
     }
   }
+
+  // A fresh Chromium session starts parked on its initial blank document
+  // (`data:,`) and sometimes stays there even though `url()` resolved, so the
+  // navigation silently didn't take (ADR 01084, ADR 01088). Steps run through
+  // `runStep` are covered by goTo's guard, but the documented way to drive this
+  // runner is `await runner.url(...)` straight through WebdriverIO, which was
+  // not: the caller got a blank page, and the failure surfaced later as an empty
+  // title or a missing element with nothing pointing at the navigation. Guard
+  // the session's own `url` command so every caller gets the same verification.
+  guardBlankDocumentNavigation(runner, config);
 
   // Set window size
   try {

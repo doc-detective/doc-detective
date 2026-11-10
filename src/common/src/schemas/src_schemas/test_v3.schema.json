@@ -4,6 +4,11 @@
   "type": "object",
   "description": "A Doc Detective test.",
   "properties": {
+    "$schema": {
+      "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
+      "type": "string",
+      "minLength": 1
+    },
     "testId": {
       "type": "string",
       "description": "Unique identifier for the test."
@@ -16,10 +21,42 @@
       "type": "string",
       "description": "Path to the content that the test is associated with."
     },
+    "publicVariables": {
+      "description": "Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "pattern": "\\S" }
+    },
     "detectSteps": {
       "type": "boolean",
       "description": "Whether or not to detect steps in input files based on markup regex.",
       "default": true
+    },
+    "badge": {
+      "type": "boolean",
+      "description": "If `true`, Doc Detective maintains a shields.io \"Last verified\" badge image on the line immediately before this test's inline `test` statement, updating it with today's date whenever the test PASSes and leaving the badge untouched (aging) on any other result. No `testId` is required to opt in — the test is anchored to its write-back by source location (`location`), not by name. Only applies to tests detected from an inline `test` statement (markdown/MDX, AsciiDoc, HTML, DITA); has no effect on tests authored directly in a JSON or YAML spec file, which have no comparable \"line above\" to anchor a badge to."
+    },
+    "location": {
+      "type": "object",
+      "description": "Source location where this test's inline `test` statement was detected in the original file. System-populated metadata; should not be set manually. Setting it by hand on a JSON/YAML spec test is unsupported: if that test also sets `badge: true` and its `contentPath` resolves to a writable format, the write-back writer treats the hand-set location as genuine and may write into that line.",
+      "readOnly": true,
+      "properties": {
+        "line": {
+          "type": "integer",
+          "description": "1-indexed line number in the source file where the `test` statement begins.",
+          "minimum": 1
+        },
+        "startIndex": {
+          "type": "integer",
+          "description": "0-indexed character offset from the start of the source file where the `test` statement begins.",
+          "minimum": 0
+        },
+        "endIndex": {
+          "type": "integer",
+          "description": "0-indexed character offset from the start of the source file immediately after the `test` statement.",
+          "minimum": 0
+        }
+      },
+      "required": ["line", "startIndex", "endIndex"]
     },
     "autoScreenshot": {
       "type": "boolean",
@@ -28,6 +65,10 @@
     "autoRecord": {
       "type": "boolean",
       "description": "If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level."
+    },
+    "annotationDefaults": {
+      "description": "Default visual theme for annotations in this test. Overrides `annotationDefaults` set at the spec or config level. When unset, defers to the spec level, then the config level.",
+      "$ref": "annotationDefaults_v3.schema.json#"
     },
     "runOn": {
       "type": "array",
@@ -90,6 +131,12 @@
         "$ref": "step_v3.schema.json#"
       }
     },
+    "durationMs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total time this test took, in milliseconds: the sum of the per-context durations. A sum rather than a wall-clock span, because this test's contexts share a concurrent pool with every other test's. Present only in test results. System-populated.",
+      "readOnly": true
+    },
     "contexts": {
       "title": "Resolved contexts",
       "type": "array",
@@ -98,6 +145,38 @@
       "items": {
         "type": "object",
         "properties": {
+          "durationMs": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Wall-clock duration of this context in milliseconds, covering preflight, driver startup, every step, and teardown. When the `retries` policy re-ran the context, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. Present only in test results. System-populated.",
+            "readOnly": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this context started, as an ISO 8601 UTC timestamp with milliseconds. When the `retries` policy re-ran the context, this is the start of the FINAL attempt — the attempt the reported `result` describes — matching `durationMs`. Absent for a context that never ran, such as one a spec-level guard skipped. Present only in test results. System-populated.",
+            "readOnly": true
+          },
+          "driver": {
+            "type": "object",
+            "description": "The WebDriver that drove this context's browser, as the browser session reported it. Absent when no browser ran. Present only in test results. System-populated.",
+            "readOnly": true,
+            "additionalProperties": false,
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Name of the driver, for example `chromedriver`, `geckodriver`, or `safaridriver`."
+              },
+              "version": {
+                "type": "string",
+                "description": "Version of the driver, for example `131.0.6778.85`. Absent when the session doesn't report one, as with Safari."
+              }
+            },
+            "title": "Driver"
+          },
           "platform": {
             "type": "string",
             "description": "Platform to run the test on. This is a resolved version of the `platforms` property."
@@ -126,10 +205,14 @@
   },
   "anyOf": [
     {
-      "required": ["steps"]
+      "required": [
+        "steps"
+      ]
     },
     {
-      "required": ["contexts"]
+      "required": [
+        "contexts"
+      ]
     }
   ],
   "additionalProperties": false,
@@ -145,9 +228,14 @@
             {
               "type": "object",
               "not": {
-                "required": ["operationId"]
+                "required": [
+                  "operationId"
+                ]
               },
-              "required": ["name", "descriptionPath"],
+              "required": [
+                "name",
+                "descriptionPath"
+              ],
               "title": "OpenAPI description (test)"
             }
           ]
@@ -175,7 +263,10 @@
             "selector": "[title=Search]",
             "click": true,
             "type": {
-              "keys": ["shorthair cats", "$ENTER$"]
+              "keys": [
+                "shorthair cats",
+                "$ENTER$"
+              ]
             }
           }
         }
@@ -188,7 +279,9 @@
       "after": "cleanup.json",
       "runOn": [
         {
-          "platforms": ["linux"],
+          "platforms": [
+            "linux"
+          ],
           "browsers": {
             "name": "firefox",
             "window": {},
@@ -203,7 +296,9 @@
         {
           "runShell": {
             "command": "echo",
-            "args": ["$USER"],
+            "args": [
+              "$USER"
+            ],
             "maxVariation": 0,
             "overwrite": "aboveVariation"
           },
@@ -230,7 +325,10 @@
                 "job": "leader"
               }
             },
-            "statusCodes": [200, 201],
+            "statusCodes": [
+              200,
+              201
+            ],
             "maxVariation": 0,
             "overwrite": "aboveVariation"
           },
@@ -249,14 +347,18 @@
             "moveTo": true,
             "click": true,
             "type": {
-              "keys": ["shorthair cat"]
+              "keys": [
+                "shorthair cat"
+              ]
             }
           },
           "variables": {}
         },
         {
           "type": {
-            "keys": ["$ENTER$"]
+            "keys": [
+              "$ENTER$"
+            ]
           }
         },
         {
@@ -302,6 +404,28 @@
         }
       ],
       "detectSteps": true
+    },
+    {
+      "annotationDefaults": {
+        "color": "#E11D48",
+        "strokeWidth": 3,
+        "badge": {
+          "background": "#E11D48",
+          "color": "#FFFFFF"
+        }
+      },
+      "steps": [
+        {
+          "screenshot": {
+            "path": "a.png",
+            "annotations": [
+              {
+                "outline": "#submit"
+              }
+            ]
+          }
+        }
+      ]
     }
   ]
 }

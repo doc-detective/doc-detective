@@ -1,0 +1,109 @@
+{
+  "specId": "coercion",
+  "description": "Authored booleans, numbers, and strings keep their types through validation (ADR 01161). Before, coercion turned `find.click: false` into the string \"false\" (so it clicked), and `elementAttribute` `true`/`false` into value matches on \"true\"/\"false\". The rejected top-level `click: true`/`click: false` forms FAIL by design, so test/findElement.test.js asserts them instead.",
+  "tests": [
+    {
+      "testId": "coercion-permutations",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/coercion.html"
+        },
+        {
+          "stepId": "find-click-false",
+          "description": "click: false finds the element without clicking it.",
+          "find": {
+            "selector": "#counter",
+            "click": false
+          }
+        },
+        {
+          "stepId": "assert-find-click-false-no-click",
+          "find": {
+            "selector": "#counter",
+            "elementAttribute": {
+              "data-left": "0"
+            }
+          }
+        },
+        {
+          "stepId": "find-click-true",
+          "find": {
+            "selector": "#counter",
+            "click": true
+          }
+        },
+        {
+          "stepId": "assert-find-click-true-left-click",
+          "find": {
+            "selector": "#counter",
+            "elementAttribute": {
+              "data-left": "1"
+            }
+          }
+        },
+        {
+          "stepId": "find-click-right",
+          "find": {
+            "selector": "#counter",
+            "click": "right"
+          }
+        },
+        {
+          "stepId": "assert-find-click-right-right-click",
+          "find": {
+            "selector": "#counter",
+            "elementAttribute": {
+              "data-left": "1",
+              "data-right": "1"
+            }
+          }
+        },
+        {
+          "stepId": "element-attribute-true-is-presence",
+          "description": "true matches an attribute that's present, whatever its value (here \"yes\").",
+          "find": {
+            "selector": "#attrs",
+            "elementAttribute": {
+              "data-present": true
+            }
+          }
+        },
+        {
+          "stepId": "element-attribute-false-is-absence",
+          "description": "false matches an element without the attribute: the counter button isn't disabled.",
+          "find": {
+            "selector": "#counter",
+            "elementAttribute": {
+              "disabled": false
+            }
+          }
+        },
+        {
+          "stepId": "element-attribute-string-true-is-value",
+          "description": "The string \"true\" matches the value, so the first .pair (aria-expanded=\"false\") is skipped.",
+          "find": {
+            "selector": ".pair",
+            "elementAttribute": {
+              "aria-expanded": "true"
+            }
+          },
+          "assertions": "$$outputs.element.text == \"Expanded\""
+        },
+        {
+          "stepId": "click-quoted-true",
+          "description": "A quoted \"true\" is element text: it clicks the button labeled true.",
+          "click": "true"
+        },
+        {
+          "stepId": "assert-click-quoted-true-landed",
+          "find": {
+            "selector": "#true-label",
+            "elementAttribute": {
+              "data-clicked": "yes"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

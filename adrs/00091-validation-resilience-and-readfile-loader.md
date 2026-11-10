@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-As the schema set grew to include OpenAPI-derived fields, AJV began rejecting union-type fields (the `openApi` examples carry multiple JSON types) unless `allowUnionTypes` was enabled. Separately, `validate(schemaKey, object)` threw — and crashed the process — when a caller passed an unknown `schemaKey`, and validation with defaults mutated the caller's object in place. There was also no single place to load a spec/config from disk or a URL regardless of format. How should validation tolerate union types, fail soft on a missing schema, avoid mutating inputs, and load JSON/YAML/remote sources uniformly?
+As the schema set grew to include OpenAPI-derived fields, AJV began rejecting union-type fields, since the `openApi` examples carry multiple JSON types. Enabling `allowUnionTypes` was required. Separately, `validate(schemaKey, object)` threw, and crashed the process, when a caller passed an unknown `schemaKey`. Validation with defaults also mutated the caller's object in place. There was no single place to load a spec or config from disk or a URL, regardless of format. How should validation tolerate union types, fail soft on a missing schema, avoid mutating inputs, and load JSON, YAML, and remote sources uniformly?
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ As the schema set grew to include OpenAPI-derived fields, AJV began rejecting un
 
 ## Decision Outcome
 
-Chosen option: **A**. The AJV instance is constructed with `allowUnionTypes: true` so OpenAPI example fields validate. `validate(schemaKey, object, addDefaults = true)` returns a structured "Schema not found" result instead of throwing when the key is unknown; with `addDefaults = false` it deep-clones the input before validating so the caller's object is never mutated. A new `readFile()` loader resolves a path or URL and parses JSON, YAML, or a remote payload (via axios) into an object, giving every caller one entry point.
+Chosen option: **A**. The AJV instance is constructed with `allowUnionTypes: true` so OpenAPI example fields validate. `validate(schemaKey, object, addDefaults = true)` returns a structured "Schema not found" result instead of throwing when the key is unknown. With `addDefaults = false` it deep-clones the input before validating, so the caller's object is never mutated. A new `readFile()` loader resolves a path or URL. It parses JSON, YAML, or a remote payload through axios into an object, giving every caller one entry point.
 
 ### Consequences
 

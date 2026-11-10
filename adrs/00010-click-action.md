@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Interacting with the UI requires clicking elements — buttons, links, controls — as part of a documented procedure. With `find` already locating an element via a CSS selector (ADR 00008), the runner needed a step that clicks the located element. The commit `0581b404` (2022-05-07) added a `click` action: `runAction`'s `case "click"` finds the element and clicks it. What step should perform a click, and how does it locate its target?
+Interacting with the UI requires clicking elements, such as buttons, links, and controls, as part of a documented procedure. With `find` already locating an element via a CSS selector (ADR 00008), the runner needed a step that clicks the located element. The commit `0581b404` (2022-05-07) added a `click` action: `runAction`'s `case "click"` finds the element and clicks it. What step should perform a click, and how does it locate its target?
 
 ## Decision Drivers
 
@@ -24,7 +24,7 @@ Interacting with the UI requires clicking elements — buttons, links, controls 
 
 ## Decision Outcome
 
-Chosen option: **a dedicated `click` action**, because clicking is a distinct, common step that belongs in the action enum, and reusing the CSS-selector locating keeps it consistent with `find`.
+Chosen option: **a dedicated `click` action**. Clicking is a distinct, common step that belongs in the action enum. Reusing the CSS-selector locating keeps it consistent with `find`.
 
 Behavior decided:
 
@@ -34,7 +34,7 @@ Behavior decided:
 
 * Good: explicit, enumerable click step consistent with `find`.
 * Good: selector-based clicks are stable across viewports (unlike coordinates).
-* Neutral: clicking is later also offered as a nested sub-action of `find` (ADR 00025) so a single step can find-and-click; the standalone `click` and the inline form coexist and evolve through the v2/v3 schema redesigns.
+* Neutral: clicking is later also offered as a nested sub-action of `find` (ADR 00025), so a single step can find-and-click. The standalone `click` and the inline form coexist, and evolve through the v2/v3 schema redesigns.
 
 ### Confirmation
 
@@ -56,4 +56,4 @@ Observable in `runAction` `case "click"` performing `findElement` followed by `c
 
 ## More Information
 
-Recorded retrospectively (ADR backfill). Origin: doc-detective commit `0581b404`. Inventory ref: BACKFILL-INVENTORY.md Seq 11. Related: ADR 00008 (`find` single CSS selector), ADR 00025 (supercharged `find` sub-actions including inline click).
+Recorded retrospectively (ADR backfill). Origin: doc-detective commit `0581b404`. Inventory ref: BACKFILL-INVENTORY.md Seq 11. Related: ADR 00008 (`find` single CSS selector), ADR 00025 (expanded `find` sub-actions including inline click).

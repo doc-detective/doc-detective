@@ -1,5 +1,4 @@
 import { validate } from "../../common/src/validate.js";
-import axios from "axios";
 import fs from "node:fs";
 import path from "node:path";
 import _Ajv from "ajv";
@@ -9,6 +8,7 @@ import {
   log,
   calculateFractionalDifference,
   replaceEnvs,
+  loadAxios,
 } from "../utils.js";
 import {
   buildConditionContext,
@@ -157,10 +157,10 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     }
     // Set status code
     if (step.httpRequest.openApi.statusCode) {
-      step.httpRequest.statusCodes = [
-        step.httpRequest.openApi.statusCode,
-        ...(step.httpRequest.statusCodes || []),
-      ];
+      // concat accepts the scalar or array statusCodes shape.
+      step.httpRequest.statusCodes = [step.httpRequest.openApi.statusCode].concat(
+        step.httpRequest.statusCodes || []
+      );
     } else if (!step.httpRequest.statusCodes) {
       step.httpRequest.statusCodes = Object.keys(
         operation.definition.responses
@@ -194,15 +194,23 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   step.httpRequest = {
     ...step.httpRequest,
     method: step.httpRequest.method || "get",
-    statusCodes: step.httpRequest.statusCodes || [200, 201],
+    // A scalar statusCodes is one accepted code (as in checkLink).
+    statusCodes: ([] as number[]).concat(step.httpRequest.statusCodes || [200, 201]),
     request: step.httpRequest.request || {
       params: {},
       headers: {},
       body: {},
     },
+    // NOTE: `body` is deliberately NOT defaulted here (unlike `headers`/
+    // `required`). Defaulting it to `{}` used to make the body-match check
+    // below run unconditionally -- even when the step never asked for a body
+    // assertion -- and silently required the response to be a JSON object,
+    // failing any non-JSON (or empty) response. Leaving `body` genuinely
+    // `undefined` when unset lets the existing `typeof !== "undefined"` guard
+    // skip the check entirely, matching the documented "$$bodyMatches ...
+    // when response.body is set" contract. See ADR on this fix.
     response: {
       headers: {},
-      body: {},
       required: [],
       ...(step.httpRequest.response || {}),
     },
@@ -295,6 +303,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   ) {
     const ajv = new Ajv({
       strictSchema: false,
+      logger: false,
       useDefaults: true,
       allErrors: true,
       allowUnionTypes: true,
@@ -319,7 +328,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   let response: any = {};
   if (!step?.httpRequest?.openApi?.mockResponse) {
     // Perform request
-    response = await axios(request)
+    response = await (await loadAxios())(request)
       .then((response: any) => {
         return response;
       })
@@ -418,6 +427,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   ) {
     const ajv = new Ajv({
       strictSchema: false,
+      logger: false,
       useDefaults: true,
       allErrors: true,
       allowUnionTypes: true,

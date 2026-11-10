@@ -1,0 +1,156 @@
+{
+  "specId": "active-surface-windows",
+  "description": "Uniform active-surface routing (ADR 01081) on Windows: surface-sensitive steps that omit `surface` act on the most recently active surface — here the app that startSurface just opened — and an explicit `surface` reference switches the active surface for the surface-less steps that follow. The app-only test proves every surface-sensitive step kind (click string shorthand, find, type, swipe, screenshot) routes to the app with no `surface` on any step (pre-ADR these fell through to a browser path and failed); the mixed test proves the most-recently-active rule across kinds — browser → app → explicit back to browser → explicit back to app — and that closing the active surface falls through to the next live one. Character Map is the target app for the same reason as app-surfaces.spec.json (a real Win32 executable on every Windows edition).",
+  "tests": [
+    {
+      "testId": "active-surface-app-only",
+      "description": "Launch Character Map, then drive it with ONLY surface-less steps: click by string shorthand (maps to the app's element text), type into the copy box, find the Copy button, swipe the character grid, and screenshot — none carry `surface`. Then reference the app explicitly once and follow with another surface-less find to prove the explicit reference persists as the active surface. No browser is provisioned for this test (the classification exclusion is part of the feature).",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "click": "Select"
+        },
+        {
+          "type": {
+            "keys": [
+              "AB"
+            ],
+            "selector": "//Edit[@Name=\"Characters to copy :\"]",
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "timeout": 15000
+          }
+        },
+        {
+          "swipe": {
+            "direction": "up",
+            "distance": 0.3
+          }
+        },
+        {
+          "screenshot": {
+            "path": "active-surface-app.png",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "elementText": "Select",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "active-surface-mixed-windows",
+      "description": "The most-recently-active rule across kinds: goTo makes the browser active (surface-less find hits the page), startSurface makes the app active (surface-less find hits the app), an explicit engine reference switches back to the browser (the surface-less follow-up stays there), an explicit app reference switches back to the app, and closing the app falls through to the browser — the next live surface — for the final surface-less find. Pinned to chrome so the engine-keyword reference matches the context's session.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ],
+          "browsers": [
+            {
+              "name": "chrome"
+            }
+          ],
+          "requires": {
+            "files": [
+              "C:\\Windows\\System32\\charmap.exe"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": "Common HTML Elements"
+        },
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Select",
+            "timeout": 15000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Common HTML Elements",
+            "surface": "chrome"
+          }
+        },
+        {
+          "find": "Text Inputs"
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "surface": {
+              "app": "charmap"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        },
+        {
+          "find": "Buttons"
+        }
+      ]
+    }
+  ]
+}

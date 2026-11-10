@@ -8,11 +8,12 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Test sources were assumed to be local files on disk, but users wanted to point Doc Detective at
-documentation hosted at a URL (a published doc page or raw file). The resolver had no way to consume
+Test sources were assumed to be local files on disk. But users wanted to point Doc Detective at
+documentation hosted at a URL, such as a published doc page or raw file. The resolver had no way to
+consume
 a remote source, and downloading repeatedly or into the project tree would be wasteful and leave
-debris. How should a source given as a URL be turned into something the local detect/parse pipeline
-can read, and how is the downloaded artifact cleaned up?
+debris. How should a source given as a URL become something the local detect/parse pipeline can
+read? And how is the downloaded artifact cleaned up?
 
 ## Decision Drivers
 
@@ -23,9 +24,9 @@ can read, and how is the downloaded artifact cleaned up?
 
 ## Considered Options
 
-* **A. Detect sources starting with `http`, fetch via axios into an md5-named file under
-  `os.tmpdir()`, use it as the local source, and `cleanTemp()` after the run (later tightened to
-  `http(s)://` only)** (chosen).
+* **A. Detect sources starting with `http`, and fetch them through axios into an md5-named file
+  under `os.tmpdir()`. Use that as the local source, then `cleanTemp()` after the run. Later
+  tightened to `http(s)://` only** (chosen).
 * **B. Require users to download remote docs themselves before running.**
 * **C. Stream remote content in memory without a temp file.**
 
@@ -33,9 +34,9 @@ can read, and how is the downloaded artifact cleaned up?
 
 Chosen option: **A** (`core`, commits `ba7317`, `70e292`, `4ded9e`):
 
-1. **Detection + fetch**: a source whose path starts with `http` is fetched via axios; the content is
-   written to `os.tmpdir()` under an md5-hash-derived filename and used as the local source for the
-   detect/parse pipeline.
+1. **Detection and fetch**: a source whose path starts with `http` is fetched through axios. The
+   content is written to `os.tmpdir()` under an md5-hash-derived filename, and used as the local
+   source for the detect/parse pipeline.
 2. **Cleanup**: `cleanTemp()` removes the downloaded artifacts after the run completes.
 3. **Tightening**: the prefix check is later narrowed from `http` to `http(s)://` so only genuine web
    URLs are fetched.

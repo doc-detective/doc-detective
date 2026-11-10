@@ -28,6 +28,11 @@
             ]
           },
           "assertions": "$$outputs.exitCode oneOf [0]"
+        },
+        {
+          "description": "oneOf with an unquoted bare-word array (ADR 01052): $$platform is always one of these three, on every OS, so this must PASS everywhere. Regression guard for #585, where bare words in a oneOf array silently evaluated to undefined/false instead of matching.",
+          "runShell": "node -e \"process.exit(0)\"",
+          "assertions": "$$platform oneOf [linux, mac, windows]"
         }
       ]
     },

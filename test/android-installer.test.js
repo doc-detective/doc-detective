@@ -25,6 +25,11 @@ import {
   runSdkInstallWithRetry,
   isSystemImageComplete,
   SDK_INSTALL_MAX_ATTEMPTS,
+  resetCleanSnapshots,
+  hasCleanSnapshot,
+  discardCleanSnapshot,
+  readCleanSnapshotMeta,
+  writeCleanSnapshotMeta,
 } from "../dist/runtime/androidInstaller.js";
 import fs from "node:fs";
 import os from "node:os";
@@ -706,6 +711,117 @@ describe("android installer: installAndroid orchestration", function () {
   });
 });
 
+describe("android installer: resetCleanSnapshots (ADR 01106)", function () {
+  let home;
+  const clean = (avdDir) => path.join(avdDir, "snapshots", "doc-detective-clean");
+  beforeEach(function () {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), "dd-avd-reset-"));
+  });
+  afterEach(function () {
+    fs.rmSync(home, { recursive: true, force: true });
+  });
+
+  it("deletes only Doc Detective's clean snapshot from every AVD, honoring the ini path", function () {
+    // a: ini points at a non-default directory, and has a user snapshot too.
+    const aDir = path.join(home, "elsewhere", "a.avd");
+    fs.mkdirSync(clean(aDir), { recursive: true });
+    fs.mkdirSync(path.join(aDir, "snapshots", "user-snap"), { recursive: true });
+    fs.writeFileSync(path.join(home, "a.ini"), `avd.ini.encoding=UTF-8\npath=${aDir}\ntarget=android-36\n`);
+    // b: no path line — the default <home>/<name>.avd layout.
+    fs.mkdirSync(clean(path.join(home, "b.avd")), { recursive: true });
+    fs.writeFileSync(path.join(home, "b.ini"), "target=android-36\n");
+    // c: no clean snapshot to reset.
+    fs.mkdirSync(path.join(home, "c.avd"), { recursive: true });
+    fs.writeFileSync(path.join(home, "c.ini"), `path=${path.join(home, "c.avd")}\n`);
+
+    const result = resetCleanSnapshots({ avdHome: home });
+    expect(result.reset.sort()).to.deep.equal(["a", "b"]);
+    expect(result.failed).to.deep.equal([]);
+    expect(fs.existsSync(clean(aDir))).to.equal(false);
+    expect(fs.existsSync(clean(path.join(home, "b.avd")))).to.equal(false);
+    expect(fs.existsSync(path.join(aDir, "snapshots", "user-snap"))).to.equal(true);
+  });
+
+  it("dryRun reports what would be reset without deleting anything", function () {
+    fs.mkdirSync(clean(path.join(home, "a.avd")), { recursive: true });
+    fs.writeFileSync(path.join(home, "a.ini"), "target=android-36\n");
+    const result = resetCleanSnapshots({ avdHome: home, dryRun: true });
+    expect(result).to.deep.equal({ reset: ["a"], failed: [] });
+    expect(fs.existsSync(clean(path.join(home, "a.avd")))).to.equal(true);
+  });
+
+  it("returns nothing to reset when the AVD home doesn't exist", function () {
+    expect(resetCleanSnapshots({ avdHome: path.join(home, "missing") })).to.deep.equal({
+      reset: [],
+      failed: [],
+    });
+  });
+
+  it("rethrows AVD-home read errors other than a missing directory", function () {
+    const readdirSync = () => {
+      throw Object.assign(new Error("access denied"), { code: "EACCES" });
+    };
+    expect(() => resetCleanSnapshots({ avdHome: home, readdirSync })).to.throw(/access denied/);
+  });
+
+  it("keeps resetting the other AVDs when one removal fails, and reports it", function () {
+    // e.g. EBUSY on Windows while an emulator still holds that snapshot open.
+    for (const name of ["a", "b"]) {
+      fs.mkdirSync(clean(path.join(home, `${name}.avd`)), { recursive: true });
+      fs.writeFileSync(path.join(home, `${name}.ini`), "target=android-36\n");
+    }
+    const rmSync = (target, opts) => {
+      if (target.includes(`${path.sep}a.avd${path.sep}`)) {
+        throw Object.assign(new Error("resource busy"), { code: "EBUSY" });
+      }
+      fs.rmSync(target, opts);
+    };
+    const result = resetCleanSnapshots({ avdHome: home, rmSync });
+    expect(result.reset).to.deep.equal(["b"]);
+    expect(result.failed).to.deep.equal([{ name: "a", error: "resource busy" }]);
+    expect(fs.existsSync(clean(path.join(home, "b.avd")))).to.equal(false);
+  });
+
+  it("hasCleanSnapshot needs a complete snapshot (snapshot.pb) in the AVD's ini-resolved dir", function () {
+    const aDir = path.join(home, "elsewhere", "a.avd");
+    fs.writeFileSync(path.join(home, "a.ini"), `path=${aDir}\n`);
+    expect(hasCleanSnapshot("a", { avdHome: home })).to.equal(false);
+    // A directory without snapshot.pb is a partial/aborted save.
+    fs.mkdirSync(clean(aDir), { recursive: true });
+    expect(hasCleanSnapshot("a", { avdHome: home })).to.equal(false);
+    fs.writeFileSync(path.join(clean(aDir), "snapshot.pb"), "x");
+    expect(hasCleanSnapshot("a", { avdHome: home })).to.equal(true);
+    // Unknown AVD.
+    expect(hasCleanSnapshot("nope", { avdHome: home })).to.equal(false);
+  });
+
+  it("writes and reads the clean snapshot's metadata (the driver version it was built for)", function () {
+    const aDir = path.join(home, "a.avd");
+    fs.mkdirSync(clean(aDir), { recursive: true });
+    fs.writeFileSync(path.join(home, "a.ini"), "target=android-36\n");
+    expect(readCleanSnapshotMeta("a", { avdHome: home })).to.equal(null);
+    writeCleanSnapshotMeta("a", { driverVersion: "8.7.0" }, { avdHome: home });
+    expect(readCleanSnapshotMeta("a", { avdHome: home })).to.deep.equal({ driverVersion: "8.7.0" });
+    // A corrupt marker reads as absent rather than throwing.
+    fs.writeFileSync(path.join(clean(aDir), "doc-detective.json"), "{not json");
+    expect(readCleanSnapshotMeta("a", { avdHome: home })).to.equal(null);
+  });
+
+  it("discardCleanSnapshot removes one AVD's clean snapshot only", function () {
+    const aDir = path.join(home, "a.avd");
+    const bDir = path.join(home, "b.avd");
+    fs.mkdirSync(clean(aDir), { recursive: true });
+    fs.mkdirSync(clean(bDir), { recursive: true });
+    fs.writeFileSync(path.join(home, "a.ini"), "target=android-36\n");
+    fs.writeFileSync(path.join(home, "b.ini"), "target=android-36\n");
+    discardCleanSnapshot("a", { avdHome: home });
+    expect(fs.existsSync(clean(aDir))).to.equal(false);
+    expect(fs.existsSync(clean(bDir))).to.equal(true);
+    // Idempotent when nothing is there.
+    discardCleanSnapshot("a", { avdHome: home });
+  });
+});
+
 describe("android installer: portable JRE", function () {
   it("builds the Temurin download URL per OS/arch", function () {
     expect(jreDownloadUrl("linux", "x64")).to.match(
@@ -863,6 +979,58 @@ describe("android installer: SDK install self-repair", function () {
     expect(slept).to.have.length(1); // backed off once
     // The retry is surfaced, never silent.
     expect(warns.some(([m, l]) => l === "warn" && /retry/i.test(m))).to.equal(true);
+  });
+
+  // #754: the real backoff must keep the process alive. An unref'd timer let
+  // `install android` exit 0 mid-retry when nothing else was pending.
+  it("keeps the process alive through the real backoff (child process)", async function () {
+    this.timeout(15000);
+    const { execFileSync } = await import("node:child_process");
+    const { pathToFileURL } = await import("node:url");
+    const mod = pathToFileURL(
+      path.resolve("dist/runtime/androidInstaller.js")
+    ).href;
+    const script = `
+      const { runSdkInstallWithRetry } = await import(${JSON.stringify(mod)});
+      let calls = 0;
+      await runSdkInstallWithRetry(
+        () => ++calls === 1
+          ? Promise.reject(new Error("Error on ZipFile unknown archive"))
+          : Promise.resolve("ok"),
+        "sdkmanager", ["x"], {}, { maxAttempts: 2 }
+      );
+      process.stdout.write("retried:" + calls);
+    `;
+    const out = execFileSync(process.execPath, ["--input-type=module", "-e", script], {
+      encoding: "utf8",
+    });
+    expect(out).to.equal("retried:2");
+  });
+
+  it("exits non-zero after the real backoff when every attempt fails (child process)", async function () {
+    this.timeout(15000);
+    const { spawnSync } = await import("node:child_process");
+    const { pathToFileURL } = await import("node:url");
+    const mod = pathToFileURL(
+      path.resolve("dist/runtime/androidInstaller.js")
+    ).href;
+    const script = `
+      const { runSdkInstallWithRetry } = await import(${JSON.stringify(mod)});
+      let calls = 0;
+      try {
+        await runSdkInstallWithRetry(
+          () => { calls++; return Promise.reject(new Error("unknown archive")); },
+          "sdkmanager", ["x"], {}, { maxAttempts: 2 }
+        );
+      } finally {
+        process.stdout.write("attempts:" + calls);
+      }
+    `;
+    const res = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+      encoding: "utf8",
+    });
+    expect(res.stdout).to.equal("attempts:2"); // reached the last attempt
+    expect(res.status).to.equal(1); // the final rejection fails the process
   });
 
   it("rethrows a non-transient failure immediately (no retry, no mask)", async function () {

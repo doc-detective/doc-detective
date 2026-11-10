@@ -4,13 +4,17 @@
   "description": "Click or tap an element.",
   "anyOf": [
     {
+      "enum": [
+        true,
+        false
+      ],
+      "$comment": "Boolean first, as an enum: Ajv coerces only through `type`, so this branch matches real booleans and coerces nothing. A `type: boolean` branch here would turn \"true\" into true, and a later one would let the string branch turn false into \"false\". As a top-level `click`, a boolean names no element and the step fails; inside `find`, it turns the click on or off. See ADR 01161."
+    },
+    {
       "$ref": "#/components/schemas/string"
     },
     {
       "$ref": "#/components/schemas/object"
-    },
-    {
-      "type": "boolean"
     }
   ],
   "components": {
@@ -82,7 +86,7 @@
             "$ref": "#/components/schemas/duration"
           },
           "surface": {
-            "description": "The browser window/tab or app window this step acts on. Omit to act on the active tab. The targeted surface stays focused afterward. App surfaces use the object form ({ \"app\": … }).",
+            "description": "The browser window/tab or app window this step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }).",
             "anyOf": [
               {
                 "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
@@ -129,17 +133,7 @@
             "type": "object",
             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
             "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
-              ]
+              "type": ["boolean", "number", "string"]
             }
           },
           "elementAria": {
@@ -151,7 +145,6 @@
     }
   },
   "examples": [
-    true,
     "Submit",
     {
       "button": "left",

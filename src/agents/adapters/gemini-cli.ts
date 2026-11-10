@@ -1,7 +1,6 @@
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import axios from "axios";
 import type {
   AgentAdapter,
   DetectionResult,
@@ -11,6 +10,7 @@ import type {
   Scope,
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
+import { AGENT_TOOLS_REF, agentToolsRawUrl } from "../fetcher.js";
 
 export interface RunResult {
   stdout: string;
@@ -28,8 +28,7 @@ export interface GeminiCliDeps {
 
 const EXTENSION_NAME = "doc-detective";
 const GIT_SOURCE = "https://github.com/doc-detective/agent-tools.git";
-const LATEST_MANIFEST_URL =
-  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/gemini-extension.json";
+const LATEST_MANIFEST_URL = agentToolsRawUrl("gemini-extension.json");
 
 export function defaultGeminiCliDeps(): GeminiCliDeps {
   return {
@@ -42,7 +41,7 @@ export function defaultGeminiCliDeps(): GeminiCliDeps {
        * seam at this exact spot (this closure IS the seam other tests inject
        * a fake for). Exercising it would require a live network peer, which
        * would make the suite flaky/non-hermetic per ADR 01017. */
-      const response = await axios.get(LATEST_MANIFEST_URL, {
+      const response = await (await import("axios")).default.get(LATEST_MANIFEST_URL, {
         timeout: 5000,
         responseType: "json",
       });
@@ -181,11 +180,16 @@ export class GeminiCliAdapter implements AgentAdapter {
     }
 
     type Cmd = [string, ...string[]];
+    // `extensions update` takes no `--ref`. It replays the ref recorded at
+    // install, so a pinned install stays on AGENT_TOOLS_REF (ADR 01181). Docs:
+    // https://github.com/google-gemini/gemini-cli/blob/main/docs/extensions/releasing.md
+    // An install made before the pin recorded no ref and follows the default branch.
     const commands: Cmd[] = isInstalled
       ? [["gemini", "extensions", "update", EXTENSION_NAME]]
       : [
           [
             "gemini", "extensions", "install", GIT_SOURCE,
+            "--ref", AGENT_TOOLS_REF,
             "--auto-update", "--consent", "--skip-settings",
           ],
         ];
@@ -211,7 +215,7 @@ export class GeminiCliAdapter implements AgentAdapter {
         const code = (err as NodeJS.ErrnoException | undefined)?.code;
         if (code === "ENOENT") {
           throw new Error(
-            "Gemini CLI is not installed or not on PATH. Run `npm install -g @google/gemini-cli` and re-run install-agents."
+            "Gemini CLI is not installed or not on PATH. Run `npm install -g @google/gemini-cli` and re-run `install agents`."
           );
         }
         throw err;

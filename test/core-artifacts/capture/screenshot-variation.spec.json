@@ -1,0 +1,81 @@
+{
+  "specId": "screenshot-variation",
+  "description": "Screenshot variation permutations through the real runner (ADR 01142: pixelmatch 8 at threshold 0 keeps v7's counts). Each test seeds its own reference (overwrite true, unique path, so concurrent runners and reruns can't interfere), then compares a second capture against it and asserts outputs.variation in runShell. Within maxVariation -> PASS. Over maxVariation -> WARNING by design (visual drift is a warning signal; the fixture gate fails only on FAIL), and the runShell assert pins that the variation really exceeded the tolerance.",
+  "tests": [
+    {
+      "testId": "variation-within",
+      "description": "Same page captured twice: variation stays within maxVariation, so the compare step PASSes.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "stepId": "variation-within-seed",
+          "screenshot": {
+            "path": "variation-within.png",
+            "directory": "static/images",
+            "overwrite": "true"
+          }
+        },
+        {
+          "stepId": "variation-within-compare",
+          "screenshot": {
+            "path": "variation-within.png",
+            "directory": "static/images",
+            "maxVariation": 0.05,
+            "overwrite": "aboveVariation"
+          },
+          "variables": {
+            "VARIATION_WITHIN": "$$variation"
+          }
+        },
+        {
+          "description": "Assert the comparison ran and measured a variation within maxVariation.",
+          "runShell": "node -e \"const v = Number(process.env.VARIATION_WITHIN); process.exit(v >= 0 && v <= 0.05 ? 0 : 1)\""
+        }
+      ]
+    },
+    {
+      "testId": "variation-over",
+      "description": "Typing into an empty input changes most of its cropped pixels: variation exceeds maxVariation, so the compare step returns WARNING.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "stepId": "variation-over-seed",
+          "screenshot": {
+            "path": "variation-over.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#text-input"
+          }
+        },
+        {
+          "find": {
+            "selector": "#text-input",
+            "click": true,
+            "type": "hello"
+          }
+        },
+        {
+          "stepId": "variation-over-compare",
+          "screenshot": {
+            "path": "variation-over.png",
+            "directory": "static/images",
+            "maxVariation": 0.01,
+            "overwrite": "aboveVariation",
+            "crop": "#text-input"
+          },
+          "variables": {
+            "VARIATION_OVER": "$$variation"
+          }
+        },
+        {
+          "description": "Assert the comparison ran and measured a variation above maxVariation.",
+          "runShell": "node -e \"const v = Number(process.env.VARIATION_OVER); process.exit(v > 0.01 ? 0 : 1)\""
+        }
+      ]
+    }
+  ]
+}

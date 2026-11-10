@@ -206,9 +206,10 @@ async function closeSurface({
       continue;
     }
 
-    // App surfaces (native app phase A1). The object form is authoritative;
-    // window-scoped app closes land in a later phase (the whole surface
-    // closes for now — the session ends, terminating a driver-launched app).
+    // App surfaces (native app phase A1). The object form is authoritative.
+    // A `window` selector closes ONE window and keeps the surface (ADR 01036,
+    // the branch below); without one the whole surface closes, ending the
+    // session and terminating a driver-launched app.
     if (
       item &&
       typeof item === "object" &&

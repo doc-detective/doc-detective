@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
+import { getRuntimeDir } from "../dist/runtime/cacheDir.js";
 import {
   classifyAppIdentifier,
   defaultAppSurfaceName,
@@ -27,6 +28,7 @@ import {
   findAppElement,
   closeAppSurface,
   teardownAppSession,
+  createAppServerPool,
   snapshotAppServerDescendants,
   reapConsoleOrphans,
   listWindowsDescendantPids,
@@ -593,35 +595,48 @@ describe("appSurfacePreflight", function () {
     assert.match(outcome.reason, /macOS/);
   });
 
+  // Every Appium server is homed at <cacheDir>/runtime (ADR 01111). The
+  // runtime resolver is stubbed and the cacheDir is a scratch dir so these
+  // tests never touch (or install into) the real runtime cache.
+  let scratchCache;
+  beforeEach(function () {
+    scratchCache = fs.mkdtempSync(path.join(os.tmpdir(), "dd-preflight-"));
+  });
+  afterEach(function () {
+    fs.rmSync(scratchCache, { recursive: true, force: true });
+  });
+  const inRuntime = (name) => `/runtime/node_modules/${name}/index.js`;
+  const noInstall = async () => {
+    throw new Error("test must not install anything");
+  };
+
   it("resolves the macOS driver (appium-mac2-driver) on mac", async function () {
     // A2: the preflight is platform-tabled — on mac it must resolve/install
     // the Mac2 driver, never the Windows one.
-    const sep = path.sep;
     const requested = [];
     const outcome = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "mac",
       deps: {
-        resolveSource: (name) => {
+        resolvePathInCache: (name) => {
           requested.push(name);
-          return "shim";
+          return inRuntime(name);
         },
-        resolvePath: (name) =>
-          `${sep}repo${sep}node_modules${sep}${name}${sep}index.js`,
+        ensureInstalled: noInstall,
         probeAccessibility: async () => true,
       },
     });
     assert.equal(outcome.ok, true);
-    assert.equal(outcome.appiumHome, `${sep}repo`);
-    assert.deepEqual(requested, ["appium-mac2-driver"]);
+    assert.ok(requested.includes("appium-mac2-driver"));
+    assert.ok(!requested.includes("appium-novawindows-driver"));
   });
 
   it("skips when the driver cannot be installed", async function () {
     const outcome = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "windows",
       deps: {
-        resolveSource: () => null,
+        resolvePathInCache: () => null,
         ensureInstalled: async () => {
           throw new Error("offline");
         },
@@ -632,28 +647,24 @@ describe("appSurfacePreflight", function () {
     assert.match(outcome.reason, /offline/);
   });
 
-  it("resolves the shim home when the driver is shim-installed", async function () {
-    const sep = path.sep;
+  it("homes the server at <cacheDir>/runtime with the runtime's appium", async function () {
     const outcome = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "windows",
-      deps: {
-        resolveSource: () => "shim",
-        resolvePath: (name) =>
-          `${sep}repo${sep}node_modules${sep}${name}${sep}index.js`,
-      },
+      deps: { resolvePathInCache: inRuntime, ensureInstalled: noInstall },
     });
     assert.equal(outcome.ok, true);
-    assert.equal(outcome.appiumHome, `${sep}repo`);
+    assert.equal(outcome.appiumHome, getRuntimeDir({ cacheDir: scratchCache }));
+    assert.equal(outcome.appiumEntry, inRuntime("appium"));
   });
 
   it("skips on mac when TCC accessibility is definitively denied, with the settings walkthrough", async function () {
     const outcome = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "mac",
       deps: {
-        resolveSource: () => "shim",
-        resolvePath: (name) => `/repo/node_modules/${name}/index.js`,
+        resolvePathInCache: inRuntime,
+        ensureInstalled: noInstall,
         probeAccessibility: async () => false,
       },
     });
@@ -665,25 +676,12 @@ describe("appSurfacePreflight", function () {
   it("proceeds on mac when the TCC probe is inconclusive, and never probes on Windows", async function () {
     // An erroring/unknown probe must NOT false-skip — a real TCC failure
     // still surfaces at session start with the same walkthrough.
-    // Paths are built with path.sep and the cache resolvers are stubbed:
-    // a foreign-separator path makes appiumHomeForDriverPath return null,
-    // which falls through to the REAL runtime cache (a force appium install
-    // + manifest invalidation) — that stomped the browser drivers' Appium
-    // home mid-suite on the Windows CI leg.
-    const sep = path.sep;
     const hermeticDeps = {
-      resolveSource: () => "shim",
-      resolvePath: (name) =>
-        `${sep}repo${sep}node_modules${sep}${name}${sep}index.js`,
-      resolvePathInCache: () => {
-        throw new Error("test must not reach the real runtime cache");
-      },
-      ensureInstalled: async () => {
-        throw new Error("test must not install anything");
-      },
+      resolvePathInCache: inRuntime,
+      ensureInstalled: noInstall,
     };
     const inconclusive = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "mac",
       deps: {
         ...hermeticDeps,
@@ -696,7 +694,7 @@ describe("appSurfacePreflight", function () {
 
     let probed = 0;
     const win = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "windows",
       deps: {
         ...hermeticDeps,
@@ -727,24 +725,32 @@ describe("appSurfacePreflight", function () {
     );
   });
 
-  it("installs appium into the cache when the driver is cache-resolved", async function () {
+  it("installs only what the runtime is missing (driver and/or appium)", async function () {
     const installed = [];
-    let cacheHasAppium = false;
+    const present = new Set(["appium-novawindows-driver"]);
     const outcome = await appSurfacePreflight({
-      config: {},
+      config: { cacheDir: scratchCache },
       platform: "windows",
       deps: {
-        resolveSource: () => "cache",
-        resolvePathInCache: (name) =>
-          cacheHasAppium ? `/cache/node_modules/${name}/index.js` : null,
+        resolvePathInCache: (name) => (present.has(name) ? inRuntime(name) : null),
         ensureInstalled: async (pkgs) => {
           installed.push(...pkgs);
-          cacheHasAppium = true;
+          for (const p of pkgs) present.add(p);
         },
       },
     });
     assert.equal(outcome.ok, true);
     assert.deepEqual(installed, ["appium"]);
+  });
+
+  it("skips when the install succeeds but the runtime still can't resolve appium", async function () {
+    const outcome = await appSurfacePreflight({
+      config: { cacheDir: scratchCache },
+      platform: "windows",
+      deps: { resolvePathInCache: () => null, ensureInstalled: async () => {} },
+    });
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.reason, /did not resolve/);
   });
 });
 
@@ -1547,6 +1553,9 @@ describe("startAppSurface", function () {
         acquireDevice: async () => ({
           entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
         }),
+        // Hermeticity: never let a unit test fall through to the real
+        // managed-WDA locator (test/AGENTS.md stubbing rule).
+        locateWda: () => null,
       },
     });
     assert.equal(result.status, "PASS");
@@ -1560,15 +1569,66 @@ describe("startAppSurface", function () {
     // The descriptor timeout floors the WDA build/connect timeouts.
     assert.equal(caps["appium:wdaLaunchTimeout"], 300000);
     assert.equal(caps["appium:wdaConnectionTimeout"], 300000);
+    // Doc Detective never reads device logs, so don't pay to start them
+    // (ADR 01112).
+    assert.equal(caps["appium:skipLogCapture"], true);
     assert.equal(
       appSession.deviceSessions.get("iPhone 15").foregroundApp,
       "com.apple.Preferences"
     );
   });
 
+  it("ios: a failed session start marks the session left open (ADR 01115)", async function () {
+    // A client-side timeout can abort while Appium is still creating the
+    // session, so a pooled server must not be reused after it.
+    const appSession = preflighted();
+    const result = await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences", name: "s" } },
+      appSession,
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {}, release: () => {} }),
+        startDriver: async () => {
+          throw new Error("Request aborted due to timeout");
+        },
+        acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+        locateWda: () => null,
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(appSession.sessionLeftOpen, true);
+  });
+
+  it("ios: driverOptions can turn device log capture back on (ADR 01112)", async function () {
+    let caps;
+    await startAppSurface({
+      config: {},
+      step: {
+        startSurface: {
+          app: "com.apple.Preferences",
+          name: "settings",
+          driverOptions: { "appium:skipLogCapture": false },
+        },
+      },
+      appSession: preflighted(),
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (c) => {
+          caps = c;
+          return fakeDriver();
+        },
+        acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+        locateWda: () => null,
+      },
+    });
+    assert.equal(caps["appium:skipLogCapture"], false);
+  });
+
   it("ios: sets appium:derivedDataPath only when the WDA-cache env var is set", async function () {
     const prev = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
-    const launch = async () => {
+    const launch = async (locateWda) => {
       let caps;
       await startAppSurface({
         config: {},
@@ -1582,20 +1642,97 @@ describe("startAppSurface", function () {
             return fakeDriver();
           },
           acquireDevice: async () => ({ entry: { name: "iPhone 15", udid: "U" } }),
+          locateWda,
         },
       });
       return caps;
     };
     try {
       delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
-      assert.equal((await launch())["appium:derivedDataPath"], undefined);
+      const bare = await launch(() => null);
+      assert.equal(bare["appium:derivedDataPath"], undefined);
+      assert.equal(bare["appium:usePrebuiltWDA"], undefined);
+      // Env override wins, unchanged — the managed locator is not consulted.
       process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = "/tmp/dd-wda";
-      assert.equal((await launch())["appium:derivedDataPath"], "/tmp/dd-wda");
+      const env = await launch(() => {
+        throw new Error("managed locator must not be consulted under the env override");
+      });
+      assert.equal(env["appium:derivedDataPath"], "/tmp/dd-wda");
+      assert.equal(env["appium:usePrebuiltWDA"], undefined);
     } finally {
       if (prev === undefined)
         delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
       else process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = prev;
     }
+  });
+
+  it("ios: consumes managed prebuilt WDA products when the locator hits (no env override)", async function () {
+    const prev = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    try {
+      delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      let caps;
+      await startAppSurface({
+        config: {},
+        step: { startSurface: { app: "com.apple.Preferences", name: "s" } },
+        appSession: preflighted(),
+        platform: "ios",
+        serverDeps: {
+          startServer: async () => ({ port: 1, process: {} }),
+          startDriver: async (c) => {
+            caps = c;
+            return fakeDriver();
+          },
+          acquireDevice: async () => ({
+            entry: { name: "iPhone 15", udid: "U", runtime: "com.apple.CoreSimulator.SimRuntime.iOS-26-0" },
+          }),
+          locateWda: () => ({
+            key: "xcode-16.4-16F6-driver-10.8.1",
+            derivedDataPath: "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData",
+            runnerAppPath: "/dd-cache/runner.app",
+          }),
+        },
+      });
+      assert.equal(
+        caps["appium:derivedDataPath"],
+        "/dd-cache/ios/wda/xcode-16.4-16F6-driver-10.8.1/DerivedData"
+      );
+      // Read-only consumption: the session must not rebuild into the shared dir.
+      assert.equal(caps["appium:usePrebuiltWDA"], true);
+      // Launch the prebuilt runner app directly instead of through xcodebuild
+      // on every session (ADR 01110).
+      assert.equal(caps["appium:usePreinstalledWDA"], true);
+      assert.equal(
+        caps["appium:prebuiltWDAPath"],
+        "/dd-cache/runner.app"
+      );
+    } finally {
+      if (prev === undefined)
+        delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+      else process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = prev;
+    }
+  });
+
+  it("ios: uses the prebuilt (not direct) WDA launch on a pre-iOS-17 simulator (ADR 01110)", async function () {
+    let caps;
+    await startAppSurface({
+      config: {},
+      step: { startSurface: { app: "com.apple.Preferences", name: "s" } },
+      appSession: preflighted(),
+      platform: "ios",
+      serverDeps: {
+        startServer: async () => ({ port: 1, process: {} }),
+        startDriver: async (c) => {
+          caps = c;
+          return fakeDriver();
+        },
+        acquireDevice: async () => ({
+          entry: { name: "iPhone 14", udid: "U", runtime: "com.apple.CoreSimulator.SimRuntime.iOS-16-4" },
+        }),
+        locateWda: () => ({ key: "k", derivedDataPath: "/dd", runnerAppPath: "/dd-cache/runner.app" }),
+      },
+    });
+    assert.equal(caps["appium:usePrebuiltWDA"], true);
+    assert.equal(caps["appium:usePreinstalledWDA"], undefined);
   });
 
   it("ios: a second app on the same simulator reuses the session and activates it", async function () {
@@ -1613,6 +1750,9 @@ describe("startAppSurface", function () {
       acquireDevice: async () => ({
         entry: { name: "iPhone 15", udid: "SIM-UDID-1" },
       }),
+      // Hermeticity: never let a unit test fall through to the real
+      // managed-WDA locator (test/AGENTS.md stubbing rule).
+      locateWda: () => null,
     };
     await startAppSurface({
       config: {},
@@ -1969,6 +2109,62 @@ describe("Windows console-orphan sweep (issue #501)", function () {
     assert.deepEqual(reaped, []);
   });
 
+  it("teardownAppSession returns a pooled server instead of killing it (ADR 01115)", async function () {
+    const appSession = createAppSessionState();
+    const released = [];
+    appSession.server = { port: 1, process: { pid: 42 }, release: () => released.push(42) };
+    const killed = [];
+    let swept = false;
+    await teardownAppSession(appSession, async (pid) => killed.push(pid), {
+      // The orphan sweep force-kills the server's descendants; it must never
+      // run against a server that stays alive for the next context.
+      runQuery: async () => {
+        swept = true;
+        return [];
+      },
+    });
+    assert.deepEqual(released, [42]);
+    assert.deepEqual(killed, []);
+    assert.equal(swept, false);
+    assert.equal(appSession.server, undefined);
+  });
+
+  it("teardownAppSession kills a pooled server when a session failed to close (ADR 01115)", async function () {
+    // A session left open could keep the simulator claimed on the next
+    // context, so the server must not go back to the pool.
+    const appSession = createAppSessionState();
+    const released = [];
+    appSession.server = { port: 1, process: { pid: 42 }, release: () => released.push(42) };
+    appSession.deviceSessions.set("iPhone 15", {
+      driver: {
+        async deleteSession() {
+          throw new Error("WDA crashed");
+        },
+      },
+    });
+    const killed = [];
+    await teardownAppSession(appSession, async (pid) => killed.push(pid), {
+      runQuery: async () => [],
+    });
+    assert.deepEqual(released, []);
+    assert.deepEqual(killed, [42]);
+    assert.equal(appSession.server, undefined);
+  });
+
+  it("teardownAppSession kills a pooled server when the context left another session open (ADR 01115)", async function () {
+    // e.g. a mobile-web (Safari) session the browser sweep couldn't delete.
+    const appSession = createAppSessionState();
+    const released = [];
+    appSession.server = { port: 1, process: { pid: 42 }, release: () => released.push(42) };
+    appSession.sessionLeftOpen = true;
+    const killed = [];
+    await teardownAppSession(appSession, async (pid) => killed.push(pid), {
+      runQuery: async () => [],
+    });
+    assert.deepEqual(released, []);
+    assert.deepEqual(killed, [42]);
+  });
+
   it("teardownAppSession snapshots before the kill, then reaps detached survivors", async function () {
     if (process.platform !== "win32") this.skip();
     const appSession = createAppSessionState();
@@ -2001,5 +2197,79 @@ describe("Windows console-orphan sweep (issue #501)", function () {
       ["reap", 501],
     ]);
     assert.equal(appSession.server, undefined);
+  });
+});
+
+describe("createAppServerPool (one app Appium server reused across contexts, ADR 01115)", function () {
+  let nextPid = 100;
+  const starter = (log) => async () => {
+    const server = { port: nextPid, process: { pid: nextPid, exitCode: null, signalCode: null } };
+    nextPid++;
+    log.push(server.process.pid);
+    return server;
+  };
+
+  it("hands a released server to the next context with the same launch key", async function () {
+    const pool = createAppServerPool();
+    const started = [];
+    const a = await pool.acquire("ios", starter(started));
+    a.release();
+    const b = await pool.acquire("ios", starter(started));
+    assert.equal(b.port, a.port);
+    assert.equal(started.length, 1);
+  });
+
+  it("never hands one server to two contexts at once", async function () {
+    const pool = createAppServerPool();
+    const started = [];
+    const [a, b] = await Promise.all([
+      pool.acquire("ios", starter(started)),
+      pool.acquire("ios", starter(started)),
+    ]);
+    assert.notEqual(a.port, b.port);
+    assert.equal(started.length, 2);
+  });
+
+  it("starts a separate server for a different launch key", async function () {
+    const pool = createAppServerPool();
+    const started = [];
+    (await pool.acquire("ios", starter(started))).release();
+    const other = await pool.acquire("ios-other-env", starter(started));
+    assert.equal(started.length, 2);
+    assert.equal(other.port, started[1]);
+  });
+
+  it("drops an idle server whose process exited and starts a fresh one", async function () {
+    const pool = createAppServerPool();
+    const started = [];
+    const a = await pool.acquire("ios", starter(started));
+    a.release();
+    a.process.exitCode = 1;
+    const b = await pool.acquire("ios", starter(started));
+    assert.notEqual(b.port, a.port);
+    assert.deepEqual(pool.drain().map((s) => s.port), [b.port]);
+  });
+
+  it("ignores a second release of the same hand-out", async function () {
+    // A double release must not put one server in the idle list twice, or
+    // two later contexts would share it.
+    const pool = createAppServerPool();
+    const started = [];
+    const a = await pool.acquire("ios", starter(started));
+    a.release();
+    a.release();
+    const b = await pool.acquire("ios", starter(started));
+    const c = await pool.acquire("ios", starter(started));
+    assert.notEqual(b.port, c.port);
+  });
+
+  it("drain returns every server once, held or idle, for the run-end shutdown", async function () {
+    const pool = createAppServerPool();
+    const started = [];
+    const a = await pool.acquire("ios", starter(started));
+    const b = await pool.acquire("ios", starter(started));
+    a.release();
+    assert.deepEqual(pool.drain().map((s) => s.port).sort(), [a.port, b.port].sort());
+    assert.deepEqual(pool.drain(), []);
   });
 });

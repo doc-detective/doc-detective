@@ -9,8 +9,9 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Doc Detective needed a container image so users could run it in CI and locally without provisioning
-Node, browsers, and drivers themselves. The image had to pick a base, bundle Chrome and Node, expose
-`doc-detective` as the entrypoint, and signal to the runtime that it is executing inside a container.
+Node, browsers, and drivers themselves. The image had to pick a base, bundle Chrome and Node, and
+expose `doc-detective` as the entrypoint. It also had to signal to the runtime that it is executing
+inside a container.
 A multi-architecture build was also needed so the image works on common CI runners. What base image,
 runtime configuration, entrypoint, and licensing should the official image commit to?
 
@@ -24,16 +25,16 @@ runtime configuration, entrypoint, and licensing should the official image commi
 ## Considered Options
 
 * **A. A maintained Dockerfile: Node + Chrome base, global `doc-detective`, `ENV CONTAINER=true`, `ENTRYPOINT ["npx","doc-detective"]`, `ARG DOC_DETECTIVE_VERSION`, multiarch build** (chosen).
-* **B. No official image — document a manual setup users build themselves.**
+* **B. No official image; document a manual setup users build themselves.**
 * **C. A minimal image without a bundled browser, expecting users to add one.**
 
 ## Decision Outcome
 
 Chosen option: **A**, because a batteries-included, multiarch image is what makes containerized runs
 turnkey. The Dockerfile establishes a base (evolving `ubuntu:20.04`→`24.04`→`node:23-slim`) with
-Chrome and Node, installs `doc-detective` globally, sets `ENV CONTAINER=true` so the runtime detects
-the container, uses `ENTRYPOINT ["npx","doc-detective"]`, and accepts the package version via
-`ARG DOC_DETECTIVE_VERSION`. The license moves from MIT to AGPL-3.0. A multi-architecture build is
+Chrome and Node, and installs `doc-detective` globally. It sets `ENV CONTAINER=true` so the runtime
+detects the container. It uses `ENTRYPOINT ["npx","doc-detective"]`, and accepts the package version
+through `ARG DOC_DETECTIVE_VERSION`. The license moves from MIT to AGPL-3.0. A multi-architecture build is
 added so the image runs on common runner architectures.
 
 ### Consequences
@@ -67,5 +68,5 @@ Shipped in docker `0289de4`, `807f70c`, `fad250f`, `f781751`; monorepo multiarch
 
 Recorded retrospectively (ADR backfill). Origin: `docker-images` commits `0289de4`, `807f70c`,
 `fad250f`, `f781751`, and monorepo `f962d5c5`. Inventory ref: BACKFILL-INVENTORY.md Seq 88. The image
-contract was later extended (Linux ffmpeg + `DOC_DETECTIVE` env, ADR 00118; DITA-OT, ADR 00125;
-multi-OS publish, ADR 00140) and the configs merged into the monorepo (ADR 00147).
+contract was later extended: Linux ffmpeg and the `DOC_DETECTIVE` env (ADR 00118), DITA-OT
+(ADR 00125), and multi-OS publish (ADR 00140). The configs merged into the monorepo (ADR 00147).

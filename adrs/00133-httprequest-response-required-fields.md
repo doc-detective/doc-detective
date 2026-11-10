@@ -10,8 +10,8 @@ decision-makers: doc-detective maintainers
 
 The `httpRequest` step can assert response status, headers, and a deep body comparison, but a deep
 comparison requires knowing (and pinning) exact values. Documentation often needs a weaker, more
-durable assertion: that a response *contains* certain fields — e.g. `data.id` or `items[0].token` —
-regardless of their concrete values, which may be dynamic. How should `httpRequest_v3` express
+durable assertion: that a response *contains* certain fields, such as `data.id` or
+`items[0].token`. Their concrete values may be dynamic. How should `httpRequest_v3` express
 "these fields must exist" without forcing an exact-value match?
 
 ## Decision Drivers
@@ -32,9 +32,10 @@ regardless of their concrete values, which may be dynamic. How should `httpReque
 
 Chosen option: **A**, because a dedicated path list is the clearest contract for existence checks and
 keeps value-matching (`response.body`) orthogonal. The contract: `httpRequest_v3` gains
-`response.required`, an array of dot/bracket field paths (e.g. `data.id`, `items[0].token`) that must
-exist in the response — any value, including `null`, satisfies the check; the default is `[]` (no
-required fields). The runner walks each path with a `fieldExistsAtPath` helper and FAILs the step,
+`response.required`, an array of dot/bracket field paths that must exist in the response. Examples
+are `data.id` and `items[0].token`. Any value, including `null`, satisfies the check. The default is
+`[]`, meaning no required fields. The runner walks each path with a `fieldExistsAtPath` helper and
+FAILs the step,
 listing the missing field paths (schema `doc-detective-common` `fff0569`; runner `doc-detective-core`
 `07523f04`).
 

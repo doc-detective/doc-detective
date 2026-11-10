@@ -131,8 +131,10 @@ describe("CopilotCliAdapter.getInstallState()", function () {
 
 describe("CopilotCliAdapter.install()", function () {
   let CopilotCliAdapter;
+  let AGENT_TOOLS_REF;
   before(async function () {
     ({ CopilotCliAdapter } = await import("../dist/agents/adapters/copilot-cli.js"));
+    ({ AGENT_TOOLS_REF } = await import("../dist/agents/fetcher.js"));
   });
 
   const PLUGIN_JSON_PATH = path.join(
@@ -165,28 +167,108 @@ describe("CopilotCliAdapter.install()", function () {
     ...over,
   });
 
-  it("fresh install runs `marketplace add` then `plugin install`", async function () {
+  it("fresh install runs `marketplace add` at the pinned ref then `plugin install`", async function () {
     const { adapter, calls } = makeSpyAdapter({ installed: false });
     const report = await adapter.install(baseOpts());
     assert.deepEqual(calls, [
-      ["copilot", "plugin", "marketplace", "add", "doc-detective/agent-tools"],
+      ["copilot", "plugin", "marketplace", "add", `doc-detective/agent-tools#${AGENT_TOOLS_REF}`],
       ["copilot", "plugin", "install", "doc-detective@doc-detective"],
     ]);
     assert.equal(report.action, "installed");
     assert.equal(report.adapterId, "copilot");
   });
 
-  it("runs `plugin update` when installed but out-of-date", async function () {
+  it("re-adds the marketplace at the pinned ref, then runs `plugin update`, when installed but out-of-date", async function () {
+    // An install made before the ref pin is found by its installed-plugins
+    // manifest and updated in place: no second `plugin install`.
     const { adapter, calls } = makeSpyAdapter({
       installed: true, version: "1.0.0", latest: "1.1.0",
     });
     const report = await adapter.install(baseOpts());
-    // Copilot CLI has no documented `marketplace update` — just plugin update.
     assert.deepEqual(calls, [
+      ["copilot", "plugin", "marketplace", "add", `doc-detective/agent-tools#${AGENT_TOOLS_REF}`],
       ["copilot", "plugin", "update", "doc-detective@doc-detective"],
     ]);
     assert.equal(report.action, "updated");
   });
+
+  it("still runs `plugin update` when re-adding the marketplace at the pinned ref fails", async function () {
+    const calls = [];
+    const logged = [];
+    const adapter = new CopilotCliAdapter({
+      run: async (cmd, args) => {
+        calls.push([cmd, ...args]);
+        if (args[1] === "marketplace") {
+          return { stdout: "", stderr: "marketplace already exists", exitCode: 1 };
+        }
+        return { stdout: "", stderr: "", exitCode: 0 };
+      },
+      existsSync: (p) => p === PLUGIN_JSON_PATH,
+      readFileSync: () => JSON.stringify({ version: "1.0.0" }),
+      homedir: () => "/home/test",
+      fetchLatestVersion: async () => "1.1.0",
+    });
+    const report = await adapter.install(baseOpts({ logger: (m) => logged.push(m) }));
+    assert.deepEqual(calls.map((c) => c.slice(2, 4).join(" ")), ["marketplace add", "update doc-detective@doc-detective"]);
+    assert.equal(report.action, "updated");
+    assert.ok(logged.some((m) => /marketplace already exists/.test(m)), "should log the re-add failure");
+  });
+
+  describe("when a spawn throws on the update path", function () {
+    const enoent = () => Object.assign(new Error("spawn copilot ENOENT"), { code: "ENOENT" });
+    function makeThrowingAdapter(throwsOn) {
+      const calls = [];
+      const logged = [];
+      const adapter = new CopilotCliAdapter({
+        run: async (cmd, args) => {
+          calls.push([cmd, ...args]);
+          if (throwsOn(args)) throw enoent();
+          return { stdout: "", stderr: "", exitCode: 0 };
+        },
+        existsSync: (p) => p === PLUGIN_JSON_PATH,
+        readFileSync: () => JSON.stringify({ version: "1.0.0" }),
+        homedir: () => "/home/test",
+        fetchLatestVersion: async () => "1.1.0",
+      });
+      return { adapter, calls, logged, opts: baseOpts({ logger: (m) => logged.push(m) }) };
+    }
+
+    it("warns and continues when the best-effort re-add throws ENOENT", async function () {
+      const { adapter, calls, logged, opts } = makeThrowingAdapter((args) => args[1] === "marketplace");
+      const report = await adapter.install(opts);
+      assert.deepEqual(calls.map((c) => c.slice(2, 4).join(" ")), ["marketplace add", "update doc-detective@doc-detective"]);
+      assert.equal(report.action, "updated");
+      assert.ok(
+        logged.some((m) => /Couldn't re-add/.test(m) && /ENOENT/.test(m)),
+        `expected the spawn error in the warning; got ${JSON.stringify(logged)}`
+      );
+      const warning = logged.find((m) => /Couldn't re-add/.test(m));
+      assert.ok(warning.endsWith("). Updating it as is."), `expected a full-sentence warning; got ${warning}`);
+    });
+
+    it("still gives the not-installed hint when `plugin update` throws ENOENT", async function () {
+      const { adapter, opts } = makeThrowingAdapter((args) => args[1] === "update");
+      await assert.rejects(adapter.install(opts), /not installed or not on PATH/);
+    });
+  });
+
+  // Only the marketplace re-add is best effort: `plugin update` failing still
+  // throws, whether the re-add before it succeeded or failed.
+  for (const reAddFails of [false, true]) {
+    it(`still throws when \`plugin update\` fails after a ${reAddFails ? "failed" : "successful"} re-add`, async function () {
+      const adapter = new CopilotCliAdapter({
+        run: async (cmd, args) => {
+          const fails = args[1] === "update" || (reAddFails && args[1] === "marketplace");
+          return { stdout: "", stderr: fails ? "it broke" : "", exitCode: fails ? 1 : 0 };
+        },
+        existsSync: (p) => p === PLUGIN_JSON_PATH,
+        readFileSync: () => JSON.stringify({ version: "1.0.0" }),
+        homedir: () => "/home/test",
+        fetchLatestVersion: async () => "1.1.0",
+      });
+      await assert.rejects(adapter.install(baseOpts()), /plugin update/);
+    });
+  }
 
   it("reports already-up-to-date with no commands when current", async function () {
     const { adapter, calls } = makeSpyAdapter({

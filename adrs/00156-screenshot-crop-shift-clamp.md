@@ -10,7 +10,7 @@ decision-makers: doc-detective maintainers
 
 The `screenshot` crop option (`00089`) crops a capture to an element's bounding rectangle
 plus `padding`. When the requested crop region extended past the image edge, the previous
-clamp *shrank* the region to fit — which changed the crop's width/height and therefore its
+clamp *shrank* the region to fit. That changed the crop's width and height, and therefore its
 aspect ratio, breaking visual-regression comparisons against a reference image. Sub-pixel
 aspect-ratio jitter from device-pixel-ratio rounding caused the same problem. How should the
 crop clamp keep the requested region's size when it runs off the image edge?
@@ -32,10 +32,10 @@ crop clamp keep the requested region's size when it runs off the image edge?
 
 Chosen option: **A**, because preserving the requested crop dimensions is what keeps visual
 regression stable; moving the box is preferable to resizing it. The crop clamp in
-`saveScreenshot.ts` now **shifts** an overrunning crop region inward (translating it so it
-fits within the image while keeping the requested width and height) rather than shrinking it,
-and tolerates small aspect-ratio jitter introduced by device-pixel-ratio rounding so
-near-identical crops still compare as matches.
+`saveScreenshot.ts` now **shifts** an overrunning crop region inward, rather than shrinking it.
+It translates the box so it fits within the image, while keeping the requested width and height.
+It also tolerates small aspect-ratio jitter from device-pixel-ratio rounding, so near-identical
+crops still compare as matches.
 
 ### Consequences
 
@@ -55,7 +55,7 @@ clamp and aspect-ratio jitter tolerance in crop comparison.
 ## Pros and Cons of the Options
 
 ### A. Shift-to-fit + jitter tolerance
-* Good: stable crop size; robust comparisons.
+* Good: stable crop size; reliable comparisons.
 * Bad: edge content may shift slightly.
 
 ### B. Shrink-to-fit (status quo)

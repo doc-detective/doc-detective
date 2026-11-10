@@ -3,6 +3,9 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 
+// An exact `X.Y.Z` runtime pin. See the #722 tests below.
+const EXACT_PIN = /^\d+\.\d+\.\d+$/;
+
 before(async function () {
   const { expect } = await import("chai");
   global.expect = expect;
@@ -85,5 +88,31 @@ describe("scripts/publish-manifest transformForPublish", function () {
       ...pkg.ddRuntimeDependencies,
       ...pkg.optionalDependencies,
     });
+  });
+
+  it("pins every just-in-time runtime dependency to an exact version (#722)", function () {
+    // These install with no lockfile, so a range lets one upstream release
+    // reach every user at once. Only exact versions CI has tested may ship.
+    const pkg = require("../package.json");
+    const ranged = [];
+    for (const field of ["ddRuntimeDependencies", "optionalDependencies"]) {
+      for (const [name, spec] of Object.entries(pkg[field] ?? {})) {
+        if (!EXACT_PIN.test(spec)) ranged.push(`${field}.${name}: ${spec}`);
+      }
+    }
+    expect(ranged).to.deep.equal([]);
+    // A package listed in both fields must carry the same pin.
+    for (const [name, spec] of Object.entries(pkg.optionalDependencies ?? {})) {
+      if (pkg.ddRuntimeDependencies?.[name]) {
+        expect(pkg.ddRuntimeDependencies[name], name).to.equal(spec);
+      }
+    }
+  });
+
+  it("rejects prerelease pins, which the loader's version check can't compare", function () {
+    // satisfiesRange (src/runtime/heavyDeps.ts) can't parse `3.2.0-rc.1`, so it
+    // reports any cached version as a match and the loader never reinstalls.
+    expect(EXACT_PIN.test("3.2.0")).to.equal(true);
+    expect(EXACT_PIN.test("3.2.0-rc.1")).to.equal(false);
   });
 });

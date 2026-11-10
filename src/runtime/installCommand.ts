@@ -185,9 +185,38 @@ const androidSubcommand: CommandModule<any, InstallArgv> = {
         type: "string",
         choices: ["phone", "tablet"] as const,
         describe: "Abstract hardware profile for the default AVD. Default: phone.",
+      })
+      .option("reset-snapshot", {
+        type: "boolean",
+        describe:
+          "Delete Doc Detective's clean boot snapshot from every AVD (nothing is installed). Each AVD's next managed boot cold-boots and retakes the snapshot from its current state.",
       }) as any,
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
+    if (argv["reset-snapshot"]) {
+      const { resetCleanSnapshots } = await import("./androidInstaller.js");
+      const dryRun = Boolean(argv["dry-run"]);
+      const { reset, failed } = resetCleanSnapshots({ dryRun });
+      if (reset.length) {
+        logger(
+          dryRun
+            ? `Would reset the clean boot snapshot for: ${reset.join(", ")}.`
+            : `Reset the clean boot snapshot for: ${reset.join(", ")}. The next managed boot of each retakes it.`,
+          "info"
+        );
+      }
+      for (const { name, error } of failed) {
+        logger(
+          `Couldn't reset the clean boot snapshot for ${name}: ${error}. Close any emulator running that AVD and rerun.`,
+          "error"
+        );
+      }
+      if (!reset.length && !failed.length) {
+        logger("No clean boot snapshots to reset.", "info");
+      }
+      if (failed.length) process.exitCode = 1;
+      return;
+    }
     const { installAndroid } = await import("./androidInstaller.js");
     const reports = await installAndroid({
       yes: Boolean(argv.yes),
@@ -199,6 +228,30 @@ const androidSubcommand: CommandModule<any, InstallArgv> = {
       deps: { logger },
     });
     printReports(reports, logger);
+  },
+};
+
+// Shared by the `install bash` subcommand and `install all`'s Windows leg so
+// the two entry points can't drift on how installBash is invoked.
+async function runInstallBash(argv: any, logger: Logger): Promise<void> {
+  const { installBash } = await import("./windowsBash.js");
+  const reports = await installBash({
+    force: Boolean(argv.force),
+    dryRun: Boolean(argv["dry-run"]),
+    ctx: ctxFromArgv(argv),
+    deps: { logger },
+  });
+  printReports(reports, logger);
+}
+
+const bashSubcommand: CommandModule<any, InstallArgv> = {
+  command: "bash",
+  describe:
+    "Install Git Bash on Windows hosts (backs runShell's default `bash` shell). Uses an existing Git for Windows install when present; otherwise downloads MinGit (~40 MB) into <cacheDir>/tools/git-bash. No-op on macOS/Linux, which resolve bash from PATH.",
+  builder: (yargs) => sharedInstallOptions(yargs) as any,
+  handler: async (argv: any) => {
+    const logger = makeLogger(pickLogLevel(argv));
+    await runInstallBash(argv, logger);
   },
 };
 
@@ -244,7 +297,7 @@ const statusSubcommand: CommandModule<any, InstallArgv> = {
 const allSubcommand: CommandModule<any, InstallArgv> = {
   command: "all",
   describe:
-    "Install all lazy-installed runtime assets: runtime npm packages and browser binaries. Agent tools (`install agents`) and mobile toolchains (`install android`, `install ios`) are installed separately — agents need an interactive picker, Android pulls multi-GB downloads, and iOS preparation is macOS-only.",
+    "Install all lazy-installed runtime assets: runtime npm packages, browser binaries, and (on Windows) Git Bash. Agent tools (`install agents`) and mobile toolchains (`install android`, `install ios`) are installed separately — agents need an interactive picker, Android pulls multi-GB downloads, and iOS preparation is macOS-only.",
   builder: (yargs) => sharedInstallOptions(yargs) as any,
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
@@ -269,6 +322,13 @@ const allSubcommand: CommandModule<any, InstallArgv> = {
       }),
       logger
     );
+    // Git Bash backs runShell's default `bash` shell on Windows; POSIX hosts
+    // resolve bash from PATH, so the subcommand is skipped there (and gating
+    // here avoids a noisy skipped row on every macOS/Linux `install all`).
+    if (process.platform === "win32") {
+      logger("Installing bash…", "info");
+      await runInstallBash(argv, logger);
+    }
   },
 };
 
@@ -281,17 +341,18 @@ const allSubcommand: CommandModule<any, InstallArgv> = {
 export const installCommand: CommandModule<{}, InstallArgv> = {
   command: "install <subcommand>",
   describe:
-    "Install doc-detective's lazy-loaded assets: agents, runtime, browsers, android, ios.",
+    "Install doc-detective's lazy-loaded assets: agents, runtime, browsers, bash, android, ios.",
   builder: (yargs) =>
     yargs
       .command(agentsSubcommand as any)
       .command(runtimeSubcommand as any)
       .command(browsersSubcommand as any)
+      .command(bashSubcommand as any)
       .command(androidSubcommand as any)
       .command(iosSubcommand as any)
       .command(statusSubcommand as any)
       .command(allSubcommand as any)
-      .demandCommand(1, "Specify a subcommand: agents | runtime | browsers | android | ios | status | all.") as any,
+      .demandCommand(1, "Specify a subcommand: agents | runtime | browsers | bash | android | ios | status | all.") as any,
   handler: () => {
     // Each subcommand registers its own handler; this top-level handler is
     // only reached when yargs falls through (demandCommand should prevent

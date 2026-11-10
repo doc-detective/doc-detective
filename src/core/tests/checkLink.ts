@@ -1,11 +1,15 @@
 import { validate } from "../../common/src/validate.js";
-import { isRelativeUrl, appendQueryParams } from "../utils.js";
+import {
+  isRelativeUrl,
+  appendQueryParams,
+  loadAxios,
+  redactUrlForOutput,
+} from "../utils.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
-import axios from "axios";
 
 export { checkLink };
 
@@ -28,8 +32,21 @@ const DEFAULT_HEADERS: Record<string, string> = {
 
 // Initial request plus up to 3 retries, producing sleeps of 1s, 2s, 4s.
 const MAX_ATTEMPTS = 4;
-const BASE_BACKOFF_MS = 1000;
+const DEFAULT_BASE_BACKOFF_MS = 1000;
+let baseBackoffMs = DEFAULT_BASE_BACKOFF_MS;
 const MAX_RETRY_AFTER_MS = 10000;
+
+// Internal test seam, not a user-facing knob: the package `exports` map keeps
+// deep imports out of reach. The mocha root hook (test/hooks.js) shrinks the
+// base so retry tests don't sleep 1s + 2s + 4s each (ADR 01121). Called with no
+// argument it restores the product default. Returns the previous value.
+export function _setBaseBackoffMsForTests(
+  ms: number = DEFAULT_BASE_BACKOFF_MS
+): number {
+  const prev = baseBackoffMs;
+  baseBackoffMs = ms;
+  return prev;
+}
 
 function parseHeaderString(raw: string): Record<string, string> {
   const out: Record<string, string> = {};
@@ -94,19 +111,24 @@ function shouldRetry(statusCode: number | null): boolean {
   return statusCode === 429 || statusCode >= 500;
 }
 
-type AttemptResult = { statusCode: number | null; retryAfter: number | null };
+type AttemptResult = {
+  statusCode: number | null;
+  retryAfter: number | null;
+  errorCode?: string;
+};
 
 async function attemptRequest(
   method: "get" | "head",
   url: string,
-  headers: Record<string, string>
+  headers: Record<string, string>,
+  timeout: number
 ): Promise<AttemptResult> {
   try {
-    const res = await axios.request({
+    const res = await (await loadAxios()).request({
       method,
       url,
       headers,
-      timeout: 10000,
+      timeout,
       maxRedirects: 5,
       validateStatus: () => true,
     });
@@ -124,7 +146,7 @@ async function attemptRequest(
         ),
       };
     }
-    return { statusCode: null, retryAfter: null };
+    return { statusCode: null, retryAfter: null, errorCode: error?.code };
   }
 }
 
@@ -201,6 +223,8 @@ async function checkLink({ config, step }: { config: any; step: any }) {
 
   const headers = mergeHeaders(step.checkLink.headers);
   const url = step.checkLink.url;
+  // The validator doesn't apply schema defaults inside the anyOf, so mirror it.
+  const timeout: number = step.checkLink.timeout ?? 10000;
 
   const acceptedCodes: number[] = step.checkLink.statusCodes;
   const isAccepted = (code: number | null) =>
@@ -210,12 +234,12 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   // Short-circuit retries if the response is already an accepted status code.
   let last: AttemptResult = { statusCode: null, retryAfter: null };
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    last = await attemptRequest("get", url, headers);
+    last = await attemptRequest("get", url, headers, timeout);
     if (isAccepted(last.statusCode)) break;
     if (!shouldRetry(last.statusCode)) break;
     if (attempt < MAX_ATTEMPTS - 1) {
       const backoff =
-        last.retryAfter ?? BASE_BACKOFF_MS * Math.pow(2, attempt);
+        last.retryAfter ?? baseBackoffMs * Math.pow(2, attempt);
       await sleep(backoff);
     }
   }
@@ -226,7 +250,7 @@ async function checkLink({ config, step }: { config: any; step: any }) {
     !isAccepted(last.statusCode) &&
     (last.statusCode === 429 || last.statusCode === 403)
   ) {
-    const headResult = await attemptRequest("head", url, headers);
+    const headResult = await attemptRequest("head", url, headers, timeout);
     if (isAccepted(headResult.statusCode)) {
       last = headResult;
     }
@@ -237,7 +261,10 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   // mirroring runShell's treatment of timeouts/spawn failures.
   if (last.statusCode === null) {
     result.status = "FAIL";
-    result.description = `Invalid or unresolvable URL: ${url}`;
+    result.description =
+      last.errorCode === "ECONNABORTED"
+        ? `Couldn't reach ${redactUrlForOutput(url)}: no response within ${timeout} ms (ECONNABORTED).`
+        : `Invalid or unresolvable URL: ${redactUrlForOutput(url)}`;
     return result;
   }
 

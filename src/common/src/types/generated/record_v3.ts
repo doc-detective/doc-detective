@@ -7,7 +7,11 @@
 /**
  * Start recording. Must be followed by a `stopRecord` step. The `browser` engine captures the Chrome viewport (works under concurrency); the `ffmpeg` engine captures the screen and supports any application. On Android/iOS contexts, recording captures the device screen through the device itself — `engine` doesn't apply. Supported extensions: [ '.mp4', '.webm', '.gif' ]
  */
-export type Record = RecordSimple | RecordDetailed | RecordBoolean;
+export type Record = RecordBoolean | RecordSimple | RecordDetailed;
+/**
+ * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ */
+export type RecordBoolean = boolean;
 /**
  * File path of the recording. Supports the `.mp4`, `.webm`, and `.gif` extensions. If not specified, the file name is the ID of the step, and the extension is `.mp4`.
  */
@@ -60,10 +64,15 @@ export type RecordingEngine = RecordingEngineSimple | RecordingEngineDetailed;
  * `browser` records the Chrome viewport (concurrency-safe); `ffmpeg` records the screen and supports any application.
  */
 export type RecordingEngineSimple = "browser" | "ffmpeg";
+export type VerifyResolutionBoolean = boolean;
 /**
- * If `true`, starts recording — auto-selecting the `browser` engine for a visible Chrome context, the device screen on Android/iOS contexts, and the `ffmpeg` engine otherwise. If `false`, doesn't record.
+ * Capture a checkpoint screenshot after every step while this recording is active and compare each against a persistent baseline stored beside the recording (`<path>.checkpoints/` by default). Baselines seed on the first run; on later runs, per-checkpoint variation is reported in the `stopRecord` step's outputs, and variation beyond `maxVariation` surfaces as a WARNING. If `false` or unset, no checkpoints are captured.
  */
-export type RecordBoolean = boolean;
+export type RecordingCheckpoints = RecordingCheckpointsBoolean | RecordingCheckpointsDetailed;
+/**
+ * If `true`, enables checkpoints with default settings.
+ */
+export type RecordingCheckpointsBoolean = boolean;
 
 export interface RecordDetailed {
   /**
@@ -79,14 +88,16 @@ export interface RecordDetailed {
    */
   directory?: string;
   /**
-   * If `true`, overwrites the existing recording at `path` if it exists.
+   * If `true`, overwrites the existing recording at `path` if it exists. If `false`, skips the recording when the file already exists. If `aboveVariation`, always records, but replaces the existing file (and its checkpoint baselines) only when the span's checkpoint screenshots show it meaningfully changed — requires `checkpoints`, so it turns them on with defaults when `checkpoints` is omitted or `false`; set `checkpoints` to an object to tune `maxVariation` or `directory`.
    */
-  overwrite?: "true" | "false";
+  overwrite?: "true" | "false" | "aboveVariation";
   /**
    * Identifier for this recording. A later `stopRecord` step can target it by name (`stopRecord: "<name>"`), which is how you stop a specific recording when several overlap. Names must be unique among recordings that are active at the same time. If omitted, the recording is anonymous and is stopped LIFO by an untargeted `stopRecord`.
    */
   name?: string;
   engine?: RecordingEngine;
+  verify?: RecordingVerifyGuards;
+  checkpoints?: RecordingCheckpoints;
   [k: string]: unknown;
 }
 export interface BrowserSurface {
@@ -171,4 +182,39 @@ export interface RecordingEngineDetailed {
    * Capture frame rate for the `ffmpeg` engine.
    */
   fps?: number;
+}
+/**
+ * Structural assertions on the produced video file, evaluated when the recording stops. Unlike checkpoint drift (a WARNING), a violated guard FAILs the stopRecord step — these are properties you explicitly demand of the artifact.
+ */
+export interface RecordingVerifyGuards {
+  /**
+   * Fail if the video is shorter than this many seconds.
+   */
+  minDuration?: number;
+  /**
+   * Fail if the video is longer than this many seconds.
+   */
+  maxDuration?: number;
+  /**
+   * Verify the video's dimensions (±2 pixels — encoders round to even dimensions). `true` compares against the capture plan's resolved expectation (the crop rectangle when a window/viewport crop applied, else the capture frame size; skipped when no expectation exists for the engine). An object compares literal dimensions.
+   */
+  resolution?: VerifyResolutionBoolean | VerifyResolutionDetailed;
+  /**
+   * Fail if the video is essentially all black (black frames cover 95% or more of its duration) — the classic symptom of a broken screen capture.
+   */
+  notBlack?: boolean;
+}
+export interface VerifyResolutionDetailed {
+  width: number;
+  height: number;
+}
+export interface RecordingCheckpointsDetailed {
+  /**
+   * Maximum fractional pixel difference tolerated between a checkpoint and its baseline before the drift surfaces as a WARNING.
+   */
+  maxVariation?: number;
+  /**
+   * Directory for the checkpoint baselines. If unset, defaults to a `.checkpoints` directory beside the recording (for example, `demo.mp4.checkpoints/`).
+   */
+  directory?: string;
 }

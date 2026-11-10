@@ -8,35 +8,36 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-When a `screenshot` visual diff or a `runShell` output diff exceeds its `maxVariation` threshold, the
-runner previously marked the step FAIL — turning a documentation suite red on a visual jitter or a
+A `screenshot` visual diff or a `runShell` output diff can exceed its `maxVariation` threshold. The
+runner previously marked the step FAIL, turning a documentation suite red on a visual jitter or a
 benign output drift. A FAIL halts and alarms even when the artifact was still produced. Separately,
 an unsupported-context skip was being recorded as a `{ status: "SKIPPED" }` object rather than the
-flat `"SKIPPED"` string, which mis-rolled-up into a spurious PASS, and its skip was logged at warning
+flat `"SKIPPED"` string. That mis-rolled-up into a spurious PASS, and its skip was logged at warning
 level. How should regression overruns and skipped-context results be reported?
 
 ## Decision Drivers
 
 * A visual/output regression should be visible without nuking the whole suite to FAIL.
 * The compared artifact (screenshot/output) should still be written for inspection.
-* Skipped-context results must roll up correctly — never as a false PASS.
+* Skipped-context results must roll up correctly, never as a false PASS.
 * Routine unsupported-context skips should not be logged as warnings.
 
 ## Considered Options
 
-* **A. Set status WARNING (not FAIL) on `maxVariation` overruns and still write the file; fix the
-  skipped-context result to a flat `"SKIPPED"` string and lower its log level to info** (chosen).
+* **A. Set status WARNING rather than FAIL on `maxVariation` overruns, and still write the file.
+  Fix the skipped-context result to a flat `"SKIPPED"` string, and lower its log level to
+  info** (chosen).
 * **B. Keep FAIL on overruns and rely on per-step `maxVariation` tuning.**
 * **C. Add a separate config flag to choose FAIL vs. WARNING for regressions.**
 
 ## Decision Outcome
 
-Chosen option: **A**, because a regression is a signal worth surfacing but not a hard failure, and the
+Chosen option: **A**. A regression is a signal worth surfacing, but not a hard failure. The
 skipped-context shape was simply a reporting bug. The contract: when a `screenshot` or `runShell`
-`maxVariation` overrun occurs, the step status is set to **WARNING** (the third verdict state) and the
+`maxVariation` overrun occurs, the step status is set to **WARNING**, the third verdict state. The
 compared file is still written (commit `1595353`, `doc-detective-core`). The unsupported-context skip
-result is changed from a `{ status: "SKIPPED" }` object to the flat string `"SKIPPED"` so it rolls up
-correctly instead of producing a spurious PASS, and the skip log is lowered warning→info (commits
+result changes from a `{ status: "SKIPPED" }` object to the flat string `"SKIPPED"`. It then rolls
+up correctly instead of producing a spurious PASS, and the skip log is lowered warning→info (commits
 `6a61bf6`, `2d28d3`, `doc-detective-core`).
 
 ### Consequences
@@ -59,7 +60,7 @@ roll-up no longer producing a false PASS for skipped contexts.
 * Bad: strict pipelines must now act on WARNING for regressions.
 
 ### B. Keep FAIL on overruns
-* Good: zero ambiguity — any drift is a failure.
+* Good: zero ambiguity, since any drift is a failure.
 * Bad: brittle suites; visual jitter turns everything red.
 
 ### C. Configurable FAIL/WARNING

@@ -62,6 +62,7 @@ keypresses
 loadCookie
 loadVariables
 logLevel
+manni
 matchText
 maxVariation
 mockResponse
@@ -77,6 +78,9 @@ PAUSE
 PASS
 PNG
 Prepended
+prebuild
+prebuilds
+prebuilt
 prepended
 prepends
 querySelector
@@ -232,6 +236,7 @@ SSRF
 WebDriverAgent
 WDA
 xcodebuild
+prebuilding
 dialog
 dialogs
 dialog's
@@ -239,3 +244,8 @@ onboarding
 startSurface
 passthrough
 TUIs
+AXIdentifier
+AXRole
+AXTitle
+AXValue
+AXDescription

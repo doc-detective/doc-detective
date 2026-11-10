@@ -38,6 +38,7 @@ import { ChildProcess } from "node:child_process";
 import sinon from "sinon";
 
 import { printDebug } from "../dist/debug/index.js";
+import { _resetCacheForTests } from "../dist/runtime/heavyDeps.js";
 import { debugCommand } from "../dist/debug/command.js";
 import { collectAppiumDiagnostics } from "../dist/debug/appium.js";
 import { collectCacheStatus } from "../dist/debug/cache.js";
@@ -53,12 +54,57 @@ import {
 import { collectSystemInfo } from "../dist/debug/system.js";
 import { probeTool, probeAllTools } from "../dist/debug/tools.js";
 
+/**
+ * Best-effort removal of a throwaway per-test temp dir. On windows-latest CI a
+ * just-written tree can still have a transient handle held by Defender / the
+ * Search indexer when rmSync runs, throwing `EPERM` even with retries — #640
+ * narrowed this but couldn't close it, because an unbounded AV/indexer hold
+ * outlasts any finite retry budget (still seen on shard 1). The cleanup runs
+ * only AFTER a test's assertions have already passed, and the OS reaps `%TEMP%`
+ * regardless, so a cleanup failure must never fail the test. Keeps the fast
+ * bounded retry for the common case and swallows the residual race.
+ */
+function cleanupTmp(dir) {
+  try {
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  } catch (err) {
+    // Non-fatal: the cleanup runs after the assertions have passed, so a
+    // residual Windows AV/indexer EPERM must not fail the test. But don't
+    // swallow it silently — surface it as a warning so a genuine, persistent
+    // disk/permission regression (or a leaked temp tree) is still visible in
+    // the CI log rather than hidden.
+    console.warn(`cleanupTmp: could not remove ${dir}: ${err?.message ?? err}`);
+  }
+}
+
 // A cacheDir value containing a shell metacharacter. `assertSafeRuntimePath`
 // (src/runtime/cacheDir.ts) throws synchronously on it from every
 // getCacheDir()-derived helper (getRuntimeDir, getBrowsersDir,
 // getInstalledRecordPath) — the shared "make a cache-dir-consuming
 // collector blow up" fixture used throughout this file.
 const BAD_CACHE_DIR = "bad;chars";
+
+// A scratch cacheDir whose runtime — the one APPIUM_HOME every server uses
+// (ADR 01111) — holds the browser drivers plus the given Appium manifest.
+// Appium drivers resolve only from the runtime, so the "resolvable" driver
+// classifications need them there. Callers clear DOC_DETECTIVE_CACHE_DIR,
+// which would otherwise win over config.cacheDir.
+function cacheWithAppiumManifest(manifestYaml) {
+  const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-appium-manifest-"));
+  const nm = path.join(cacheDir, "runtime", "node_modules");
+  fs.mkdirSync(path.join(nm, ".cache", "appium"), { recursive: true });
+  fs.writeFileSync(path.join(cacheDir, "runtime", "package.json"), "{}");
+  for (const name of ["appium-chromium-driver", "appium-geckodriver"]) {
+    fs.mkdirSync(path.join(nm, name), { recursive: true });
+    fs.writeFileSync(
+      path.join(nm, name, "package.json"),
+      JSON.stringify({ name, version: "1.0.0", main: "index.js" })
+    );
+    fs.writeFileSync(path.join(nm, name, "index.js"), "");
+  }
+  fs.writeFileSync(path.join(nm, ".cache", "appium", "extensions.yaml"), manifestYaml);
+  return cacheDir;
+}
 
 describe("debug/* remaining coverage", function () {
   // Belt-and-suspenders leak guard: every test restores its own stubs in a
@@ -126,7 +172,7 @@ describe("debug/* remaining coverage", function () {
       } finally {
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -152,7 +198,7 @@ describe("debug/* remaining coverage", function () {
         stub.restore();
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
   });
@@ -179,7 +225,7 @@ describe("debug/* remaining coverage", function () {
         for (const e of status.entries) assert.equal(e.exists, false);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -215,7 +261,7 @@ describe("debug/* remaining coverage", function () {
         }
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -228,7 +274,7 @@ describe("debug/* remaining coverage", function () {
         assert.equal(cacheDir.freeBytes, null);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -241,7 +287,7 @@ describe("debug/* remaining coverage", function () {
         assert.equal(cacheDir.freeBytes, null);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -254,7 +300,7 @@ describe("debug/* remaining coverage", function () {
         assert.equal(cacheDir.freeBytes, null);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -618,7 +664,7 @@ describe("debug/* remaining coverage", function () {
         assert.ok(files.some((f) => f.endsWith("a.txt")));
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -631,7 +677,7 @@ describe("debug/* remaining coverage", function () {
         assert.deepEqual(files, []);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -661,7 +707,7 @@ describe("debug/* remaining coverage", function () {
         assert.ok(["a.txt", "b.txt"].includes(path.basename(files[0])));
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
   });
@@ -748,17 +794,17 @@ describe("debug/* remaining coverage", function () {
   // index.ts
   // -------------------------------------------------------------------
   describe("index.ts", function () {
-    it("resolveLoadedFrom's package.json walk throwing falls back to '<unknown>' (lines 288-290)", async function () {
+    it("loadedFrom falls back to '<unknown>' when no doc-detective package.json is found", async function () {
       this.timeout(60000);
-      // Scope the throw to the bare `package.json` existsSync probe that
-      // resolveLoadedFrom performs, so other collectors' existsSync calls
-      // (cache dirs, node_modules dirs, etc.) are unaffected.
-      const original = fs.existsSync;
-      const stub = sinon.stub(fs, "existsSync").callsFake((p) => {
-        if (typeof p === "string" && p.endsWith(path.join("package.json"))) {
-          throw new Error("existsSync boom (package.json probe)");
+      // packageRoot() caches its walk; drop the cache so this call walks
+      // again, past package.json files that can't be read, to the root.
+      _resetCacheForTests();
+      const original = fs.readFileSync;
+      const stub = sinon.stub(fs, "readFileSync").callsFake((p, ...rest) => {
+        if (typeof p === "string" && p.endsWith("package.json")) {
+          throw new Error("readFileSync boom (package.json)");
         }
-        return original(p);
+        return original(p, ...rest);
       });
       try {
         const out = [];
@@ -767,13 +813,10 @@ describe("debug/* remaining coverage", function () {
           configPath: null,
           print: (line) => out.push(line),
         });
-        const text = out.join("\n");
-        assert.match(text, /loadedFrom\s+<unknown>/);
-        // getVersionData() (src/utils.ts) is unaffected — it never calls
-        // existsSync on a bare "package.json" path (it uses `require`).
-        assert.doesNotMatch(text, /doc-detective\s+<unknown>/);
+        assert.match(out.join("\n"), /loadedFrom\s+<unknown>/);
       } finally {
         stub.restore();
+        _resetCacheForTests();
       }
     });
 
@@ -810,7 +853,7 @@ describe("debug/* remaining coverage", function () {
         assert.doesNotMatch(text, /ship in lockstep/);
       } finally {
         process.chdir(prevCwd);
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -865,26 +908,6 @@ describe("debug/* remaining coverage", function () {
         assert.match(out.join("\n"), /entryPoint\s+<unknown>/);
       } finally {
         process.argv[1] = originalArgv1;
-      }
-    });
-
-    it("resolveLoadedFrom's ancestor walk exhausts without ever finding a package.json (line 285 branch)", async function () {
-      this.timeout(60000);
-      // existsSync always false (no throw) -> the walk runs to its bound
-      // (filesystem root or the 8-iteration cap) without ever taking the
-      // "found it" break, landing loadedFrom on its "<unknown>" default —
-      // a different code path than the existsSync-throws test above.
-      const stub = sinon.stub(fs, "existsSync").returns(false);
-      try {
-        const out = [];
-        await printDebug({
-          config: { input: ".", environment: { platform: "linux" } },
-          configPath: null,
-          print: (line) => out.push(line),
-        });
-        assert.match(out.join("\n"), /loadedFrom\s+<unknown>/);
-      } finally {
-        stub.restore();
       }
     });
 
@@ -949,7 +972,7 @@ describe("debug/* remaining coverage", function () {
         const parsed = JSON.parse(saved);
         assert.equal(parsed.error, "failed to serialize debug data: plain string from toJSON");
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -972,7 +995,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /failed to save .*: plain string from mkdirSync/);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1053,28 +1076,23 @@ describe("debug/* remaining coverage", function () {
       } finally {
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
     it("an unreadable extensions.yaml renders the Appium manifestError line and 'manifest unreadable' driver classification (lines 561-563, 570-578)", async function () {
       this.timeout(60000);
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-manifest-err-"));
-      const manifestDir = path.join(tmp, "node_modules", ".cache", "appium");
-      fs.mkdirSync(manifestDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(manifestDir, "extensions.yaml"),
-        "drivers:\n  bad: [unterminated"
-      );
+      const tmp = cacheWithAppiumManifest("drivers:\n  bad: [unterminated");
       const prevHome = process.env.APPIUM_HOME;
-      process.env.APPIUM_HOME = tmp;
+      const prevCacheEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
+      delete process.env.DOC_DETECTIVE_CACHE_DIR;
       try {
         const out = [];
         await printDebug({
           config: {
             input: ".",
             environment: { platform: "linux" },
-            cacheDir: BAD_CACHE_DIR,
+            cacheDir: tmp,
           },
           configPath: null,
           print: (line) => out.push(line),
@@ -1085,7 +1103,9 @@ describe("debug/* remaining coverage", function () {
       } finally {
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
-        fs.rmSync(tmp, { recursive: true, force: true });
+        if (prevCacheEnv === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
+        else process.env.DOC_DETECTIVE_CACHE_DIR = prevCacheEnv;
+        cleanupTmp(tmp);
       }
     });
 
@@ -1114,19 +1134,16 @@ describe("debug/* remaining coverage", function () {
 
     it("a valid manifest missing a driver entry renders 'resolvable but not registered' (line 578 branch)", async function () {
       this.timeout(60000);
-      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dd-appium-partial-"));
-      const manifestDir = path.join(tmp, "node_modules", ".cache", "appium");
-      fs.mkdirSync(manifestDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(manifestDir, "extensions.yaml"),
+      const tmp = cacheWithAppiumManifest(
         "drivers:\n  someOtherDriver:\n    pkgName: some-other-driver\n"
       );
       const prevHome = process.env.APPIUM_HOME;
-      process.env.APPIUM_HOME = tmp;
+      const prevCacheEnv = process.env.DOC_DETECTIVE_CACHE_DIR;
+      delete process.env.DOC_DETECTIVE_CACHE_DIR;
       try {
         const out = [];
         await printDebug({
-          config: { input: ".", environment: { platform: "linux" }, cacheDir: BAD_CACHE_DIR },
+          config: { input: ".", environment: { platform: "linux" }, cacheDir: tmp },
           configPath: null,
           print: (line) => out.push(line),
         });
@@ -1136,7 +1153,9 @@ describe("debug/* remaining coverage", function () {
       } finally {
         if (prevHome === undefined) delete process.env.APPIUM_HOME;
         else process.env.APPIUM_HOME = prevHome;
-        fs.rmSync(tmp, { recursive: true, force: true });
+        if (prevCacheEnv === undefined) delete process.env.DOC_DETECTIVE_CACHE_DIR;
+        else process.env.DOC_DETECTIVE_CACHE_DIR = prevCacheEnv;
+        cleanupTmp(tmp);
       }
     });
 
@@ -1162,7 +1181,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /<no \$VAR references found>/);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1202,7 +1221,7 @@ describe("debug/* remaining coverage", function () {
         const parsed = JSON.parse(saved);
         assert.match(parsed.error, /failed to serialize debug data/);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1224,7 +1243,7 @@ describe("debug/* remaining coverage", function () {
         assert.doesNotMatch(text, /failed to save/);
       } finally {
         stub.restore();
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1293,7 +1312,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /configPath:\s+\S*my-config\.json/);
         assert.notEqual(exitCode, 1);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1309,7 +1328,7 @@ describe("debug/* remaining coverage", function () {
         });
         assert.match(text, /configPath:\s+\S*\.doc-detective\.json/);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1325,7 +1344,7 @@ describe("debug/* remaining coverage", function () {
         });
         assert.match(text, /configPath:\s+\S*\.doc-detective\.yaml/);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1341,7 +1360,7 @@ describe("debug/* remaining coverage", function () {
         });
         assert.match(text, /configPath:\s+\S*\.doc-detective\.yml/);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1356,7 +1375,7 @@ describe("debug/* remaining coverage", function () {
         });
         assert.match(text, /configPath:\s+<none>/);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1371,7 +1390,7 @@ describe("debug/* remaining coverage", function () {
         });
         assert.match(text, /-- Environment variables \(full\) /);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1393,7 +1412,7 @@ describe("debug/* remaining coverage", function () {
         assert.ok(saved.some((f) => /^debug-.+\.txt$/.test(f)));
         assert.ok(saved.some((f) => /^debug-.+\.json$/.test(f)));
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1420,7 +1439,7 @@ describe("debug/* remaining coverage", function () {
         const saved = fs.readdirSync(savedDir);
         assert.ok(saved.some((f) => /^debug-.+\.txt$/.test(f)));
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
 
@@ -1442,7 +1461,7 @@ describe("debug/* remaining coverage", function () {
         assert.match(text, /"input":\s*"\."/);
         assert.equal(exitCode, 1);
       } finally {
-        fs.rmSync(tmp, { recursive: true, force: true });
+        cleanupTmp(tmp);
       }
     });
   });

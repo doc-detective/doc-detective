@@ -3,6 +3,8 @@ import {
   spawnCommand,
   log,
   calculateFractionalDifference,
+  resolveShellName,
+  resolveShellExecutable,
 } from "../utils.js";
 import { startBackgroundProcessSurface } from "./processSurface.js";
 import {
@@ -68,6 +70,23 @@ async function runShell({
     timeout: step.runShell.timeout || 60000,
   };
 
+  // Resolve which shell runs the command: step `shell` > config `shell` >
+  // `bash`. Resolution can fail — Windows-only shells off Windows, or Git
+  // Bash that can't be provisioned on Windows — and that's a FAILed step
+  // with the resolver's actionable message, not a throw.
+  const shellName = resolveShellName({ config, step });
+  let shellExecutable: string;
+  try {
+    shellExecutable = await resolveShellExecutable(shellName, {
+      cacheDir: config?.cacheDir,
+    });
+  } catch (error: any) {
+    result.status = "FAIL";
+    result.description = error.message;
+    return result;
+  }
+  log(config, "debug", `runShell shell: ${shellName} (${shellExecutable})`);
+
   // Background mode: start the process, register it, wait until ready, and
   // return immediately. `exitCodes`, `stdio`, and output saving don't apply.
   // `background` is an object holding `name` and (optional) `waitUntil`; its
@@ -84,6 +103,7 @@ async function runShell({
         name: background.name,
         args: step.runShell.args,
         workingDirectory: step.runShell.workingDirectory,
+        shell: shellExecutable,
         tty: background.tty,
         waitUntil: background.waitUntil,
         timeout: step.runShell.timeout,
@@ -99,7 +119,7 @@ async function runShell({
 
   // Execute command
   const timeout = step.runShell.timeout;
-  const options: any = {};
+  const options: any = { shell: shellExecutable };
   if (step.runShell.workingDirectory)
     options.cwd = step.runShell.workingDirectory;
   const commandPromise = spawnCommand(
