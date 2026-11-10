@@ -122,6 +122,7 @@ describe("findElement unified assertion model", function () {
     assert.equal(found.statement, "$$outputs.found == true");
     assert.equal(result.outputs.element, undefined);
     assert.equal(result.outputs.rawElement, undefined);
+    assert.equal(result.description, "Couldn't find an element within `timeout` (50 ms).");
   });
 
   it("not found (shorthand) → found==false, assertion FAIL, status FAIL", async () => {
@@ -134,6 +135,7 @@ describe("findElement unified assertion model", function () {
     assert.equal(result.status, "FAIL");
     assert.equal(result.outputs.found, false);
     assert.equal(findAssertion(result.assertions, "found").result, "FAIL");
+    assert.equal(result.description, "Couldn't find element `Nonexistent`.");
   });
 
   it("shorthand string + caller click request → click sub-effect runs", async () => {

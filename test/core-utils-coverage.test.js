@@ -43,7 +43,25 @@ import {
   findFreePort,
   evaluateContextRequirements,
   classifyStepFailure,
+  invalidStepMessage,
 } from "../dist/core/utils.js";
+
+// ADR 01195: one message for every action whose step doesn't validate.
+describe("invalidStepMessage", function () {
+  it("names the problem the way spec validation does", function () {
+    assert.equal(
+      invalidStepMessage({ goTo: { url: "https://example.com", timeout: -1 } }),
+      "Couldn't run the step: its definition isn't valid. goTo.timeout: must be >= 1."
+    );
+  });
+
+  it("names a missing action", function () {
+    assert.equal(
+      invalidStepMessage({ description: "no action" }),
+      "Couldn't run the step: its definition isn't valid. No action, such as checkLink, click, find."
+    );
+  });
+});
 
 // ADR 01194: every FAIL step gets a resultCode, and near matches become a hint.
 describe("classifyStepFailure", function () {

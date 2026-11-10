@@ -234,7 +234,7 @@ describe("goTo guards and top-level error handling", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("outer catch: driver.url rejecting -> FAIL with 'Couldn't open URL'", async function () {

@@ -31,6 +31,7 @@ import {
   viewportMismatchWarning,
   VIEWPORT_TOLERANCE_PX,
   type SizeTarget,
+  invalidStepMessage,
 } from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -394,7 +395,7 @@ async function captureScreenshot({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // The effective step (ADR 01167): an object with its defaults filled, and a

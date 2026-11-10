@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log } from "../utils.js";
+import { log, invalidStepMessage } from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -24,7 +24,7 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // The effective step (ADR 01167): an object with a `name` and either a

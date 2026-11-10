@@ -584,7 +584,7 @@ async function findElementByCriteria({
     return {
       element: null,
       foundBy: null,
-      error: "At least one element finding criterion must be specified",
+      error: "Couldn't find an element: set `selector`, `elementText`, or another finding field.",
     };
   }
 
@@ -860,6 +860,6 @@ async function findElementByCriteria({
     element: null,
     elements: [],
     foundBy: null,
-    error: "Element not found within timeout",
+    error: `Couldn't find an element within \`timeout\` (${timeout} ms).`,
   };
 }

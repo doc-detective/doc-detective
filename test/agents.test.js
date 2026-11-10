@@ -902,7 +902,10 @@ describe("runInstallAgents() orchestration", function () {
         { scope: "project", force: false, yes: false, "dry-run": false },
         { adapters: [cc], isTTY: () => false }
       ),
-      /tty|--agent/i
+      {
+        message:
+          "Couldn't prompt for agents: this terminal isn't interactive. Pass `--agent` with a comma-separated list, such as `--agent claude,copilot`.",
+      }
     );
   });
 
