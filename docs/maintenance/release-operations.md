@@ -189,9 +189,9 @@ to an older version, so you do these steps by hand, in this order:
    - It shows `docdetective/docdetective:latest-windows` and `docdetective/docdetective:windows` with
      the same digest as `docdetective/docdetective:<last-4.x>-windows`.
 
-While `latest` is on 4.x, every release from main promotes again, because any 5.0.x is newer than
-4.x. Merge only the fix that makes 5.0 usable. Its release moves npm and Docker back to 5, and then
-you unpin Online's `RUNNER_IMAGE`.
+7. **After the fix ships, unpin Online.** While `latest` is on 4.x, every release from main promotes
+   again, because any 5.0.x is newer than 4.x. Merge only the fix that makes 5.0 usable. Its release
+   moves npm and Docker back to 5. Then set Online's `RUNNER_IMAGE` back to `latest`.
 
 Action v1 pins CLI `4`, so the rollback doesn't affect it. The 4.x upgrade notice goes quiet once
 `latest` is 4.x again.

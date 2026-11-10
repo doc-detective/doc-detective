@@ -6,9 +6,6 @@ decision-makers: doc-detective maintainers
 
 # Inline and standalone tests share one trust level
 
-Numbering note: `01182` was free on `main` and `feat/v5-rc` when this was written. If another ADR
-takes it first, renumber this file at merge, per the rule in `CLAUDE.md`.
-
 ## Context and Problem Statement
 
 Doc Detective runs tests from two kinds of source. Standalone tests live in `*.spec.json` (or YAML)
@@ -69,8 +66,8 @@ Chosen option: **A**.
    requests no secrets and a read-only token. A private repository, or its organization, can change
    that under **Fork pull request workflows** by sending write tokens or secrets to those runs. With
    either setting on, `pull_request` no longer keeps them from a contributor's tests. Never combine
-   `pull_request_target` with a checkout of the pull request's head and secrets. That runs a contributor's tests with the base repository's secrets
-   and a write token.
+   `pull_request_target` with a checkout of the pull request's head and secrets. That runs a
+   contributor's tests with the base repository's secrets and a write token.
 
 ### Consequences
 
