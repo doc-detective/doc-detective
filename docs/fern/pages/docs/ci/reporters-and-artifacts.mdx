@@ -90,7 +90,7 @@ The `terminal`, `markdown`, and `junit` reporters list the same results in the s
 | A context's [automatic recording](/docs/test-docs/automatic-recording), when it didn't pass | `<specId> › <testId> › <contextId> › autoRecording` |
 | A context that didn't pass and has neither, such as one `runOn` skipped | `<specId> › <testId> › <contextId>` |
 
-Steps that skip because an earlier step failed don't get a line of their own. Instead, the failure adds a line such as `3 more steps skipped after the failure`, with its count. A failed automatic recording can be the only reason a context failed, so it gets a line like a failed step.
+Skipped steps that come after a failure in the same context don't get a line of their own, whatever their reason. Instead, the failure adds a line such as `3 more steps skipped after the failure`, with its count. To see why each of those steps skipped, open `testResults.json` or `testResults.html` in the run folder. See [Find each report](#find-each-report). A failed automatic recording can be the only reason a context failed, so it gets a line like a failed step.
 
 An item shows its reason and, when the files exist, the step's screenshot and the context's recording. Terminal paths are absolute. Markdown and JUnit paths are relative to the file they're in.
 
@@ -177,6 +177,8 @@ Doc Detective 5.0.0 · Node.js 24.15.0 · linux 6.8.0-1017-azure (x64) · Starte
 
 Run artifacts: `.doc-detective/runs/2026-11-06T02-33-28-631Z`
 ```
+
+The default run folder holds the same summary as `testResults.md`, so you get one without adding the `markdown` reporter. The run prints its path after `Run summary:`. Its paths are relative to the run folder.
 
 Paths print as code rather than links, because a CI job summary can't serve your files. `Run artifacts` prints only when the run has a run folder.
 
@@ -400,6 +402,7 @@ The `runFolder` reporter archives each run into its own folder so you can attach
 <outputDir>/.doc-detective/runs/<runId>/
 ├── testResults.json
 ├── testResults.html
+├── testResults.md
 └── specs/<specId>/
     └── tests/<testId>/
         └── contexts/<contextId>/

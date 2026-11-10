@@ -92,6 +92,8 @@ Custom metadata needs to move out of the step. To skip these specs and run the r
 | `$schema` | Inside `saveCookie` and `loadCookie` |
 | `workingDirectory` | A `startSurface` app. A `startSurface` process keeps it. |
 
+An app's `workingDirectory` behaves differently. Version 4 failed the step at run time instead of ignoring the key. Version 5 rejects the spec before any test runs. The error doesn't name `workingDirectory`: it points at the step's `startSurface` and lists the keys a process surface needs.
+
 **What to do:** Delete these keys. To set the folder an app starts in, start it from a `runShell` step instead.
 
 ## Unknown keys in custom file types
@@ -197,7 +199,7 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 The run folder also holds a Markdown summary, `testResults.md`, beside `testResults.html` and `testResults.json`.
 
-If Doc Detective can't write a report, it prints `Couldn't write the <report> to <path>: <cause>.` at error level. The exit code still doesn't change.
+If Doc Detective can't write a report, it prints `Couldn't write the <report> to <path>: <cause>.` at error level. If it can't build a report, it prints `Couldn't build the <report>: <cause>.` and writes no file. The exit code still doesn't change.
 
 **What to do:** Update anything that reads `See HTML report at`, `See JUnit report at`, or `See Markdown summary at` from stdout. Better still, use the fixed paths in [Find each report](/docs/ci/reporters-and-artifacts#find-each-report).
 
@@ -632,13 +634,14 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 
 `runTests()` also changed:
 
+- When a run through the Doc Detective API fails, it rejects with the error `Couldn't run tests through the Doc Detective API: <cause>.` It used to resolve to an object with `status` and `error`.
 - When it finds no tests, it returns a report with `specs: []` and a zero `summary`, not `null`. On the CLI, `--output` then gets that empty report, where it used to get no file.
 - With `dryRun: true`, it returns the resolved test plan and prints nothing. The CLI prints the plan.
 - It reads only the config you pass. `DOC_DETECTIVE`, `DOC_DETECTIVE_CONFIG`, config files, and `.env` are CLI layers. Process-level variables such as `DOC_DETECTIVE_CACHE_DIR` and `DO_NOT_TRACK` still apply.
 - `config.reporters` is a CLI setting. `runTests()` returns the results and runs no reporters.
 - The results and the dry-run plan it returns show environment variable values as `***NAME***`. See [Environment variable values are masked](#environment-variable-values-are-masked).
 
-**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it. Replace `runTests()` null checks with `report.specs.length === 0`.
+**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it. Replace `runTests()` null checks with `report.specs.length === 0`. Replace checks of an API run's `status` or `error` with a `catch`.
 
 ## Deprecated arguments
 

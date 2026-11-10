@@ -870,9 +870,11 @@ Recordings are safe to run concurrently, so you no longer need to keep `concurre
 Doc Detective supports multiple output reporters. By default, it uses `terminal` and `runFolder`. Customize reporters with the `--reporters` (or `-r`) flag:
 
 - **terminal**: Displays a colored summary of test results in your terminal.
-- **runFolder**: Saves results, reports, screenshots, and recordings to `.doc-detective/runs/<runId>/`.
+- **runFolder**: Saves results, the HTML report, a Markdown summary, screenshots, and recordings to `.doc-detective/runs/<runId>/`.
 - **json**: Saves results to a `testResults-<runId>.json` file.
 - **html**: Generates a self-contained HTML report with an interactive dashboard.
+- **junit**: Writes a `junit.xml` report for CI test summary views.
+- **markdown**: Writes a `doc-detective-summary.md` run summary for a CI job summary or a merge request comment.
 
 <Tabs>
   <Tab title="NPX" language="npx">
