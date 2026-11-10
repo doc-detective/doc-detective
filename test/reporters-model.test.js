@@ -378,9 +378,24 @@ describe("reporters/model", function () {
         throw new Error("nope");
       };
       assert.equal(writeReport("JUnit report", file, render, {}), null);
-      assert.equal(err.firstCall.args[0], `Error: Couldn't write the JUnit report to ${file}: nope.`);
+      assert.equal(err.firstCall.args[0], "Error: Couldn't build the JUnit report: nope.");
       assert.equal(fs.existsSync(file), false);
     });
+
+    for (const [kind, noun] of [
+      ["Results", "results"],
+      ["Run report", "run report"],
+      ["Markdown summary", "Markdown summary"],
+    ]) {
+      it(`names the ${noun} when it can't be built, without a write cause`, function () {
+        const err = sinon.stub(console, "error");
+        const render = () => {
+          throw Object.assign(new Error("bad input."), { code: "EACCES" });
+        };
+        assert.equal(writeReport(kind, path.join(dir, "b"), render, {}), null);
+        assert.equal(err.firstCall.args[0], `Error: Couldn't build the ${noun}: bad input.`);
+      });
+    }
 
     it("keeps a report that can't be built from rejecting outputResults", async function () {
       sinon.stub(console, "error");
