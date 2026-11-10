@@ -17,7 +17,7 @@ import {
   ensureRuntimeInstalled,
 } from "../runtime/loader.js";
 import { resolveWindowsBash as defaultResolveWindowsBash } from "../runtime/windowsBash.js";
-import { ownVersion } from "../runtime/heavyDeps.js";
+import { ownVersion, packageRoot } from "../runtime/heavyDeps.js";
 import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
@@ -1245,10 +1245,14 @@ function shouldFailRun(results: any): boolean {
 }
 
 // Every bundled schema, by key. Loaded only here, on the way to an error: the
-// file is about 40 MB, so the first error in a process waits for it.
+// file is about 40 MB, so the first error in a process waits for it. Found from
+// the package root, not this module's URL: the dist/index.cjs bundle sits one
+// level shallower than dist/core/.
 let loadedAllSchemas: any;
 function allSchemas() {
-  return (loadedAllSchemas ??= createRequire(import.meta.url)("../common/src/schemas/schemas.json"));
+  return (loadedAllSchemas ??= createRequire(import.meta.url)(
+    path.join(packageRoot() ?? ".", "dist", "common", "src", "schemas", "schemas.json")
+  ));
 }
 
 // Every schema node that can describe the value at `parts`, following
