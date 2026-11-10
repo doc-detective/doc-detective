@@ -128,10 +128,6 @@ export interface AppDescriptor {
    */
   args?: string[];
   /**
-   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
-   */
-  workingDirectory?: string;
-  /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */
   env?: {
@@ -316,10 +312,6 @@ export interface AppDescriptor1 {
    * Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
    */
   args?: string[];
-  /**
-   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
-   */
-  workingDirectory?: string;
   /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */

@@ -75,10 +75,24 @@ if: runner.os == 'macOS'
 **What to do:** Run your suite, then fix or remove each key the error names. The error suggests the closest valid key:
 
 ```text
-tests[0].steps[0]: unknown key 'asertions'. Did you mean assertions?
+tests[0].steps[0]: unknown key `asertions`. Did you mean `assertions`?
 ```
 
 Custom metadata needs to move out of the step. To skip these specs and run the rest while you clean up, pass `--no-exit-on-fail`.
+
+## Keys that did nothing
+
+**What changed:** Some keys validated in version 4 but changed nothing. They're unknown keys now, so the spec or config is invalid, and the run exits `2`.
+
+| Key | Where |
+|---|---|
+| `crawl` | Config |
+| `fileMapping` | Each `integrations.heretto` entry |
+| `breakpoint` | Step |
+| `$schema` | Inside `saveCookie` and `loadCookie` |
+| `workingDirectory` | A `startSurface` app. A `startSurface` process keeps it. |
+
+**What to do:** Delete these keys. To set the folder an app starts in, start it from a `runShell` step instead.
 
 ## Unknown keys in custom file types
 

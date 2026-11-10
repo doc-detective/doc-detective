@@ -205,11 +205,6 @@
       "type": "boolean",
       "description": "Whether or not to run potentially unsafe steps, such as those that might modify files or system state."
     },
-    "crawl": {
-      "description": "If `true`, crawls sitemap.xml files specified by URL to find additional files to test.",
-      "type": "boolean",
-      "default": false
-    },
     "processDitaMaps": {
       "description": "If `true`, processes DITA maps and includes generated files as inputs.",
       "type": "boolean",
@@ -2776,24 +2771,6 @@
                 "type": "string",
                 "description": "Local path where Heretto content was downloaded. Set automatically during processing.",
                 "readOnly": true
-              },
-              "fileMapping": {
-                "type": "object",
-                "description": "Mapping of local file paths to Heretto file metadata. Set automatically during content loading.",
-                "readOnly": true,
-                "additionalProperties": {
-                  "type": "object",
-                  "properties": {
-                    "fileId": {
-                      "type": "string",
-                      "description": "The UUID of the file in Heretto."
-                    },
-                    "filePath": {
-                      "type": "string",
-                      "description": "The path of the file in Heretto."
-                    }
-                  }
-                }
               },
               "uploadOnChange": {
                 "type": "boolean",
@@ -5677,9 +5654,6 @@
           "apiKey": "your-api-key-here"
         }
       }
-    },
-    {
-      "crawl": true
     },
     {
       "processDitaMaps": true

@@ -67,7 +67,7 @@ describe("JS API contract", function () {
   it("rejects an invalid config in the shared format", async function () {
     await assert.rejects(runTests({ ...base(), invalidKey: true }), {
       message:
-        "Invalid config:\nunknown key 'invalidKey'.\nSee https://docs.doc-detective.com/reference/schemas/config",
+        "Invalid config:\nunknown key `invalidKey`.\nSee https://docs.doc-detective.com/reference/schemas/config",
     });
   });
 });

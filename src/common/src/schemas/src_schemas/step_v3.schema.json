@@ -35,9 +35,6 @@
           "variables": {
             "$ref": "#/components/schemas/variables"
           },
-          "breakpoint": {
-            "$ref": "#/components/schemas/breakpoint"
-          },
           "if": {
             "$ref": "#/components/schemas/if"
           },
@@ -175,11 +172,6 @@
         },
         "title": "Variables (step)"
       },
-      "breakpoint": {
-        "type": "boolean",
-        "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
-        "default": false
-      },
       "autoScreenshotPath": {
         "type": "string",
         "minLength": 1,
@@ -256,7 +248,6 @@
     "unsafe": {},
     "outputs": {},
     "variables": {},
-    "breakpoint": {},
     "if": {},
     "assertions": {},
     "onPass": {},
@@ -969,16 +960,6 @@
       "httpRequest": {
         "$ref": "httpRequest_v3.schema.json#/examples/11"
       }
-    },
-    {
-      "stepId": "breakpoint-example",
-      "description": "Step with breakpoint enabled",
-      "goTo": "https://www.example.com",
-      "breakpoint": true
-    },
-    {
-      "checkLink": "https://www.google.com",
-      "breakpoint": false
     },
     {
       "dragAndDrop": {

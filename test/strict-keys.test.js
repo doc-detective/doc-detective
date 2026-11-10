@@ -47,23 +47,23 @@ describe("unknown keys through the CLI", function () {
     write("a.spec.json", { tests: [{ steps: [{ ...echo, asertions: [] }] }] });
     const r = run(["-i", "a.spec.json"]);
     expect(r.status, r.stderr).to.equal(2);
-    expect(r.stderr).to.include("unknown key 'asertions'");
-    expect(r.stderr).to.include("Did you mean assertions?");
+    expect(r.stderr).to.include("unknown key `asertions`");
+    expect(r.stderr).to.include("Did you mean `assertions`?");
   });
 
   it("exits 2 on an unknown spec key", function () {
     write("a.spec.json", { runon: [], tests: [{ steps: [echo] }] });
     const r = run(["-i", "a.spec.json"]);
     expect(r.status, r.stderr).to.equal(2);
-    expect(r.stderr).to.include("unknown key 'runon'");
-    expect(r.stderr).to.include("Did you mean runOn?");
+    expect(r.stderr).to.include("unknown key `runon`");
+    expect(r.stderr).to.include("Did you mean `runOn`?");
   });
 
   it("suggests a key inside an action", function () {
     write("a.spec.json", { tests: [{ steps: [{ runShell: { comand: "echo hi" } }] }] });
     const r = run(["-i", "a.spec.json"]);
     expect(r.status, r.stderr).to.equal(2);
-    expect(r.stderr).to.include("tests[0].steps[0].runShell: unknown key 'comand'. Did you mean command?");
+    expect(r.stderr).to.include("tests[0].steps[0].runShell: unknown key `comand`. Did you mean `command`?");
   });
 
   it("lists the allowed values, without the other branches' type errors", function () {
@@ -79,7 +79,7 @@ describe("unknown keys through the CLI", function () {
     write("good.spec.json", { tests: [{ steps: [echo] }] });
     const r = run(["-i", ".", "--no-exit-on-fail", "--json"]);
     expect(r.status, r.stderr).to.equal(0);
-    expect(r.stderr).to.include("unknown key 'asertions'");
+    expect(r.stderr).to.include("unknown key `asertions`");
     expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
   });
 
@@ -120,8 +120,8 @@ describe("unknown keys through the CLI", function () {
     write("a.md", `<!-- step {"runShell":"echo ${long}","asertions":[]} -->\n`);
     const r = run(["-i", "a.md"]);
     expect(r.status, r.stderr).to.equal(2);
-    const note = r.stderr.split("\n").find((line) => line.endsWith("Did you mean assertions?"));
-    expect(note).to.match(/^\{"runShell":"echo x+…: unknown key 'asertions'\./);
+    const note = r.stderr.split("\n").find((line) => line.endsWith("Did you mean `assertions`?"));
+    expect(note).to.match(/^\{"runShell":"echo x+…: unknown key `asertions`\./);
     expect(note).to.not.include(long);
   });
 
@@ -129,7 +129,7 @@ describe("unknown keys through the CLI", function () {
     write("a.md", '<!-- step {"runShell":"echo hi","asertions":[]} -->\n');
     const r = run(["-i", "a.md"]);
     expect(r.status, r.stderr).to.equal(2);
-    expect(r.stderr).to.include("Did you mean assertions?");
+    expect(r.stderr).to.include("Did you mean `assertions`?");
   });
 
   it("exits 2 when a before step has an unknown key", function () {
@@ -190,7 +190,7 @@ describe("summarizeSchemaErrors with unknown keys", function () {
 
   it("names an unknown step key and the nearest real one", function () {
     expect(summarize(spec({ goTo: "https://example.com", asertions: [] }))).to.equal(
-      "tests[0].steps[0]: unknown key 'asertions'. Did you mean assertions?"
+      "tests[0].steps[0]: unknown key `asertions`. Did you mean `assertions`?"
     );
   });
 
@@ -206,7 +206,7 @@ describe("summarizeSchemaErrors with unknown keys", function () {
 
   it("suggests step keys for a step validated on its own", function () {
     expect(summarize({ goTo: "https://example.com", asertions: [] }, "step_v3")).to.equal(
-      "unknown key 'asertions'. Did you mean assertions?"
+      "unknown key `asertions`. Did you mean `assertions`?"
     );
   });
 
@@ -218,16 +218,16 @@ describe("summarizeSchemaErrors with unknown keys", function () {
 
   it("names an unknown spec key", function () {
     expect(summarize({ runon: [], tests: [{ steps: [{ runShell: "echo hi" }] }] })).to.equal(
-      "unknown key 'runon'. Did you mean runOn?"
+      "unknown key `runon`. Did you mean `runOn`?"
     );
   });
 
   it("names an unknown key in an action, and suggests only a close one", function () {
     expect(summarize(spec({ click: { selector: "#go", nope: 1 } }))).to.equal(
-      "tests[0].steps[0].click: unknown key 'nope'."
+      "tests[0].steps[0].click: unknown key `nope`."
     );
     expect(summarize(spec({ click: { selector: "#go", buton: "left" } }))).to.equal(
-      "tests[0].steps[0].click: unknown key 'buton'. Did you mean button?"
+      "tests[0].steps[0].click: unknown key `buton`. Did you mean `button`?"
     );
   });
 });

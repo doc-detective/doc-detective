@@ -21,7 +21,6 @@ username | string | Required. Heretto CCMS username (email address) for API auth
 apiToken | string | Optional. API token generated in Heretto CCMS for authentication. See https://help.heretto.com/en/heretto-ccms/api/ccms-api-authentication/basic-authentication#ariaid-title3<br/><br/>Minimum length: 1 | —
 scenarioName | string | Optional. Name of the scenario to build and test. | `Doc Detective`
 outputPath | string | ReadOnly. Local path where Heretto content was downloaded. Set automatically during processing. | —
-fileMapping | object | ReadOnly. Mapping of local file paths to Heretto file metadata. Set automatically during content loading. | —
 uploadOnChange | boolean | Optional. If `true`, uploads changed screenshots and other media files back to Heretto CMS after test execution. | `false`
 resourceDependencies | object | ReadOnly. Mapping of Heretto file paths to their UUIDs and metadata. Set automatically during content loading by fetching ditamap resource dependencies. | —
 
