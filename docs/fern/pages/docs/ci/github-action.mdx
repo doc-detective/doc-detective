@@ -168,7 +168,7 @@ The action exposes the run's results so later steps can act on them. Give the st
 
 Running Doc Detective on a repository runs that repository's tests, the same way `npm test` runs its test suite. Tests can run shell commands, run code, and send HTTP requests. That's true of inline tests in your docs and of standalone spec files alike. Anyone who can change your tests can change what your workflow runs.
 
-`bash`, `python`, and `javascript` code blocks that Doc Detective detects in Markdown are the exception. Nobody wrote them as tests, so they're marked `unsafe`, and a run skips them unless you allow unsafe steps. Detected HTTP request blocks aren't marked `unsafe`, so a run sends those requests. To turn detection off, set `detectSteps` to `false`.
+`bash`, `python`, `py`, `javascript`, and `js` code blocks that Doc Detective detects in Markdown are the exception. Nobody wrote them as tests, so they're marked `unsafe`, and a run skips them unless you allow unsafe steps. Detected HTTP request blocks aren't marked `unsafe`, so a run sends those requests. To turn detection off, set `detectSteps` to `false`.
 
 What protects your workflow is who can start a run that has your secrets:
 

@@ -23,7 +23,7 @@ request adds. The [v5 rollout plan](../docs/design/v5-rollout.md) settled both q
 decisions 1 and 2, item 0.5). This ADR records them.
 
 A third source exists. Default markup also detects tests from prose and code fences. A fenced
-`bash`, `python`, or `javascript` block becomes a `runCode` step. An `http` fence, or an unlabeled
+`bash`, `python`, `py`, `javascript`, or `js` block becomes a `runCode` step. An `http` fence, or an unlabeled
 fence that starts with a request line such as `GET /path`, becomes an `httpRequest` step. Nobody
 wrote those blocks as tests. They're examples for readers.
 
@@ -53,7 +53,7 @@ Chosen option: **A**.
    from a comment. The `unsafe` gate in `src/core/tests.ts` reads the step's own `unsafe` field and
    the run's `allowUnsafeSteps`, and never the source format.
 2. **Code fences stay gated.** The `runCode` markup in the default file types
-   (`src/common/src/fileTypes.ts`) marks every detected `bash`, `python`, and `javascript` fence
+   (`src/common/src/fileTypes.ts`) marks every detected `bash`, `python`, `py`, `javascript`, and `js` fence
    `unsafe: true`, because nobody authored it as a test. A run skips those steps unless unsafe steps
    are allowed, through `allowUnsafeSteps`, `--allow-unsafe`, or the official Docker image. Decision
    1 doesn't change that.
