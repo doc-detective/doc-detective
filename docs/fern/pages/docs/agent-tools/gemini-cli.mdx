@@ -18,7 +18,7 @@ From any project directory, run:
 npx doc-detective install agents --agent gemini
 ```
 
-This invokes `gemini extensions install ... --auto-update --consent --skip-settings` under the hood, which installs the extension non-interactively and keeps it current on future Gemini CLI launches. Re-run to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
+Under the hood, this runs `gemini extensions install` with `--ref v1`, which pins the extension to the agent tools for Doc Detective 4.x. The command installs the extension non-interactively. Re-run it to update to the latest 4.x agent tools. It's idempotent and prints "already up to date" when nothing has changed.
 
 Useful flags:
 
@@ -33,11 +33,13 @@ Gemini CLI installs extensions user-globally, so the `--scope` flag has no effec
 If `npx doc-detective install agents` isn't an option, install the extension directly with `gemini extensions install`:
 
 ```bash
-gemini extensions install https://github.com/doc-detective/agent-tools.git --auto-update
+gemini extensions install https://github.com/doc-detective/agent-tools.git --ref v1
 gemini
 ```
 
-The `--auto-update` flag keeps the extension current with new releases.
+The `--ref v1` flag pins the extension to the agent-tools `v1` tag, which carries the agent tools for Doc Detective 4.x. Without it, the extension follows the agent-tools default branch, which can carry tools for a newer Doc Detective major version.
+
+To update the extension later, run `gemini extensions update doc-detective`. Gemini CLI records the `v1` ref at install and reuses it when it updates the extension.
 
 ## Bootstrap a project
 
