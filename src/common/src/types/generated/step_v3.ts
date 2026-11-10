@@ -623,7 +623,7 @@ export type TypeKeysSimple = string | string[];
 export type TypeKeysDetailed = {
   keys: TypeKeysSimple1;
   /**
-   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.
+   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.
    */
   inputDelay?: number;
   surface?: Surface;
@@ -632,7 +632,7 @@ export type TypeKeysDetailed = {
    */
   waitUntil?: ProcessReadiness | BrowserReadiness | AppReadiness;
   /**
-   * Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once.
+   * Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once.
    */
   timeout?: number;
   /**
@@ -1231,7 +1231,7 @@ export type OpenApi = {
    */
   validateAgainstSchema?: "request" | "response" | "both" | "none";
   /**
-   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code.
+   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code.
    */
   mockResponse?: boolean;
   /**
@@ -1765,7 +1765,7 @@ export type TypeKeysSimple2 = string | string[];
 export type TypeKeysDetailed1 = {
   keys: TypeKeysSimple3;
   /**
-   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.
+   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.
    */
   inputDelay?: number;
   surface?: Surface1;
@@ -1774,7 +1774,7 @@ export type TypeKeysDetailed1 = {
    */
   waitUntil?: ProcessReadiness1 | BrowserReadiness1 | AppReadiness1;
   /**
-   * Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once.
+   * Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once.
    */
   timeout?: number;
   /**
@@ -2055,7 +2055,7 @@ export type CaptureScreenshot = boolean;
  * File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple = string;
-export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCropYet;
+export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCrop;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
@@ -2810,7 +2810,7 @@ export type StepRouting55 = {
  */
 export type Condition83 = string | [string, ...string[]];
 /**
- * Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ "app": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
+ * Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ "app": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS).
  */
 export type CloseSurface1 = Surface2 | [Surface3, ...Surface3[]];
 /**
@@ -3010,7 +3010,7 @@ export type StepRouting59 = {
  */
 export type Condition89 = string | [string, ...string[]];
 /**
- * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md.
+ * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap.
  */
 export type StartSurface1 = AppDescriptor | BrowserDescriptor | ProcessDescriptor | ParallelSurfaces;
 export type DeviceByName = string;
@@ -4333,11 +4333,11 @@ export interface Common {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -4572,11 +4572,11 @@ export interface Common1 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep1 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep1`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -4705,7 +4705,7 @@ export interface Click {
 }
 export interface BrowserSurface {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -4852,11 +4852,11 @@ export interface Common2 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep2 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep2`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -4985,7 +4985,7 @@ export interface Find {
 }
 export interface BrowserSurface1 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -5070,7 +5070,7 @@ export interface ProcessSurface {
 }
 export interface BrowserSurface2 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -5263,11 +5263,11 @@ export interface Common3 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep3 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep3`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -5396,7 +5396,7 @@ export interface GoTo {
 }
 export interface BrowserSurface3 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -5531,11 +5531,11 @@ export interface Common4 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep4 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep4`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -5806,11 +5806,11 @@ export interface Common5 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep5 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep5`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -6109,11 +6109,11 @@ export interface Common6 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep6 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep6`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -6412,11 +6412,11 @@ export interface Common7 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep7 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep7`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -6584,7 +6584,7 @@ export interface RunBrowserScriptDetailed {
 }
 export interface BrowserSurface4 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -6710,11 +6710,11 @@ export interface Common8 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep8 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep8`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -6849,7 +6849,7 @@ export interface ProcessSurface1 {
 }
 export interface BrowserSurface5 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -7042,11 +7042,11 @@ export interface Common9 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep9 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep9`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -7175,7 +7175,7 @@ export interface Screenshot {
 }
 export interface CaptureScreenshotFields {
   /**
-   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop` yet.
+   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop`.
    */
   surface?: SurfaceByBrowserEngine4 | BrowserSurface6 | AppSurface4;
   path?: ScreenshotSimple1;
@@ -7201,7 +7201,7 @@ export interface CaptureScreenshotFields {
 }
 export interface BrowserSurface6 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -7757,7 +7757,7 @@ export interface AnnotationTransition {
  */
 export interface SourceIntegration {
   /**
-   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
+   * The type of integration. The only type is `heretto`.
    */
   type: "heretto";
   /**
@@ -7777,7 +7777,7 @@ export interface SourceIntegration {
    */
   contentPath?: string;
 }
-export interface AppCapturesDonTSupportCropYet {
+export interface AppCapturesDonTSupportCrop {
   [k: string]: unknown;
 }
 export interface Common10 {
@@ -7860,11 +7860,11 @@ export interface Common10 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep10 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep10`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -8071,11 +8071,11 @@ export interface Common11 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep11 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep11`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -8229,7 +8229,7 @@ export interface RecordDetailed {
 }
 export interface BrowserSurface7 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -8425,11 +8425,11 @@ export interface Common12 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep12 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep12`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -8642,11 +8642,11 @@ export interface Common13 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep13 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep13`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -8781,7 +8781,7 @@ export interface ProcessSurface2 {
 }
 export interface BrowserSurface8 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -8856,7 +8856,7 @@ export interface ProcessSurface3 {
 }
 export interface BrowserSurface9 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -9003,11 +9003,11 @@ export interface Common14 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep14 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep14`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -9584,11 +9584,11 @@ export interface Common15 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep15 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep15`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -9795,11 +9795,11 @@ export interface Common16 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep16 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep16`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -9949,7 +9949,7 @@ export interface DragAndDrop1 {
 }
 export interface BrowserSurface10 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -10075,11 +10075,11 @@ export interface Common17 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep17 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep17`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -10286,11 +10286,11 @@ export interface Common18 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep18 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep18`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -10434,7 +10434,7 @@ export interface SwipeDirectional {
 }
 export interface BrowserSurface11 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -10541,7 +10541,7 @@ export interface Point1 {
 }
 export interface BrowserSurface12 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -10688,11 +10688,11 @@ export interface Common19 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep19 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep19`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -10899,11 +10899,11 @@ export interface Common20 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep20 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep20`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".

@@ -7872,15 +7872,22 @@
           }
         },
         "concurrentRunners": {
-          "type": [
-            "integer",
-            "boolean"
+          "anyOf": [
+            {
+              "type": [
+                "integer",
+                "boolean"
+              ],
+              "minimum": 1,
+              "not": {
+                "const": false
+              }
+            },
+            {
+              "const": "auto"
+            }
           ],
-          "default": 1,
-          "minimum": 1,
-          "not": {
-            "const": false
-          }
+          "default": 1
         },
         "environment": {
           "$ref": "#/components/schemas/environment"
@@ -15995,14 +16002,21 @@
           }
         },
         "concurrentRunners": {
-          "type": [
-            "integer",
-            "boolean"
-          ],
-          "minimum": 1,
-          "not": {
-            "const": false
-          }
+          "anyOf": [
+            {
+              "type": [
+                "integer",
+                "boolean"
+              ],
+              "minimum": 1,
+              "not": {
+                "const": false
+              }
+            },
+            {
+              "const": "auto"
+            }
+          ]
         },
         "environment": {
           "$ref": "config_v3.nodefaults.schema.json#/components/schemas/environment"

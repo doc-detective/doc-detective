@@ -8,7 +8,7 @@
   "properties": {
     "type": {
       "type": "string",
-      "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+      "description": "The type of integration. The only type is `heretto`.",
       "enum": ["heretto"]
     },
     "integrationName": {

@@ -16,7 +16,7 @@ export type CaptureScreenshot = boolean;
  * File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple = string;
-export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCropYet;
+export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCrop;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
@@ -218,7 +218,7 @@ export type ExactlyOneAnnotationType = {
 
 export interface CaptureScreenshotFields {
   /**
-   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop` yet.
+   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop`.
    */
   surface?: SurfaceByBrowserEngine | BrowserSurface | AppSurface;
   path?: ScreenshotSimple1;
@@ -244,7 +244,7 @@ export interface CaptureScreenshotFields {
 }
 export interface BrowserSurface {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -800,7 +800,7 @@ export interface AnnotationTransition {
  */
 export interface SourceIntegration {
   /**
-   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
+   * The type of integration. The only type is `heretto`.
    */
   type: "heretto";
   /**
@@ -820,6 +820,6 @@ export interface SourceIntegration {
    */
   contentPath?: string;
 }
-export interface AppCapturesDonTSupportCropYet {
+export interface AppCapturesDonTSupportCrop {
   [k: string]: unknown;
 }
