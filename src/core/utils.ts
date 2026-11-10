@@ -25,6 +25,7 @@ import {
 import { createRequire } from "node:module";
 import type { AxiosRequestConfig } from "axios";
 import { applyVerification, declarePage, VERIFIED_TOOL } from "./verification.js";
+import { validate } from "../common/src/validate.js";
 
 // axios (~70 modules with its deps) loads on first use rather than at CLI
 // startup (see test/startup-modules.test.js). Cached, so hot paths pay the
@@ -147,6 +148,7 @@ export {
   shouldFailRun,
   runExitCode,
   summarizeSchemaErrors,
+  invalidStepMessage,
   shortJson,
   knownKeysAt,
   configErrorMessage,
@@ -1379,6 +1381,19 @@ const branchRequired = /\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/;
 // the noise of anyOf/oneOf branches the value didn't take dropped, and the
 // nearest real key named when something is unknown. Config and specs read the
 // same (ADR 01150). Raw errors stay available at debug level.
+// What an action reports when its step doesn't validate (ADR 01195). The
+// actions validate without structured errors, so the hot path pays nothing;
+// only this failing path validates again to summarize them.
+function invalidStepMessage(step: any): string {
+  const { errorObjects } = validate({ schemaKey: "step_v3", object: step, structuredErrors: true });
+  // A step-level line has no key path in front ("no action, ..."), so it
+  // starts a sentence here. A key path ("goTo.timeout: ...") keeps its case.
+  const summary = summarizeSchemaErrors(errorObjects, step, "step_v3").replace(/^[a-z]+ /, (word) =>
+    word[0].toUpperCase() + word.slice(1)
+  );
+  return `Couldn't run the step: its definition isn't valid. ${summary}`;
+}
+
 function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootSchemaKey = "spec_v3"): string {
   // AJV types `message` as optional. Name the keyword rather than print
   // "undefined", except `not`, which gets AJV's own words: "not." reads as nonsense.

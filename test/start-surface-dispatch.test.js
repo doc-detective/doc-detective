@@ -188,7 +188,7 @@ describe("startSurfaceStep: single-object forms", function () {
       deps,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 });
 
@@ -224,7 +224,7 @@ describe("startSurfaceStep: parallel array form", function () {
       deps,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
     assert.equal(calls.length, 0);
   });
 

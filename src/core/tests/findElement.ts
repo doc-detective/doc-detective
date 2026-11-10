@@ -1,4 +1,5 @@
 import { validate } from "../../common/src/validate.js";
+import { invalidStepMessage } from "../utils.js";
 import { switchToSurface } from "./browserSurface.js";
 import {
   findAppElement,
@@ -73,7 +74,7 @@ async function findElement({ config, step, driver, click, appSession, processReg
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // Accept coerced and defaulted values
@@ -288,7 +289,7 @@ async function findElement({ config, step, driver, click, appSession, processReg
     } else {
       // No matching elements: expose found=false and still evaluate so the
       // existence assertion FAILs (don't early-return before the spec).
-      result.description = "No elements matched selector or text.";
+      result.description = `Couldn't find element \`${step.find}\`.`;
       result.outputs.found = false;
       if (nearMatches) result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
       return await finalizeFound({ result });
@@ -315,7 +316,7 @@ async function findElement({ config, step, driver, click, appSession, processReg
   });
 
   if (!foundElement) {
-    result.description = error || "No elements matched criteria.";
+    result.description = error || "Couldn't find an element.";
     result.outputs.found = false;
     if (nearMatches) result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
     return await finalizeFound({ result });

@@ -510,7 +510,7 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /'firefox' isn't available on android/);
+        assert.match(ctx.resultDescription, /^Skipped: `firefox` isn't available on `android`\./);
         assert.match(ctx.resultDescription, /chrome/);
       }
       assert.equal(result.summary.specs.fail, 0);
@@ -544,7 +544,7 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /'chrome' isn't available on ios/);
+        assert.match(ctx.resultDescription, /^Skipped: `chrome` isn't available on `ios`\./);
         assert.match(ctx.resultDescription, /safari/);
       }
       assert.equal(result.summary.specs.fail, 0);
@@ -683,7 +683,7 @@ describe("Run tests successfully", function () {
       );
       assert.equal(miss.result, "FAIL");
       assert.equal(miss.outputs.found, false);
-      assert.equal(miss.resultDescription, "No elements matched selector or text.");
+      assert.equal(miss.resultDescription, "Couldn't find element `No such shorthand target`.");
       // Nothing on the page is close, so it's an assertion failure (ADR 01194).
       assert.deepEqual(miss.outputs.nearMatches, []);
       assert.equal(miss.resultCode, "assertion");

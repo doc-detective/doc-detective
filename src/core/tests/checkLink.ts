@@ -5,6 +5,7 @@ import {
   loadAxios,
   parseHeaders,
   redactUrlForOutput,
+  invalidStepMessage,
 } from "../utils.js";
 import {
   buildConditionContext,
@@ -184,7 +185,7 @@ async function checkLink({ config, step }: { config: any; step: any }) {
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // Accept coerced and defaulted values

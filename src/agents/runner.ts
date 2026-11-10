@@ -43,7 +43,7 @@ export async function runInstallAgents(
   // Fail before detection, which can take seconds, when there's no way to ask.
   if (!isTTY() && (!argv.agent || argv.agent.length === 0)) {
     throw new Error(
-      "Cannot prompt for agents in a non-TTY environment. Pass --agent explicitly (repeatable)."
+      "Couldn't prompt for agents: this terminal isn't interactive. Pass `--agent` with a comma-separated list, such as `--agent claude,copilot`."
     );
   }
 
@@ -167,7 +167,7 @@ async function resolveTargetAgents(
 
   if (!ctx.isTTY) {
     throw new Error(
-      "Cannot prompt for agents in a non-TTY environment. Pass --agent explicitly (repeatable)."
+      "Couldn't prompt for agents: this terminal isn't interactive. Pass `--agent` with a comma-separated list, such as `--agent claude,copilot`."
     );
   }
   if (!ctx.prompts) {

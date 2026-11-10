@@ -2336,6 +2336,9 @@ describe("hints/hints (registry)", function () {
     const h = findHint("enableDebugLog");
     expect(h.when(fakeCtx({ failedCount: 0 }))).to.equal(false);
     expect(h.when(fakeCtx({ failedCount: 3 }))).to.equal(true);
+    // ADR 01195: hints name the current flag, not the deprecated --logLevel.
+    expect(h.markdown).to.include("doc-detective --log-level debug");
+    expect(h.markdown).to.not.include("--logLevel");
   });
 
   it("useDebugFlag: fires only when run failed", function () {
