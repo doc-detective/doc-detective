@@ -45,6 +45,9 @@ Notify AI-powered integrations when issues are created to help investigate and f
   with:
     input: ./docs
     create_issue_on_fail: true
+    token: ${{ secrets.DOC_DETECTIVE_ISSUE_TOKEN }}
     integrations: claude,copilot
     prompt: "Analyze these test failures and suggest documentation fixes"
 ```
+
+`claude` needs `token`, because GitHub doesn't start Claude Code's workflow for an issue that the default `GITHUB_TOKEN` opens. See [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).

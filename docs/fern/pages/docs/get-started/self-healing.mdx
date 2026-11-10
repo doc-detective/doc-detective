@@ -63,9 +63,12 @@ This configuration:
 - Mentions Claude in the issue with a detailed diagnostic prompt
 - Passes the test results to Claude for analysis
 
-Claude Code answers from a GitHub Actions workflow that starts when an issue opens. GitHub doesn't start workflows for events that the default `GITHUB_TOKEN` creates. An issue the action opens with that token therefore never reaches Claude. Set `token` to a fine-grained personal access token or a GitHub App token that can write issues, and store it as a repository secret.
+Claude Code answers from a GitHub Actions workflow that starts when an issue opens. GitHub doesn't start workflows for events that the default `GITHUB_TOKEN` creates. An issue the action opens with that token therefore never reaches Claude. Set `token` to one of these:
 
-The example runs on pushes to `main`, not on `pull_request`. A pull request from a fork gets no secrets and a read-only `GITHUB_TOKEN`, so the action can't open the issue there. To check pull requests, keep a separate `pull_request` workflow without `create_issue_on_fail`. See [Tests are code](/docs/ci/github-action#tests-are-code).
+- A fine-grained personal access token that can write issues, stored as a repository secret. Its owner needs write access to the repository, because Claude Code ignores issues from users without it.
+- A GitHub App token that the workflow generates on each run, for example with `actions/create-github-app-token`. Installation tokens expire after an hour, so don't store one as a secret. Claude Code ignores bots by default, so add the app's bot to `allowed_bots` in the Claude Code workflow.
+
+The example runs on pushes to `main`, not on `pull_request`. By default, a pull request from a fork gets no secrets and a read-only `GITHUB_TOKEN`, so the action can't open the issue there. A private repository can change that under **Fork pull request workflows**, as [Tests are code](/docs/ci/github-action#tests-are-code) explains. To check pull requests, keep a separate `pull_request` workflow without `create_issue_on_fail`.
 
 ## Craft effective prompts
 

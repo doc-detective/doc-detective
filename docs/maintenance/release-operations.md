@@ -143,12 +143,14 @@ Roll back only when 5.0 is unusable and no quick fix exists. `promote.yml` refus
 to an older version, so you do these steps by hand, in this order:
 
 1. **Stop main from releasing, and settle the runs already going.** Merge nothing to main until the
-   rollback is done. Then list the runs in progress, and repeat with `--status queued`:
+   rollback is done. Then list every run that hasn't completed, whatever its status. That includes
+   `queued`, and `pending` runs waiting on a concurrency group:
 
    ```bash
-   gh run list --workflow release.yml --status in_progress
-   gh run list --workflow promote.yml --status in_progress
-   gh run list --workflow docker-build.yml --status in_progress
+   for wf in release.yml promote.yml docker-build.yml; do
+     gh run list --workflow "$wf" --json databaseId,status,displayTitle \
+       --jq '.[] | select(.status != "completed")'
+   done
    ```
 
    A Release run includes the promote and Docker jobs it calls. Wait for each run to finish, or stop
@@ -191,7 +193,10 @@ to an older version, so you do these steps by hand, in this order:
 
 7. **After the fix ships, unpin Online.** While `latest` is on 4.x, every release from main promotes
    again, because any 5.0.x is newer than 4.x. Merge only the fix that makes 5.0 usable. Its release
-   moves npm and Docker back to 5. Then set Online's `RUNNER_IMAGE` back to `latest`.
+   moves npm, then Docker, back to 5. Wait until that Release run finishes green, including its
+   Docker job. Then check that `docdetective/docdetective:latest` has the same digest as
+   `docdetective/docdetective:<fixed-5.0.x>`. Only then set Online's `RUNNER_IMAGE` back to
+   `latest`, since a 4.x `latest` breaks Online's runner.
 
 Action v1 pins CLI `4`, so the rollback doesn't affect it. The 4.x upgrade notice goes quiet once
 `latest` is 4.x again.

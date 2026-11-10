@@ -20,16 +20,18 @@ request adds. The [v5 rollout plan](../docs/design/v5-rollout.md) settled both q
 decisions 1 and 2, item 0.5). This ADR records them.
 
 A third source exists. Default markup also detects tests from prose and code fences. A fenced
-`bash`, `python`, `py`, `javascript`, or `js` block becomes a `runCode` step. An `http` fence, or an unlabeled
-fence that starts with a request line such as `GET /path`, becomes an `httpRequest` step. Nobody
-wrote those blocks as tests. They're examples for readers.
+`bash`, `python`, or `javascript` block becomes a `runCode` step. The matcher also captures `py` and
+`js` fences, but `runCode` doesn't accept those names, so detection skips them. An `http` fence, or
+an unlabeled fence that starts with a request line such as `GET https://api.example.com/items`,
+becomes an `httpRequest` step. Nobody wrote those blocks as tests. They're examples for readers.
 
 ## Decision Drivers
 
 * A test is code the repository's authors wrote to run, whatever file format holds it.
 * Format must never change how a step is treated. Otherwise, moving a test between a spec and a
   comment changes what it can do.
-* Shell commands and code that nobody authored as a test must not run without an explicit opt-in.
+* Shell commands and code that nobody authored as a test must not run without an opt-in. Running
+  the official Docker image counts as one.
 * The real risk is untrusted changes running with secrets, and the CI configuration controls that,
   not Doc Detective.
 * No code change and no new flag. Today's behavior already matches the decision.
@@ -50,10 +52,11 @@ Chosen option: **A**.
    from a comment. The `unsafe` gate in `src/core/tests.ts` reads the step's own `unsafe` field and
    the run's `allowUnsafeSteps`, and never the source format.
 2. **Code fences stay gated.** The `runCode` markup in the default file types
-   (`src/common/src/fileTypes.ts`) marks every detected `bash`, `python`, `py`, `javascript`, and `js` fence
-   `unsafe: true`, because nobody authored it as a test. A run skips those steps unless unsafe steps
-   are allowed, through `allowUnsafeSteps`, `--allow-unsafe`, or the official Docker image. Decision
-   1 doesn't change that.
+   (`src/common/src/fileTypes.ts`) marks detected `bash`, `python`, and `javascript` fences
+   `unsafe: true`, because nobody authored them as tests. A run skips those steps unless unsafe steps
+   are allowed, through `allowUnsafeSteps`, `--allow-unsafe`, or the official Docker image. The image
+   allows them by default, and `allowUnsafeSteps: false` turns that off. Decision 1 doesn't change
+   any of this.
 
    The gate covers only those fences. The `httpRequestFormat` markup turns a detected HTTP request
    fence into an `httpRequest` step without `unsafe`, so a run sends that request by default.
@@ -65,22 +68,26 @@ Chosen option: **A**.
    configuration. On GitHub Actions, run tests on `pull_request`, which by default gives fork pull
    requests no secrets and a read-only token. A private repository, or its organization, can change
    that under **Fork pull request workflows** by sending write tokens or secrets to those runs. With
-   either setting on, `pull_request` no longer keeps them from a contributor's tests. Never combine
-   `pull_request_target` with a checkout of the pull request's head and secrets. That runs a
-   contributor's tests with the base repository's secrets and a write token.
+   either setting on, `pull_request` no longer keeps them from a contributor's tests. Never check
+   out and run a pull request's code in a `pull_request_target` workflow. That trigger runs with the
+   base repository's secrets and read/write `GITHUB_TOKEN`, even when no step uses a secret.
+   `actions/checkout` also persists that token in the Git config by default.
 
 ### Consequences
 
 * Good, because a test behaves the same wherever it's written.
-* Good, because shell and code examples written for readers still can't run by accident.
+* Good, because shell and code examples written for readers still can't run by accident outside
+  the official Docker image.
+* Bad, because the official Docker image allows unsafe steps by default. Detected code examples run
+  there and can change mounted files, unless `allowUnsafeSteps` is `false`.
 * Bad, because a detected HTTP request example still sends its request by default. One aimed at a
   real API with a write method changes that API on every run, unless detection is off.
 * Good, because the advice users need is the same advice they already follow for `npm test`, and it
   lives where the risk is: the workflow trigger.
 * Bad, because Doc Detective can't protect a workflow that hands secrets to untrusted code. The docs
   have to say so plainly.
-* Neutral, because existing recipes already use `pull_request`, and `pull_request_target` appears in
-  neither the docs nor this repository's workflows.
+* Neutral, because existing recipes already use `pull_request`, and no docs recipe or workflow in
+  this repository uses `pull_request_target`.
 
 ### Confirmation
 
@@ -88,7 +95,7 @@ Chosen option: **A**.
   `unsafe: true` in `src/common/src/fileTypes.ts` already implement decisions 1 and 2.
 * The GitHub Action guide (`docs/fern/pages/docs/ci/github-action.mdx`) has a "Tests are code"
   section with decisions 3 and 4. A reviewer confirms it names `pull_request` and warns against
-  `pull_request_target` with a PR-head checkout and secrets.
+  running pull request code in a `pull_request_target` workflow.
 * Detected `runCode` fences are the one source whose steps default to `unsafe`. Adding another,
   such as HTTP request fences, needs a new ADR that supersedes this one.
 
