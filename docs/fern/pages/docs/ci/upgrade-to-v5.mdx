@@ -362,6 +362,17 @@ doc-detective --input ./docs --output ./reports
 doc-detective --input ./docs --output-dir ./reports
 ```
 
+## Output modes share stdout
+
+**What changed:** Only one output mode can write stdout at a time:
+
+- `--plain` with `--json`, `--output -`, or `--dry-run` exits `2`. So does `--plain` with an `output` of `-` or a `dryRun` of `true` in config. The error names both flags, as in ``Error: set `--dry-run` or `--plain`, not both.``
+- `--output -` beats an `output` file in config, so the results go only to stdout.
+- An `output` of `-` in config writes the results to stdout, like `--output -`.
+- `--dry-run --output <file>` writes the test plan to the file, and still prints it.
+
+**What to do:** Drop one of the two modes the error names. To keep a results file beside `--plain`, pass `--output <file>`.
+
 ## No default results file in the current directory
 
 **What changed:** The default reporters are now `terminal` and `runFolder`. A run no longer leaves `testResults-<timestamp>.json` in the current directory. Results land in `.doc-detective/runs/<runId>/testResults.json` instead.

@@ -1,12 +1,13 @@
 // Config and environment precedence permutations (ADR 01165), run by
-// config-precedence.spec.json in this directory.
+// config-precedence.spec.json in this directory, and output-mode permutations
+// (ADR 01191), run by output-modes.spec.json.
 //
 //   node test/core-artifacts/cli/precedence.cjs <case>
 //
 // Each case sets up .tmp/fixture-precedence/<case>/, outside
 // test/core-artifacts/ so its files never run as fixtures themselves. It then
 // runs the real CLI there with the environment the case names, and checks the
-// exit code, stderr, and files. Exits 1 on any mismatch.
+// exit code, stderr, stdout, and files. Exits 1 on any mismatch.
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
@@ -77,6 +78,83 @@ const cases = {
     exists: ["sub/results.json"],
     missing: ["results.json"],
   },
+  // Output modes compose or refuse (ADR 01191), run by output-modes.spec.json.
+  "json-plain-refused": {
+    files: { "pass.spec.json": passSpec },
+    env: {},
+    args: ["-i", "pass.spec.json", "--json", "--plain"],
+    exit: 2,
+    stderr: ["Error: set `--json` or `--plain`, not both."],
+  },
+  "stdout-output-plain-refused": {
+    files: { "pass.spec.json": passSpec },
+    env: {},
+    args: ["-i", "pass.spec.json", "-o", "-", "--plain"],
+    exit: 2,
+    stderr: ["Error: set `--output -` or `--plain`, not both."],
+  },
+  "config-stdout-output-plain-refused": {
+    files: { "pass.spec.json": passSpec, "dd.json": { output: "-" } },
+    env: {},
+    args: ["-c", "dd.json", "-i", "pass.spec.json", "--plain"],
+    exit: 2,
+    stderr: ["Error: set `--output -` or `--plain`, not both."],
+  },
+  "dry-run-plain-refused": {
+    files: { "pass.spec.json": passSpec },
+    env: {},
+    args: ["-i", "pass.spec.json", "--dry-run", "--plain"],
+    exit: 2,
+    stderr: ["Error: set `--dry-run` or `--plain`, not both."],
+  },
+  "config-dry-run-plain-refused": {
+    files: { "pass.spec.json": passSpec, "dd.json": { dryRun: true } },
+    env: {},
+    args: ["-c", "dd.json", "-i", "pass.spec.json", "--plain"],
+    exit: 2,
+    stderr: ["Error: set `--dry-run` or `--plain`, not both."],
+  },
+  "no-dry-run-plain-beats-config": {
+    files: { "pass.spec.json": passSpec, "dd.json": { dryRun: true } },
+    env: {},
+    args: ["-c", "dd.json", "-i", "pass.spec.json", "--no-dry-run", "--plain"],
+    stdout: ["PASS\t"],
+  },
+  "plain-with-output-file": {
+    files: { "pass.spec.json": passSpec },
+    env: {},
+    args: ["-i", "pass.spec.json", "--plain", "-o", "results.json"],
+    stdout: ["PASS\t"],
+    exists: ["results.json"],
+  },
+  "dry-run-writes-output": {
+    files: { "pass.spec.json": passSpec },
+    env: {},
+    args: ["-i", "pass.spec.json", "--dry-run", "-o", "plan.json"],
+    stdout: ['"specs"'],
+    exists: ["plan.json"],
+  },
+  "config-stdout-output": {
+    files: { "pass.spec.json": passSpec, "dd.json": { output: "-" } },
+    env: {},
+    args: ["-c", "dd.json", "-i", "pass.spec.json"],
+    stdout: ['"summary"'],
+    missing: ["-"],
+  },
+  "stdout-output-beats-config-file": {
+    files: { "pass.spec.json": passSpec, "dd.json": { output: "results.json" } },
+    env: {},
+    args: ["-c", "dd.json", "-i", "pass.spec.json", "-o", "-"],
+    stdout: ['"summary"'],
+    missing: ["results.json"],
+  },
+  "output-file-beats-config-stdout": {
+    files: { "pass.spec.json": passSpec, "dd.json": { output: "-" } },
+    env: {},
+    args: ["-c", "dd.json", "-i", "pass.spec.json", "-o", "results.json"],
+    stdout: ["1 of 1 test passed"],
+    exists: ["results.json"],
+  },
 };
 
 const name = process.argv[2];
@@ -120,6 +198,7 @@ const fail = (message) => {
 if (run.error) fail(`didn't finish: ${run.error.message}`);
 if (run.status !== (c.exit ?? 0)) fail(`exited ${run.status}, expected ${c.exit ?? 0}.`);
 for (const text of c.stderr ?? []) if (!run.stderr.includes(text)) fail(`stderr doesn't include ${JSON.stringify(text)}.`);
+for (const text of c.stdout ?? []) if (!run.stdout.includes(text)) fail(`stdout doesn't include ${JSON.stringify(text)}.`);
 if (c.stderrExcludes && run.stderr.includes(c.stderrExcludes)) fail(`stderr includes ${JSON.stringify(c.stderrExcludes)}.`);
 for (const file of c.exists ?? []) if (!fs.existsSync(path.join(dir, file))) fail(`${file} doesn't exist.`);
 for (const file of c.missing ?? []) if (fs.existsSync(path.join(dir, file))) fail(`${file} exists.`);

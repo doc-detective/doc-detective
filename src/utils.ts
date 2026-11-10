@@ -505,14 +505,13 @@ async function setConfig({
     // Add to config
     config.input = args.input;
   }
-  // `--output -` means stdout, the same as --json.
-  const jsonOnStdout = args.json === true || args.output === "-";
-  if (args.output && args.output !== "-") {
-    config.output = resolveResultsFile(args.output);
-  } else if (typeof config.output === "string") {
-    // Each source anchored its own relative path already.
-    config.output = resolveResultsFile(config.output);
-  }
+  // `-` means stdout, the same as --json, from the flag or config. The flag
+  // wins, so `-o -` drops a config results file (ADR 01191). Each source
+  // anchored its own relative path already.
+  const output = args.output || config.output;
+  const jsonOnStdout = args.json === true || output === "-";
+  if (typeof output === "string" && output !== "-") config.output = resolveResultsFile(output);
+  else delete config.output;
   if (args.outputDir) {
     config.outputDir = path.resolve(args.outputDir);
   }
@@ -539,6 +538,18 @@ async function setConfig({
   }
   if (typeof args.dryRun === "boolean") {
     config.dryRun = args.dryRun;
+  }
+  // Each of these writes its own stdout, so only one can have it (ADR 01191).
+  // Checked here, not with commander's conflicts(), which sees neither `-o -`
+  // nor config.
+  if (args.plain) {
+    const modes: [unknown, string][] = [
+      [args.json, "--json"],
+      [output === "-", "--output -"],
+      [config.dryRun, "--dry-run"],
+    ];
+    const other = modes.find(([on]) => on)?.[1];
+    if (other) throw new Error(`set \`${other}\` or \`--plain\`, not both.`);
   }
   // The CLI's list flags are one comma-separated value each (ADR 01166).
   for (const [flag, key] of [

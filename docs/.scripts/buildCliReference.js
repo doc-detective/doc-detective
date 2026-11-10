@@ -87,7 +87,7 @@ function configKeyForFlag(flagName) {
 const REFERENCE_DESCRIPTIONS = {
   "config": "Path to a `config.json` or `config.yaml` file.",
   "input": "Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. `-` reads a spec or document from stdin. Give one comma-separated list, once. Repeating the flag is a usage error.",
-  "output": "Path of the JSON results file. It's overwritten on each run. `-` prints the results to stdout, the same as `--json`. A folder isn't valid here: use `--output-dir`.",
+  "output": "Path of the JSON results file. It's overwritten on each run. `-` prints the results to stdout, the same as `--json`. Beats config `output`. With `--dry-run`, the file gets the test plan. A folder isn't valid here: use `--output-dir`.",
   "plain": "Print one line per test context, with four tab-separated columns: result, spec ID, test ID, and platform and browser, such as `linux/chrome`.",
   "output-dir": "Path of the folder that holds the run folder (`.doc-detective/runs/<runId>/`) and the html, junit, and markdown reports.",
   "allow-unsafe": "Allow execution of potentially unsafe tests",
@@ -352,7 +352,7 @@ function buildPage(data) {
     "- `--cache-dir`: see the [cache directory guidance](/reference/reference/cli/install#cache-directory).",
     "- `--shell`: [`runShell`](/docs/actions/runshell) documents its steps, and [shell selection](/docs/actions/runshell#shell-selection) covers how the default is chosen.",
     "- `--dry-run`: the resolved test plan is printed to stdout, so you can pipe it (for example, `npx doc-detective --dry-run | jq`).",
-    "- `--json`, `--plain`, and `--output -`: stdout holds only results, and everything else goes to stderr.",
+    "- `--json`, `--plain`, and `--output -`: stdout holds only results, and everything else goes to stderr. Only one mode can write stdout, so `--plain` with `--json`, `--output -`, or `--dry-run` exits `2`.",
     "- `--no-input`: also available as `DOC_DETECTIVE_NO_INPUT=1`.",
     "- `--auto-update`: skipped automatically when the `CI` environment variable is set, which GitHub Actions, GitLab CI, CircleCI, and most CI systems do—so CI pipelines usually don't need `--no-auto-update`. To pin the version deterministically everywhere (including runners that don't set `CI`), set `autoUpdate: false` in config or pass `--no-auto-update`.",
     "- `--test` and `--spec`: patterns match if they appear anywhere in the ID; anchor a pattern with `^` and `$` to require an exact `testId` or `specId` match. Each value is split on commas *before* the parts are compiled as regexes, so a pattern can't contain a literal comma (for example, `--test \"step{1,3}\"` is split into `step{1` and `3}`).",
