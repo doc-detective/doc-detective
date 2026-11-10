@@ -186,7 +186,35 @@ describe("automatic screenshots when the image packages can't install", function
     const ran = result.specs[0].tests[0].contexts.filter((c) => c.result !== "SKIPPED");
     assert.equal(ran.length, 1);
     assert.equal(ran[0].result, "PASS");
-    assert.ok(ran[0].steps.every((s) => !s.autoScreenshot), "no step has an automatic screenshot");
+    assert.ok(ran[0].steps.every((s) => !s.autoScreenshotPath && !s.autoScreenshot), "no step has an automatic screenshot");
     assert.equal(written.split("Not taking automatic screenshots").length - 1, 1);
+  });
+
+  // ADR 01184: the step's path field is `autoScreenshotPath`, and the old
+  // `autoScreenshot` name is gone from step results.
+  it("reports each automatic screenshot as the step's autoScreenshotPath", async function () {
+    this.timeout(120000);
+    const specPath = path.join(tmpDir, "shots.spec.json");
+    fs.writeFileSync(
+      specPath,
+      JSON.stringify({
+        tests: [
+          {
+            runOn: [{ platforms: ["windows", "mac", "linux"], browsers: { name: "chrome", headless: true } }],
+            steps: [{ goTo: "http://localhost:8092" }],
+          },
+        ],
+      })
+    );
+    const result = await runTests(
+      { input: specPath, logLevel: "silent", autoRecord: false, outputDir: tmpDir },
+      { installRuntime: async () => {} }
+    );
+    const ran = result.specs[0].tests[0].contexts.filter((c) => c.result !== "SKIPPED");
+    if (ran.length === 0) this.skip();
+    const [step] = ran[0].steps;
+    assert.equal(typeof step.autoScreenshotPath, "string", JSON.stringify(step));
+    assert.ok(fs.existsSync(path.join(result.runDir, step.autoScreenshotPath)));
+    assert.ok(!("autoScreenshot" in step));
   });
 });

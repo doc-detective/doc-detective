@@ -64,8 +64,7 @@ function nonPassItems(results: any): any[] {
             continue;
           }
           const item = makeItem(context, step, [...ids, step.stepId || `step ${stepNumber}`], step.description);
-          // autoScreenshot is the field's name until R-1 renames it.
-          const screenshot = [step.autoScreenshotPath, step.autoScreenshot, step.outputs?.screenshotPath].map(existing).find(Boolean);
+          const screenshot = [step.autoScreenshotPath, step.outputs?.screenshotPath].map(existing).find(Boolean);
           if (screenshot) item.screenshot = screenshot;
           own.push(item);
           if (step.result === "FAIL") failed = item;

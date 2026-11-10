@@ -153,56 +153,18 @@
                         "WARNING",
                         "SKIPPED"
                       ]
-                    },
-                    "expected": {
-                      "description": "The value (or values) the assertion expected. Optional.",
-                      "type": [
-                        "array",
-                        "boolean",
-                        "integer",
-                        "null",
-                        "number",
-                        "object",
-                        "string"
-                      ]
-                    },
-                    "actual": {
-                      "description": "The value actually observed. Optional.",
-                      "type": [
-                        "array",
-                        "boolean",
-                        "integer",
-                        "null",
-                        "number",
-                        "object",
-                        "string"
-                      ]
-                    },
-                    "description": {
-                      "description": "Human-readable explanation of the outcome. Optional.",
-                      "type": "string"
                     }
                   },
                   "examples": [
                     {
                       "statement": "exitCode in [0]",
                       "source": "implicit",
-                      "result": "PASS",
-                      "expected": [
-                        0
-                      ],
-                      "actual": 0,
-                      "description": "Returned exit code 0."
+                      "result": "PASS"
                     },
                     {
                       "statement": "exitCode in [0]",
                       "source": "implicit",
-                      "result": "FAIL",
-                      "expected": [
-                        0
-                      ],
-                      "actual": 1,
-                      "description": "Returned exit code 1. Expected one of [0]."
+                      "result": "FAIL"
                     },
                     {
                       "statement": "saved-file variation <= 0.1",
@@ -764,11 +726,11 @@
             "additionalProperties": false,
             "title": "Source Location"
           },
-          "autoScreenshot": {
+          "autoScreenshotPath": {
             "type": "string",
             "minLength": 1,
             "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-            "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+            "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
             "readOnly": true
           },
           "attempts": {
@@ -878,56 +840,18 @@
                     "WARNING",
                     "SKIPPED"
                   ]
-                },
-                "expected": {
-                  "description": "The value (or values) the assertion expected. Optional.",
-                  "type": [
-                    "array",
-                    "boolean",
-                    "integer",
-                    "null",
-                    "number",
-                    "object",
-                    "string"
-                  ]
-                },
-                "actual": {
-                  "description": "The value actually observed. Optional.",
-                  "type": [
-                    "array",
-                    "boolean",
-                    "integer",
-                    "null",
-                    "number",
-                    "object",
-                    "string"
-                  ]
-                },
-                "description": {
-                  "description": "Human-readable explanation of the outcome. Optional.",
-                  "type": "string"
                 }
               },
               "examples": [
                 {
                   "statement": "exitCode in [0]",
                   "source": "implicit",
-                  "result": "PASS",
-                  "expected": [
-                    0
-                  ],
-                  "actual": 0,
-                  "description": "Returned exit code 0."
+                  "result": "PASS"
                 },
                 {
                   "statement": "exitCode in [0]",
                   "source": "implicit",
-                  "result": "FAIL",
-                  "expected": [
-                    0
-                  ],
-                  "actual": 1,
-                  "description": "Returned exit code 1. Expected one of [0]."
+                  "result": "FAIL"
                 },
                 {
                   "statement": "saved-file variation <= 0.1",
@@ -1506,11 +1430,11 @@
         "description": "Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.",
         "default": false
       },
-      "autoScreenshot": {
+      "autoScreenshotPath": {
         "type": "string",
         "minLength": 1,
         "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+        "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
         "readOnly": true
       },
       "attempts": {
@@ -1595,7 +1519,7 @@
     "onWarning": {},
     "onSkip": {},
     "location": {},
-    "autoScreenshot": {},
+    "autoScreenshotPath": {},
     "attempts": {},
     "visit": {},
     "durationMs": {},
@@ -1774,56 +1698,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -2385,11 +2271,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -2804,56 +2690,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -3415,11 +3263,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -4330,56 +4178,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -4941,11 +4751,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -12055,56 +11865,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -12666,11 +12438,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -14024,56 +13796,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -14635,11 +14369,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -15891,56 +15625,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -16502,11 +16198,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -17148,56 +16844,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -17759,11 +17417,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -18350,56 +18008,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -18961,11 +18581,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -19631,56 +19251,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -20242,11 +19824,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -23420,56 +23002,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -24031,11 +23575,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -32070,56 +31614,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -32681,11 +32187,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -33129,56 +32635,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -33740,11 +33208,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -34846,56 +34314,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -35457,11 +34887,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -35703,56 +35133,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -36314,11 +35706,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -37792,56 +37184,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -38403,11 +37757,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -39995,56 +39349,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -40606,11 +39922,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -40810,56 +40126,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -41421,11 +40699,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -42249,56 +41527,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -42860,11 +42100,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -43291,56 +42531,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -43902,11 +43104,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -45459,56 +44661,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -46070,11 +45234,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {
@@ -46307,56 +45471,18 @@
                           "WARNING",
                           "SKIPPED"
                         ]
-                      },
-                      "expected": {
-                        "description": "The value (or values) the assertion expected. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "actual": {
-                        "description": "The value actually observed. Optional.",
-                        "type": [
-                          "array",
-                          "boolean",
-                          "integer",
-                          "null",
-                          "number",
-                          "object",
-                          "string"
-                        ]
-                      },
-                      "description": {
-                        "description": "Human-readable explanation of the outcome. Optional.",
-                        "type": "string"
                       }
                     },
                     "examples": [
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "PASS",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 0,
-                        "description": "Returned exit code 0."
+                        "result": "PASS"
                       },
                       {
                         "statement": "exitCode in [0]",
                         "source": "implicit",
-                        "result": "FAIL",
-                        "expected": [
-                          0
-                        ],
-                        "actual": 1,
-                        "description": "Returned exit code 1. Expected one of [0]."
+                        "result": "FAIL"
                       },
                       {
                         "statement": "saved-file variation <= 0.1",
@@ -46918,11 +46044,11 @@
               "additionalProperties": false,
               "title": "Source Location"
             },
-            "autoScreenshot": {
+            "autoScreenshotPath": {
               "type": "string",
               "minLength": 1,
               "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
-              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.",
+              "description": "Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.",
               "readOnly": true
             },
             "attempts": {

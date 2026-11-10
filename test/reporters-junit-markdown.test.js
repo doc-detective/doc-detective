@@ -151,7 +151,7 @@ describe("junit and markdown reporters", function () {
                         resultDescription: "Couldn't find element `#save`.",
                         resultHint: "Check the selector.",
                         resultCode: "element_not_found",
-                        autoScreenshot: shot,
+                        autoScreenshotPath: shot,
                       },
                       { stepId: "next", result: "SKIPPED", resultDescription: "Skipped: a prior step failed." },
                       { stepId: "last", result: "SKIPPED", resultDescription: "Skipped: a prior step failed." },
@@ -174,7 +174,7 @@ describe("junit and markdown reporters", function () {
                         stepId: "compare",
                         result: "WARNING",
                         resultDescription: "It varied by <3%>.",
-                        autoScreenshot: warnShot,
+                        autoScreenshotPath: warnShot,
                       },
                     ],
                   },
@@ -755,7 +755,7 @@ describe("junit and markdown reporters", function () {
       // Evidence paths aren't clamped, and a summary far from its run folder has
       // long ones. No folder on this path has to exist.
       fs.writeFileSync(path.join(tmpDir, "a.png"), "x");
-      const shot = { autoScreenshot: path.join(tmpDir, "a.png") };
+      const shot = { autoScreenshotPath: path.join(tmpDir, "a.png") };
       const run = {
         runDir: tmpDir,
         summary: { tests: counts(0, 1, 1, 0) },
@@ -781,7 +781,7 @@ describe("junit and markdown reporters", function () {
       const run = {
         runDir: tmpDir,
         summary: { tests: counts(0, 1, 0, 0) },
-        specs: [{ specId: "s", tests: [{ testId: "f", contexts: [reportWith("FAIL", 100, { autoScreenshot: path.join(tmpDir, "a.png") })] }] }],
+        specs: [{ specId: "s", tests: [{ testId: "f", contexts: [reportWith("FAIL", 100, { autoScreenshotPath: path.join(tmpDir, "a.png") })] }] }],
       };
       const md = buildMarkdown(run, path.join(tmpDir, "d/".repeat(5000), "doc-detective-summary.md"));
       assert.ok(Buffer.byteLength(md, "utf8") <= 1024 * 1024);

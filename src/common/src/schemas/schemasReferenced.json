@@ -3454,8 +3454,8 @@
               "location": {
                 "$ref": "#/components/schemas/location"
               },
-              "autoScreenshot": {
-                "$ref": "#/components/schemas/autoScreenshot"
+              "autoScreenshotPath": {
+                "$ref": "#/components/schemas/autoScreenshotPath"
               },
               "attempts": {
                 "type": "integer",
@@ -3553,7 +3553,7 @@
             "type": "boolean",
             "default": false
           },
-          "autoScreenshot": {
+          "autoScreenshotPath": {
             "type": "string",
             "minLength": 1,
             "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
@@ -3631,7 +3631,7 @@
         "onWarning": {},
         "onSkip": {},
         "location": {},
-        "autoScreenshot": {},
+        "autoScreenshotPath": {},
         "attempts": {},
         "visit": {},
         "durationMs": {},
@@ -6785,31 +6785,6 @@
             "WARNING",
             "SKIPPED"
           ]
-        },
-        "expected": {
-          "type": [
-            "array",
-            "boolean",
-            "integer",
-            "null",
-            "number",
-            "object",
-            "string"
-          ]
-        },
-        "actual": {
-          "type": [
-            "array",
-            "boolean",
-            "integer",
-            "null",
-            "number",
-            "object",
-            "string"
-          ]
-        },
-        "description": {
-          "type": "string"
         }
       },
       "$id": "assertion_v3.schema.json"
@@ -11662,8 +11637,8 @@
               "location": {
                 "$ref": "step_v3.nodefaults.schema.json#/components/schemas/location"
               },
-              "autoScreenshot": {
-                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/autoScreenshot"
+              "autoScreenshotPath": {
+                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/autoScreenshotPath"
               },
               "attempts": {
                 "type": "integer",
@@ -11757,7 +11732,7 @@
           "breakpoint": {
             "type": "boolean"
           },
-          "autoScreenshot": {
+          "autoScreenshotPath": {
             "type": "string",
             "minLength": 1,
             "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
@@ -11835,7 +11810,7 @@
         "onWarning": {},
         "onSkip": {},
         "location": {},
-        "autoScreenshot": {},
+        "autoScreenshotPath": {},
         "attempts": {},
         "visit": {},
         "durationMs": {},
@@ -14928,31 +14903,6 @@
             "WARNING",
             "SKIPPED"
           ]
-        },
-        "expected": {
-          "type": [
-            "array",
-            "boolean",
-            "integer",
-            "null",
-            "number",
-            "object",
-            "string"
-          ]
-        },
-        "actual": {
-          "type": [
-            "array",
-            "boolean",
-            "integer",
-            "null",
-            "number",
-            "object",
-            "string"
-          ]
-        },
-        "description": {
-          "type": "string"
         }
       },
       "$id": "assertion_v3.nodefaults.schema.json"

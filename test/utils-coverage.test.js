@@ -419,7 +419,7 @@ describe("utils.ts coverage", function () {
         fs.writeFileSync(path.join(runDir, "c.mp4"), "x");
         const results = mixed({ runDir });
         const context = results.specs[0].tests[0].contexts[0];
-        context.steps[0].autoScreenshot = "a.png";
+        context.steps[0].autoScreenshotPath = "a.png";
         context.autoRecording = { result: "PASS", recordingPath: "c.mp4" };
         await reporters.terminalReporter({}, "out", results, {});
         assert.ok(cap.log.includes(`   Screenshot: ${path.join(runDir, "a.png")}`));
@@ -429,7 +429,7 @@ describe("utils.ts coverage", function () {
       it("leaves out media lines for a file that isn't there", async function () {
         const cap = captureConsole(sandbox);
         const results = mixed({ runDir: makeTmpDir() });
-        results.specs[0].tests[0].contexts[0].steps[0].autoScreenshot = "gone.png";
+        results.specs[0].tests[0].contexts[0].steps[0].autoScreenshotPath = "gone.png";
         await reporters.terminalReporter({}, "out", results, {});
         assert.ok(!cap.log.includes("Screenshot:"));
       });
