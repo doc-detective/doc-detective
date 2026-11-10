@@ -576,8 +576,10 @@ describe("appSurfacePreflight", function () {
       platform: "linux",
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /Windows/);
-    assert.match(outcome.reason, /iOS/);
+    assert.equal(
+      outcome.reason,
+      "Skipped: native app surfaces don't run on `linux`. They run on Windows, macOS, Android, and iOS. Gate the test with `runOn` platforms so this skip is intentional."
+    );
   });
 
   it("skips ios on non-mac hosts with toolchain guidance", async function () {
@@ -587,7 +589,7 @@ describe("appSurfacePreflight", function () {
       deps: {
         probeIosToolchain: () => ({
           ok: false,
-          reason: "Skipping context on 'ios': iOS app surfaces require a macOS host.",
+          reason: "Skipped: iOS app surfaces require a macOS host.",
         }),
       },
     });
@@ -913,7 +915,7 @@ describe("startAppSurface", function () {
       serverDeps: okServerDeps(fakeDriver()),
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("windows: snapshots the window baseline on open (main handle, pid, lazy baseline)", async function () {
@@ -1837,7 +1839,10 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
       criteria: { elementText: "Save" },
       timeout: 10,
     });
-    assert.match(missing.error, /No element matched/);
+    assert.match(
+      missing.error,
+      /^Couldn't find an element matching `\{"elementText":"Save"\}` on the app surface within 10 ms \(locator: `[^`]+`\)\.$/
+    );
 
     const unmappable = await findAppElement({
       driver: {},

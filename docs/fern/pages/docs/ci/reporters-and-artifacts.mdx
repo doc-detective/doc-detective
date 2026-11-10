@@ -116,6 +116,11 @@ These parts of the results are a stable contract for scripts. A change to any of
 
 - `summary.specs`, `summary.tests`, `summary.contexts`, and `summary.steps`, each with whole-number `pass`, `fail`, `warning`, and `skipped` counts. `summary.steps` counts steps only, and the automatic recording isn't a step.
 - `result` on every spec, test, context, and step, with the value `PASS`, `FAIL`, `WARNING`, or `SKIPPED`.
+- `resultCode` on every step and automatic recording whose `result` is `FAIL`, and only then. It says what kind of failure it was:
+  - `environment`: the network, the browser session, or the page load failed.
+  - `drift`: a `find` missed its element, but similar ones exist, so the page probably changed.
+  - `assertion`: anything else, such as a missing element with nothing close, or a wrong status code.
+- `resultHint` on a failed step or automatic recording, when Doc Detective has a suggested fix. A `drift` step's hint names the closest matches. See [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
 - `durationMs` on the run and on every spec, test, context, and step.
 - `autoRecording.result` on every context Doc Detective tried to record automatically, and `autoRecording.recordingPath`, relative to `runDir`, when it saved a video. See [Where the recording shows up](/docs/test-docs/automatic-recording#where-the-recording-shows-up).
 - `runId` and `runDir`, except when a filter matches nothing. That run has no run folder, and `specs` is empty.

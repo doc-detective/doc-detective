@@ -474,8 +474,10 @@ describe("driverSkipDiagnostic", function () {
       attemptedFallback: true,
       lastError: "boom",
     });
-    assert.match(msg, /no other available browser/i);
-    assert.match(msg, /boom/);
+    assert.equal(
+      msg,
+      "Skipped: couldn't start a browser session for `firefox` on `windows`, and no other available browser could start either. A present-but-broken driver, such as a partially downloaded geckodriver, can cause this. Reinstall the driver or its browser. Last error: boom."
+    );
   });
 
   it("reports a platform mismatch distinctly (no fallback implied)", function () {
@@ -484,8 +486,9 @@ describe("driverSkipDiagnostic", function () {
       platform: "mac",
       platformMatches: false,
       attemptedFallback: false,
+      targetPlatform: "linux",
     });
-    assert.match(msg, /different platform/i);
+    assert.equal(msg, "Skipped: this context targets `linux`, not this host.");
   });
 });
 

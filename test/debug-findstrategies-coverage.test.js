@@ -496,7 +496,7 @@ describe("findStrategies coverage (phase 13)", function () {
       const res = await findElementByCriteria({ timeout: 50, driver });
       assert.equal(res.element, null);
       assert.equal(res.foundBy, null);
-      assert.match(res.error, /At least one/);
+      assert.equal(res.error, "Couldn't find an element: set `selector`, `elementText`, or another finding field.");
     });
 
     it("finds by CSS selector alone (no further criteria)", async function () {
@@ -641,7 +641,7 @@ describe("findStrategies coverage (phase 13)", function () {
         driver,
       });
       assert.equal(res.element, null);
-      assert.match(res.error, /not found within timeout/);
+      assert.equal(res.error, "Couldn't find an element within `timeout` (120 ms).");
     });
 
     it("skips a candidate that no longer exists in the DOM", async function () {
@@ -755,7 +755,7 @@ describe("findStrategies coverage (phase 13)", function () {
           driver,
         });
         assert.equal(res.element, null);
-        assert.match(res.error, /not found within timeout/);
+        assert.match(res.error, /^Couldn't find an element within `timeout`/);
         assert.ok(errStub.called);
       } finally {
         errStub.restore();

@@ -25,6 +25,7 @@ import {
 import { createRequire } from "node:module";
 import type { AxiosRequestConfig } from "axios";
 import { applyVerification, declarePage, VERIFIED_TOOL } from "./verification.js";
+import { validate } from "../common/src/validate.js";
 
 // axios (~70 modules with its deps) loads on first use rather than at CLI
 // startup (see test/startup-modules.test.js). Cached, so hot paths pay the
@@ -132,6 +133,7 @@ export {
   hasVariable,
   compileFilter,
   isRetryableSessionError,
+  classifyStepFailure,
   isSessionAlive,
   isPageBroken,
   isPageUnnavigated,
@@ -146,6 +148,7 @@ export {
   shouldFailRun,
   runExitCode,
   summarizeSchemaErrors,
+  invalidStepMessage,
   shortJson,
   knownKeysAt,
   configErrorMessage,
@@ -921,6 +924,35 @@ function isRetryableSessionError(
   return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
 }
 
+// A failure the host or network caused rather than the docs or the product:
+// DNS, refused or dropped connections, a dead session, or a page that never
+// loaded (ADR 01194).
+// ponytail: a description-text heuristic, so a message that names none of
+// these lands in `assertion`. Move to error codes carried on the step result if
+// it misclassifies.
+const ENVIRONMENT_FAILURE =
+  /ENOTFOUND|EAI_AGAIN|getaddrinfo|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|net::ERR_|no such window|blank document/i;
+
+// The structured failure fields on a FAIL step report (ADR 01194): `resultCode`
+// says what kind of failure it was, and near matches become `resultHint`.
+// Any other result gets neither.
+function classifyStepFailure(step: any): { resultCode?: "environment" | "drift" | "assertion"; resultHint?: string } {
+  if (step?.result !== "FAIL") return {};
+  const near = step.outputs?.nearMatches;
+  if (Array.isArray(near) && near.length > 0) {
+    const names = near.map((m: any) => `\`${m.text || m.ariaLabel || m.id || m.testId}\``);
+    return {
+      resultCode: "drift",
+      resultHint: `${names.length > 1 ? "Closest matches" : "Closest match"}: ${names.join(", ")}.`,
+    };
+  }
+  const text = String(step.resultDescription ?? "");
+  if (TRANSIENT_SESSION_ERROR.test(text) || ENVIRONMENT_FAILURE.test(text)) {
+    return { resultCode: "environment" };
+  }
+  return { resultCode: "assertion" };
+}
+
 // Active liveness probe for the `retries` context-retry policy. A dead session
 // surfaces a step FAIL that is indistinguishable at the result level from a
 // legitimate assertion FAIL (handlers catch driver errors and return FAIL), so
@@ -1353,6 +1385,19 @@ const branchRequired = /\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/;
 // the noise of anyOf/oneOf branches the value didn't take dropped, and the
 // nearest real key named when something is unknown. Config and specs read the
 // same (ADR 01150). Raw errors stay available at debug level.
+// What an action reports when its step doesn't validate (ADR 01195). The
+// actions validate without structured errors, so the hot path pays nothing;
+// only this failing path validates again to summarize them.
+function invalidStepMessage(step: any): string {
+  const { errorObjects } = validate({ schemaKey: "step_v3", object: step, structuredErrors: true });
+  // A step-level line has no key path in front ("no action, ..."), so it
+  // starts a sentence here. A key path ("goTo.timeout: ...") keeps its case.
+  const summary = summarizeSchemaErrors(errorObjects, step, "step_v3").replace(/^[a-z]+ /, (word) =>
+    word[0].toUpperCase() + word.slice(1)
+  );
+  return `Couldn't run the step: its definition isn't valid. ${summary}`;
+}
+
 function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootSchemaKey = "spec_v3"): string {
   // AJV types `message` as optional. Name the keyword rather than print
   // "undefined", except `not`, which gets AJV's own words: "not." reads as nonsense.

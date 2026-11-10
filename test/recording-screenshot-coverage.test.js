@@ -205,7 +205,7 @@ describeIfSharp("saveScreenshot: extra branches", function () {
       driver: fakeDriver(buf),
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("boolean screenshot:true derives a <stepId>.png path under cwd-relative dir", async function () {
@@ -655,7 +655,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("record:false -> SKIPPED", async function () {
@@ -1166,7 +1166,7 @@ describe("stopRecording: guards + MediaRecorder", function () {
       driver: {},
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("stopRecord:false -> SKIPPED (explicit no-op)", async function () {

@@ -18,6 +18,8 @@ Field | Type | Description | Default
 :-- | :-- | :-- | :--
 result | string | Required. Outcome of the automatic recording, from starting it through saving it. A `FAIL` or `WARNING` also sets the context's `result`. A `PASS` or `SKIPPED` doesn't.<br/><br/>Accepted values: `PASS`, `FAIL`, `WARNING`, `SKIPPED` | —
 resultDescription | string | Optional. Why the automatic recording had its outcome. Absent on a `PASS`. | —
+resultCode | string | Optional. What kind of failure this was, present only when `result` is `FAIL`. The same field and values as a step's `resultCode`. `environment` means the network, the browser session, or the page load failed. `assertion` means anything else.<br/><br/>Accepted values: `environment`, `drift`, `assertion` | —
+resultHint | string | Optional. A suggested fix for a failed recording. The same field as a step's `resultHint`. Present only when Doc Detective has a suggestion. | —
 recordingPath | string | Optional. Path of the saved video, relative to the run's artifact directory (the report's `runDir`), with forward slashes. Absent when no file was written. | —
 startedAt | string | Optional. When the recording started, as an ISO 8601 UTC timestamp with milliseconds. Absent when it didn't start. | —
 format | string | Optional. File format of the saved video, for example `mp4`. Absent when no file was written. | —

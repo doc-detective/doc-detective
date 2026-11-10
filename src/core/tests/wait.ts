@@ -1,4 +1,5 @@
 import { validate } from "../../common/src/validate.js";
+import { invalidStepMessage } from "../utils.js";
 
 export { wait };
 
@@ -11,7 +12,7 @@ async function wait({ config, step, driver }: { config?: any; step: any; driver:
   const isValidStep = validate({schemaKey: "step_v3", object: step});
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
 

@@ -4,6 +4,7 @@
 // on app and browser surfaces; a process has no screen to swipe. Pure
 // execution: no implicit assertions, like goTo.
 import { validate } from "../../common/src/validate.js";
+import { invalidStepMessage } from "../utils.js";
 import { switchToSurface } from "./browserSurface.js";
 import { ensureAppForeground } from "./appSurface.js";
 import {
@@ -50,7 +51,7 @@ async function swipeSurface({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // The effective step (ADR 01167) is the gesture: a directional swipe has

@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log } from "../utils.js";
+import { log, invalidStepMessage } from "../utils.js";
 import { maskString } from "../masking.js";
 import { syncHandles } from "./browserSurface.js";
 import { spawn } from "node:child_process";
@@ -85,7 +85,7 @@ async function endRecording({
   const isValidStep = validate({ schemaKey: "step_v3", object: authoredStep });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(authoredStep);
     return result;
   }
   const { stopRecord } = isValidStep.object;

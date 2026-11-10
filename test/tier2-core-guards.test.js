@@ -35,7 +35,7 @@ describe("Tier-2 core guard/error paths", function () {
       // to string, so step_v3 validation rejects it -> invalid-step branch.
       const result = await loadVariables({ step: { loadVariables: {} } });
       assert.equal(result.status, "FAIL");
-      assert.match(result.description, /Invalid step definition/);
+      assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
     });
 
     it("FAILs when the .env file does not exist (loadEnvs FAIL)", async function () {
@@ -76,7 +76,7 @@ describe("Tier-2 core guard/error paths", function () {
       // wait's string form must match ^\$[A-Za-z0-9_]+$, so "abc" is invalid.
       const result = await wait({ step: { wait: "abc" }, driver: undefined });
       assert.equal(result.status, "FAIL");
-      assert.match(result.description, /Invalid step definition/);
+      assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
     });
 
     it("FAILs a variable that never resolved, naming it", async function () {
@@ -140,7 +140,7 @@ describe("Tier-2 core guard/error paths", function () {
         driver: undefined,
       });
       assert.equal(result.status, "FAIL");
-      assert.match(result.description, /Invalid step definition/);
+      assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
     });
   });
 

@@ -80,6 +80,7 @@ The automatic recording isn't a step, so it isn't in a context's `steps`, and `s
 |---|---|
 | `result` | `PASS`, `FAIL`, `WARNING`, or `SKIPPED`, from starting the recording through saving it. |
 | `resultDescription` | Why, when the result isn't `PASS`. |
+| `resultCode` | What kind of failure it was, when the result is `FAIL`: `environment` or `assertion`. |
 | `recordingPath` | The video's path relative to the results' `runDir`, with forward slashes. It's there only when a file was saved. |
 | `startedAt` | When the recording started. It's left out when the recording didn't start. |
 | `format`, `duration`, `width`, `height`, `fps` | The saved video's file format, length in seconds, size in pixels, and frame rate. Each is left out when Doc Detective couldn't read it. |

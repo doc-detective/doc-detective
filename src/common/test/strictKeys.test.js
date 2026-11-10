@@ -22,12 +22,20 @@ describe("unknown keys", function () {
         ...goTo,
         stepId: "s",
         description: "d",
-        result: "PASS",
+        result: "FAIL",
         resultDescription: "ok",
+        resultCode: "drift",
+        resultHint: "Closest match: `Save`.",
         durationMs: 1,
       };
       const result = validate({ schemaKey: "step_v3", object, addDefaults: false });
       expect(result.valid, result.errors).to.equal(true);
+    });
+
+    it("rejects a resultCode outside environment, drift, and assertion", function () {
+      const object = { ...goTo, result: "FAIL", resultCode: "network" };
+      const result = validate({ schemaKey: "step_v3", object, addDefaults: false });
+      expect(result.valid).to.equal(false);
     });
 
     it("lists exactly the common keys and every action at the root", function () {
