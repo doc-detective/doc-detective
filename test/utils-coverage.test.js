@@ -244,7 +244,7 @@ describe("utils.ts coverage", function () {
       assert.ok(!cap.log.includes("All items passed"));
     });
 
-    it("prints 'All items were skipped' when every spec is skipped", async function () {
+    it("leaves an all-skipped run to the skip list and the verdict line", async function () {
       const cap = captureConsole(sandbox);
       const results = {
         summary: {
@@ -253,7 +253,7 @@ describe("utils.ts coverage", function () {
         },
       };
       await reporters.terminalReporter({}, "out", results, {});
-      assert.ok(cap.log.includes("All items were skipped"));
+      assert.ok(!cap.log.includes("All items were skipped"));
     });
 
     it("renders warnings and skipped counts for each level", async function () {

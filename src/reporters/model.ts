@@ -5,7 +5,7 @@ import path from "node:path";
 import { log } from "../core/utils.js";
 
 export { verdict } from "../cliOutput.js";
-export { nonPassItems, mediaPath, environmentLine, writeReport };
+export { nonPassItems, existingFile, mediaPath, environmentLine, writeReport };
 
 const NON_PASS = ["FAIL", "WARNING", "SKIPPED"];
 
@@ -15,16 +15,20 @@ function present(list: any): [any, number][] {
   return (Array.isArray(list) ? list : []).map((node: any, index: number): [any, number] => [node, index + 1]).filter(([node]) => node);
 }
 
+// A stored evidence path as an absolute path, or `undefined` when the file isn't
+// there. A relative path resolves against the run folder.
+function existingFile(file: any, runDir: any): string | undefined {
+  if (typeof file !== "string" || !file) return undefined;
+  const absolute = path.resolve(typeof runDir === "string" ? runDir : "", file);
+  return fs.existsSync(absolute) ? absolute : undefined;
+}
+
 // Everything that wasn't a PASS, FAIL then WARNING then SKIPPED, in report order.
 // The rules are in ADR 01180. `owner` is the node a reporter groups an item under:
 // its context, or the test or spec when there's no context to be under.
 function nonPassItems(results: any): any[] {
   const runDir = results?.runDir;
-  const existing = (file: any) => {
-    if (typeof file !== "string" || !file) return undefined;
-    const absolute = path.resolve(typeof runDir === "string" ? runDir : "", file);
-    return fs.existsSync(absolute) ? absolute : undefined;
-  };
+  const existing = (file: any) => existingFile(file, runDir);
   const makeItem = (owner: any, node: any, ids: string[], description?: string) => {
     const item: any = { status: node.result, idPath: ids.join(" › "), reason: node.resultDescription ?? "", skippedAfter: 0, owner };
     if (description) item.description = description;
@@ -66,6 +70,11 @@ function nonPassItems(results: any): any[] {
           own.push(item);
           if (step.result === "FAIL") failed = item;
         }
+        // Rule 4: the context gets its own item only when nothing above already
+        // carries its result. A failed step or a failed recording sets the
+        // context's result, so it already explains it. A context that's FAIL
+        // with only a WARNING step still needs a FAIL item, so match the
+        // result, not just any non-PASS item.
         if (NON_PASS.includes(context.result) && !own.some((item) => item.status === context.result)) {
           own.push(makeItem(context, context, ids, test.description));
         }
