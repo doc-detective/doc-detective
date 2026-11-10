@@ -152,7 +152,10 @@ to an older version, so you do these steps by hand, in this order:
    ```
 
    A Release run includes the promote and Docker jobs it calls. Wait for each run to finish, or stop
-   it with `gh run cancel <run-id>`. Their concurrency groups key on the ref or version
+   it with `gh run cancel <run-id>`. Once a Release run's `release` job has started its `Release`
+   step, let it finish. That step publishes `doc-detective` and `doc-detective-common` to npm, and
+   cancelling it between the two leaves them at different versions. Cancel a Release run only before
+   that step starts. The three workflows' concurrency groups key on the ref or version
    (`release-<ref>`, `promote-<version>`, `docker-build-<ref>-<version>`), so nothing queues them
    behind your rollback. A 5.x Docker job that finishes after step 5 moves `latest` back to 5.x.
 2. **If the final 4.x update already shipped, remove its notice.** That notice tells users to move
