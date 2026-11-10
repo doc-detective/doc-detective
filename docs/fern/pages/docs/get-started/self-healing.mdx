@@ -1,13 +1,14 @@
 ---
-title: Self-healing documentation
-sidebar-title: Self-healing
+title: Hand off test failures to an AI agent
+sidebar-title: Hand off failures
+description: Have the GitHub Action open an issue when tests fail and mention an AI agent that analyzes the failure and suggests a fix.
 ---
 
-Set up a documentation system that detects failures, diagnoses problems, and suggests fixes automatically. Combine Doc Detective's GitHub Action with AI integrations to create a feedback loop. Tests run on every push, failures trigger AI analysis, and the AI proposes repairs.
+When a test fails, Doc Detective's GitHub Action can open an issue with the results and mention an AI agent in it. The agent analyzes the failure and suggests a fix. You review the suggestion and decide what to change.
 
-## How self-healing works
+## How the handoff works
 
-The self-healing pattern connects three components:
+The handoff connects three components:
 
 1. **Automated testing**: Doc Detective runs on every push or pull request, catching documentation that no longer matches your product.
 2. **Failure detection**: When tests fail, the GitHub Action creates an issue with structured test results.
@@ -23,9 +24,9 @@ flowchart LR
     F --> G[AI suggests fix]
 ```
 
-This creates a low-effort repair cycle. When documentation drifts from reality, the system surfaces the problem and provides actionable guidance.
+Nothing changes your docs on its own. When documentation drifts from your product, the issue surfaces the problem with the agent's analysis, and you decide on the fix.
 
-## Set up self-healing
+## Set up the handoff
 
 Configure your workflow to create issues with AI integration when tests fail:
 
@@ -152,7 +153,7 @@ issue_body: |
   $PROMPT
 ```
 
-### Scheduled healing runs
+### Scheduled runs
 
 Run tests on a schedule to catch drift before it reaches production:
 
@@ -173,19 +174,19 @@ issue_assignees: docs-team-lead,qa-engineer
 issue_labels: doc-detective,needs-triage,automated
 ```
 
-## Example: Complete self-healing workflow
+## Example: weekly docs health check
 
 This workflow combines scheduled runs, AI diagnosis, and automatic PR creation:
 
 ```yaml
-name: doc-detective-self-healing
+name: doc-detective-health-check
 on:
   schedule:
     - cron: '0 6 * * 1'  # Weekly on Monday
   workflow_dispatch:  # Allow manual triggers
 
 jobs:
-  test-and-heal:
+  test-and-triage:
     runs-on: ubuntu-latest
     permissions:
       contents: write
