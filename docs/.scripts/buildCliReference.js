@@ -384,7 +384,7 @@ function buildPage(data) {
   parts.push(
     "### run",
     "",
-    "Run tests as the bare command does, with file and folder paths as arguments. The paths are added to any `--input` values. A `-` argument reads a spec or document from stdin. `runTests` and `runtests` still work, but print a deprecation warning on stderr. Replace them with `run`.",
+    "Run tests as the bare command does, with file and folder paths as arguments. The paths are added to any `--input` values. A `-` argument reads a spec or document from stdin. `runTests` and `runtests` still work, but print a deprecation warning on stderr, which `--quiet`, `-l error`, and `-l silent` hide. Replace them with `run`.",
     "",
     "```bash",
     "npx doc-detective run ./docs a.spec.json",
