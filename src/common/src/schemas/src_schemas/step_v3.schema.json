@@ -157,11 +157,11 @@
       },
       "outputs": {
         "type": "object",
-        "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+        "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
         "default": {},
         "patternProperties": {
           "^[A-Za-z0-9_]+$": {
-            "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+            "description": "A value the step produced, which can be any type."
           }
         },
         "title": "Outputs (step)"
@@ -708,9 +708,6 @@
       "stepId": "uuid",
       "description": "Description of the step.",
       "checkLink": "https://www.google.com",
-      "outputs": {
-        "outputKey": "outputValue"
-      },
       "variables": {
         "variableKey": "variableValue"
       }

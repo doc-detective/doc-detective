@@ -606,6 +606,8 @@ async function setConfig({
   if (typeof args.concurrentRunners === "string") {
     config.concurrentRunners =
       args.concurrentRunners === "auto" || args.concurrentRunners === "true" ? true : Number(args.concurrentRunners);
+  } else if (config.concurrentRunners === "auto") {
+    config.concurrentRunners = true;
   }
   // Modes that replace the terminal summary on stdout.
   const stdoutReporters: string[] = [];

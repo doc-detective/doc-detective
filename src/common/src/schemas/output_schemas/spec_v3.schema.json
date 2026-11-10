@@ -754,7 +754,7 @@
               },
               "mockResponse": {
                 "type": "boolean",
-                "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code."
               },
               "statusCode": {
                 "type": "integer",
@@ -2789,7 +2789,7 @@
                         },
                         "mockResponse": {
                           "type": "boolean",
-                          "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                          "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code."
                         },
                         "statusCode": {
                           "type": "integer",
@@ -3918,11 +3918,11 @@
                           },
                           "outputs": {
                             "type": "object",
-                            "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                            "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                             "default": {},
                             "patternProperties": {
                               "^[A-Za-z0-9_]+$": {
-                                "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                "description": "A value the step produced, which can be any type."
                               }
                             },
                             "title": "Outputs (step)"
@@ -5301,11 +5301,11 @@
                       },
                       "outputs": {
                         "type": "object",
-                        "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                        "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                         "default": {},
                         "patternProperties": {
                           "^[A-Za-z0-9_]+$": {
-                            "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                            "description": "A value the step produced, which can be any type."
                           }
                         },
                         "title": "Outputs (step)"
@@ -5484,11 +5484,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -6486,11 +6486,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -7351,7 +7351,7 @@
                                                     "safari",
                                                     "webkit"
                                                   ],
-                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                 },
                                                 "name": {
                                                   "type": "string",
@@ -7704,7 +7704,7 @@
                                                   "safari",
                                                   "webkit"
                                                 ],
-                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
                                               "name": {
                                                 "type": "string",
@@ -7984,11 +7984,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -8814,7 +8814,7 @@
                                                 "safari",
                                                 "webkit"
                                               ],
-                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                             },
                                             "name": {
                                               "type": "string",
@@ -9152,7 +9152,7 @@
                                                     "inputDelay": {
                                                       "type": "number",
                                                       "minimum": 0,
-                                                      "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                                      "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                                       "default": 100
                                                     },
                                                     "surface": {
@@ -9205,7 +9205,7 @@
                                                                 "safari",
                                                                 "webkit"
                                                               ],
-                                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                             },
                                                             "name": {
                                                               "type": "string",
@@ -9450,7 +9450,7 @@
                                                                   "safari",
                                                                   "webkit"
                                                                 ],
-                                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                               },
                                                               "name": {
                                                                 "type": "string",
@@ -10011,7 +10011,7 @@
                                                       "type": "integer",
                                                       "minimum": 0,
                                                       "default": 5000,
-                                                      "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                                      "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                                     },
                                                     "selector": {
                                                       "type": "string",
@@ -10610,7 +10610,7 @@
                                                       "inputDelay": {
                                                         "type": "number",
                                                         "minimum": 0,
-                                                        "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                                        "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                                         "default": 100
                                                       },
                                                       "surface": {
@@ -10663,7 +10663,7 @@
                                                                   "safari",
                                                                   "webkit"
                                                                 ],
-                                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                               },
                                                               "name": {
                                                                 "type": "string",
@@ -10908,7 +10908,7 @@
                                                                     "safari",
                                                                     "webkit"
                                                                   ],
-                                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                 },
                                                                 "name": {
                                                                   "type": "string",
@@ -11469,7 +11469,7 @@
                                                         "type": "integer",
                                                         "minimum": 0,
                                                         "default": 5000,
-                                                        "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                                        "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                                       },
                                                       "selector": {
                                                         "type": "string",
@@ -12248,7 +12248,7 @@
                                                   "safari",
                                                   "webkit"
                                                 ],
-                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
                                               "name": {
                                                 "type": "string",
@@ -12586,7 +12586,7 @@
                                                       "inputDelay": {
                                                         "type": "number",
                                                         "minimum": 0,
-                                                        "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                                        "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                                         "default": 100
                                                       },
                                                       "surface": {
@@ -12639,7 +12639,7 @@
                                                                   "safari",
                                                                   "webkit"
                                                                 ],
-                                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                               },
                                                               "name": {
                                                                 "type": "string",
@@ -12884,7 +12884,7 @@
                                                                     "safari",
                                                                     "webkit"
                                                                   ],
-                                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                 },
                                                                 "name": {
                                                                   "type": "string",
@@ -13445,7 +13445,7 @@
                                                         "type": "integer",
                                                         "minimum": 0,
                                                         "default": 5000,
-                                                        "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                                        "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                                       },
                                                       "selector": {
                                                         "type": "string",
@@ -14044,7 +14044,7 @@
                                                         "inputDelay": {
                                                           "type": "number",
                                                           "minimum": 0,
-                                                          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                                          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                                           "default": 100
                                                         },
                                                         "surface": {
@@ -14097,7 +14097,7 @@
                                                                     "safari",
                                                                     "webkit"
                                                                   ],
-                                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                 },
                                                                 "name": {
                                                                   "type": "string",
@@ -14342,7 +14342,7 @@
                                                                       "safari",
                                                                       "webkit"
                                                                     ],
-                                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                   },
                                                                   "name": {
                                                                     "type": "string",
@@ -14903,7 +14903,7 @@
                                                           "type": "integer",
                                                           "minimum": 0,
                                                           "default": 5000,
-                                                          "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                                          "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                                         },
                                                         "selector": {
                                                           "type": "string",
@@ -15681,11 +15681,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -16483,7 +16483,7 @@
                                                     "safari",
                                                     "webkit"
                                                   ],
-                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                 },
                                                 "name": {
                                                   "type": "string",
@@ -17017,7 +17017,7 @@
                                                       "safari",
                                                       "webkit"
                                                     ],
-                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                   },
                                                   "name": {
                                                     "type": "string",
@@ -17622,11 +17622,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -18479,7 +18479,7 @@
                                                 },
                                                 "mockResponse": {
                                                   "type": "boolean",
-                                                  "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                                                  "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code."
                                                 },
                                                 "statusCode": {
                                                   "type": "integer",
@@ -18916,7 +18916,7 @@
                                                   },
                                                   "mockResponse": {
                                                     "type": "boolean",
-                                                    "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                                                    "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code."
                                                   },
                                                   "statusCode": {
                                                     "type": "integer",
@@ -19461,11 +19461,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -20690,11 +20690,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -21864,11 +21864,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -22662,7 +22662,7 @@
                                                 "safari",
                                                 "webkit"
                                               ],
-                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                             },
                                             "name": {
                                               "type": "string",
@@ -22880,7 +22880,7 @@
                                                   "safari",
                                                   "webkit"
                                                 ],
-                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
                                               "name": {
                                                 "type": "string",
@@ -23117,11 +23117,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -23914,7 +23914,7 @@
                                         "inputDelay": {
                                           "type": "number",
                                           "minimum": 0,
-                                          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                          "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                           "default": 100
                                         },
                                         "surface": {
@@ -23967,7 +23967,7 @@
                                                     "safari",
                                                     "webkit"
                                                   ],
-                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                 },
                                                 "name": {
                                                   "type": "string",
@@ -24212,7 +24212,7 @@
                                                       "safari",
                                                       "webkit"
                                                     ],
-                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                   },
                                                   "name": {
                                                     "type": "string",
@@ -24773,7 +24773,7 @@
                                           "type": "integer",
                                           "minimum": 0,
                                           "default": 5000,
-                                          "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                          "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                         },
                                         "selector": {
                                           "type": "string",
@@ -25372,7 +25372,7 @@
                                           "inputDelay": {
                                             "type": "number",
                                             "minimum": 0,
-                                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                             "default": 100
                                           },
                                           "surface": {
@@ -25425,7 +25425,7 @@
                                                       "safari",
                                                       "webkit"
                                                     ],
-                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                   },
                                                   "name": {
                                                     "type": "string",
@@ -25670,7 +25670,7 @@
                                                         "safari",
                                                         "webkit"
                                                       ],
-                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                     },
                                                     "name": {
                                                       "type": "string",
@@ -26231,7 +26231,7 @@
                                             "type": "integer",
                                             "minimum": 0,
                                             "default": 5000,
-                                            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                            "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                           },
                                           "selector": {
                                             "type": "string",
@@ -26878,11 +26878,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -27652,7 +27652,7 @@
                                       "additionalProperties": false,
                                       "properties": {
                                         "surface": {
-                                          "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+                                          "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
                                           "anyOf": [
                                             {
                                               "title": "Surface (by browser engine)",
@@ -27684,7 +27684,7 @@
                                                     "safari",
                                                     "webkit"
                                                   ],
-                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                 },
                                                 "name": {
                                                   "type": "string",
@@ -30118,7 +30118,7 @@
                                           "properties": {
                                             "type": {
                                               "type": "string",
-                                              "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+                                              "description": "The type of integration. The only type is `heretto`.",
                                               "enum": [
                                                 "heretto"
                                               ]
@@ -30159,7 +30159,7 @@
                                       "title": "Capture screenshot fields"
                                     },
                                     {
-                                      "title": "App captures don't support crop yet",
+                                      "title": "App captures don't support crop",
                                       "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
                                       "if": {
                                         "required": [
@@ -30206,7 +30206,7 @@
                                         "additionalProperties": false,
                                         "properties": {
                                           "surface": {
-                                            "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+                                            "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
                                             "anyOf": [
                                               {
                                                 "title": "Surface (by browser engine)",
@@ -30238,7 +30238,7 @@
                                                       "safari",
                                                       "webkit"
                                                     ],
-                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                   },
                                                   "name": {
                                                     "type": "string",
@@ -32672,7 +32672,7 @@
                                             "properties": {
                                               "type": {
                                                 "type": "string",
-                                                "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+                                                "description": "The type of integration. The only type is `heretto`.",
                                                 "enum": [
                                                   "heretto"
                                                 ]
@@ -32713,7 +32713,7 @@
                                         "title": "Capture screenshot fields"
                                       },
                                       {
-                                        "title": "App captures don't support crop yet",
+                                        "title": "App captures don't support crop",
                                         "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
                                         "if": {
                                           "required": [
@@ -32744,7 +32744,7 @@
                                     "additionalProperties": false,
                                     "properties": {
                                       "surface": {
-                                        "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+                                        "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
                                         "anyOf": [
                                           {
                                             "title": "Surface (by browser engine)",
@@ -32776,7 +32776,7 @@
                                                   "safari",
                                                   "webkit"
                                                 ],
-                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
                                               "name": {
                                                 "type": "string",
@@ -35210,7 +35210,7 @@
                                         "properties": {
                                           "type": {
                                             "type": "string",
-                                            "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+                                            "description": "The type of integration. The only type is `heretto`.",
                                             "enum": [
                                               "heretto"
                                             ]
@@ -35500,11 +35500,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -36521,11 +36521,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -37324,7 +37324,7 @@
                                                 "safari",
                                                 "webkit"
                                               ],
-                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                             },
                                             "name": {
                                               "type": "string",
@@ -37725,7 +37725,7 @@
                                                   "safari",
                                                   "webkit"
                                                 ],
-                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
                                               "name": {
                                                 "type": "string",
@@ -38210,11 +38210,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -39039,11 +39039,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -39787,7 +39787,7 @@
                             "closeSurface": {
                               "$schema": "http://json-schema.org/draft-07/schema#",
                               "title": "closeSurface",
-                              "description": "Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ \"app\": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.",
+                              "description": "Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ \"app\": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS).",
                               "anyOf": [
                                 {
                                   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -39839,7 +39839,7 @@
                                             "safari",
                                             "webkit"
                                           ],
-                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                         },
                                         "name": {
                                           "type": "string",
@@ -40084,7 +40084,7 @@
                                               "safari",
                                               "webkit"
                                             ],
-                                            "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                            "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                           },
                                           "name": {
                                             "type": "string",
@@ -40460,7 +40460,7 @@
                                               "safari",
                                               "webkit"
                                             ],
-                                            "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                            "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                           },
                                           "name": {
                                             "type": "string",
@@ -40705,7 +40705,7 @@
                                                 "safari",
                                                 "webkit"
                                               ],
-                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                             },
                                             "name": {
                                               "type": "string",
@@ -41100,11 +41100,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -41848,7 +41848,7 @@
                             "startSurface": {
                               "$schema": "http://json-schema.org/draft-07/schema#",
                               "title": "startSurface",
-                              "description": "Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md.",
+                              "description": "Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap.",
                               "anyOf": [
                                 {
                                   "title": "App descriptor",
@@ -43260,11 +43260,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -44047,11 +44047,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -45053,7 +45053,7 @@
                                             "safari",
                                             "webkit"
                                           ],
-                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                         },
                                         "name": {
                                           "type": "string",
@@ -45458,11 +45458,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -46462,11 +46462,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -47289,7 +47289,7 @@
                                                 "safari",
                                                 "webkit"
                                               ],
-                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                             },
                                             "name": {
                                               "type": "string",
@@ -47568,7 +47568,7 @@
                                                 "safari",
                                                 "webkit"
                                               ],
-                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                              "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                             },
                                             "name": {
                                               "type": "string",
@@ -47830,7 +47830,7 @@
                                               "safari",
                                               "webkit"
                                             ],
-                                            "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                            "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                           },
                                           "name": {
                                             "type": "string",
@@ -48080,7 +48080,7 @@
                                                   "safari",
                                                   "webkit"
                                                 ],
-                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
                                               "name": {
                                                 "type": "string",
@@ -48359,7 +48359,7 @@
                                                   "safari",
                                                   "webkit"
                                                 ],
-                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
                                               "name": {
                                                 "type": "string",
@@ -48602,11 +48602,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -49422,11 +49422,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -54462,9 +54462,6 @@
                       "stepId": "uuid",
                       "description": "Description of the step.",
                       "checkLink": "https://www.google.com",
-                      "outputs": {
-                        "outputKey": "outputValue"
-                      },
                       "variables": {
                         "variableKey": "variableValue"
                       }
@@ -55187,7 +55184,7 @@
                               },
                               "mockResponse": {
                                 "type": "boolean",
-                                "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                                "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code."
                               },
                               "statusCode": {
                                 "type": "integer",
@@ -55359,11 +55356,11 @@
                                 },
                                 "outputs": {
                                   "type": "object",
-                                  "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                  "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                   "default": {},
                                   "patternProperties": {
                                     "^[A-Za-z0-9_]+$": {
-                                      "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                      "description": "A value the step produced, which can be any type."
                                     }
                                   },
                                   "title": "Outputs (step)"
@@ -56742,11 +56739,11 @@
                             },
                             "outputs": {
                               "type": "object",
-                              "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                              "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                               "default": {},
                               "patternProperties": {
                                 "^[A-Za-z0-9_]+$": {
-                                  "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                  "description": "A value the step produced, which can be any type."
                                 }
                               },
                               "title": "Outputs (step)"
@@ -56925,11 +56922,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -57927,11 +57924,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -58792,7 +58789,7 @@
                                                           "safari",
                                                           "webkit"
                                                         ],
-                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                       },
                                                       "name": {
                                                         "type": "string",
@@ -59145,7 +59142,7 @@
                                                         "safari",
                                                         "webkit"
                                                       ],
-                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                     },
                                                     "name": {
                                                       "type": "string",
@@ -59425,11 +59422,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -60255,7 +60252,7 @@
                                                       "safari",
                                                       "webkit"
                                                     ],
-                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                   },
                                                   "name": {
                                                     "type": "string",
@@ -60593,7 +60590,7 @@
                                                           "inputDelay": {
                                                             "type": "number",
                                                             "minimum": 0,
-                                                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                                            "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                                             "default": 100
                                                           },
                                                           "surface": {
@@ -60646,7 +60643,7 @@
                                                                       "safari",
                                                                       "webkit"
                                                                     ],
-                                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                   },
                                                                   "name": {
                                                                     "type": "string",
@@ -60891,7 +60888,7 @@
                                                                         "safari",
                                                                         "webkit"
                                                                       ],
-                                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                     },
                                                                     "name": {
                                                                       "type": "string",
@@ -61452,7 +61449,7 @@
                                                             "type": "integer",
                                                             "minimum": 0,
                                                             "default": 5000,
-                                                            "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                                            "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                                           },
                                                           "selector": {
                                                             "type": "string",
@@ -62051,7 +62048,7 @@
                                                             "inputDelay": {
                                                               "type": "number",
                                                               "minimum": 0,
-                                                              "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                                              "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                                               "default": 100
                                                             },
                                                             "surface": {
@@ -62104,7 +62101,7 @@
                                                                         "safari",
                                                                         "webkit"
                                                                       ],
-                                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                     },
                                                                     "name": {
                                                                       "type": "string",
@@ -62349,7 +62346,7 @@
                                                                           "safari",
                                                                           "webkit"
                                                                         ],
-                                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                       },
                                                                       "name": {
                                                                         "type": "string",
@@ -62910,7 +62907,7 @@
                                                               "type": "integer",
                                                               "minimum": 0,
                                                               "default": 5000,
-                                                              "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                                              "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                                             },
                                                             "selector": {
                                                               "type": "string",
@@ -63689,7 +63686,7 @@
                                                         "safari",
                                                         "webkit"
                                                       ],
-                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                     },
                                                     "name": {
                                                       "type": "string",
@@ -64027,7 +64024,7 @@
                                                             "inputDelay": {
                                                               "type": "number",
                                                               "minimum": 0,
-                                                              "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                                              "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                                               "default": 100
                                                             },
                                                             "surface": {
@@ -64080,7 +64077,7 @@
                                                                         "safari",
                                                                         "webkit"
                                                                       ],
-                                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                     },
                                                                     "name": {
                                                                       "type": "string",
@@ -64325,7 +64322,7 @@
                                                                           "safari",
                                                                           "webkit"
                                                                         ],
-                                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                       },
                                                                       "name": {
                                                                         "type": "string",
@@ -64886,7 +64883,7 @@
                                                               "type": "integer",
                                                               "minimum": 0,
                                                               "default": 5000,
-                                                              "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                                              "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                                             },
                                                             "selector": {
                                                               "type": "string",
@@ -65485,7 +65482,7 @@
                                                               "inputDelay": {
                                                                 "type": "number",
                                                                 "minimum": 0,
-                                                                "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                                                "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                                                 "default": 100
                                                               },
                                                               "surface": {
@@ -65538,7 +65535,7 @@
                                                                           "safari",
                                                                           "webkit"
                                                                         ],
-                                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                       },
                                                                       "name": {
                                                                         "type": "string",
@@ -65783,7 +65780,7 @@
                                                                             "safari",
                                                                             "webkit"
                                                                           ],
-                                                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                                         },
                                                                         "name": {
                                                                           "type": "string",
@@ -66344,7 +66341,7 @@
                                                                 "type": "integer",
                                                                 "minimum": 0,
                                                                 "default": 5000,
-                                                                "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                                                "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                                               },
                                                               "selector": {
                                                                 "type": "string",
@@ -67122,11 +67119,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -67924,7 +67921,7 @@
                                                           "safari",
                                                           "webkit"
                                                         ],
-                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                       },
                                                       "name": {
                                                         "type": "string",
@@ -68458,7 +68455,7 @@
                                                             "safari",
                                                             "webkit"
                                                           ],
-                                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                         },
                                                         "name": {
                                                           "type": "string",
@@ -69063,11 +69060,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -69920,7 +69917,7 @@
                                                       },
                                                       "mockResponse": {
                                                         "type": "boolean",
-                                                        "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                                                        "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code."
                                                       },
                                                       "statusCode": {
                                                         "type": "integer",
@@ -70357,7 +70354,7 @@
                                                         },
                                                         "mockResponse": {
                                                           "type": "boolean",
-                                                          "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                                                          "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code."
                                                         },
                                                         "statusCode": {
                                                           "type": "integer",
@@ -70902,11 +70899,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -72131,11 +72128,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -73305,11 +73302,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -74103,7 +74100,7 @@
                                                       "safari",
                                                       "webkit"
                                                     ],
-                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                   },
                                                   "name": {
                                                     "type": "string",
@@ -74321,7 +74318,7 @@
                                                         "safari",
                                                         "webkit"
                                                       ],
-                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                     },
                                                     "name": {
                                                       "type": "string",
@@ -74558,11 +74555,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -75355,7 +75352,7 @@
                                               "inputDelay": {
                                                 "type": "number",
                                                 "minimum": 0,
-                                                "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                                "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                                 "default": 100
                                               },
                                               "surface": {
@@ -75408,7 +75405,7 @@
                                                           "safari",
                                                           "webkit"
                                                         ],
-                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                       },
                                                       "name": {
                                                         "type": "string",
@@ -75653,7 +75650,7 @@
                                                             "safari",
                                                             "webkit"
                                                           ],
-                                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                         },
                                                         "name": {
                                                           "type": "string",
@@ -76214,7 +76211,7 @@
                                                 "type": "integer",
                                                 "minimum": 0,
                                                 "default": 5000,
-                                                "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                                "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                               },
                                               "selector": {
                                                 "type": "string",
@@ -76813,7 +76810,7 @@
                                                 "inputDelay": {
                                                   "type": "number",
                                                   "minimum": 0,
-                                                  "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.",
+                                                  "description": "Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.",
                                                   "default": 100
                                                 },
                                                 "surface": {
@@ -76866,7 +76863,7 @@
                                                             "safari",
                                                             "webkit"
                                                           ],
-                                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                         },
                                                         "name": {
                                                           "type": "string",
@@ -77111,7 +77108,7 @@
                                                               "safari",
                                                               "webkit"
                                                             ],
-                                                            "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                            "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                           },
                                                           "name": {
                                                             "type": "string",
@@ -77672,7 +77669,7 @@
                                                   "type": "integer",
                                                   "minimum": 0,
                                                   "default": 5000,
-                                                  "description": "Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once."
+                                                  "description": "Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once."
                                                 },
                                                 "selector": {
                                                   "type": "string",
@@ -78319,11 +78316,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -79093,7 +79090,7 @@
                                             "additionalProperties": false,
                                             "properties": {
                                               "surface": {
-                                                "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+                                                "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
                                                 "anyOf": [
                                                   {
                                                     "title": "Surface (by browser engine)",
@@ -79125,7 +79122,7 @@
                                                           "safari",
                                                           "webkit"
                                                         ],
-                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                       },
                                                       "name": {
                                                         "type": "string",
@@ -81559,7 +81556,7 @@
                                                 "properties": {
                                                   "type": {
                                                     "type": "string",
-                                                    "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+                                                    "description": "The type of integration. The only type is `heretto`.",
                                                     "enum": [
                                                       "heretto"
                                                     ]
@@ -81600,7 +81597,7 @@
                                             "title": "Capture screenshot fields"
                                           },
                                           {
-                                            "title": "App captures don't support crop yet",
+                                            "title": "App captures don't support crop",
                                             "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
                                             "if": {
                                               "required": [
@@ -81647,7 +81644,7 @@
                                               "additionalProperties": false,
                                               "properties": {
                                                 "surface": {
-                                                  "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+                                                  "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
                                                   "anyOf": [
                                                     {
                                                       "title": "Surface (by browser engine)",
@@ -81679,7 +81676,7 @@
                                                             "safari",
                                                             "webkit"
                                                           ],
-                                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                          "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                         },
                                                         "name": {
                                                           "type": "string",
@@ -84113,7 +84110,7 @@
                                                   "properties": {
                                                     "type": {
                                                       "type": "string",
-                                                      "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+                                                      "description": "The type of integration. The only type is `heretto`.",
                                                       "enum": [
                                                         "heretto"
                                                       ]
@@ -84154,7 +84151,7 @@
                                               "title": "Capture screenshot fields"
                                             },
                                             {
-                                              "title": "App captures don't support crop yet",
+                                              "title": "App captures don't support crop",
                                               "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
                                               "if": {
                                                 "required": [
@@ -84185,7 +84182,7 @@
                                           "additionalProperties": false,
                                           "properties": {
                                             "surface": {
-                                              "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+                                              "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
                                               "anyOf": [
                                                 {
                                                   "title": "Surface (by browser engine)",
@@ -84217,7 +84214,7 @@
                                                         "safari",
                                                         "webkit"
                                                       ],
-                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                     },
                                                     "name": {
                                                       "type": "string",
@@ -86651,7 +86648,7 @@
                                               "properties": {
                                                 "type": {
                                                   "type": "string",
-                                                  "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+                                                  "description": "The type of integration. The only type is `heretto`.",
                                                   "enum": [
                                                     "heretto"
                                                   ]
@@ -86941,11 +86938,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -87962,11 +87959,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -88765,7 +88762,7 @@
                                                       "safari",
                                                       "webkit"
                                                     ],
-                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                   },
                                                   "name": {
                                                     "type": "string",
@@ -89166,7 +89163,7 @@
                                                         "safari",
                                                         "webkit"
                                                       ],
-                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                     },
                                                     "name": {
                                                       "type": "string",
@@ -89651,11 +89648,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -90480,11 +90477,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -91228,7 +91225,7 @@
                                   "closeSurface": {
                                     "$schema": "http://json-schema.org/draft-07/schema#",
                                     "title": "closeSurface",
-                                    "description": "Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ \"app\": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.",
+                                    "description": "Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ \"app\": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS).",
                                     "anyOf": [
                                       {
                                         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -91280,7 +91277,7 @@
                                                   "safari",
                                                   "webkit"
                                                 ],
-                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
                                               "name": {
                                                 "type": "string",
@@ -91525,7 +91522,7 @@
                                                     "safari",
                                                     "webkit"
                                                   ],
-                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                 },
                                                 "name": {
                                                   "type": "string",
@@ -91901,7 +91898,7 @@
                                                     "safari",
                                                     "webkit"
                                                   ],
-                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                 },
                                                 "name": {
                                                   "type": "string",
@@ -92146,7 +92143,7 @@
                                                       "safari",
                                                       "webkit"
                                                     ],
-                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                   },
                                                   "name": {
                                                     "type": "string",
@@ -92541,11 +92538,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -93289,7 +93286,7 @@
                                   "startSurface": {
                                     "$schema": "http://json-schema.org/draft-07/schema#",
                                     "title": "startSurface",
-                                    "description": "Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md.",
+                                    "description": "Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap.",
                                     "anyOf": [
                                       {
                                         "title": "App descriptor",
@@ -94701,11 +94698,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -95488,11 +95485,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -96494,7 +96491,7 @@
                                                   "safari",
                                                   "webkit"
                                                 ],
-                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                               },
                                               "name": {
                                                 "type": "string",
@@ -96899,11 +96896,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -97903,11 +97900,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -98730,7 +98727,7 @@
                                                       "safari",
                                                       "webkit"
                                                     ],
-                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                   },
                                                   "name": {
                                                     "type": "string",
@@ -99009,7 +99006,7 @@
                                                       "safari",
                                                       "webkit"
                                                     ],
-                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                   },
                                                   "name": {
                                                     "type": "string",
@@ -99271,7 +99268,7 @@
                                                     "safari",
                                                     "webkit"
                                                   ],
-                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                  "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                 },
                                                 "name": {
                                                   "type": "string",
@@ -99521,7 +99518,7 @@
                                                         "safari",
                                                         "webkit"
                                                       ],
-                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                     },
                                                     "name": {
                                                       "type": "string",
@@ -99800,7 +99797,7 @@
                                                         "safari",
                                                         "webkit"
                                                       ],
-                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                                                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                                                     },
                                                     "name": {
                                                       "type": "string",
@@ -100043,11 +100040,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -100863,11 +100860,11 @@
                                   },
                                   "outputs": {
                                     "type": "object",
-                                    "description": "Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.",
+                                    "description": "The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.",
                                     "default": {},
                                     "patternProperties": {
                                       "^[A-Za-z0-9_]+$": {
-                                        "description": "In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type."
+                                        "description": "A value the step produced, which can be any type."
                                       }
                                     },
                                     "title": "Outputs (step)"
@@ -105903,9 +105900,6 @@
                             "stepId": "uuid",
                             "description": "Description of the step.",
                             "checkLink": "https://www.google.com",
-                            "outputs": {
-                              "outputKey": "outputValue"
-                            },
                             "variables": {
                               "variableKey": "variableValue"
                             }
@@ -106578,7 +106572,7 @@
                           },
                           "mockResponse": {
                             "type": "boolean",
-                            "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                            "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code."
                           },
                           "statusCode": {
                             "type": "integer",
