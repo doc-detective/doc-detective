@@ -846,6 +846,8 @@ async function transcode({
   // output stream"). Silent video is the intended, reliable output.
   const ffmpegArgs = ["-y", "-i", `${sourcePath}`, "-an", "-pix_fmt", "yuv420p"];
   const filters: string[] = [];
+  // Only the browser engine passes `size` and only the ffmpeg engine passes
+  // `crop`; a crop after this scale would be in the scaled frame's pixels.
   if (size) filters.push(`scale=${size.width}:${size.height}`);
   if (crop) {
     // Clamp the crop to the captured frame using ffmpeg expressions (iw/ih),

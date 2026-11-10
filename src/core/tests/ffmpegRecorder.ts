@@ -882,6 +882,8 @@ async function probeDominantFrameSize({
     cacheDir,
     args: ["-hide_banner", "-i", filePath, "-an", "-vf", "showinfo", "-f", "null", "-"],
     needle: "pts_time:",
+    // Every frame's line counts toward the size, so don't cap at the
+    // collector's 64 KiB default; the 30-second kill timer bounds the run.
     limit: Infinity,
   });
   return showinfo === null ? null : dominantFrameSize(showinfo);
