@@ -47,7 +47,10 @@
         "specs": { "$ref": "#/components/schemas/resultCounts" },
         "tests": { "$ref": "#/components/schemas/resultCounts" },
         "contexts": { "$ref": "#/components/schemas/resultCounts" },
-        "steps": { "$ref": "#/components/schemas/resultCounts" }
+        "steps": {
+          "$ref": "#/components/schemas/resultCounts",
+          "description": "Counts of the steps in `contexts[].steps`. The automatic recording isn't a step and isn't counted."
+        }
       }
     },
     "specs": {

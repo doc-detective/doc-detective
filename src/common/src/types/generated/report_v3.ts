@@ -12305,6 +12305,9 @@ export interface ResultCounts2 {
   warning: number;
   skipped: number;
 }
+/**
+ * Counts of the steps in `contexts[].steps`. The automatic recording isn't a step and isn't counted.
+ */
 export interface ResultCounts3 {
   pass: number;
   fail: number;
@@ -21748,6 +21751,7 @@ export interface ResolvedContext {
    */
   startedAt?: string;
   driver?: Driver;
+  autoRecording?: AutomaticRecording;
   /**
    * Platform to run the test on. This is a resolved version of the `platforms` property.
    */
@@ -21774,6 +21778,47 @@ export interface Driver {
    * Version of the driver, for example `131.0.6778.85`. Absent when the session doesn't report one, as with Safari.
    */
   version?: string;
+}
+/**
+ * The video `autoRecord` made of this context. Absent when no automatic recording was attempted, including when `autoRecord` is unset and the run's recording check failed. Present only in test results. System-populated.
+ */
+export interface AutomaticRecording {
+  /**
+   * Outcome of the automatic recording, from starting it through saving it. A `FAIL` or `WARNING` also sets the context's `result`. A `PASS` or `SKIPPED` doesn't.
+   */
+  result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
+  /**
+   * Why the automatic recording had its outcome. Absent on a `PASS`.
+   */
+  resultDescription?: string;
+  /**
+   * Path of the saved video, relative to the run's artifact directory (the report's `runDir`), with forward slashes. Absent when no file was written.
+   */
+  recordingPath?: string;
+  /**
+   * When the recording started, as an ISO 8601 UTC timestamp with milliseconds. Absent when it didn't start.
+   */
+  startedAt?: string;
+  /**
+   * File format of the saved video, for example `mp4`. Absent when no file was written.
+   */
+  format?: string;
+  /**
+   * Length of the saved video in seconds. Absent when it couldn't be read from the file.
+   */
+  duration?: number;
+  /**
+   * Width of the saved video in pixels. Absent when it couldn't be read from the file.
+   */
+  width?: number;
+  /**
+   * Height of the saved video in pixels. Absent when it couldn't be read from the file.
+   */
+  height?: number;
+  /**
+   * Frame rate of the saved video. Absent when it couldn't be read from the file.
+   */
+  fps?: number;
 }
 /**
  * Browser configuration.

@@ -317,10 +317,14 @@ Headless Firefox and Safari still skip recordings.
 | `autoRecord` unset recorded nothing. | It records every context that drives a browser, a native app, or a device. Headless Firefox runs headed so it can be recorded, when the host can capture the screen. |
 | The `runFolder` reporter ran only when `reporters` listed it. | It also runs whenever `autoScreenshot` or `autoRecord` is on, so `-r junit` writes a run folder too. |
 | A host that couldn't record failed `record` steps. | Doc Detective checks the host once per run. An automatic recording it can't make is left out, with one warning. A `record` step, or `autoRecord: true`, is SKIPPED with the fix. |
+| The automatic recording was two steps in the context's `steps`, one with a `stepId` ending in `~autorecord`, and both counted in `summary.steps`. | The automatic recording moved from the step list to the context's `autoRecording` field. `summary.steps` doesn't count it. |
+| A passing automatic recording made a context whose steps were all SKIPPED pass. | Only a `FAIL` or `WARNING` recording sets the context's result, so that context stays SKIPPED. A run where every test is like that exits `2`. |
 
 `true` and `false` mean what they did. `autoRecord: true` stays strict: a recording the host can't make is SKIPPED, and one that fails to start fails.
 
-**What to do:** To keep version 4's behavior, turn both off in your config:
+**What to do:** If a script finds the recording in `steps`, read `autoRecording.recordingPath` instead. It's relative to `runDir`. See [Where the recording shows up](/docs/test-docs/automatic-recording#where-the-recording-shows-up).
+
+To keep version 4's behavior, turn both off in your config:
 
 ```json title=".doc-detective.json"
 {
