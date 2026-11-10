@@ -758,6 +758,11 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     const htmlFile = path.resolve(runDir, `${reportType}.html`);
     const { buildHtml } = await import("./reporters/htmlReporter.js");
     writeReport("Run report", htmlFile, () => buildHtml(persistedResults, htmlFile), config);
+    // The Markdown summary too, which the GitHub Action reads for its job
+    // summary (ADR 01180, DR9). Like the HTML, a failure here leaves the JSON.
+    const mdFile = path.resolve(runDir, `${reportType}.md`);
+    const { buildMarkdown } = await import("./reporters/markdownReporter.js");
+    writeReport("Run summary", mdFile, () => buildMarkdown(persistedResults, mdFile), config);
     return writeReport("Run results", outputFile, renderJson, config);
   },
 

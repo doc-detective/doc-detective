@@ -193,7 +193,9 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 ## Report notices moved to stderr
 
-**What changed:** The `html`, `junit`, and `markdown` reporters no longer print `See … at <path>` on stdout. Every reporter that writes a file names it on stderr with its absolute path, as `Results:`, `Run report:`, `Run results:`, `HTML report:`, `JUnit report:`, or `Markdown summary:`. These lines follow the log level, so `-l warning` and quieter hide them. So `--json` stdout now holds only JSON, whichever reporters run.
+**What changed:** The `html`, `junit`, and `markdown` reporters no longer print `See … at <path>` on stdout. Every reporter that writes a file names it on stderr with its absolute path, as `Results:`, `Run report:`, `Run summary:`, `Run results:`, `HTML report:`, `JUnit report:`, or `Markdown summary:`. These lines follow the log level, so `-l warning` and quieter hide them. So `--json` stdout now holds only JSON, whichever reporters run.
+
+The run folder also holds a Markdown summary, `testResults.md`, beside `testResults.html` and `testResults.json`.
 
 If Doc Detective can't write a report, it prints `Couldn't write the <report> to <path>: <cause>.` at error level. The exit code still doesn't change.
 
