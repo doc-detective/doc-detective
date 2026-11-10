@@ -1,3 +1,10 @@
+# [5.0.0-v5-rc.14](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.13...v5.0.0-v5-rc.14) (2026-11-10)
+
+
+### Bug Fixes
+
+* **runner:** turn automatic capture off in hosted runs ([1bca284](https://github.com/doc-detective/doc-detective/commit/1bca284fbaf60b57baff6584f1e6c1e25371dd40))
+
 # [5.0.0-v5-rc.13](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.12...v5.0.0-v5-rc.13) (2026-11-10)
 
 
