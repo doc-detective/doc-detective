@@ -175,7 +175,7 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 **What changed:** The terminal summary is shorter and ends with a one-line verdict, such as `1 of 1 test passed`. The `See detailed results at` line is gone. Run folder paths now print on stderr as `Run report:` and `Run results:`, relative to the current directory.
 
-**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead.
+**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead, and use [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). For pass or fail, use the [exit code](#exit-codes).
 
 ## Failure, skip, and warning messages
 
@@ -191,7 +191,7 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 Deprecation warnings print at the `warning` log level and above, so `-l silent` and `-l error` hide them, like `-q`.
 
-**What to do:** Don't match on message text. To triage a failure, read `result` and `resultCode`. See [Failed steps say what kind of failure it was](#failed-steps-say-what-kind-of-failure-it-was). See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
+**What to do:** Don't match on message text. Help text and other error messages changed throughout too. To triage a failure, read `result` and `resultCode`. See [Failed steps say what kind of failure it was](#failed-steps-say-what-kind-of-failure-it-was).
 
 ## Results show the effective step
 
