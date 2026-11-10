@@ -140,6 +140,10 @@ The 1 MiB byte cap (ADR 01092) cuts Skipped, then Warnings, before Failures.
 | `junit` | `<outputDir>/junit.xml`, overwritten | `JUnit report: <abs>` |
 | `markdown` | `<outputDir>/doc-detective-summary.md`, overwritten | `Markdown summary: <abs>` |
 
+A directory scan for inputs skips any folder named `.doc-detective`, as it skips `node_modules`. Otherwise the default
+`input` of `.` would test the run folder's `testResults.md` on the next run. A `.doc-detective` path passed as the input
+itself is still read.
+
 All go through `log()`, so `-l warning` and quieter hide them, and they're masked like every other log line
 (ADR 01178). The string `results at ` never prints on any stream: GitHub Action tags up to v1.4.1 split stdout on it.
 

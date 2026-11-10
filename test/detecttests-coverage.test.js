@@ -106,6 +106,21 @@ describe("detectTests coverage", function () {
       assert.equal(specs.length, 1);
     });
 
+    it("skips .doc-detective folders during directory recursion, so a run doesn't test an earlier run's artifacts", async function () {
+      write("keep.json", specJSON("https://a.com"));
+      write(".doc-detective/runs/r1/old.json", specJSON("https://b.com"));
+      const config = await makeConfig({ input: [tmpDir] });
+      const specs = await detectTests({ config });
+      assert.equal(specs.length, 1);
+    });
+
+    it("still reads a .doc-detective folder passed as the input itself", async function () {
+      write(".doc-detective/runs/r1/old.json", specJSON("https://b.com"));
+      const config = await makeConfig({ input: [path.join(tmpDir, ".doc-detective")] });
+      const specs = await detectTests({ config });
+      assert.equal(specs.length, 1);
+    });
+
     it("does not recurse subdirectories when config.recursive is false", async function () {
       write("top.json", specJSON("https://a.com"));
       write("nested/deep.json", specJSON("https://b.com"));
