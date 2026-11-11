@@ -103,6 +103,7 @@ saveDirectory
 savePath
 saveScreenshot
 screenshotImage
+scrollbars
 session_token
 setVariables
 SHIFT
