@@ -1202,7 +1202,7 @@ describe("startAppSurface", function () {
         serverDeps: okServerDeps(fakeDriver()),
       });
       assert.equal(explicit.status, "FAIL", platform);
-      assert.match(explicit.description, /Invalid step definition/);
+      assert.match(explicit.description, /its definition isn't valid/);
     }
 
     // An app without it launches.
@@ -1752,7 +1752,7 @@ describe("startAppSurface", function () {
       [{ app: "com.apple.Preferences", args: ["--x"] }, /does not honor desktop-style process arguments/],
       [{ app: "com.apple.Preferences", env: { A: "1" } }, /not supported by the iOS app driver/],
       // ADR 01187: no app descriptor has workingDirectory, so it's invalid.
-      [{ app: "com.apple.Preferences", workingDirectory: "/tmp" }, /Invalid step definition/],
+      [{ app: "com.apple.Preferences", workingDirectory: "/tmp" }, /its definition isn't valid/],
     ];
     for (const [descriptor, pattern] of cases) {
       const result = await startAppSurface({
