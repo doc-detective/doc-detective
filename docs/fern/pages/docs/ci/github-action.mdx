@@ -227,7 +227,7 @@ jobs:
           key: dd-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             dd-cache-${{ runner.os }}-
-      - run: npx doc-detective@latest install ios --yes  # v4.28+; prebuilds WebDriverAgent into the cache
+      - run: npx doc-detective@4 install ios --yes  # v4.28+; prebuilds WebDriverAgent into the cache
       - uses: doc-detective/github-action@v1
 ```
 
@@ -235,7 +235,7 @@ The [`doc-detective install ios --yes`](/reference/reference/cli/install#install
 
 Use a rotating key (`github.run_id`) with `restore-keys` rather than a static key. Doc Detective already keys the build by Xcode and driver version inside the cache directory. The `actions/cache` key doesn't need those versions, because its only job is to keep the stored copy fresh. An exact cache hit never re-uploads, so a static key keeps serving the first build it saved. That build goes stale the first time your runner picks up a new Xcode or driver version. A run-scoped key always saves the latest build, and `restore-keys` restores the newest earlier entry.
 
-This recipe requires Doc Detective v4.28 or later in both the `install ios` step and the action. The step names `@latest` because a bare `npx doc-detective` uses a version the job already installed, which can be older. The action installs whatever its `version` input names, which defaults to `latest`. To pin both to the same release, name it in each place. For example, run `npx doc-detective@4.28.0 install ios --yes` and set the action's [`version` input](#step-2-point-the-action-at-your-tests) to `4.28.0`.
+This recipe requires Doc Detective v4.28 or later in both the `install ios` step and the action. The step names `@4` because a bare `npx doc-detective` uses a version the job already installed, which can be older. `@4` installs the newest 4.x release, which matches the action's `version` default of `4`. To pin both to the same release, name it in each place. For example, run `npx doc-detective@4.28.0 install ios --yes` and set the action's [`version` input](#step-2-point-the-action-at-your-tests) to `4.28.0`.
 
 ## Runtime caching
 
