@@ -8,11 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-DITA support (`00126`) detected inline tests/steps embedded as
-`<data name="doc-detective" value="…">` elements, but the detection regexes assumed a fixed
-attribute order (`name` before `value`) and did not decode XML entities (`&amp;`, `&lt;`,
-`&quot;`) inside the captured `value`, so authors who wrote attributes in the other order or
-used escaped characters silently got no tests. Separately, the cookie actions' `sameSite`
+DITA support (`00126`) detected inline tests and steps embedded as
+`<data name="doc-detective" value="…">` elements. But the detection regexes assumed a fixed
+attribute order, `name` before `value`. They also did not decode XML entities (`&amp;`, `&lt;`,
+`&quot;`) inside the captured `value`. So authors who wrote attributes in the other order, or
+used escaped characters, silently got no tests. Separately, the cookie actions' `sameSite`
 field needed normalization to a WebDriver-acceptable form. How should DITA inline detection
 tolerate real-world XML, and how should `sameSite` be normalized?
 
@@ -31,9 +31,9 @@ tolerate real-world XML, and how should `sameSite` be normalized?
 
 ## Decision Outcome
 
-Chosen option: **A**, because tolerating natural attribute ordering and escaped content is
-what makes detection robust against hand-authored DITA, and the regex approach (consistent
-with the rest of the inline-detection pipeline) stays lightweight. The `<data name=doc-detective value=…>`
+Chosen option: **A**. Tolerating natural attribute ordering and escaped content is what makes
+detection reliable against hand-authored DITA. The regex approach, consistent with the rest of
+the inline-detection pipeline, stays lightweight. The `<data name=doc-detective value=…>`
 detection regexes in `fileTypes.ts` were made order-flexible (match regardless of whether
 `name` or `value` comes first), and `parseObject` now decodes XML entities in captured
 values before parsing. The cookie `sameSite` value is normalized for WebDriver in
@@ -56,7 +56,7 @@ inline detection over reordered/escaped `<data>` elements.
 ## Pros and Cons of the Options
 
 ### A. Order-flexible regexes + entity decoding
-* Good: robust against real-world DITA; lightweight.
+* Good: reliable against real-world DITA; lightweight.
 * Bad: more complex regexes.
 
 ### B. Require canonical form

@@ -9,9 +9,9 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The `checkLink` step (`00022`) issued a plain GET and failed when the response status wasn't in the
-expected set. In practice many documented links sit behind bot-protection or CDNs that reject
-requests lacking a browser-like `User-Agent`/`Accept`, returning 403/429 to Doc Detective even
-though a real browser loads the page fine. Worse, the failure message didn't say *what* status came
+expected set. In practice many documented links sit behind bot-protection or CDNs. Those reject
+requests lacking a browser-like `User-Agent` or `Accept`, returning 403 or 429 to Doc Detective,
+even though a real browser loads the page fine. Worse, the failure message didn't say *what* status came
 back, so authors couldn't tell a genuine broken link from a bot block. How should `checkLink` behave
 so that it stops producing false failures and reports actionable diagnostics?
 
@@ -30,8 +30,8 @@ so that it stops producing false failures and reports actionable diagnostics?
 
 ## Decision Outcome
 
-Chosen option: **A**, because mimicking a browser request removes the most common false-failure
-cause while keeping the pass/fail contract honest, and surfacing the real status makes the remaining
+Chosen option: **A**. Mimicking a browser request removes the most common false-failure cause,
+while keeping the pass/fail contract honest. Surfacing the real status makes the remaining
 failures diagnosable.
 
 The contract for `checkLink`'s GET:
@@ -41,7 +41,7 @@ The contract for `checkLink`'s GET:
 * On a non-matching status, the error reads `Returned NNN. Expected one of […]`, naming the actual
   status and the expected set.
 
-This is a runtime behavior change only — the step's schema and the `statusCodes` expectation set are
+This is a runtime behavior change only. The step's schema and the `statusCodes` expectation set are
 unchanged.
 
 ### Consequences
@@ -49,8 +49,8 @@ unchanged.
 * Good: links behind common bot protection stop producing false failures.
 * Good: error messages now name the actual status, so authors can tell a block from a real 404.
 * Good: bounded timeout/redirects make `checkLink` terminate predictably.
-* Bad: a server that *only* serves browser UAs is now "passing" even though scripted clients can't
-  reach it — the check is slightly less strict about non-browser reachability.
+* Bad: a server that *only* serves browser UAs is now "passing", even though scripted clients can't
+  reach it. The check is slightly less strict about non-browser reachability.
 * Neutral: later iterations extend this with non-2xx acceptance (`00151`) and retry/HEAD fallback
   for stubborn 429/403 (`00152`).
 

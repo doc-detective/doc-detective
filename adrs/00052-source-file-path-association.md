@@ -8,10 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Once tests could be detected from documentation files and resolved into in-memory spec/test objects,
-results lost their connection to the source document they came from. Reports and downstream tooling
-could see a failing test but not which Markdown (or other) file authored it, making triage and
-"docs as tests" round-tripping awkward. Should the spec and test schemas carry the originating source
+Tests could be detected from documentation files and resolved into in-memory spec and test objects.
+Results then lost their connection to the source document they came from. Reports and downstream
+tooling could see a failing test, but not which Markdown or other file authored it. That made
+triage and "docs as tests" round-tripping awkward. Should the spec and test schemas carry the originating source
 file path, and if so, where?
 
 ## Decision Drivers
@@ -29,18 +29,18 @@ file path, and if so, where?
 
 ## Decision Outcome
 
-Chosen option: **A**, because a single `file` string on the spec and the test is the smallest change
-that makes provenance a first-class, schema-visible part of the contract. Every spec and test may
-carry a `file` string naming the source document it was detected from; consumers read it directly from
-the validated object. A richer provenance object (option C) was deferred — line/range tracking arrived
-much later in the detection refactor.
+Chosen option: **A**. A single `file` string on the spec and the test is the smallest change that
+makes provenance a first-class, schema-visible part of the contract. Every spec and test may
+carry a `file` string naming the source document it was detected from. Consumers read it directly
+from the validated object. A richer provenance object (option C) was deferred, and line and range
+tracking arrived much later in the detection refactor.
 
 ### Consequences
 
 * Good: results, reports, and tooling can attribute every test to its source file.
 * Good: schema-level field means all consumers share one contract.
 * Neutral: synthetic/in-memory specs simply omit `file`.
-* Bad: only a path, not a line/range — finer-grained provenance needed later work.
+* Bad: only a path, not a line or range, so finer-grained provenance needed later work.
 
 ### Confirmation
 

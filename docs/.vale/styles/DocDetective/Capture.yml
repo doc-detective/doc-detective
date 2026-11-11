@@ -1,0 +1,7 @@
+extends: existence
+message: "'%s' is ambiguous — say 'take a screenshot of' or 'record' so readers know which you mean. See docs/AGENTS.md."
+link: "https://developers.google.com/style"
+level: warning
+ignorecase: true
+tokens:
+  - 'captur(?:e|es|ing|ed)'

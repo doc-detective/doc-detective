@@ -8,18 +8,19 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-`doc-detective-common` shipped as hand-written `.js` with JSON Schemas as the only machine-readable
-contract; consumers (the core runner, the resolver, integrators) had no compiler-checked types for
-the Specification/Test/Step/Context/Config/Report shapes the schemas define. As the schema surface
-grew (v3 action-as-key family, integrations), keeping JS code and schemas in sync became error-prone
-and downstream consumers got no IDE/type-check support. Should `doc-detective-common` migrate to
+`doc-detective-common` shipped as hand-written `.js`, with JSON Schemas as the only machine-readable
+contract. Consumers had no compiler-checked types for the shapes the schemas define. Those
+consumers are the core runner, the resolver, and integrators, and those shapes are Specification,
+Test, Step, Context, Config, and Report. The schema
+surface grew with the v3 action-as-key family and integrations. Keeping JS code and schemas in sync
+became error-prone, and downstream consumers got no IDE or type-check support. Should `doc-detective-common` migrate to
 TypeScript and publish generated types as part of its public API?
 
 ## Decision Drivers
 
 * The package's many object contracts deserve compiler-checked types, not just runtime AJV.
 * Types should be *generated from the schemas* so they cannot drift from the validation contract.
-* The change must be backward compatible — existing CommonJS and ESM consumers must keep working.
+* The change must be backward compatible, so existing CommonJS and ESM consumers keep working.
 * Downstream packages (core, resolver) need importable types to refactor against.
 
 ## Considered Options
@@ -30,9 +31,9 @@ TypeScript and publish generated types as part of its public API?
 
 ## Decision Outcome
 
-Chosen option: **A**, because generating types from the schemas keeps the type layer and the
-validation contract provably in sync, and a dual ESM/CJS build with `.d.ts` keeps every existing
-consumer working while adding type safety.
+Chosen option: **A**. Generating types from the schemas keeps the type layer and the validation
+contract provably in sync. A dual ESM/CJS build with `.d.ts` keeps every existing consumer working,
+while adding type safety.
 
 The contract:
 
@@ -50,7 +51,7 @@ surface, completing the "consumers can import our contract types" goal.
 * Good: downstream packages can refactor against importable, compiler-checked contracts.
 * Good: dual ESM/CJS + `.d.ts` keeps all existing consumers working.
 * Bad: a generation/build step now sits between schemas and shipped types (more build machinery).
-* Neutral: this is infrastructure — it changes the build and public types, not runtime test behavior.
+* Neutral: this is infrastructure, changing the build and public types, not runtime test behavior.
 
 ### Confirmation
 

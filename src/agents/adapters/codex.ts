@@ -1,8 +1,6 @@
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import axios from "axios";
-import YAML from "yaml";
 import type {
   AgentAdapter,
   DetectionResult,
@@ -12,7 +10,8 @@ import type {
   Scope,
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
-import { fetchAgentToolsZip } from "../fetcher.js";
+import { AGENT_TOOLS_REF, agentToolsRawUrl, fetchAgentToolsZip } from "../fetcher.js";
+import { requireYaml } from "../../core/lazyYaml.js";
 
 export interface RunResult {
   stdout: string;
@@ -35,8 +34,7 @@ export interface CodexDeps {
 }
 
 const CANONICAL_SKILL = "doc-detective-init";
-const LATEST_SKILL_URL =
-  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/skills/doc-detective-init/SKILL.md";
+const LATEST_SKILL_URL = agentToolsRawUrl("skills/doc-detective-init/SKILL.md");
 
 export function defaultCodexDeps(): CodexDeps {
   return {
@@ -55,7 +53,7 @@ export function defaultCodexDeps(): CodexDeps {
        * seam at this exact spot (this closure IS the seam other tests inject
        * a fake for). Exercising it would require a live network peer, which
        * would make the suite flaky/non-hermetic per ADR 01017. */
-      const response = await axios.get(LATEST_SKILL_URL, {
+      const response = await (await import("axios")).default.get(LATEST_SKILL_URL, {
         timeout: 5000,
         responseType: "text",
       });
@@ -206,7 +204,7 @@ export class CodexAdapter implements AgentAdapter {
       };
     }
 
-    const fetched = await this.deps.fetchZip("main");
+    const fetched = await this.deps.fetchZip(AGENT_TOOLS_REF);
     try {
       const sourceSkills = path.join(fetched.tempDir, "skills");
       if (!this.deps.existsSync(sourceSkills)) {
@@ -341,7 +339,7 @@ export function parseMetadataVersion(body: string): string | undefined {
   const match = body.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return undefined;
   try {
-    const frontmatter = YAML.parse(match[1]);
+    const frontmatter = requireYaml().parse(match[1]);
     const v = frontmatter?.metadata?.version;
     return typeof v === "string" ? v : undefined;
   } catch {

@@ -11,14 +11,14 @@ decision-makers: doc-detective maintainers
 With heavy dependencies now lazy-installed, `getAvailableApps()` runs in environments where Appium
 drivers and browsers may be absent. The detection probed Appium driver presence by matching only
 `stdout`, but some Appium builds emit the driver list on `stderr`, so detection missed installed
-drivers. And `@puppeteer/browsers` could attempt to auto-install during a detection probe, turning a
-read-only "what's available?" check into an install side effect (or a crash when offline). How should
-browser/driver detection behave robustly in a lean install?
+drivers. And `@puppeteer/browsers` could attempt to auto-install during a detection probe. That
+turns a read-only "what's available?" check into an install side effect, or a crash when offline.
+How should browser and driver detection behave reliably in a lean install?
 
 ## Decision Drivers
 
 * Detection must work whether Appium prints its driver list to stdout or stderr.
-* A detection probe must be read-only — it must not trigger a heavy install.
+* A detection probe must be read-only, and must not trigger a heavy install.
 * When nothing is available, detection should degrade to an empty app list, not throw.
 * Lean installs are now the norm, so detection can't assume drivers/browsers are present.
 
@@ -39,7 +39,7 @@ degrading to an empty app list when nothing is found (commits `bfc37c66`, `ff324
 ### Consequences
 
 * Good: drivers are detected regardless of which stream Appium uses.
-* Good: detection is side-effect free — no accidental installs during a probe.
+* Good: detection is side-effect free, with no accidental installs during a probe.
 * Good: an empty environment yields an empty app list instead of an error.
 * Neutral: detection in a lean install may legitimately return no apps (then provisioning handles it).
 

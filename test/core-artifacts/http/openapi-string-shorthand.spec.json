@@ -1,0 +1,43 @@
+{
+  "specId": "openapi-string-shorthand",
+  "description": "The openApi string shorthand (openApi: \"operationId\") resolves a registered operation exactly like the object form { operationId }. Hermetic: mockResponse means no network call. See ADR 01044.",
+  "openApi": [
+    {
+      "name": "reqres",
+      "descriptionPath": "./reqres.openapi.json",
+      "server": "https://reqres.in/api",
+      "mockResponse": true,
+      "useExample": "none",
+      "validateAgainstSchema": "none"
+    }
+  ],
+  "tests": [
+    {
+      "description": "openApi string shorthand resolves a registered operation",
+      "steps": [
+        {
+          "description": "openApi as a bare operationId string",
+          "httpRequest": {
+            "openApi": "getUsers",
+            "statusCodes": [
+              200
+            ],
+            "response": {}
+          }
+        },
+        {
+          "description": "the equivalent object form resolves the same operation",
+          "httpRequest": {
+            "openApi": {
+              "operationId": "getUsers"
+            },
+            "statusCodes": [
+              200
+            ],
+            "response": {}
+          }
+        }
+      ]
+    }
+  ]
+}

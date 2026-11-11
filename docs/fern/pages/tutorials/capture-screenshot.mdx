@@ -33,11 +33,14 @@ To run the test:
      </Tab>
    </Tabs>
 
-While the form is too large to fit on the computer screen, increasing the window and viewport settings allows you to capture the entire form in a single image.
+The form is too large to fit on the computer screen. Increasing the window and viewport settings lets you capture the entire form in a single image.
 
 ![All fields completed.](./img/form-filled-2-complete.png)
 
 ## Code walkthrough
+
+{/* This tutorial drives a browser against a locally served sample form; it needs the tutorial harness, which the docs-test CI job doesn't provide, so it's skipped there. */}
+{/* test ignore start */}
 
 These are the notable additions to the spec used in the [Fill in fields](fill-fields) tutorial.
 
@@ -70,6 +73,8 @@ Use the screenshot action with an output path to capture the state of the form o
 ```md
 {/* step {"description":"Capture a screenshot of the completed form.","screenshot":"./output/form-filled-2-complete.png"} */}
 ```
+
+{/* test ignore end */}
 
 ## Complete test spec
 

@@ -1,6 +1,8 @@
 import http from "node:http";
+import path from "node:path";
 import assert from "node:assert/strict";
 import { httpRequest } from "../dist/core/tests/httpRequest.js";
+import { loadDescription } from "../dist/core/openapi.js";
 
 let server;
 let serverPort;
@@ -105,6 +107,36 @@ describe("httpRequest non-2xx status code regression", function () {
     assert.match(result.description, /Returned 500/);
   });
 
+  it("treats a scalar statusCodes as a one-element list (PASS on match)", async function () {
+    const result = await httpRequest({
+      config: {},
+      step: {
+        httpRequest: {
+          url: `http://localhost:${serverPort}/404`,
+          method: "get",
+          statusCodes: 404,
+        },
+      },
+    });
+    assert.equal(result.status, "PASS", `Expected PASS but got: ${result.description}`);
+    assert.match(result.description, /Returned 404/);
+  });
+
+  it("treats a scalar statusCodes as a one-element list (FAIL on mismatch)", async function () {
+    const result = await httpRequest({
+      config: {},
+      step: {
+        httpRequest: {
+          url: `http://localhost:${serverPort}/201`,
+          method: "get",
+          statusCodes: 200,
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Expected one of \[200\]/);
+  });
+
   it("should FAIL for unresolvable URL", async function () {
     const result = await httpRequest({
       config: {},
@@ -117,5 +149,74 @@ describe("httpRequest non-2xx status code regression", function () {
       },
     });
     assert.equal(result.status, "FAIL");
+  });
+});
+
+describe("httpRequest openApi string shorthand", function () {
+  this.timeout(30000);
+  let definition;
+
+  before(async function () {
+    definition = await loadDescription(
+      path.resolve("test/core-artifacts/http/reqres.openapi.json")
+    );
+  });
+
+  // A registered openApi entry that mocks the response so the test never
+  // touches the network. The dereferenced definition is deep-cloned per call
+  // so one test's resolution can't mutate the shared object another test reads.
+  const definitions = () => [
+    {
+      name: "reqres",
+      definition: JSON.parse(JSON.stringify(definition)),
+      server: "https://reqres.in/api",
+      useExample: "none",
+      mockResponse: true,
+      validateAgainstSchema: "none",
+    },
+  ];
+
+  const run = (openApi) =>
+    httpRequest({
+      config: {},
+      step: { httpRequest: { openApi, statusCodes: [200], response: {} } },
+      openApiDefinitions: definitions(),
+    });
+
+  it("resolves an operation when openApi is a bare operationId string", async function () {
+    const result = await run("getUsers");
+    assert.doesNotMatch(
+      result.description || "",
+      /OpenAPI definition not found/,
+      "string shorthand should resolve the operation, not fall through to 'not found'"
+    );
+    assert.equal(
+      result.status,
+      "PASS",
+      `Expected PASS but got: ${result.description}`
+    );
+  });
+
+  it("merges a scalar statusCodes with openApi.statusCode", async function () {
+    const result = await httpRequest({
+      config: {},
+      step: {
+        httpRequest: {
+          openApi: { operationId: "getUsers", statusCode: 200 },
+          statusCodes: 404,
+          response: {},
+        },
+      },
+      openApiDefinitions: definitions(),
+    });
+    assert.equal(result.status, "PASS", `Expected PASS but got: ${result.description}`);
+    assert.match(result.description, /Returned 200/);
+  });
+
+  it("string shorthand matches the object form { operationId }", async function () {
+    const stringResult = await run("getUsers");
+    const objectResult = await run({ operationId: "getUsers" });
+    assert.equal(stringResult.status, objectResult.status);
+    assert.equal(stringResult.description, objectResult.description);
   });
 });

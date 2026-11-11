@@ -4,7 +4,7 @@ import { findElement } from "./findElement.js";
 export { clickElement };
 
 // Click an element.
-async function clickElement({ config, step, driver, appSession }: { config: any; step: any; driver: any; appSession?: any }) {
+async function clickElement({ config, step, driver, appSession, processRegistry, surfaceTracker }: { config: any; step: any; driver: any; appSession?: any; processRegistry?: Map<string, any>; surfaceTracker?: any }) {
   const result: any = {
     status: "PASS",
     description: "Clicked element.",
@@ -20,6 +20,14 @@ async function clickElement({ config, step, driver, appSession }: { config: any;
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
+
+  // A boolean names no element. Coercion used to turn it into the text
+  // "true" or "false" and click whatever matched (ADR 01161).
+  if (typeof step.click === "boolean") {
+    result.status = "FAIL";
+    result.description = `\`click\` needs an element, not ${step.click}. To click an element whose text is "${step.click}", quote it: "click": "${step.click}".`;
+    return result;
+  }
   let findStep: any;
 
   if (typeof step.click === "string") {
@@ -46,6 +54,8 @@ async function clickElement({ config, step, driver, appSession }: { config: any;
     driver,
     click: true,
     appSession,
+    processRegistry,
+    surfaceTracker,
   });
 
   // Unified model: click delegates element EXISTENCE (the implicit verification)

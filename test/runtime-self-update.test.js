@@ -88,10 +88,35 @@ describe("runtime/selfUpdate", function () {
       expect(res.latest).to.equal(null);
     });
 
+    it("skips the registry check when its own version is unknown", async function () {
+      // ownVersion() is undefined when doc-detective's package.json can't be
+      // found; there's nothing to compare the registry's latest against.
+      let calls = 0;
+      const http = { get: async () => (calls++, { data: { "dist-tags": { latest: "4.6.0" } } }) };
+      const res = await checkForUpdate(undefined, { http, logger: () => {} });
+      expect(res).to.deep.equal({ latest: null, newer: false });
+      expect(calls).to.equal(0);
+    });
+
     it("returns { newer: false } when the registry response shape is malformed", async function () {
       const http = fakeHttp({ "dist-tags": {} });
       const res = await checkForUpdate("4.5.0", { http, logger: () => {} });
       expect(res.newer).to.equal(false);
+    });
+
+    it("the default logger sends the new-major notice to stderr, not stdout", async function () {
+      const out = [], err = [];
+      const { log, error } = console;
+      console.log = (m) => out.push(m);
+      console.error = (m) => err.push(m);
+      try {
+        await checkForUpdate("4.5.0", { http: fakeHttp({ "dist-tags": { latest: "5.0.0" } }) });
+      } finally {
+        console.log = log;
+        console.error = error;
+      }
+      expect(out.join(" ")).to.not.include("npm i doc-detective@5");
+      expect(err.join(" ")).to.include("npm i doc-detective@5");
     });
 
     it("falls back to the default logger when deps.logger is omitted", async function () {

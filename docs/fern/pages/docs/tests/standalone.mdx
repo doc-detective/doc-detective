@@ -52,9 +52,32 @@ tests:
 
 > For comprehensive options, see [`specification`](/reference/schemas/specification).
 
+## Editor support
+
+Editors that read JSON Schema, such as VS Code, offer completion and validation. To turn that on, add a `$schema` property to a spec, step, context, or config. Doc Detective ignores the value when it runs. Your editor loads the schema from it. Point it at a schema file the editor can reach, such as the URL below or a local copy.
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/src/schemas/src_schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "steps": [
+        {
+          "wait": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+Swap `spec_v3` for `step_v3`, `context_v3`, or `config_v3` to match the file.
+
 ## Example
 
 Here's an example test for performing a Google search and saving a screenshot of the results:
+
+{/* test {"testId":"standalone-guide-search-example","detectSteps":false} */}
 
 <Tabs>
 <Tab language="json" title="JSON">
@@ -104,3 +127,11 @@ tests:
 ```
 </Tab>
 </Tabs>
+
+{/* step {"stepId":"standalone-goto-search","description":"Open a page with a search-like input (adapted from google.com to a local fixture)","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"standalone-find-search","description":"Find and click the search input (adapted from the doc's [title=Search] to the fixture's real [title='Search input field'])","find":{"selector":"[title='Search input field']","click":true}} */}
+{/* step {"stepId":"standalone-type-search","description":"Type a query and press Enter (Enter is a no-op here since there's no form to submit, but it exercises the same keys array as the doc)","type":["American Shorthair kittens","$ENTER$"]} */}
+{/* step {"stepId":"standalone-verify-search","description":"Confirm the query was actually typed into the field","runBrowserScript":{"script":"return document.querySelector(\"[title='Search input field']\").value;","output":"American Shorthair kittens"}} */}
+{/* step {"stepId":"standalone-wait-search","description":"Wait, matching the doc's pacing before a screenshot","wait":1000} */}
+{/* step {"stepId":"standalone-screenshot-search","description":"Save a screenshot of the result","screenshot":".dd-output/standalone-search-results.png"} */}
+{/* test end */}

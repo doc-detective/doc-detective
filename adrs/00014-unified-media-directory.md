@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The runner produced two kinds of media artifacts — screenshots (images) and recordings (videos) — and
+The runner produced two kinds of media artifacts, screenshots (images) and recordings (videos). It
 configured their output locations through two separate fields, surfaced as the `--imageDir` and
 `--videoDir` CLI flags. Maintaining parallel directories and flags for what users think of as "where
 my generated media goes" added friction with no real benefit. Should image and video output share a

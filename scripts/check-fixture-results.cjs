@@ -8,9 +8,11 @@
 // turn a FAILed spec into a non-zero exit so the job (and the PR gate) fails.
 //
 // Policy (see the "Feature fixtures" section of CLAUDE.md): every spec must
-// resolve to PASS or SKIPPED. So a FAIL fails the job; an empty run (no specs
-// discovered — usually a mis-pointed --input) also fails, so a silent no-op
-// can't sneak through as green.
+// resolve to PASS, SKIPPED, or — only for features whose designed signal IS a
+// warning (recording staleness, screenshot variation) — a deterministic
+// WARNING. So a FAIL fails the job; an empty run (no specs discovered —
+// usually a mis-pointed --input) also fails, so a silent no-op can't sneak
+// through as green.
 const fs = require("node:fs");
 
 const resultsPath = process.argv[2];

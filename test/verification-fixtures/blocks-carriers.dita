@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="carriers">
+  <title>Carriers</title>
+  <body>
+    <p><data data-name="manni-meta" value='{"verified-by":[{"tool":"doc-detective","check":"data-name"}]}'/>A data-name attribute is not a name.</p>
+    <p><data title="name='manni-meta'" value='{"verified-by":[{"tool":"doc-detective","check":"in-a-value"}]}'/>Attribute text inside another value is not a name.</p>
+    <p><data name="manni-meta" data-value="x" value='sha256-2bc61aa6508983d9af9704b9394eceda40398cb6505b6b236f60006850acd3ac {"verified-by":[{"tool":"doc-detective","check":"real"}]}'/>The value attribute is the payload.</p>
+  </body>
+</topic>

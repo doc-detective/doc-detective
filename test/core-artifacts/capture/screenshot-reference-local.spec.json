@@ -1,0 +1,49 @@
+{
+  "specId": "screenshot-reference-local",
+  "description": "ADR 01162: a screenshot reference image on a local address works with no setting. The seed step captures the page into the 8092 test server's static directory, so the reference matches the capture's size; the compare step then fetches it from http://localhost:8092 and PASSes. One browser per platform, so concurrent contexts never race on the shared reference file.",
+  "tests": [
+    {
+      "testId": "reference-on-localhost",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "description": "Seed the reference where the test server serves it.",
+          "screenshot": {
+            "path": "screenshot-reference-local.png",
+            "directory": "../../server/public",
+            "overwrite": "true"
+          }
+        },
+        {
+          "description": "Compare against the reference by its localhost URL.",
+          "screenshot": {
+            "path": "http://localhost:8092/screenshot-reference-local.png",
+            "maxVariation": 0.05
+          }
+        },
+        {
+          "description": "Remove the seeded reference from the served directory.",
+          "runShell": {
+            "command": "node -e \"require('fs').rmSync('../../server/public/screenshot-reference-local.png', { force: true })\"",
+            "workingDirectory": "."
+          }
+        }
+      ]
+    }
+  ]
+}

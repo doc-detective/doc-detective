@@ -39,7 +39,7 @@ import {
   appendQueryParams,
   redactUrlForOutput,
   sanitizeFilesystemName,
-  assertUrlHostIsPublic,
+  privateAddressOf,
   fetchFile,
   cleanTemp,
   waitForStdio,
@@ -120,23 +120,63 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
   });
 
   it("readFile returns null and warns when a remote fetch fails", async function () {
-    sinon.stub(console, "warn");
+    const logged = sinon.stub(console, "log");
     sinon.stub(axios, "get").rejects(new Error("network down"));
-    const out = await readFile({ fileURLOrPath: "https://example.test/x.json" });
+    const out = await readFile({ fileURLOrPath: "https://example.test/x.json?token=s3cret" });
     assert.equal(out, null);
+    sinon.assert.calledWith(
+      logged,
+      "(WARNING) Couldn't read https://example.test/x.json: network down."
+    );
+  });
+
+  it("readFile throws that message instead, without warning, with throwOnError", async function () {
+    const logged = sinon.stub(console, "log");
+    sinon.stub(axios, "get").rejects(new Error("network down"));
+    await assert.rejects(
+      () => readFile({ fileURLOrPath: "https://example.test/x.json", throwOnError: true }),
+      { message: "Couldn't read https://example.test/x.json: network down." }
+    );
+    sinon.assert.notCalled(logged);
+  });
+
+  it("readFile doesn't double a cause's own final punctuation", async function () {
+    const logged = sinon.stub(console, "log");
+    const get = sinon.stub(axios, "get");
+    for (const cause of ["network down.", "network down!", "network down?"]) {
+      get.rejects(new Error(cause));
+      await readFile({ fileURLOrPath: "https://example.test/x.json" });
+      sinon.assert.calledWith(logged, `(WARNING) Couldn't read https://example.test/x.json: ${cause}`);
+    }
+  });
+
+  it("readFile ends the warning with one period when the cause is empty, blank, or missing", async function () {
+    const logged = sinon.stub(console, "log");
+    const get = sinon.stub(axios, "get");
+    // A rejection that isn't an Error has no message at all.
+    for (const error of [new Error(""), new Error("   "), {}]) {
+      logged.resetHistory();
+      get.rejects(error);
+      await readFile({ fileURLOrPath: "https://example.test/x.json" });
+      sinon.assert.calledOnceWithExactly(logged, "(WARNING) Couldn't read https://example.test/x.json.");
+    }
   });
 
   it("readFile returns null and warns on a non-ENOENT local read error", async function () {
-    sinon.stub(console, "warn");
+    const logged = sinon.stub(console, "log");
     sinon
       .stub(fs.promises, "readFile")
       .rejects(Object.assign(new Error("perm"), { code: "EACCES" }));
-    const out = await readFile({ fileURLOrPath: "/some/file.txt" });
+    const out = await readFile({ fileURLOrPath: "some/file.txt" });
     assert.equal(out, null);
+    sinon.assert.calledWith(
+      logged,
+      `(WARNING) Couldn't read ${path.resolve("some/file.txt")}: perm.`
+    );
   });
 
   it("readFile parses YAML and returns raw text when YAML parsing fails", async function () {
-    sinon.stub(console, "warn");
+    sinon.stub(console, "log");
     const dir = mkTmp("dd-edge-files-");
     const good = path.join(dir, "a.yaml");
     fs.writeFileSync(good, "key: value\nlist:\n  - one\n");
@@ -215,6 +255,88 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
     assert.equal(out.path[1], path.resolve(absDir, "p2.md"));
   });
 
+  it("resolvePaths resolves a step-level screenshot/record string shorthand relative to the spec file, not cwd", async function () {
+    const dir = mkTmp("dd-edge-files-");
+    const spec = {
+      specId: "s1",
+      tests: [
+        {
+          steps: [
+            { goTo: "https://x" },
+            { stepId: "shot", screenshot: "shot.png" },
+            { stepId: "vid", record: "clip.mp4" },
+          ],
+        },
+      ],
+    };
+    const out = await resolvePaths({
+      config: { relativePathBase: "file" },
+      object: spec,
+      filePath: path.join(dir, "spec.json"),
+    });
+    const steps = out.tests[0].steps;
+    assert.equal(
+      steps[1].screenshot,
+      path.resolve(dir, "shot.png"),
+      "string-shorthand screenshot should resolve relative to the spec file's directory"
+    );
+    assert.equal(
+      steps[2].record,
+      path.resolve(dir, "clip.mp4"),
+      "string-shorthand record should resolve relative to the spec file's directory"
+    );
+  });
+
+  it("resolvePaths leaves a screenshot/record URL shorthand untouched (no path resolution)", async function () {
+    const dir = mkTmp("dd-edge-files-");
+    const spec = {
+      specId: "s1",
+      tests: [
+        {
+          steps: [
+            { stepId: "shot", screenshot: "https://example.com/ref.png" },
+          ],
+        },
+      ],
+    };
+    const out = await resolvePaths({
+      config: { relativePathBase: "file" },
+      object: spec,
+      filePath: path.join(dir, "spec.json"),
+    });
+    assert.equal(out.tests[0].steps[0].screenshot, "https://example.com/ref.png");
+  });
+
+  it("resolvePaths doesn't resolve a non-step-level field that happens to be named screenshot/record", async function () {
+    const dir = mkTmp("dd-edge-files-");
+    const spec = {
+      specId: "s1",
+      tests: [
+        {
+          steps: [
+            {
+              stepId: "req",
+              httpRequest: {
+                url: "https://x",
+                request: { body: { record: "not-a-path" } },
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const out = await resolvePaths({
+      config: { relativePathBase: "file" },
+      object: spec,
+      filePath: path.join(dir, "spec.json"),
+    });
+    assert.equal(
+      out.tests[0].steps[0].httpRequest.request.body.record,
+      "not-a-path",
+      "a `record` field nested inside request body data isn't a recording step and must be left alone"
+    );
+  });
+
   it("readFile returns raw content for a non-json/yaml extension", async function () {
     const dir = mkTmp("dd-edge-files-");
     const p = path.join(dir, "note.txt");
@@ -223,15 +345,16 @@ describe("core/files.ts — readFile / resolvePaths edge branches", function () 
     assert.equal(out, "plain text body");
   });
 
-  it("readFile returns null when a local file is missing (ENOENT warn path)", async function () {
-    sinon.stub(console, "warn");
-    const dir = mkTmp("dd-edge-files-");
-    const out = await readFile({ fileURLOrPath: path.join(dir, "nope.json") });
+  it("readFile returns null and warns when a local file is missing (ENOENT)", async function () {
+    const logged = sinon.stub(console, "log");
+    const missing = path.join(mkTmp("dd-edge-files-"), "nope.json");
+    const out = await readFile({ fileURLOrPath: missing });
     assert.equal(out, null);
+    sinon.assert.calledWith(logged, `(WARNING) Couldn't read ${missing}: the file doesn't exist.`);
   });
 
   it("readFile returns the raw string when JSON parsing fails", async function () {
-    sinon.stub(console, "warn");
+    sinon.stub(console, "log");
     const dir = mkTmp("dd-edge-files-");
     const p = path.join(dir, "broken.json");
     fs.writeFileSync(p, "{ not: json");
@@ -466,13 +589,13 @@ describe("runtime/cacheDir.ts — guard + fallback branches", function () {
   it("getBrowsersDir skips legacy candidates whose statSync throws and falls back to the default cache", function () {
     // No override → the legacy loop runs; every statSync throws → catch/skip →
     // fall through to <cacheDir>/browsers. Redirect the default cache root to a
-    // temp dir so we don't create anything under the real tmpdir cache.
+    // temp dir so we don't create anything under the real home-dir cache.
     delete process.env.DOC_DETECTIVE_CACHE_DIR;
-    const fakeTmp = mkTmp("dd-edge-tmproot-");
-    sinon.stub(os, "tmpdir").returns(fakeTmp);
+    const fakeHome = mkTmp("dd-edge-homeroot-");
+    sinon.stub(os, "homedir").returns(fakeHome);
     sinon.stub(fs, "statSync").throws(Object.assign(new Error("nope"), { code: "ENOENT" }));
     const out = getBrowsersDir({});
-    assert.equal(out, path.join(fakeTmp, "doc-detective", "browsers"));
+    assert.equal(out, path.join(fakeHome, ".doc-detective", "browsers"));
   });
 
   it("readInstalledRecord degrades to an empty record on a non-ENOENT read error", function () {
@@ -744,51 +867,39 @@ describe("core/utils.ts — URL helpers", function () {
   });
 });
 
-describe("core/utils.ts — assertUrlHostIsPublic SSRF guard", function () {
-  it("allows everything when DOC_DETECTIVE_ALLOW_LOCAL_URLS=true (early return)", async function () {
-    process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS = "true";
-    await assertUrlHostIsPublic("http://127.0.0.1/x"); // must not throw
-  });
-
+describe("core/utils.ts — privateAddressOf SSRF classifier", function () {
   it("throws on an invalid URL", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    await assert.rejects(() => assertUrlHostIsPublic("::::not-a-url"), /Invalid URL/);
+    await assert.rejects(() => privateAddressOf("::::not-a-url"), /Invalid URL/);
   });
 
   it("throws on an unsupported scheme", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    await assert.rejects(() => assertUrlHostIsPublic("ftp://example.com/x"), /Unsupported URL scheme/);
+    await assert.rejects(() => privateAddressOf("ftp://example.com/x"), /Unsupported URL scheme/);
   });
 
-  it("refuses a private IPv4 literal", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    await assert.rejects(() => assertUrlHostIsPublic("http://10.0.0.5/x"), /private\/loopback/);
+  it("flags a private IPv4 literal", async function () {
+    assert.equal(await privateAddressOf("http://10.0.0.5/x"), "10.0.0.5");
   });
 
-  it("refuses 172.16/12, 192.168/16, 169.254 link-local, and 100.64 CGNAT literals", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+  it("flags 172.16/12, 192.168/16, 169.254 link-local, and 100.64 CGNAT literals", async function () {
     for (const ip of ["172.20.1.1", "192.168.0.1", "169.254.1.1", "100.66.0.1", "127.0.0.1", "0.0.0.0"]) {
-      await assert.rejects(() => assertUrlHostIsPublic(`http://${ip}/x`), /private\/loopback/);
+      assert.equal(await privateAddressOf(`http://${ip}/x`), ip);
     }
   });
 
-  it("refuses IPv6 loopback / unique-local / link-local literals", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    for (const host of ["[::1]", "[fc00::1]", "[fd12::1]", "[fe80::1]"]) {
-      await assert.rejects(() => assertUrlHostIsPublic(`http://${host}/x`), /private\/loopback/);
+  it("flags IPv6 loopback / unique-local / link-local literals", async function () {
+    for (const address of ["::1", "fc00::1", "fd12::1", "fe80::1"]) {
+      assert.equal(await privateAddressOf(`http://[${address}]/x`), address, address);
     }
   });
 
-  it("refuses an IPv4-mapped IPv6 private address (::ffff: hex reconstruction)", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
+  it("flags an IPv4-mapped IPv6 private address (::ffff: hex reconstruction)", async function () {
     // ::ffff:a00:1 == 10.0.0.1 after the URL parser normalizes the embedded v4.
-    await assert.rejects(() => assertUrlHostIsPublic("http://[::ffff:a00:1]/x"), /private\/loopback/);
+    assert.equal(await privateAddressOf("http://[::ffff:a00:1]/x"), "::ffff:a00:1");
   });
 
-  it("refuses the literal 'localhost' hostname", async function () {
-    delete process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS;
-    await assert.rejects(() => assertUrlHostIsPublic("http://localhost/x"), /localhost/);
-    await assert.rejects(() => assertUrlHostIsPublic("http://api.localhost/x"), /localhost/);
+  it("flags the literal 'localhost' hostname", async function () {
+    assert.equal(await privateAddressOf("http://localhost/x"), "localhost");
+    assert.equal(await privateAddressOf("http://api.localhost/x"), "api.localhost");
   });
 });
 
@@ -861,12 +972,27 @@ describe("core/utils.ts — cleanTemp / waitForStdio / run output helpers", func
     sinon.stub(os, "tmpdir").returns(fakeTmp);
     const ddDir = path.join(fakeTmp, "doc-detective");
     fs.mkdirSync(path.join(ddDir, "runtime"), { recursive: true });
+    fs.mkdirSync(path.join(ddDir, "tools", "git-bash"), { recursive: true });
     fs.mkdirSync(path.join(ddDir, "scratch-dir"), { recursive: true });
+    // A cacheDir explicitly pointed at the temp root also holds the Android
+    // SDK, its JRE, and the iOS WDA prebuilds — multi-GB, must survive.
+    for (const entry of ["android-sdk", "jre", "ios"]) {
+      fs.mkdirSync(path.join(ddDir, entry), { recursive: true });
+    }
     fs.writeFileSync(path.join(ddDir, "installed.json"), "{}");
     fs.writeFileSync(path.join(ddDir, "scratch.txt"), "x");
     cleanTemp();
+    for (const entry of ["android-sdk", "jre", "ios"]) {
+      assert.ok(fs.existsSync(path.join(ddDir, entry)), `${entry} preserved`);
+    }
     assert.ok(fs.existsSync(path.join(ddDir, "runtime")), "runtime preserved");
     assert.ok(fs.existsSync(path.join(ddDir, "installed.json")), "installed.json preserved");
+    // tools/ holds the lazily-installed Git Bash (MinGit); wiping it would
+    // force a ~40 MB re-download on every run that needs bash on Windows.
+    assert.ok(
+      fs.existsSync(path.join(ddDir, "tools", "git-bash")),
+      "tools preserved"
+    );
     assert.ok(!fs.existsSync(path.join(ddDir, "scratch-dir")), "scratch dir removed");
     assert.ok(!fs.existsSync(path.join(ddDir, "scratch.txt")), "scratch file removed");
   });

@@ -1,0 +1,30 @@
+{
+  "specId": "context-retries",
+  "description": "The `retries` context-retry policy end-to-end. `retries` (config + context, default 1) re-runs a whole context on a fresh session when its session dies mid-run, detected by an active liveness probe. A fixture can't deterministically kill a live session, so the retry control flow (retry-on-dead-session, no-retry-on-live-FAIL, budget exhaustion, 0-disables, context-field restore) is asserted in test/browser-fallback.test.js. This spec proves the schema surface is accepted end-to-end and the policy is a NO-OP on a healthy, passing run: a context that explicitly sets `retries` still PASSES normally when nothing dies.",
+  "tests": [
+    {
+      "testId": "context-retries-noop-on-green",
+      "description": "A context with an explicit retries override runs green unchanged when its session stays healthy — the retry never fires on a passing run.",
+      "runOn": [
+        {
+          "retries": 2,
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "find": {
+            "selector": "body"
+          }
+        }
+      ]
+    }
+  ]
+}

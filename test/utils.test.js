@@ -1,4 +1,5 @@
-import { setArgs, setConfig, outputResults, reporters } from "../dist/utils.js";
+import { setArgs, setConfig, outputResults, reporters, buildYargs } from "../dist/utils.js";
+import { _resetCacheForTests } from "../dist/runtime/heavyDeps.js";
 import {
   appendQueryParams,
   compileFilter,
@@ -321,6 +322,27 @@ describe("Util tests", function () {
     expect(configAbsent.hints).to.deep.equal({ enabled: true });
   });
 
+  it("setConfig stores --verification on config.verification.write", async function () {
+    this.timeout(5000);
+    for (const [flag, write] of [["true", true], ["false", false], ["existing", "existing"], [" TRUE ", true]]) {
+      const args = setArgs(["node", "runTests.js", "--verification", flag]);
+      expect(args.verification).to.equal(flag);
+      const config = await setConfig({ configPath: null, args });
+      expect(config.verification, flag).to.deep.equal({ write });
+    }
+
+    // An unknown value is ignored, leaving the validated default.
+    const argsBad = setArgs(["node", "runTests.js", "--verification", "always"]);
+    const configBad = await setConfig({ configPath: null, args: argsBad });
+    expect(configBad.verification).to.deep.equal({ write: "existing" });
+
+    // Absent flag: the schema default.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.verification).to.be.undefined;
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.verification).to.deep.equal({ write: "existing" });
+  });
+
   it("Yargs parses --auto-update / --no-auto-update as boolean", function () {
     const on = setArgs(["node", "runTests.js", "--auto-update"]);
     expect(on.autoUpdate).to.equal(true);
@@ -349,6 +371,57 @@ describe("Util tests", function () {
     expect(configAbsent.autoUpdate).to.equal(true);
   });
 
+  it("Yargs parses --exit-on-fail / --no-exit-on-fail as boolean", function () {
+    const on = setArgs(["node", "runTests.js", "--exit-on-fail"]);
+    expect(on.exitOnFail).to.equal(true);
+
+    const off = setArgs(["node", "runTests.js", "--no-exit-on-fail"]);
+    expect(off.exitOnFail).to.equal(false);
+
+    const absent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(absent.exitOnFail).to.equal(undefined);
+  });
+
+  it("setConfig stores --exit-on-fail on config.exitOnFail and leaves it unset when absent", async function () {
+    this.timeout(5000);
+    const argsOn = setArgs(["node", "runTests.js", "--exit-on-fail"]);
+    const configOn = await setConfig({ configPath: null, args: argsOn });
+    expect(configOn.exitOnFail).to.equal(true);
+
+    const argsOff = setArgs(["node", "runTests.js", "--no-exit-on-fail"]);
+    const configOff = await setConfig({ configPath: null, args: argsOff });
+    expect(configOff.exitOnFail).to.equal(false);
+
+    // No schema default, so the upgrade warning can tell unset from false
+    // (ADR 01147). The exit gate in cli.ts treats unset as false.
+    const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+    expect(argsAbsent.exitOnFail).to.equal(undefined);
+    const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
+    expect(configAbsent.exitOnFail).to.equal(undefined);
+  });
+
+  it("--no-exit-on-fail overrides exitOnFail:true from a config file (CLI wins)", async function () {
+    this.timeout(5000);
+    const os = await import("node:os");
+    const tmpDir = fs.mkdtempSync(path.join(os.default.tmpdir(), "dd-eof-precedence-"));
+    try {
+      const cfgPath = path.join(tmpDir, "config.json");
+      fs.writeFileSync(cfgPath, JSON.stringify({ exitOnFail: true }));
+
+      // File config sets it true; the CLI override must win and turn it off.
+      const argsOff = setArgs(["node", "runTests.js", "--no-exit-on-fail"]);
+      const configOff = await setConfig({ configPath: cfgPath, args: argsOff });
+      expect(configOff.exitOnFail).to.equal(false);
+
+      // With no flag, the file value stands.
+      const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
+      const configFile = await setConfig({ configPath: cfgPath, args: argsAbsent });
+      expect(configFile.exitOnFail).to.equal(true);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
   it("Yargs parses --auto-screenshot / --no-auto-screenshot as boolean", function () {
     const on = setArgs(["node", "runTests.js", "--auto-screenshot"]);
     expect(on.autoScreenshot).to.equal(true);
@@ -360,7 +433,7 @@ describe("Util tests", function () {
     expect(absent.autoScreenshot).to.equal(undefined);
   });
 
-  it("setConfig stores --auto-screenshot on config.autoScreenshot and applies schema default when absent", async function () {
+  it("setConfig stores --auto-screenshot on config.autoScreenshot and leaves it unset when absent", async function () {
     this.timeout(5000);
     const argsOn = setArgs(["node", "runTests.js", "--auto-screenshot"]);
     const configOn = await setConfig({ configPath: null, args: argsOn });
@@ -370,11 +443,11 @@ describe("Util tests", function () {
     const configOff = await setConfig({ configPath: null, args: argsOff });
     expect(configOff.autoScreenshot).to.equal(false);
 
-    // Schema default is false; absent flag yields false via AJV useDefaults.
+    // No schema default, so the upgrade notice can tell unset from off (ADR 01147).
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.autoScreenshot).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
-    expect(configAbsent.autoScreenshot).to.equal(false);
+    expect(configAbsent.autoScreenshot).to.equal(undefined);
   });
 
   it("Yargs parses --auto-record / --no-auto-record as boolean", function () {
@@ -388,7 +461,7 @@ describe("Util tests", function () {
     expect(absent.autoRecord).to.equal(undefined);
   });
 
-  it("setConfig stores --auto-record on config.autoRecord and applies schema default when absent", async function () {
+  it("setConfig stores --auto-record on config.autoRecord and leaves it unset when absent", async function () {
     this.timeout(5000);
     const argsOn = setArgs(["node", "runTests.js", "--auto-record"]);
     const configOn = await setConfig({ configPath: null, args: argsOn });
@@ -398,11 +471,11 @@ describe("Util tests", function () {
     const configOff = await setConfig({ configPath: null, args: argsOff });
     expect(configOff.autoRecord).to.equal(false);
 
-    // Schema default is false; absent flag yields false via AJV useDefaults.
+    // No schema default, so the upgrade notice can tell unset from off (ADR 01147).
     const argsAbsent = setArgs(["node", "runTests.js", "--input", "."]);
     expect(argsAbsent.autoRecord).to.equal(undefined);
     const configAbsent = await setConfig({ configPath: null, args: argsAbsent });
-    expect(configAbsent.autoRecord).to.equal(false);
+    expect(configAbsent.autoRecord).to.equal(undefined);
   });
 
   it("Yargs parses --cache-dir as a string", function () {
@@ -1141,6 +1214,30 @@ describe("Util tests", function () {
   });
 });
 
+describe("--version", function () {
+  it("prints unknown when its own package.json can't be found", function () {
+    // Make ownVersion() come back undefined: drop its cache and fail every
+    // package.json read until the walk gives up.
+    _resetCacheForTests();
+    const readFileSync = fs.readFileSync;
+    const log = console.log;
+    const printed = [];
+    fs.readFileSync = (p, ...rest) => {
+      if (String(p).endsWith("package.json")) throw new Error("no package.json");
+      return readFileSync(p, ...rest);
+    };
+    console.log = (...a) => printed.push(a.join(" "));
+    try {
+      buildYargs(["node", "doc-detective", "--version"]).exitProcess(false).parse();
+    } finally {
+      fs.readFileSync = readFileSync;
+      console.log = log;
+      _resetCacheForTests();
+    }
+    expect(printed).to.deep.equal(["unknown"]);
+  });
+});
+
 describe("appendQueryParams", function () {
   it("returns URL unchanged when params is undefined, null, or empty", function () {
     const url = "https://example.com/foo";
@@ -1360,6 +1457,9 @@ describe("runSpecs filter short-circuit", function () {
     expect(result.summary.tests.warning).to.equal(0);
     expect(result.summary.tests.skipped).to.equal(0);
     expect(result.summary.specs.pass).to.equal(0);
+    // Run metadata is present even when nothing ran (ADR 01163).
+    expect(new Date(result.startedAt).toISOString()).to.equal(result.startedAt);
+    expect(result.environment.nodeVersion).to.equal(process.versions.node);
   });
 });
 
@@ -1389,6 +1489,9 @@ describe("runViaApi filter short-circuit", function () {
     expect(result.specs).to.deep.equal([]);
     expect(result.summary.tests.pass).to.equal(0);
     expect(result.summary.tests.fail).to.equal(0);
+    // Run metadata matches runSpecs' short-circuit (ADR 01163).
+    expect(new Date(result.startedAt).toISOString()).to.equal(result.startedAt);
+    expect(result.environment.nodeVersion).to.equal(process.versions.node);
   });
 });
 

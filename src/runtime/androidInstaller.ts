@@ -10,6 +10,7 @@ import {
   type CacheDirContext,
 } from "./cacheDir.js";
 import { detectAndroidSdk, type AndroidSdk } from "./androidSdk.js";
+import { downloadFile, extractZip } from "./archiveUtils.js";
 import type { Logger } from "./loader.js";
 
 // `doc-detective install android` — the ONE explicit, opt-in place where the
@@ -436,11 +437,11 @@ function sdkRetryBackoffMs(attempt: number): number {
 
 /* c8 ignore start */
 // Real inter-attempt wait; injected as a no-op in tests so they never block.
+// Never unref() this timer: during `install android` the pending retry is the
+// only thing keeping the event loop alive, and an unref'd backoff let the
+// process exit 0 mid-retry with the image never installed (#754).
 function realSleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    if (typeof timer.unref === "function") timer.unref();
-  });
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 /* c8 ignore stop */
 
@@ -951,6 +952,124 @@ export function androidAvdHome(): string {
   return home;
 }
 
+// The snapshot every managed emulator boot resumes from (ADR 01106): taken
+// right after an AVD's first cold boot, before any test touches the device,
+// and never auto-saved over.
+export const CLEAN_SNAPSHOT_NAME = "doc-detective-clean";
+
+// An AVD's directory: `<name>.ini` names it in `path=`; avdmanager's default
+// is `<avdHome>/<name>.avd`.
+function avdDirFor(avdHome: string, name: string): string {
+  try {
+    const ini = fs.readFileSync(path.join(avdHome, `${name}.ini`), "utf8");
+    const match = /^path=(.+)$/m.exec(ini);
+    if (match) return match[1].trim();
+  } catch {
+    /* missing/unreadable ini: keep the default layout */
+  }
+  return path.join(avdHome, `${name}.avd`);
+}
+
+function cleanSnapshotDir(avdHome: string, name: string): string {
+  return path.join(avdDirFor(avdHome, name), "snapshots", CLEAN_SNAPSHOT_NAME);
+}
+
+/**
+ * Whether the AVD has a complete clean snapshot. `snapshot.pb` is written
+ * last, so a directory without it is an aborted save.
+ */
+export function hasCleanSnapshot(
+  name: string,
+  { avdHome = androidAvdHome() }: { avdHome?: string } = {}
+): boolean {
+  return fs.existsSync(path.join(cleanSnapshotDir(avdHome, name), "snapshot.pb"));
+}
+
+// What a clean snapshot was built for (ADR 01108), kept beside it so a
+// snapshot whose baked-in Appium helpers no longer match the driver is retaken.
+export interface CleanSnapshotMeta {
+  driverVersion?: string;
+}
+
+const CLEAN_SNAPSHOT_META = "doc-detective.json";
+
+/** The clean snapshot's metadata, or null when absent or unreadable. */
+export function readCleanSnapshotMeta(
+  name: string,
+  { avdHome = androidAvdHome() }: { avdHome?: string } = {}
+): CleanSnapshotMeta | null {
+  try {
+    const parsed = JSON.parse(
+      fs.readFileSync(path.join(cleanSnapshotDir(avdHome, name), CLEAN_SNAPSHOT_META), "utf8")
+    );
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeCleanSnapshotMeta(
+  name: string,
+  meta: CleanSnapshotMeta,
+  { avdHome = androidAvdHome() }: { avdHome?: string } = {}
+): void {
+  fs.writeFileSync(
+    path.join(cleanSnapshotDir(avdHome, name), CLEAN_SNAPSHOT_META),
+    JSON.stringify(meta)
+  );
+}
+
+/** Delete one AVD's clean snapshot (a bad one the boot couldn't resume). */
+export function discardCleanSnapshot(
+  name: string,
+  { avdHome = androidAvdHome() }: { avdHome?: string } = {}
+): void {
+  fs.rmSync(cleanSnapshotDir(avdHome, name), { recursive: true, force: true });
+}
+
+/**
+ * Delete Doc Detective's clean boot snapshot from every AVD in `avdHome`, so
+ * each AVD's next managed boot cold-boots and retakes it from its current
+ * state. Other snapshots are untouched. A removal that fails (e.g. EBUSY while
+ * an emulator holds the files) is reported and the rest still reset. A missing
+ * AVD home means nothing to reset; any other read error propagates. With
+ * `dryRun`, reports what would be reset and deletes nothing.
+ */
+export function resetCleanSnapshots({
+  avdHome = androidAvdHome(),
+  dryRun = false,
+  readdirSync = fs.readdirSync,
+  rmSync = fs.rmSync,
+}: {
+  avdHome?: string;
+  dryRun?: boolean;
+  readdirSync?: (dir: string) => string[];
+  rmSync?: (target: string, opts: { recursive: boolean; force: boolean }) => void;
+} = {}): { reset: string[]; failed: { name: string; error: string }[] } {
+  let entries: string[];
+  try {
+    entries = readdirSync(avdHome);
+  } catch (error: any) {
+    if (error?.code === "ENOENT") return { reset: [], failed: [] };
+    throw error;
+  }
+  const reset: string[] = [];
+  const failed: { name: string; error: string }[] = [];
+  for (const entry of entries) {
+    if (!entry.endsWith(".ini")) continue;
+    const name = entry.slice(0, -".ini".length);
+    const snapshot = cleanSnapshotDir(avdHome, name);
+    if (!fs.existsSync(snapshot)) continue;
+    try {
+      if (!dryRun) rmSync(snapshot, { recursive: true, force: true });
+      reset.push(name);
+    } catch (error: any) {
+      failed.push({ name, error: error?.message ?? String(error) });
+    }
+  }
+  return { reset, failed };
+}
+
 async function realRun(
   command: string,
   args: string[],
@@ -1062,74 +1181,4 @@ async function realBootstrap(url: string, destSdkRoot: string): Promise<void> {
   }
 }
 
-// Download a URL to a file, following redirects (dl.google.com redirects to a
-// CDN). Fails on any non-2xx final status.
-async function downloadFile(
-  url: string,
-  dest: string,
-  redirects = 0
-): Promise<void> {
-  if (redirects > 10) throw new Error(`too many redirects fetching ${url}`);
-  await new Promise<void>((resolve, reject) => {
-    const req = https.get(url, (res) => {
-      const status = res.statusCode ?? 0;
-      if (status >= 300 && status < 400 && res.headers.location) {
-        res.resume();
-        downloadFile(res.headers.location, dest, redirects + 1).then(
-          resolve,
-          reject
-        );
-        return;
-      }
-      if (status !== 200) {
-        res.resume();
-        reject(new Error(`download failed (HTTP ${status}) for ${url}`));
-        return;
-      }
-      const file = fs.createWriteStream(dest);
-      res.pipe(file);
-      file.on("finish", () => file.close(() => resolve()));
-      file.on("error", reject);
-    });
-    // Fail a stalled connection rather than hanging installAndroid forever: 60s
-    // to first response, and an idle-socket timeout once streaming.
-    req.setTimeout(60000, () => req.destroy(new Error(`download timed out: ${url}`)));
-    req.on("error", reject);
-  });
-}
-
-// Extract a .zip cross-platform, trying the extractors likely to be present:
-// unzip / bsdtar on POSIX, bsdtar / PowerShell Expand-Archive on Windows.
-async function extractZip(zipPath: string, destDir: string): Promise<void> {
-  const attempts: [string, string[]][] =
-    process.platform === "win32"
-      ? [
-          ["tar", ["-xf", zipPath, "-C", destDir]],
-          [
-            "powershell",
-            [
-              "-NoProfile",
-              "-NonInteractive",
-              "-Command",
-              `Expand-Archive -LiteralPath '${zipPath}' -DestinationPath '${destDir}' -Force`,
-            ],
-          ],
-        ]
-      : [
-          ["unzip", ["-q", "-o", zipPath, "-d", destDir]],
-          ["tar", ["-xf", zipPath, "-C", destDir]],
-        ];
-  let lastError: any;
-  for (const [cmd, args] of attempts) {
-    try {
-      await realRun(cmd, args);
-      return;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw new Error(
-    `couldn't extract ${zipPath}: no working zip extractor found (${lastError?.message ?? lastError})`
-  );
-}
 /* c8 ignore stop */

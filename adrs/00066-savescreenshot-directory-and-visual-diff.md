@@ -8,11 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-`saveScreenshot` wrote an image to a path, but there was no first-class place to put screenshots, no
-control over when an existing image is overwritten, and no way to assert that a screenshot still
-matches its prior version within a tolerance. Documentation screenshots drift as the product changes;
-authors need a regression check, not just a capture. What is the contract for the output directory,
-overwrite behavior, and visual-diff comparison?
+`saveScreenshot` wrote an image to a path. But there was no first-class place to put screenshots,
+and no control over when an existing image is overwritten. There was also no way to assert that a
+screenshot still matches its prior version within a tolerance. Documentation screenshots drift as
+the product changes, so authors need a regression check, not just a capture. What is the contract
+for the output directory, overwrite behavior, and visual-diff comparison?
 
 ## Decision Drivers
 
@@ -29,8 +29,8 @@ overwrite behavior, and visual-diff comparison?
 
 ## Decision Outcome
 
-Chosen option: **A**, because a managed directory plus a tolerance-aware overwrite enum captures the
-real workflow: keep a baseline, compare new captures, and replace only when appropriate.
+Chosen option: **A**. A managed directory plus a tolerance-aware overwrite enum captures the real
+workflow. Keep a baseline, compare new captures, and replace only when appropriate.
 `saveScreenshot` gains a `directory` field (auto-created) with `path` resolved relative to it. Visual
 diff is controlled by `maxVariation` (a `0`–`100` tolerance) and an `overwrite` enum with values
 `true`, `false`, and `byVariation` (overwrite only when variation is within tolerance). The runner

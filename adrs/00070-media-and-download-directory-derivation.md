@@ -29,8 +29,8 @@ should a recording be converted to its final format?
 
 ## Decision Outcome
 
-Chosen option: **A**, because deriving the directories from the already-configured output keeps
-configuration minimal while still allowing overrides, and converting after the capture completes
+Chosen option: **A**. Deriving the directories from the already-configured output keeps
+configuration minimal, while still allowing overrides. Converting after the capture completes
 guarantees a finished, playable file. In `setConfig`, `runTests.downloadDirectory` and
 `mediaDirectory` are derived via a fallback chain (`…downloadDirectory ?? …output ?? config.output`).
 On `stopRecording`, the runner waits for the recording download to finish and then FFmpeg-converts the

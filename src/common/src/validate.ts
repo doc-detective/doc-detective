@@ -1,51 +1,61 @@
-import { schemas, SchemaKey } from "./schemas/index.js";
-import Ajv, { ValidateFunction } from "ajv";
-// Ajv extra formats: https://ajv.js.org/packages/ajv-formats.html
-import addFormats from "ajv-formats";
-// Ajv extra keywords: https://ajv.js.org/packages/ajv-keywords.html
-import addKeywords from "ajv-keywords";
-// Ajv custom errors: https://ajv.js.org/packages/ajv-errors.html
-import addErrors from "ajv-errors";
-import dynamicDefaultsDef from "ajv-keywords/dist/definitions/dynamicDefaults.js";
+import type { ValidateFunction, ErrorObject } from "ajv";
+import validators from "./schemas/validators.cjs";
 
-// Browser-compatible UUID function
-/* c8 ignore next 10 - crypto.randomUUID always available in Node.js; fallback is for browsers */
-function getRandomUUID(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+// Validators are precompiled at build time from `schemasReferenced` ($refs
+// intact) by Ajv standalone code generation (createAjv/standaloneValidatorFiles
+// in ajv.ts, written by scripts/generateValidators.js), so no schema compiles
+// at runtime and the Ajv compiler never loads. test/precompiledValidators.test.js
+// proves they validate exactly like the runtime-compiled schemas. ADR 01138.
+//
+// The MUTATING set: `useDefaults` fills in schema defaults and `coerceTypes`
+// rewrites values in place. Both mutate the data they validate, which is why
+// every validation runs against a clone.
+const ajv = validators.mutating;
+
+// A second, NON-mutating set used only to *probe* which compatible schema an
+// object matches. It has `useDefaults`/`coerceTypes` OFF, so it never touches
+// the data — that lets us try every candidate schema against the caller's
+// object directly, with no per-candidate clone. The winning schema is then
+// re-run through the mutating set on a single clone to reproduce the exact
+// defaults/coercions the old code produced. Loaded on first probe.
+//
+// It deliberately runs without `useDefaults`, so neither static nor dynamic
+// (`dynamicDefaults`) defaults apply. A consequence: any compatible schema whose VALIDITY depends on a default —
+// whether a static `useDefaults` scalar (e.g. config_v2's required
+// `telemetry.send`) OR a dynamic default (e.g. a required uuid field) — will not
+// match this probe and instead falls to the mutating-probe fallback in
+// `validate()`. That fallback replays the exact old behavior, so this is a
+// correctness-preserving performance split, not a gap.
+const ajvCheck = () => validators.loadCheck();
+
+/**
+ * Look up a schema's precompiled validator. Unknown keys, including inherited
+ * names like `constructor`, return undefined.
+ */
+function getValidator(
+  set: Record<string, ValidateFunction>,
+  key: string,
+): ValidateFunction | undefined {
+  return Object.hasOwn(set, key) ? set[key] : undefined;
 }
 
-// Configure base Ajv
-// @ts-expect-error - CJS/ESM interop: Ajv constructor is callable at runtime
-const ajv = new Ajv({
-  strictSchema: false,
-  useDefaults: true,
-  allErrors: true,
-  allowUnionTypes: true,
-  coerceTypes: true,
-});
-
-// Enable `uuid` dynamic default
-// @ts-expect-error - CJS/ESM interop: dynamicDefaultsDef.DEFAULTS exists at runtime
-dynamicDefaultsDef.DEFAULTS.uuid = (_args: any) => getRandomUUID;
-
-// Enhance Ajv
-// @ts-expect-error - CJS/ESM interop: ajv plugin functions are callable at runtime
-addFormats(ajv);
-// @ts-expect-error - CJS/ESM interop: ajv plugin functions are callable at runtime
-addKeywords(ajv);
-// @ts-expect-error - CJS/ESM interop: ajv plugin functions are callable at runtime
-addErrors(ajv);
-
-// Add all schemas from `schema` object.
-for (const [key, value] of Object.entries(schemas)) {
-  ajv.addSchema(value, key);
+/**
+ * Deep-clone a value before validation so the mutating validator can apply
+ * defaults/coercions without touching the caller's object.
+ *
+ * Deliberately a `JSON.parse(JSON.stringify(...))` round-trip rather than
+ * `structuredClone`: the JSON round-trip's *normalization* is load-bearing here.
+ * `transformToSchemaKey` feeds `validate()` objects that carry `NaN`
+ * (`undefined / 100` for an absent `maxVariation`) and `undefined`-valued
+ * properties; the JSON clone maps `NaN`→`null` and drops `undefined` keys, and
+ * the established validity/coercion results depend on that. `structuredClone`
+ * preserves `NaN`/`undefined` verbatim, which flips those results (see ADR
+ * 01065). The Phase 3.2 win comes from cloning *once* for the winning pass and
+ * probing candidates with a non-mutating validator, not from the clone
+ * primitive. Centralized so the clone contract lives in one place.
+ */
+function cloneForValidation(object: any): any {
+  return JSON.parse(JSON.stringify(object));
 }
 
 // Define the specific schemas that have compatibility mappings
@@ -77,12 +87,35 @@ export interface ValidateOptions {
   schemaKey: string;
   object: any;
   addDefaults?: boolean;
+  /**
+   * When true, `ValidateResult.errorObjects` is populated with the raw AJV
+   * `ErrorObject`s from the target-schema validation (empty array when valid or
+   * when the schema key is unknown). Off by default so the hot runner path pays
+   * nothing; the LSP opts in to map `instancePath`/`keyword`/`params` to source
+   * ranges. The string `errors` field is always produced regardless.
+   */
+  structuredErrors?: boolean;
 }
 
 export interface ValidateResult {
   valid: boolean;
   errors: string;
   object: any;
+  /**
+   * Raw AJV errors from the target-schema validation. Present only when
+   * `structuredErrors: true` was passed. Snapshotted (shallow-cloned) so the
+   * shared AJV instance's error array can't mutate them out from under a caller.
+   */
+  errorObjects?: ErrorObject[];
+}
+
+/**
+ * Shallow-clone AJV errors so a later validation on the shared instance can't
+ * mutate the snapshot handed back to the caller. Only ever called inside an
+ * `if (check.errors)` guard, so the input is always a non-null error array.
+ */
+function snapshotErrors(errors: ErrorObject[]): ErrorObject[] {
+  return errors.map((error) => ({ ...error }));
 }
 
 export interface TransformOptions {
@@ -118,6 +151,7 @@ export function validate({
   schemaKey,
   object,
   addDefaults = true,
+  structuredErrors = false,
 }: ValidateOptions): ValidateResult {
   if (!schemaKey) {
     throw new Error("Schema key is required.");
@@ -130,8 +164,11 @@ export function validate({
     errors: "",
     object: object,
   };
+  if (structuredErrors) {
+    result.errorObjects = [];
+  }
   let validationObject: any;
-  let check: ValidateFunction | undefined = ajv.getSchema(schemaKey);
+  let check: ValidateFunction | undefined = getValidator(ajv, schemaKey);
   if (!check) {
     result.valid = false;
     result.errors = `Schema not found: ${schemaKey}`;
@@ -139,19 +176,24 @@ export function validate({
     return result;
   }
 
-  // Clone the object to avoid modifying the original object
-  validationObject = JSON.parse(JSON.stringify(object));
+  // Clone the object to avoid modifying the original object. The mutating
+  // validator applies defaults/coercions to this clone, never the caller's.
+  validationObject = cloneForValidation(object);
 
-  // Check if the object is compatible with the schema
+  // Check if the object is compatible with the schema (mutating pass).
   result.valid = check(validationObject);
   result.errors = "";
 
   if (check.errors) {
+    // Preserve the target-schema errors: the compatible-schema probing below
+    // uses a separate validator, so `check.errors` stays the target's errors
+    // for the no-match message.
+    const targetErrors = check.errors;
     // Check if the object is compatible with another schema
     const compatibleSchemasList =
       compatibleSchemas[schemaKey as keyof typeof compatibleSchemas];
     if (!compatibleSchemasList) {
-      result.errors = check.errors
+      result.errors = targetErrors
         .map(
           (error) =>
             `${error.instancePath} ${error.message} (${JSON.stringify(
@@ -159,17 +201,40 @@ export function validate({
             )})`,
         )
         .join(", ");
+      if (structuredErrors) {
+        result.errorObjects = snapshotErrors(targetErrors);
+      }
       result.object = object;
       result.valid = false;
       return result;
     }
-    const matchedSchemaKey = compatibleSchemasList.find((key) => {
-      validationObject = JSON.parse(JSON.stringify(object));
-      const check = ajv.getSchema(key);
-      if (check && check(validationObject)) return key;
+    // Probe each candidate with the NON-mutating validator, run directly on the
+    // caller's object — no per-candidate clone. Order is preserved, so the first
+    // match wins exactly as the old clone-per-candidate loop did. Because
+    // useDefaults/coerceTypes only make Ajv MORE permissive, a non-mutating match
+    // is always a mutating match too, so this fast path is exact for any
+    // candidate whose validity doesn't depend on a default/coercion.
+    let matchedSchemaKey = compatibleSchemasList.find((key) => {
+      // Every compatible key is a known schema with a precompiled validator,
+      // so the validator is always defined — assert it, matching the
+      // `matchedCheck!` non-null assertion below.
+      const probe = getValidator(ajvCheck(), key)!;
+      return probe(object) as boolean;
     });
     if (!matchedSchemaKey) {
-      result.errors = check.errors
+      // Fallback for the candidates the fast probe can miss: a schema whose
+      // validity DEPENDS on a default or coercion (e.g. config_v2's required
+      // `telemetry.send`, which carries a default). Replay the original
+      // clone-per-candidate MUTATING probe before declaring no match, so no input
+      // that validated under the old code is newly rejected. Runs only on the
+      // rare no-fast-match path, so the common case keeps its single-clone win.
+      matchedSchemaKey = compatibleSchemasList.find((key) => {
+        const mutatingCheck = getValidator(ajv, key)!;
+        return mutatingCheck(cloneForValidation(object)) as boolean;
+      });
+    }
+    if (!matchedSchemaKey) {
+      result.errors = targetErrors
         .map(
           (error) =>
             `${error.instancePath} ${error.message} (${JSON.stringify(
@@ -177,10 +242,19 @@ export function validate({
             )})`,
         )
         .join(", ");
+      if (structuredErrors) {
+        result.errorObjects = snapshotErrors(targetErrors);
+      }
       result.object = object;
       result.valid = false;
       return result;
     } else {
+      // Reproduce the old transform input: a single fresh clone run through the
+      // MUTATING validator for the matched schema, so its defaults/coercions are
+      // applied exactly as before, then transform.
+      validationObject = cloneForValidation(object);
+      const matchedCheck = getValidator(ajv, matchedSchemaKey);
+      matchedCheck!(validationObject);
       const transformedObject = transformToSchemaKey({
         currentSchema: matchedSchemaKey,
         targetSchema: schemaKey,

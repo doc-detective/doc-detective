@@ -8,11 +8,12 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-File-type detection rules (which extensions map to which markup/inline-statement conventions) and the
-`detectTests` scanner had grown organically, with file-type knowledge scattered through the detection
-code. As more fileTypes accreted (Markdown, MDX/JSX, AsciiDoc, HTML, DITA) and `step_v3` added
-fields, the detection path needed a single home for fileType definitions and needed to track *where*
-in a source file each detected test came from. Should fileType definitions be extracted into a
+File-type detection rules and the `detectTests` scanner had grown organically. Those rules map
+extensions to markup and inline-statement conventions, and file-type knowledge was scattered through
+the detection code. More fileTypes accreted: Markdown, MDX/JSX, AsciiDoc, HTML, and DITA. With
+`step_v3` adding fields, the detection path needed a single home for fileType definitions. It also
+needed to track *where* in a source file each detected test came from. Should fileType definitions
+be extracted into a
 dedicated module, and should `detectTests` carry line/location information?
 
 ## Decision Drivers
@@ -30,8 +31,8 @@ dedicated module, and should `detectTests` carry line/location information?
 
 ## Decision Outcome
 
-Chosen option: **A**, because a dedicated `fileTypes.ts` gives every consumer one place to read and
-extend file-type rules, and threading line/location through detection unlocks precise diagnostics and
+Chosen option: **A**. A dedicated `fileTypes.ts` gives every consumer one place to read and extend
+file-type rules. Threading line and location through detection unlocks precise diagnostics and
 authoring-tool support.
 
 The contract:

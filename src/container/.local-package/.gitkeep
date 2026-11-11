@@ -1,0 +1,4 @@
+# Keeps this directory in git so the Dockerfiles COPY of it always resolves.
+# scripts/build.cjs --local-package=<tarball> stages a locally packed
+# doc-detective here; a build without that flag clears it. See
+# scripts/localPackage.cjs and ADR 01097.

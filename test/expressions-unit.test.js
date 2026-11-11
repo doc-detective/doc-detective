@@ -145,6 +145,56 @@ describe("expressions: evaluateAssertion (condition path, allowOperators)", func
       false
     );
   });
+  it("oneOf with unquoted bare-word array -> true (#585)", async function () {
+    assert.equal(
+      await evaluateAssertion("$$platform oneOf [windows, linux]", ctx),
+      true
+    );
+  });
+  it("oneOf with unquoted bare-word array -> false (#585)", async function () {
+    assert.equal(
+      await evaluateAssertion("$$platform oneOf [linux, mac]", ctx),
+      false
+    );
+  });
+  it("oneOf with mixed quoted/bare-word array -> true (#585)", async function () {
+    assert.equal(
+      await evaluateAssertion('$$platform oneOf ["windows", linux]', ctx),
+      true
+    );
+  });
+  it("oneOf with unquoted numeric array is unaffected -> true", async function () {
+    assert.equal(
+      await evaluateAssertion("$$outputs.exitCode oneOf [0, 1]", ctx),
+      true
+    );
+  });
+  it("oneOf with a trailing comma does not create a spurious '' match (Copilot #609)", async function () {
+    assert.equal(
+      await evaluateAssertion("$$outputs.exitCode oneOf [0, 1,]", ctx),
+      true
+    );
+    assert.equal(
+      await evaluateAssertion('$$outputs.exitCode oneOf ["", 1,]', {
+        ...ctx,
+        outputs: { ...ctx.outputs, exitCode: "" },
+      }),
+      true
+    );
+  });
+  it("oneOf with a hole (double comma) drops the empty element instead of matching '' (Copilot #609)", async function () {
+    assert.equal(
+      await evaluateAssertion("$$platform oneOf [windows,,linux]", ctx),
+      true
+    );
+    assert.equal(
+      await evaluateAssertion('$$outputs.exitCode oneOf [0,,1]', {
+        ...ctx,
+        outputs: { ...ctx.outputs, exitCode: "" },
+      }),
+      false
+    );
+  });
 
   // --- matches (regex with a dot) ---
   it("matches /a.c/ -> true", async function () {
@@ -482,5 +532,39 @@ describe("expressions: literal-scan regexes are ReDoS-safe (finding 1)", functio
       elapsed < 5000,
       `expression evaluation took ${elapsed}ms (possible ReDoS)`
     );
+  });
+});
+
+// Phase 1.4: evaluateExpression memoizes its compiled `new Function(...)` by
+// (argNames, preprocessed-source). The compiled body is reused, but the CONTEXT
+// VALUES are passed per call — so re-evaluating a cached expression against
+// fresh values must never reuse stale values baked into the function.
+describe("expressions: compiled-evaluator cache correctness (1.4)", function () {
+  it("re-evaluates the same expression against fresh values, not baked-in ones", async function () {
+    const expr = "$$outputs.exitCode == 0";
+    const pass = { platform: "windows", outputs: { exitCode: 0 } };
+    const fail = { platform: "windows", outputs: { exitCode: 1 } };
+    // First call compiles + caches; subsequent calls hit the cache but must
+    // still read the per-call context values.
+    assert.equal(await evaluateAssertion(expr, pass), true);
+    assert.equal(await evaluateAssertion(expr, fail), false);
+    assert.equal(await evaluateAssertion(expr, pass), true);
+    assert.equal(await evaluateAssertion(expr, fail), false);
+  });
+
+  it("keeps operator helpers working across cache hits", async function () {
+    const expr = "$$outputs.text contains world";
+    const hit = { outputs: { text: "hello world" } };
+    const miss = { outputs: { text: "hello there" } };
+    assert.equal(await evaluateAssertion(expr, hit), true);
+    assert.equal(await evaluateAssertion(expr, miss), false);
+    assert.equal(await evaluateAssertion(expr, hit), true);
+  });
+
+  it("evaluates distinct expressions independently (no key collision)", async function () {
+    const ctx = { outputs: { a: 1, b: 2 } };
+    assert.equal(await evaluateAssertion("$$outputs.a == 1", ctx), true);
+    assert.equal(await evaluateAssertion("$$outputs.b == 1", ctx), false);
+    assert.equal(await evaluateAssertion("$$outputs.a == 1", ctx), true);
   });
 });

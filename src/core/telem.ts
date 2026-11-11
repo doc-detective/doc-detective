@@ -1,32 +1,13 @@
 import os from "node:os";
-import { log } from "./utils.js";
 import { PostHog } from "posthog-node";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
+import { telemetryNotice, POSTHOG_HOST, telemetryFetch } from "./telemLite.js";
+import { ownVersion } from "../runtime/heavyDeps.js";
 
 const platformMap: Record<string, string> = {
   win32: "windows",
   darwin: "mac",
   linux: "linux",
 };
-
-// TODO: Add link to docs
-function telemetryNotice(config: any) {
-  if (config?.telemetry?.send === false) {
-    log(
-      config,
-      "info",
-      "Telemetry is disabled. Basic anonymous telemetry helps Doc Detective understand product issues and usage. To enable telemetry, set 'telemetry.send' to 'true' in your .doc-detective.json config file."
-    );
-  } else {
-    log(
-      config,
-      "info",
-      "Doc Detective collects basic anonymous telemetry to understand product issues and usage. To disable telemetry, set 'telemetry.send' to 'false' in your .doc-detective.json config file."
-    );
-  }
-}
 
 // meta = {
 //   distribution: "doc-detective", // doc-detective, core
@@ -43,6 +24,14 @@ function telemetryNotice(config: any) {
 //   core_deployment: "node", // node, electron, docker, github-action, lambda, vscode-extension, browser-extension
 // };
 
+// Bounded worst case for the telemetry flush that overlaps reporter/hint I/O.
+const TELEMETRY_FLUSH_TIMEOUT_MS = 2000;
+
+// The in-flight flush kicked off by the most recent sendTelemetry call, or null
+// when none is pending. Module-scoped so awaitTelemetryFlush (called at the end
+// of the run path) can join the flush that sendTelemetry started earlier.
+let pendingTelemetryFlush: Promise<void> | null = null;
+
 // Send telemetry data to PostHog
 function sendTelemetry(config: any, command: string, results: any) {
   // Exit early if telemetry is disabled
@@ -53,10 +42,9 @@ function sendTelemetry(config: any, command: string, results: any) {
     process.env["DOC_DETECTIVE_META"] !== undefined
       ? JSON.parse(process.env["DOC_DETECTIVE_META"])
       : {};
-  const pkg = require("../../package.json");
   telemetryData.distribution = telemetryData.distribution || "doc-detective";
   telemetryData.dist_interface = telemetryData.dist_interface || "package";
-  telemetryData.core_version = pkg.version;
+  telemetryData.core_version = ownVersion() ?? "unknown";
   telemetryData.dist_version = telemetryData.dist_version || telemetryData.core_version;
   telemetryData.core_platform = platformMap[os.platform()] || os.platform();
   telemetryData.dist_platform = telemetryData.dist_platform || telemetryData.core_platform;
@@ -79,14 +67,14 @@ function sendTelemetry(config: any, command: string, results: any) {
         Object.entries(value).forEach(([key, value]: [string, any]) => {
           if (typeof value === "object") {
             Object.entries(value).forEach(([key2, value2]: [string, any]) => {
-              telemetryData[`${parentKey.replace(" ","_")}_${key.replace(" ","_")}_${key2.replace(" ","_")}`] = value2;
+              telemetryData[`${parentKey.replaceAll(" ","_")}_${key.replaceAll(" ","_")}_${key2.replaceAll(" ","_")}`] = value2;
             });
           } else {
-            telemetryData[`${parentKey.replace(" ","_")}_${key.replace(" ","_")}`] = value;
+            telemetryData[`${parentKey.replaceAll(" ","_")}_${key.replaceAll(" ","_")}`] = value;
           }
         });
       } else {
-        telemetryData[parentKey.replace(" ","_")] = value;
+        telemetryData[parentKey.replaceAll(" ","_")] = value;
       }
     });
   }
@@ -96,10 +84,28 @@ function sendTelemetry(config: any, command: string, results: any) {
   // Send telemetry
   const client = new PostHog(
     "phc_rjV0MH3nsAd45zFISLgaKAdAXbgDeXt2mOBV2EBHomB",
-    { host: "https://app.posthog.com" }
+    { host: POSTHOG_HOST, fetch: telemetryFetch }
   );
   client.capture(event);
-  client.shutdown();
+  // Kick off the flush NOW (as soon as results are final) but DON'T await it
+  // here — store the promise so the run path can await it AFTER the reporters
+  // and hint run, letting the network round-trip overlap that I/O instead of
+  // adding a full round-trip to the tail of the run. `shutdown(timeoutMs)`
+  // flushes queued events and bounds the wait; never `unref()` (that would
+  // drop events). Errors are swallowed — telemetry must never fail a run.
+  pendingTelemetryFlush = Promise.resolve(client.shutdown(TELEMETRY_FLUSH_TIMEOUT_MS))
+    .then(() => undefined)
+    .catch(() => undefined);
 }
 
-export { telemetryNotice, sendTelemetry };
+// Await any in-flight telemetry flush started by sendTelemetry. Call at the
+// very end of the run path (after reporters + hint) so the flush overlaps that
+// work. Bounded by the shutdown timeout above; resolves immediately when no
+// flush is pending. Never throws.
+async function awaitTelemetryFlush(): Promise<void> {
+  const pending = pendingTelemetryFlush;
+  pendingTelemetryFlush = null;
+  if (pending) await pending;
+}
+
+export { telemetryNotice, sendTelemetry, awaitTelemetryFlush };

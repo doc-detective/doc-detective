@@ -8,8 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-After a run, users often missed contextual next steps — a flag that would have helped, a feature
-relevant to what they just did, a common pitfall they hit. There was no mechanism to surface a short,
+After a run, users often missed contextual next steps. That's a flag that would have helped, a
+feature relevant to what they just did, or a common pitfall they hit. There was no mechanism to
+surface a short,
 situational tip without spamming logs or interfering with machine-readable output. How should Doc
 Detective offer one helpful, context-aware hint after a run, and how do users turn it off?
 
@@ -30,8 +31,9 @@ Detective offer one helpful, context-aware hint after a run, and how do users tu
 ## Decision Outcome
 
 Chosen option: **A**, because a single, situational, opt-out hint aids discovery without becoming
-noise. The system lives in `src/hints/*` (an initial catalog of 25 hints); after a run it selects
-and prints exactly one short hint, only when output is a TTY and the log level is `info`. It is
+noise. The system lives in `src/hints/*`, with an initial catalog of 25 hints. After a run it selects
+and prints exactly one short hint. That happens only when output is a TTY and the log level is
+`info`. It is
 controlled by a `config.hints` enable/disable field and the `--no-hints` CLI flag (commit
 `1e2bf432`, PR #303).
 

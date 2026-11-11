@@ -1,12 +1,27 @@
-import { setConfig } from "./config.js";
+import { setConfig, getAvailableApps } from "./config.js";
 import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
-import { log, cleanTemp } from "./utils.js";
-import { runSpecs, runViaApi, getRunner } from "./tests.js";
-import { telemetryNotice, sendTelemetry } from "./telem.js";
+import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests } from "./utils.js";
+import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.js";
+import {
+  telemetryNotice,
+  prewarmTelemetry,
+  abortTelemetryWarmup,
+  loadTelemetry,
+  sendRunTelemetry as sendTelemetry,
+  flushRunTelemetry as awaitTelemetryFlush,
+} from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
+import {
+  captureWarnings,
+  clearVariablesUsed,
+  legacyEnv,
+  maskingWarnings,
+  specWarnings,
+  warnUpgrade,
+} from "../upgradeNotice.js";
 
-export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths };
+export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
 const supportMessage = `
 ##########################################################################
@@ -25,19 +40,49 @@ const supportMessage = `
  * @param {Object} options.config - The configuration object
  * @returns {Promise<Object|null>} Resolved tests object or null if none found
  */
-async function detectAndResolveTests({ config }: any) {
-  config = await setConfig({ config });
+async function detectAndResolveTests({ config, detectApps = true }: any) {
+  return detectAndResolveFromConfig(await setConfig({ config, detectApps }));
+}
+
+// detectTests -> resolveTests for a config setConfig already produced.
+async function detectAndResolveFromConfig(config: any) {
   const detectedTests = await detectTests({ config });
   if (!detectedTests || detectedTests.length === 0) {
     log(config, "warning", "No tests detected.");
     return null;
   }
   const resolvedTests = await resolveTests({ config, detectedTests });
+  // Carry the full qualified input set forward so the verification
+  // write-back can reach prose-only files that produced no spec (see
+  // qualifyFiles' `config._qualifiedFiles`).
+  // Non-enumerable, so it stays out of serialized payloads (see qualifyFiles).
+  if (resolvedTests) {
+    Object.defineProperty(resolvedTests, "_qualifiedFiles", {
+      value: config._qualifiedFiles || [],
+      configurable: true,
+      writable: true,
+    });
+  }
   return resolvedTests;
 }
 
 // Run tests defined in specifications and documentation source files.
 async function runTests(config: any, options: any = {}) {
+  let results: any;
+  try {
+    results = await runTestsAndReport(config, options);
+    return results;
+  } finally {
+    // Every path that returns results has sent telemetry, and that send owns
+    // the warm-up. Any other exit (no tests found, a throw) sends nothing, and
+    // a programmatic caller may never call awaitTelemetryFlush, so cancel the
+    // warm-up here (ADR 01132).
+    if (!results) abortTelemetryWarmup();
+  }
+}
+
+async function runTestsAndReport(config: any, options: any) {
+  clearVariablesUsed();
   let resolvedTests: any;
   let results: any;
 
@@ -63,6 +108,9 @@ async function runTests(config: any, options: any = {}) {
     resolvedTests.config = config;
   }
 
+  // Read before a dry run forces silent; see the upgrade warnings below.
+  const callerLogLevel = config?.logLevel;
+
   // Dry-run requires clean stdout so the JSON dump can be piped through
   // `jq` / `JSON.parse`. Force silent log level (which gates info logs from
   // detectAndResolveTests below) and skip the telemetry notice — both would
@@ -74,22 +122,91 @@ async function runTests(config: any, options: any = {}) {
     telemetryNotice(config);
   }
 
-  if (!resolvedTests) {
-    resolvedTests = await detectAndResolveTests({ config });
+  // Telemetry may contact PostHog only when both the caller's config and the
+  // effective config allow it. The effective config is what setConfig makes of
+  // the caller's, including the DOC_DETECTIVE env override, so nothing starts
+  // until it's known (ADR 01132). Once it is, load the client and warm its
+  // connection while the run works, so the end-of-run send pays for neither.
+  // A dry run skips the warm-up: it returns early, and a programmatic caller
+  // may never call awaitTelemetryFlush to cancel one left in flight.
+  let telemetryOn = false;
+  const startTelemetry = (effectiveConfig: any) => {
+    telemetryOn =
+      config?.telemetry?.send !== false &&
+      effectiveConfig?.telemetry?.send !== false;
+    if (!telemetryOn) return;
+    if (!config.dryRun) prewarmTelemetry(effectiveConfig);
+    loadTelemetry();
+  };
+  // The config every run decision below reads. Pre-resolved tests skip
+  // setConfig, so the merged config above is already effective; otherwise it's
+  // setConfig's output, which adds the DOC_DETECTIVE env override.
+  let effectiveConfig = config;
+  // Whether the orchestration API runs this (tests execute remotely). Read from
+  // the effective config, so an API key that only arrives through setConfig
+  // still counts; both deferred browser detection and the dispatch below
+  // depend on it.
+  const runsViaApi = (c: any) =>
+    Boolean(!process.env.DOC_DETECTIVE_API && c?.integrations?.docDetectiveApi?.apiKey);
+  let willRunViaApi = false;
+
+  if (resolvedTests) {
+    startTelemetry(effectiveConfig);
+    willRunViaApi = runsViaApi(effectiveConfig);
+  } else {
+    effectiveConfig = await setConfig({ config, detectApps: false });
+    startTelemetry(effectiveConfig);
+    willRunViaApi = runsViaApi(effectiveConfig);
+    resolvedTests = await detectAndResolveFromConfig(effectiveConfig);
     if (!resolvedTests || resolvedTests.specs.length === 0) {
       // log() in src/core/utils.ts recognizes "warning", not "warn" —
       // see the matching note in the JIT pre-flight catch below.
       log(config, "warning", "Couldn't resolve any tests.");
       return null;
     }
+    // Upgrade warnings print at the effective log level. A dry run forced
+    // silent before setConfig for stdout's sake, but these go to stderr, so
+    // there the level is the caller's unless the DOC_DETECTIVE override set one.
+    const upgradeLogLevel = config.dryRun
+      ? (legacyEnv(process.env).config?.logLevel ?? callerLogLevel)
+      : effectiveConfig.logLevel;
+    try {
+      warnUpgrade(specWarnings(resolvedTests), upgradeLogLevel);
+    } catch (error: any) {
+      // A warning must never fail a run.
+      log(effectiveConfig, "debug", `Couldn't check specs for Doc Detective 5.0 changes: ${error?.message || error}`);
+    }
+    // Browser detection, deferred from setConfig so a run whose contexts
+    // can't use it skips it (ADR 01133). Any run that can still gets the same
+    // environment.apps, as do API-dispatched runs, which send the resolved
+    // config to the API.
+    const resolvedConfig = resolvedTests.config;
+    if (
+      !resolvedConfig.dryRun &&
+      (willRunViaApi || runNeedsAvailableApps(resolvedTests.specs))
+    ) {
+      resolvedConfig.environment.apps = await getAvailableApps({ config: resolvedConfig });
+    }
+  }
+
+  // Join the self-update check the CLI started concurrently with detection /
+  // resolution (which execute no tests). If a newer version was found,
+  // `options.updateJoin` re-execs the process here — BEFORE any test runs or
+  // any dry-run output is emitted — preserving the "update before the run"
+  // guarantee while the registry latency was hidden behind resolution. A no-op
+  // (undefined) for the programmatic API and whenever auto-update is gated off.
+  if (typeof options.updateJoin === "function") {
+    await options.updateJoin();
   }
 
   if (config.dryRun) {
     console.log(JSON.stringify(resolvedTests, null, 2));
     cleanTemp();
-    sendTelemetry(config, "runTests:dryRun", {
-      specs: resolvedTests.specs.length,
-    });
+    if (telemetryOn) {
+      await sendTelemetry(config, "runTests:dryRun", {
+        specs: resolvedTests.specs.length,
+      });
+    }
     return resolvedTests;
   }
 
@@ -104,15 +221,9 @@ async function runTests(config: any, options: any = {}) {
   // browser is already detectable (e.g., the legacy ./browser-snapshots/
   // pre-warm is still in place), we skip the install entirely.
   //
-  // Skipped entirely for API-backed runs: the orchestration API executes
-  // tests remotely, so installing browsers/runtime locally would burn
-  // network and disk for nothing.
-  const willRunViaApi = Boolean(
-    !process.env.DOC_DETECTIVE_API &&
-      config.integrations &&
-      config.integrations.docDetectiveApi &&
-      config.integrations.docDetectiveApi.apiKey
-  );
+  // Skipped entirely for API-backed runs (willRunViaApi, above): the
+  // orchestration API executes tests remotely, so installing browsers/runtime
+  // locally would burn network and disk for nothing.
   if (willRunViaApi) {
     log(
       config,
@@ -122,7 +233,9 @@ async function runTests(config: any, options: any = {}) {
   } else try {
     const { inferRuntimeNeeds } = await import("../runtime/inferRuntimeNeeds.js");
     const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
-    const needs = inferRuntimeNeeds(resolvedTests);
+    const needs = inferRuntimeNeeds(resolvedTests, {
+      configShell: config.shell,
+    });
     const ctx = { cacheDir: config.cacheDir };
     // Bridge the runtime modules' logger contract to core/utils.ts:log()
     // so config.logLevel filters npm install stdout/stderr (which the
@@ -166,34 +279,94 @@ async function runTests(config: any, options: any = {}) {
     }
     if (needs.browsers.size > 0) {
       try {
-        const { getAvailableApps, clearAppCache } = await import("./config.js");
+        const { getAvailableApps, patchAppCache } = await import("./config.js");
         const { ensureBrowserInstalled, requiredBrowserAssets } = await import(
           "../runtime/browsers.js"
         );
         const available = await getAvailableApps({ config });
         const availableNames = new Set(available.map((a: any) => a.name));
-        let installedAnything = false;
+        const installedDescriptors: {
+          name: string;
+          version?: string;
+          path?: string;
+          driverPath?: string;
+        }[] = [];
         for (const browser of needs.browsers) {
           if (availableNames.has(browser)) continue;
           // requiredBrowserAssets returns [] for safari (ships with the OS)
           // and any unknown name, so the loop body simply no-ops for those.
           const assets = requiredBrowserAssets(browser);
+          // `path` is optional: an asset can be recorded as installed while
+          // its binary can't be located, in which case patchAppCache builds a
+          // descriptor with no driverPath and the app falls through to the
+          // runtime fallback rather than carrying a bogus path.
+          const assetResults: Record<
+            string,
+            { path?: string; version: string }
+          > = {};
           for (const asset of assets) {
-            await ensureBrowserInstalled(asset, { ctx, deps: { logger: preflightLogger } });
+            assetResults[asset] = await ensureBrowserInstalled(asset, {
+              ctx,
+              deps: { logger: preflightLogger },
+            });
           }
-          if (assets.length > 0) installedAnything = true;
+          if (assets.length === 0) continue;
+          // Capture the paths/versions ensureBrowserInstalled just resolved so
+          // patchAppCache can rebuild this browser's descriptor without a
+          // second full probe.
+          if (browser === "chrome") {
+            installedDescriptors.push({
+              name: "chrome",
+              version: assetResults.chrome?.version,
+              path: assetResults.chrome?.path,
+              driverPath: assetResults.chromedriver?.path,
+            });
+          } else if (browser === "firefox") {
+            installedDescriptors.push({
+              name: "firefox",
+              version: assetResults.firefox?.version,
+              path: assetResults.firefox?.path,
+              driverPath: assetResults.geckodriver?.path,
+            });
+          }
         }
-        // Invalidate the available-apps cache for this cacheDir so a
-        // subsequent runSpecs/getRunner call re-detects what the
-        // pre-flight just materialized. Without this, the empty
-        // `available` snapshot above would stick and downstream
-        // browser-presence checks would still see "not installed."
-        if (installedAnything) clearAppCache(config);
+        // Patch the available-apps cache with what the preflight just
+        // materialized so a subsequent runSpecs/getRunner call is a cache HIT
+        // and skips a redundant full re-probe. Driver *presence* did not change
+        // across the install — only the browser binary arrived — so patchAppCache
+        // rebuilds each descriptor from the install results and still runs the
+        // functional verifyDriverBinary gate. Fail-open: it invalidates the
+        // entry on any error, so a downstream re-probe is still the safety net.
+        if (installedDescriptors.length > 0) {
+          await patchAppCache(config, installedDescriptors);
+        }
       } catch (browserErr: any) {
         log(
           config,
           "debug",
           `Browser pre-flight check skipped: ${browserErr?.message ?? browserErr}`
+        );
+      }
+    }
+    // Git Bash preflight: when shell-based steps resolve to `bash` on
+    // Windows, materialize Git Bash up front (existing Git for Windows, or a
+    // one-time MinGit download). Failure degrades to on-demand resolution —
+    // runShell retries the same resolver and FAILs the step with an
+    // actionable message if bash still can't be provisioned.
+    if (needs.windowsBash && process.platform === "win32") {
+      try {
+        const { resolveWindowsBash } = await import(
+          "../runtime/windowsBash.js"
+        );
+        await resolveWindowsBash({
+          cacheDir: config.cacheDir,
+          deps: { logger: preflightLogger },
+        });
+      } catch (bashErr: any) {
+        log(
+          config,
+          "warning",
+          `Git Bash pre-flight install hit an error: ${bashErr?.message ?? bashErr}. runShell steps using the bash shell will retry on demand.`
         );
       }
     }
@@ -216,26 +389,78 @@ async function runTests(config: any, options: any = {}) {
   }
   /* c8 ignore stop */
 
-  // If config.integrations.docDetectiveApi.apiKey is set, run tests via API instead of locally
+  // If the effective config carries an API key, run tests via API instead of locally
   if (willRunViaApi) {
     // Run test specs via API
     results = await runViaApi({
       resolvedTests,
-      apiKey: config.integrations.docDetectiveApi.apiKey,
+      apiKey: effectiveConfig.integrations.docDetectiveApi.apiKey,
     });
   } else {
     // Run test specs locally
     results = await runSpecs({ resolvedTests });
+    try {
+      warnUpgrade(
+        [...captureWarnings(resolvedTests, results), ...maskingWarnings(resolvedTests)],
+        effectiveConfig.logLevel
+      );
+    } catch (error: any) {
+      // A warning must never fail a run.
+      log(effectiveConfig, "debug", `Couldn't check the run for Doc Detective 5.0 changes: ${error?.message || error}`);
+    }
   }
-  log(config, "info", "RESULTS:");
-  log(config, "info", results);
+  // The full results tree is a debug-only dump — the reporters (terminal
+  // summary, json/runFolder files) already render results for the user, and at
+  // the default `info` level this pretty-printed tree floods the terminal with
+  // a duplicate of what the reporters write. Keep it available under `debug`.
+  log(config, "debug", "RESULTS:");
+  log(config, "debug", results);
   log(config, "info", "Cleaning up and finishing post-processing.");
 
   // Clean up
   cleanTemp();
 
+  // `verification.write` (ADR 01140): "existing" (the default) fills what pages
+  // declare, true also declares it on passing pages and tests, false writes
+  // nothing back. Read from the effective config, so DOC_DETECTIVE overrides
+  // and the CLI's --verification reach it.
+  const write = effectiveConfig?.verification?.write ?? "existing";
+
+  // Badge-anchored write-back — see ADR 01141. Runs before the verification
+  // write-back, which pins the block a `meta` statement anchors: a badge
+  // inserted inside that block afterwards would leave the pin stale. It also
+  // inserts the statements `write: true` declares, for the same reason.
+  try {
+    if (write !== false) applyBadgeAnchoredTests({ config, results, init: write === true });
+  } catch (err: any) {
+    log(config, "warning", `badge-anchored write-back failed: ${err?.message ?? err}`);
+  }
+
+  // Verification write-back: fill Doc Detective's `verified-by` entries in the
+  // source docs where the named test/spec passed. No-op when no page names a
+  // check; never throws (warns and continues on per-file errors).
+  if (write !== false) {
+    try {
+      // resolvedTests is always set here (runTests returns early otherwise), so the
+      // only fallback needed is for the pre-resolved (DOC_DETECTIVE_API) path, which
+      // never populates _qualifiedFiles — there, the write-back is limited to the
+      // report's content paths and can't reach prose-only pages.
+      const qualifiedFiles = resolvedTests._qualifiedFiles || [];
+      if (options.resolvedTests && qualifiedFiles.length === 0) {
+        log(
+          config,
+          "debug",
+          "Verified write-back: pre-resolved run has no qualified-file list; only report content paths are scanned (prose-only pages skipped)."
+        );
+      }
+      applyVerifiedMarkers({ config, results, files: qualifiedFiles, init: write === true });
+    } catch (err: any) {
+      log(config, "warning", `verified write-back failed: ${err?.message ?? err}`);
+    }
+  }
+
   // Send telemetry
-  sendTelemetry(config, "runTests", results);
+  if (telemetryOn) await sendTelemetry(config, "runTests", results);
   log(config, "info", supportMessage);
 
   return results;

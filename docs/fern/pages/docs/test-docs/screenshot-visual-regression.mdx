@@ -1,0 +1,114 @@
+---
+title: Detect visual regressions in screenshots
+description: Compare a screenshot capture against a committed reference image to catch visual drift.
+---
+
+Turn a screenshot into a regression test by comparing each capture against a saved reference image. When the two drift apart by more than a threshold you set, Doc Detective flags it for review. New to capturing screenshots? Start with [Capture screenshots](/docs/test-docs/capture-screenshots-guide). The comparison runs fine in a headless or CI context.
+
+## Before you begin
+
+Make sure you have the following:
+
+- [Doc Detective installed](/docs/get-started/installation).
+- A page or site to capture. The examples below capture a local page.
+- A directory where you can create a `.spec.json` file.
+- A base `screenshot` step to build on. See [Capture screenshots](/docs/test-docs/capture-screenshots-guide).
+- A committed reference image at `path` (the first run seeds it).
+
+The steps in this guide work the same in every authoring style. Write them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
+
+## Detect visual regressions
+
+A screenshot becomes a regression test when you compare it against a saved reference image.
+
+Set `maxVariation` to a value from `0` to `1` to enable comparison. It's the maximum acceptable fractional difference between the new capture and the reference at `path`. A difference beyond the threshold returns `WARNING` rather than `FAIL`, because visual drift is a signal to review rather than a hard break:
+
+{/* test {"testId":"capture-guide-regression","detectSteps":false} */}
+
+```json
+{
+  "description": "Compare against the committed reference image.",
+  "screenshot": {
+    "path": "./reference/home.png",
+    "maxVariation": 0.05,
+    "overwrite": "aboveVariation"
+  }
+}
+```
+
+{/* step {"stepId":"capture-guide-regression-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"capture-guide-regression-shot","description":"Capture with a comparison threshold, directed at a fresh gitignored path so the run seeds the reference and passes","screenshot":{"path":"guide_regression.png","directory":"./.dd-output","maxVariation":0.05,"overwrite":"aboveVariation"}} */}
+{/* test end */}
+
+`overwrite` controls when Doc Detective replaces the reference image with the new capture:
+
+- `"false"`: never overwrite.
+- `"true"`: always overwrite.
+- `"aboveVariation"` (default): overwrite only when the difference exceeds `maxVariation`.
+
+When a comparison runs, the step exposes `$$variation` (the fractional difference) and `$$aspectRatioMatch` (whether the two images share an aspect ratio). Capture either with the step-level `variables` object. For the full list of outputs, see [Visual regression testing](/docs/actions/screenshot) and the [`screenshot`](/reference/schemas/screenshot) schema.
+
+### Compare on machines that render at different sizes
+
+A reference image from one machine can have different dimensions than a new screenshot on another. This can happen after your CI provider updates its runner image. When the sizes differ, Doc Detective resizes the browser window to match the reference image, takes the screenshot again, and compares that one. The window returns to its original size when the step ends. The step's `$$resizedToReference` output records the resize: `from` is the size of the first screenshot, and `to` is the size of the reference image. Doc Detective doesn't resize for cropped screenshots or during a recording. It also doesn't resize when the context's `viewport` or `window` setting targets a different size than the reference image. Doc Detective treats that as a deliberate size change and compares the screenshot as taken. For the full list, see **Size mismatches** in the [`screenshot`](/docs/actions/screenshot) reference.
+
+Each resize costs a second screenshot. If `$$resizedToReference` shows up on every run in an environment that won't change back, refresh the reference image there with `"overwrite": "true"`.
+
+### Reference images in cloud storage
+
+`path` can be an `http(s)://` URL that ends in `.png`, so a team can keep reference images in cloud storage like S3. Signed-URL query strings are fine. Doc Detective downloads the remote image once per run and uses it as a read-only reference. It writes the new capture to `./doc-detective-runs/<run-timestamp>/` for inspection, and ignores `overwrite` because it never mutates remote storage:
+
+```json
+{
+  "description": "Compare against a reference image in S3.",
+  "screenshot": {
+    "path": "https://my-bucket.s3.amazonaws.com/reference-images/home.png",
+    "maxVariation": 0.05
+  }
+}
+```
+
+The reference URL can also be on a local development server or a private network, such as `http://localhost:8080/home.png`, with no setting. To guard against server-side request forgery (SSRF), Doc Detective refuses a public host's redirect to a private address. That includes loopback and link-local addresses, such as the `169.254.169.254` cloud-metadata endpoint.
+
+## Verify it works
+
+- A comparison that stays within `maxVariation` reports `PASS`.
+- A comparison that exceeds `maxVariation` reports `WARNING`, so the run continues while flagging the drift for review.
+
+## Troubleshooting
+
+### Visual comparison never runs
+
+**Cause:** `maxVariation` isn't set, so the step only captures an image without comparing it.
+
+**Solution:** set `maxVariation` to a value from `0` to `1` to enable comparison against the reference at `path`.
+
+### A remote reference URL fails with "Couldn't follow the redirect"
+
+**Cause:** the reference URL is on a public host that redirects to a private, loopback, or link-local address. Doc Detective refuses that hop to guard against SSRF.
+
+**Solution:** point `path` at the final address directly. If you trust the redirect, set the `DOC_DETECTIVE_ALLOW_LOCAL_URLS=1` environment variable.
+
+### A local reference URL fails with "DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses"
+
+**Cause:** the runner sets `DOC_DETECTIVE_BLOCK_LOCAL_URLS`, which refuses every private and loopback reference URL. Shared runners set it on purpose.
+
+**Solution:** host the reference image on a public address, or unset `DOC_DETECTIVE_BLOCK_LOCAL_URLS` where you control the runner. See [Refuse local URLs on shared runners](/docs/ci/docker-and-headless#refuse-local-urls-on-shared-runners).
+
+### Screenshots still differ in size from the reference image after a resize
+
+**Cause:** Doc Detective tried to resize the browser to the reference image's size, but the browser couldn't reach it. The step logs a warning that includes `couldn't render at the reference's` and compares the first screenshot instead. That comparison can report drift. A headed browser window can't grow past the display, and no browser window can shrink below its minimum width.
+
+**Solution:**
+
+1. If the test runs in a headed browser, set `"headless": true` on the browser in the context, or on the [`startSurface`](/docs/actions/startsurface) browser descriptor that opens it. Headless browsers aren't limited by the display size. [Chrome dimensions and visibility](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility) describes these size limits.
+2. If the browser can't run headless, or the new size is permanent, refresh the reference image by running the step once with `"overwrite": "true"`. Safari, for example, doesn't support headless mode.
+
+## What's next
+
+- [Capture screenshots](/docs/test-docs/capture-screenshots-guide) of the full viewport, a cropped element, or an element with padding.
+- [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) after every browser-driven step.
+- [Annotate screenshots](/docs/test-docs/annotate-screenshots) to mark up an image.
+- Follow the worked [screenshot example](/docs/test-docs/capture-screenshots) end to end.
+- Look up every field in the [`screenshot`](/docs/actions/screenshot) action reference.
+- [Run in CI: reporters and artifacts](/docs/ci/reporters-and-artifacts) to see where captures and results land.

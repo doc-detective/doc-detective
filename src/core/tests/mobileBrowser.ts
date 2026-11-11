@@ -7,6 +7,11 @@
 // preflights stay unit-testable without a device.
 
 import path from "node:path";
+import {
+  applyManagedWdaCapabilities,
+  locateManagedWda,
+  type ManagedWdaHit,
+} from "../../runtime/wdaProducts.js";
 
 type MobileTarget = "android" | "ios";
 
@@ -79,6 +84,15 @@ function mobileBrowserConfigError(
   return null;
 }
 
+// Appium server args that enable the UiAutomator2 chromedriver autodownload
+// (an insecure feature, scoped to the driver). Shared by runContext's
+// mobile-web branch and the warm phase's chromedriver prefetch so the two
+// session shapes cannot drift.
+export const CHROMEDRIVER_AUTODOWNLOAD_ARGS = [
+  "--allow-insecure",
+  "uiautomator2:chromedriver_autodownload",
+];
+
 // The one decision point the mobile preflights consult before any toolchain
 // work: does this context get a device-browser session, a SKIP, or a FAIL?
 // Order matters — the mixed guard first (a scope limit, so SKIP, and config
@@ -141,11 +155,18 @@ function buildMobileBrowserCapabilities({
   udid,
   cacheDir,
   timeout,
+  iosMajor,
+  locateWda = () => locateManagedWda({ ctx: { cacheDir } }),
 }: {
   platform: MobileTarget;
   udid: string;
   cacheDir: string;
   timeout?: number;
+  // The simulator's iOS major version, when known (picks the WDA launch mode).
+  iosMajor?: number;
+  // Injected in tests; the default reads the managed WDA products under the
+  // resolved cache root.
+  locateWda?: () => ManagedWdaHit | null;
 }): Record<string, any> {
   if (platform === "android") {
     return {
@@ -177,6 +198,9 @@ function buildMobileBrowserCapabilities({
     "appium:udid": udid,
     "appium:newCommandTimeout": 600,
     "wdio:enforceWebDriverClassic": true,
+    // Doc Detective never reads device or Safari logs; starting the capture
+    // costs 5-12 s per session (ADR 01112).
+    "appium:skipLogCapture": true,
   };
   // The first-ever XCUITest session cold-builds WebDriverAgent via
   // xcodebuild (~10 min on CI). App surfaces carry an authored startSurface
@@ -188,11 +212,9 @@ function buildMobileBrowserCapabilities({
     effectiveTimeout,
     120000
   );
-  // Same opt-in derived-data sharing as iOS app sessions (see appSurface.ts
-  // for the caching contract).
-  const derivedDataPath = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
-  if (derivedDataPath && derivedDataPath.trim()) {
-    capabilities["appium:derivedDataPath"] = derivedDataPath.trim();
-  }
+  // Same derived-data contract as iOS app sessions: env override wins,
+  // else managed prebuilt products are consumed read-only — one shared
+  // helper so the two builders cannot drift.
+  applyManagedWdaCapabilities(capabilities, locateWda, iosMajor);
   return capabilities;
 }

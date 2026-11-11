@@ -1,12 +1,13 @@
 import http from "node:http";
 import assert from "node:assert/strict";
-import { checkLink } from "../dist/core/tests/checkLink.js";
+import { checkLink, _setBaseBackoffMsForTests } from "../dist/core/tests/checkLink.js";
 import { replaceEnvs } from "../dist/core/utils.js";
 
 let server;
 let serverPort;
 const requestLog = {};
 const flakyCounters = {};
+const SLOW_DELAY_MS = 200;
 
 before(async function () {
   const { expect } = await import("chai");
@@ -28,6 +29,16 @@ before(async function () {
       requestLog["echo-headers-url"] = req.url;
       res.writeHead(200, { "Content-Type": "text/plain" });
       res.end("ok");
+      return;
+    }
+
+    // "/slow/200" -> waits SLOW_DELAY_MS, then returns 200 (query string
+    // ignored). The delay is fixed, never read from the request.
+    if (url.split("?")[0] === "/slow/200") {
+      setTimeout(() => {
+        res.writeHead(200, { "Content-Type": "text/plain" });
+        res.end("Status 200");
+      }, SLOW_DELAY_MS);
       return;
     }
 
@@ -175,6 +186,20 @@ describe("checkLink non-2xx status code regression", function () {
     });
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /Invalid or unresolvable URL/);
+  });
+
+  it("redacts the query string from the unresolvable-URL message", async function () {
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: {
+          url: "http://this-domain-does-not-exist-12345.invalid/?token=abc",
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Invalid or unresolvable URL/);
+    assert.ok(!result.description.includes("abc"), result.description);
   });
 });
 
@@ -539,5 +564,96 @@ describe("checkLink live smoke (portal.prove.com)", function () {
     );
     // Diagnostic, not a regression gate.
     assert.ok(result.status === "PASS" || result.status === "FAIL");
+  });
+});
+
+describe("checkLink timeout", function () {
+  this.timeout(30000);
+
+  it("FAILs fast with a named message when an attempt outlives `timeout`", async function () {
+    // Mocha adds the Windows CI freeze allowance (ADR 01105) to this bound.
+    this.timeout(1000);
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: {
+          url: `http://localhost:${serverPort}/slow/200?token=secret`,
+          timeout: 50,
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+    // The query string is redacted from the message.
+    assert.equal(
+      result.description,
+      `Couldn't reach http://localhost:${serverPort}/slow/200: no response within 50 ms (ECONNABORTED).`
+    );
+  });
+
+  it("PASSes when the response arrives within `timeout`", async function () {
+    const result = await checkLink({
+      config: {},
+      step: {
+        checkLink: { url: `http://localhost:${serverPort}/slow/200`, timeout: 5000 },
+      },
+    });
+    assert.equal(result.status, "PASS", result.description);
+  });
+
+  it("gives each attempt 10000 ms by default", async function () {
+    const axios = (await import("axios")).default;
+    const request = axios.request;
+    const seen = [];
+    axios.request = function (cfg) {
+      seen.push(cfg.timeout);
+      return request.call(this, cfg);
+    };
+    try {
+      const result = await checkLink({
+        config: {},
+        step: { checkLink: `http://localhost:${serverPort}/200` },
+      });
+      assert.equal(result.status, "PASS", result.description);
+    } finally {
+      axios.request = request;
+    }
+    assert.deepEqual(seen, [10000]);
+  });
+});
+
+describe("checkLink base backoff test seam", function () {
+  this.timeout(30000);
+
+  it("defaults to 1000ms, and the root hook shrinks it for the suite", function () {
+    // Reset to the product default; the return value is what the root hook
+    // (test/hooks.js) installed for this run.
+    const hookValue = _setBaseBackoffMsForTests();
+    try {
+      assert.ok(hookValue < 1000, `expected the root hook to shrink the backoff, got ${hookValue}`);
+      // The next call returns what the reset installed: the product default.
+      assert.equal(_setBaseBackoffMsForTests(hookValue), 1000);
+    } finally {
+      _setBaseBackoffMsForTests(hookValue);
+    }
+  });
+
+  it("uses the configured base for the exponential backoff", async function () {
+    const prev = _setBaseBackoffMsForTests(100);
+    try {
+      const id = `seam-${Date.now()}`;
+      const start = Date.now();
+      const result = await checkLink({
+        config: {},
+        step: { checkLink: { url: `http://localhost:${serverPort}/flaky/${id}/2/503/200` } },
+      });
+      const elapsed = Date.now() - start;
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(flakyCounters[id], 3);
+      // Two retries sleep 100ms + 200ms. No upper bound: a Windows runner
+      // freeze (ADR 01105) must not fail this.
+      assert.ok(elapsed >= 280, `elapsed ${elapsed}ms`);
+    } finally {
+      _setBaseBackoffMsForTests(prev);
+    }
   });
 });

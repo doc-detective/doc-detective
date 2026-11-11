@@ -8,8 +8,8 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Documentation procedures frequently include a "click to download" step, but the browser the runner
-drove had no configured download location, so downloads either failed silently or landed in an
+Documentation procedures frequently include a "click to download" step. But the browser the runner
+drove had no configured download location. Downloads either failed silently, or landed in an
 unpredictable place the test could not assert against. Where should files downloaded during a test
 go, and how does the user point the runner at that directory?
 
@@ -23,12 +23,12 @@ go, and how does the user point the runner at that directory?
 
 * **A. `downloadDirectory` config + `--downloadDir` flag, wired to the browser's download behavior** (chosen).
 * **B. Always download to a fixed/temp directory.**
-* **C. No download support — out of scope.**
+* **C. No download support; out of scope.**
 
 ## Decision Outcome
 
-Chosen option: **A**, because a configurable directory lets a test author both trigger and then
-assert on downloaded files, and exposing it on the CLI keeps it consistent with other path config.
+Chosen option: **A**. A configurable directory lets a test author both trigger and then assert on
+downloaded files. Exposing it on the CLI keeps it consistent with other path config.
 
 Behavior decided: add a `downloadDirectory` key to the config plus a `--downloadDir` CLI flag. The
 runner calls the browser's `Page.setDownloadBehavior` with `allow` pointed at the resolved

@@ -35,14 +35,14 @@ surfaces give deterministic before/after phases without external orchestration. 
 config fields, the `--setup`/`--cleanup` CLI flags, and the `DOC_SETUP`/`DOC_CLEANUP` environment
 variables. The `-s`/`-c` short aliases were removed to avoid collisions.
 
-This established the run-level lifecycle-hook model; the broader ordering contract (including how
-these phases interact with concurrency, and per-test before/after steps) was later generalized in
-`01000`.
+This established the run-level lifecycle-hook model. The broader ordering contract was later
+generalized in `01000`. That contract covers how these phases interact with concurrency, and
+per-test before/after steps.
 
 ### Consequences
 
 * Good: deterministic before/after phases for environment prep and teardown.
-* Good: reachable from config, CLI, and env — consistent with other knobs.
+* Good: reachable from config, CLI, and env, consistent with other knobs.
 * Bad: removing `-s`/`-c` short aliases is a small breaking CLI change.
 * Neutral: defines the phase model later generalized for concurrent runs (`01000`).
 

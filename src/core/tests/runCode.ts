@@ -1,11 +1,69 @@
 import { validate } from "../../common/src/validate.js";
-import { spawnCommand, log } from "../utils.js";
+import { spawnCommand, log, resolveShellExecutable } from "../utils.js";
 import { runShell } from "./runShell.js";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 
-export { runCode };
+export { runCode, pathNodeIsCurrentNode };
+
+// Whether the `node` that `spawnCommand("node", ...)` would run (via cmd.exe
+// or /bin/sh, with this process's env) is the Node running Doc Detective. If
+// so, its `--version` probe can only succeed, so runCode skips that spawn.
+// Mirrors the shells' lookup: cmd.exe tries the current directory first, then
+// each PATH entry (quotes stripped) with each PATHEXT extension; sh tries each
+// PATH entry, an empty one meaning the current directory, and needs the
+// execute bit. Anything else, or any error, answers false: probe as before.
+function pathNodeIsCurrentNode(
+  deps: {
+    env?: Record<string, string | undefined>;
+    platform?: string;
+    cwd?: string;
+    execPath?: string;
+    isFile?: (p: string) => boolean;
+    realpath?: (p: string) => string;
+  } = {}
+): boolean {
+  const platform = deps.platform ?? process.platform;
+  const env = deps.env ?? process.env;
+  const cwd = deps.cwd ?? process.cwd();
+  const win = platform === "win32";
+  const p = win ? path.win32 : path.posix;
+  const isFile =
+    deps.isFile ??
+    ((f: string) => {
+      try {
+        if (!fs.statSync(f).isFile()) return false;
+        if (!win) fs.accessSync(f, fs.constants.X_OK);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  const realpath = deps.realpath ?? ((f: string) => fs.realpathSync.native(f));
+  const entries = (env.PATH ?? env.Path ?? "").split(p.delimiter);
+  // Relative entries resolve against the current directory, as in the shell.
+  const dirs = win
+    ? [cwd, ...entries.map((d) => d.replace(/"/g, "")).filter(Boolean)].map((d) => p.resolve(cwd, d))
+    : entries.map((d) => p.resolve(cwd, d || "."));
+  const exts = win
+    ? (env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD").split(";").filter(Boolean)
+    : [""];
+  for (const dir of dirs) {
+    for (const ext of exts) {
+      const candidate = p.join(dir, `node${ext}`);
+      if (!isFile(candidate)) continue;
+      try {
+        const found = realpath(candidate);
+        const current = realpath(deps.execPath ?? process.execPath);
+        return win ? found.toLowerCase() === current.toLowerCase() : found === current;
+      } catch {
+        return false;
+      }
+    }
+  }
+  return false;
+}
 
 // Create a temporary script file
 function createTempScript(code: string, language: string) {
@@ -117,20 +175,61 @@ async function runCode({
           break;
       }
     }
-    const command = step.runCode.command;
-    // Make sure the command is available
-    const commandExists = await spawnCommand(command, ["--version"]);
-    if (commandExists.exitCode !== 0) {
-      result.status = "FAIL";
-      result.description = `Command ${command} is unavailable. Make sure it's installed and in your PATH.`;
-      return result;
-    }
-
-    // if Windows and command is bash
+    let command = step.runCode.command;
+    // runCode's contract is "run this code with its interpreter" — the
+    // config-level `shell` default must not change how the interpreter is
+    // invoked, so the generated runShell step pins its shell explicitly:
+    //   - bash scripts run THROUGH the bash shell (on Windows that resolves
+    //     Git Bash and prepends its toolbox to PATH, so the script sees the
+    //     same environment runShell's default gives it);
+    //   - other interpreters (python/node) pin the platform-native shell on
+    //     Windows so a Git-less host never pays a bash install for a step
+    //     that doesn't need bash, and bash elsewhere (the runner default).
+    const wantsBash =
+      command === "bash" || step.runCode.language?.toLowerCase() === "bash";
+    const interpreterShell =
+      wantsBash ? "bash" : os.platform() === "win32" ? "cmd" : "bash";
+    // When the interpreter itself is bash on Windows, resolve the same Git
+    // Bash runShell's `bash` shell uses (never `System32\bash.exe` — the WSL
+    // launcher), lazily installing it when absent. The resolver verifies the
+    // binary by execution, so the generic `--version` probe below is
+    // redundant for this path.
+    let commandPreverified = false;
     if (os.platform() === "win32" && command === "bash") {
-      result.status = "FAIL";
-      result.description = `runCode currently doesn't support bash on Windows. Use a different command, a different language, or a runShell step.`;
-      return result;
+      try {
+        command = await resolveShellExecutable("bash", {
+          cacheDir: config?.cacheDir,
+        });
+        commandPreverified = true;
+      } catch (error: any) {
+        result.status = "FAIL";
+        result.description = `Couldn't resolve bash on Windows: ${error.message}`;
+        return result;
+      }
+    }
+    // The interpreter command travels through a bash command string on this
+    // branch (resolved above OR a user-supplied Windows path via
+    // `runCode.command`): bash strips unquoted backslashes, so hand it the
+    // separator every shell accepts, and quote paths containing spaces so
+    // `C:/Program Files/...` stays one token.
+    if (os.platform() === "win32" && interpreterShell === "bash") {
+      command = command.replace(/\\/g, "/");
+      if (/\s/.test(command) && !command.startsWith('"')) {
+        command = `"${command}"`;
+      }
+    }
+    // Make sure the command is available. A bare `node` that resolves to the
+    // running Node needs no probe: it's this process's own binary.
+    if (!commandPreverified && command === "node" && pathNodeIsCurrentNode()) {
+      commandPreverified = true;
+    }
+    if (!commandPreverified) {
+      const commandExists = await spawnCommand(command, ["--version"]);
+      if (commandExists.exitCode !== 0) {
+        result.status = "FAIL";
+        result.description = `Command ${command} is unavailable. Make sure it's installed and in your PATH.`;
+        return result;
+      }
     }
 
     // Prepare shell command using the resolved command.
@@ -140,9 +239,17 @@ async function runCode({
     // no effect and the step FAILed on a non-zero exit). Forward every option
     // runShell honors so they actually take effect. `directory` (runCode-only)
     // is resolved into the single `path` runShell expects.
+    // The script path travels through a shell as part of the command string
+    // (runShell joins command + args with spaces): use the separator every
+    // shell accepts on Windows (bash strips unquoted backslashes), and quote
+    // it so a temp dir containing spaces stays one token.
+    let scriptArg = scriptPath;
+    if (os.platform() === "win32") scriptArg = scriptArg.replace(/\\/g, "/");
+    if (/\s/.test(scriptArg)) scriptArg = `"${scriptArg}"`;
     const runShellOptions: any = {
       command,
-      args: [scriptPath, ...step.runCode.args],
+      args: [scriptArg, ...step.runCode.args],
+      shell: interpreterShell,
       exitCodes: step.runCode.exitCodes,
       workingDirectory: step.runCode.workingDirectory,
       maxVariation: step.runCode.maxVariation,

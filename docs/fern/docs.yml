@@ -43,7 +43,7 @@ metadata:
   og:site_name: "Doc Detective | Documentation"
   og:title: "Doc Detective | Documentation content testing framework"
   og:description: "A documentation content testing framework that simplifies the process of keeping your docs accurate and up-to-date."
-  og:url: "https://doc-detective.com"
+  og:url: "https://docs.doc-detective.com"
 #
 #  # Social sharing assets
 #
@@ -123,7 +123,7 @@ navigation:
             path: pages/docs/get-started/installation.mdx
             slug: installation
           - page: Concepts
-            path: pages/docs/get-started/concepts.md
+            path: pages/docs/get-started/concepts.mdx
             slug: concepts
           - page: Create your first test
             path: pages/docs/get-started/create-your-first-test.mdx
@@ -150,6 +150,9 @@ navigation:
           - page: Standalone tests
             path: pages/docs/tests/standalone.mdx
             slug: standalone
+          - page: Last verified on
+            path: pages/docs/test-docs/last-verified-on.mdx
+            slug: last-verified-on
           # Surface sub-sections are visual groupers only (skip-slug keeps page
           # URLs flat under /docs/test-docs/…). See docs/content-strategy/
           # information-architecture.md — one "Test your docs" track, split by
@@ -160,15 +163,63 @@ navigation:
               - page: Fill fields
                 path: pages/tutorials/fill-fields.mdx
                 slug: fill-fields
-              - page: Capture screenshots
-                path: pages/tutorials/capture-screenshot.mdx
-                slug: capture-screenshots
-              - page: Record video
-                path: pages/tutorials/record-video.mdx
-                slug: record-video
+              - section: Screenshots
+                skip-slug: true
+                contents:
+                  - page: Capture screenshots
+                    path: pages/docs/test-docs/capture-screenshots-guide.mdx
+                    slug: capture-screenshots-guide
+                  - page: Screenshot visual regression
+                    path: pages/docs/test-docs/screenshot-visual-regression.mdx
+                    slug: screenshot-visual-regression
+                  - page: Automatic screenshots
+                    path: pages/docs/test-docs/automatic-screenshots.mdx
+                    slug: automatic-screenshots
+                  - page: Annotate screenshots
+                    path: pages/docs/test-docs/annotate-screenshots.mdx
+                    slug: annotate-screenshots
+                  - page: Screenshot example
+                    path: pages/tutorials/capture-screenshot.mdx
+                    slug: capture-screenshots
+              - section: Recording
+                skip-slug: true
+                contents:
+                  - page: Record video
+                    path: pages/docs/test-docs/record-video-guide.mdx
+                    slug: record-video-guide
+                  - page: Video visual regression
+                    path: pages/docs/test-docs/video-visual-regression.mdx
+                    slug: video-visual-regression
+                  - page: Automatic recording
+                    path: pages/docs/test-docs/automatic-recording.mdx
+                    slug: automatic-recording
+                  - page: Narrate recordings
+                    path: pages/docs/test-docs/narrate-recordings.mdx
+                    slug: narrate-recordings
+                  - page: Recording example
+                    path: pages/tutorials/record-video.mdx
+                    slug: record-video
               - page: Multiple tabs, windows & browsers
                 path: pages/tutorials/multiple-tabs-and-windows.mdx
                 slug: multiple-tabs-and-windows
+              - section: Native & mobile apps (experimental)
+                skip-slug: true
+                contents:
+                  - page: Windows app tutorial
+                    path: pages/docs/test-docs/native-apps/windows-tutorial.mdx
+                    slug: windows-app-tutorial
+                  - page: Native Windows apps
+                    path: pages/docs/test-docs/native-apps/windows.mdx
+                    slug: native-windows-apps
+                  - page: Native macOS apps
+                    path: pages/docs/test-docs/native-apps/macos.mdx
+                    slug: native-macos-apps
+                  - page: Android apps
+                    path: pages/docs/test-docs/native-apps/android.mdx
+                    slug: android-apps
+                  - page: iOS apps
+                    path: pages/docs/test-docs/native-apps/ios.mdx
+                    slug: ios-apps
           - section: CLI, code & APIs
             skip-slug: true
             contents:
@@ -178,6 +229,9 @@ navigation:
               - page: HTTP & APIs
                 path: pages/docs/test-code/http-and-api.mdx
                 slug: http-and-api
+              - page: Generate requests from OpenAPI
+                path: pages/docs/test-code/generate-tests-from-openapi.mdx
+                slug: generate-tests-from-openapi
               - page: Integrations
                 path: pages/docs/get-started/integrations.mdx
                 slug: integrations
@@ -206,7 +260,7 @@ navigation:
                     path: pages/docs/input-formats/custom.mdx
                     slug: custom
               - page: Test across platforms & browsers
-                path: pages/docs/config/contexts.md
+                path: pages/docs/config/contexts.mdx
                 slug: platforms-and-browsers
               - page: Heretto
                 path: pages/docs/integrations/heretto.mdx
@@ -230,6 +284,9 @@ navigation:
           - page: Docker & headless
             path: pages/docs/ci/docker-and-headless.mdx
             slug: docker-and-headless
+          - page: Prepare for 5.0
+            path: pages/docs/ci/upgrade-to-v5.mdx
+            slug: upgrade-to-v5
 
       - section: Troubleshoot
         slug: troubleshoot
@@ -278,9 +335,9 @@ navigation:
           - page: Agent tools & MCP
             path: pages/ai/agent-tools-and-mcp.mdx
             slug: agent-tools-and-mcp
-          - page: Self-healing
+          - page: Hand off failures
             path: pages/docs/get-started/self-healing.mdx
-            slug: self-healing
+            slug: hand-off-failures
 
   - tab: reference
     layout:
@@ -292,7 +349,7 @@ navigation:
           - page: Expressions
             path: pages/reference/expressions.mdx
             slug: expressions
-          - page: CLI commands & flags
+          - page: CLI commands and flags
             path: pages/reference/cli.mdx
             slug: cli
           - section: CLI
@@ -361,7 +418,7 @@ navigation:
             path: pages/legal/telemetry.mdx
             slug: /legal/telemetry
           - page: Privacy policy (Companion app)
-            path: pages/legal/privacy-policy-companion.md
+            path: pages/legal/privacy-policy-companion.mdx
             slug: /legal/privacy-policy-companion
 
 ###########
@@ -427,20 +484,23 @@ redirects:
   - source: /docs/get-started/integrations
     destination: /docs/test-docs/integrations
   - source: /docs/get-started/self-healing
-    destination: /ai/self-healing
+    destination: /ai/ai-agents/hand-off-failures
+  # The page was retitled from "Self-healing" to say what it does.
+  - source: /ai/ai-agents/self-healing
+    destination: /ai/ai-agents/hand-off-failures
   - source: /docs/get-started/resources
-    destination: /resources
+    destination: /support/support/resources
   # Agent tools → AI & Agents pillar
   - source: /docs/agent-tools/overview
-    destination: /ai/overview
+    destination: /ai/ai-agents/overview
   - source: /docs/agent-tools/claude-code
-    destination: /ai/claude-code
+    destination: /ai/ai-agents/claude-code
   - source: /docs/agent-tools/copilot-cli
-    destination: /ai/copilot-cli
+    destination: /ai/ai-agents/copilot-cli
   - source: /docs/agent-tools/gemini-cli
-    destination: /ai/gemini-cli
+    destination: /ai/ai-agents/gemini-cli
   - source: /docs/agent-tools/other-assistants
-    destination: /ai/other-assistants
+    destination: /ai/ai-agents/other-assistants
   # Tutorials tab dissolved into tracks
   - source: /tutorials
     destination: /docs/test-docs/overview
@@ -454,29 +514,109 @@ redirects:
     destination: /docs/ci/set-up-environment
   # Contribute → own tab (explicit; Fern redirects match literal paths)
   - source: /docs/contribute/contribute-to-the-docs
-    destination: /contribute/index
+    destination: /contribute/contribute/index
   - source: /docs/contribute/quick-start
-    destination: /contribute/quick-start
+    destination: /contribute/contribute/quick-start
   - source: /docs/contribute/standard-contributions
-    destination: /contribute/standard-contributions
+    destination: /contribute/contribute/standard-contributions
   - source: /docs/contribute/substantial-contributions
-    destination: /contribute/substantial-contributions
+    destination: /contribute/contribute/substantial-contributions
   - source: /docs/contribute/local-development
-    destination: /contribute/local-development
+    destination: /contribute/contribute/local-development
   - source: /docs/contribute/review-process
-    destination: /contribute/review-process
+    destination: /contribute/contribute/review-process
   - source: /docs/contribute/testing
-    destination: /contribute/testing
+    destination: /contribute/contribute/testing
   - source: /docs/contribute/how-to
-    destination: /contribute/how-to
+    destination: /contribute/contribute/content-templates/how-to
   - source: /docs/contribute/tutorial
-    destination: /contribute/tutorial
+    destination: /contribute/contribute/content-templates/tutorial
   - source: /docs/contribute/reference
-    destination: /contribute/reference
+    destination: /contribute/contribute/content-templates/reference
   - source: /docs/contribute/feature
-    destination: /contribute/feature
+    destination: /contribute/contribute/content-templates/feature
   - source: /docs/contribute/troubleshooting
-    destination: /contribute/troubleshooting
+    destination: /contribute/contribute/content-templates/troubleshooting
   # Legal → Support
   - source: /docs/legal/privacy-policy-companion-app
-    destination: /legal/privacy-policy-companion
+    destination: /support/support/legal/privacy-policy-companion
+  # Older paths published in the README, samples, and CLI hints
+  - source: /docs/get-started/intro
+    destination: /docs/get-started/introduction
+  - source: /docs/get-started/tests
+    destination: /docs/get-started/how-testing-works
+  - source: /docs/get-started/doc-detective-tests
+    destination: /docs/get-started/how-testing-works
+  - source: /get-started.html
+    destination: /docs/get-started/introduction
+  # The old category index pages have no direct equivalent. Concepts has
+  # the actions table. No #fragment: a redirect destination is a path.
+  - source: /docs/category/actions
+    destination: /docs/get-started/concepts
+  - source: /docs/category/schemas
+    destination: /reference/schemas/config
+  - source: /docs/get-started/configuration
+    destination: /reference/schemas/config
+  - source: /docs/get-started/config/contexts
+    destination: /docs/test-docs/platforms-and-browsers
+  - source: /docs/integrations/ai-agents
+    destination: /ai/ai-agents/overview
+  - source: /docs/contribute/docs/testing
+    destination: /contribute/contribute/testing
+  - source: /reference/cli/install
+    destination: /reference/reference/cli/install
+  # Action slugs are now lowercase, so a :slug pattern can't map these
+  - source: /docs/get-started/actions/checkLink
+    destination: /docs/actions/checklink
+  - source: /docs/get-started/actions/click
+    destination: /docs/actions/click
+  - source: /docs/get-started/actions/find
+    destination: /docs/actions/find
+  - source: /docs/get-started/actions/goTo
+    destination: /docs/actions/goto
+  - source: /docs/get-started/actions/httpRequest
+    destination: /docs/actions/httprequest
+  - source: /docs/get-started/actions/loadVariables
+    destination: /docs/actions/loadvariables
+  - source: /docs/get-started/actions/record
+    destination: /docs/actions/record
+  - source: /docs/get-started/actions/runCode
+    destination: /docs/actions/runcode
+  - source: /docs/get-started/actions/runShell
+    destination: /docs/actions/runshell
+  - source: /docs/get-started/actions/screenshot
+    destination: /docs/actions/screenshot
+  - source: /docs/get-started/actions/stopRecord
+    destination: /docs/actions/stoprecord
+  - source: /docs/get-started/actions/type
+    destination: /docs/actions/type
+  - source: /docs/get-started/actions/wait
+    destination: /docs/actions/wait
+  # Schema slugs are unchanged, so a pattern covers them. Literal entries first.
+  - source: /docs/references/schemas/config.html
+    destination: /reference/schemas/config
+  - source: /docs/references/schemas/typeKeys
+    destination: /reference/schemas/type
+  - source: /docs/references/schemas/:slug
+    destination: /reference/schemas/:slug
+  # Renamed or camelCase .html URLs from older READMEs. The pattern above also
+  # forwards /docs/references/schemas/<name>.html here. Lowercase .html names
+  # already resolve.
+  - source: /reference/schemas/checkLink.html
+    destination: /reference/schemas/checklink
+  - source: /reference/schemas/goTo.html
+    destination: /reference/schemas/goto
+  - source: /reference/schemas/httpRequest.html
+    destination: /reference/schemas/httprequest
+  - source: /reference/schemas/runShell.html
+    destination: /reference/schemas/runshell
+  - source: /reference/schemas/saveScreenshot.html
+    destination: /reference/schemas/screenshot
+  - source: /reference/schemas/setVariables.html
+    destination: /reference/schemas/loadvariables
+  - source: /reference/schemas/startRecording.html
+    destination: /reference/schemas/record
+  - source: /reference/schemas/stopRecording.html
+    destination: /reference/schemas/stoprecord
+  - source: /reference/schemas/typeKeys.html
+    destination: /reference/schemas/type
