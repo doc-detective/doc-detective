@@ -86,6 +86,13 @@ describe("classifyStepFailure", function () {
     );
   });
 
+  it("names a near match by its tag when that's all it has", function () {
+    assert.deepEqual(
+      classifyStepFailure({ result: "FAIL", outputs: { nearMatches: [{ tag: "button" }] } }),
+      { resultCode: "drift", resultHint: "Closest match: `button`." }
+    );
+  });
+
   it("calls network, session, and blank-page failures environment", function () {
     for (const resultDescription of [
       "getaddrinfo ENOTFOUND docs.example.invalid",

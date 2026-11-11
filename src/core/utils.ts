@@ -941,7 +941,7 @@ function classifyStepFailure(step: any): { resultCode?: "environment" | "drift" 
   if (step?.result !== "FAIL") return {};
   const near = step.outputs?.nearMatches;
   if (Array.isArray(near) && near.length > 0) {
-    const names = near.map((m: any) => `\`${m.text || m.ariaLabel || m.id || m.testId}\``);
+    const names = near.map((m: any) => `\`${m.text || m.ariaLabel || m.id || m.testId || m.tag}\``);
     return {
       resultCode: "drift",
       resultHint: `${names.length > 1 ? "Closest matches" : "Closest match"}: ${names.join(", ")}.`,
