@@ -645,7 +645,7 @@ describe("appSurfacePreflight", function () {
       },
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /^Skipped: .* couldn't be installed/);
+    assert.match(outcome.reason, /^Skipped: .* could not be installed/);
     assert.match(outcome.reason, /offline/);
   });
 
@@ -752,7 +752,7 @@ describe("appSurfacePreflight", function () {
       deps: { resolvePathInCache: () => null, ensureInstalled: async () => {} },
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /^Skipped: .* didn't resolve/);
+    assert.match(outcome.reason, /^Skipped: .* did not resolve/);
   });
 });
 

@@ -121,7 +121,7 @@ describe("Run tests successfully", function () {
       assert.ok(unmet.contexts.length > 0, "gate-unmet resolved no contexts");
       for (const ctx of unmet.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /^Skipped: this context's `requires` aren't met on /);
+        assert.match(ctx.resultDescription, /^Skipped: unmet requirements: /);
         assert.match(ctx.resultDescription, /doc-detective-no-such-binary-xyz/);
       }
       assert.equal(unmet.result, "SKIPPED");
@@ -1073,7 +1073,7 @@ describe("Run tests successfully", function () {
       assert.equal(result.summary.specs.skipped, 1);
       assert.equal(result.summary.specs.pass, 0);
       assert.equal(result.summary.contexts.skipped, 1);
-      assert.match(result.specs[0].tests[0].contexts[0].resultDescription, /^Skipped: this context targets a different platform than `(windows|mac|linux)`\.$/);
+      assert.match(result.specs[0].tests[0].contexts[0].resultDescription, /^Skipped: this system can't run a `(windows|mac|linux)` context\.$/);
       assert.equal(result.specs[0].result, "SKIPPED");
       assert.equal(result.specs[0].tests[0].result, "SKIPPED");
       assert.equal(result.specs[0].tests[0].contexts[0].result, "SKIPPED");
