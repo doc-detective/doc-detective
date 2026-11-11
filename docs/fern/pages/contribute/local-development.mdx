@@ -165,7 +165,6 @@ Don't worry about fixing every suggestion. Reviewers use their judgment during r
    title: Your Page Title
    description: Brief description for search engines
    sidebar-title: Sidebar Text
-   sidebar_position: 3
    ---
 
    Content goes here...
@@ -177,15 +176,17 @@ Don't worry about fixing every suggestion. Reviewers use their judgment during r
 
 ### Add images
 
-1. Place images in `static/img/`:
+1. From the `docs/` directory, place images in a folder under `fern/assets/images/`, named after the page that uses them:
 
    ```bash
-   cp screenshot.png static/img/features/
+   mkdir -p fern/assets/images/your-page
+   cp screenshot.png fern/assets/images/your-page/
    ```
 
-2. Reference images in docs with paths relative to `static`:
+2. Reference images with a path that starts at `/assets/`, which Fern resolves from the `fern/` directory:
+
    ```markdown
-   ![Description of image](/img/features/screenshot.png)
+   ![Description of image](/assets/images/your-page/screenshot.png)
    ```
 
 ### Add code examples
