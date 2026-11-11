@@ -224,6 +224,33 @@ describe("elementImage matching", function () {
       }
     });
 
+    // A drag looks for both ends at once. One look restoring the recording's cursor
+    // mustn't put the cursor in the other's capture.
+    it("image-capture-cursor: overlapping looks during a recording each capture with the cursor hidden", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 40, y: 50 }] });
+      let cursor = "block";
+      let calls = 0;
+      const seen = [];
+      const driver = {
+        isMobile: false,
+        state: { recordings: [{}] },
+        takeScreenshot: async () => {
+          await new Promise((resolve) => setTimeout(resolve, calls++ === 0 ? 0 : 50));
+          seen.push(cursor);
+          return b64(shot);
+        },
+        execute: async (fn, value) => {
+          if (!String(fn).includes("dd-mouse-pointer")) return { width: 400 };
+          cursor = value;
+        },
+      };
+      const look = () => visual.findByImage({ elementImage: { base64: b64(svg) }, driver, timeout: 0 });
+      await Promise.all([look(), look()]);
+      expect(seen).to.deep.equal(["none", "none"]);
+      expect(cursor).to.equal("block");
+    });
+
     it("image-matcher-error: an error while matching fails the step with a reason", async function () {
       const svg = icon(GEAR, "#333333", 24);
       for (const capture of [Buffer.from("short"), Buffer.alloc(2048, 65)]) {

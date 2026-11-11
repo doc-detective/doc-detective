@@ -77,7 +77,16 @@ function createVisualMatch(driver: any, match: Rect & { score: number }) {
 
 // The synthetic cursor mustn't be baked into a capture: it can sit right on the
 // icon after a click.
-async function captureSurface(driver: any): Promise<Buffer> {
+// Captures on one driver take turns, so one restoring the recording's cursor can't
+// put it in another's capture. A drag looks for both ends at once.
+const capturing = new WeakMap<object, Promise<unknown>>();
+function captureSurface(driver: any): Promise<Buffer> {
+  const run = (capturing.get(driver) ?? Promise.resolve()).then(() => captureNow(driver));
+  capturing.set(driver, run.catch(() => {}));
+  return run;
+}
+
+async function captureNow(driver: any): Promise<Buffer> {
   const recording = isRecordingActive(driver);
   const setCursor = (display: string) =>
     driver.execute((value: string) => {
