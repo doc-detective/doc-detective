@@ -89,10 +89,10 @@ Installing the plugin also bundles a Doc Detective language server with Claude C
 
 The language server activates automatically after installation, with nothing for you to set up. It provides three things:
 
-- **Diagnostics**: Claude Code sees schema errors inline as it edits specs (`*.spec.json`, `*.spec.yaml`, and `*.spec.yml`) and `.doc-detective.*` config files. It also sees them for inline tests in Markdown, AsciiDoc, HTML, and DITA. A common mistake is writing `{"action": "goTo"}` instead of the compact `{"goTo": "..."}` form. It produces a single clear message instead of a cascade of schema errors.
+- **Diagnostics**: Claude Code sees schema errors inline as it edits specs (`*.spec.json`, `*.spec.yaml`, and `*.spec.yml`) and `.doc-detective.*` config files. It also sees them for inline tests in Markdown, AsciiDoc, HTML, and DITA. A common mistake is writing `{"action": "goTo"}` instead of the compact `{"goTo": "..."}` form. The language server produces a single clear message instead of a cascade of schema errors.
 - **Completion** (`*.spec.json` files only): Suggestions for action keys and their fields, with schema-aware snippets for values.
 - **Hover** (`*.spec.json` files only): Action descriptions pulled straight from the schema.
 
 To avoid noise, the language server stays silent on files that aren't Doc Detective documents. It engages on specs and config files by name. It also engages on any file whose `$schema` points at a Doc Detective schema, and on JSON with a top-level `tests` array. An unrelated `package.json` never produces feedback.
 
-The language server runs through your project's Doc Detective CLI, falling back to `npx` when the project has no local copy. Because it's a Claude Code capability, it doesn't apply to the other assistants.
+The language server runs through your project's Doc Detective CLI, falling back to `npx` when the project has no local copy. It's specific to Claude Code and doesn't apply to the other agent tools these docs cover.
