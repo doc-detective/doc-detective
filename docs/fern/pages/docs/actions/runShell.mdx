@@ -24,14 +24,14 @@ You can specify the command directly as a string or use an object for more optio
   - `background`: (Optional) An object that starts the command as a long-running background process. The step returns as soon as the process is ready, instead of waiting for it to exit. Including this object enables background mode. Omit it for a normal blocking run. See [Background processes](#background-processes).
     - `name`: (Required) A unique identifier for the background process within the run. Reference it from a [`closeSurface`](/docs/actions/closesurface) step to stop the process, or from a [`type`](/docs/actions/type) step to send it keystrokes.
     - `waitUntil`: (Optional) The conditions that must be met before the process is considered ready. See [Wait conditions](#wait-conditions).
-    - `tty`: (Optional) Run the process under a pseudo-terminal (PTY) instead of a pipe so full-screen terminal UIs render and accept keystrokes. Defaults to `false`. See [Full-screen terminal UIs](#full-screen-terminal-uis).
+    - `tty`: (Optional) Run the process under a pseudo-terminal (PTY) instead of a pipe so full-screen terminal UIs render and accept keystrokes. `true` uses a terminal 120 columns by 30 rows. An object such as `{"cols": 80, "rows": 24}` sets the size. Defaults to `false`. See [Full-screen terminal UIs](#full-screen-terminal-uis).
   - *Output Saving:* You can also save the command's output using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`runShell`](/reference/schemas/runshell) reference for details.
 
 **Output Regression Testing:** You can save command output to a file and perform regression testing on subsequent runs. If `path` is specified, `maxVariation` is set, and a reference file exists at the target `path`, the action compares the new output to the reference file. If the difference is within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and behavior depends on the `overwrite` setting:
 
-- If `overwrite` is set to `"aboveVariation"`, the reference file is replaced with the new output, allowing you to capture updated artifacts for review.
-- If `overwrite` is set to `"never"` (default), the reference file is not modified.
-- If `overwrite` is set to `"always"`, the reference file is always replaced regardless of variation.
+- `"true"`: The reference file is always replaced with the new output.
+- `"false"`: The reference file isn't modified.
+- `"aboveVariation"` (default): The reference file is replaced only when the difference exceeds `maxVariation`, so you can save updated artifacts for review.
 
 This lets tests continue executing while flagging output changes that exceed your acceptable variation threshold.
 
@@ -102,13 +102,28 @@ By default, a background process runs behind a pipe. That works for line-oriente
 
 In PTY mode, the process's stdout and stderr merge into a single stream that both `waitUntil.stdio` here and a `type` step's `waitUntil.stdio` search. PTY output also includes raw ANSI escape sequences, such as colors and cursor movement. Match against text that renders without interleaved control codes, or use a regular expression that tolerates them. `tty` defaults to `false`, which keeps the standard pipe behavior.
 
+With `tty` set to `true`, the terminal is 120 columns wide and 30 rows tall. Many TUIs wrap or truncate their output to the width they read from `process.stdout.columns`, so a `waitUntil.stdio` pattern can depend on that width. To pick the size, set `tty` to an object with `cols` and `rows`. Each is an integer from 1 to 1000. A missing value keeps its default, so `{}` behaves like `true`.
+
+```json
+{
+  "runShell": {
+    "command": "my-tui",
+    "background": {
+      "name": "tui",
+      "tty": { "cols": 80, "rows": 24 },
+      "waitUntil": { "stdio": "/Ready/" }
+    }
+  }
+}
+```
+
 Doc Detective guards the `tty` start against environment problems that could otherwise hang a run. Before each `tty` process starts, it verifies the pseudo-terminal backend's files are intact on disk. It reinstalls them if a dependency install removed them mid-run. On Windows it also probes that a new pseudo-terminal can be allocated. If the backend can't be restored or allocation is wedged, the step is **skipped** with an explanatory message instead of freezing the run.
 
 The Windows allocation probe waits up to 15 seconds by default. To change that budget, set the `DOC_DETECTIVE_PTY_PROBE_TIMEOUT_MS` environment variable to a duration in milliseconds. Non-Windows platforms don't run the probe.
 
 ## Examples
 
-Here are a few ways you might use the `runShell` action:
+The docs tests run the basic command, arguments, exit-code, and variable examples. The other examples are illustration-only, because they need Docker, a saved output file, or a terminal UI.
 
 ### Run a basic command (string shorthand)
 
@@ -247,6 +262,34 @@ The first step echoes "setup", validates the output using a regex, and captures 
 {/* step {"stepId":"runshell-set-var","description":"Set a variable based on command output","runShell":{"command":"echo setup","stdio":"/.+/"},"variables":{"TEST":"$$stdio.stdout"}} */}
 {/* step {"stepId":"runshell-use-var","description":"Echo and validate the variable","runShell":{"command":"echo $TEST","stdio":"setup"}} */}
 {/* test end */}
+
+### Save command output to a file for regression testing
+
+Set `workingDirectory` to run the command somewhere other than the run's directory, and save its output with `path` and `directory`. On later runs, `maxVariation` and `overwrite` compare the new output against the saved copy.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Save the command's output and refresh it only on drift.",
+          "runShell": {
+            "command": "git",
+            "args": ["log", "-1", "--pretty=%s"],
+            "workingDirectory": "./repo",
+            "timeout": 5000,
+            "path": "last-commit.txt",
+            "directory": "./output",
+            "maxVariation": 0.1,
+            "overwrite": "aboveVariation"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ### Start a background process and stop it later
 

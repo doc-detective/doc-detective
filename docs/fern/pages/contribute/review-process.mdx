@@ -32,10 +32,10 @@ Before human review, automated checks verify your contribution.
 
 ### What runs automatically
 
-1. **Vale (style checking)**: Checks adherence to Google Developer Style Guide
-2. **Build verification**: Ensures the site builds successfully
-3. **Link validation**: Verifies all links work
-4. **CLA check**: Confirms you've signed the Contributor License Agreement
+1. **Vale (style checking)**: Checks prose against the Google developer style guide and the Doc Detective house voice.
+2. **Build verification**: Ensures the site builds successfully.
+3. **Link validation**: Verifies all links work.
+4. **CLA check**: Confirms you've signed the Contributor License Agreement.
 
 ### Check status indicators
 
@@ -51,7 +51,20 @@ Don't panic. Failed checks happen and can usually be fixed.
 
 #### Vale failures
 
-Vale checks writing style. Common issues:
+The Vale check lints every Markdown and MDX file in the repository, and it fails on any error-level alert. Vale posts each error as a review comment on the line that caused it. Fix every error before your pull request can merge.
+
+The house voice raises the most common errors:
+
+**"Em dash. Split or restructure the sentence rather than swapping punctuation."**
+
+- ⛔ `Run the tests — they take a minute.`
+- ✅ `Run the tests. They take a minute.`
+
+**"Sentence runs to N words. Split it."**
+
+Vale flags any sentence longer than 25 words. Split it into two sentences, or move a series into a list.
+
+The check posts only errors. Vale also reports warnings and suggestions when you [run it locally](/contribute/contribute/local-development#style-checking-with-vale). Common Google style issues include:
 
 **"Use second person instead of first person"**
 
@@ -68,19 +81,17 @@ Vale checks writing style. Common issues:
 - ⛔ `The file can be uploaded by...`
 - ✅ `Upload the file by...`
 
-**Handling Vale suggestions:**
+**Handling Vale alerts:**
 
-- **Errors**: Should be fixed
-- **Warnings**: Strongly consider fixing
-- **Suggestions**: Optional, and reviewers use judgment
+- **Errors**: Fix them. Any error fails the check.
+- **Warnings**: Strongly consider fixing them.
+- **Suggestions**: Optional. Reviewers use judgment.
 
-If you disagree with a Vale suggestion, explain why in a comment. Reviewers can override automated checks when it makes sense.
+If Vale flags a correct technical term as misspelled, add it to the accepted vocabulary in `docs/.vale/styles/config/vocabularies/Docs/accept.txt`. If you think a rule is wrong for your content, explain why in a pull request comment.
 
 #### Build failures
 
-Usually indicate syntax errors:
-
-Common causes include
+Build failures usually indicate syntax errors. Common causes include:
 
 - Unclosed code blocks (missing closing ` ``` `)
 - Invalid front matter (YAML syntax errors)
@@ -91,14 +102,12 @@ How to fix failures:
 
 1. Check the error message for the specific file and line number
 2. Fix the syntax error
-3. If working locally, run `npm run build` to verify
+3. If working locally, run `(cd docs && npx fern check)` from the repository root to verify
 4. Commit and push the fix
 
 #### Link validation failures
 
-Means a link is broken or inaccessible:
-
-Common causes include
+A link validation failure means a link is broken or inaccessible. Common causes include:
 
 - Typo in URL
 - Link to a page that doesn't exist yet
@@ -361,7 +370,7 @@ Life happens. If you can't address feedback right away,
 
 ### What's next?
 
-- **Look for more issues**: [Good first issue label](https://github.com/doc-detective/doc-detective.github.io/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+- **Look for more issues**: [Good first issue label](https://github.com/doc-detective/doc-detective/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
 - **Review others' PRs**: Help review other contributions
 - **Suggest improvements**: Open issues for documentation gaps you notice
 - **Join the community**: Engage in Discord discussions

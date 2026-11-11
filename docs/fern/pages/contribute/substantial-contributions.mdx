@@ -19,7 +19,7 @@ Major documentation projects that significantly expand or improve the Doc Detect
 
 For substantial contributions, it's important to align with maintainers before investing significant time:
 
-1. **Check for existing issues**: Look for [documentation issues](https://github.com/doc-detective/doc-detective.github.io/issues?q=is%3Aissue+is%3Aopen+label%3Adocumentation) or feature requests.
+1. **Check for existing issues**: Look for [documentation issues](https://github.com/doc-detective/doc-detective/issues?q=is%3Aissue+is%3Aopen+label%3Adocumentation) or feature requests.
 2. **Open a discussion**: If no issue exists, open one describing your plans.
 3. **Get feedback**: Wait for maintainer input before starting major work. If you don't hear back in a few days, politely ping in the issue or on [Discord](https://discord.gg/2M7wXEThfF).
 4. **Claim the work**: Comment on the issue to let others know you're working on it.
@@ -201,15 +201,15 @@ graph TD;
 
 ## Testing your documentation
 
-### Build locally
+### Check the site locally
 
-Ensure the site builds without errors:
+After you [install the docs dependencies](/contribute/contribute/local-development#install-dependencies), validate the Fern configuration and pages from the `docs/` directory:
 
 ```bash
-npm run build
+npx fern check
 ```
 
-Fix any build errors before submitting.
+Fix any errors before submitting. To preview the site, see [Check the site](/contribute/contribute/local-development#check-the-site).
 
 ### Test your examples
 

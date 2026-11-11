@@ -1,9 +1,7 @@
 import os from "node:os";
 import { PostHog } from "posthog-node";
-import { createRequire } from "node:module";
 import { telemetryNotice, POSTHOG_HOST, telemetryFetch } from "./telemLite.js";
-
-const require = createRequire(import.meta.url);
+import { ownVersion } from "../runtime/heavyDeps.js";
 
 const platformMap: Record<string, string> = {
   win32: "windows",
@@ -44,10 +42,9 @@ function sendTelemetry(config: any, command: string, results: any) {
     process.env["DOC_DETECTIVE_META"] !== undefined
       ? JSON.parse(process.env["DOC_DETECTIVE_META"])
       : {};
-  const pkg = require("../../package.json");
   telemetryData.distribution = telemetryData.distribution || "doc-detective";
   telemetryData.dist_interface = telemetryData.dist_interface || "package";
-  telemetryData.core_version = pkg.version;
+  telemetryData.core_version = ownVersion() ?? "unknown";
   telemetryData.dist_version = telemetryData.dist_version || telemetryData.core_version;
   telemetryData.core_platform = platformMap[os.platform()] || os.platform();
   telemetryData.dist_platform = telemetryData.dist_platform || telemetryData.core_platform;
@@ -70,14 +67,14 @@ function sendTelemetry(config: any, command: string, results: any) {
         Object.entries(value).forEach(([key, value]: [string, any]) => {
           if (typeof value === "object") {
             Object.entries(value).forEach(([key2, value2]: [string, any]) => {
-              telemetryData[`${parentKey.replace(" ","_")}_${key.replace(" ","_")}_${key2.replace(" ","_")}`] = value2;
+              telemetryData[`${parentKey.replaceAll(" ","_")}_${key.replaceAll(" ","_")}_${key2.replaceAll(" ","_")}`] = value2;
             });
           } else {
-            telemetryData[`${parentKey.replace(" ","_")}_${key.replace(" ","_")}`] = value;
+            telemetryData[`${parentKey.replaceAll(" ","_")}_${key.replaceAll(" ","_")}`] = value;
           }
         });
       } else {
-        telemetryData[parentKey.replace(" ","_")] = value;
+        telemetryData[parentKey.replaceAll(" ","_")] = value;
       }
     });
   }

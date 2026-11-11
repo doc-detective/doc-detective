@@ -8,11 +8,12 @@ const __dirname = path.dirname(__filename);
 const distDir = path.join(__dirname, "..", "dist");
 
 // Leave the generated validators (dist/schemas/validators.cjs, megabytes of
-// code) as a require next to the bundle instead of inlining a second copy.
+// code) and schemas.json as requires next to the bundle instead of inlining a
+// second copy.
 const precompiledValidatorsExternal = {
   name: "precompiled-validators-external",
   setup(build) {
-    build.onResolve({ filter: /validators\.cjs$/ }, (args) => ({
+    build.onResolve({ filter: /validators\.cjs$|\/schemas\.json$/ }, (args) => ({
       path: "./" + path.relative(distDir, path.join(args.resolveDir, args.path)).split(path.sep).join("/"),
       external: true,
     }));

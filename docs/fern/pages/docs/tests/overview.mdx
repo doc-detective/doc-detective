@@ -383,7 +383,7 @@ Because the first matching entry wins, order your entries from most specific to 
 
 ### Stop scope
 
-At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but a step-level `stop` can't yet propagate to later tests or specs. If you set a step's `stop` to `spec` or `run`, Doc Detective logs a warning and falls back to `test` behavior, stopping only the current test. To stop a spec's remaining tests, use a test-level `stop: spec` handler instead. See [Route between tests](#route-between-tests).
+At the step level, `stop` halts the remaining steps in the current test. The `stop` action also accepts the `spec` and `run` scopes, but a step-level `stop` doesn't propagate to later tests or specs. If you set a step's `stop` to `spec` or `run`, Doc Detective logs a warning and falls back to `test` behavior, stopping only the current test. To stop a spec's remaining tests, use a test-level `stop: spec` handler instead. See [Route between tests](#route-between-tests). [Doc Detective 5.0](/docs/ci/upgrade-to-v5) rejects the `spec` and `run` scopes on a step, so move them to a test-level handler now.
 
 ### Retry a step
 
@@ -513,20 +513,20 @@ Suppose `goToStep` names a `stepId` that doesn't exist in the test. Doc Detectiv
 When a backward `goToStep` re-runs a step, each report after the first records a `visit` field with the visit number. That's `2` for the second visit, `3` for the third, and so on. The field is omitted on a step's first visit, so reports for steps that aren't revisited are unchanged.
 
 <Note>
-At the step level, the `goToTest` action is valid in routing entries but isn't active yet. A matching step-level entry that uses it falls back to the default for the result, so it behaves as if no handler matched. At the test level, `goToTest` is active. See [Jump to another test](#jump-to-another-test).
+At the step level, the `goToTest` action is valid in routing entries but isn't active. A matching step-level entry that uses it falls back to the default for the result, so it behaves as if no handler matched. At the test level, `goToTest` is active. See [Jump to another test](#jump-to-another-test). [Doc Detective 5.0](/docs/ci/upgrade-to-v5) rejects `goToTest` in a step's routing, so move it to the test's routing now.
 </Note>
 
 ## Route between tests
 
 Routing handlers work at the test level too. Add an `onPass`, `onFail`, `onWarning`, or `onSkip` handler to a test. Once that test finishes, Doc Detective evaluates the matching handler against the test's overall result to decide whether the spec keeps running. Test-level handlers use the same entry shape as step-level handlers. Each is an array of entries, each with an optional `if` condition and exactly one action, and the first entry whose `if` matches wins. Because tests don't run in sequence relative to one another, only `$$platform` is meaningful in a test-level `if`.
 
-At the test level, the available actions are `continue`, `stop`, and `goToTest`. The `retry` and `goToStep` actions don't apply between tests, so they fall back to the default for the test's result. The `goToTest` action jumps to another test in the spec; see [Jump to another test](#jump-to-another-test).
+At the test level, the available actions are `continue`, `stop`, and `goToTest`. The `retry` and `goToStep` actions don't apply between tests, so they fall back to the default for the test's result. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) rejects them in a test's routing, so remove them or move them to a step. The `goToTest` action jumps to another test in the spec; see [Jump to another test](#jump-to-another-test).
 
 `stop` behaves differently at the test level, because the test has already finished by the time its handler runs:
 
 - **`stop: test`** is a no-op. The test already completed, so there's nothing left to stop, and the spec continues with the next test. This is the default when a test fails, which is why a failing test doesn't stop its siblings.
 - **`stop: spec`** halts the spec's remaining tests. Doc Detective records each remaining test as SKIPPED and moves on without running it.
-- **`stop: run`** isn't supported yet. Doc Detective logs a warning and falls back to `stop: spec`, stopping the current spec's remaining tests.
+- **`stop: run`** falls back to `stop: spec` on 4.x, stopping the current spec's remaining tests, and Doc Detective logs a warning. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) rejects `stop: run`, so use `stop: spec`.
 
 As with step-level routing, test-level routing controls flow only. It never changes a result. A test that fails and routes `continue` stays FAIL, the following tests still run, and the spec still rolls up to FAIL. Adding a routing handler to a test opts its spec into deterministic, in-order test execution. A spec whose tests have no routing handlers runs exactly as it does today.
 
@@ -721,20 +721,20 @@ docker run -v .:/app docdetective/docdetective --input /app/samples/doc-content.
 
 ### Remotely hosted tests
 
-You can run tests hosted remotely by specifying the URL of the test file with the `--input` argument. For example, to run tests from a file hosted at `https://doc-detective.com/sample.spec.json`, run the following command:
+You can run tests hosted remotely by specifying the URL of the test file with the `--input` argument. For example, to run the sample test file from the Doc Detective GitHub repository, run the following command:
 
 <Tabs>
   <Tab title="NPX" language="npx">
 
 ```bash
-npx doc-detective --input https://doc-detective.com/sample.spec.json
+npx doc-detective --input https://raw.githubusercontent.com/doc-detective/doc-detective/main/docs/fern/pages/docs/get-started/sample.spec.json
 ```
 
   </Tab>
   <Tab title="Docker" language="docker">
 
 ```bash
-docker run docdetective/docdetective --input https://doc-detective.com/sample.spec.json
+docker run docdetective/docdetective --input https://raw.githubusercontent.com/doc-detective/doc-detective/main/docs/fern/pages/docs/get-started/sample.spec.json
 ```
 
 <Note>
@@ -744,7 +744,9 @@ The `-v` argument is not necessary for remotely hosted tests since Docker doesn'
   </Tab>
 </Tabs>
 
-These tests run the same way as local tests. Doc Detective fetches the test file from the specified URL and stores it in a temporary directory. The URL must be accessible to the machine running the tests.
+These tests run the same way as local tests. Doc Detective fetches the test file from the specified URL and stores it in a temporary directory. The URL must be accessible to the machine running the tests and must return the file itself, not a web page that displays it. For a file on GitHub, use its `raw.githubusercontent.com` URL rather than its `github.com` page.
+
+Relative paths in a remote test file resolve against that temporary directory, and Doc Detective deletes its contents when the run ends. The sample's `example.png` screenshot doesn't survive the run. To keep the files a remote test writes, download the test file and run your local copy.
 
 ### Run tests with multiple files
 
@@ -754,14 +756,14 @@ You can run tests using multiple files in multiple directories. Add as many comm
   <Tab title="NPX" language="npx">
 
 ```bash
-npx doc-detective --input inline-tests.md,https://doc-detective.com/sample.spec.json,./samples/doc-content.md
+npx doc-detective --input inline-tests.md,https://raw.githubusercontent.com/doc-detective/doc-detective/main/docs/fern/pages/docs/get-started/sample.spec.json,./samples/doc-content.md
 ```
 
   </Tab>
   <Tab title="Docker" language="docker">
 
 ```bash
-docker run -v .:/app docdetective/docdetective --input /app/inline-tests.md,https://doc-detective.com/sample.spec.json,/app/samples/doc-content.md
+docker run -v .:/app docdetective/docdetective --input /app/inline-tests.md,https://raw.githubusercontent.com/doc-detective/doc-detective/main/docs/fern/pages/docs/get-started/sample.spec.json,/app/samples/doc-content.md
 ```
 
   </Tab>
@@ -819,7 +821,7 @@ By default, Doc Detective runs test contexts sequentially. For larger test suite
 
 ```bash
 # Use CPU core count (capped at 4)
-npx doc-detective --concurrent-runners
+npx doc-detective --concurrent-runners true
 
 # Specify an explicit number of runners
 npx doc-detective --concurrent-runners 4
@@ -830,7 +832,7 @@ npx doc-detective --concurrent-runners 4
 
 ```bash
 # Use CPU core count (capped at 4)
-docker run -v .:/app docdetective/docdetective --concurrent-runners
+docker run -v .:/app docdetective/docdetective --concurrent-runners true
 
 # Specify an explicit number of runners
 docker run -v .:/app docdetective/docdetective --concurrent-runners 4
@@ -848,6 +850,8 @@ You can also set this in your configuration file using the `concurrentRunners` p
 ```
 
 Set `concurrentRunners` to `true` to use your CPU core count (capped at 4), or specify an explicit number of runners.
+
+On the CLI, pass `true` rather than leaving the value off. `--concurrent-runners` with no value still works, but it prints a warning because [Doc Detective 5.0](/docs/ci/upgrade-to-v5) removes that form.
 
 <Warning>
 **Cross-context variables**: Some tests share variables between contexts through `loadVariables` or `variables` steps. Those won't work correctly with concurrent runners, because variables write to a `process.env` shared across all contexts. Keep `concurrentRunners` at `1` for these tests.

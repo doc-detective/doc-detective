@@ -43,7 +43,7 @@ metadata:
   og:site_name: "Doc Detective | Documentation"
   og:title: "Doc Detective | Documentation content testing framework"
   og:description: "A documentation content testing framework that simplifies the process of keeping your docs accurate and up-to-date."
-  og:url: "https://doc-detective.com"
+  og:url: "https://docs.doc-detective.com"
 #
 #  # Social sharing assets
 #
@@ -205,6 +205,9 @@ navigation:
               - section: Native & mobile apps (experimental)
                 skip-slug: true
                 contents:
+                  - page: Windows app tutorial
+                    path: pages/docs/test-docs/native-apps/windows-tutorial.mdx
+                    slug: windows-app-tutorial
                   - page: Native Windows apps
                     path: pages/docs/test-docs/native-apps/windows.mdx
                     slug: native-windows-apps
@@ -281,6 +284,9 @@ navigation:
           - page: Docker & headless
             path: pages/docs/ci/docker-and-headless.mdx
             slug: docker-and-headless
+          - page: Prepare for 5.0
+            path: pages/docs/ci/upgrade-to-v5.mdx
+            slug: upgrade-to-v5
 
       - section: Troubleshoot
         slug: troubleshoot
@@ -329,9 +335,9 @@ navigation:
           - page: Agent tools & MCP
             path: pages/ai/agent-tools-and-mcp.mdx
             slug: agent-tools-and-mcp
-          - page: Self-healing
+          - page: Hand off failures
             path: pages/docs/get-started/self-healing.mdx
-            slug: self-healing
+            slug: hand-off-failures
 
   - tab: reference
     layout:
@@ -478,7 +484,10 @@ redirects:
   - source: /docs/get-started/integrations
     destination: /docs/test-docs/integrations
   - source: /docs/get-started/self-healing
-    destination: /ai/ai-agents/self-healing
+    destination: /ai/ai-agents/hand-off-failures
+  # The page was retitled from "Self-healing" to say what it does.
+  - source: /ai/ai-agents/self-healing
+    destination: /ai/ai-agents/hand-off-failures
   - source: /docs/get-started/resources
     destination: /support/support/resources
   # Agent tools → AI & Agents pillar
@@ -536,6 +545,16 @@ redirects:
     destination: /docs/get-started/introduction
   - source: /docs/get-started/tests
     destination: /docs/get-started/how-testing-works
+  - source: /docs/get-started/doc-detective-tests
+    destination: /docs/get-started/how-testing-works
+  - source: /get-started.html
+    destination: /docs/get-started/introduction
+  # The old category index pages have no direct equivalent. Concepts has
+  # the actions table. No #fragment: a redirect destination is a path.
+  - source: /docs/category/actions
+    destination: /docs/get-started/concepts
+  - source: /docs/category/schemas
+    destination: /reference/schemas/config
   - source: /docs/get-started/configuration
     destination: /reference/schemas/config
   - source: /docs/get-started/config/contexts
@@ -573,9 +592,11 @@ redirects:
     destination: /docs/actions/type
   - source: /docs/get-started/actions/wait
     destination: /docs/actions/wait
-  # Schema slugs are unchanged, so a pattern covers them. Literal entry first.
+  # Schema slugs are unchanged, so a pattern covers them. Literal entries first.
   - source: /docs/references/schemas/config.html
     destination: /reference/schemas/config
+  - source: /docs/references/schemas/typeKeys
+    destination: /reference/schemas/type
   - source: /docs/references/schemas/:slug
     destination: /reference/schemas/:slug
   # Renamed or camelCase .html URLs from older READMEs. The pattern above also

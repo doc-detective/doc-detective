@@ -166,7 +166,8 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Narrate recordings | W2 | ★ | Authored: `/docs/test-docs/narrate-recordings`. The `annotate` action draws persistent on-screen annotations that appear in a recording. |
 | Multiple tabs, windows & browsers | W2, W3 | | goTo `newTab`/`newWindow` + browser-session opening, `surface` session/window/tab selectors, whole-browser `closeSurface`. |
 | Test native & mobile apps (experimental) | W2, D1 | | The native-app-surfaces journey, split into four per-platform experimental guides (below) that live under `docs/test-docs/native-apps/`. Each guide covers the platform's setup, one runnable worked example, the platform-specific gotchas, and where to go next. Each deep-links into the `startSurface`/`click`/`type`/`find`/`swipe` action pages and the generated reference (app-descriptor, device-descriptor) rather than duplicating them. |
-| Test native Windows apps (experimental) | W2, D1 | | NovaWindows driver, executable/UWP identifiers, `runOn: ["windows"]`, UIA element mapping, window selectors, `workingDirectory`. |
+| Windows app tutorial (experimental) | W1, W2 | | Authored: `/docs/test-docs/windows-app-tutorial`. End-to-end path for a reader who has never run Doc Detective. Covers install on Windows, a first Character Map test, and reading results and a failure. Then moves the test inline into a Markdown how-to that refreshes its screenshot. Ends by adapting it to the reader's own app (identifiers, UIA inspection). Deep-links to the Windows guide below for reference detail. |
+| Test native Windows apps (experimental) | W2, D1 | | NovaWindows driver, executable/UWP identifiers, `runOn: ["windows"]`, UIA element mapping, window selectors, `workingDirectory` (rejected on Windows). |
 | Test native macOS apps (experimental) | W2, D1 | | Mac2 driver, Accessibility (TCC) permission gate, `runOn: ["mac"]`, AX element mapping, `args`/`env`. |
 | Test Android apps (experimental) | W2, D1 | | UiAutomator2 driver on a managed emulator, `install android`, `runOn: ["android"]`, device selection, `10.0.2.2` loopback, permission dialogs, device keys, gestures. |
 | Test iOS apps (experimental) | W2, D1 | | XCUITest driver on a managed simulator (macOS host only), `install ios`, `runOn: ["ios"]`, simulator selection, WebDriverAgent build, device keys, gestures. |
@@ -189,7 +190,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Input formats (overview + Markdown/DITA/AsciiDoc/HTML/Custom) | W3 | ★ | Applies to every surface. |
 | Test across platforms & browsers | W3 | ★ | contexts / `runOn`; links to Reference. |
 | Heretto integration | W3 | | |
-| Self-healing for docs *(shared with A2)* | W2 | | |
+| Hand off test failures to an AI agent *(shared with A2)* | W2 | | Lives in AI & Agents. |
 
 ### Run in CI and at scale: Priya, in `docs/ci/`
 
@@ -202,6 +203,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Docker & headless (new) | P2 | ★ | |
 | Concurrency & performance (new) | P2 | | `concurrentRunners`, recording serialization. |
 | Orchestrate distributed runs (new) | P3 | | `doc-detective-runner`, orchestration API. |
+| Prepare for 5.0 (new) | P1 | | Preview at `docs/ci/upgrade-to-v5`, the link in 4.x upgrade warnings. The full migration guide replaces it at GA. |
 
 ### Build with AI agents: Aria (pillar), in `ai/`
 
@@ -210,7 +212,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Overview | A1 | ★ | Frames the pillar. |
 | Author tests with agents (Claude Code / Copilot / Gemini / Other) | A1 | ★ | |
 | Agent tools & MCP (new) | A1 | ★ | |
-| Self-healing docs | A2 | ★ | |
+| Hand off test failures to an AI agent | A2 | ★ | Authored: `/ai/ai-agents/hand-off-failures`, retitled from "Self-healing documentation", which overclaimed. The Action opens an issue on failure and mentions an agent that suggests a fix. Redirects from `/ai/ai-agents/self-healing` and `/docs/get-started/self-healing`. |
 | Best practices for agent-authored tests (new) | A2 | | |
 
 ### Troubleshoot, cross-cutting: `docs/troubleshoot/`
@@ -290,7 +292,7 @@ Nothing is dropped.
 | Get started / Sample tests | Get started / Sample tests |
 | Get started / CI | Run in CI & at scale / GitHub Action recipe |
 | Get started / Integrations | Split: Heretto→Test your docs (Formats & surfaces); OpenAPI→Test your docs (CLI, code & APIs); orchestration→CI |
-| Get started / Self-healing | AI & Agents / Self-healing (linked into Test your docs) |
+| Get started / Self-healing | AI & Agents / Hand off failures (linked into Test your docs) |
 | Get started / Resources | Support / Resources |
 | Agent tools / * | AI & Agents (pillar) |
 | Configuration / Contexts | Reference / Contexts & surfaces |

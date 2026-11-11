@@ -221,7 +221,7 @@ The **Install status** section compares your installed npm packages and browsers
     webdriverio              installed  8.39.0  expected 9.2.1  OUTDATED
 ```
 
-Reinstall the runtime to bring everything back in sync:
+Doc Detective expects the exact version its CI tested, so a package newer than the expected version is also flagged `OUTDATED`. Reinstall the runtime to bring everything back in sync:
 
 ```bash
 doc-detective install runtime

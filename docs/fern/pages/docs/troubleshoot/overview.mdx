@@ -35,7 +35,7 @@ The selector or text no longer matches the page, or the element hadn't rendered 
 
 ### A request returned an unexpected status or body (`httpRequest`)
 
-- If the status code is wrong, set `statusCodes` to the codes you actually expect. The default is `[200]`.
+- If the status code is wrong, set [`statusCodes`](/docs/actions/httprequest) to the codes you actually expect. The default is `[200, 201]`. A step that uses `openApi` and sets neither `statusCodes` nor `openApi.statusCode` accepts the operation's `2xx` response codes instead.
 - If a dynamic field such as a timestamp or token breaks a `response.body` assertion, move it to `response.required` to assert that it exists without pinning its value. See [Test HTTP and APIs](/docs/test-docs/http-and-api#step-2-assert-on-the-response).
 
 ### A command returned the wrong exit code or output (`runShell`, `runCode`)

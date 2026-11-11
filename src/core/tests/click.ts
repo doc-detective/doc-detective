@@ -20,6 +20,14 @@ async function clickElement({ config, step, driver, appSession, processRegistry,
   }
   // Accept coerced and defaulted values
   step = isValidStep.object;
+
+  // A boolean names no element. Coercion used to turn it into the text
+  // "true" or "false" and click whatever matched (ADR 01161).
+  if (typeof step.click === "boolean") {
+    result.status = "FAIL";
+    result.description = `\`click\` needs an element, not ${step.click}. To click an element whose text is "${step.click}", quote it: "click": "${step.click}".`;
+    return result;
+  }
   let findStep: any;
 
   if (typeof step.click === "string") {

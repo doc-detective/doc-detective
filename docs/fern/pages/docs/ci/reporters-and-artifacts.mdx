@@ -27,37 +27,61 @@ Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `jun
 
 The `junit` and `markdown` reporters write a fixed filename in the output directory and overwrite it on each run, so a CI artifact path stays stable. If `output` names a file, they write beside that file.
 
-On GitLab, point the test summary at the `junit.xml` file:
-
-```yaml title=".gitlab-ci.yml"
-doc-tests:
-  script:
-    - doc-detective --input ./docs --reporters terminal junit --output ./reports
-  artifacts:
-    reports:
-      junit: reports/junit.xml
-```
-
-On GitHub Actions, append the Markdown summary to the job summary:
-
-```yaml title=".github/workflows/docs.yml"
-- run: doc-detective --input ./docs --reporters terminal markdown --output ./reports
-- if: always()
-  run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"
-```
-
-Select reporters on the command line:
-
-```bash
-doc-detective --input api.spec.json --reporters terminal json html
-```
-
-Or set them in your config file so every run uses the same combination:
+To choose reporters for every run, set them in your config file. This works on 4.x and on 5.0. For example, this config runs the `terminal`, `json`, and `html` reporters:
 
 ```json title=".doc-detective.json"
 {
   "reporters": ["terminal", "json", "html"]
 }
+```
+
+The `reporters` list replaces the defaults, so name every reporter you want. `runFolder` is one of the default reporters, but this example leaves it out. Without it, the run doesn't save a per-run folder of results, screenshots, and recordings. To keep that folder, add `runFolder` to the list.
+
+On the command line, several values after `--reporters`, like `--reporters terminal json html`, work on 4.x, but they print a warning. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) takes one comma-separated value, like `--reporters terminal,json,html`, which 4.x reports as an unknown reporter.
+
+On GitLab, add `junit` to the `reporters` list in your `.doc-detective.json` rather than creating a second config file:
+
+```json title=".doc-detective.json"
+{
+  "reporters": ["terminal", "json", "html", "junit"]
+}
+```
+
+Then point the test summary at the `junit.xml` file:
+
+```yaml title=".gitlab-ci.yml"
+doc-tests:
+  script:
+    # Reporters come from the reporters list in .doc-detective.json
+    - doc-detective --input ./docs --output ./reports
+  artifacts:
+    reports:
+      junit: reports/junit.xml
+```
+
+On GitHub Actions, add `markdown` to the `reporters` list in `.doc-detective.json`:
+
+```json title=".doc-detective.json"
+{
+  "reporters": ["terminal", "json", "html", "markdown"]
+}
+```
+
+If the same config also runs on GitLab, keep `junit` in the list:
+
+```json title=".doc-detective.json"
+{
+  "reporters": ["terminal", "json", "html", "junit", "markdown"]
+}
+```
+
+Then, in your GitHub Actions workflow, append the Markdown summary to the job summary:
+
+```yaml title=".github/workflows/docs.yml"
+# Reporters come from the reporters list in .doc-detective.json
+- run: doc-detective --input ./docs --output ./reports
+- if: always()
+  run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"
 ```
 
 ## Step 2: Read the terminal summary
@@ -117,6 +141,43 @@ Anything that runs more than once reports the **final attempt** in `durationMs`.
 
 A step that never ran reports `0`. That covers a step that was skipped, guarded off, or downstream of a failure.
 
+### Tell environment changes from product changes
+
+When a test that passed yesterday fails today, check whether the environment changed before you debug the product. The results record what ran each run, and Doc Detective populates every field:
+
+```json
+{
+  "runId": "2026-11-06T02-33-28-631Z",
+  "startedAt": "2026-11-06T02:33:28.631Z",
+  "environment": {
+    "platform": "linux",
+    "arch": "x64",
+    "docDetectiveVersion": "4.42.0",
+    "nodeVersion": "24.15.0",
+    "osRelease": "6.8.0-1017-azure"
+  },
+  "specs": [{ "tests": [{ "contexts": [{
+    "contextId": "default",
+    "startedAt": "2026-11-06T02:33:28.640Z",
+    "browser": { "name": "chrome", "version": "131.0.6778.85" },
+    "driver": { "name": "chromedriver", "version": "131.0.6778.85" },
+    "steps": [{ "stepId": "open-home", "startedAt": "2026-11-06T02:33:28.645Z", "durationMs": 138 }]
+  }]}]}]
+}
+```
+
+- `environment` describes the machine that ran the tests: the Doc Detective and Node.js versions, the platform, the processor architecture, and the OS release. It leaves out the working directory.
+- Each context that started a browser records the `browser.version` and the `driver` that drove it. A context without a browser has neither. Safari's driver reports no version.
+- `startedAt` is an ISO 8601 UTC timestamp with milliseconds. It's on the run, each context, and each step that ran. A node ends at `startedAt` plus `durationMs`. Specs and tests have no `startedAt`, because their durations are sums rather than spans.
+
+To spot a changed browser between runs, print one line per results file with its start time and versions:
+
+```bash
+jq -r '"\(.startedAt) doc-detective \(.environment.docDetectiveVersion), " + ([.specs[].tests[].contexts[].browser | select(.version) | "\(.name) \(.version)"] | unique | join(", "))' testResults-*.json
+```
+
+Use `startedAt` for the time of a run, not `runId`. `runId` names the [run folder](#step-5-collect-the-run-folder-and-artifacts). It sorts by time, but its format can change.
+
 ### Read the warm-phase timings
 
 The results also carry a `warm` object that records what the run provisioned before executing tests. At the start of every run, Doc Detective front-loads setup the tests would otherwise pay one at a time. It runs those tasks concurrently. That setup covers browser and driver installs, simulator and emulator boots, and related downloads. Each entry lists the task, its outcome, and how long it took:
@@ -165,6 +226,8 @@ This is the most common mistake when wiring Doc Detective into a pipeline, so re
 
 <Warning>
 By default, the standalone `doc-detective` CLI does **not** exit with a non-zero code when tests fail. It exits non-zero only when it crashes or your config is invalid. A pipeline that relies on the CLI's exit code therefore reports success even when documentation tests failed. Opt in with `--exit-on-fail` to change that.
+
+Doc Detective 5.0 makes failing on test failures the default. Until then, a run with failed specs and no `exitOnFail` setting prints a warning about the change to stderr. To choose the behavior and silence the warning, set `exitOnFail` to `true` or `false`, or pass `--exit-on-fail` or `--no-exit-on-fail`. See [Prepare for Doc Detective 5.0](/docs/ci/upgrade-to-v5).
 </Warning>
 
 To gate your build, choose one of these approaches:

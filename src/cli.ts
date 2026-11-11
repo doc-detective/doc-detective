@@ -1,5 +1,5 @@
 import { runTests, awaitTelemetryFlush } from "./core/index.js";
-import { shouldFailRun } from "./core/utils.js";
+import { shouldFailRun, localUrlPolicy } from "./core/utils.js";
 import {
   buildYargs,
   setConfig,
@@ -14,6 +14,7 @@ import {
 } from "./utils.js";
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
+import { commandWarnings, runResultWarnings, warnUpgrade } from "./upgradeNotice.js";
 import { installCommand } from "./runtime/installCommand.js";
 import { lspCommand } from "./lsp/command.js";
 import { printDebug, defaultDebugDir } from "./debug/index.js";
@@ -21,9 +22,7 @@ import { debugCommand } from "./debug/command.js";
 import { argv as processArgv } from "node:process";
 import path from "node:path";
 import fs from "node:fs";
-import { createRequire } from "node:module";
-
-const cliRequire = createRequire(import.meta.url);
+import { ownVersion } from "./runtime/heavyDeps.js";
 
 // Run
 setMeta();
@@ -41,7 +40,29 @@ main(processArgv).catch((err) => {
 });
 
 async function main(argv: string[]) {
+  // Conflicting local-URL switches are a usage error for every command
+  // (ADR 01162). The library throws; the CLI reports it and exits 2. Help
+  // and version still answer, since people reach for them to diagnose it.
+  const args = argv.slice(2);
+  const wantsHelpOrVersion =
+    args[0] === "help" || args.some((arg) => ["--help", "-h", "--version"].includes(arg));
+  try {
+    if (!wantsHelpOrVersion) localUrlPolicy();
+  } catch (error: any) {
+    log(`Error: ${error.message}`, "error");
+    process.exitCode = 2;
+    return;
+  }
+
   await buildYargs(argv)
+    // Runs before setConfig reads the config file, so only `--log-level silent`
+    // hides these command warnings; a config file's `logLevel: silent` doesn't.
+    .middleware((args: any) =>
+      warnUpgrade(
+        commandWarnings(args._.map(String), argv.slice(2)),
+        args.logLevel
+      )
+    )
     .command({
       command: "$0",
       describe: "Run Doc Detective tests (default).",
@@ -189,12 +210,14 @@ async function runTestsHandler(args: any) {
   ) {
     /* c8 ignore start - self-update: real registry HTTP + real process re-exec via process.exit; no injectable seam at this call site (see comment above) */
     // Route the self-update module's logs through the CLI's existing log()
-    // helper so config.logLevel is respected. Map "warn" → "warning".
+    // level check so config.logLevel is respected. Map "warn" → "warning". These
+    // lines go to stderr because a major-version notice would otherwise corrupt
+    // --dry-run JSON on stdout.
     const cliLogger = (msg: string, level: string = "info") => {
       const mapped = level === "warn" ? "warning" : level;
-      log(msg, mapped, config);
+      if (logLevelEnabled(mapped, config)) console.error(msg);
     };
-    const currentVersion: string = cliRequire("../package.json").version;
+    const currentVersion = ownVersion();
     // Kick off the registry check now, concurrently with the detection /
     // resolution work that runTests is about to do. Self-contained error
     // handling so a rejected promise never becomes an unhandled rejection.
@@ -266,6 +289,11 @@ async function runTestsHandler(args: any) {
     // Wrapped in its own try/catch internally — never throws.
     await maybeShowHint(config, results);
   }
+
+  warnUpgrade(
+    runResultWarnings(config.exitOnFail, shouldFailRun(results), results),
+    config.logLevel
+  );
 
   // Opt-in gate: exit 1 on spec failures. Non-obvious WHY — the CLI otherwise
   // exits 0 even on FAIL (the fail-the-build call has historically lived in CI

@@ -24,13 +24,13 @@ You can specify the `runBrowserScript` action using either a string or an object
 
 **Output regression testing.** If you set `path` and a reference file already exists there, the action compares the new serialized return value to the reference content. If the difference falls within `maxVariation`, the step passes. If it exceeds the threshold, the step returns WARNING, and the `overwrite` setting (`false`, `true`, or `aboveVariation`) controls whether the action rewrites the file.
 
-> Running arbitrary JavaScript in the page can modify application state. Mark a step `unsafe: true` when its script could have side effects. Unsafe steps run only when you allow them (via the `allowUnsafeSteps` config option or the `--allow-unsafe` flag); otherwise Doc Detective skips them.
+> Running arbitrary JavaScript in the page can modify application state. Mark a step `unsafe: true` when its script could have side effects. Unsafe steps run only when you allow them with the `allowUnsafeSteps` config option or the `--allow-unsafe` flag. The [official Doc Detective container image](/docs/ci/docker-and-headless) allows them by default unless you set `allowUnsafeSteps` to `false`. Otherwise, Doc Detective skips them.
 
 > For comprehensive options, see the [`runBrowserScript`](/reference/schemas/runbrowserscript) reference.
 
 ## Examples
 
-Here are a few ways you might use the `runBrowserScript` action:
+The docs tests run every example below except the specific-tab, regression-testing, and unsafe-script examples.
 
 ### Read a value from the page
 
@@ -43,7 +43,10 @@ This example navigates to a page and returns its title.
   "tests": [
     {
       "steps": [
-        { "goTo": "https://example.com" },
+        {
+          "description": "Open the page.",
+          "goTo": "https://example.com"
+        },
         {
           "description": "Read the page title.",
           "runBrowserScript": "return document.title;"
@@ -69,7 +72,10 @@ This example checks that the current URL uses HTTP(S) via a regular expression.
   "tests": [
     {
       "steps": [
-        { "goTo": "https://example.com" },
+        {
+          "description": "Open the page.",
+          "goTo": "https://example.com"
+        },
         {
           "description": "Validate the page URL.",
           "runBrowserScript": {
@@ -98,7 +104,10 @@ The script reads values from `args` through the `arguments` object.
   "tests": [
     {
       "steps": [
-        { "goTo": "https://example.com" },
+        {
+          "description": "Open the page.",
+          "goTo": "https://example.com"
+        },
         {
           "description": "Concatenate two arguments in the page.",
           "runBrowserScript": {
@@ -117,6 +126,39 @@ The script reads values from `args` through the `arguments` object.
 {/* step {"stepId":"runbrowserscript-concat","description":"Concatenate two arguments in the page","runBrowserScript":{"script":"return arguments[0] + arguments[1];","args":["foo","bar"],"output":"foobar"}} */}
 {/* test end */}
 
+### Pass non-string arguments
+
+Each item in `args` can be any JSON-serializable value, not only a string: a number, boolean, `null`, object, or array. The script receives them through the `arguments` object with their original types.
+
+{/* test {"testId":"runbrowserscript-nonstring-args","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Open the page.",
+          "goTo": "https://example.com"
+        },
+        {
+          "description": "Read the types of mixed arguments in the page.",
+          "runBrowserScript": {
+            "script": "return typeof arguments[0] + ',' + typeof arguments[1] + ',' + JSON.stringify(arguments[2]);",
+            "args": [42, true, { "a": 1 }],
+            "output": "number,boolean,{\"a\":1}"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-runbrowserscript-nonstring","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"runbrowserscript-nonstring","description":"Pass a number, boolean, and object and assert their types round-trip","runBrowserScript":{"script":"return typeof arguments[0] + ',' + typeof arguments[1] + ',' + JSON.stringify(arguments[2]);","args":[42,true,{"a":1}],"output":"number,boolean,{\"a\":1}"}} */}
+{/* test end */}
+
 ### Capture the return value into a variable
 
 After navigating to the page, this example runs three `runBrowserScript` steps. The first seeds a value into `localStorage`, purely as a test fixture, so this standalone example has something to read. In a real test you wouldn't seed the value yourself. Instead, you'd capture something the product under test had already written, such as an auth token the application stored in `localStorage`. The second step reads that value and stores it in a `TOKEN` variable. The third passes the variable through `args` to assert that it round-trips through the page unchanged.
@@ -128,7 +170,10 @@ After navigating to the page, this example runs three `runBrowserScript` steps. 
   "tests": [
     {
       "steps": [
-        { "goTo": "https://example.com" },
+        {
+          "description": "Open the page.",
+          "goTo": "https://example.com"
+        },
         {
           "description": "Seed a value to capture.",
           "runBrowserScript": "window.localStorage.setItem('token', 'abc123');"
@@ -159,3 +204,91 @@ After navigating to the page, this example runs three `runBrowserScript` steps. 
 {/* step {"stepId":"runbrowserscript-capture","description":"Read the value and store it in a variable","runBrowserScript":"return window.localStorage.getItem('token');","variables":{"TOKEN":"$$result"}} */}
 {/* step {"stepId":"runbrowserscript-reuse","description":"Reuse the captured value and assert it round-tripped correctly","runBrowserScript":{"script":"return arguments[0];","args":["$TOKEN"],"output":"abc123"}} */}
 {/* test end */}
+
+### Run the script in a specific tab or browser
+
+By default the script runs in the active tab. Set `surface` to target another browser, window, or tab. Pass a browser object to pick a named session, window, or tab, or a browser-engine keyword to target that engine's default session.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Read the title of the report tab in Chrome.",
+          "runBrowserScript": {
+            "script": "return document.title;",
+            "surface": { "browser": "chrome", "tab": "report" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Read the title in the default Firefox session.",
+          "runBrowserScript": {
+            "script": "return document.title;",
+            "surface": "firefox"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Save the return value for regression testing
+
+Save the serialized return value with `path` and `directory`, and cap the script with a `timeout` in milliseconds. On later runs, `maxVariation` and `overwrite` compare the new value against the saved copy.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Save the return value and refresh it only on drift.",
+          "runBrowserScript": {
+            "script": "return JSON.stringify({ ready: document.readyState });",
+            "path": "ready-state.json",
+            "directory": "./output",
+            "maxVariation": 0.1,
+            "overwrite": "aboveVariation",
+            "timeout": 5000
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Mark a side-effecting script unsafe
+
+A script that changes app state has side effects. Writing `localStorage`, dispatching events, or calling an API all count. Mark the step `unsafe: true` so it runs only when you allow unsafe steps. Enable them with the `allowUnsafeSteps` config option or the `--allow-unsafe` flag. Inside the [official Doc Detective container image](/docs/ci/docker-and-headless), they run by default unless you set `allowUnsafeSteps` to `false`. Otherwise, Doc Detective skips the step.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Write to localStorage from an unsafe step.",
+          "runBrowserScript": {
+            "script": "window.localStorage.setItem('token', 'abc123');"
+          },
+          "unsafe": true
+        }
+      ]
+    }
+  ]
+}
+```

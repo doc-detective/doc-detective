@@ -115,6 +115,14 @@ the reviewable source of truth rather than an afterthought.
 - **Scope**: ADRs document *decisions* such as behavior, contracts, and trade-offs, not mechanical
   changes. Pure refactors, dependency bumps, typo and doc fixes, and style changes don't need one.
   A change that alters observable behavior or a public contract does.
+- **Numbering at merge time**: concurrent PRs pick the same next number. Take the next free number
+  when the PR merges, and renumber the later-merged file on a clash. The `Check ADR numbers` step in
+  [.github/workflows/commitlint.yml](.github/workflows/commitlint.yml) runs
+  [scripts/check-adr-numbers.cjs](scripts/check-adr-numbers.cjs) and fails a PR whose added ADR
+  reuses a taken number. Duplicates already on `main` are grandfathered. Run it locally with
+  `node scripts/check-adr-numbers.cjs origin/main` after you commit.
+- **Citing ADRs**: a bare number (`ADR 01022`) means this repo. Cite another repo's ADR as
+  `<repo> ADR NNNNN`, with the repo's name in front.
 
 ## Feature fixtures (required)
 
@@ -160,6 +168,94 @@ ADRs and feature fixtures travel with a third companion: a **docs-impact assessm
 As a rule of thumb, a change that warrants an **ADR** or a **feature fixture** almost always has
 user-facing surface. It therefore almost always has docs impact. The three move together:
 **behavior change → ADR + fixtures + docs assessment.**
+
+## Plans and interfaces (required)
+
+These rules govern plans and every interface a plan defines. They're adapted from the manni repo's
+`CLAUDE.md`. Rule 5 departs from it on purpose.
+
+1. **Shared concepts use shared values.** A flag, config key, or field that two surfaces both have
+   carries the same name and the same values. The surfaces are the CLI, config, the GitHub Action,
+   Online, the agent skills, and the LSP. Define the value once. Common's schemas and exports
+   ([src/common/](src/common)) are canonical, and every other surface imports or generates from them.
+   A surface whose source speaks another scale maps onto the shared one, and keeps the source's value
+   in a field of its own.
+2. **Plans show the full interface.** A plan for a code change spells out the user-facing interface
+   in full:
+   - config before and after, as the JSON or YAML a user writes, with each key's type, default,
+     whether it's required, and its effect;
+   - every flag;
+   - every message, with its exit code;
+   - every output shape the change adds or alters;
+   - a CLI invocation ladder from minimal to maximal, ending with usage errors.
+
+   The ladder's first rung is the bare minimum that does something useful. Then come the common
+   variants, then one invocation that uses every option at once. The last rung is the usage errors,
+   each with its exact stderr line and exit code. Each rung shows the command and what it prints. The
+   option table says what each flag is. The ladder shows whether the flags compose into a command a
+   person would type.
+
+   List the programmatic API (what `doc-detective` and `doc-detective-common` export) when it
+   changes. It goes after the user-facing surface, never instead of it. Internal types and function
+   signatures stay out. The review happens on the plan, so anything the plan leaves to
+   implementation reaches the reviewer first in the diff. Config keys, flag names, and messages ship,
+   so they're the expensive things to get wrong.
+3. **One separator per list.** A list reaches a command in exactly one shape, and each flag uses one:
+   - A positional variadic (`[inputs...]`) is space-separated, because that's what argv is.
+   - A `<list>` option (`--test`, `--spec`) is comma-separated and given once.
+   - A repeatable option takes one value per occurrence and never splits on commas.
+
+   The named exception is `--input`. It takes a comma list alongside the space-separated
+   `run [inputs...]` positional, and the two combine. `--input` predates this rule (see
+   ["Multi-value flags"](#multi-value-flags---test---spec)). Don't model new flags on it.
+4. **Interfaces describe the present.** A user-facing interface says what the tool does. It never
+   says what's planned, deferred, or not built yet. That covers `--help` text, messages, schema
+   `description` strings, hints, the Fern pages, READMEs, `action.yml`, skills, and the Online UI. A
+   flag that does nothing doesn't exist. A reference table leaves out the row for something absent
+   rather than marking it. ADRs, [docs/design/](docs/design), code comments, and tests are exempt. A
+   roadmap in an interface has no owner and no expiry, and the reader who hits the gap takes it as a
+   commitment. Track future work in an issue or an ADR instead. The schema-description guard lives in
+   [src/common/test/schemaDescriptions.test.js](src/common/test/schemaDescriptions.test.js).
+5. **Renames keep a deprecated alias** for the life of the major. This covers names users write:
+   flags, config and spec keys, Action inputs, env vars, and script flags. The old name keeps
+   working, is labeled deprecated in help and in the schema, and warns once on stderr. The next major
+   removes it. Output fields, such as report JSON, are renamed outright and listed in the migration
+   guide. The contract:
+   - In the schema, the old key stays a property with `"deprecated": true` and the description
+     ``Deprecated: use `<new>`.``
+   - The common step normalizer renames step keys old → new. `setConfig` renames config keys.
+   - Warning: once per run on stderr, ``Warning: `<old>` is deprecated. Rename it to `<new>`.``
+   - Setting both is a usage error (exit 2): ``<path>: set `<new>` or `<old>`, not both.``
+
+   This rule departs from manni's no-alias rule on purpose. It's a maintainer decision.
+6. **Subagents.** The main session keeps the decisions, the review, and the final report. Anything
+   that produces long output or many file reads goes to a subagent that reports a conclusion, not a
+   transcript:
+   - exploration sweeps;
+   - each plan chunk, with its plan section pasted in, running its own red → green loop;
+   - long verification runs (`npm test`, a docs build, a fixture run), summarized back.
+
+   Keep what needs the whole picture in the main session: the plan, the interfaces between chunks,
+   and the commit and PR text.
+7. **Units stay in names.** Never remove or rename a unit suffix (`delayMs`, `durationMs`). A new
+   field takes the name its family already uses. For example, a per-attempt limit on `checkLink` is
+   `timeout`, like every other action's `timeout`.
+
+## Messages (required)
+
+Every user-visible message follows one style. That covers errors, warnings, skip reasons, result
+descriptions, hints, and CLI output.
+
+- A failure starts with `Couldn't <verb>`, for example ``Couldn't find element `#submit`.``
+- A skip reads `Skipped: <reason>.`
+- Keys, flags, and values go in backticks: `` `timeout` ``, `` `--input` ``.
+- Every sentence ends with a period.
+- Name the cause in words. Never interpolate a bare `${error}`.
+- Paths are absolute. URLs are redacted with `redactUrlForOutput()` from
+  [src/core/utils.ts](src/core/utils.ts).
+- When a flag or config key fixes the problem, name it.
+- Print through the `log()` helpers ([src/utils.ts](src/utils.ts), [src/core/utils.ts](src/core/utils.ts)),
+  never `console.*`.
 
 ## Documentation content strategy (required)
 
@@ -213,6 +309,48 @@ All commits must follow [Conventional Commits](https://www.conventionalcommits.o
 - `feat: add install-agents CLI subcommand`
 - `refactor(agents)!: rename agent ids to bare names`
 - `ci: start local test server for Test GitHub Action job`
+
+## Pull requests (required)
+
+Open your PRs and carry them through approval and merge.
+
+- **Earn the Claude review's approval.** Approval means a review from the Claude review bot (`claude[bot]`)
+  on the PR's current head commit, either `APPROVED` or `COMMENTED` with nothing marked blocking. The
+  maintainer's own approval also counts. A `CHANGES_REQUESTED` review, or a comment that marks a finding
+  blocking, never counts.
+- **Get there by fixing.** Fix its findings and push. The bot reviews again after each push.
+- **Other bots don't count,** including CodeRabbit. Still fix CodeRabbit's valid findings, though. They're
+  often real bugs, even when its verdict doesn't gate the merge.
+
+For how to merge past the `main` ruleset, see [release-operations.md](docs/maintenance/release-operations.md).
+
+### Stacked pull requests
+
+Develop and merge any change that spans more than one pull request as a GitHub stacked pull request, through
+the `gh stack` extension. Don't open independent PRs for dependent work, and don't hand-rebase a chain of
+branches.
+
+- Install the extension once: `gh extension install github/gh-stack`. Stacked PRs need no repository or
+  organization setting.
+- Start on the stack's trunk, which is `main` or a release branch such as `feat/v5-rc`:
+  `gh stack init --base <trunk> <first-branch>`. Add each layer with `gh stack add <branch>`. Keep each layer
+  one reviewable change, with its own tests, ADR, fixtures, and docs-impact note.
+- Open or update every PR in the stack with `gh stack submit --auto --open --remote origin`. Each PR targets
+  the branch below it.
+  - Agents always pass `--auto`. Without it, a terminal session opens an interactive editor and the command
+    blocks.
+  - `--remote origin` is needed because this checkout has several remotes.
+- When the trunk or a lower layer moves, run `gh stack sync --remote origin` or
+  `gh stack rebase --remote origin`, not a manual rebase. Both fetch, so they need the remote too.
+  `gh stack rebase` only updates local branches, so follow it with `gh stack push --remote origin` to publish
+  them.
+- Merge bottom-up with `gh stack merge <pr> --merge --yes`. It merges every PR up to and including `<pr>`, all
+  or nothing, so every one of those PRs needs its own approval first.
+  - Agents pass `--yes`, so the command doesn't wait for a prompt.
+  - Use `--merge`, never squash, so each layer's `BREAKING CHANGE:` footer reaches semantic-release.
+- A stack merge can't bypass the trunk's rules, so `--admin` isn't available. See
+  [release-operations.md](docs/maintenance/release-operations.md).
+- Put independent work in separate stacks.
 
 ## How version selection works
 
