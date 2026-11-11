@@ -622,8 +622,8 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
       source:
         file: src/core/tests/imageMatch.ts
         lines: 658-666
-        integrity: sha256-4379d3c22963da8c0c15cd806af0c8273129c0e92567c10e65f58fc95ce49133
-        commit-sha: d14e99de3402fd0d882ce39c1faa297539c2023d
+        integrity: sha256-4b3b43798b50cc4972d7675316357b751329a3e5b6e812d0b8435efd4c625beb
+        commit-sha: 500760fa09607dc89b974b62aebb00fb7aa8559c
     - id: image-first-match-proof
       claim:
         integrity: sha256-b933945bf0aab88fb5a103ab63ca3b7b1d8f785df0cbff77ee323abb14b647ac
