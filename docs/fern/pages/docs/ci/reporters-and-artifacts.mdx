@@ -35,7 +35,7 @@ To choose reporters for every run, set them in your config file. This works on 4
 }
 ```
 
-The `reporters` list replaces the defaults, so name every reporter you want. This example leaves out `runFolder`, so the run doesn't archive a run folder.
+The `reporters` list replaces the defaults, so name every reporter you want. `runFolder` is one of the defaults, but this example leaves it out. Without it, the run doesn't save a per-run folder of results, screenshots, and recordings. To keep that folder, add `runFolder` to the list.
 
 On the command line, several values after `--reporters`, like `--reporters terminal json html`, work on 4.x, but they print a warning. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) takes one comma-separated value, like `--reporters terminal,json,html`, which 4.x reports as an unknown reporter.
 
