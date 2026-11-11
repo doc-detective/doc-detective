@@ -1,3 +1,10 @@
+# [5.0.0-v5-rc.17](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.16...v5.0.0-v5-rc.17) (2026-11-11)
+
+
+### Bug Fixes
+
+* **cli:** name the browser in per-context progress lines ([5ef9c6b](https://github.com/doc-detective/doc-detective/commit/5ef9c6bb830523b6bf54ff42f636d6916fa9944e))
+
 # [5.0.0-v5-rc.16](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.15...v5.0.0-v5-rc.16) (2026-11-11)
 
 

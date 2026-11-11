@@ -1,6 +1,6 @@
 {
   "name": "doc-detective-common",
-  "version": "5.0.0-v5-rc.16",
+  "version": "5.0.0-v5-rc.17",
   "description": "Shared components for Doc Detective projects.",
   "type": "module",
   "files": [
