@@ -221,7 +221,7 @@ jobs:
           input: ./docs
           create_issue_on_fail: true
           create_pr_on_change: true
-          pr_paths: docs
+          pr_paths: ./docs
           token: ${{ secrets.DOC_DETECTIVE_ISSUE_TOKEN }}
           issue_mentions: claude,promptless
           issue_prompt: |
