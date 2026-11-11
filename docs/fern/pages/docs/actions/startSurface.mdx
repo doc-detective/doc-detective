@@ -47,7 +47,7 @@ On Windows and macOS, opening two app surfaces with the same `name` in one conte
 
 ## Browser descriptors
 
-- `browser`: (Required) Engine: `chrome`, `firefox`, `safari`, `webkit`, or `edge`. Opens a blank, ready session on the context's automation server. There's no cross-engine fallback. You named the engine, so Doc Detective never substitutes another. The exception is `edge`. Because it's Chromium, it opens on the Chrome/chromedriver stack and registers under the `chrome` engine name. An unnamed `edge` session therefore collides with a `chrome` one, so one of them needs an explicit `name` (see the next bullet).
+- `browser`: (Required) Engine: `chrome`, `firefox`, `safari`, `webkit`, or `edge`. Opens a blank, ready session on the context's automation server. There's no cross-engine fallback. You named the engine, so Doc Detective never substitutes another. The exception is `edge`. Because it's Chromium, it opens on the Chrome/chromedriver stack and registers under the `chrome` engine name. An unnamed `edge` session therefore collides with a `chrome` one, so one of them needs an explicit `name` (see the next bullet). [Doc Detective 5.0](/docs/ci/upgrade-to-v5) removes `edge`, so 4.x warns when a spec uses it. Use `chrome` instead.
 - `name`: (Optional) Surface-registry name. Defaults to the engine keyword. The context's default browser already registers under its engine name, so a second session of the same engine needs an explicit `name`. An unnamed duplicate fails with guidance.
 - `headless`: (Optional) Overrides the context's headless setting for this session.
 - `size`: (Optional) Outer window dimensions (`{ "width": …, "height": … }`). If you set neither `size` nor `viewport`, the session uses the context's size. That's the context's `viewport` setting (applied by resizing the window), its `window` setting, or the 1200×800 default viewport. See [Browsers](/docs/test-docs/platforms-and-browsers#browsers).
@@ -279,7 +279,7 @@ Set a device once on the context to share it across every app the test launches.
 
 ## Reserved fields
 
-Doc Detective validates some device-descriptor fields today but reserves them for later phases of the native app roadmap. Setting `orientation`, `udid`, or `provider` on a `device` fails the step with a message that names the roadmap, rather than silently ignoring what you asked for.
+Doc Detective validates some device-descriptor fields today but reserves them for later phases of the native app roadmap. Setting `orientation`, `udid`, or `provider` on a `device` fails the step with a message that names the roadmap, rather than silently ignoring what you asked for. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) removes these fields, so remove them from your `device` descriptors.
 
 ## Wait for the app to be ready
 
