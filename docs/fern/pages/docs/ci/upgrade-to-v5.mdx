@@ -92,7 +92,7 @@ Custom metadata needs to move out of the step. To skip these specs and run the r
 | `$schema` | Inside `saveCookie` and `loadCookie` |
 | `workingDirectory` | A `startSurface` app. A `startSurface` process keeps it. |
 
-An app's `workingDirectory` behaves differently. Version 4 failed the step at run time instead of ignoring the key. Version 5 rejects the spec before any test runs. The error doesn't name `workingDirectory`: it points at the step's `startSurface` and lists the keys a process surface needs.
+An app's `workingDirectory` behaves differently. Version 4 failed the step at run time instead of ignoring the key. Version 5 rejects the spec before any test runs, and the run exits `2`. The error doesn't name `workingDirectory`. It points at the step's `startSurface` and names keys that other surface types need, such as `browser` or `process`.
 
 **What to do:** Delete these keys. To set the folder an app starts in, start it from a `runShell` step instead.
 
