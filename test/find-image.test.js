@@ -996,6 +996,12 @@ describe("elementImage matching", function () {
       near((await once(shot, { base64: b64(file), threshold: 1 })).match, 40, 50);
     });
 
+    it("image-default-threshold: a miss names the `threshold` as written", async function () {
+      const reference = await match.loadImageReference({ base64: b64(solid("#333333", 24)), threshold: 1 });
+      const best = { x: 40, y: 50, width: 24, height: 24, score: 0.5, shape: 0.5, color: 0.5, fileColor: "#333333", pageColor: "#ffffff", contrast: 1 };
+      expect(match.missMessage(reference, best, 1)).to.include("below the `threshold` of 1, at");
+    });
+
     it("image-uniform-reference: a solid icon with rounded corners is still an icon", async function () {
       for (const rx of [1, 2, 3]) {
         const file = rounded(rx);

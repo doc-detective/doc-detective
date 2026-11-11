@@ -74,6 +74,8 @@ type ImageReference = {
   color: Rgb | null;
   colorGiven: boolean;
   threshold: number;
+  // What a message shows: `threshold` as written, before the cap.
+  statedThreshold: number;
   renders: Map<number, Render>;
 };
 
@@ -231,6 +233,7 @@ async function loadImageReference(
     color: kind === "oneColor" ? (spec.color ? fromHex(spec.color) : average) : null,
     colorGiven: spec.color !== undefined,
     threshold: Math.min(spec.threshold ?? DEFAULT_IMAGE_THRESHOLD, HIGHEST_THRESHOLD),
+    statedThreshold: spec.threshold ?? DEFAULT_IMAGE_THRESHOLD,
     renders: new Map(),
   };
 }
@@ -676,13 +679,13 @@ async function matchImageOnce({
 }
 
 function missMessage(reference: ImageReference, best: Candidate | null, scale: number): string {
-  const { label, threshold } = reference;
+  const { label, threshold, statedThreshold } = reference;
   const display = `a display scale of ${Math.round(scale * 100) / 100}`;
   if (!best) return `Couldn't find ${label}: no part of the page could be compared with it, at ${display}.`;
   let message =
     `Couldn't find ${label}. The closest match scored ${best.score.toFixed(2)} ` +
     `(shape ${best.shape.toFixed(2)}, color ${best.color.toFixed(2)}) ` +
-    `at (${Math.round(best.x)}, ${Math.round(best.y)}), below the \`threshold\` of ${threshold}, at ${display}.`;
+    `at (${Math.round(best.x)}, ${Math.round(best.y)}), below the \`threshold\` of ${statedThreshold}, at ${display}.`;
   // A faint texture can correlate with any shape, and its color isn't worth copying.
   if (best.shape >= threshold && best.color < threshold && best.contrast >= FAINT_CONTRAST) {
     message += ` Its shape matched, but the image is \`${best.fileColor}\` and the page shows \`${best.pageColor}\`.`;
