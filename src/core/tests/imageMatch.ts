@@ -656,7 +656,7 @@ async function matchImageOnce({
       );
     }
     let kept = onePerPlace(seen).filter((c) => c.score >= ref.threshold);
-    const top = kept.length ? Math.max(...kept.map((c) => c.score)) : 0;
+    const top = kept.reduce((a, c) => Math.max(a, c.score), 0);
     if (!all) {
       const winner = kept.find((c) => c.score === top);
       kept = kept.filter((c) => c.height === winner?.height);
