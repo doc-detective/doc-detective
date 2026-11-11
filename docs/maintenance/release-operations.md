@@ -49,6 +49,35 @@ realities around them.
 - The repo owner (hawkeyexl) is admin: `gh pr merge <n> --merge --admin --delete-branch` bypasses
   the approval gate. `--delete-branch` prints a harmless "failed to delete local branch" when the
   branch is checked out in another worktree; the remote branch still gets deleted.
+- **What counts as approval.** A review from the Claude review bot (`claude[bot]`, the "Claude PR Review -
+  Auto" workflow) counts when it's on the PR's current head. Its state must be `APPROVED`, or `COMMENTED`
+  with nothing marked blocking. That review, or the maintainer's own approval, is what this file calls a
+  qualifying review.
+  - The bot rarely returns `APPROVED`, and every push sets the layers above it back to unreviewed. So
+    requiring `APPROVED` on every layer at once never converged.
+  - Check that the review's `commit_id` matches the head SHA:
+  `gh api repos/:owner/:repo/pulls/<n>/reviews --jq '.[] | select(.user.login=="claude[bot]") | {state, commit_id}'`.
+  The maintainer's own approval also counts. Other bots, including CodeRabbit, never do. Agents earn the
+  approval by fixing the review's findings and pushing, and they carry their PRs through to merge. On `main`,
+  merge a single PR with `gh pr merge <n> --merge --admin --delete-branch --match-head-commit <sha>` once
+  the approval is there. `<sha>` is the head the approval and checks cover, so a push that lands in between
+  makes the merge fail instead of merging unreviewed code.
+  `--admin` bypasses every rule in the ruleset, not just the approval. So before each use, confirm with
+  `gh pr checks <n> --json name,state,workflow`:
+  - each of the five required contexts above has reported and passed, since a green list can hide one
+    that never reported;
+  - CodeQL (the `code_quality` rule) passed. Two checks are named `Analyze (javascript-typescript)`, so tell
+    the CodeQL and Code Quality ones apart by `workflow`.
+- **An approval covers only the commit it reviewed.** Any push, including a `gh stack` rebase, moves the head.
+  The bot then reviews again, and the PR needs a fresh qualifying review on the new head before it merges.
+  - Rebases get no exception, on purpose. The bot reviews every push on its own, so the strict rule costs
+    only a wait.
+  - It also means nobody has to judge whether a rebase changed the PR's diff.
+- Stacked PRs (see `CLAUDE.md`) merge with `gh stack merge <pr> --merge`, which has no `--admin`. Every
+  layer must meet the trunk's ruleset, so a stack into `main` needs a formal approving review. A stack into
+  `feat/v5-rc` has no ruleset to enforce approval. It merges once every layer being merged has green checks
+  and its own qualifying review on its current head: `APPROVED`, or `COMMENTED` with nothing blocking. An approval on the top PR doesn't approve the layers
+  below it.
 - Stale CodeQL on old branches clears by merging current `origin/main` into the branch.
   `reviewDecision: CHANGES_REQUESTED` persists even after fixes. Only an APPROVED review or a
   dismissal clears it. A later COMMENTED review does not.
@@ -96,6 +125,84 @@ realities around them.
   bypassed with admin rights. The CLA check flags `semantic-release-bot` commits; a promotion PR
   typically needs an admin merge.
 
+## Major releases
+
+A `major` on main fails in `scripts/verify-major-release.js`, before anything publishes, unless the
+`ALLOW_MAJOR_RELEASE` repository variable is `true`, in any case ([ADR 01147](../../adrs/01147-prepare-4x-users-for-5-0.md)).
+Unset is the normal state. Prerelease channels are exempt.
+
+- **Intended major:** set the variable to `true`, rerun the release, then unset it.
+- **Stray `BREAKING CHANGE:` footer or `!`:** `git revert` the commit on main. The next release is then
+  an ordinary patch.
+
+## Roll back a major release
+
+Fix forward first. Land a `fix:` on main, and the normal pipeline ships a 5.0.x and promotes it.
+
+Roll back only when 5.0 is unusable and no quick fix exists. `promote.yml` refuses to move `@latest`
+to an older version, so you do these steps by hand, in this order:
+
+1. **Stop main from releasing, and settle the runs already going.** Merge nothing to main until the
+   rollback is done. Then list every run that hasn't completed, in each unfinished status. That
+   includes `pending` runs waiting on a concurrency group. `--status` filters on GitHub's side, so
+   the limit counts only matching runs:
+
+   ```bash
+   for wf in release.yml promote.yml docker-build.yml; do
+     for s in requested waiting pending queued in_progress; do
+       gh run list --workflow "$wf" --status "$s" --limit 100
+     done
+   done
+   ```
+
+   A Release run includes the promote and Docker jobs it calls. Wait for each run to finish, or stop
+   it with `gh run cancel <run-id>`. Once a Release run's `release` job has started its `Release`
+   step, let it finish. That step publishes `doc-detective` and `doc-detective-common` to npm, and
+   cancelling it between the two leaves them at different versions. Cancel a Release run only before
+   that step starts. The three workflows' concurrency groups key on the ref or version
+   (`release-<ref>`, `promote-<version>`, `docker-build-<ref>-<version>`), so nothing queues them
+   behind your rollback. A 5.x Docker job that finishes after step 5 moves `latest` back to 5.x.
+2. **If the final 4.x update already shipped, remove its notice.** That notice tells users to move
+   to 5, the release you're pulling. Revert it on the `4.x` branch as a `fix:` commit, so the
+   release publishes a 4.x patch without it. Wait for that release to finish. Its patch is now the
+   last 4.x.
+3. **Pin Online to the last 5.0.x image.** Set Online's `RUNNER_IMAGE` environment variable to
+   `docdetective/docdetective:<last-5.0.x>`. Online's entrypoint runs `doc-detective runner`, which
+   fails on 4.x images, so do this before Docker's `latest` moves.
+4. **Move npm `@latest` back.** With an npm login that can publish both packages, run:
+
+   ```bash
+   npm dist-tag add doc-detective@<last-4.x> latest
+   npm dist-tag add doc-detective-common@<last-4.x> latest
+   ```
+
+5. **Rebuild Docker's floating tags from the 4.x tag.** `--ref` runs the workflow and Dockerfile from
+   that release:
+
+   ```bash
+   gh workflow run docker-build.yml --ref v<last-4.x> -f version=<last-4.x> -f publish_latest_tags=true
+   ```
+
+6. **Verify.** `gh run watch <run-id> --exit-status` on the Docker build exits 0. The Windows job
+   pushes its tags separately from Linux and can fail on its own. Then check:
+
+   - `npm view doc-detective dist-tags` and `npm view doc-detective-common dist-tags` show `latest`
+     on `<last-4.x>`.
+   - `docker buildx imagetools inspect` shows `docdetective/docdetective:latest` with the same digest
+     as `docdetective/docdetective:<last-4.x>`.
+   - It shows `docdetective/docdetective:latest-windows` and `docdetective/docdetective:windows` with
+     the same digest as `docdetective/docdetective:<last-4.x>-windows`.
+
+7. **After the fix ships, unpin Online.** While `latest` is on 4.x, every release from main promotes
+   again, because any 5.0.x is newer than 4.x. Merge only the fix that makes 5.0 usable. Its release
+   moves npm, then Docker, back to 5. Wait until that Release run finishes green, including its
+   Docker job. Then check that `docdetective/docdetective:latest` has the same digest as
+   `docdetective/docdetective:<fixed-5.0.x>`. Only then set Online's `RUNNER_IMAGE` back to
+   `latest`, since a 4.x `latest` breaks Online's runner.
+
+Action v1 pins CLI `4`, so the rollback doesn't affect it. The 4.x upgrade notice goes quiet once
+`latest` is 4.x again.
+
 ## Stuck `@latest` releases
 
 The release pipeline promotes `@latest` only after `promote.yml`'s "Smoke-test staged release" job
@@ -107,10 +214,46 @@ passes. If that job fails, the version is published to `staging-<version>` (and 
 - **Recover:** fix the cause on `main`, then run `gh workflow run promote.yml -f version=<X.Y.Z>`.
   The smoke→promote→docker chain re-runs, and the promote step is an idempotent
   `npm dist-tag add`.
+- **Smoke-test a prerelease:** dispatch the same workflow with the prerelease version, for example
+  `gh workflow run promote.yml -f version=5.0.0-v5-rc.12`. Only the smoke test runs. The promote and
+  Docker jobs skip for any version that contains a `-`, so an RC never reaches `@latest` or Docker's
+  floating tags.
 - One historical example: a committed screenshot baseline (`reference.png`) drifted from what
   headless Chrome captures on CI, and blocked two releases. It was removed in #395. Keep smoke-test
   fixtures baseline-free. The smoke test's purpose is exercising the action end-to-end, not visual
   regression.
+
+## Failed npm publishes
+
+The release job publishes during semantic-release's `prepare` step, before it commits or tags
+anything ([ADR 01145](../../adrs/01145-publish-before-tagging-the-release.md)). A failed publish
+that reached nothing leaves no `vX.Y.Z` tag, release commit, or GitHub release behind.
+
+- **Detect:** the Release run's `release` job fails, and its log shows
+  `publish-staged-release.js` with an `npm error code`.
+- **Recover:** fix the cause, then re-run the Release workflow on the branch that failed
+  (`gh workflow run release.yml --ref <branch>`). It retries the same version.
+- If one package reached npm before the failure, the log says the version is "partly on npm".
+  npm never accepts a version twice, so the release tags it anyway, fails at its publish step, and
+  the next release moves past it. Nothing is promoted. Re-running doesn't cut that next release,
+  because no releasable commit follows the new tag. Fix the cause, then merge a `fix:` or `feat:`
+  commit.
+- If the log says `publish failed` but `npm view doc-detective@X.Y.Z` lists the version, the
+  registry was still propagating when the release checked. Re-running the release in CI is safe:
+  it reuses a published version only when npm's `gitHead` matches the commit being released. Don't
+  publish that version by hand from a different commit, because a manual run skips that check.
+- `E404` on the publish `PUT` means npm rejected `NPM_TOKEN`. npm reports a bad publish token as
+  404, not 401. Replace the token.
+- `EOTP` means the token authenticates but isn't allowed to skip 2FA. Use a granular access token
+  with **Bypass two-factor authentication** checked and read-write access to both
+  `doc-detective` and `doc-detective-common`. Also check that neither package's **Publishing
+  access** setting disallows tokens.
+- `E403` with `You may not perform that action with these credentials` usually means the token
+  works but has no write access to that package. Create a token with read-write access to both
+  packages and update the repository's `NPM_TOKEN` secret. If the token already has that, check
+  its 2FA bypass and the package's **Publishing access** setting, as for `EOTP`.
+- Tags `v4.38.2` through `v4.41.3` predate ADR 01145 and never reached npm. Leave them alone. The
+  next release moves past them.
 
 ## Promoting stale `claude/*` feature branches
 

@@ -45,9 +45,10 @@ import {
   isRetryableSessionError,
   classifyContextRetry,
   guardBlankDocumentNavigation,
-  realizeViewport,
+  applyBrowserSize,
   isViewportFloored,
   loadAxios,
+  sessionVersions,
 } from "./utils.js";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { goTo } from "./tests/goTo.js";
@@ -129,6 +130,7 @@ import {
 } from "./warmPhase.js";
 import { locateManagedWda } from "../runtime/wdaProducts.js";
 import { getCacheDir } from "../runtime/cacheDir.js";
+import { packageRoot } from "../runtime/heavyDeps.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
 import {
   hostAbi,
@@ -211,9 +213,6 @@ import {
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
 import https from "node:https";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Idle browser-pool Appium servers kept between runs in this process, only
 // when DOC_DETECTIVE_REUSE_APPIUM is set (ADR 01125). Empty otherwise.
@@ -1319,36 +1318,6 @@ function driverSkipDiagnostic({
   return msg;
 }
 
-// Realize a context's target viewport and return the size the page actually
-// rendered. Prefers viewport emulation (exact size, no window floor) and falls
-// back to window resizing, warning if the browser/OS floored the request. The
-// `// Confirm viewport size` intent is now realized by realizeViewport's
-// read-back.
-async function setViewportSize(
-  context: any,
-  driver: any,
-  config: any = {}
-): Promise<{ width: number; height: number } | undefined> {
-  // Guard on POSITIVE dimensions (not truthiness): the schema doesn't floor
-  // these, so a 0/negative/NaN value must not enter the resize path — matching
-  // the startSurface browser descriptor's guard.
-  const vw = Number(context.browser?.viewport?.width);
-  const vh = Number(context.browser?.viewport?.height);
-  if (vw > 0 || vh > 0) {
-    const requested = {
-      ...(vw > 0 ? { width: vw } : {}),
-      ...(vh > 0 ? { height: vh } : {}),
-    };
-    // Attribute the warning so a multi-context run can tell which context's
-    // viewport was floored.
-    const label = `viewport for ${context.browser?.name ?? "browser"} on ${
-      context.platform ?? "host"
-    }`;
-    return realizeViewport(driver, requested, config, label);
-  }
-  return undefined;
-}
-
 async function allowUnsafeSteps({ config }: { config: any }) {
   // If allowUnsafeSteps is set to true, return true
   if (config.allowUnsafeSteps === true) return true;
@@ -1392,6 +1361,8 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
           steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         },
         // Nothing ran, but the shape stays parity with runSpecs' short-circuit.
+        startedAt: new Date().toISOString(),
+        environment: getEnvironment(),
         durationMs: 0,
         specs: [],
       };
@@ -1561,6 +1532,8 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
       },
+      startedAt: new Date(runStart).toISOString(),
+      environment: getEnvironment(),
       durationMs: Date.now() - runStart,
       specs: [],
     };
@@ -1615,6 +1588,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const report: any = {
     runId,
     runDir,
+    // Run metadata (ADR 01163): when execution started and the host that ran
+    // it, so a consumer can tell product drift from environment drift.
+    startedAt: new Date(runStart).toISOString(),
+    environment: runnerDetails.environment,
     summary: {
       specs: {
         pass: 0,
@@ -1772,6 +1749,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         description: test.description,
         contentPath: test.contentPath,
         detectSteps: test.detectSteps,
+        // Resolved by position via applyBadgeAnchoredTests (ADR 01141), not by name.
+        badge: test.badge,
+        location: test.location,
         contexts: new Array(test.contexts.length),
       };
       specReport.tests.push(testReport);
@@ -2441,35 +2421,55 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     process.off("SIGTERM", onSignal);
   }
 
-  // Upload changed files back to source integrations (best-effort)
-  // This automatically syncs any changed screenshots back to their source CMS
-  // Only upload if uploadOnChange is enabled (defaults to true for backward compatibility)
-  // Check both global config.uploadOnChange and per-integration uploadOnChange settings
-  const herettoConfigs = config?.integrations?.heretto || [];
-  const hasUploadEnabledIntegration = herettoConfigs.some(
-    (h: any) => h.uploadOnChange !== false // Default to true if not explicitly set to false
-  );
-  const globalUploadOnChange = config?.uploadOnChange ?? true;
-  if (globalUploadOnChange && hasUploadEnabledIntegration && herettoConfigs.length > 0) {
-    try {
-      const uploadResults = await uploadChangedFiles({ config, report, log });
-      report.uploadResults = uploadResults;
-    } catch (error: any) {
-      log(config, "warning", `Failed to upload changed files: ${error.message}`);
-      report.uploadResults = {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        skipped: 0,
-        error: error.message,
-      };
-    }
-  }
+  // An absent `report.uploadResults` means no integration opted in, so no
+  // upload was attempted.
+  const uploadResults = await uploadChangedFilesIfEnabled({ config, report, log });
+  if (uploadResults) report.uploadResults = uploadResults;
 
   // Stamped last, after teardown and any Heretto upload, so the number matches
   // the elapsed time a user actually observes.
   report.durationMs = Date.now() - runStart;
   return report;
+}
+
+/**
+ * Upload changed files back to their source integrations (best-effort). Opt-in:
+ * runs only when some integration, of any type, sets `uploadOnChange: true`
+ * (schema default false); uploadChangedFiles then skips files from
+ * integrations that didn't. Returns undefined when nothing opted in. A thrown
+ * upload still returns the success shape, with empty `details` and `error`.
+ * `upload` is injectable for tests.
+ */
+export async function uploadChangedFilesIfEnabled({
+  config,
+  report,
+  log: logFn,
+  upload = uploadChangedFiles,
+}: {
+  config: any;
+  report: any;
+  log: any;
+  upload?: typeof uploadChangedFiles;
+}): Promise<any> {
+  const integrationEntries = Object.values(config?.integrations ?? {}).flatMap(
+    (entries: any) => (Array.isArray(entries) ? entries : [])
+  );
+  if (!integrationEntries.some((entry: any) => entry?.uploadOnChange === true)) {
+    return undefined;
+  }
+  try {
+    return await upload({ config, report, log: logFn });
+  } catch (error: any) {
+    logFn(config, "warning", `Failed to upload changed files: ${error.message}`);
+    return {
+      total: 0,
+      successful: 0,
+      failed: 0,
+      skipped: 0,
+      details: [],
+      error: error.message,
+    };
+  }
 }
 
 /**
@@ -2620,6 +2620,8 @@ async function runRoutedSpec({
       description: test.description,
       contentPath: test.contentPath,
       detectSteps: test.detectSteps,
+      badge: test.badge,
+      location: test.location,
       contexts: new Array(test.contexts.length),
     };
     // Stamp the visit number when a backward goToTest re-ran this test (additive
@@ -4575,6 +4577,15 @@ async function runContext({
         engine: String(mobileWebBrowserName).toLowerCase(),
         driver,
       });
+      // Device browser versions, as far as the session reports them (ADR
+      // 01163); there's no desktop app entry to fall back on.
+      const versions = sessionVersions({ capabilities: driver?.capabilities });
+      if (versions.browserVersion)
+        contextReport.browser = {
+          ...contextReport.browser,
+          version: versions.browserVersion,
+        };
+      if (versions.driver) contextReport.driver = versions.driver;
       /* c8 ignore stop */
     } else if (driverRequired) {
       // Check out a server for this context's lifetime — released in the
@@ -4622,14 +4633,6 @@ async function runContext({
             runnerDetails,
             name: browserName,
             options: {
-              width:
-                overrides?.size?.width ||
-                context.browser?.window?.width ||
-                1200,
-              height:
-                overrides?.size?.height ||
-                context.browser?.window?.height ||
-                800,
               headless,
               ...recordOptions,
             },
@@ -4781,6 +4784,20 @@ async function runContext({
         };
         clog("warning", fellBackNote);
       }
+      // The browser and driver that actually ran, for the report (ADR 01163).
+      // A copy, so the version never feeds back into the context's settings.
+      const versions = sessionVersions({
+        capabilities: driver?.capabilities,
+        app: availableApps.find(
+          (app: any) => app.name === normalizeBrowserName(startedName)
+        ),
+      });
+      if (versions.browserVersion)
+        contextReport.browser = {
+          ...contextReport.browser,
+          version: versions.browserVersion,
+        };
+      if (versions.driver) contextReport.driver = versions.driver;
 
       // Multi-surface Phase 4 (ADR 01019): register the default session in the
       // context's session registry under its engine name, so it resolves like
@@ -4795,6 +4812,26 @@ async function runContext({
           open: async (engine: string, overrides?: BrowserOpenOverrides) => {
             const res = await startDriverForBrowser(engine, overrides);
             if (!res.ok) throw new Error(res.error);
+            // A later session takes the context's size unless its
+            // startSurface descriptor sets `size`. A sizing failure leaves
+            // the session usable at its default size, so warn, don't fail.
+            try {
+              await applyBrowserSize(
+                res.driver,
+                Number(overrides?.size?.width) > 0 ||
+                  Number(overrides?.size?.height) > 0
+                  ? { window: overrides!.size }
+                  : context.browser,
+                config,
+                `browser session for ${engine}`
+              );
+            } catch (error: any) {
+              log(
+                config,
+                "warning",
+                `Couldn't size the new ${engine} session: ${error?.message ?? error}`
+              );
+            }
             return res.driver;
           },
           isNameTaken: (name: string) => !!processRegistry?.has(name),
@@ -4807,40 +4844,27 @@ async function runContext({
         });
       }
 
-      // Positive-dimension guard (not truthiness): a 0/negative/NaN viewport
-      // must fall through to the window-size branch rather than entering the
-      // (no-op) viewport path.
-      const viewportW = Number(context.browser?.viewport?.width);
-      const viewportH = Number(context.browser?.viewport?.height);
-      if (viewportW > 0 || viewportH > 0) {
-        // Set driver viewport size
-        const realized = await setViewportSize(context, driver, config);
-        // Stamp the context REPORT (not the context object — the report is a
-        // curated copy) when the browser floored the request. A context-level
-        // viewport has no step output to carry the realized size, so this is
-        // the only signal the post-run `useMobilePlatforms` hint can read.
-        if (
-          isViewportFloored(
-            {
-              ...(viewportW > 0 ? { width: viewportW } : {}),
-              ...(viewportH > 0 ? { height: viewportH } : {}),
-            },
-            realized
-          )
-        ) {
-          contextReport.viewportFloored = true;
-        }
-      } else if (
-        context.browser?.window?.width ||
-        context.browser?.window?.height
+      // Size the session: the authored viewport, else the authored window,
+      // else the default viewport (ADR 01144). The label attributes a floor
+      // warning to this context in a multi-context run.
+      const sizing = await applyBrowserSize(
+        driver,
+        context.browser,
+        config,
+        `viewport for ${context.browser?.name ?? "browser"} on ${
+          context.platform ?? "host"
+        }`
+      );
+      // Stamp the context REPORT (not the context object — the report is a
+      // curated copy) when the browser floored an authored viewport. A
+      // context-level viewport has no step output to carry the realized size,
+      // so this is the only signal the post-run `useMobilePlatforms` hint can
+      // read.
+      if (
+        sizing.target.kind === "viewport" &&
+        isViewportFloored(sizing.target, sizing.realized)
       ) {
-        // Get driver window size
-        const windowSize = await driver.getWindowSize();
-        // Resize window if necessary
-        await driver.setWindowSize(
-          context.browser?.window?.width || windowSize.width,
-          context.browser?.window?.height || windowSize.height
-        );
+        contextReport.viewportFloored = true;
       }
     }
 
@@ -5120,7 +5144,12 @@ async function runContext({
         // and `r` is the runStep result — neither may clobber the timing.
         // On retry the loop below discards this report wholesale, so the
         // surviving value is the FINAL attempt's, per ADR 01083.
-        return { ...step, ...r, durationMs: Date.now() - stepStart } as any;
+        return {
+          ...step,
+          ...r,
+          startedAt: new Date(stepStart).toISOString(),
+          durationMs: Date.now() - stepStart,
+        } as any;
       };
 
       // Run the step, then resolve routing. A `retry` decision re-runs the step
@@ -5520,6 +5549,7 @@ async function runContextWithRetries(
     const start = Date.now();
     const report = await runContextFn(a);
     if (report && typeof report === "object") {
+      report.startedAt = new Date(start).toISOString();
       report.durationMs = Date.now() - start;
     }
     return report;
@@ -5636,6 +5666,7 @@ async function stopAllRecordings({
       contextReport.steps.push({
         ...stopRecordStep,
         ...stepResult,
+        startedAt: new Date(stopStart).toISOString(),
         durationMs: Date.now() - stopStart,
       });
     } catch (error: any) {
@@ -5647,6 +5678,7 @@ async function stopAllRecordings({
         ...stopRecordStep,
         result: "FAIL",
         resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+        startedAt: new Date(stopStart).toISOString(),
         durationMs: Date.now() - stopStart,
       });
     }
@@ -6091,7 +6123,7 @@ async function spawnAppiumServer(
     ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      cwd: packageRoot(),
       env,
     }
   );
@@ -6255,6 +6287,9 @@ async function driverStart(
         capabilities: attemptCaps,
         connectionRetryTimeout: startupCeiling,
         waitforTimeout: 120000, // 2 minutes
+        // webdriverio 10's `$` throws when a selector matches several
+        // elements. Keep the documented first-match behavior (ADR 01143).
+        strictSelectors: false,
       })).then(
         (d: any) => {
           settle(true);
@@ -6320,18 +6355,30 @@ async function driverStart(
  * ensureBrowserInstalled calls the runTests pre-flight makes. Heavy deps are
  * imported dynamically so a pure HTTP/CLI consumer never loads them.
  */
-async function provisionChromeRuntime(config: any): Promise<void> {
-  const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
-  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
-  const ctx = { cacheDir: config?.cacheDir };
-  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
-  // "warn" → "warning" the same way the runTests pre-flight does.
-  const logger = (msg: string, level: string = "info") =>
+// Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
+// "warn" → "warning" the same way the runTests pre-flight does.
+function chromeRuntimeLogger(config: any) {
+  return (msg: string, level: string = "info") =>
     log(config, level === "warn" ? "warning" : level, msg);
+}
+
+/**
+ * Install the npm half of the Chrome runtime, or reinstall any cached package
+ * whose version no longer matches its pin. A no-op when the cache is current.
+ */
+async function refreshChromeNpmRuntime(config: any): Promise<void> {
+  const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
   await ensureRuntimeInstalled(
     ["webdriverio", "appium", "@puppeteer/browsers", "appium-chromium-driver"],
-    { ctx, deps: { logger } }
+    { ctx: { cacheDir: config?.cacheDir }, deps: { logger: chromeRuntimeLogger(config) } }
   );
+}
+
+async function provisionChromeRuntime(config: any): Promise<void> {
+  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
+  const ctx = { cacheDir: config?.cacheDir };
+  const logger = chromeRuntimeLogger(config);
+  await refreshChromeNpmRuntime(config);
   await ensureBrowserInstalled("chrome", { ctx, deps: { logger } });
   await ensureBrowserInstalled("chromedriver", { ctx, deps: { logger } });
 }
@@ -6353,12 +6400,26 @@ async function ensureChromeAvailable(
   deps: {
     detect: (config: any) => Promise<any[]>;
     provision: (config: any) => Promise<void>;
+    /** Bring cached npm packages up to their pins when Chrome is already present. */
+    refresh?: (config: any) => Promise<void>;
     invalidate: (config: any) => void;
     log?: (config: any, level: string, msg: string) => void;
   }
 ): Promise<any[]> {
   let availableApps = await deps.detect(config);
   if (availableApps.some((app: any) => app.name === "chrome")) {
+    try {
+      await deps.refresh?.(config);
+    } catch (err: any) {
+      // Offline or a failed install: the cached versions still run.
+      deps.log?.(
+        config,
+        "warning",
+        `Couldn't update the cached browser runtime, so this run uses the cached versions: ${
+          err?.message ?? err
+        }`
+      );
+    }
     return availableApps;
   }
   // Chrome not detected — attempt to provision it, then re-detect.
@@ -6487,6 +6548,7 @@ async function getRunner(options: any = {}) {
     availableApps: await ensureChromeAvailable(config, {
       detect: (c: any) => getAvailableApps({ config: c }),
       provision: provisionChromeRuntime,
+      refresh: refreshChromeNpmRuntime,
       invalidate: clearAppCache,
       log,
     }),
@@ -6520,7 +6582,7 @@ async function getRunner(options: any = {}) {
     ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      cwd: packageRoot(),
     }
   );
   // Without a listener an "error" event from spawn (e.g. ENOENT, EACCES)

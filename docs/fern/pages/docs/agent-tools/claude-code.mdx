@@ -15,10 +15,10 @@ Set up Doc Detective agent tools with Claude Code to test your documentation usi
 From any project directory, run:
 
 ```bash
-npx doc-detective install-agents --agent claude
+npx doc-detective install agents --agent claude
 ```
 
-The command auto-detects Claude Code and prompts for install scope (project or user-global) if you don't pass `--scope`. It then invokes Claude Code's native plugin management to add the `doc-detective/agent-tools` marketplace and install the `doc-detective` plugin. Re-run the same command any time to update to the latest version. The command is idempotent and prints "already up to date" when nothing has changed.
+The command auto-detects Claude Code and prompts for install scope (project or user-global) if you don't pass `--scope`. It then invokes Claude Code's native plugin management to add the `doc-detective/agent-tools#v1` marketplace and install the `doc-detective` plugin. Re-run the same command any time to update to the latest agent tools for Doc Detective 4.x. When it updates an existing install, it re-adds the marketplace at `v1` first. The command is idempotent and prints "already up to date" when nothing has changed.
 
 Useful flags:
 
@@ -31,7 +31,7 @@ If the `claude` binary isn't on your PATH but `~/.claude/` exists, the command e
 
 ### Fallback installation
 
-If `npx doc-detective install-agents` isn't an option, install via Claude Code's own slash commands.
+If `npx doc-detective install agents` isn't an option, install via Claude Code's own slash commands.
 
 1. Open Claude Code:
 
@@ -42,9 +42,11 @@ If `npx doc-detective install-agents` isn't an option, install via Claude Code's
 2. Add the Doc Detective marketplace and install the plugin:
 
     ```
-    /plugin marketplace add doc-detective/agent-tools
+    /plugin marketplace add doc-detective/agent-tools#v1
     /plugin install doc-detective@doc-detective
     ```
+
+    The `#v1` suffix pins the marketplace to the agent-tools `v1` tag, which carries the agent tools for Doc Detective 4.x. Without it, the marketplace follows the agent-tools default branch, which can carry tools for a newer Doc Detective major version.
 
 ## Bootstrap a project
 

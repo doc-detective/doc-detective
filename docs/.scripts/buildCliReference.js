@@ -76,12 +76,13 @@ function schemaDefault(configSchema, dottedKey) {
 }
 
 // Map a kebab-case flag name to its config_v3 key. Most flags map by
-// camelCasing the flag name; the two exceptions are spelled out. Flags with no
+// camelCasing the flag name; the exceptions are spelled out. Flags with no
 // config-key entry (config, test, spec) have no schema default and render a
 // blank Default cell.
 const FLAG_CONFIG_KEY_OVERRIDES = {
   "allow-unsafe": "allowUnsafeSteps",
   hints: "hints.enabled",
+  verification: "verification.write",
 };
 const FLAGS_WITHOUT_SCHEMA_DEFAULT = new Set(["config", "test", "spec"]);
 
@@ -502,7 +503,7 @@ function buildPage(data) {
     "### lsp",
     "",
     (lsp.describe ? escapeMdxBraces(lsp.describe) : "Start the Doc Detective language server.") +
-      " It also ships as a standalone command, `doc-detective-lsp`.",
+      " It also ships as a standalone command, `doc-detective-lsp`, which [Doc Detective 5.0](/docs/ci/upgrade-to-v5) removes.",
     "",
     "This is distinct from `install agents`: the language server (`lsp`) exposes editor and AI-agent integrations over the LSP protocol, while `install agents` installs the Agent Skills and slash commands documented in the [agent tools overview](/ai/ai-agents/overview).",
     ""

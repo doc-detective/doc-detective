@@ -149,6 +149,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Inline tests | W2 | ★ | Tests embedded in a doc source file. |
 | Detected tests | W2 | ★ | Tests inferred from prose. |
 | Standalone test specs | W1, D1 | ★ | `*.spec.json` files kept beside the docs, a valid authoring choice for any surface. |
+| Last verified on | W2 | | `verified-by` write-back in front matter and manni `meta` statements, plus the `badge: true` test flag. Records when a test last passed. |
 
 **UI procedures: Wren**
 
@@ -189,7 +190,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Input formats (overview + Markdown/DITA/AsciiDoc/HTML/Custom) | W3 | ★ | Applies to every surface. |
 | Test across platforms & browsers | W3 | ★ | contexts / `runOn`; links to Reference. |
 | Heretto integration | W3 | | |
-| Self-healing for docs *(shared with A2)* | W2 | | |
+| Hand off test failures to an AI agent *(shared with A2)* | W2 | | Lives in AI & Agents. |
 
 ### Run in CI and at scale: Priya, in `docs/ci/`
 
@@ -202,6 +203,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Docker & headless (new) | P2 | ★ | |
 | Concurrency & performance (new) | P2 | | `concurrentRunners`, recording serialization. |
 | Orchestrate distributed runs (new) | P3 | | `doc-detective-runner`, orchestration API. |
+| Prepare for 5.0 (new) | P1 | | Preview at `docs/ci/upgrade-to-v5`, the link in 4.x upgrade warnings. The full migration guide replaces it at GA. |
 
 ### Build with AI agents: Aria (pillar), in `ai/`
 
@@ -210,7 +212,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Overview | A1 | ★ | Frames the pillar. |
 | Author tests with agents (Claude Code / Copilot / Gemini / Other) | A1 | ★ | |
 | Agent tools & MCP (new) | A1 | ★ | |
-| Self-healing docs | A2 | ★ | |
+| Hand off test failures to an AI agent | A2 | ★ | Authored: `/ai/ai-agents/hand-off-failures`, retitled from "Self-healing documentation", which overclaimed. The Action opens an issue on failure and mentions an agent that suggests a fix. Redirects from `/ai/ai-agents/self-healing` and `/docs/get-started/self-healing`. |
 | Best practices for agent-authored tests (new) | A2 | | |
 
 ### Troubleshoot, cross-cutting: `docs/troubleshoot/`
@@ -290,7 +292,7 @@ Nothing is dropped.
 | Get started / Sample tests | Get started / Sample tests |
 | Get started / CI | Run in CI & at scale / GitHub Action recipe |
 | Get started / Integrations | Split: Heretto→Test your docs (Formats & surfaces); OpenAPI→Test your docs (CLI, code & APIs); orchestration→CI |
-| Get started / Self-healing | AI & Agents / Self-healing (linked into Test your docs) |
+| Get started / Self-healing | AI & Agents / Hand off failures (linked into Test your docs) |
 | Get started / Resources | Support / Resources |
 | Agent tools / * | AI & Agents (pillar) |
 | Configuration / Contexts | Reference / Contexts & surfaces |

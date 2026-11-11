@@ -1,0 +1,15 @@
+= Verification pins in AsciiDoc
+
+// (meta sha256-76944607b3ef534fbe2e047e08240948e2a52ea2ca7c8e95d0b9740c80b08ec9 {"verified-by":[{"tool":"doc-detective","check":"adoc-list"}]})
+. Run the installer.
+. Restart the shell.
+
+// (meta sha256-99eec99e4f9f9cff5bed4c03c070b7038667c3db6c6de6bfc167e0243356670d {"verified-by":[{"tool":"doc-detective","check":"adoc-fence"}]})
+----
+npx doc-detective --input docs
+----
+
+// (meta sha256-981c6cf9ebfaffda3b3b0457f7f78a100c69b7882e5c86b9a3a0b808ea3e42c7 {"verified-by":[{"tool":"doc-detective","check":"adoc-heading"}]})
+== Run it
+
+Body text the heading statement does not pin.

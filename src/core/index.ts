@@ -1,7 +1,7 @@
 import { setConfig, getAvailableApps } from "./config.js";
 import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
-import { log, cleanTemp } from "./utils.js";
+import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests } from "./utils.js";
 import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.js";
 import {
   telemetryNotice,
@@ -12,6 +12,14 @@ import {
   flushRunTelemetry as awaitTelemetryFlush,
 } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
+import {
+  captureWarnings,
+  clearVariablesUsed,
+  legacyEnv,
+  maskingWarnings,
+  specWarnings,
+  warnUpgrade,
+} from "../upgradeNotice.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
@@ -44,6 +52,17 @@ async function detectAndResolveFromConfig(config: any) {
     return null;
   }
   const resolvedTests = await resolveTests({ config, detectedTests });
+  // Carry the full qualified input set forward so the verification
+  // write-back can reach prose-only files that produced no spec (see
+  // qualifyFiles' `config._qualifiedFiles`).
+  // Non-enumerable, so it stays out of serialized payloads (see qualifyFiles).
+  if (resolvedTests) {
+    Object.defineProperty(resolvedTests, "_qualifiedFiles", {
+      value: config._qualifiedFiles || [],
+      configurable: true,
+      writable: true,
+    });
+  }
   return resolvedTests;
 }
 
@@ -63,6 +82,7 @@ async function runTests(config: any, options: any = {}) {
 }
 
 async function runTestsAndReport(config: any, options: any) {
+  clearVariablesUsed();
   let resolvedTests: any;
   let results: any;
 
@@ -87,6 +107,9 @@ async function runTestsAndReport(config: any, options: any) {
     config = { ...(resolvedTests.config || {}), ...(config || {}) };
     resolvedTests.config = config;
   }
+
+  // Read before a dry run forces silent; see the upgrade warnings below.
+  const callerLogLevel = config?.logLevel;
 
   // Dry-run requires clean stdout so the JSON dump can be piped through
   // `jq` / `JSON.parse`. Force silent log level (which gates info logs from
@@ -140,6 +163,18 @@ async function runTestsAndReport(config: any, options: any) {
       // see the matching note in the JIT pre-flight catch below.
       log(config, "warning", "Couldn't resolve any tests.");
       return null;
+    }
+    // Upgrade warnings print at the effective log level. A dry run forced
+    // silent before setConfig for stdout's sake, but these go to stderr, so
+    // there the level is the caller's unless the DOC_DETECTIVE override set one.
+    const upgradeLogLevel = config.dryRun
+      ? (legacyEnv(process.env).config?.logLevel ?? callerLogLevel)
+      : effectiveConfig.logLevel;
+    try {
+      warnUpgrade(specWarnings(resolvedTests), upgradeLogLevel);
+    } catch (error: any) {
+      // A warning must never fail a run.
+      log(effectiveConfig, "debug", `Couldn't check specs for Doc Detective 5.0 changes: ${error?.message || error}`);
     }
     // Browser detection, deferred from setConfig so a run whose contexts
     // can't use it skips it (ADR 01133). Any run that can still gets the same
@@ -364,6 +399,15 @@ async function runTestsAndReport(config: any, options: any) {
   } else {
     // Run test specs locally
     results = await runSpecs({ resolvedTests });
+    try {
+      warnUpgrade(
+        [...captureWarnings(resolvedTests, results), ...maskingWarnings(resolvedTests)],
+        effectiveConfig.logLevel
+      );
+    } catch (error: any) {
+      // A warning must never fail a run.
+      log(effectiveConfig, "debug", `Couldn't check the run for Doc Detective 5.0 changes: ${error?.message || error}`);
+    }
   }
   // The full results tree is a debug-only dump — the reporters (terminal
   // summary, json/runFolder files) already render results for the user, and at
@@ -375,6 +419,45 @@ async function runTestsAndReport(config: any, options: any) {
 
   // Clean up
   cleanTemp();
+
+  // `verification.write` (ADR 01140): "existing" (the default) fills what pages
+  // declare, true also declares it on passing pages and tests, false writes
+  // nothing back. Read from the effective config, so DOC_DETECTIVE overrides
+  // and the CLI's --verification reach it.
+  const write = effectiveConfig?.verification?.write ?? "existing";
+
+  // Badge-anchored write-back — see ADR 01141. Runs before the verification
+  // write-back, which pins the block a `meta` statement anchors: a badge
+  // inserted inside that block afterwards would leave the pin stale. It also
+  // inserts the statements `write: true` declares, for the same reason.
+  try {
+    if (write !== false) applyBadgeAnchoredTests({ config, results, init: write === true });
+  } catch (err: any) {
+    log(config, "warning", `badge-anchored write-back failed: ${err?.message ?? err}`);
+  }
+
+  // Verification write-back: fill Doc Detective's `verified-by` entries in the
+  // source docs where the named test/spec passed. No-op when no page names a
+  // check; never throws (warns and continues on per-file errors).
+  if (write !== false) {
+    try {
+      // resolvedTests is always set here (runTests returns early otherwise), so the
+      // only fallback needed is for the pre-resolved (DOC_DETECTIVE_API) path, which
+      // never populates _qualifiedFiles — there, the write-back is limited to the
+      // report's content paths and can't reach prose-only pages.
+      const qualifiedFiles = resolvedTests._qualifiedFiles || [];
+      if (options.resolvedTests && qualifiedFiles.length === 0) {
+        log(
+          config,
+          "debug",
+          "Verified write-back: pre-resolved run has no qualified-file list; only report content paths are scanned (prose-only pages skipped)."
+        );
+      }
+      applyVerifiedMarkers({ config, results, files: qualifiedFiles, init: write === true });
+    } catch (err: any) {
+      log(config, "warning", `verified write-back failed: ${err?.message ?? err}`);
+    }
+  }
 
   // Send telemetry
   if (telemetryOn) await sendTelemetry(config, "runTests", results);

@@ -30,8 +30,9 @@ authoring → config → CI in a single coherent journey.
 
 Wren wants to add tests across her existing docs so that drift is caught automatically. She authors
 inline and detected tests in her source files, and auto-captures fresh screenshots and video. She
-recognizes when the product UI has drifted from the docs, and applies self-healing so small UI churn
-doesn't constantly break the suite.
+recognizes when the product UI has drifted from the docs. A failing run can open an issue that hands
+the failure to an AI agent. The agent suggests a fix for her to review, so small UI churn doesn't
+stall the suite for long.
 
 ### W3 · Test across formats and surfaces
 
@@ -97,11 +98,11 @@ Aria needs to wire an agent to her project and have it write tests for her. She 
 and follows the Claude Code, Copilot CLI, or Gemini CLI integration for her tool of choice. She then
 connects agent tools and MCP, and generates tests from prose.
 
-### A2 · Keep tests healthy automatically
+### A2 · Keep tests healthy with an agent
 
-Aria needs the suite to stay green with minimal babysitting. She understands and configures
-self-healing docs, and lets an agent maintain and repair tests. She follows best practices for
-agent-authored tests so they hold up against product churn.
+Aria needs the suite to stay green with minimal babysitting. She has failing runs open an issue that
+hands the failure to an agent, and lets the agent suggest repairs that she reviews. She follows best
+practices for agent-authored tests so they hold up against product churn.
 
 ---
 

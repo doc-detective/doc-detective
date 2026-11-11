@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import dns from "node:dns/promises";
+import dnsCallback from "node:dns";
 import net from "node:net";
 import { spawn, type ChildProcess } from "node:child_process";
 import {
@@ -11,10 +12,14 @@ import {
   ensureRuntimeInstalled,
 } from "../runtime/loader.js";
 import { resolveWindowsBash as defaultResolveWindowsBash } from "../runtime/windowsBash.js";
+import { ownVersion } from "../runtime/heavyDeps.js";
+import { noteVariablesUsed } from "../upgradeNotice.js";
 import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
 } from "./ptyWatchdog.js";
+import type { AxiosRequestConfig } from "axios";
+import { applyVerification, declarePage, VERIFIED_TOOL } from "./verification.js";
 
 // axios (~70 modules with its deps) loads on first use rather than at CLI
 // startup (see test/startup-modules.test.js). Cached, so hot paths pay the
@@ -23,6 +28,62 @@ let axiosModule: Promise<typeof import("axios").default> | undefined;
 export function loadAxios(): Promise<typeof import("axios").default> {
   return (axiosModule ??= import("axios").then((m) => m.default));
 }
+
+/**
+ * Browser and driver versions for a context's report (ADR 01163), read from
+ * the WebdriverIO session's capabilities, falling back to the detected app
+ * (`availableApps` entry) where the session is silent. appium-geckodriver
+ * echoes the requested capabilities rather than geckodriver's, so Firefox's
+ * versions come from the detected build ID (`nightly_161.0a1`) and the
+ * managed `geckodriver-<version>` binary name. Safari reports no driver
+ * version.
+ */
+export function sessionVersions({
+  capabilities,
+  app,
+}: {
+  capabilities?: any;
+  app?: { name?: string; version?: string; driver?: string };
+}): { browserVersion?: string; driver?: { name: string; version?: string } } {
+  const result: { browserVersion?: string; driver?: { name: string; version?: string } } = {};
+  // Runs after the driver started, so odd values are ignored, never thrown on.
+  const str = (value: unknown) =>
+    typeof value === "string" && value ? value : undefined;
+  const caps = capabilities ?? {};
+  const browserVersion =
+    str(caps.browserVersion) ?? str(app?.version)?.replace(/^[a-z]+_/, "");
+  if (browserVersion) result.browserVersion = browserVersion;
+  const chromedriver = str(caps.chrome?.chromedriverVersion);
+  if (chromedriver) {
+    result.driver = { name: "chromedriver", version: chromedriver.split(" ")[0] };
+  } else if (app?.name === "firefox") {
+    const version =
+      str(caps["moz:geckodriverVersion"]) ??
+      /geckodriver-(\d+(?:\.\d+)*)/i.exec(path.basename(str(app.driver) ?? ""))?.[1];
+    result.driver = { name: "geckodriver", ...(version && { version }) };
+  } else if (app?.name === "safari") {
+    result.driver = { name: "safaridriver" };
+  }
+  return result;
+}
+
+// Fetch a file from a URL and save to a temp directory.
+// With `{ binary: true }`, fetches as arraybuffer and preserves raw bytes —
+// required for images and other non-text payloads. Binary fetches also apply
+// hard limits (timeout, max body size; getGuarded caps redirects) so a
+// misbehaving server can't stall or OOM the run.
+// Otherwise, non-JSON responses are stringified (text pass-through).
+// Returns `{ result: "error", message }` on failure.
+const FETCH_BINARY_DEFAULTS = {
+  responseType: "arraybuffer" as const,
+  timeout: 30_000,
+  maxContentLength: 50 * 1024 * 1024,
+  maxBodyLength: 50 * 1024 * 1024,
+};
+
+// The same limits for text bodies, such as OpenAPI descriptions and their
+// $refs. "text" also stops axios from parsing JSON on its own.
+const FETCH_TEXT_DEFAULTS = { ...FETCH_BINARY_DEFAULTS, responseType: "text" as const };
 
 export {
   outputResults,
@@ -56,7 +117,11 @@ export {
   isDeviceWebContext,
   computeSettleCeiling,
   redactUrlForOutput,
-  assertUrlHostIsPublic,
+  privateAddressOf,
+  localUrlPolicy,
+  getGuarded,
+  UrlGuardError,
+  FETCH_TEXT_DEFAULTS,
   sanitizeFilesystemName,
   compileFilter,
   isRetryableSessionError,
@@ -80,6 +145,11 @@ export {
   rollUpAssertions,
   createAppiumPool,
   evaluateContextRequirements,
+  verifiedDate,
+  shieldsBadge,
+  resolveVerifiedId,
+  applyVerifiedMarkers,
+  applyBadgeAnchoredTests,
 };
 
 export type { BackgroundProcess, ResourceRegistry };
@@ -529,11 +599,9 @@ async function spawnPtyBackgroundCommand(
   try {
     ptyProcess = pty.spawn(shell, shellArgs, {
       name: "xterm-color",
-      // TODO(phase): expose as `background.tty.cols` / `background.tty.rows` so
-      // layout-sensitive TUIs (Ink reads process.stdout.columns) can match an
-      // expected width when authoring `waitUntil.stdio` patterns.
-      cols: 120,
-      rows: 30,
+      // `tty: {cols, rows}`; Ajv skips defaults inside the schema's anyOf.
+      cols: options.cols ?? 120,
+      rows: options.rows ?? 30,
       cwd: options.cwd || process.cwd(),
       env: shellSpawnEnv(options.shell) ?? process.env,
     });
@@ -1297,21 +1365,6 @@ function cleanTemp() {
   }
 }
 
-// Fetch a file from a URL and save to a temp directory.
-// With `{ binary: true }`, fetches as arraybuffer and preserves raw bytes —
-// required for images and other non-text payloads. Binary fetches also apply
-// hard limits (timeout, max body size, max redirects) so a misbehaving server
-// can't stall or OOM the run.
-// Otherwise, non-JSON responses are stringified (text pass-through).
-// Returns `{ result: "error", message }` on failure.
-const FETCH_BINARY_DEFAULTS = {
-  responseType: "arraybuffer" as const,
-  timeout: 30_000,
-  maxContentLength: 50 * 1024 * 1024,
-  maxBodyLength: 50 * 1024 * 1024,
-  maxRedirects: 5,
-};
-
 // Replace characters that are invalid in filenames on Windows (and often
 // problematic on other platforms) with `_`. Keeps dots, hyphens, and
 // alphanumerics untouched so names stay recognizable. Also rejects leading
@@ -1374,7 +1427,9 @@ function redactUrlForOutput(value: string): string {
 // Private/loopback/link-local IP ranges that binary URL fetches refuse to
 // reach by default. Covers IPv4 RFC1918, loopback, link-local (169.254/16),
 // carrier-grade NAT (100.64/10), and the cloud-metadata special cases
-// (169.254.169.254 is inside link-local and thus covered).
+// (169.254.169.254 is inside link-local and thus covered). Teredo
+// (2001:0::/32) isn't covered: routing HTTP through it needs Teredo relay
+// infrastructure, so it isn't a realistic SSRF path.
 function isPrivateOrLoopbackAddress(ip: string): boolean {
   if (!ip) return false;
   if (net.isIPv4(ip)) {
@@ -1389,57 +1444,90 @@ function isPrivateOrLoopbackAddress(ip: string): boolean {
     return false;
   }
   if (net.isIPv6(ip)) {
-    const normalized = ip.toLowerCase();
-    if (normalized === "::1") return true;
-    if (normalized === "::") return true;
-    if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true; // unique local
-    if (normalized.startsWith("fe80:")) return true; // link-local
-    if (normalized.startsWith("::ffff:")) {
-      // IPv4-mapped IPv6. The WHATWG URL parser normalizes the embedded v4 to
-      // hex (::ffff:10.0.0.1 → ::ffff:a00:1, and ::ffff:0.0.0.1 → ::ffff:0:1),
-      // so reconstruct the dotted v4 from the two hex groups and apply the v4
-      // ranges above; otherwise a mapped private address (e.g.
-      // http://[::ffff:a00:1]/x = 10.0.0.1) silently bypasses the guard.
-      const tail = normalized.slice("::ffff:".length);
-      // Defensive: a dotted-decimal tail (::ffff:10.0.0.1) is a valid IPv6
-      // literal but current callers pass URL-normalized hosts (always hex), so
-      // this path is unreachable in practice. Handle it anyway — fail CLOSED by
-      // classifying the embedded v4 rather than slipping past as "public".
-      /* c8 ignore start - URL normalization always yields the hex form below */
-      if (net.isIPv4(tail)) {
-        return isPrivateOrLoopbackAddress(tail);
-      }
-      /* c8 ignore stop */
-      // The genuine IPv4-mapped form the URL parser emits is two hex groups
-      // (::ffff:HHHH:LLLL = the embedded 32-bit v4); reconstruct and re-check.
-      const hexMatch = tail.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
-      if (hexMatch) {
-        const hi = parseInt(hexMatch[1], 16);
-        const lo = parseInt(hexMatch[2], 16);
-        const dotted = `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
-        return isPrivateOrLoopbackAddress(dotted);
-      }
-      // Any other ::ffff: form (e.g. ::ffff:1) is a normal IPv6 address, not an
-      // IPv4-mapped one, and matches none of the private prefixes above → public.
-      return false;
+    const g = ipv6Groups(ip);
+    const zero = (from: number, to: number) => g.slice(from, to).every((x) => x === 0);
+    // The IPv4 address in the low 32 bits, for forms that embed one.
+    const v4 = `${g[6] >> 8}.${g[6] & 0xff}.${g[7] >> 8}.${g[7] & 0xff}`;
+    if ((g[0] & 0xfe00) === 0xfc00) return true; // unique local fc00::/7
+    if ((g[0] & 0xffc0) === 0xfe80) return true; // link-local fe80::/10
+    if ((g[0] & 0xffc0) === 0xfec0) return true; // site-local fec0::/10 (deprecated)
+    // 6to4 2002::/16 carries an IPv4 address in its second and third groups.
+    if (g[0] === 0x2002) {
+      return isPrivateOrLoopbackAddress(
+        `${g[1] >> 8}.${g[1] & 0xff}.${g[2] >> 8}.${g[2] & 0xff}`
+      );
+    }
+    // IPv4-translated ::ffff:0:a.b.c.d.
+    if (zero(0, 4) && g[4] === 0xffff && g[5] === 0) return isPrivateOrLoopbackAddress(v4);
+    // IPv4-compatible ::a.b.c.d (also covers :: and ::1, which embed 0.0.0.x).
+    if (zero(0, 6)) return isPrivateOrLoopbackAddress(v4);
+    // IPv4-mapped ::ffff:a.b.c.d. ADR 01010: the URL parser emits these as hex.
+    if (zero(0, 5) && g[5] === 0xffff) return isPrivateOrLoopbackAddress(v4);
+    // NAT64 64:ff9b::/96.
+    if (g[0] === 0x64 && g[1] === 0xff9b && zero(2, 6)) {
+      return isPrivateOrLoopbackAddress(v4);
     }
     return false;
   }
   return false;
 }
 
-// Reject URLs whose host resolves to a loopback/private IP, unless the
-// caller explicitly opts in (DOC_DETECTIVE_ALLOW_LOCAL_URLS=true). Tests
-// and trusted internal integrations set the env var; normal doc-spec input
-// does not, so an untrusted spec can't pivot through doc-detective to hit
-// cloud metadata or intranet services.
-//
-// Note: this is a best-effort check. DNS rebinding and TOCTOU races are
-// possible between resolution and connect; for true SSRF-grade isolation,
-// wire in an agent that validates the actual remote address at connect
-// time. This guard covers the common misuse cases.
-async function assertUrlHostIsPublic(fileURL: string): Promise<void> {
-  if (process.env.DOC_DETECTIVE_ALLOW_LOCAL_URLS === "true") return;
+// The eight 16-bit groups of a valid IPv6 address. Expands `::`, reads a
+// dotted IPv4 tail (DNS answers aren't URL-normalized), and drops a zone id.
+// It doesn't validate: callers check net.isIPv6 first, or get NaN groups.
+function ipv6Groups(ip: string): number[] {
+  let text = ip.toLowerCase().split("%")[0];
+  const dotted = text.match(/(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (dotted) {
+    const [a, b, c, d] = dotted.slice(1).map(Number);
+    text =
+      text.slice(0, dotted.index) +
+      `${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+  }
+  const [head, tail] = text.split("::");
+  const left = head ? head.split(":") : [];
+  const right = tail ? tail.split(":") : [];
+  const groups =
+    tail === undefined
+      ? left
+      : [...left, ...Array(8 - left.length - right.length).fill("0"), ...right];
+  return groups.map((group) => parseInt(group, 16));
+}
+
+// On/off switches in the environment: 1, true, yes or on, in any case.
+function envFlag(name: string): boolean {
+  return /^(1|true|yes|on)$/i.test((process.env[name] ?? "").trim());
+}
+
+// A guarded fetch's own error: a refusal, or conflicting switches. Its
+// message is complete, so callers report it as is.
+class UrlGuardError extends Error {}
+
+// What the guarded fetches (screenshot reference images, OpenAPI `$ref`s) may
+// reach (ADR 01162). Env only, so a repository's config can't loosen it.
+//   "hops"  (default) local URLs are fine; a public-to-private redirect or
+//           `$ref` is refused.
+//   "allow" DOC_DETECTIVE_ALLOW_LOCAL_URLS: no checks.
+//   "block" DOC_DETECTIVE_BLOCK_LOCAL_URLS: every private address is refused.
+function localUrlPolicy(): "hops" | "allow" | "block" {
+  const allow = envFlag("DOC_DETECTIVE_ALLOW_LOCAL_URLS");
+  const block = envFlag("DOC_DETECTIVE_BLOCK_LOCAL_URLS");
+  if (allow && block) {
+    throw new UrlGuardError(
+      "DOC_DETECTIVE_ALLOW_LOCAL_URLS and DOC_DETECTIVE_BLOCK_LOCAL_URLS can't both be set."
+    );
+  }
+  return allow ? "allow" : block ? "block" : "hops";
+}
+
+// The private, loopback or link-local address a URL points at, or undefined
+// when it's public. A hostname counts as private when any of its addresses is,
+// or with `every`, only when all of them are. Names can resolve differently
+// at connect time; getGuarded checks again there.
+async function privateAddressOf(
+  fileURL: string,
+  { every = false }: { every?: boolean } = {}
+): Promise<string | undefined> {
   let parsed: URL;
   try {
     parsed = new URL(fileURL);
@@ -1456,34 +1544,186 @@ async function assertUrlHostIsPublic(fileURL: string): Promise<void> {
   const host = parsed.hostname.replace(/^\[|\]$/g, "");
   // Direct IP literals: check immediately.
   if (net.isIP(host)) {
-    if (isPrivateOrLoopbackAddress(host)) {
-      throw new Error(
-        `Refusing to fetch private/loopback address (${host}). Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
-      );
-    }
-    return;
+    return isPrivateOrLoopbackAddress(host) ? host : undefined;
   }
   // Hostnames: resolve and check every answer (A + AAAA).
   const lower = host.toLowerCase();
   if (lower === "localhost" || lower.endsWith(".localhost")) {
-    throw new Error(
-      `Refusing to fetch localhost (${host}). Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
-    );
+    return host;
   }
   let addresses: { address: string }[];
   try {
     addresses = await dns.lookup(host, { all: true });
   } catch (error) {
-    throw new Error(
-      `Couldn't resolve host ${host} for SSRF check: ${(error as Error).message}`
+    // `host` and `code` let callers word their own message.
+    throw Object.assign(
+      new Error(`Couldn't resolve host ${host}: ${(error as Error).message}`),
+      { host, code: (error as any).code ?? (error as Error).message }
     );
   }
-  for (const { address } of addresses) {
-    if (isPrivateOrLoopbackAddress(address)) {
-      throw new Error(
-        `Host ${host} resolves to a private/loopback address (${address}); refusing to fetch. Set DOC_DETECTIVE_ALLOW_LOCAL_URLS=true to allow.`
+  const privates = addresses.filter(({ address }) => isPrivateOrLoopbackAddress(address));
+  const isPrivate = every ? privates.length === addresses.length : privates.length > 0;
+  return isPrivate ? privates[0]?.address : undefined;
+}
+
+function strictModeError(url: string): Error {
+  return new UrlGuardError(
+    `Couldn't fetch ${redactUrlForOutput(url)}: DOC_DETECTIVE_BLOCK_LOCAL_URLS refuses private and loopback addresses.\n` +
+      "Hint: Unset DOC_DETECTIVE_BLOCK_LOCAL_URLS to allow local URLs."
+  );
+}
+
+function redirectError(from: string, address: string): Error {
+  return new UrlGuardError(
+    `Couldn't follow the redirect from ${redactUrlForOutput(from)}: it leads to ${address}, a private address, from a public one.\n` +
+      "Hint: If you trust this redirect, set DOC_DETECTIVE_ALLOW_LOCAL_URLS=1."
+  );
+}
+
+const REDIRECT_STATUSES = [301, 302, 303, 307, 308];
+
+// A hostname as a lookup sees it: no IPv6 brackets, no trailing dot, any case.
+function hostKey(hostname: string): string {
+  return hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "").toLowerCase();
+}
+
+// Whether an HTTP(S) proxy is configured in the environment, the variables
+// axios and Node read. Only then can a lookup be for a name other than the
+// request's own host. It doesn't read NO_PROXY, and needn't. A proxy-exempt
+// host connects directly, so the only lookup is its own, and that one counts.
+function proxyConfigured(): boolean {
+  return ["http_proxy", "https_proxy", "all_proxy"].some(
+    (key) => process.env[key] || process.env[key.toUpperCase()]
+  );
+}
+
+// GET for the guarded fetches. Follows up to 5 redirects by hand so each hop
+// is checked against localUrlPolicy(), both before it's requested and again
+// when it connects: a name can answer public to privateAddressOf() and private
+// to the connection (DNS rebinding). `refuseFirst`, from a caller whose
+// referrer is public, makes the first request refuse a private address too.
+// `refuseRedirect` builds the refusal of a public-to-private redirect, so a
+// caller can word it its own way.
+// Returns the body, the final URL, and whether any hop reached a public
+// address.
+async function getGuarded(
+  url: string,
+  // Binary by default (reference images); text callers pass FETCH_TEXT_DEFAULTS.
+  opts: AxiosRequestConfig = FETCH_BINARY_DEFAULTS,
+  refuseFirst?: (address: string) => Error,
+  refuseRedirect: (from: string, address: string) => Error = redirectError
+): Promise<{ data: any; url: string; reachedPublic: boolean }> {
+  const policy = localUrlPolicy();
+  const axios = await loadAxios();
+  const [{ default: http }, { default: https }] = await Promise.all([
+    import("node:http"),
+    import("node:https"),
+  ]);
+  let current = url;
+  let refuse = policy === "hops" ? refuseFirst : undefined;
+  let reachedPublic = false;
+  for (let hops = 0; ; hops++) {
+    if (policy === "block") {
+      // The pre-connect check. A second lookup fires at connect time through
+      // the agent's `lookup` below (ADR 01162).
+      if (await privateAddressOf(current)) throw strictModeError(current);
+      const hopUrl = current;
+      refuse = () => strictModeError(hopUrl);
+    }
+    // Fresh agents per request, so no pooled socket skips the lookup. It
+    // notes whether the connection resolved to a private address, and
+    // refuses one when `refuse` is set.
+    const seen: { resolved?: boolean; private?: string; public?: boolean } = {};
+    const refuseAtConnect = refuse;
+    const target = hostKey(new URL(current).hostname);
+    const lookup = (hostname: string, options: any, callback: any) => {
+      // With a proxy configured, a lookup of another name is the proxy's. It
+      // says nothing about the target, so it's neither refused nor counted;
+      // the pre-connect checks still apply (ADR 01162).
+      if (proxyConfigured() && hostKey(hostname) !== target) {
+        return dnsCallback.lookup(hostname, options, callback);
+      }
+      return dnsCallback.lookup(hostname, options, (error: any, address: any, family: any) => {
+        if (error) return callback(error, address, family);
+        const answers = Array.isArray(address) ? address : [{ address }];
+        seen.resolved = true;
+        seen.private = answers.find((a: any) => isPrivateOrLoopbackAddress(a.address))?.address;
+        seen.public = answers.some((a: any) => !isPrivateOrLoopbackAddress(a.address));
+        if (seen.private && refuseAtConnect) return callback(refuseAtConnect(seen.private));
+        callback(null, address, family);
+      });
+    };
+    const response = await axios.get(current, {
+      ...opts,
+      maxRedirects: 0,
+      httpAgent: new http.Agent({ lookup } as any),
+      httpsAgent: new https.Agent({ lookup } as any),
+      validateStatus: (status: number) =>
+        (status >= 200 && status < 300) || REDIRECT_STATUSES.includes(status),
+    }).catch((error: any) => {
+      // axios wraps a refusal at connect time; hand back the refusal itself.
+      throw error?.cause instanceof UrlGuardError ? error.cause : error;
+    });
+    // An IP literal skips the lookup, so classify it directly. A name the
+    // lookup never saw (a proxy) is public unless every address is private.
+    let hopPublic = seen.resolved
+      ? seen.public
+      : net.isIP(target)
+        ? !isPrivateOrLoopbackAddress(target)
+        : undefined;
+    // A fresh lookup of this hop's host, made at most once: a flapping
+    // resolver can't give the two checks below different answers. A failed
+    // lookup counts as public. `every: true` is deliberate: the host is
+    // private only when every address is, so in the `fromPublic` check a hop
+    // the connection saw as private still counts as public when the fresh
+    // lookup finds any public address. That's the guard failing closed.
+    // `fresh` resets every iteration, and `current` stays this hop's URL until
+    // `current = next` at the end of the loop.
+    let fresh: Promise<boolean> | undefined;
+    const freshPublic = () =>
+      (fresh ??= privateAddressOf(current, { every: true }).then((a) => !a, () => true));
+    if (hopPublic === undefined && policy !== "allow") hopPublic = await freshPublic();
+    if (hopPublic) reachedPublic = true;
+    if (!REDIRECT_STATUSES.includes(response.status)) {
+      return { data: response.data, url: current, reachedPublic };
+    }
+    const location = response.headers?.location;
+    // `hops` counts redirects followed, so at 5 a sixth redirect arrived and
+    // "more than 5" is accurate.
+    if (!location || hops >= 5) {
+      // Names the original URL on purpose: it's the one the spec named. When
+      // the limit and a missing Location both apply, the limit wins on purpose.
+      throw new UrlGuardError(
+        `Couldn't fetch ${redactUrlForOutput(url)}: ${
+          hops >= 5 ? "it needs more than 5 redirects" : `the ${response.status} redirect has no Location header`
+        }.`
       );
     }
+    const next = new URL(location, current).toString();
+    const scheme = new URL(next).protocol;
+    if (scheme !== "http:" && scheme !== "https:") {
+      throw new UrlGuardError(
+        `Couldn't fetch ${redactUrlForOutput(current)}: the redirect leads to an unsupported scheme (\`${scheme.slice(0, -1)}\`).`
+      );
+    }
+    if (policy === "hops") {
+      // Fail closed: the hop comes from a public origin unless both the
+      // connection and a fresh lookup say every address is private. Through a
+      // proxy the connection looked up the proxy, not this host, so the fresh
+      // lookup is the only signal.
+      // The two `every` values differ on purpose, and both fail closed. This
+      // hop is public when any address is; the target is refused when any is
+      // private.
+      const fromPublic = hopPublic || (await freshPublic());
+      refuse = undefined;
+      if (fromPublic) {
+        const address = await privateAddressOf(next);
+        if (address) throw refuseRedirect(current, address);
+        const from = current;
+        refuse = (connectAddress: string) => refuseRedirect(from, connectAddress);
+      }
+    }
+    current = next;
   }
 }
 
@@ -1492,16 +1732,11 @@ async function fetchFile(
   opts: { binary?: boolean } = {}
 ) {
   try {
-    if (opts.binary) {
-      // Only gate binary fetches for now — the text path is an internal
-      // loader used by the test-detection pipeline and pre-dates this
-      // change; expanding SSRF coverage there belongs in its own PR.
-      await assertUrlHostIsPublic(fileURL);
-    }
-    const response = await (await loadAxios()).get(
-      fileURL,
-      opts.binary ? FETCH_BINARY_DEFAULTS : undefined
-    );
+    // Binary fetches (screenshot reference images) are guarded. The text
+    // path loads operator-chosen input; not gated by design (ADR 01162).
+    const response = opts.binary
+      ? await getGuarded(fileURL)
+      : await (await loadAxios()).get(fileURL);
     let data: Buffer | string;
     if (opts.binary) {
       data = Buffer.from(response.data);
@@ -1559,7 +1794,8 @@ async function loadEnvs(envsFile: string) {
   const fileExists = fs.existsSync(envsFile);
   if (fileExists) {
     const { default: dotenv } = await import("dotenv");
-    dotenv.config({ path: envsFile, override: true });
+    const { parsed } = dotenv.config({ path: envsFile, override: true });
+    if (parsed && Object.keys(parsed).length > 0) noteVariablesUsed();
     return { status: "PASS", description: "Envs set." };
   } else {
     return { status: "FAIL", description: "Invalid file." };
@@ -1612,6 +1848,9 @@ function logLevelEnabled(config: any, level: string): boolean {
  */
 export const VIEWPORT_TOLERANCE_PX = 16;
 
+/** How long realizeViewport waits for a resize to show up in the page. */
+const VIEWPORT_SETTLE_MS = 2000;
+
 /**
  * Compare a requested browser viewport against the viewport the page actually
  * rendered (window.innerWidth/innerHeight read back after a resize) and produce
@@ -1647,7 +1886,7 @@ export function viewportMismatchWarning(
     }
   }
   if (parts.length === 0) return null;
-  return `Requested viewport not fully realized — the browser or OS enforces a minimum window size: ${parts.join(
+  return `Requested viewport not fully realized — the browser or OS limits the window size: ${parts.join(
     "; "
   )}. Screenshots and measurements reflect the rendered size, not the requested size.`;
 }
@@ -1725,7 +1964,8 @@ export async function realizeViewport(
   driver: any,
   requested: { width?: number; height?: number },
   config: any = {},
-  label?: string
+  label?: string,
+  level = "warning"
 ): Promise<{ width: number; height: number }> {
   const current = await readViewport(driver);
   const target = resolveViewportTarget(requested, current);
@@ -1747,16 +1987,129 @@ export async function realizeViewport(
     Math.round(windowSize.height + deltaHeight)
   );
 
-  const actual = await readViewport(driver);
+  // Some engines report the old viewport for a moment after a resize (headless
+  // Chrome on Windows CI). Poll until the target lands or the size stops
+  // changing; a stale read would otherwise skew the next resize's delta and
+  // raise a false floor warning.
+  let actual = await readViewport(driver);
+  let previous: { width: number; height: number } | undefined;
+  const deadline = Date.now() + VIEWPORT_SETTLE_MS;
+  while (
+    viewportMismatchWarning(target, actual, VIEWPORT_TOLERANCE_PX) &&
+    !(
+      previous &&
+      previous.width === actual.width &&
+      previous.height === actual.height &&
+      (actual.width !== current.width || actual.height !== current.height)
+    ) &&
+    Date.now() < deadline
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    previous = actual;
+    actual = await readViewport(driver);
+  }
   const warning = viewportMismatchWarning(
     requested,
     actual,
     VIEWPORT_TOLERANCE_PX
   );
   if (warning) {
-    await log(config, "warning", label ? `${label}: ${warning}` : warning);
+    await log(config, level, label ? `${label}: ${warning}` : warning);
   }
   return actual;
+}
+
+/**
+ * Viewport for a desktop browser session nobody sized. Without it the size is
+ * whatever the engine and host pick (headless Chrome renders 758×426 on
+ * Windows, headless Firefox 1366×683), which drifts between runner images.
+ * A viewport rather than a window: the window-to-viewport offset is the part
+ * that drifts. See ADR 01144.
+ */
+export const DEFAULT_VIEWPORT = { width: 1200, height: 800 };
+
+/**
+ * The size a browser session was asked for, recorded on `driver.state` so a
+ * screenshot can tell drift from an intentional change (ADR 01144).
+ */
+export type SizeTarget = {
+  kind: "viewport" | "window" | "default";
+  width?: number;
+  height?: number;
+};
+
+// Only positive dimensions count: the schema doesn't floor these, and a
+// 0/negative/NaN value must not reach setWindowSize.
+function positiveDimensions(
+  dims: { width?: number; height?: number } | undefined
+): { width?: number; height?: number } | undefined {
+  const width = Number(dims?.width);
+  const height = Number(dims?.height);
+  if (!(width > 0) && !(height > 0)) return undefined;
+  return {
+    ...(width > 0 ? { width } : {}),
+    ...(height > 0 ? { height } : {}),
+  };
+}
+
+/**
+ * Size a freshly opened desktop browser session: an authored viewport wins,
+ * then an authored window, then DEFAULT_VIEWPORT. Records the choice as
+ * `driver.state.sizeTarget` and returns it, plus the viewport that rendered
+ * when one was realized.
+ */
+export async function applyBrowserSize(
+  driver: any,
+  authored:
+    | {
+        viewport?: { width?: number; height?: number };
+        window?: { width?: number; height?: number };
+      }
+    | undefined,
+  config: any = {},
+  label?: string
+): Promise<{ target: SizeTarget; realized?: { width: number; height: number } }> {
+  const viewport = positiveDimensions(authored?.viewport);
+  const windowDims = positiveDimensions(authored?.window);
+  let target: SizeTarget;
+  let realized: { width: number; height: number } | undefined;
+  if (viewport) {
+    target = { kind: "viewport", ...viewport };
+    realized = await realizeViewport(driver, viewport, config, label);
+  } else if (windowDims) {
+    target = { kind: "window", ...windowDims };
+    const current = await driver.getWindowSize();
+    await driver.setWindowSize(
+      windowDims.width ?? current.width,
+      windowDims.height ?? current.height
+    );
+  } else {
+    target = { kind: "default", ...DEFAULT_VIEWPORT };
+    // Nobody asked for this size, so a host too small to fit it (a headed
+    // desktop on a small display) isn't worth a warning, and a session that
+    // can't be resized at all still runs at the size it opened with.
+    try {
+      realized = await realizeViewport(
+        driver,
+        DEFAULT_VIEWPORT,
+        config,
+        label,
+        "debug"
+      );
+    } catch (error: any) {
+      await log(
+        config,
+        "debug",
+        `Couldn't apply the default ${DEFAULT_VIEWPORT.width}×${DEFAULT_VIEWPORT.height} viewport: ${error?.message ?? error}`
+      );
+    }
+  }
+  driver.state = driver.state ?? {};
+  driver.state.sizeTarget = target;
+  // The target belongs to the window that was sized, not to popups the page
+  // opens later in the same session.
+  driver.state.sizeTargetHandle = await driver.getWindowHandle?.();
+  return { target, realized };
 }
 
 async function log(config: any, level: string, message?: any) {
@@ -1938,6 +2291,7 @@ function replaceEnvs(stringOrObject: any): any {
       // Check if is declared variable
       let value: any = process.env[match.substring(1)];
       if (value) {
+        noteVariablesUsed();
         // If match is the entire string instead of just being a substring, try to convert value to object
         try {
           if (
@@ -1961,6 +2315,399 @@ function replaceEnvs(stringOrObject: any): any {
     });
   }
   return stringOrObject;
+}
+
+// ===========================================================================
+// Verification metadata write-back. After a run, every page that lists a
+// `verified-by` entry for Doc Detective gets that entry's result written back
+// when its check passed. src/core/verification.ts holds the rules, and
+// adrs/01140-last-verified-on-marker-writeback.md records them.
+// ===========================================================================
+
+// Map a file extension to the doc format whose comment syntax we use. `.mdx`
+// shares the markdown grammar (and uses the JSX-comment variant).
+const VERIFIED_FORMAT_BY_EXT: Record<string, string> = {
+  md: "markdown",
+  markdown: "markdown",
+  mdx: "markdown",
+  adoc: "asciidoc",
+  asciidoc: "asciidoc",
+  asc: "asciidoc",
+  html: "html",
+  htm: "html",
+  dita: "dita",
+  ditamap: "dita",
+  // `.xml` is intentionally omitted: it's a generic extension (POMs, SVGs, feeds,
+  // Spring configs), and treating every .xml as DITA would put unrelated files on
+  // the write-back scan path. DITA authored as `.xml` is uncommon; use `.dita`.
+};
+
+// Body of an existing DD-managed shields.io image, per format, so a badge
+// writer can find and replace its own image line on re-runs. Anchored to the
+// `Last_verified-` label shieldsBadge writes, so an author's other shields.io
+// badge on that line is never taken for ours.
+const VERIFIED_IMG_BODY: Record<string, string> = {
+  markdown: "!\\[[^\\]]*\\]\\([^)]*img\\.shields\\.io/badge/Last_verified-[^)]*\\)",
+  html: "<img[^>]*img\\.shields\\.io/badge/Last_verified-[^>]*>",
+  asciidoc: "image:\\S*img\\.shields\\.io/badge/Last_verified-\\S*\\[[^\\]]*\\]",
+  dita: "<image[^>]*img\\.shields\\.io/badge/Last_verified-[\\s\\S]*?</image>",
+};
+
+// Filesystem-/badge-friendly calendar date, `YYYY-MM-DD` in UTC (deterministic
+// across runners/timezones), e.g. `2026-06-26`.
+function verifiedDate(d: Date = new Date()): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Escape one shields.io URL path segment: `_`→`__`, `-`→`--`, ` `→`_`. The
+// dash-doubling is the easy-to-get-wrong bit (a literal `-` is otherwise the
+// label/message/color separator), so `2026-06-26` → `2026--06--26`.
+function shieldsEscape(segment: string): string {
+  return segment.replace(/_/g, "__").replace(/-/g, "--").replace(/ /g, "_");
+}
+
+// Build a shields.io static badge, wrapped in the format's native image syntax.
+// DD only writes the URL; shields.io renders it client-side (no network call).
+function shieldsBadge(
+  format: string,
+  date: string,
+  { label = "Last verified", color = "brightgreen" }: { label?: string; color?: string } = {}
+): string {
+  const url = `https://img.shields.io/badge/${shieldsEscape(label)}-${shieldsEscape(
+    date
+  )}-${shieldsEscape(color)}`;
+  const alt = `${label} ${date}`;
+  switch (format) {
+    case "asciidoc":
+      return `image:${url}[${alt}]`;
+    case "html":
+      return `<img src="${url}" alt="${alt}">`;
+    case "dita":
+      return `<image href="${url}"><alt>${alt}</alt></image>`;
+    default:
+      return `![${alt}](${url})`;
+  }
+}
+
+// Replace a source document in one step: write a sibling temp file, then rename
+// it over the real target, so an interrupted write never leaves the document
+// half-written. The target is resolved first, so a symlink stays a symlink,
+// and its permission bits carry over. On any failure the temp file goes and
+// the document is untouched.
+function writeFileAtomic(file: string, content: string): void {
+  const target = fs.realpathSync(file);
+  const tmp = path.join(path.dirname(target), `.${path.basename(target)}.${crypto.randomBytes(6).toString("hex")}.tmp`);
+  // Created exclusively first, so an EEXIST throws before we own the file and
+  // cleanup can never remove someone else's.
+  const fd = fs.openSync(tmp, "wx", 0o600); // private until it takes the target's mode
+  let keepTmp = false;
+  try {
+    try {
+      fs.writeFileSync(fd, content, "utf8");
+    } finally {
+      fs.closeSync(fd);
+    }
+    fs.chmodSync(tmp, fs.statSync(target).mode & 0o7777);
+    try {
+      fs.renameSync(tmp, target);
+    } catch (error: any) {
+      // Windows refuses to replace a file another process holds open (an
+      // editor, a preview). Fall back to an in-place copy, which is no worse
+      // than a plain write, rather than skip the document.
+      if (!["EPERM", "EBUSY", "EACCES"].includes(error?.code)) throw error;
+      try {
+        fs.copyFileSync(tmp, target);
+      } catch (copyError: any) {
+        // The copy truncates the document first, so a failure partway can
+        // leave it incomplete. Keep the temp file, the one complete copy.
+        keepTmp = true;
+        throw new Error(`${copyError?.message ?? copyError} (the complete content is kept in ${tmp})`);
+      }
+      fs.rmSync(tmp, { force: true });
+    }
+  } catch (error) {
+    if (!keepTmp) fs.rmSync(tmp, { force: true });
+    throw error;
+  }
+}
+
+// Resolve a check against a run report: specs with a matching specId, else
+// tests with a matching testId. A routed revisit (goToTest) reports a unit
+// more than once, so it resolves to PASS only if every match passed, and to
+// the first other result otherwise. Null when nothing matches.
+function resolveVerifiedId(results: any, id: string): string | null {
+  if (!results || !Array.isArray(results.specs)) return null;
+  const specs = results.specs.filter((spec: any) => spec?.specId === id);
+  const matches = specs.length
+    ? specs
+    : results.specs.flatMap((spec: any) => (spec?.tests || []).filter((test: any) => test?.testId === id));
+  if (matches.length === 0) return null;
+  const failed = matches.find((unit: any) => unit.result !== "PASS");
+  return failed ? (failed.result ?? null) : "PASS";
+}
+
+// Post-run write-back: for every candidate source file, fill Doc Detective's
+// `verified-by` entries whose check PASSED, in front matter and in inline
+// `meta` statements. Unknown checks warn and are skipped; other results write
+// nothing. Per-file failures warn and continue. Never throws.
+//
+// The candidate set is the union of the report's content paths and the full
+// detected input set (`files`), so a prose-only page that names a check but
+// contributes no spec is still updated.
+//
+// With `init` (`verification.write: true`), a Markdown or MDX page whose spec
+// PASSED is first given a `verified-by` entry naming that spec, if it has no
+// Doc Detective entry yet (declarePage), so the fill completes it.
+function applyVerifiedMarkers({
+  config,
+  results,
+  files: detectedFiles = [],
+  init = false,
+}: {
+  config: any;
+  results: any;
+  files?: string[];
+  init?: boolean;
+}): void {
+  if (!results || !Array.isArray(results.specs)) return;
+
+  // contentPath -> the passing spec a page declares under `init`.
+  const passingSpecs = new Map<string, string>();
+  if (init) {
+    for (const spec of results.specs) {
+      const ext = (String(spec?.contentPath ?? "").split(".").pop() || "").toLowerCase();
+      if (VERIFIED_FORMAT_BY_EXT[ext] !== "markdown" || typeof spec.specId !== "string") continue;
+      if (resolveVerifiedId(results, spec.specId) === "PASS") passingSpecs.set(spec.contentPath, spec.specId);
+    }
+  }
+
+  const files = new Set<string>();
+  for (const file of detectedFiles) {
+    if (file) files.add(file);
+  }
+  for (const spec of results.specs) {
+    if (spec?.contentPath) files.add(spec.contentPath);
+    for (const test of spec?.tests || []) {
+      if (test?.contentPath) files.add(test.contentPath);
+    }
+  }
+
+  const today = verifiedDate();
+  const version = ownVersion() ?? "unknown";
+  for (const file of files) {
+    try {
+      if (!fs.existsSync(file)) continue;
+      const ext = (file.split(".").pop() || "").toLowerCase();
+      const format = VERIFIED_FORMAT_BY_EXT[ext];
+      if (!format) continue;
+
+      const original = fs.readFileSync(file, "utf8");
+      const specId = passingSpecs.get(file);
+      const declared = specId === undefined ? original : declarePage(original, specId);
+      // Cheap fast-path: every entry Doc Detective fills names it, so a file
+      // without the literal "doc-detective" has nothing to update.
+      if (!declared.includes(VERIFIED_TOOL)) continue;
+      const content = applyVerification(declared, format, {
+        today,
+        version,
+        resolve: (check) => resolveVerifiedId(results, check),
+        onUnknown: (check) =>
+          log(config, "warning", `verified-by check '${check}' in ${file} matches no test or spec; skipping.`),
+        onSkipped: (line, reason) =>
+          log(config, "warning", `Skipping the meta statement at ${file}:${line}: ${reason}.`),
+      });
+      if (content !== original) writeFileAtomic(file, content);
+    } catch (error: any) {
+      log(config, "warning", `Failed to update verified-by entries in ${file}: ${error?.message ?? error}`);
+    }
+  }
+}
+
+// A `test` statement with `testId` added to its options, in its own comment
+// form, or undefined when its options aren't absent or one JSON object, the
+// only shapes it can edit without re-serializing the author's statement.
+function withTestId(statement: string, id: string): string | undefined {
+  const m = /^([\s\S]*?\btest\b)([\s\S]*?)(\s*(?:-->|\*\/\}|\)|\?>))$/.exec(statement);
+  if (!m) return undefined;
+  const [, head, options, close] = m;
+  const field = `"testId": ${JSON.stringify(id)}`;
+  if (options.trim() === "") return `${head} {${field}}${close}`;
+  try {
+    const parsed = JSON.parse(options);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || "testId" in parsed) return undefined;
+  } catch {
+    return undefined;
+  }
+  const open = options.indexOf("{");
+  const rest = options.slice(open + 1).trimStart();
+  return `${head}${options.slice(0, open + 1)}${field}${rest.startsWith("}") ? "" : ", "}${rest}${close}`;
+}
+
+// Whether `statement` sets `id` as its testId (`"testId": "id"`, `testId: id`,
+// or `testId="id"`), not merely mentions it, or a longer id that starts with it.
+function setsTestId(statement: string, id: string): boolean {
+  const escaped = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`testId["']?\\s*[:=]\\s*["']?${escaped}(?=["'\\s,}>)]|$)`).test(statement);
+}
+
+// A `meta` statement declaring `checks` for Doc Detective, in the format's
+// comment form, or undefined when the payload can't be written in that form.
+function declaringStatement(format: string, ext: string, checks: string[]): string | undefined {
+  const payload = JSON.stringify({ "verified-by": checks.map((check) => ({ tool: "doc-detective", check })) });
+  if (format === "dita") return `<?manni meta ${payload}?>`;
+  if (format === "asciidoc") return payload.includes(")") ? undefined : `// (meta ${payload})`;
+  return ext === "mdx" ? `{/* meta ${payload} */}` : `<!-- meta ${payload} -->`;
+}
+
+// Badge-anchored test verification: `badge: true` on an inline `test` statement, resolved by report-carried (contentPath, location.line) — no authored testId. See ADR 01141.
+// With `init` (`verification.write: true`), a passing inline test whose testId
+// is authored (written in its own test statement; a generated one never is) gets a `meta`
+// statement declaring it above its statement and badge, unless one already
+// does. The verification write-back then fills and pins it. See ADR 01140.
+// A statement is independent of the badge: a test without `badge: true`
+// still gets one.
+function applyBadgeAnchoredTests({ config, results, init = false }: { config: any; results: any; init?: boolean }): void {
+  if (!results || !Array.isArray(results.specs)) return;
+
+  // contentPath -> statement line -> what that line gets. A badge sits on the
+  // line above its test statement, so every badge-flagged test on one line,
+  // including a routed revisit (goToTest) of the same test, shares one badge:
+  // it passes only if every one of them passed. With `init`, `checks` holds
+  // each test id on the line, its result merged the same way, and its test
+  // statement's span: an id written inside that span was authored.
+  type LineWork = { badge?: string; checks: Map<string, { result: string; start: number; end: number }> };
+  const byFile = new Map<string, Map<number, LineWork>>();
+  const merge = (prev: string | undefined, next: string) => (prev === undefined || prev === "PASS" ? next : prev);
+  for (const spec of results.specs) {
+    for (const test of spec?.tests || []) {
+      if (test?.badge !== true && !init) continue;
+      if (!test?.contentPath) continue;
+      if (!test?.location?.line) {
+        if (test.badge === true) {
+          log(
+            config,
+            "warning",
+            `Test '${test.testId ?? "(unnamed)"}' in ${test.contentPath} has \`badge: true\` but no location — badges only apply to tests detected from an inline test statement, not JSON/YAML spec tests; skipping.`
+          );
+        }
+        continue;
+      }
+      const byLine = byFile.get(test.contentPath) || new Map<number, LineWork>();
+      const work: LineWork = byLine.get(test.location.line) || { checks: new Map() };
+      if (test.badge === true) work.badge = merge(work.badge, test.result);
+      if (init && typeof test.testId === "string") {
+        const { startIndex: start = 0, endIndex: end = 0 } = test.location;
+        const result = merge(work.checks.get(test.testId)?.result, test.result);
+        work.checks.set(test.testId, { result, start, end });
+      }
+      byLine.set(test.location.line, work);
+      byFile.set(test.contentPath, byLine);
+    }
+  }
+
+  const today = verifiedDate();
+  for (const [file, byLine] of byFile) {
+    try {
+      if (!fs.existsSync(file)) continue;
+      const ext = (file.split(".").pop() || "").toLowerCase();
+      const format = VERIFIED_FORMAT_BY_EXT[ext];
+      if (!format) continue;
+
+      const original = fs.readFileSync(file, "utf8");
+      const eol = original.includes("\r\n") ? "\r\n" : "\n";
+      const lines = original.split(/\r?\n/);
+      const body = VERIFIED_IMG_BODY[format] || VERIFIED_IMG_BODY.markdown;
+      const existingImgRe = new RegExp(`^([ \\t]*)(?:${body})[ \\t]*$`);
+      // A check some statement in the file already declares. Reading `original`,
+      // not `lines`, is deliberate: a goToTest revisit reruns the same test and
+      // reports its location, so one id reaches one line. Two authored tests
+      // sharing an id on different lines each get their own statement.
+      const declared = (id: string) =>
+        new RegExp(`"check"\\s*:\\s*${JSON.stringify(id).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(original);
+      let changed = false;
+
+      // Bottom-to-top so an insertion doesn't shift indices still to process.
+      for (const [line, work] of [...byLine].sort((a, b) => b[0] - a[0])) {
+        let li = line - 1; // 0-indexed into `lines`: the test statement
+        if (li < 0 || li >= lines.length) continue; // stale location vs. current file
+        const indent = (lines[li].match(/^[ \t]*/) || [""])[0];
+
+        // Freeze a passing test's generated id: write it into the test's own
+        // statement, where it counts as authored from then on. A generated id
+        // changes whenever its test does, so a statement naming it would break.
+        // Right to left, so two statements on one line keep their positions. A
+        // statement can span lines; adding the id never adds one, so every
+        // line index this pass still uses stays valid.
+        const frozen = new Set<string>();
+        for (const [id, c] of [...work.checks].sort((a, b) => b[1].start - a[1].start)) {
+          const text = original.slice(c.start, c.end).replace(/\r\n/g, "\n");
+          if (c.result !== "PASS" || setsTestId(text, id)) continue;
+          const span = text.split("\n").length;
+          const block = lines.slice(li, li + span).join("\n");
+          const at = block.indexOf(text);
+          const next = at === -1 ? undefined : withTestId(text, id);
+          if (next === undefined) {
+            log(
+              config,
+              "warning",
+              `Can't freeze the generated testId '${id}' in ${file}: its test statement's options aren't absent or one JSON object. Add a testId to the statement by hand.`
+            );
+            continue;
+          }
+          lines.splice(li, span, ...(block.slice(0, at) + next + block.slice(at + text.length)).split("\n"));
+          frozen.add(id);
+          changed = true;
+        }
+
+        // Non-pass: leave the existing badge to age.
+        if (work.badge === "PASS") {
+          const img = shieldsBadge(format, today);
+          const existing = li > 0 ? lines[li - 1].match(existingImgRe) : null;
+          if (existing) {
+            if (lines[li - 1] !== `${existing[1]}${img}`) {
+              lines[li - 1] = `${existing[1]}${img}`;
+              changed = true;
+            }
+          } else {
+            lines.splice(li, 0, `${indent}${img}`);
+            li++;
+            changed = true;
+          }
+        }
+
+        const checks = [...work.checks]
+          .filter(
+            ([id, c]) =>
+              c.result === "PASS" && (frozen.has(id) || setsTestId(original.slice(c.start, c.end), id)) && !declared(id)
+          )
+          .map(([id]) => id);
+        const statement = checks.length > 0 ? declaringStatement(format, ext, checks) : undefined;
+        if (checks.length > 0 && !statement) {
+          log(
+            config,
+            "warning",
+            `Can't declare ${checks.map((c) => `'${c}'`).join(", ")} in ${file}: an AsciiDoc \`// ( )\` statement ends at the first ")", so no statement can name it. Rename the testId without ")".`
+          );
+        }
+        if (statement) {
+          const top = li > 0 && existingImgRe.test(lines[li - 1]) ? li - 1 : li;
+          lines.splice(top, 0, `${format === "asciidoc" ? "" : indent}${statement}`);
+          changed = true;
+        }
+      }
+
+      if (changed) writeFileAtomic(file, lines.join(eol));
+    } catch (error: any) {
+      log(
+        config,
+        "warning",
+        `Failed to update badge-anchored tests in ${file}: ${error?.message ?? error}`
+      );
+    }
+  }
 }
 
 // Filesystem-safe instant token, matching the `doc-detective debug` dump's

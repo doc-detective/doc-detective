@@ -1,0 +1,317 @@
+{
+  "specId": "screenshot-resize-to-reference",
+  "description": "ADR 01144 / #769: when a capture and its reference differ in size, the screenshot step resizes the window so the viewport matches the reference, captures again, compares, and restores the window. Each test writes its own white reference at an exact size with make-reference.cjs (unique path, so concurrent runners and reruns can't interfere), so content always differs from the page: maxVariation 1 keeps the comparison a PASS, and step assertions pin whether the resize happened. Headless only: headed Chrome can't grow past the display, so a retake there depends on the runner's screen.",
+  "tests": [
+    {
+      "testId": "resize-default-target",
+      "description": "No authored size (the 1200×800 default viewport): the reference wins at any distance. 900×650 isn't a uniform scale of 1200×800; a uniform one reads as a pixel-density difference and is left to the resample.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            },
+            {
+              "name": "firefox",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runShell": {
+            "command": "node make-reference.cjs static/images/resize-default.png 900x650",
+            "workingDirectory": "."
+          }
+        },
+        {
+          "screenshot": {
+            "path": "resize-default.png",
+            "directory": "static/images",
+            "maxVariation": 1
+          },
+          "assertions": [
+            "$$outputs.resizedToReference.from.width == 1200",
+            "$$outputs.resizedToReference.to.width == 900",
+            "$$outputs.width == 900",
+            "$$outputs.height == 650"
+          ]
+        },
+        {
+          "description": "The window went back to the default viewport after the step.",
+          "runBrowserScript": {
+            "script": "return window.innerWidth + 'x' + window.innerHeight;",
+            "output": "/^1200x800$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "resize-above-window",
+      "description": "A reference larger than the virtual screen (800×600 for headless Chrome, 1366×768 for headless Firefox): headless windows can grow past it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            },
+            {
+              "name": "firefox",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runShell": {
+            "command": "node make-reference.cjs static/images/resize-above.png 2400x1700",
+            "workingDirectory": "."
+          }
+        },
+        {
+          "screenshot": {
+            "path": "resize-above.png",
+            "directory": "static/images",
+            "maxVariation": 1
+          },
+          "assertions": [
+            "$$outputs.resizedToReference.to.width == 2400",
+            "$$outputs.width == 2400",
+            "$$outputs.height == 1700"
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "resize-viewport-target",
+      "description": "An authored viewport, and a reference within 16px of it (drift): resized to the reference.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true,
+              "viewport": {
+                "width": 1000,
+                "height": 700
+              }
+            },
+            {
+              "name": "firefox",
+              "headless": true,
+              "viewport": {
+                "width": 1000,
+                "height": 700
+              }
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runShell": {
+            "command": "node make-reference.cjs static/images/resize-viewport.png 1000x690",
+            "workingDirectory": "."
+          }
+        },
+        {
+          "screenshot": {
+            "path": "resize-viewport.png",
+            "directory": "static/images",
+            "maxVariation": 1
+          },
+          "assertions": [
+            "$$outputs.resizedToReference.from.height == 700",
+            "$$outputs.resizedToReference.to.height == 690",
+            "$$outputs.height == 690"
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "resize-viewport-target-stale",
+      "description": "An authored viewport and a reference that shows a different one (the config changed): no resize, so the change isn't reverted. The near aspect ratio lets the existing resample compare it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true,
+              "viewport": {
+                "width": 1000,
+                "height": 700
+              }
+            },
+            {
+              "name": "firefox",
+              "headless": true,
+              "viewport": {
+                "width": 1000,
+                "height": 700
+              }
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runShell": {
+            "command": "node make-reference.cjs static/images/resize-viewport-stale.png 1200x800",
+            "workingDirectory": "."
+          }
+        },
+        {
+          "screenshot": {
+            "path": "resize-viewport-stale.png",
+            "directory": "static/images",
+            "maxVariation": 1
+          },
+          "assertions": [
+            "$$outputs.width == 1000",
+            "$$outputs.height == 700"
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "resize-window-target",
+      "description": "An authored window, and a reference 20px shorter than the viewport it renders (well within 5% of the window): resized to the reference. The reference size is measured, since the window frame differs per engine and platform.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true,
+              "window": {
+                "width": 1200,
+                "height": 900
+              }
+            },
+            {
+              "name": "firefox",
+              "headless": true,
+              "window": {
+                "width": 1200,
+                "height": 900
+              }
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": "return window.innerWidth + 'x' + (window.innerHeight - 20);",
+          "variables": {
+            "REFERENCE_SIZE": "$$result"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node make-reference.cjs static/images/resize-window.png",
+            "workingDirectory": "."
+          }
+        },
+        {
+          "screenshot": {
+            "path": "resize-window.png",
+            "directory": "static/images",
+            "maxVariation": 1
+          },
+          "assertions": [
+            "$$outputs.resizedToReference.to.height > 0",
+            "$$outputs.height == $$outputs.resizedToReference.to.height"
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "resize-skipped-on-overwrite",
+      "description": "overwrite \"true\" replaces the reference without comparing, so there's nothing to resize for: the capture keeps the 1200×800 default viewport.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            },
+            {
+              "name": "firefox",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runShell": {
+            "command": "node make-reference.cjs static/images/resize-overwrite.png 900x600",
+            "workingDirectory": "."
+          }
+        },
+        {
+          "screenshot": {
+            "path": "resize-overwrite.png",
+            "directory": "static/images",
+            "overwrite": "true"
+          },
+          "assertions": [
+            "$$outputs.width == 1200",
+            "$$outputs.height == 800"
+          ]
+        }
+      ]
+    }
+  ]
+}
