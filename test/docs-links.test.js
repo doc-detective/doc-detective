@@ -23,6 +23,9 @@ describe("docs site links", function () {
       "/docs/category/schemas": "/reference/schemas/config",
       "/docs/references/schemas/typeKeys": "/reference/schemas/type",
       "/get-started.html": "/docs/get-started/introduction",
+      // The self-healing page was retitled; both of its old routes land on the new one.
+      "/docs/get-started/self-healing": "/ai/ai-agents/hand-off-failures",
+      "/ai/ai-agents/self-healing": "/ai/ai-agents/hand-off-failures",
     };
     for (const [source, destination] of Object.entries(expected)) {
       it(`redirects ${source} to ${destination}`, function () {

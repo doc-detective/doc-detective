@@ -341,9 +341,9 @@ navigation:
           - page: Agent tools & MCP
             path: pages/ai/agent-tools-and-mcp.mdx
             slug: agent-tools-and-mcp
-          - page: Self-healing
+          - page: Hand off failures
             path: pages/docs/get-started/self-healing.mdx
-            slug: self-healing
+            slug: hand-off-failures
 
   - tab: reference
     layout:
@@ -494,7 +494,10 @@ redirects:
   - source: /docs/test-docs/integrations
     destination: /docs/ci/issue-mentions
   - source: /docs/get-started/self-healing
-    destination: /ai/ai-agents/self-healing
+    destination: /ai/ai-agents/hand-off-failures
+  # The page was retitled from "Self-healing" to say what it does.
+  - source: /ai/ai-agents/self-healing
+    destination: /ai/ai-agents/hand-off-failures
   - source: /docs/get-started/resources
     destination: /support/support/resources
   # Agent tools → AI & Agents pillar

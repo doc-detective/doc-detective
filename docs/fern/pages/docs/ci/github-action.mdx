@@ -148,7 +148,9 @@ When a run has failing tests, the action can open a GitHub issue to track the fa
 
 ```yaml
 name: doc-detective
-on: [pull_request]
+on:
+  push:
+    branches: [main]
 
 jobs:
   doc-tests:
@@ -165,8 +167,11 @@ jobs:
         with:
           create_issue_on_fail: true
           issue_title: Doc Detective found documentation issues
+          token: ${{ secrets.DOC_DETECTIVE_ISSUE_TOKEN }}
           issue_mentions: claude
 ```
+
+This workflow runs on pushes to `main`. By default, a fork's pull request gets a read-only `GITHUB_TOKEN` and no secrets, so the action can't open an issue for it. Keep pull request checks in a separate `pull_request` workflow without `create_issue_on_fail`.
 
 | Input | Default | Description |
 |---|---|---|
@@ -177,6 +182,7 @@ jobs:
 | `issue_assignees` | None | Comma-separated usernames to assign. |
 | `issue_mentions` | None | Comma-separated AI assistants to mention in the issue. See [AI issue mentions](/docs/ci/issue-mentions). |
 | `issue_prompt` | `Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes.` | Text that follows each mention. |
+| `token` | `${{ github.token }}` | Token the action creates issues and pull requests with. |
 
 If an open issue has the same title and the first label in `issue_labels`, the action updates that issue. Otherwise it creates one. A daily schedule then keeps one issue current rather than opening one per run.
 
@@ -186,7 +192,9 @@ If an open issue has the same title and the first label in `issue_labels`, the a
 
 GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$SUMMARY` or `$RESULTS` to fit. A shortened `$RESULTS` ends with a link to the workflow run. If `issue_body` and `issue_prompt` leave no room for results, the action logs an error and doesn't create the issue.
 
-The `issue_mentions` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [AI issue mentions](/docs/ci/issue-mentions).
+The `issue_mentions` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [AI issue mentions](/docs/ci/issue-mentions). For prompts that get useful analysis back, see [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).
+
+The example sets `token` because `claude` needs it. Claude Code answers from a workflow, and GitHub doesn't start workflows for an issue that the default `GITHUB_TOKEN` opens. That page shows how to create the token.
 
 <Note>
 GitHub Action `@v2` renames `integrations` to `issue_mentions` and `prompt` to `issue_prompt`. The old names still work, but the action logs a deprecation warning. Setting both an old and a new name fails the job before tests run.
@@ -231,6 +239,17 @@ GitHub discards the checkout when the job ends. To keep the reports, upload them
 ```
 
 `if: always()` uploads the files even when a failing test fails the job. `upload-artifact` treats files in a folder whose name starts with `.` as hidden and skips them by default, so set `include-hidden-files: true` to upload the run folder. Upload the run folder with `junit.xml`, because its [attachments](/docs/ci/reporters-and-artifacts#read-the-junit-report) are relative to that file.
+
+## Tests are code
+
+Running Doc Detective on a repository runs that repository's tests, the same way `npm test` runs its test suite. Tests can run shell commands, run code, and send HTTP requests. That's true of inline tests in your docs and of standalone spec files alike. Anyone who can change your tests can change what your workflow runs.
+
+`bash`, `python`, `py`, `javascript`, and `js` code blocks that Doc Detective detects in Markdown are the exception. Nobody wrote them as tests, so they're marked `unsafe`, and a run skips them unless you allow unsafe steps. The official Docker image allows them by default. Detected HTTP request blocks aren't marked `unsafe`, so a run sends those requests. To turn detection off, set [`detectSteps`](/reference/schemas/config) to `false`.
+
+What protects your workflow is who can start a run that has your secrets:
+
+- Trigger pull request checks on `pull_request`. By default, a fork's pull request runs without your repository's secrets and with a read-only `GITHUB_TOKEN`. A private repository, or its organization, can send write tokens or secrets to those runs under **Settings** > **Actions** > **General** > **Fork pull request workflows**. With either setting on, a fork's tests run with them. The read-only token also stops the action from opening issues or pull requests for a fork's pull request. Run `create_issue_on_fail` and `create_pr_on_change` on `push`, `schedule`, or `workflow_dispatch` instead.
+- Never check out and run a pull request's code in a `pull_request_target` workflow. That trigger runs with your secrets and a read/write `GITHUB_TOKEN`, even if no step uses a secret. `actions/checkout` also saves that token in the Git config by default.
 
 ## Browser modes
 
