@@ -24,7 +24,7 @@ export interface SelfUpdateDeps {
 const RUNTIME_DEBUG = process.env.DOC_DETECTIVE_RUNTIME_DEBUG === "1";
 const defaultLogger: Logger = (msg, level = "info") => {
   if (level === "debug" && !RUNTIME_DEBUG) return;
-  if (level === "error") console.error(msg);
+  if (level === "error" || level === "warn") console.error(msg);
   else console.log(msg);
 };
 
@@ -96,31 +96,66 @@ function comparePrereleaseId(a: string, b: string): number {
   return 0;
 }
 
+// -1 when there's no major to read, which checkForUpdate treats as "skip".
+function majorOf(version: string): number {
+  const major = /^v?(\d+)\./.exec(version.trim())?.[1];
+  return major === undefined ? -1 : Number(major);
+}
+
 export interface CheckResult {
   latest: string | null;
   newer: boolean;
 }
 
 /**
- * Hit the npm registry for the dist-tag.latest of `doc-detective`. Bounded
- * by a 3 s timeout. Any failure — network, parse, semver, anything —
+ * Hit the npm registry for the dist-tag.latest of `doc-detective`, never
+ * crossing a major version (ADR 01147). Bounded by a 3 s timeout. Any failure — network, parse, semver, anything —
  * yields { newer: false } and a debug-level log; we never let a registry
  * hiccup block the run.
  */
 export async function checkForUpdate(
-  currentVersion: string,
+  currentVersion: string | undefined,
   deps: SelfUpdateDeps = {}
 ): Promise<CheckResult> {
   const logger = deps.logger ?? defaultLogger;
+  if (!currentVersion) {
+    logger("own version unknown; skipping self-update", "debug");
+    return { latest: null, newer: false };
+  }
   const http = deps.http ?? {
     get: (url, opts) => axios.get(url, opts),
   };
   try {
     const res = await http.get(REGISTRY_URL, { timeout: REGISTRY_TIMEOUT_MS });
-    const latest: string | undefined = res?.data?.["dist-tags"]?.latest;
+    const tags = res?.data?.["dist-tags"];
+    const latest: string | undefined = tags?.latest;
     if (typeof latest !== "string" || latest.length === 0) {
       logger("registry response missing dist-tags.latest; skipping self-update", "debug");
       return { latest: null, newer: false };
+    }
+    const currentMajor = majorOf(currentVersion);
+    const latestMajor = majorOf(latest);
+    // Fail closed: without both majors, an update could cross one.
+    if (currentMajor < 0 || latestMajor < 0) {
+      logger(`can't read a major version from '${currentVersion}' or '${latest}'; skipping self-update`, "debug");
+      return { latest: null, newer: false };
+    }
+    if (latestMajor > currentMajor) {
+      // A new major has breaking changes, so moving to it is the user's call. Stay
+      // current within this major through its maintenance tag, if it has one.
+      logger(
+        `Doc Detective ${latestMajor} is available. Upgrade when you're ready: npm i doc-detective@${latestMajor}`,
+        "warn"
+      );
+      const maintenance: unknown = tags[`release-${currentMajor}.x`];
+      if (
+        typeof maintenance === "string" &&
+        majorOf(maintenance) === currentMajor &&
+        compareVersions(maintenance, currentVersion) > 0
+      ) {
+        return { latest: maintenance, newer: true };
+      }
+      return { latest, newer: false };
     }
     return { latest, newer: compareVersions(latest, currentVersion) > 0 };
   } catch (err) {
@@ -180,7 +215,7 @@ export async function selfUpdate(
 
   if (mode === "local" || mode === "unknown") {
     logger(
-      `Update available: doc-detective@${latestVersion}. Run \`npm i doc-detective@latest\` in this project to upgrade.`,
+      `Update available: doc-detective@${latestVersion}. Run \`npm i doc-detective@${latestVersion}\` in this project to upgrade.`,
       "info"
     );
     return { updated: false, reexec: false };

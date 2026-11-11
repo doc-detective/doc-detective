@@ -53,9 +53,33 @@ The `--agent` and `--scope` options are specific to `install agents`. Using `--y
 
 <Note>
 
-The older `doc-detective install-agents` form still works as a hidden alias, so existing scripts and CI jobs don't need to change.
+The older `doc-detective install-agents` form still works as a hidden alias on 4.x and warns when used. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) removes it.
 
 </Note>
+
+Doc Detective 4.x installs agent-tools 1.x, the release line that matches its CLI, from the agent-tools `v1` tag. Every agent installs from that tag, and every agent's up-to-date check reads it. Claude Code and Copilot CLI add agent-tools as a plugin marketplace pinned to `v1`. When they update an existing install, they re-add the marketplace at `v1` first.
+
+#### Pin a Gemini CLI or Qwen Code install made by an earlier release
+
+A Gemini CLI or Qwen Code install made by an earlier Doc Detective 4.x release recorded no agent-tools ref. It keeps updating from the agent-tools default branch, which can carry skills for a newer Doc Detective major. `install agents --force` doesn't change that.
+
+To pin it, uninstall the extension, then install it again. Gemini CLI and Qwen Code extensions always install globally, so the commands use `--scope global`.
+
+For Gemini CLI:
+
+```bash
+gemini extensions uninstall doc-detective
+doc-detective install agents --agent gemini --scope global --yes
+```
+
+For Qwen Code:
+
+```bash
+qwen extensions uninstall doc-detective
+doc-detective install agents --agent qwen --scope global --yes
+```
+
+Uninstalling may reset the extension's own settings. Neither CLI documents what an uninstall keeps.
 
 ### `install runtime`
 
@@ -70,6 +94,10 @@ Without arguments, installs all heavy dependencies. Specify package names to ins
 ```bash
 doc-detective install runtime webdriverio appium
 ```
+
+Each Doc Detective release pins every runtime package to the exact version its CI tested. You don't need to fix a mismatch by hand. When a cached package is at any other version, for example after you upgrade Doc Detective, Doc Detective installs the pinned version in its place. That includes a downgrade if the cached version is newer than the pin.
+
+Doc Detective replaces the package automatically the first time a test loads it, or when you run `install runtime`. Either way, the replacement needs network access and downloads only the packages that changed. Until then, [`install status`](#install-status) marks the package `(outdated)`.
 
 ### `install browsers`
 
@@ -171,7 +199,7 @@ Report what's currently installed in the cache directory versus what the current
 doc-detective install status [options]
 ```
 
-Because `status` only reads the cache, the install-specific flags (`--yes`, `--force`, `--dry-run`) have no effect on it. Only `--cache-dir`, `--verbose`, and `--silent` change its behavior.
+Because `status` only reads the cache, the install-specific flags (`--yes`, `--force`, `--dry-run`) have no effect on it. Only `--cache-dir`, `--verbose`, `--quiet`, and the deprecated `--silent` change its behavior (see [Shared options](#shared-options)).
 
 ## Shared options
 
@@ -182,7 +210,7 @@ Every `install` subcommand takes these options:
 | `--yes`, `-y` | Skip interactive prompts and auto-install missing assets. |
 | `--force`, `-f` | Reinstall even if assets are already present and current. Prunes older versions from the cache. |
 | `--dry-run` | Report the assets the command would install, without executing. |
-| `--silent`, `--quiet` | Suppress all output except errors. |
+| `--quiet` | Suppress all output except errors. `--silent` does the same, but it's deprecated and removed in 5.0. |
 | `--verbose` | Emit debug-level output, including npm stdout/stderr. |
 | `--cache-dir` | Override the cache root for this invocation. Also settable via `DOC_DETECTIVE_CACHE_DIR` env var. |
 

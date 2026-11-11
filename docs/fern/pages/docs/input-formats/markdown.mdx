@@ -207,7 +207,7 @@ Detects HTTP request code blocks and executes the request.
 
 Detects code blocks in supported languages and executes the code.
 
-- **Pattern**: Code blocks with `bash`, `python`, `py`, `javascript`, or `js` language tags
+- **Pattern**: Code blocks with `bash`, `python`, or `javascript` language tags. Blocks tagged `py` or `js` match the pattern, but `runCode` doesn't accept those names, so detection skips them with a warning.
 - **Example**:
   ````markdown
   ```bash

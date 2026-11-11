@@ -1,23 +1,7 @@
 import os from "node:os";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { PostHog } from "posthog-node";
 import { telemetryNotice, POSTHOG_HOST, telemetryFetch } from "./telemLite.js";
-
-// doc-detective's own version. Walks up rather than using a fixed
-// `../../package.json`: this module runs from dist/core/ (ESM) and from the
-// dist/index.cjs bundle, one level shallower. Matching the name keeps it off a
-// user's package.json.
-function ownVersion(): string | undefined {
-  for (let dir = path.dirname(fileURLToPath(import.meta.url)); ; dir = path.dirname(dir)) {
-    try {
-      const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
-      if (pkg.name === "doc-detective") return pkg.version;
-    } catch {}
-    if (path.dirname(dir) === dir) return undefined;
-  }
-}
+import { ownVersion } from "../runtime/heavyDeps.js";
 
 const platformMap: Record<string, string> = {
   win32: "windows",
@@ -60,7 +44,7 @@ function sendTelemetry(config: any, command: string, results: any) {
       : {};
   telemetryData.distribution = telemetryData.distribution || "doc-detective";
   telemetryData.dist_interface = telemetryData.dist_interface || "package";
-  telemetryData.core_version = ownVersion();
+  telemetryData.core_version = ownVersion() ?? "unknown";
   telemetryData.dist_version = telemetryData.dist_version || telemetryData.core_version;
   telemetryData.core_platform = platformMap[os.platform()] || os.platform();
   telemetryData.dist_platform = telemetryData.dist_platform || telemetryData.core_platform;
@@ -83,14 +67,14 @@ function sendTelemetry(config: any, command: string, results: any) {
         Object.entries(value).forEach(([key, value]: [string, any]) => {
           if (typeof value === "object") {
             Object.entries(value).forEach(([key2, value2]: [string, any]) => {
-              telemetryData[`${parentKey.replace(" ","_")}_${key.replace(" ","_")}_${key2.replace(" ","_")}`] = value2;
+              telemetryData[`${parentKey.replaceAll(" ","_")}_${key.replaceAll(" ","_")}_${key2.replaceAll(" ","_")}`] = value2;
             });
           } else {
-            telemetryData[`${parentKey.replace(" ","_")}_${key.replace(" ","_")}`] = value;
+            telemetryData[`${parentKey.replaceAll(" ","_")}_${key.replaceAll(" ","_")}`] = value;
           }
         });
       } else {
-        telemetryData[parentKey.replace(" ","_")] = value;
+        telemetryData[parentKey.replaceAll(" ","_")] = value;
       }
     });
   }

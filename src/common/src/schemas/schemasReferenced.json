@@ -2456,6 +2456,10 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
       "properties": {
+        "$schema": {
+          "type": "string",
+          "minLength": 1
+        },
         "testId": {
           "type": "string"
         },
@@ -2464,6 +2468,14 @@
         },
         "contentPath": {
           "type": "string"
+        },
+        "publicVariables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
         },
         "detectSteps": {
           "type": "boolean",
@@ -2868,9 +2880,7 @@
           },
           "$schema": {
             "type": "string",
-            "enum": [
-              "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-            ]
+            "minLength": 1
           },
           "stepId": {
             "type": "string"
@@ -5515,14 +5525,17 @@
                 ]
               },
               "statusCodes": {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
                       "type": "integer"
                     }
-                  ]
-                },
+                  }
+                ],
                 "default": [
                   200,
                   201
@@ -6566,9 +6579,7 @@
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "contextId": {
           "type": "string"
@@ -6908,9 +6919,7 @@
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/spec_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "specId": {
           "type": "string"
@@ -6932,6 +6941,9 @@
         },
         "openApi": {
           "$ref": "test_v3.schema.json#/properties/openApi"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.schema.json#/properties/publicVariables"
         },
         "autoScreenshot": {
           "type": "boolean"
@@ -7080,9 +7092,7 @@
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "configId": {
           "type": "string"
@@ -7145,6 +7155,9 @@
         },
         "loadVariables": {
           "$ref": "loadVariables_v3.schema.json#"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.schema.json#/properties/publicVariables"
         },
         "origin": {
           "type": "string"
@@ -7499,23 +7512,20 @@
           "default": false
         },
         "autoScreenshot": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "annotationDefaults": {
           "$ref": "annotationDefaults_v3.schema.json#"
         },
         "autoRecord": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "autoUpdate": {
           "type": "boolean",
           "default": true
         },
         "exitOnFail": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "shell": {
           "type": "string",
@@ -7571,9 +7581,17 @@
               "arch": {
                 "type": "string",
                 "enum": [
-                  "arm32",
+                  "arm",
                   "arm64",
-                  "x32",
+                  "ia32",
+                  "loong64",
+                  "mips",
+                  "mipsel",
+                  "ppc",
+                  "ppc64",
+                  "riscv64",
+                  "s390",
+                  "s390x",
                   "x64"
                 ]
               },
@@ -9884,6 +9902,10 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
       "properties": {
+        "$schema": {
+          "type": "string",
+          "minLength": 1
+        },
         "testId": {
           "type": "string"
         },
@@ -9892,6 +9914,14 @@
         },
         "contentPath": {
           "type": "string"
+        },
+        "publicVariables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
         },
         "detectSteps": {
           "type": "boolean"
@@ -10282,9 +10312,7 @@
           },
           "$schema": {
             "type": "string",
-            "enum": [
-              "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-            ]
+            "minLength": 1
           },
           "stepId": {
             "type": "string"
@@ -12878,14 +12906,17 @@
                 ]
               },
               "statusCodes": {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
                       "type": "integer"
                     }
-                  ]
-                }
+                  }
+                ]
               },
               "method": {
                 "type": "string",
@@ -13895,9 +13926,7 @@
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "contextId": {
           "type": "string"
@@ -14233,9 +14262,7 @@
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/spec_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "specId": {
           "type": "string"
@@ -14257,6 +14284,9 @@
         },
         "openApi": {
           "$ref": "test_v3.nodefaults.schema.json#/properties/openApi"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.nodefaults.schema.json#/properties/publicVariables"
         },
         "autoScreenshot": {
           "type": "boolean"
@@ -14399,9 +14429,7 @@
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "configId": {
           "type": "string"
@@ -14455,6 +14483,9 @@
         },
         "loadVariables": {
           "$ref": "loadVariables_v3.nodefaults.schema.json#"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.nodefaults.schema.json#/properties/publicVariables"
         },
         "origin": {
           "type": "string"
@@ -14847,9 +14878,17 @@
               "arch": {
                 "type": "string",
                 "enum": [
-                  "arm32",
+                  "arm",
                   "arm64",
-                  "x32",
+                  "ia32",
+                  "loong64",
+                  "mips",
+                  "mipsel",
+                  "ppc",
+                  "ppc64",
+                  "riscv64",
+                  "s390",
+                  "s390x",
                   "x64"
                 ]
               },

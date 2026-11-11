@@ -1726,9 +1726,9 @@ export type HTTPRequestDetailed = (
   url?: HTTPRequestSimple1;
   openApi?: (string & OperationID) | (OpenApi & OpenAPIDefinitionHttpRequest);
   /**
-   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails.
+   * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.
    */
-  statusCodes?: number[];
+  statusCodes?: number | number[];
   /**
    * Method of the HTTP request
    */
@@ -6570,9 +6570,9 @@ export type HerettoCMSIntegrations = HerettoCMSIntegration[];
  */
 export interface Config {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json";
+  $schema?: string;
   /**
    * Identifier for the configuration.
    */
@@ -6610,6 +6610,10 @@ export interface Config {
    */
   relativePathBase?: "cwd" | "file";
   loadVariables?: LoadVariables;
+  /**
+   * Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.
+   */
+  publicVariables?: string[];
   /**
    * Default protocol and domain to use for relative URLs.
    */
@@ -6678,12 +6682,12 @@ export interface Config {
    */
   dryRun?: boolean;
   /**
-   * If `true`, captures a screenshot after every browser-driven step that does not already define an explicit `screenshot`. Steps with an explicit `screenshot` are skipped for auto-capture since they already produce an image. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.
+   * If `true`, captures a screenshot after every browser-driven step that does not already define an explicit `screenshot`. Defaults to `false`. Steps with an explicit `screenshot` are skipped for auto-capture since they already produce an image. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.
    */
   autoScreenshot?: boolean;
   annotationDefaults?: AnnotationDefaults;
   /**
-   * If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.
+   * If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. Defaults to `false`. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.
    */
   autoRecord?: boolean;
   /**
@@ -6716,9 +6720,9 @@ export interface Config {
  */
 export interface Context {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json";
+  $schema?: string;
   /**
    * Unique identifier for the context.
    */
@@ -6991,9 +6995,9 @@ export interface MarkupDefinition {
 }
 export interface Common {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -7255,9 +7259,9 @@ export interface RequestHeadersObject {
 }
 export interface Common1 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -7551,9 +7555,9 @@ export interface ByCriteria2 {
 }
 export interface Common2 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -8048,9 +8052,9 @@ export interface ABrowserEngineStringSurfaceTakesBrowserReadiness {
 }
 export interface Common3 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -8332,9 +8336,9 @@ export interface NewWindowConflictsWithASurfaceWindowOrTabSelector {
 }
 export interface Common4 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -8632,9 +8636,9 @@ export interface ResponseBodyObject {
 }
 export interface Common5 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -8951,9 +8955,9 @@ export interface RunShellCommandDetailed {
 }
 export interface Common6 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -9271,9 +9275,9 @@ export interface RunCodeDetailed {
 }
 export interface Common7 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -9585,9 +9589,9 @@ export interface ByCriteria15 {
 }
 export interface Common8 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -9933,9 +9937,9 @@ export interface ABrowserEngineStringSurfaceTakesBrowserReadiness1 {
 }
 export interface Common9 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -10767,9 +10771,9 @@ export interface AppCapturesDonTSupportCropYet {
 }
 export interface Common10 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -10994,9 +10998,9 @@ export interface SaveCookie {
 }
 export interface Common11 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -11365,9 +11369,9 @@ export interface RecordingCheckpointsDetailed {
 }
 export interface Common12 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -11598,9 +11602,9 @@ export interface StopRecordDetailed {
 }
 export interface Common13 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -11975,9 +11979,9 @@ export interface ByCriteria30 {
 }
 export interface Common14 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -12608,9 +12612,9 @@ export interface ProcessDescriptor1 {
 }
 export interface Common15 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -12835,9 +12839,9 @@ export interface LoadVariables1 {
 }
 export interface Common16 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -13132,9 +13136,9 @@ export interface ByCriteria32 {
 }
 export interface Common17 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -13359,9 +13363,9 @@ export interface LoadCookie {
 }
 export interface Common18 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -13777,9 +13781,9 @@ export interface ByCriteria38 {
 }
 export interface Common19 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -14004,9 +14008,9 @@ export interface Wait {
 }
 export interface Common20 {
   /**
-   * JSON Schema for this object.
+   * JSON Schema URL for editor support. Doc Detective ignores it.
    */
-  $schema?: "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json";
+  $schema?: string;
   /**
    * ID of the step.
    */
@@ -15445,9 +15449,10 @@ export interface EnvironmentDetails {
    */
   platform: "linux" | "mac" | "windows";
   /**
-   * The processor architecture of the system running Doc Detective.
+   * The processor architecture of the system running Doc Detective, as reported by Node.js `os.arch()`.
    */
-  arch?: "arm32" | "arm64" | "x32" | "x64";
+  arch?:
+    "arm" | "arm64" | "ia32" | "loong64" | "mips" | "mipsel" | "ppc" | "ppc64" | "riscv64" | "s390" | "s390x" | "x64";
   /**
    * The version of Doc Detective that ran, for example `4.42.0`.
    */

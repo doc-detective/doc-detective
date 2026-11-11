@@ -3,13 +3,21 @@ import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
 import { getRunOutputDir, loadAxios } from "./core/utils.js";
+import {
+  browsersDirWarnings,
+  concurrentRunnersWarnings,
+  configWarnings,
+  envWarnings,
+  flagWarnings,
+  outputWarnings,
+  warnUpgrade,
+} from "./upgradeNotice.js";
+import { getBrowsersDir } from "./runtime/cacheDir.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import os from "node:os";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
+import { ownVersion, readShimPackageJson } from "./runtime/heavyDeps.js";
 
 export {
   buildYargs,
@@ -137,12 +145,12 @@ function buildYargs(args: any): any {
     })
     .option("auto-screenshot", {
       description:
-        "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
+        "Capture a screenshot after every browser-based step. Off by default. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
       type: "boolean",
     })
     .option("auto-record", {
       description:
-        "Record a video of every browser-based test context, in addition to any explicit record steps. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
+        "Record a video of every browser-based test context, in addition to any explicit record steps. Off by default. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
       type: "boolean",
     })
     .option("auto-update", {
@@ -157,7 +165,7 @@ function buildYargs(args: any): any {
     })
     .option("concurrent-runners", {
       description:
-        "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass the flag with no value to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
+        "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass true to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
       type: "string",
     })
     .option("browser-fallback", {
@@ -176,7 +184,7 @@ function buildYargs(args: any): any {
         "Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it.",
       type: "boolean",
     })
-    .version(require("../package.json").version)
+    .version(ownVersion() ?? "unknown")
     .help()
     .alias("help", "h");
 }
@@ -342,6 +350,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     // Merge with file config, preferring environment variable config (use raw envConfig, not validated with defaults)
     config = { ...config, ...envConfig };
   }
+
+  // Read before validation fills in the default, which the user didn't choose.
+  const outputSetting = args.output || config.output;
 
   // Validate config
   const validation = validate({
@@ -524,6 +535,18 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     nested: false,
     objectType: "config",
   });
+
+  warnUpgrade(
+    [
+      ...outputWarnings(outputSetting, String(config.output)),
+      ...concurrentRunnersWarnings(args.concurrentRunners),
+      ...flagWarnings(args),
+      ...envWarnings(process.env, config),
+      ...configWarnings(config),
+      ...browsersDirWarnings(getBrowsersDir({ cacheDir: config.cacheDir })),
+    ],
+    config.logLevel
+  );
 
   return config;
 }
@@ -1392,9 +1415,8 @@ function setMeta() {
     process.env["DOC_DETECTIVE_META"] !== undefined
       ? JSON.parse(process.env["DOC_DETECTIVE_META"])
       : {};
-  const pkg = require("../package.json");
   meta.distribution = "doc-detective";
-  meta.dist_version = pkg.version;
+  meta.dist_version = ownVersion();
   meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();
@@ -1408,8 +1430,7 @@ function setMeta() {
 // Get version data programmatically (no console output)
 function getVersionData() {
   try {
-    // Get main package version
-    const mainPackage = require("../package.json");
+    const mainPackage: any = readShimPackageJson();
     const versionData: any = {
       main: {
         "doc-detective": {

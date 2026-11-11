@@ -10,16 +10,16 @@ Doc Detective agent tools work with Codex, Cursor, OpenCode, Qwen Code, and othe
 
 ## Installation
 
-`npx doc-detective install-agents` supports three of the agents on this page directly. Fallback procedures for the rest appear further down.
+`npx doc-detective install agents` supports three of the agents on this page directly. Fallback procedures for the rest appear further down.
 
 **Codex:**
 
 ```bash
 # User-global
-npx doc-detective install-agents --agent codex --scope global
+npx doc-detective install agents --agent codex --scope global
 
 # Or per-project
-npx doc-detective install-agents --agent codex --scope project
+npx doc-detective install agents --agent codex --scope project
 ```
 
 Without `--scope`, the CLI prompts for which scope to use.
@@ -29,19 +29,19 @@ The command fetches doc-detective's skills from GitHub and copies them into the 
 **Qwen Code:**
 
 ```bash
-npx doc-detective install-agents --agent qwen
+npx doc-detective install agents --agent qwen
 ```
 
-The command invokes `qwen extensions install` non-interactively to add the doc-detective extension with auto-update enabled. Qwen Code installs extensions user-globally only, so the `--scope` flag has no effect for this agent.
+The command invokes `qwen extensions install --ref v1` non-interactively to add the doc-detective extension. Qwen Code installs extensions user-globally only, so the `--scope` flag has no effect for this agent.
 
 **OpenCode:**
 
 ```bash
 # User-global
-npx doc-detective install-agents --agent opencode --scope global
+npx doc-detective install agents --agent opencode --scope global
 
 # Or per-project (committed)
-npx doc-detective install-agents --agent opencode --scope project
+npx doc-detective install agents --agent opencode --scope project
 ```
 
 Without `--scope`, the CLI prompts for which scope to use.
@@ -52,14 +52,16 @@ All three installs are idempotent: re-running prints `already up to date` when n
 
 ## Fallback procedures
 
-Use these if `npx doc-detective install-agents` isn't an option for your workflow, or for agents that the command doesn't support directly (for example, Cursor).
+Use these if `npx doc-detective install agents` isn't an option for your workflow, or for agents that the command doesn't support directly (for example, Cursor).
+
+Each procedure installs from the agent-tools `v1` tag, which carries the agent tools for Doc Detective 4.x. The agent-tools default branch can carry tools for a newer Doc Detective major version.
 
 ### Install with `npx skills`
 
 The [`skills`](https://github.com/vercel-labs/skills) package from Vercel provides a quick way to install skills for multiple AI tools:
 
 ```bash
-npx skills add doc-detective/agent-tools
+npx skills add doc-detective/agent-tools#v1
 ```
 
 Follow the prompts. The CLI auto-detects which AI tools you have installed and places the skills in the appropriate directories.
@@ -69,7 +71,7 @@ Follow the prompts. The CLI auto-detects which AI tools you have installed and p
 Clone the repository and copy the skills to your agent's configuration directory:
 
 ```bash
-git clone https://github.com/doc-detective/agent-tools.git
+git clone --branch v1 https://github.com/doc-detective/agent-tools.git
 cp -r agent-tools/skills .{agent-dir}/skills
 ```
 

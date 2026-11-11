@@ -4,6 +4,11 @@
   "type": "object",
   "description": "A Doc Detective test.",
   "properties": {
+    "$schema": {
+      "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
+      "type": "string",
+      "minLength": 1
+    },
     "testId": {
       "type": "string",
       "description": "Unique identifier for the test."
@@ -15,6 +20,11 @@
     "contentPath": {
       "type": "string",
       "description": "Path to the content that the test is associated with."
+    },
+    "publicVariables": {
+      "description": "Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "pattern": "\\S" }
     },
     "detectSteps": {
       "type": "boolean",

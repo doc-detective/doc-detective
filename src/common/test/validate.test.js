@@ -167,14 +167,14 @@ import { schemas } from "../dist/index.js";
         expect(result.object.autoScreenshot).to.equal(true);
       });
 
-      it("should default autoScreenshot to false when unset", function () {
+      it("should leave autoScreenshot unset when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.autoScreenshot).to.equal(false);
+        expect(result.object.autoScreenshot).to.equal(undefined);
       });
 
       it("should reject a config_v3 object whose autoScreenshot is not a boolean", function () {
@@ -622,14 +622,14 @@ import { schemas } from "../dist/index.js";
         expect(result.object.autoRecord).to.equal(true);
       });
 
-      it("should default autoRecord to false when unset", function () {
+      it("should leave autoRecord unset when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.autoRecord).to.equal(false);
+        expect(result.object.autoRecord).to.equal(undefined);
       });
 
       it("should reject a config_v3 object whose autoRecord is not a boolean", function () {
@@ -869,14 +869,14 @@ import { schemas } from "../dist/index.js";
         expect(result.object.exitOnFail).to.equal(true);
       });
 
-      it("should default exitOnFail to false when omitted", function () {
+      it("should leave exitOnFail unset when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.exitOnFail).to.equal(false);
+        expect(result.object.exitOnFail).to.equal(undefined);
       });
 
       it("should reject a config_v3 object whose exitOnFail is not a boolean", function () {
@@ -888,6 +888,35 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("exitOnFail");
+      });
+
+      it("should accept publicVariables on config_v3, spec_v3, and test_v3", function () {
+        const steps = [{ goTo: { url: "https://example.com" } }];
+        const cases = [
+          { schemaKey: "config_v3", object: { publicVariables: ["BASE_URL", "DD_*"] } },
+          { schemaKey: "test_v3", object: { publicVariables: ["*"], steps } },
+          { schemaKey: "spec_v3", object: { publicVariables: [], tests: [{ publicVariables: ["A"], steps }] } },
+        ];
+        for (const { schemaKey, object } of cases) {
+          const result = validate({ schemaKey, object: structuredClone(object) });
+          expect(result.valid, `${schemaKey}: ${result.errors}`).to.be.true;
+          expect(result.object.publicVariables).to.deep.equal(object.publicVariables);
+        }
+      });
+
+      it("should reject a publicVariables that isn't an array of names", function () {
+        const steps = [{ goTo: { url: "https://example.com" } }];
+        for (const bad of ["BASE_URL", [""], ["  "]]) {
+          for (const [schemaKey, object] of [
+            ["config_v3", { publicVariables: bad }],
+            ["test_v3", { publicVariables: bad, steps }],
+            ["spec_v3", { publicVariables: bad, tests: [{ steps }] }],
+          ]) {
+            const result = validate({ schemaKey, object });
+            expect(result.valid, `${schemaKey}: ${JSON.stringify(bad)}`).to.be.false;
+            expect(result.errors).to.include("publicVariables");
+          }
+        }
       });
 
       it("should validate a config_v3 object with retries set (including 0)", function () {
@@ -5877,4 +5906,102 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.be.a("string");
       });
     });
+  });
+
+  describe("httpRequest statusCodes shapes", function () {
+    it("accepts a single integer", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: 404 } },
+      });
+      expect(result.valid, result.errors).to.be.true;
+    });
+
+    it("still accepts an array of integers", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: [200, 404] } },
+      });
+      expect(result.valid, result.errors).to.be.true;
+    });
+
+    it("rejects a non-numeric string", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: "ok" } },
+      });
+      expect(result.valid).to.be.false;
+    });
+  });
+
+  describe("config environment arch", function () {
+    for (const arch of [
+      "arm",
+      "arm64",
+      "ia32",
+      "loong64",
+      "mips",
+      "mipsel",
+      "ppc",
+      "ppc64",
+      "riscv64",
+      "s390",
+      "s390x",
+      "x64",
+    ]) {
+      it(`accepts Node's os.arch() value ${arch}`, function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { environment: { platform: "linux", arch } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+    }
+
+    for (const arch of ["arm32", "x32"]) {
+      it(`rejects the non-Node value ${arch}`, function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { environment: { platform: "linux", arch } },
+        });
+        expect(result.valid).to.be.false;
+      });
+    }
+  });
+
+  describe("$schema is a free-form string", function () {
+    const legacy = (name) =>
+      `https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/${name}_v3.schema.json`;
+    const versioned = (name) =>
+      `https://unpkg.com/doc-detective-common@5/dist/schemas/${name}_v3.schema.json`;
+    const cases = {
+      spec_v3: { name: "spec", object: { tests: [{ steps: [{ wait: 1 }] }] } },
+      config_v3: { name: "config", object: {} },
+      context_v3: { name: "context", object: { platforms: "linux" } },
+      step_v3: { name: "step", object: { wait: 1 } },
+      test_v3: { name: "test", object: { steps: [{ wait: 1 }] } },
+    };
+
+    for (const [schemaKey, { name, object }] of Object.entries(cases)) {
+      for (const [label, $schema] of [
+        ["the versioned unpkg URL", versioned(name)],
+        ["the legacy URL", legacy(name)],
+        ["a local path", `./schemas/${name}_v3.schema.json`],
+      ]) {
+        it(`${schemaKey} accepts ${label}`, function () {
+          const result = validate({ schemaKey, object: { ...object, $schema } });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      it(`${schemaKey} rejects an empty $schema`, function () {
+        const result = validate({ schemaKey, object: { ...object, $schema: "" } });
+        expect(result.valid).to.be.false;
+      });
+
+      it(`${schemaKey} rejects a non-string $schema`, function () {
+        const result = validate({ schemaKey, object: { ...object, $schema: {} } });
+        expect(result.valid).to.be.false;
+      });
+    }
   });

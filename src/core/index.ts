@@ -12,6 +12,14 @@ import {
   flushRunTelemetry as awaitTelemetryFlush,
 } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
+import {
+  captureWarnings,
+  clearVariablesUsed,
+  legacyEnv,
+  maskingWarnings,
+  specWarnings,
+  warnUpgrade,
+} from "../upgradeNotice.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
@@ -74,6 +82,7 @@ async function runTests(config: any, options: any = {}) {
 }
 
 async function runTestsAndReport(config: any, options: any) {
+  clearVariablesUsed();
   let resolvedTests: any;
   let results: any;
 
@@ -98,6 +107,9 @@ async function runTestsAndReport(config: any, options: any) {
     config = { ...(resolvedTests.config || {}), ...(config || {}) };
     resolvedTests.config = config;
   }
+
+  // Read before a dry run forces silent; see the upgrade warnings below.
+  const callerLogLevel = config?.logLevel;
 
   // Dry-run requires clean stdout so the JSON dump can be piped through
   // `jq` / `JSON.parse`. Force silent log level (which gates info logs from
@@ -151,6 +163,18 @@ async function runTestsAndReport(config: any, options: any) {
       // see the matching note in the JIT pre-flight catch below.
       log(config, "warning", "Couldn't resolve any tests.");
       return null;
+    }
+    // Upgrade warnings print at the effective log level. A dry run forced
+    // silent before setConfig for stdout's sake, but these go to stderr, so
+    // there the level is the caller's unless the DOC_DETECTIVE override set one.
+    const upgradeLogLevel = config.dryRun
+      ? (legacyEnv(process.env).config?.logLevel ?? callerLogLevel)
+      : effectiveConfig.logLevel;
+    try {
+      warnUpgrade(specWarnings(resolvedTests), upgradeLogLevel);
+    } catch (error: any) {
+      // A warning must never fail a run.
+      log(effectiveConfig, "debug", `Couldn't check specs for Doc Detective 5.0 changes: ${error?.message || error}`);
     }
     // Browser detection, deferred from setConfig so a run whose contexts
     // can't use it skips it (ADR 01133). Any run that can still gets the same
@@ -375,6 +399,15 @@ async function runTestsAndReport(config: any, options: any) {
   } else {
     // Run test specs locally
     results = await runSpecs({ resolvedTests });
+    try {
+      warnUpgrade(
+        [...captureWarnings(resolvedTests, results), ...maskingWarnings(resolvedTests)],
+        effectiveConfig.logLevel
+      );
+    } catch (error: any) {
+      // A warning must never fail a run.
+      log(effectiveConfig, "debug", `Couldn't check the run for Doc Detective 5.0 changes: ${error?.message || error}`);
+    }
   }
   // The full results tree is a debug-only dump — the reporters (terminal
   // summary, json/runFolder files) already render results for the user, and at
