@@ -47,7 +47,6 @@ By default, the action runs from the repository root and uses the config file Do
 |---|---|---|
 | `version` | `latest` | Doc Detective version to run, as a version number or an npm tag such as `latest`. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
-| `ios` | `auto` | Deprecated. It no longer caches the WebDriverAgent build, because Doc Detective v4.28 and later prebuilds and manages that build itself. Existing workflows that set it keep working, and its value now only controls a migration notice. See [Speed up iOS tests on macOS](#speed-up-ios-tests-on-macos). |
 | `config` | None | Path to a configuration file. |
 | `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
 
@@ -215,7 +214,7 @@ jobs:
           key: dd-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             dd-cache-${{ runner.os }}-
-      - run: npx doc-detective install ios --yes  # v4.28+; prebuilds WebDriverAgent into the cache
+      - run: npx doc-detective@latest install ios --yes  # v4.28+; prebuilds WebDriverAgent into the cache
       - uses: doc-detective/github-action@v1
 ```
 
@@ -223,11 +222,7 @@ The [`doc-detective install ios --yes`](/reference/reference/cli/install#install
 
 Use a rotating key (`github.run_id`) with `restore-keys` rather than a static key. Doc Detective already keys the build by Xcode and driver version inside the cache directory. The `actions/cache` key doesn't need those versions, because its only job is to keep the stored copy fresh. An exact cache hit never re-uploads, so a static key keeps serving the first build it saved. That build goes stale the first time your runner picks up a new Xcode or driver version. A run-scoped key always saves the latest build, and `restore-keys` restores the newest earlier entry.
 
-This recipe requires Doc Detective v4.28 or later in both the `npx doc-detective install ios` step and the action. Both resolve `doc-detective` from the registry. `npx` runs the latest published version unless you pin one. The action installs whatever its `version` input names, which defaults to `latest`. To pin both to the same release, name it in each place. For example, run `npx doc-detective@4.28.0 install ios --yes` and set the action's [`version` input](#step-2-point-the-action-at-your-tests) to `4.28.0`.
-
-<Note>
-The `ios` input is deprecated. Earlier versions of the action cached the WebDriverAgent build through this input. Doc Detective v4.28 and later prebuilds and manages that build, so the action no longer caches it. Existing workflows that set `ios` keep working. The input's value now only controls a migration notice that links to this section. The notice prints once per run on a macOS runner. It appears when `ios` is `true`, or when it's `auto` and your specs use an `ios` platform. To silence it, set `ios` to `false`. Removing the input doesn't silence it, because the default is `auto`.
-</Note>
+This recipe requires Doc Detective v4.28 or later in both the `install ios` step and the action. The step names `@latest` because a bare `npx doc-detective` uses a version the job already installed, which can be older. The action installs whatever its `version` input names, which defaults to `latest`. To pin both to the same release, name it in each place. For example, run `npx doc-detective@4.28.0 install ios --yes` and set the action's [`version` input](#step-2-point-the-action-at-your-tests) to `4.28.0`.
 
 ## Runtime caching
 
