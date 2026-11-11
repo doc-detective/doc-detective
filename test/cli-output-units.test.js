@@ -101,7 +101,7 @@ describe("summarizeSchemaErrors", function () {
   const spec = (step) => ({ tests: [{ steps: [step] }] });
 
   it("names an unknown action and the nearest real one", function () {
-    expect(summarize(spec({ goToo: "x" }))).to.equal("tests[0].steps[0]: unknown action 'goToo'. Did you mean goTo?");
+    expect(summarize(spec({ goToo: "x" }))).to.equal("tests[0].steps[0]: unknown action `goToo`. Did you mean `goTo`?");
   });
 
   it("handles a step with no recognizable key", function () {

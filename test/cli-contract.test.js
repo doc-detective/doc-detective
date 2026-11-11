@@ -783,7 +783,7 @@ describe("CLI contract", function () {
       const r = run(["-i", "invalid.spec.json"]);
       expect(r.status).to.equal(2);
       expect(r.stderr).to.include("goToo");
-      expect(r.stderr).to.include("Did you mean goTo?");
+      expect(r.stderr).to.include("Did you mean `goTo`?");
       expect(r.stderr).to.not.include("must have required property");
       expect(r.stderr).to.not.include('"object"');
       expect(r.stderr.length).to.be.lessThan(600);
@@ -797,7 +797,7 @@ describe("CLI contract", function () {
       const r = run(["-n", "-i", "invalid.spec.json"]);
       expect(r.status).to.equal(2);
       expect(r.stderr).to.include("invalid.spec.json");
-      expect(r.stderr).to.include("unknown action 'goToo'");
+      expect(r.stderr).to.include("unknown action `goToo`");
       expect(r.stdout).to.equal("");
     });
 

@@ -1481,7 +1481,7 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
         lines.push(`${prefix}no action, such as ${actions.slice(0, 3).join(", ")}.`);
       } else {
         const near = nearestCommand(unknown[0], actions);
-        lines.push(`${prefix}unknown action '${unknown[0]}'.${near ? ` Did you mean ${near}?` : ""}`);
+        lines.push(`${prefix}unknown action \`${unknown[0]}\`.${near ? ` Did you mean \`${near}\`?` : ""}`);
       }
       continue;
     }

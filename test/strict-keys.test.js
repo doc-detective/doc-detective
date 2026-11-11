@@ -195,7 +195,7 @@ describe("summarizeSchemaErrors with unknown keys", function () {
   });
 
   it("calls it an unknown action when the step has no action", function () {
-    expect(summarize(spec({ goto: "x" }))).to.equal("tests[0].steps[0]: unknown action 'goto'. Did you mean goTo?");
+    expect(summarize(spec({ goto: "x" }))).to.equal("tests[0].steps[0]: unknown action `goto`. Did you mean `goTo`?");
   });
 
   it("doesn't mistake assertions for an action", function () {
