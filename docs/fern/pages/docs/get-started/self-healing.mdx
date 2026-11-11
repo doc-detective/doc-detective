@@ -1,10 +1,10 @@
 ---
 title: Hand off test failures to an AI agent
 sidebar-title: Hand off failures
-description: Have the GitHub Action open an issue when tests fail and mention an AI agent that analyzes the failure and suggests a fix.
+description: Have the GitHub Action open or update an issue when tests fail and mention an AI agent that analyzes the failure and suggests a fix.
 ---
 
-When a test fails, Doc Detective's GitHub Action can open an issue with the results and mention an AI agent in it. The agent analyzes the failure and suggests a fix. You review the suggestion and decide what to change.
+When a test fails, Doc Detective's GitHub Action can open or update an issue with the results and mention an AI agent in it. The agent analyzes the failure and suggests a fix. You review the suggestion and decide what to change.
 
 ## How the handoff works
 
@@ -19,7 +19,7 @@ flowchart LR
     A[Push to repo] --> B[Doc Detective runs tests]
     B --> C{Tests pass?}
     C -->|Yes| D[Done]
-    C -->|No| E[Create GitHub issue]
+    C -->|No| E[Open or update issue]
     E --> F[AI analyzes failure]
     F --> G[AI suggests fix]
 ```
