@@ -119,7 +119,7 @@ Common editing keys work on mobile app surfaces too. Android maps them to key co
 - With element criteria, `type` finds the element, focuses it, and types, the same as everywhere else.
 - **Android** also types without criteria, into whatever element has focus. That matches how browser typing works: `{ "type": { "keys": ["Hi Bob!", "$ENTER$"], "surface": { "app": "chat" } } }`.
 - **iOS** requires element criteria for text, because the platform has no reliable focused-element typing. Device keys alone are fine without criteria.
-- Windows/macOS app surfaces don't support `$KEY$` tokens yet (the vocabulary is mobile-only in this phase) and require element criteria.
+- Windows/macOS app surfaces don't support `$KEY$` tokens (the vocabulary is mobile-only) and require element criteria.
 
 ## Type to a background process
 
@@ -171,7 +171,7 @@ Set `surface` to an app reference, such as `{ "app": "notepad" }`, to type into 
 
 The rules differ per platform. See [Device keys (mobile app surfaces)](#device-keys-mobile-app-surfaces) above for the full set:
 
-- **Windows and macOS** require element criteria, and they reject the `$KEY$` tokens listed under [Special keys](#special-keys). That vocabulary is mobile-only in this phase.
+- **Windows and macOS** require element criteria, and they reject the `$KEY$` tokens listed under [Special keys](#special-keys). That vocabulary is mobile-only.
 - **Android** types text with or without criteria. Without them, it types into whatever element has focus.
 - **iOS** requires criteria for text, but device keys alone are fine without them.
 
