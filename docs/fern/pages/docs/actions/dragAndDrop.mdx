@@ -44,7 +44,7 @@ When using detailed objects for `source` or `target`, you can specify:
 - `selector`: (Optional) [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element. If combined with `elementText`, the element must match both the text and the selector.
 - `timeout`: (Optional) Maximum duration in milliseconds to wait for this specific element to exist. Default is `5000`. `0` checks once.
 
-**Outputs:** the action exposes `outputs.sourceFound` and `outputs.targetFound`, booleans indicating whether the source and target elements were located. To capture them for later steps, use the step-level `variables` object with the expressions `$$sourceFound` and `$$targetFound`.
+**Outputs:** the action exposes `outputs.sourceFound` and `outputs.targetFound`, booleans indicating whether the source and target elements were located. To capture them for later steps, use the step-level `variables` object with the expressions `$$sourceFound` and `$$targetFound`. When a browser drag misses its source or target, `outputs.nearMatches` lists the visible elements closest to the missing element, as it does for [`find`](/docs/actions/find). When both elements are missing, `nearMatches` reflects only the source. When the list isn't empty, the step's `resultHint` names them, and its `resultCode` is `drift`. Otherwise, its `resultCode` is `assertion`.
 
 > For comprehensive options, see the full [`dragAndDrop`](/reference/schemas/draganddrop) reference.
 

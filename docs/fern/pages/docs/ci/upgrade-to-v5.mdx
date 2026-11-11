@@ -192,7 +192,7 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 **What changed:** The terminal summary ends with a one-line verdict, such as `1 of 1 test passed`. It lists every failure, warning, and skip by ID path, under `Failed (N):`, `Warnings (N):`, and `Skipped (N):`, which replace `Failed Items:` and the lists under it. Skips print whether or not a test failed. Doc Detective no longer prints the `See detailed results at` line.
 
-**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead.
+**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead, and use [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). For pass or fail, use the [exit code](#exit-codes).
 
 ## Failure, skip, and warning messages
 
@@ -208,7 +208,7 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 Deprecation warnings print at the `warning` log level and above, so `-l silent` and `-l error` hide them, like `-q`.
 
-**What to do:** Don't match on message text. To triage a failure, read `result` and `resultCode`. See [Failed steps say what kind of failure it was](#failed-steps-say-what-kind-of-failure-it-was). See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
+**What to do:** Don't match on message text. Help text and other error messages changed throughout too. To triage a failure, read `result` and `resultCode`. See [Failed steps say what kind of failure it was](#failed-steps-say-what-kind-of-failure-it-was).
 
 ## Report notices moved to stderr
 
@@ -267,7 +267,7 @@ Other shorthand appears in its full form too. For example, `"wait": true` appear
 
 ## Failed steps say what kind of failure it was
 
-**What changed:** Every `FAIL` step has a `resultCode`: `environment`, `drift`, or `assertion`. A browser `find` that misses lists the closest elements in `outputs.nearMatches`, and its `resultHint` names them. Version 4 had none of these fields.
+**What changed:** Every `FAIL` step has a `resultCode`: `environment`, `drift`, or `assertion`. A browser `find` or `click` that misses its element, or a `dragAndDrop` that misses its source or target, lists the closest elements in `outputs.nearMatches`, and its `resultHint` names them. Version 4 had none of these fields.
 
 **What to do:** Nothing, unless a script compares whole step objects. To triage failures, branch on `resultCode` instead of matching `resultDescription`. See [Read the result](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
 
