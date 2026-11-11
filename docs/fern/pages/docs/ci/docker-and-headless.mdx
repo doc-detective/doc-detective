@@ -33,7 +33,7 @@ A headless environment has no display, which affects browser-driven tests:
 - **Browser tests** run headless automatically when no display is available. On Ubuntu CI runners, Chrome and Firefox contexts fall back to headless mode.
 - **Video recording** works headless in Chrome. A context that names no browser runs headless Chrome, and the `browser` recording engine records its tab with no display. The `ffmpeg` engine captures the screen, so it needs a headed context on a real or virtual display. Headless Firefox and Safari can't be recorded.
 
-To record Firefox, Safari, or a native app on a headless Linux runner, run the context headed on Xvfb. The official Linux image includes Xvfb, so headless Firefox records there by default: while `autoRecord` is on, Doc Detective runs it headed on an Xvfb display. A macOS or Windows runner has a display already. For engine details, see [Record video](/docs/test-docs/record-video).
+To record Firefox, Safari, or a native app on a headless Linux runner, run the context headed on Xvfb. The official Linux image includes Xvfb, so headless Firefox records there by default: when `autoRecord` is on, which is the default, Doc Detective runs it headed on an Xvfb display. A macOS or Windows runner has a display already. For engine details, see [Record video](/docs/test-docs/record-video).
 
 ## Step 3: Warm runtime assets
 
