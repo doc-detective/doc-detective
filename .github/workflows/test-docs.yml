@@ -84,10 +84,10 @@ jobs:
         with:
           node: '24'
 
-      - run: npm ci --no-audit --no-fund
+      - run: npm ci
       - run: npm run build
       - name: Link local build
-        run: npm link --no-audit --no-fund
+        run: npm link
 
       # Android tests run in the Linux job above, which has KVM for the
       # emulator. Windows runners have no hardware acceleration, so the emulator
