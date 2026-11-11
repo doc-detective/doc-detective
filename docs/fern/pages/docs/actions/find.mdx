@@ -21,7 +21,7 @@ Specify the target element directly with a string for basic text or selector loo
 
   Doc Detective checks all five ways together every 100 milliseconds, for up to 5 seconds, and uses the first check that finds an element. A match that's already on the page wins over a higher-ranked match that renders later.
 
-  To match part of a value with a regular expression, wrap it in slashes, as in `"find": "/Order confirmed/"`. Doc Detective checks display text first, then accessible name, then `id`, then `data-testid`. A regular expression never matches as a CSS or XPath selector. Doc Detective looks right away, then every 100 milliseconds for up to 5 seconds.
+  To match part of a value with a regular expression, wrap it in slashes, as in `"find": "/Order confirmed/"`. Doc Detective checks display text first, then accessible name, then `id`, then `data-testid`. If an element has no text of its own, such as a container, the accessible name check also matches all the text inside it. A regular expression never matches as a CSS or XPath selector. Doc Detective looks right away, then every 100 milliseconds for up to 5 seconds.
 
   The match is case-sensitive and takes no flags. It can also match anywhere in the value, so `/Log ?in/` matches `Log into your account`. To require the whole value, anchor the expression, as in `/^Log ?in$/`.
   - Example: `"find": "Login"`, `"find": "#username"`, or `"find": "/Log ?in/"`.
