@@ -122,7 +122,7 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
 
   try {
     // Source and target each take find's string or object form. Execute both
-    // element searches concurrently.
+    // element searches concurrently. Image captures take turns (visualMatch.ts).
     const [sourceResult, targetResult] = await Promise.all([
       findElement({ config, step: { find: step.dragAndDrop.source }, driver }),
       findElement({ config, step: { find: step.dragAndDrop.target }, driver }),
