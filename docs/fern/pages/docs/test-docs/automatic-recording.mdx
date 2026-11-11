@@ -101,7 +101,7 @@ Each reporter points at the video its own way:
 | `html`, and the run folder's `testResults.html` | The video plays at the top of the context, in a panel named **Automatic recording**. When the result isn't `PASS`, the panel also shows the result and the reason. |
 | `terminal` | A `Recording:` line with the absolute path, on each item the context lists. |
 | `markdown` | A `Recording:` path, relative to the summary file, on each item the context lists. |
-| `junit` | An `[[ATTACHMENT|<path>]]` line, relative to `junit.xml`, on every test case that isn't skipped. |
+| `junit` | A `[[ATTACHMENT…]]` line holding the path, relative to `junit.xml`, on every test case that isn't skipped. |
 | `json`, and the run folder's `testResults.json` | The context's `autoRecording` field, with `recordingPath` relative to `runDir`. |
 
 The `terminal`, `markdown`, and `junit` reporters list a recording that didn't pass as an item of its own, named `<specId> › <testId> › <contextId> › autoRecording`, with its reason. See [What every reporter lists](/docs/ci/reporters-and-artifacts#what-every-reporter-lists).
