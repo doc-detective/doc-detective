@@ -70,7 +70,12 @@ The loader never resolves `appium` or `appium-*` from the shim, even in a source
 `node_modules` has them. Don't reintroduce a shim fallback for them: it splits Appium across two
 homes. For the same reason they're declared in `ddRuntimeDependencies`, not `optionalDependencies`,
 so `npm ci` never installs an unused copy. Dependabot doesn't read that custom field, so bump their
-ranges by hand.
+pins by hand.
+
+Every entry in `ddRuntimeDependencies` and `optionalDependencies` is an exact version, never a
+range (#722). These install with no lockfile, so a caret let one upstream release
+(`appium-chromium-driver` 3.1.0) break every user at once. `test/publish-manifest.test.js` fails
+on a range. Bump a pin only to a version CI has run.
 
 ## Testing note
 

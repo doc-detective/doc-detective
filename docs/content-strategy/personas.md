@@ -90,8 +90,8 @@ green as the product changes.
   and context.
 
 **How she uses Doc Detective:** runs `install agents` and works through the Claude Code, Copilot CLI,
-or Gemini CLI integrations. She connects agent tools and MCP, and relies on self-healing to repair
-tests. She follows best-practice prompts for agent-authored tests.
+or Gemini CLI integrations. She connects agent tools and MCP, and hands failing tests to an agent
+that suggests repairs. She follows best-practice prompts for agent-authored tests.
 
 ---
 

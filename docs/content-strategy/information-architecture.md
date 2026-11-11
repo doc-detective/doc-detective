@@ -190,7 +190,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Selectors (`input-formats/selectors`) | W3 | | Structure-aware `markup` definitions and `inlineStatements.in`; deep-links to the `fileTypes` reference. |
 | Test across platforms & browsers | W3 | ★ | contexts / `runOn`; links to Reference. |
 | Heretto integration | W3 | | |
-| Self-healing for docs *(shared with A2)* | W2 | | |
+| Hand off test failures to an AI agent *(shared with A2)* | W2 | | Lives in AI & Agents. |
 
 ### Run in CI and at scale: Priya, in `docs/ci/`
 
@@ -214,7 +214,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Overview | A1 | ★ | Frames the pillar. |
 | Author tests with agents (Claude Code / Copilot / Gemini / Other) | A1 | ★ | |
 | Agent tools & MCP (new) | A1 | ★ | |
-| Self-healing docs | A2 | ★ | |
+| Hand off test failures to an AI agent | A2 | ★ | Authored: `/ai/ai-agents/hand-off-failures`, retitled from "Self-healing documentation", which overclaimed. The Action opens an issue on failure and mentions an agent that suggests a fix. Redirects from `/ai/ai-agents/self-healing` and `/docs/get-started/self-healing`. |
 | Best practices for agent-authored tests (new) | A2 | | |
 
 ### Troubleshoot, cross-cutting: `docs/troubleshoot/`
@@ -295,7 +295,7 @@ Nothing is dropped.
 | Get started / Sample tests | Get started / Sample tests |
 | Get started / CI | Run in CI & at scale / GitHub Action recipe |
 | Get started / Integrations | Split: Heretto→Test your docs (Formats & surfaces); OpenAPI→Test your docs (CLI, code & APIs); orchestration→CI |
-| Get started / Self-healing | AI & Agents / Self-healing (linked into Test your docs) |
+| Get started / Self-healing | AI & Agents / Hand off failures (linked into Test your docs) |
 | Get started / Resources | Support / Resources |
 | Agent tools / * | AI & Agents (pillar) |
 | Configuration / Contexts | Reference / Contexts & surfaces |
