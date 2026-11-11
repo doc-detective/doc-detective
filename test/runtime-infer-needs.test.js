@@ -510,6 +510,16 @@ describe("runtime/inferRuntimeNeeds", function () {
       });
     }
 
+    // sharp renders the reference, so a failed install must stop the run, not
+    // only turn automatic screenshots off.
+    it("image-needs-inferred: sharp isn't left to automatic screenshots alone", function () {
+      const needs = inferRuntimeNeeds([
+        makeSpec([{ goTo: { url: "https://x.test" } }, { find: { elementImage: image } }]),
+      ]);
+      expect(needs.npmPackages.has("sharp")).to.equal(true);
+      expect(needs.autoScreenshotOnly).to.equal(false);
+    });
+
     it("image-needs-inferred: a step without elementImage doesn't add the image matcher", function () {
       const needs = inferRuntimeNeeds([
         makeSpec([

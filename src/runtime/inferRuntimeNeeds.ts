@@ -153,7 +153,8 @@ export function inferRuntimeNeeds(
     browsers,
     npmPackages,
     windowsBash: sawBashShellStep,
-    autoScreenshotOnly: autoScreenshots && !sawScreenshotStep,
+    // `elementImage` needs sharp too, so its install must stop the run on failure.
+    autoScreenshotOnly: autoScreenshots && !sawScreenshotStep && !sawElementImage,
   };
 }
 
