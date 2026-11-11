@@ -244,7 +244,7 @@ Earlier versions defaulted to `<os.tmpdir()>/doc-detective/`. After upgrading, t
 
 ### Restricted characters
 
-The cache path can't contain shell metacharacters. Doc Detective rejects any path set through `DOC_DETECTIVE_CACHE_DIR`, `cacheDir`, or `--cache-dir` that includes one of these characters, because on Windows the runtime installer runs `npm.cmd` through a shell, where an unescaped metacharacter could break out of the command's argument boundary. Doc Detective enforces this check on every platform, not just Windows, so a cache path stays portable across your runners. When a path contains a rejected character, the install fails with an error naming both the character and the path. Set the cache to a path without those characters to resolve it.
+The cache path can't contain shell metacharacters. Doc Detective rejects any path set through `DOC_DETECTIVE_CACHE_DIR`, `cacheDir`, or `--cache-dir` that includes one of these characters. On Windows, the runtime installer runs `npm.cmd` through a shell, where an unescaped metacharacter could break out of the command's argument boundary. Doc Detective enforces this check on every platform, not just Windows, so a cache path stays portable across your runners. When a path contains a rejected character, the install fails with an error naming both the character and the path. Set the cache to a path without those characters to resolve it.
 
 The rejected characters are:
 
