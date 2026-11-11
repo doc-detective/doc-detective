@@ -22,7 +22,9 @@ When tests fail in CI, the [Doc Detective GitHub Action](/docs/ci/github-action)
 
 ```yaml title=".github/workflows/doc-detective.yml"
 name: doc-detective
-on: [pull_request]
+on:
+  push:
+    branches: [main]
 
 jobs:
   doc-tests:
@@ -35,8 +37,11 @@ jobs:
       - uses: doc-detective/github-action@v2
         with:
           create_issue_on_fail: true
+          token: ${{ secrets.DOC_DETECTIVE_ISSUE_TOKEN }}
           issue_mentions: claude,copilot
 ```
+
+The workflow runs on pushes to `main`. By default, a fork's pull request gets a read-only `GITHUB_TOKEN` and no secrets, so the action can't open an issue for it. The `token` input matters for `claude`, which answers from a workflow. GitHub doesn't start workflows for an issue that the default `GITHUB_TOKEN` opens. To create the token, see [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).
 
 When a test fails, the action opens an issue with the results. It adds a collapsible section to the issue body that mentions each assistant, followed by the `issue_prompt` text. For `copilot`, the action assigns the issue to Copilot instead of adding a text mention.
 
@@ -48,11 +53,12 @@ When a test fails, the action opens an issue with the results. It adds a collaps
 - uses: doc-detective/github-action@v2
   with:
     create_issue_on_fail: true
+    token: ${{ secrets.DOC_DETECTIVE_ISSUE_TOKEN }}
     issue_mentions: claude
     issue_prompt: Analyze these test failures and suggest specific fixes for the documentation.
 ```
 
-To place the prompt somewhere else in the issue, put `$PROMPT` in `issue_body`. For prompt-writing patterns, see [Self-healing documentation](/ai/ai-agents/self-healing).
+To place the prompt somewhere else in the issue, put `$PROMPT` in `issue_body`. For prompt-writing patterns, see [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).
 
 ## Inputs
 
@@ -78,7 +84,7 @@ When a workflow sets an old name, the action logs a warning that names the new o
 
 | Value | What the action adds to the issue | Setup |
 |---|---|---|
-| `claude` | `@claude`, followed by the prompt. | Install the Claude GitHub app. |
+| `claude` | `@claude`, followed by the prompt. | Install the Claude GitHub app and the [Claude Code Action](https://github.com/anthropics/claude-code-action) workflow, and set the `token` input. |
 | `copilot` | Assigns the issue to Copilot. No mention. | Enable Copilot coding agent for the repository. |
 | `cursor` | `@cursor`, followed by the prompt. | Install the Cursor GitHub app. |
 | `dosu` | `@dosu`, followed by the prompt. | Install the Dosu app. |
@@ -97,4 +103,4 @@ Push a change that makes a test fail, then open the issue the action creates:
 ## What's next
 
 - [Run in CI with the GitHub Action](/docs/ci/github-action) for every issue and pull request input.
-- [Self-healing documentation](/ai/ai-agents/self-healing) to turn failure issues into suggested fixes.
+- [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures) to turn failure issues into suggested fixes.

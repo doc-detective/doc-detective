@@ -146,6 +146,34 @@ describe("promote.yml smoke-test npm wait", function () {
   });
 });
 
+describe("promote.yml prerelease guard", function () {
+  const workflow = async () => {
+    const { parse } = await import("yaml");
+    return parse(fs.readFileSync(path.join(REPO_ROOT, ".github/workflows/promote.yml"), "utf8"));
+  };
+
+  it("skips the promote job for a prerelease version, from every trigger", async function () {
+    // A dispatched 5.0.0-v5-rc.12 passed the semver.gt guard and would have moved
+    // @latest to an RC. Both triggers (workflow_call, workflow_dispatch) name the
+    // version `inputs.version`.
+    const wf = await workflow();
+    expect(Object.keys(wf.on).sort()).to.deep.equal(["workflow_call", "workflow_dispatch"]);
+    expect(wf.on.workflow_call.inputs.version.type).to.equal("string");
+    expect(wf.on.workflow_dispatch.inputs.version.type).to.equal("string");
+    expect(wf.jobs.promote.if).to.equal("${{ !contains(inputs.version, '-') }}");
+  });
+
+  it("still smoke-tests a prerelease", async function () {
+    expect((await workflow()).jobs["smoke-test"].if).to.equal(undefined);
+  });
+
+  it("skips Docker through needs, with no status function to override the skip", async function () {
+    const docker = (await workflow()).jobs["build-docker-image"];
+    expect([docker.needs].flat()).to.include("promote");
+    expect(String(docker.if ?? "")).to.not.match(/always\(\)|cancelled\(\)|failure\(\)/);
+  });
+});
+
 describe("container:test script", function () {
   it("skips the root mocha config, whose hooks import dist/", function () {
     // Release and manual Docker builds never run `npm run build`, so loading
