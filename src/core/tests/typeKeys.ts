@@ -191,7 +191,7 @@ import type { WdioModule } from "./wdioTypes.js";
 
 // Send keystrokes to a background process's stdin. Mirrors runShell's outputs
 // and assertion model: `outputs.stdio` carries the captured stdout/stderr, and
-// `outputs.stdioMatched` (when waitUntil.stdio is set) is asserted via the
+// `outputs.stdioMatches` (when waitUntil.stdio is set) is asserted via the
 // shared expression engine — so the engine, not this function, decides PASS/FAIL.
 async function typeToProcess({
   step,
@@ -258,11 +258,11 @@ async function typeToProcess({
   // 6. Readiness / assertions.
   if (matchPromise) {
     const matched = await matchPromise;
-    result.outputs.stdioMatched = matched;
+    result.outputs.stdioMatches = matched;
     // Re-snapshot stdio after waiting so the captured output reflects the match.
     result.outputs.stdio = { stdout: bg.getStdout(), stderr: bg.getStderr() };
     const specs: ImplicitAssertionSpec[] = [
-      { statement: "$$outputs.stdioMatched == true", severity: "fail" },
+      { statement: "$$outputs.stdioMatches == true", severity: "fail" },
     ];
     const { assertions, status } = await evaluateImplicitAssertions(
       specs,
@@ -410,7 +410,7 @@ async function typeKeys({
   // Skip if no keys to type
   if (!step.type.keys.length) {
     result.status = "SKIPPED";
-    result.description = "No keys to type.";
+    result.description = "Skipped: no keys to type.";
     return result;
   }
 
@@ -640,7 +640,8 @@ async function typeKeys({
       elementAttribute: step.type.elementAttribute,
       elementAria: step.type.elementAria,
       elementImage: step.type.elementImage,
-      timeout: 5000,
+      // The step's own timeout bounds the search, so `0` checks once (ADR 01188).
+      timeout: step.type.timeout,
       driver,
       cacheDir: config?.cacheDir,
     });

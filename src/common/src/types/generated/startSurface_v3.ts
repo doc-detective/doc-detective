@@ -5,7 +5,7 @@
  */
 
 /**
- * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md.
+ * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap.
  */
 export type StartSurface = AppDescriptor | BrowserDescriptor | ProcessDescriptor | ParallelSurfaces;
 export type DeviceByName = string;
@@ -194,10 +194,6 @@ export interface AppDescriptor {
    */
   args?: string[];
   /**
-   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
-   */
-  workingDirectory?: string;
-  /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */
   env?: {
@@ -382,10 +378,6 @@ export interface AppDescriptor1 {
    * Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
    */
   args?: string[];
-  /**
-   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
-   */
-  workingDirectory?: string;
   /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */

@@ -28,7 +28,7 @@
     },
     "runDir": {
       "type": "string",
-      "description": "Absolute path to the run's artifact folder (`<output>/.doc-detective/runs/<runId>/`), where the `runFolder` reporter archives results and `autoScreenshot` images are saved (nested under `specs/<specId>/tests/<testId>/contexts/<contextId>/`). Step-level `autoScreenshot` paths in the report are relative to this folder. System-populated.",
+      "description": "Absolute path to the run's artifact folder (`<outputDir>/.doc-detective/runs/<runId>/`), where the `runFolder` reporter archives results and automatic screenshots and recordings are saved (nested under `specs/<specId>/tests/<testId>/contexts/<contextId>/`). Each step's `autoScreenshotPath` in the report is relative to this folder. System-populated.",
       "readOnly": true
     },
     "durationMs": {

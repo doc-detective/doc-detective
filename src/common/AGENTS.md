@@ -85,7 +85,7 @@ templates), and reports aren't walked.
   objects in place. The parametrized purity test in `test/normalize.test.js` needs a sample for each action. It
   never touches `$VAR` or `$$` values, paths, config, or runtime state. The one path it writes is a capture's
   default file name, `<stepId>.png` or `<stepId>.mp4`. The runner then places it under `outputDir`
-  ([ADR 01173](../../adrs/01173-capture-paths-default-under-outputdir.md)). Step-level `unsafe`, `breakpoint`,
+  ([ADR 01173](../../adrs/01173-capture-paths-default-under-outputdir.md)). Step-level `unsafe`,
   `outputs`, and `variables` stay as authored.
 - A normalizer gets a value from `validate()`'s own clone, never the caller's object, so it may change that value
   in place and return it. The runner's literal pass after substitution also works on the object `validate()`

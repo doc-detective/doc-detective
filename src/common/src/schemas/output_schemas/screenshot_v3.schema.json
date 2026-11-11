@@ -27,7 +27,7 @@
           "additionalProperties": false,
           "properties": {
             "surface": {
-              "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+              "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
               "anyOf": [
                 {
                   "title": "Surface (by browser engine)",
@@ -59,7 +59,7 @@
                         "safari",
                         "webkit"
                       ],
-                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                      "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                     },
                     "name": {
                       "type": "string",
@@ -3752,7 +3752,7 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+                  "description": "The type of integration. The only type is `heretto`.",
                   "enum": [
                     "heretto"
                   ]
@@ -3793,7 +3793,7 @@
           "title": "Capture screenshot fields"
         },
         {
-          "title": "App captures don't support crop yet",
+          "title": "App captures don't support crop",
           "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
           "if": {
             "required": [
@@ -3840,7 +3840,7 @@
             "additionalProperties": false,
             "properties": {
               "surface": {
-                "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+                "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
                 "anyOf": [
                   {
                     "title": "Surface (by browser engine)",
@@ -3872,7 +3872,7 @@
                           "safari",
                           "webkit"
                         ],
-                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                        "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                       },
                       "name": {
                         "type": "string",
@@ -7565,7 +7565,7 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+                    "description": "The type of integration. The only type is `heretto`.",
                     "enum": [
                       "heretto"
                     ]
@@ -7606,7 +7606,7 @@
             "title": "Capture screenshot fields"
           },
           {
-            "title": "App captures don't support crop yet",
+            "title": "App captures don't support crop",
             "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
             "if": {
               "required": [
@@ -7637,7 +7637,7 @@
         "additionalProperties": false,
         "properties": {
           "surface": {
-            "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` yet.",
+            "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
             "anyOf": [
               {
                 "title": "Surface (by browser engine)",
@@ -7669,7 +7669,7 @@
                       "safari",
                       "webkit"
                     ],
-                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open."
+                    "description": "Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open."
                   },
                   "name": {
                     "type": "string",
@@ -11362,7 +11362,7 @@
             "properties": {
               "type": {
                 "type": "string",
-                "description": "The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.",
+                "description": "The type of integration. The only type is `heretto`.",
                 "enum": [
                   "heretto"
                 ]

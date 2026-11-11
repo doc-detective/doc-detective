@@ -67,7 +67,15 @@ describe("rewriteRootError", function () {
 describe("verdictLine", function () {
   const verdict = (tests) => verdictLine({ summary: { tests } });
   it("reports failures", function () {
-    expect(verdict({ pass: 1, fail: 1, warning: 0, skipped: 0 })).to.include("1 of 2 tests failed");
+    expect(verdict({ pass: 1, fail: 1, warning: 0, skipped: 0 })).to.include("1 of 2 tests failed.");
+  });
+  it("counts warnings and skips on the fail line too", function () {
+    expect(verdict({ pass: 9, fail: 1, warning: 2, skipped: 3 })).to.include(
+      "1 of 15 tests failed (2 with warnings, 3 skipped)."
+    );
+  });
+  it("reports a warnings-only run as passed", function () {
+    expect(verdict({ pass: 0, fail: 0, warning: 2, skipped: 0 })).to.include("2 of 2 tests passed (2 with warnings).");
   });
   it("reports passes, with warnings and skips", function () {
     expect(verdict({ pass: 1, fail: 0, warning: 1, skipped: 1 })).to.include(
@@ -93,7 +101,7 @@ describe("summarizeSchemaErrors", function () {
   const spec = (step) => ({ tests: [{ steps: [step] }] });
 
   it("names an unknown action and the nearest real one", function () {
-    expect(summarize(spec({ goToo: "x" }))).to.equal("tests[0].steps[0]: unknown action 'goToo'. Did you mean goTo?");
+    expect(summarize(spec({ goToo: "x" }))).to.equal("tests[0].steps[0]: unknown action `goToo`. Did you mean `goTo`?");
   });
 
   it("handles a step with no recognizable key", function () {
@@ -112,9 +120,16 @@ describe("summarizeSchemaErrors", function () {
 
   it("lists every allowed type, and the value it got", function () {
     expect(summarize(spec({ goTo: [] }))).to.equal("tests[0].steps[0].goTo: must be string or object (got []).");
-    expect(summarize({ concurrentRunners: "lots" }, "config_v3")).to.equal(
-      'concurrentRunners: must be integer or boolean (got "lots").'
+    expect(summarize({ concurrentRunners: [] }, "config_v3")).to.equal(
+      "concurrentRunners: must be integer or boolean (got [])."
     );
+  });
+
+  // ADR 01188: the only string `concurrentRunners` takes is `auto`, and a
+  // number isn't told it must be `auto`.
+  it("names the allowed string for a string, and the limit for a number", function () {
+    expect(summarize({ concurrentRunners: "lots" }, "config_v3")).to.equal('concurrentRunners: must be auto (got "lots").');
+    expect(summarize({ concurrentRunners: 0 }, "config_v3")).to.equal("concurrentRunners: must be >= 1.");
   });
 
   // A schema's own errorMessage stays whole, commas and parentheses included
@@ -142,10 +157,10 @@ describe("summarizeSchemaErrors", function () {
 
   it("suggests a nested key, in place of the missing key it means", function () {
     expect(summarize(spec({ runShell: { comand: "echo hi" } }))).to.equal(
-      "tests[0].steps[0].runShell: unknown key 'comand'. Did you mean command?"
+      "tests[0].steps[0].runShell: unknown key `comand`. Did you mean `command`?"
     );
     expect(summarize(spec({ goTo: { url: "https://example.com", waitUntil: { netwrkIdleTime: 1 } } }))).to.equal(
-      "tests[0].steps[0].goTo.waitUntil: unknown key 'netwrkIdleTime'. Did you mean networkIdleTime?"
+      "tests[0].steps[0].goTo.waitUntil: unknown key `netwrkIdleTime`. Did you mean `networkIdleTime`?"
     );
   });
 
@@ -157,7 +172,7 @@ describe("summarizeSchemaErrors", function () {
   it("lets a suggestion stand in for the choice it names", function () {
     const object = { integrations: { heretto: [{ name: "x", organizationId: "o", username: "u", apiTokn: "t" }] } };
     expect(summarize(object, "config_v3")).to.equal(
-      "integrations.heretto[0]: unknown key 'apiTokn'. Did you mean apiToken?"
+      "integrations.heretto[0]: unknown key `apiTokn`. Did you mean `apiToken`?"
     );
   });
 

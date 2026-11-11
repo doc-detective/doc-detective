@@ -15,10 +15,6 @@ export type CookieName = string;
 export type SaveCookieDetailed = {
   [k: string]: unknown;
 } & {
-  /**
-   * Optional self-describing schema URI for linters
-   */
-  $schema?: string;
   name: CookieName1;
   variable?: EnvironmentVariableName;
   path?: CookieFilePath;

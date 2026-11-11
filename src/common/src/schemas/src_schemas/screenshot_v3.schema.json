@@ -35,7 +35,7 @@
             "$ref": "#/components/schemas/objectShape"
           },
           {
-            "title": "App captures don't support crop yet",
+            "title": "App captures don't support crop",
             "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
             "if": {
               "required": [
@@ -66,7 +66,7 @@
         "additionalProperties": false,
         "properties": {
           "surface": {
-            "description": "The browser window/tab or app window to capture. Omit to capture the active surface \u2014 the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": \u2026 }). App captures don't support `crop` yet.",
+            "description": "The browser window/tab or app window to capture. Omit to capture the active surface \u2014 the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": \u2026 }). App captures don't support `crop`.",
             "anyOf": [
               {
                 "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"

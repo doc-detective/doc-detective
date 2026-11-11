@@ -278,7 +278,7 @@ async function annotate({
   if (!driver) {
     result.status = "SKIPPED";
     result.description =
-      "No browser session is running in this context, and annotations are drawn into a page. Annotate a browser surface, or use a screenshot's own `annotations` to annotate an app capture.";
+      "Skipped: no browser session is running in this context, and annotations are drawn into a page. Annotate a browser surface, or use a screenshot's own `annotations` to annotate an app capture.";
     return result;
   }
 

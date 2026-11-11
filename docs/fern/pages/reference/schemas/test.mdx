@@ -40,6 +40,7 @@ steps | array of object([step](/reference/schemas/step)) | Optional. Steps to pe
 result | string | ReadOnly. Outcome of this test. Doc Detective populates it. You never set it yourself.<br/><br/>Accepted values: `PASS`, `FAIL`, `WARNING`, `SKIPPED` | —
 resultDescription | string | ReadOnly. Why this test had its outcome. Doc Detective populates it. You never set it yourself. | —
 durationMs | integer | ReadOnly. Total time this test took, in milliseconds: the sum of the per-context durations. A sum rather than a wall-clock span, because this test's contexts share a concurrent pool with every other test's. Present only in test results. System-populated.<br/><br/>Minimum: 0 | —
+visit | integer | ReadOnly. Which run of this test this report is, when a `goToTest` routing entry ran it again. Present only in test results, from the second run on. System-populated.<br/><br/>Minimum: 2 | —
 contexts | array of object([Resolved context](/reference/schemas/resolved-context)) | ReadOnly. Resolved contexts to run the test in. This is a resolved version of the `runOn` property. It is not user-defined and should not be used in test specifications. | —
 
 ## Examples

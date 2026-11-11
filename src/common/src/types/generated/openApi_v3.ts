@@ -32,7 +32,7 @@ export type OpenApi = {
    */
   validateAgainstSchema?: "request" | "response" | "both" | "none";
   /**
-   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code.
+   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code.
    */
   mockResponse?: boolean;
   /**

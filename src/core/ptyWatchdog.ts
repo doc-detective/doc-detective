@@ -181,7 +181,7 @@ export async function ensurePtyBackendOnDisk(opts: {
     await opts.reinstall();
   } catch (error: any) {
     const err: any = new Error(
-      `The PTY backend's files are missing from the runtime cache (a JIT install of another dependency previously pruned them — doc-detective issue #501) and reinstalling failed: ${error?.message ?? error}. Skipping this \`tty\` background process.`
+      `The PTY backend's files are missing from the runtime cache (a JIT install of another dependency previously pruned them — doc-detective issue #501) and reinstalling failed: ${error?.message ?? error}.`
     );
     err.code = "NODE_PTY_UNAVAILABLE";
     throw err;
@@ -189,7 +189,7 @@ export async function ensurePtyBackendOnDisk(opts: {
   const healed = opts.resolvePath();
   if (healed && exists(healed)) return healed;
   const err: any = new Error(
-    `The PTY backend's files are missing from the runtime cache (doc-detective issue #501) and did not materialize after a reinstall. Skipping this \`tty\` background process.`
+    `The PTY backend's files are missing from the runtime cache (doc-detective issue #501) and didn't materialize after a reinstall.`
   );
   err.code = "NODE_PTY_UNAVAILABLE";
   throw err;
@@ -216,7 +216,7 @@ export async function assertConptyAllocatable(opts: {
   const result = await probe({ ptyModulePath: opts.ptyModulePath });
   if (result.outcome === "wedged") {
     const err: any = new Error(
-      `ConPTY allocation is wedged on this Windows environment (${result.detail}). This matches doc-detective issue #501: a native app-surface (NovaWindows) context in the same run can leave the console subsystem unable to allocate a new pseudo-terminal, which otherwise freezes the whole process. Skipping this \`tty\` background process instead of hanging the run.`
+      `ConPTY allocation is wedged on this Windows environment (${result.detail}). This matches doc-detective issue #501: a native app-surface (NovaWindows) context in the same run can leave the console subsystem unable to allocate a new pseudo-terminal, which otherwise freezes the whole process.`
     );
     err.code = "NODE_PTY_UNAVAILABLE";
     throw err;
