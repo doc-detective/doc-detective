@@ -9,7 +9,7 @@ import { startBackgroundProcessSurface as realStartBackgroundProcessSurface } fr
 import {
   resolveShellName,
   resolveShellExecutable,
-  realizeViewport,
+  applyBrowserSize,
 } from "../utils.js";
 import {
   openSession,
@@ -182,6 +182,9 @@ async function startSurfaceStep({
     // know chrome/firefox/safari, so a schema-valid `edge` must open a chrome
     // session rather than fail at launch.
     const engine = normalizeEngine(d.browser);
+    // Opening sizes the session (`size`, else the context's size, else the
+    // default). A `viewport` below re-sizes it and records the viewport as the
+    // size target, at the cost of one extra resize (ADR 01144).
     const opened = await openSession(browserRegistry, {
       engine,
       name: d.name,
@@ -210,12 +213,15 @@ async function startSurfaceStep({
       };
       let rendered: { width: number; height: number };
       try {
-        rendered = await realizeViewport(
+        // Also records the viewport as the session's size target, which a
+        // screenshot reads to tell drift from a changed config (ADR 01144).
+        const sizing = await applyBrowserSize(
           opened.driver,
-          requested,
+          { viewport: requested },
           config,
           `startSurface "${opened.name}"`
         );
+        rendered = sizing.realized!;
       } catch (error: any) {
         return {
           status: "FAIL",
@@ -376,7 +382,19 @@ async function startSurfaceStep({
   if (browserRegistry) {
     for (const slot of browserSlots) {
       if (results[slot.i]?.status === "PASS") {
-        activateSession(browserRegistry, results[slot.i].outputs?.name ?? slot.name);
+        const name = results[slot.i].outputs?.name ?? slot.name;
+        // A miss means the session opened but isn't in the registry under the
+        // name we'd address it by, so `activeName` would silently keep pointing
+        // at the previous session while the MRU tracker says otherwise — every
+        // later surface-less step would then act on the wrong browser. Fail
+        // loudly instead: a diagnosable error beats a wrong-surface run.
+        if (!activateSession(browserRegistry, name)) {
+          results[slot.i] = {
+            ...results[slot.i],
+            status: "FAIL",
+            description: `Opened browser surface "${name}", but it couldn't be made the active surface — no session is registered under that name. This is a runner bug; surface-less steps after this one would act on the wrong browser.`,
+          };
+        }
       }
     }
   }

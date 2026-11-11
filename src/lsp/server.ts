@@ -7,7 +7,7 @@ import {
   TextDocumentSyncKind,
   type Connection,
   type InitializeResult,
-} from "vscode-languageserver/node.js";
+} from "vscode-languageserver/node";
 import type {
   CompletionItem,
   CompletionParams,

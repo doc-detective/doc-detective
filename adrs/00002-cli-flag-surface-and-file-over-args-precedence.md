@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The tool needed a way for users to point it at their docs and tune its behavior from the command line, and a rule for how those flags interact with a config file. The earliest flag work (`c15c6d70`, `3121b69a`, `d5b07b3f`, `6b9f3a32`, 2022-04-23) introduced a yargs-based option surface (`--config/-c`, `--testFile/-f`, `--testDir/-d`, `--imageDir/-i`, `--videoDir/-v`, `--recursive/-r`, `--ext/-e`) plus an argument→config override block. The open question was the order of precedence: does a config file win, or do command-line flags win? How should the CLI surface be shaped and which source takes priority?
+The tool needed a way for users to point it at their docs and tune its behavior from the command line. It also needed a rule for how those flags interact with a config file. The earliest flag work (`c15c6d70`, `3121b69a`, `d5b07b3f`, `6b9f3a32`, 2022-04-23) introduced a yargs-based option surface (`--config/-c`, `--testFile/-f`, `--testDir/-d`, `--imageDir/-i`, `--videoDir/-v`, `--recursive/-r`, `--ext/-e`) plus an argument→config override block. The open question was the order of precedence: does a config file win, or do command-line flags win? How should the CLI surface be shaped and which source takes priority?
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ The tool needed a way for users to point it at their docs and tune its behavior 
 
 ## Decision Outcome
 
-Chosen option: **file config is the base, CLI flags overlay on top**, because the most common need is to take a stable file config and override individual values for a single invocation.
+Chosen option: **file config is the base, CLI flags overlay on top**. The most common need is to take a stable file config and override individual values for a single invocation.
 
 Behavior decided:
 

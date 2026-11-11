@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Documentation frequently shows code snippets the reader is meant to run — Python, Bash, or JavaScript. Doc Detective could run a shell command (`runShell`), but had no first-class way to take a block of source in a known language, materialize it, and execute it through the right interpreter while asserting on the exit code. How should a `runCode` step express the language, the code, and the success condition?
+Documentation frequently shows code snippets the reader is meant to run, in Python, Bash, or JavaScript. Doc Detective could run a shell command (`runShell`), but had no first-class way to handle a block of source in a known language. It could not materialize that block and execute it through the right interpreter, while asserting on the exit code. How should a `runCode` step express the language, the code, and the success condition?
 
 ## Decision Drivers
 

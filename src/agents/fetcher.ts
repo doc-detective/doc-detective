@@ -1,7 +1,6 @@
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import axios from "axios";
 import AdmZip from "adm-zip";
 
 export interface FetchResult {
@@ -28,6 +27,19 @@ const REPO_SLUG = "doc-detective/agent-tools";
 const MAX_ZIP_BYTES = 50 * 1024 * 1024;
 
 /**
+ * agent-tools ref that matches this CLI's major (ADR 01181). CLI 4.x pins
+ * agent-tools' `v1` tag, which agent-tools' 1.x releases move forward.
+ */
+export const AGENT_TOOLS_REF = "v1";
+
+/**
+ * Raw file URL in agent-tools at the pinned ref, AGENT_TOOLS_REF.
+ */
+export function agentToolsRawUrl(file: string): string {
+  return `https://raw.githubusercontent.com/${REPO_SLUG}/${AGENT_TOOLS_REF}/${file}`;
+}
+
+/**
  * Build the codeload archive URL for a given ref. GitHub's codeload endpoint
  * accepts `<ref>` directly (branches, tags, and full commit SHAs all resolve),
  * so we don't hard-code `refs/heads/…` and we support tags like `v1.3.0`.
@@ -41,7 +53,7 @@ function codeloadUrl(ref: string): string {
  * top-level `agent-tools-<ref>/` wrapper dir that GitHub adds to codeload zips.
  */
 export async function fetchAgentToolsZip(
-  ref: string = "main",
+  ref: string = AGENT_TOOLS_REF,
   deps: FetchDeps = {}
 ): Promise<FetchResult> {
   // c8 ignore justification (next line): real network GET to GitHub codeload;
@@ -49,7 +61,7 @@ export async function fetchAgentToolsZip(
   // test injects a fake `get` for). Exercising it would require a live
   // network peer, which would make the suite flaky/non-hermetic per ADR 01017.
   /* c8 ignore next */
-  const get = deps.get ?? ((url, config) => axios.get(url, config));
+  const get = deps.get ?? (async (url, config) => (await import("axios")).default.get(url, config));
   const mkdtempSync =
     deps.mkdtempSync ?? ((prefix: string) => fs.mkdtempSync(prefix));
 

@@ -20,8 +20,10 @@ import {
   runInvokesDocDetective,
   VIEWPORT_FLOOR_TOLERANCE_PX,
   SURFACE_SENSITIVE_HINT_KEYS,
+  ANNOTATION_TARGET_MISSING,
 } from "../dist/hints/context.js";
 import { SURFACE_SENSITIVE_STEP_KEYS } from "../dist/runtime/browserStepKeys.js";
+import { resolveAnnotationRects } from "../dist/core/annotations/geometry.js";
 import { maybeShowHint, pickByPriority, priorityWeight } from "../dist/hints/index.js";
 import { HINTS } from "../dist/hints/hints.js";
 import fs from "node:fs";
@@ -871,6 +873,168 @@ describe("hints/context", function () {
         ] }] }] }],
       });
       expect(other.failedRunShellWithoutShell).to.equal(false);
+    });
+
+    it("ANNOTATION_TARGET_MISSING still matches the messages geometry actually produces", async function () {
+      // The hint reads a message rather than importing from core, so a reword
+      // in geometry.ts would silence it with nothing failing. Drive both real
+      // failure shapes and assert the pattern still catches them.
+      const driver = {
+        async $$() {
+          return [];
+        },
+      };
+      const { errors: allErrors } = await resolveAnnotationRects({
+        config: {},
+        annotations: [
+          { type: "blur", target: { selector: ".nope", timeout: 50 }, all: true },
+        ],
+        driver,
+        canvas: { width: 800, height: 600 },
+        scale: 1,
+      });
+      expect(allErrors).to.have.lengthOf(1);
+      expect(ANNOTATION_TARGET_MISSING.test(allErrors[0])).to.equal(true);
+
+      // The single-element form goes through findElement, whose message
+      // differs ("the element" vs "any element") — both must match.
+      const { errors: singleErrors } = await resolveAnnotationRects({
+        config: {},
+        annotations: [
+          { type: "outline", target: { selector: ".nope", timeout: 50 } },
+        ],
+        driver,
+        canvas: { width: 800, height: 600 },
+        scale: 1,
+      });
+      expect(singleErrors).to.have.lengthOf(1);
+      expect(ANNOTATION_TARGET_MISSING.test(singleErrors[0])).to.equal(true);
+    });
+
+    it("failedAnnotationTargetWithoutTimeout is true only when an annotation target went missing and asked for no extra time", function () {
+      const missing =
+        'Couldn\'t resolve every annotation target. Couldn\'t find the element to annotate: {"elementTestId":"late-panel"}.';
+
+      // An annotate step whose target never resolved, with no timeout asked
+      // for -> the author can buy more time. True.
+      const annotateFailed = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          {
+            annotate: { add: [{ outline: { selector: "#late" } }] },
+            result: "FAIL",
+            resultDescription: missing,
+          },
+        ] }] }] }],
+      });
+      expect(annotateFailed.failedAnnotationTargetWithoutTimeout).to.equal(true);
+
+      // Same failure on a screenshot's own annotations — same field, same
+      // advice.
+      const screenshotFailed = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          {
+            screenshot: { path: "a.png", annotations: [{ blur: ".secret" }] },
+            result: "FAIL",
+            resultDescription: missing,
+          },
+        ] }] }] }],
+      });
+      expect(screenshotFailed.failedAnnotationTargetWithoutTimeout).to.equal(
+        true
+      );
+
+      // The author already set a timeout -> waiting longer is their call to
+      // make again, not something to teach. False.
+      const alreadyTimed = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          {
+            annotate: {
+              add: [{ outline: { selector: "#late", timeout: 20000 } }],
+            },
+            result: "FAIL",
+            resultDescription: missing,
+          },
+        ] }] }] }],
+      });
+      expect(alreadyTimed.failedAnnotationTargetWithoutTimeout).to.equal(false);
+
+      // An `update` target counts too — update re-resolves.
+      const updateFailed = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          {
+            annotate: { update: [{ id: "a", badge: { selector: "#late" } }] },
+            result: "FAIL",
+            resultDescription: missing,
+          },
+        ] }] }] }],
+      });
+      expect(updateFailed.failedAnnotationTargetWithoutTimeout).to.equal(true);
+
+      // An annotate step that FAILed for an unrelated reason -> a timeout
+      // wouldn't have helped, so suggesting one is noise. False.
+      const otherFailure = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          {
+            annotate: { update: [{ id: "nope", outline: "#a" }] },
+            result: "FAIL",
+            resultDescription:
+              'No annotation with id "nope" is on screen to update.',
+          },
+        ] }] }] }],
+      });
+      expect(otherFailure.failedAnnotationTargetWithoutTimeout).to.equal(false);
+
+      // A passing annotate step -> false.
+      const passed = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          { annotate: { add: [{ outline: "#a" }] }, result: "PASS" },
+        ] }] }] }],
+      });
+      expect(passed.failedAnnotationTargetWithoutTimeout).to.equal(false);
+
+      // A `clear`-only step can FAIL with this message: renderLayer
+      // re-resolves every SURVIVING annotation on each render, so an
+      // annotation an earlier step added can go missing here. There's no
+      // target in this step to put a timeout on, and the one that failed may
+      // already have had one -> stay quiet.
+      const clearOnly = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          {
+            annotate: { clear: ["b"] },
+            result: "FAIL",
+            resultDescription: missing,
+          },
+        ] }] }] }],
+      });
+      expect(clearOnly.failedAnnotationTargetWithoutTimeout).to.equal(false);
+
+      // Position-anchored annotations resolve without a driver, so waiting
+      // longer is meaningless -> stay quiet.
+      const positionOnly = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          {
+            annotate: {
+              add: [{ text: { position: "top-left" }, label: "Demo" }],
+            },
+            result: "FAIL",
+            resultDescription: missing,
+          },
+        ] }] }] }],
+      });
+      expect(positionOnly.failedAnnotationTargetWithoutTimeout).to.equal(false);
+
+      // A bare string target is element-anchored with nowhere to put a
+      // timeout — exactly the case worth teaching -> fire.
+      const stringTarget = walkResults({
+        specs: [{ tests: [{ contexts: [{ steps: [
+          {
+            annotate: { add: [{ outline: "#late" }] },
+            result: "FAIL",
+            resultDescription: missing,
+          },
+        ] }] }] }],
+      });
+      expect(stringTarget.failedAnnotationTargetWithoutTimeout).to.equal(true);
     });
   });
 
@@ -1943,6 +2107,18 @@ describe("hints/hints (registry)", function () {
     }
   });
 
+  it("no hint links to the bare doc-detective.com host", function () {
+    // doc-detective.com redirects to the docs home and drops the path, so a
+    // deep link there lands on the wrong page. Docs live on the docs. subdomain.
+    for (const h of HINTS) {
+      for (const [, url] of h.markdown.matchAll(/\]\((https?:[^)]+)\)/g)) {
+        expect(new URL(url).host, `${h.id}: ${url}`).to.not.match(
+          /^(www\.)?doc-detective\.com$/
+        );
+      }
+    }
+  });
+
   it("every registry hint has a dedicated predicate test", function () {
     // Replaces a hardcoded `expect(HINTS.length).to.equal(N)`. That count was
     // a magic number that collided across concurrent PRs: two branches that
@@ -2004,6 +2180,14 @@ describe("hints/hints (registry)", function () {
     const h = findHint("addConfigFile");
     expect(h.when(fakeCtx({ configPath: null }))).to.equal(true);
     expect(h.when(fakeCtx({ configPath: ".doc-detective.json" }))).to.equal(false);
+  });
+
+  it("addConfigFile: points $schema at this repo's config schema, not the archived common repo", function () {
+    const h = findHint("addConfigFile");
+    expect(h.markdown).to.include(
+      "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/src/schemas/src_schemas/config_v3.schema.json"
+    );
+    expect(h.markdown).to.not.include("doc-detective/common/refs/heads/main");
   });
 
   it("addNpmScript: fires only when package.json exists and lacks a doc-detective script", function () {
@@ -2502,6 +2686,23 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(false);
+  });
+
+  it("setAnnotationTimeout: fires when an annotation target went missing and asked for no extra time", function () {
+    const h = findHint("setAnnotationTimeout");
+    expect(h.priority).to.equal(20);
+    // Positive: a target never resolved and nothing asked to wait longer.
+    expect(
+      h.when(fakeCtx({ failedAnnotationTargetWithoutTimeout: true }))
+    ).to.equal(true);
+    // Negative: no such failure -> skip.
+    expect(
+      h.when(fakeCtx({ failedAnnotationTargetWithoutTimeout: false }))
+    ).to.equal(false);
+    // The payload has to name the field and show where it goes, or it isn't
+    // actionable.
+    expect(h.markdown).to.contain("timeout");
+    expect(h.markdown).to.contain("annotate");
   });
 
   it("useRunBrowserScriptStep: fires on browser + find when runBrowserScript isn't used", function () {

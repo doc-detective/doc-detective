@@ -304,16 +304,10 @@
           "type": "object",
           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
           "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              }
+            "type": [
+              "boolean",
+              "number",
+              "string"
             ]
           }
         },
@@ -327,9 +321,10 @@
           "default": 5000
         },
         "moveTo": {
-          "description": "Move to the element. If the element isn't visible, it's scrolled into view.",
+          "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
           "type": "boolean",
-          "default": true
+          "default": false,
+          "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
         },
         "click": {
           "description": "Click the element.",
@@ -339,6 +334,13 @@
               "title": "click",
               "description": "Click or tap an element.",
               "anyOf": [
+                {
+                  "enum": [
+                    true,
+                    false
+                  ],
+                  "$comment": "Boolean first, as an enum: Ajv coerces only through `type`, so this branch matches real booleans and coerces nothing. A `type: boolean` branch here would turn \"true\" into true, and a later one would let the string branch turn false into \"false\". As a top-level `click`, a boolean names no element and the step fails; inside `find`, it turns the click on or off. See ADR 01161."
+                },
                 {
                   "title": "Click element (simple)",
                   "type": "string",
@@ -653,16 +655,10 @@
                       "type": "object",
                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                       "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "string"
-                          },
-                          {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          }
+                        "type": [
+                          "boolean",
+                          "number",
+                          "string"
                         ]
                       }
                     },
@@ -671,9 +667,6 @@
                       "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
                     }
                   }
-                },
-                {
-                  "type": "boolean"
                 }
               ],
               "components": {
@@ -1006,16 +999,10 @@
                         "type": "object",
                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                         "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
+                          "type": [
+                            "boolean",
+                            "number",
+                            "string"
                           ]
                         }
                       },
@@ -1028,7 +1015,6 @@
                 }
               },
               "examples": [
-                true,
                 "Submit",
                 {
                   "button": "left",
@@ -1855,16 +1841,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -1888,9 +1868,9 @@
                                   "description": "Fixed delay (ms)."
                                 },
                                 "find": {
+                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                   "title": "Element criteria",
                                   "type": "object",
-                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                   "additionalProperties": false,
                                   "anyOf": [
                                     {
@@ -1964,16 +1944,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -2027,16 +2001,10 @@
                           "type": "object",
                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                           "additionalProperties": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              }
+                            "type": [
+                              "boolean",
+                              "number",
+                              "string"
                             ]
                           }
                         },
@@ -2270,16 +2238,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -2324,9 +2286,9 @@
                                 "description": "Fixed delay (ms)."
                               },
                               "find": {
+                                "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                 "title": "Element criteria",
                                 "type": "object",
-                                "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                 "additionalProperties": false,
                                 "anyOf": [
                                   {
@@ -2400,16 +2362,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -2539,16 +2495,10 @@
                                     "type": "object",
                                     "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                     "additionalProperties": {
-                                      "anyOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "number"
-                                        },
-                                        {
-                                          "type": "boolean"
-                                        }
+                                      "type": [
+                                        "boolean",
+                                        "number",
+                                        "string"
                                       ]
                                     }
                                   },
@@ -3352,16 +3302,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -3385,9 +3329,9 @@
                                     "description": "Fixed delay (ms)."
                                   },
                                   "find": {
+                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                     "title": "Element criteria",
                                     "type": "object",
-                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                     "additionalProperties": false,
                                     "anyOf": [
                                       {
@@ -3461,16 +3405,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -3524,16 +3462,10 @@
                             "type": "object",
                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             }
                           },
@@ -3767,16 +3699,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -3821,9 +3747,9 @@
                                   "description": "Fixed delay (ms)."
                                 },
                                 "find": {
+                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                   "title": "Element criteria",
                                   "type": "object",
-                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                   "additionalProperties": false,
                                   "anyOf": [
                                     {
@@ -3897,16 +3823,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -4036,16 +3956,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -4450,16 +4364,10 @@
             "type": "object",
             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
             "additionalProperties": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "boolean"
-                }
+              "type": [
+                "boolean",
+                "number",
+                "string"
               ]
             }
           },
@@ -4473,9 +4381,10 @@
             "default": 5000
           },
           "moveTo": {
-            "description": "Move to the element. If the element isn't visible, it's scrolled into view.",
+            "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
             "type": "boolean",
-            "default": true
+            "default": false,
+            "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
           },
           "click": {
             "description": "Click the element.",
@@ -4485,6 +4394,13 @@
                 "title": "click",
                 "description": "Click or tap an element.",
                 "anyOf": [
+                  {
+                    "enum": [
+                      true,
+                      false
+                    ],
+                    "$comment": "Boolean first, as an enum: Ajv coerces only through `type`, so this branch matches real booleans and coerces nothing. A `type: boolean` branch here would turn \"true\" into true, and a later one would let the string branch turn false into \"false\". As a top-level `click`, a boolean names no element and the step fails; inside `find`, it turns the click on or off. See ADR 01161."
+                  },
                   {
                     "title": "Click element (simple)",
                     "type": "string",
@@ -4799,16 +4715,10 @@
                         "type": "object",
                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                         "additionalProperties": {
-                          "anyOf": [
-                            {
-                              "type": "string"
-                            },
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "type": "boolean"
-                            }
+                          "type": [
+                            "boolean",
+                            "number",
+                            "string"
                           ]
                         }
                       },
@@ -4817,9 +4727,6 @@
                         "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
                       }
                     }
-                  },
-                  {
-                    "type": "boolean"
                   }
                 ],
                 "components": {
@@ -5152,16 +5059,10 @@
                           "type": "object",
                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                           "additionalProperties": {
-                            "anyOf": [
-                              {
-                                "type": "string"
-                              },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              }
+                            "type": [
+                              "boolean",
+                              "number",
+                              "string"
                             ]
                           }
                         },
@@ -5174,7 +5075,6 @@
                   }
                 },
                 "examples": [
-                  true,
                   "Submit",
                   {
                     "button": "left",
@@ -6001,16 +5901,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -6034,9 +5928,9 @@
                                     "description": "Fixed delay (ms)."
                                   },
                                   "find": {
+                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                     "title": "Element criteria",
                                     "type": "object",
-                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                     "additionalProperties": false,
                                     "anyOf": [
                                       {
@@ -6110,16 +6004,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -6173,16 +6061,10 @@
                             "type": "object",
                             "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             }
                           },
@@ -6416,16 +6298,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -6470,9 +6346,9 @@
                                   "description": "Fixed delay (ms)."
                                 },
                                 "find": {
+                                  "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                   "title": "Element criteria",
                                   "type": "object",
-                                  "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                   "additionalProperties": false,
                                   "anyOf": [
                                     {
@@ -6546,16 +6422,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -6685,16 +6555,10 @@
                                       "type": "object",
                                       "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                       "additionalProperties": {
-                                        "anyOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "number"
-                                          },
-                                          {
-                                            "type": "boolean"
-                                          }
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
                                         ]
                                       }
                                     },
@@ -7498,16 +7362,10 @@
                                           "type": "object",
                                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                           "additionalProperties": {
-                                            "anyOf": [
-                                              {
-                                                "type": "string"
-                                              },
-                                              {
-                                                "type": "number"
-                                              },
-                                              {
-                                                "type": "boolean"
-                                              }
+                                            "type": [
+                                              "boolean",
+                                              "number",
+                                              "string"
                                             ]
                                           }
                                         },
@@ -7531,9 +7389,9 @@
                                       "description": "Fixed delay (ms)."
                                     },
                                     "find": {
+                                      "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                       "title": "Element criteria",
                                       "type": "object",
-                                      "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                       "additionalProperties": false,
                                       "anyOf": [
                                         {
@@ -7607,16 +7465,10 @@
                                           "type": "object",
                                           "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                           "additionalProperties": {
-                                            "anyOf": [
-                                              {
-                                                "type": "string"
-                                              },
-                                              {
-                                                "type": "number"
-                                              },
-                                              {
-                                                "type": "boolean"
-                                              }
+                                            "type": [
+                                              "boolean",
+                                              "number",
+                                              "string"
                                             ]
                                           }
                                         },
@@ -7670,16 +7522,10 @@
                               "type": "object",
                               "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                               "additionalProperties": {
-                                "anyOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "number"
-                                  },
-                                  {
-                                    "type": "boolean"
-                                  }
+                                "type": [
+                                  "boolean",
+                                  "number",
+                                  "string"
                                 ]
                               }
                             },
@@ -7913,16 +7759,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -7967,9 +7807,9 @@
                                     "description": "Fixed delay (ms)."
                                   },
                                   "find": {
+                                    "description": "Wait for a specific element to exist on the app surface. Fields with no accessibility mapping on the target platform fail at runtime with the supported alternative named.",
                                     "title": "Element criteria",
                                     "type": "object",
-                                    "description": "Wait for a specific element to be present. At least one finding field must be specified.",
                                     "additionalProperties": false,
                                     "anyOf": [
                                       {
@@ -8043,16 +7883,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },
@@ -8182,16 +8016,10 @@
                                         "type": "object",
                                         "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
                                         "additionalProperties": {
-                                          "anyOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "number"
-                                            },
-                                            {
-                                              "type": "boolean"
-                                            }
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
                                           ]
                                         }
                                       },

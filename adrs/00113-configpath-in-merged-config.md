@@ -9,11 +9,11 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The CLI wrapper resolves a config file (e.g. `.doc-detective.json`), validates it, and overlays CLI
-overrides to produce the merged `config` object that runtime code reads. Runtime consumers
-increasingly needed to know *where* the config file came from — for resolving paths relative to the
-config file, for diagnostics, and for reporting — but the file's location was discarded once the
-object was loaded. The question: should the config-file path be surfaced as a first-class field on
-the merged `config` so runtime code can read it without re-deriving it?
+overrides. That produces the merged `config` object that runtime code reads. Runtime consumers
+increasingly needed to know *where* the config file came from. They need it for resolving paths
+relative to the config file, for diagnostics, and for reporting. But the file's location was
+discarded once the object was loaded. The question: should the config-file path be a first-class
+field on the merged `config`, so runtime code can read it without re-deriving it?
 
 ## Decision Drivers
 

@@ -3,7 +3,7 @@ title: Docker and headless
 description: Run Doc Detective in the official container and in headless environments, and capture video where no display exists.
 ---
 
-Continuous integration runners are usually headless and often containerized. This guide shows you how to run Doc Detective with the official Docker image, what changes when no display is available, and how to record video in a headless environment.
+Continuous integration runners are usually headless and often containerized. This guide covers running Doc Detective with the official Docker image, what changes when no display is available, and how to record video headlessly.
 
 ## Before you begin
 
@@ -21,7 +21,7 @@ docker run -v .:/app docdetective/docdetective:linux --input /app/api.spec.json
 The `-v .:/app` flag mounts your current directory to `/app` inside the container. Because the working directory is `/app`, point `--input` and `--output` at paths under `/app` so results and artifacts land back in your project.
 
 <Note>
-Inside the official image, unsafe steps—such as `runCode` snippets detected from Markdown code fences—run automatically without `--allow-unsafe`. The image identifies itself as a container, and Doc Detective allows unsafe steps in that environment by default. To opt out, set `allowUnsafeSteps` to `false` in your config.
+Inside the official image, unsafe steps run automatically without `--allow-unsafe`. Those include `runCode` snippets detected from Markdown code fences. The image identifies itself as a container, and Doc Detective allows unsafe steps in that environment by default. To opt out, set `allowUnsafeSteps` to `false` in your config.
 </Note>
 
 ## Step 2: Understand headless behavior
@@ -31,11 +31,11 @@ A headless environment has no display, which affects browser-driven tests:
 - **Browser tests** run headless automatically when no display is available. On Ubuntu CI runners, Chrome and Firefox contexts fall back to headless mode.
 - **Video recording** is the main thing that needs a display. The default browser recording engine captures the Chrome viewport and works headless; the `ffmpeg` engine captures the screen and needs a real or virtual display.
 
-If your tests record video with the `ffmpeg` engine on a headless runner, run them on a macOS or Windows runner instead, where a display is available. For engine details, see [Record video](/docs/test-docs/record-video).
+Some tests record video with the `ffmpeg` engine on a headless runner. Run those on a macOS or Windows runner instead, where a display is available. For engine details, see [Record video](/docs/test-docs/record-video).
 
 ## Step 3: Warm runtime assets
 
-Doc Detective installs heavy assets—browsers, drivers, and npm packages—on first use. In CI, install them ahead of time and cache them so each run starts fast.
+Doc Detective installs heavy assets on first use, including browsers, drivers, and npm packages. In CI, install them ahead of time and cache them so each run starts fast.
 
 Point the cache at a workspace path with `DOC_DETECTIVE_CACHE_DIR`, then pre-install everything with `doc-detective install all`:
 
@@ -44,26 +44,41 @@ export DOC_DETECTIVE_CACHE_DIR="$PWD/.doc-detective-cache"
 doc-detective install all --yes
 ```
 
-On a fresh `npm install`, Doc Detective also pre-warms these assets automatically. To skip that step—for example, to control exactly when assets download in CI—set `DOC_DETECTIVE_AUTOINSTALL=0`. The official container ships with assets already warmed, so you don't need this step inside it.
+On a fresh `npm install`, Doc Detective also pre-warms these assets automatically. To skip that step, set `DOC_DETECTIVE_AUTOINSTALL=0`. That's useful when you want to control exactly when assets download in CI. The official container ships with assets already warmed, so you don't need this step inside it.
 
-Whatever the cache is missing, each run front-loads for itself: before executing tests, Doc Detective plans the installs, device boots, and downloads its tests need and runs them concurrently as a warm phase. With a persisted cache the phase completes in milliseconds. On a cold cache it overlaps the downloads instead of paying them one test at a time. The per-task timings land in the JSON results—see [Read the warm-phase timings](/docs/ci/reporters-and-artifacts#read-the-warm-phase-timings).
+Each run front-loads whatever the cache is missing. Before executing tests, Doc Detective plans the installs, device boots, and downloads its tests need, then runs them concurrently as a warm phase. With a persisted cache the phase completes in milliseconds. On a cold cache it overlaps the downloads instead of paying them one test at a time. The per-task timings land in the JSON results. See [Read the warm-phase timings](/docs/ci/reporters-and-artifacts#read-the-warm-phase-timings).
 
 <Note>
-`docdetective/docdetective:linux` is a multi-arch image (`linux/amd64` and `linux/arm64`), but Chrome and ChromeDriver have no native `linux/arm64` build upstream—Google's Chrome for Testing only publishes x64 binaries. On the `linux/arm64` variant, Chrome/ChromeDriver pre-warming is skipped rather than failing the image; if you need Chrome-driven tests on arm64 hosts, run the `linux/amd64` variant under emulation, or use Firefox instead.
+`docdetective/docdetective:linux` is a multi-arch image covering `linux/amd64` and `linux/arm64`. Chrome and ChromeDriver have no native `linux/arm64` build upstream, because Google's Chrome for Testing only publishes x64 binaries. On the `linux/arm64` variant, Chrome and ChromeDriver pre-warming is skipped rather than failing the image. To run Chrome-driven tests on arm64 hosts, run the `linux/amd64` variant under emulation, or use Firefox instead. Firefox and GeckoDriver both ship in the image for arm64 and run natively, so a Firefox context needs no extra setup.
 </Note>
 
 For a GitHub Actions caching recipe, see [Runtime caching](/docs/ci/github-action#runtime-caching).
 
 ## Step 4: Run headless in CI
 
-Put the pieces together in a generic, platform-agnostic pipeline step. Because the CLI doesn't fail on test failures on its own, gate the build explicitly (see [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail)):
+Put the pieces together in a generic, platform-agnostic pipeline step. By default, the CLI exits `0` even when tests fail, so pass `--exit-on-fail` to make a failing spec fail the step:
 
 ```bash
 docker run -v .:/app \
   -e DOC_DETECTIVE_AUTOINSTALL=0 \
   docdetective/docdetective:linux \
-  --input /app/docs --reporters json --output /app/results.json
+  --input /app/docs --reporters json --output /app/results.json --exit-on-fail
 ```
+
+`docker run` returns the container's exit code, so the step fails whenever any spec's result is `FAIL`. For details on which results count as failures and other ways to gate the build, such as parsing the JSON `summary`, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail).
+
+## Refuse local URLs on shared runners
+
+Tests can reach `localhost`, a Docker network, or a private network with no setting. Doc Detective guards two kinds of fetch: screenshot reference images, and OpenAPI descriptions loaded from a URL along with their `$ref`s. By default, it refuses only a hop from a public address to a private one. That's a public URL that redirects to a private address, or a publicly hosted OpenAPI description whose `$ref` points at one.
+
+Two environment variables change that. Each one accepts `1`, `true`, `yes`, or `on`. Setting both is a usage error, and the CLI exits `2`.
+
+| Variable | Effect |
+|---|---|
+| `DOC_DETECTIVE_ALLOW_LOCAL_URLS` | Allows public-to-private hops too, so the guard is off. |
+| `DOC_DETECTIVE_BLOCK_LOCAL_URLS` | Refuses every private and loopback address for the guarded fetches, including direct ones. |
+
+On a runner that executes specs you don't control, set `DOC_DETECTIVE_BLOCK_LOCAL_URLS=1`. It doesn't cover URLs that steps request directly, such as `goTo`, `checkLink`, and `httpRequest`, and `runShell` can reach any address. Pair it with network egress rules on the runner. Behind an HTTP proxy, Doc Detective can check addresses only before the request, so enforce the rules at the proxy too.
 
 ## Verify it works
 

@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-When users filed bug reports it was hard to know which `doc-detective-*` package versions, Node version, platform, and execution method were in play, and what the fully-resolved config actually looked like after file/env/CLI merging. Reproducing issues meant asking the reporter to hand-assemble this. Should the runner emit this diagnostic context automatically, and under what condition so it stays out of normal output?
+When users filed bug reports it was hard to know which `doc-detective-*` package versions, Node version, platform, and execution method were in play. It was also unclear what the fully-resolved config looked like after file, env, and CLI merging. Reproducing issues meant asking the reporter to hand-assemble this. Should the runner emit this diagnostic context automatically? And under what condition, so it stays out of normal output?
 
 ## Decision Drivers
 
@@ -25,9 +25,9 @@ When users filed bug reports it was hard to know which `doc-detective-*` package
 
 ## Decision Outcome
 
-Chosen option: **A**, because gating on the existing `logLevel === "debug"` reuses a knob users already set when chasing a problem, keeps default/CI output clean, and ties the dump to the same verbosity contract as other debug logging.
+Chosen option: **A**. Gating on the existing `logLevel === "debug"` reuses a knob users already set when chasing a problem. It keeps default and CI output clean, and ties the dump to the same verbosity contract as other debug logging.
 
-Contract decided: when `logLevel === "debug"`, the runner prints `getVersionData()` — which auto-discovers installed `doc-detective-*` packages and reports Node version, platform, and execution method — followed by the full resolved config object.
+Contract decided: when `logLevel === "debug"`, the runner prints `getVersionData()`, followed by the full resolved config object. `getVersionData()` auto-discovers installed `doc-detective-*` packages, and reports Node version, platform, and execution method.
 
 ### Consequences
 

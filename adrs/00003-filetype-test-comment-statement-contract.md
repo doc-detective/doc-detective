@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Tests had to be embedded in documentation source files of different formats, so the tool needed a way to recognize where a test begins and ends inside (for example) Markdown versus HTML. The first contract (`8673d5d8`, `0fb1987b`, `5dcbea40`, 2022-04-23) introduced a `fileTypes[]` array keyed by `extensions`, each entry declaring `openTestStatement`/`closeTestStatement` and `open/closeBlockTestStatement` markers (e.g. `// test` for Markdown, `<!-- test` / `-->` for HTML), plus a `testExtensions` allow-list. This contract then evolved: a substring-based parser replaced the block-statement pair (`ba6cc96`, 2022-05-10), and the statement keys were renamed `open/closeTestStatement` → `actionStatementOpen/Close` with explicit test start/end parsing added (`d06fcc0c`, `21a8e7eb`, `17acc84f`, 2022-10-04). How should per-extension test comments be declared and parsed?
+Tests had to be embedded in documentation source files of different formats. The tool needed a way to recognize where a test begins and ends, inside Markdown versus HTML for example. The first contract (`8673d5d8`, `0fb1987b`, `5dcbea40`, 2022-04-23) introduced a `fileTypes[]` array keyed by `extensions`. Each entry declared `openTestStatement`/`closeTestStatement` and `open/closeBlockTestStatement` markers, such as `// test` for Markdown and `<!-- test` / `-->` for HTML. It also added a `testExtensions` allow-list. This contract then evolved. A substring-based parser replaced the block-statement pair (`ba6cc96`, 2022-05-10). The statement keys were renamed `open/closeTestStatement` → `actionStatementOpen/Close`, with explicit test start/end parsing added (`d06fcc0c`, `21a8e7eb`, `17acc84f`, 2022-10-04). How should per-extension test comments be declared and parsed?
 
 ## Decision Drivers
 
@@ -36,7 +36,7 @@ Behavior decided (with its evolution):
 ### Consequences
 
 * Good: any text format can host tests by declaring its comment markers.
-* Good: data-driven detection — no per-format code branch.
+* Good: data-driven detection, with no per-format code branch.
 * Bad: the early key renames are breaking for hand-written configs of that era.
 * Neutral: this contract is the ancestor of the later markup-driven detection and v2/v3 fileType schemas.
 

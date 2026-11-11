@@ -8,10 +8,10 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The "docs as tests" premise is that prose itself describes testable steps — a link, a button label,
+The "docs as tests" premise is that prose itself describes testable steps: a link, a button label,
 a code keystroke. Doc Detective needed to read documentation markup and *generate* test steps from it
-automatically, rather than requiring every step be hand-authored as JSON. That requires a way to
-declare, per file type, which markup patterns map to which actions, and a runner that turns matches
+automatically, rather than requiring every step be hand-authored as JSON. That requires a per-file-type
+declaration of which markup patterns map to which actions. It also needs a runner that turns matches
 into steps in the right order. What is the contract for markup `actions[]` and the auto-detection
 engine?
 
@@ -26,18 +26,19 @@ engine?
 
 * **A. Per-file-type `actions[]` of `{name, params}` objects with an action enum, plus a runner that auto-generates tests from markup regex, with `detectSteps:false` skip and `testIgnore`** (chosen).
 * **B. A single hard-coded markup→action mapping shared by all file types.**
-* **C. No auto-detection — every step authored explicitly.**
+* **C. No auto-detection; every step authored explicitly.**
 
 ## Decision Outcome
 
 Chosen option: **A**, because a declarative per-file-type map keeps detection extensible while the
 runner owns the regex-to-step generation. Markup is declared as `actions[]` entries shaped
-`{name, params}` validated against an action enum; the runner scans markup with each rule's regex and
-auto-generates steps — e.g. a found link/element → `find`/aria match, a URL → `goTo`/`checkLink`, a
-keystroke notation → `typeKeys`. Detection is skipped when `detectSteps:false`, and `testIgnore` lets
-authors exclude specific tests. When several rules match one line, the **first action per markup
-rule** is used and steps from multiple matches on a line are ordered by `line.indexOf(match)`, with a
-post-collection validate-filter dropping anything that fails validation.
+`{name, params}`, validated against an action enum. The runner scans markup with each rule's regex
+and auto-generates steps. A found link or element becomes a `find` or aria match, a URL becomes
+`goTo` or `checkLink`, and a keystroke notation becomes `typeKeys`. Detection is skipped when
+`detectSteps:false`, and `testIgnore` lets authors exclude specific tests. When several rules match
+one line, the **first action per markup rule** is used. Steps from multiple matches on a line are
+ordered by `line.indexOf(match)`, with a post-collection validate-filter dropping anything that
+fails validation.
 
 ### Consequences
 

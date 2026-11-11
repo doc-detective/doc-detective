@@ -100,10 +100,10 @@ jobs:
     outputs:
       base: ${{ steps.filter.outputs.base }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -153,12 +153,12 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -169,8 +169,35 @@ jobs:
         env:
           HUSKY: '0'
 
+      # Pull requests build the image around THIS branch's package rather than
+      # the published one. Without this the PR gate is blind to the change under
+      # review — a runtime defect that only reproduces inside the image (the
+      # arm64 chromedriver crash, ADR 01096) could not be proven fixed by the PR
+      # that fixes it, because the image installed the last npm release. Release
+      # and manual builds still install `doc-detective@<version>` from the
+      # registry, which is what they must ship. See ADR 01097.
+      - name: Pack this branch
+        if: github.event_name == 'pull_request'
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          dest="$RUNNER_TEMP/pack"
+          mkdir -p "$dest"
+          tarball="$(npm pack --silent --pack-destination "$dest")"
+          # Hand the build script a forward-slash path. RUNNER_TEMP is a
+          # backslash Windows path on the windows runner, and
+          # `npm run <script> -- --flag=<path>` forwards it through cmd.exe,
+          # which eats the backslashes (D:\a\_temp arrives as D:a_temp). Node
+          # accepts forward slashes on Windows, and this is a no-op on Linux.
+          full="$dest/$tarball"
+          full="${full//'\'/'/'}"
+          printf 'tarball=%s\n' "$full" >> "$GITHUB_OUTPUT"
+          echo "Packed $tarball from $(git rev-parse --short HEAD) at $full"
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build Docker Image
         # Local single-arch build so the test step has a daemon-loaded
@@ -180,7 +207,17 @@ jobs:
         # cache is not shared with this build, but the Linux Dockerfile
         # is small enough that the duplicated work is acceptable.
         shell: bash
-        run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
+        env:
+          # Empty on every non-PR build, which makes build.cjs clear any staged
+          # tarball and install from the registry.
+          LOCAL_PACKAGE: ${{ steps.pack.outputs.tarball }}
+        run: |
+          set -eu
+          if [ -n "${LOCAL_PACKAGE:-}" ]; then
+            npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }} --local-package="$LOCAL_PACKAGE"
+          else
+            npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
+          fi
 
       - name: Post-build Test
         shell: bash
@@ -194,7 +231,7 @@ jobs:
       # latest tags.
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -207,7 +244,7 @@ jobs:
         # (`:linux-amd64`, `:linux-arm64`) on Docker Hub.
         id: digest_push
         if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: src/container
           file: src/container/linux.Dockerfile
@@ -232,7 +269,7 @@ jobs:
 
       - name: Upload digest
         if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-digest-${{ matrix.arch }}
           path: /tmp/digests/${{ matrix.arch }}.digest
@@ -250,22 +287,22 @@ jobs:
       IMAGE_VERSION: ${{ inputs.version }}
     steps:
       - name: Download amd64 digest
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linux-digest-amd64
           path: /tmp/digests
 
       - name: Download arm64 digest
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linux-digest-arm64
           path: /tmp/digests
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -340,12 +377,12 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -416,9 +453,32 @@ jobs:
           if ($os -ne 'windows') { throw "Docker is not in Windows mode; OSType=$os" }
           Write-Host "Docker OSType=$os"
 
+      # Same reasoning as build-linux: on a pull request the image is built
+      # around THIS branch's package so the gate tests the change under review.
+      # See ADR 01097.
+      - name: Pack this branch
+        if: github.event_name == 'pull_request'
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          dest="$RUNNER_TEMP/pack"
+          mkdir -p "$dest"
+          tarball="$(npm pack --silent --pack-destination "$dest")"
+          # Hand the build script a forward-slash path. RUNNER_TEMP is a
+          # backslash Windows path on the windows runner, and
+          # `npm run <script> -- --flag=<path>` forwards it through cmd.exe,
+          # which eats the backslashes (D:\a\_temp arrives as D:a_temp). Node
+          # accepts forward slashes on Windows, and this is a no-op on Linux.
+          full="$dest/$tarball"
+          full="${full//'\'/'/'}"
+          printf 'tarball=%s\n' "$full" >> "$GITHUB_OUTPUT"
+          echo "Packed $tarball from $(git rev-parse --short HEAD) at $full"
+
       - name: Build Docker Image
         shell: bash
-        run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }}
+        run: npm run container:build -- --version="$IMAGE_VERSION" ${{ inputs.no_cache && '--no-cache' || '' }} ${{ steps.pack.outputs.tarball && format('--local-package={0}', steps.pack.outputs.tarball) || '' }}
 
       - name: Post-build Test
         shell: bash
@@ -428,7 +488,7 @@ jobs:
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -490,12 +550,12 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -571,7 +631,7 @@ jobs:
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}

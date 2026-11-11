@@ -128,6 +128,183 @@ describe("Run tests successfully", function () {
     }
   });
 
+  describe("durationMs on report nodes", function () {
+    // Timing is a report *output*, so it can't be asserted through the
+    // fixture gate (a spec can't read its own report). These run the real
+    // pipeline over hermetic shell-only specs and assert the emitted shape.
+    // See adrs/01083-record-durationms-on-report-nodes.md.
+    this.timeout(300000);
+
+    async function runSpecObject(spec, name, configOverrides = {}) {
+      fs.mkdirSync(path.resolve("./.tmp"), { recursive: true });
+      const tempFilePath = path.resolve(`./.tmp/temp-${name}.json`);
+      fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+      try {
+        return await runTests({ input: tempFilePath, ...configOverrides });
+      } finally {
+        fs.unlinkSync(tempFilePath);
+      }
+    }
+
+    const isDuration = (value, label) => {
+      assert.equal(typeof value, "number", `${label} durationMs is not a number`);
+      assert.ok(
+        Number.isInteger(value),
+        `${label} durationMs ${value} is not an integer`
+      );
+      assert.ok(value >= 0, `${label} durationMs ${value} is negative`);
+    };
+
+    it("records durationMs on every node of a completed run, and rolls up", async () => {
+      const spec = {
+        tests: [
+          {
+            testId: "dur-a",
+            steps: [{ runShell: "echo a1" }, { runShell: "echo a2" }],
+          },
+          { testId: "dur-b", steps: [{ runShell: "echo b1" }] },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-rollup");
+
+      isDuration(result.durationMs, "run");
+      assert.ok(result.specs.length > 0, "run produced no specs");
+      for (const specReport of result.specs) {
+        isDuration(specReport.durationMs, "spec");
+        assert.ok(specReport.tests.length > 0, "spec produced no tests");
+        let testSum = 0;
+        for (const testReport of specReport.tests) {
+          isDuration(testReport.durationMs, "test");
+          assert.ok(
+            testReport.contexts.length > 0,
+            "test resolved no contexts"
+          );
+          let contextSum = 0;
+          for (const contextReport of testReport.contexts) {
+            isDuration(contextReport.durationMs, "context");
+            assert.ok(contextReport.steps.length > 0, "context ran no steps");
+            let stepSum = 0;
+            for (const stepReport of contextReport.steps) {
+              isDuration(stepReport.durationMs, "step");
+              stepSum += stepReport.durationMs;
+            }
+            // Steps are serial within a context, and the context clock also
+            // covers preflight and teardown, so this is a true lower bound.
+            assert.ok(
+              contextReport.durationMs >= stepSum,
+              `context ${contextReport.durationMs}ms < sum of steps ${stepSum}ms`
+            );
+            contextSum += contextReport.durationMs;
+          }
+          assert.equal(
+            testReport.durationMs,
+            contextSum,
+            "test durationMs is not the sum of its contexts"
+          );
+          testSum += testReport.durationMs;
+        }
+        assert.equal(
+          specReport.durationMs,
+          testSum,
+          "spec durationMs is not the sum of its tests"
+        );
+      }
+    });
+
+    it("reports the final attempt's time for a step re-run by onFail retry", async () => {
+      // Always fails, so it burns all 3 attempts with a 400ms wait between
+      // them. The step itself is near-instant, so a final-attempt duration is
+      // far below the ~800ms of accumulated backoff a summed duration would
+      // have to exceed.
+      const spec = {
+        tests: [
+          {
+            testId: "dur-retry",
+            steps: [
+              {
+                runShell: "node -e \"process.exit(1)\"",
+                onFail: [{ retry: { limit: 2, delay: 400 } }, { continue: true }],
+              },
+            ],
+          },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-retry");
+      const context = result.specs[0].tests[0].contexts[0];
+      const step = context.steps[0];
+
+      assert.equal(step.attempts, 3, "expected the step to run 3 times");
+      isDuration(step.durationMs, "retried step");
+      assert.ok(
+        step.durationMs < 800,
+        `step durationMs ${step.durationMs}ms looks like a sum across attempts, not the final attempt`
+      );
+      // The context clock DOES span every attempt plus the backoff waits.
+      assert.ok(
+        context.durationMs >= 800,
+        `context durationMs ${context.durationMs}ms should span both 400ms backoff waits`
+      );
+    });
+
+    it("records durationMs on steps that never executed", async () => {
+      // The second step is unreachable: the first fails and stops the test, so
+      // step 2 lands SKIPPED without ever running. It still carries the field.
+      const spec = {
+        tests: [
+          {
+            testId: "dur-skipped",
+            steps: [
+              { runShell: "node -e \"process.exit(1)\"" },
+              { runShell: "echo unreachable" },
+            ],
+          },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-skipped");
+      const steps = result.specs[0].tests[0].contexts[0].steps;
+      assert.equal(steps.length, 2, "expected both steps to be reported");
+      assert.equal(steps[1].result, "SKIPPED");
+      assert.equal(steps[1].durationMs, 0);
+    });
+
+    it("records durationMs on contexts that were skipped before running", async () => {
+      // A false test guard makes prepareContextSlot synthesize a SKIPPED
+      // context report that never reaches the runner's clock — one of several
+      // such sites. The Phase 3 pass is what guarantees it still carries the
+      // field, so a reporter never sees `undefined`.
+      const spec = {
+        tests: [
+          {
+            testId: "dur-guard-skip",
+            if: "$$env.DOC_DETECTIVE_NO_SUCH_VAR === 'never'",
+            steps: [{ runShell: "echo should-not-run" }],
+          },
+          { testId: "dur-guard-run", steps: [{ runShell: "echo ran" }] },
+        ],
+      };
+      const result = await runSpecObject(spec, "durations-guard-skip");
+      const tests = result.specs[0].tests;
+      const skipped = tests.find((t) => t.testId === "dur-guard-skip");
+      assert.ok(skipped.contexts.length > 0, "guard-skipped test had no contexts");
+      for (const context of skipped.contexts) {
+        assert.equal(context.result, "SKIPPED");
+        isDuration(context.durationMs, "guard-skipped context");
+      }
+      isDuration(skipped.durationMs, "guard-skipped test");
+    });
+
+    it("does not throw on a run where filters match no specs", async () => {
+      const spec = {
+        tests: [{ testId: "dur-filtered", steps: [{ runShell: "echo hi" }] }],
+      };
+      const result = await runSpecObject(spec, "durations-zero-spec", {
+        testFilter: ["no-such-test-matches-this"],
+      });
+      assert.deepEqual(result.specs, []);
+      isDuration(result.durationMs, "zero-spec run");
+    });
+  });
+
   describe("runShell shell selection", function () {
     // Shell steps run through real spawns; give slow Windows JIT paths room.
     this.timeout(300000);
@@ -466,6 +643,48 @@ describe("Run tests successfully", function () {
       assert.equal(result.summary.specs.fail, 0);
     } finally {
       fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("Shorthand find returns without waiting out the timeout on a hit, and FAILs after the full timeout on a miss (ADR 01130)", async () => {
+    // The not-found permutation of interactions/find-shorthand.spec.json: it
+    // FAILs by design, so the PASS/SKIPPED fixture gate can't carry it.
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/find-shorthand.html" },
+            { find: "Shorthand text target" },
+            { find: "No such shorthand target" },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "find-shorthand-"));
+    const tempFilePath = path.join(tempDir, "find-shorthand.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const context = result.specs[0].tests[0].contexts.find(
+        (c) => c.steps && c.steps.length
+      );
+      assert.ok(context, "expected a context that ran steps");
+      const [, hit, miss] = context.steps;
+      assert.equal(hit.result, "PASS");
+      // Pre-ADR 01130 every shorthand hit took the full 5s default timeout.
+      assert.ok(
+        hit.durationMs < 4000,
+        `shorthand hit took ${hit.durationMs}ms; it must not wait out the timeout`
+      );
+      assert.equal(miss.result, "FAIL");
+      assert.equal(miss.outputs.found, false);
+      assert.equal(miss.resultDescription, "No elements matched selector or text.");
+      assert.ok(
+        miss.durationMs >= 5000,
+        `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
+      );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
@@ -1516,6 +1735,35 @@ describe("getRunner() function", function () {
   // 5 minutes per test
   this.timeout(300000);
 
+  // Every test here drives a real Appium + Chromium session (or a runTests
+  // browser flow). On constrained CI runners — notably windows-latest — that
+  // session can crash shortly after launch, surfacing as an ECONNREFUSED on
+  // teardown: a transient infra flake, not a getRunner defect. Retry like the
+  // sibling browser suites above (this.retries(2) on the runTests cases).
+  // Retries only re-run on failure, so a deterministic bug still fails all
+  // attempts — this heals a one-off session death without masking a real
+  // regression.
+  //
+  // These retries never covered the OTHER historical signature here, an empty
+  // getTitle() from a session still parked on `data:,`: each attempt starts a
+  // fresh session that can park again. That one is now handled in product code
+  // (ADR 01102), so a recurrence is a real regression, not a flake.
+  this.retries(2);
+
+  // Report WHERE the session actually was whenever a title assertion fails.
+  // The historical signature was a bare "first runner should work" with an
+  // empty title, which cannot distinguish a session parked on Chromium's
+  // initial blank document (`data:,`, ADR 01084/01088/01102) from one that
+  // died, and the two need opposite fixes. Reading the URL can itself throw on
+  // a dead session, so that case is reported rather than swallowed.
+  const sessionLocation = async (runner) => {
+    try {
+      return await runner.getUrl();
+    } catch (error) {
+      return `<getUrl failed: ${error.message}>`;
+    }
+  };
+
   let getRunner;
 
   before(async function () {
@@ -1578,7 +1826,10 @@ describe("getRunner() function", function () {
       // Navigate to test page
       await result.runner.url("http://localhost:8092/index.html");
       const title = await result.runner.getTitle();
-      assert.ok(title, "should get page title in headless mode");
+      assert.ok(
+        title,
+        `should get page title in headless mode (session at ${await sessionLocation(result.runner)})`
+      );
 
       // Find elements
       const element = await result.runner.$("body");
@@ -1587,7 +1838,10 @@ describe("getRunner() function", function () {
       // Navigate to a second page
       await result.runner.url("http://localhost:8092/drag-drop-test.html");
       const title2 = await result.runner.getTitle();
-      assert.ok(title2, "should navigate to second page");
+      assert.ok(
+        title2,
+        `should navigate to second page (session at ${await sessionLocation(result.runner)})`
+      );
     } finally {
       if (cleanup) await cleanup();
     }
@@ -1601,7 +1855,10 @@ describe("getRunner() function", function () {
 
       await result.runner.url("http://localhost:8092/index.html");
       const title = await result.runner.getTitle();
-      assert.ok(title, "should be able to navigate and get title in non-headless mode");
+      assert.ok(
+        title,
+        `should be able to navigate and get title in non-headless mode (session at ${await sessionLocation(result.runner)})`
+      );
     } finally {
       if (cleanup) await cleanup();
     }
@@ -1637,7 +1894,59 @@ describe("getRunner() function", function () {
 
       assert.ok(result.runner, "runner should be created with custom config");
       await result.runner.url("http://localhost:8092/index.html");
-      assert.ok(await result.runner.getTitle(), "should work with custom config");
+      const title = await result.runner.getTitle();
+      assert.ok(
+        title,
+        `should work with custom config (session at ${await sessionLocation(result.runner)})`
+      );
+    } finally {
+      if (cleanup) await cleanup();
+    }
+  });
+
+  it("navigation leaves Chromium's initial blank document", async function () {
+    // getRunner's contract after ADR 01102: once `runner.url()` resolves, the
+    // browser has actually left `data:,`. Before the guard the navigation could
+    // silently not take, and the empty title that followed named neither the
+    // navigation nor the page it never reached (issue #696).
+    let cleanup;
+    try {
+      const result = await getRunner();
+      cleanup = result.cleanup;
+
+      await result.runner.url("http://localhost:8092/index.html");
+      const landedOn = await result.runner.getUrl();
+      assert.ok(
+        !/^data:,?$/i.test(String(landedOn).trim()),
+        `navigation should have left the blank document, still at ${landedOn}`
+      );
+      assert.equal(
+        await result.runner.getTitle(),
+        "Basic HTML Elements Demo",
+        `should have loaded the requested page (session at ${landedOn})`
+      );
+    } finally {
+      if (cleanup) await cleanup();
+    }
+  });
+
+  it("a navigation that never leaves the blank document throws", async function () {
+    // Acts out the flake on a real session: make the browser report that it is
+    // still on `data:,` no matter what, and the guard must say so instead of
+    // resolving and leaving the caller on a blank page. The hermetic unit tests
+    // in core-utils-coverage cover the logic; this one pins that the guard is
+    // actually attached to the WebdriverIO proxy getRunner hands out, which a
+    // fake runner cannot prove.
+    let cleanup;
+    try {
+      const result = await getRunner();
+      cleanup = result.cleanup;
+
+      result.runner.overwriteCommand("getUrl", async () => "data:,");
+      await assert.rejects(
+        () => result.runner.url("http://localhost:8092/index.html"),
+        /never left its initial blank document/
+      );
     } finally {
       if (cleanup) await cleanup();
     }
@@ -1697,14 +2006,20 @@ describe("getRunner() function", function () {
     const result1 = await getRunner();
     await result1.runner.url("http://localhost:8092/index.html");
     const title1 = await result1.runner.getTitle();
-    assert.ok(title1, "first runner should work");
+    assert.ok(
+      title1,
+      `first runner should work (session at ${await sessionLocation(result1.runner)})`
+    );
     await result1.cleanup();
 
     // Create second runner after first cleanup
     const result2 = await getRunner();
     await result2.runner.url("http://localhost:8092/index.html");
     const title2 = await result2.runner.getTitle();
-    assert.ok(title2, "second runner should work after first cleanup");
+    assert.ok(
+      title2,
+      `second runner should work after first cleanup (session at ${await sessionLocation(result2.runner)})`
+    );
     await result2.cleanup();
   });
 
@@ -2701,6 +3016,60 @@ describe("getRunner() function", function () {
       );
     } finally {
       fs.unlinkSync(tempFilePath);
+    }
+  });
+
+  it("a process-only context on Chrome FAILs on its real assertion without an unnavigated retry", async () => {
+    // Chrome parks a session that never ran a goTo on `data:,`. That's the
+    // legitimate state of a context with no browser steps, so its FAIL must
+    // stand (ADR 01119). Retrying re-ran the background start, which collided
+    // with the still-running process and masked the real failure.
+    const t = {
+      tests: [
+        {
+          runOn: [
+            {
+              platforms: ["windows", "mac", "linux"],
+              browsers: [{ name: "chrome", headless: true }],
+              browserFallback: "off",
+            },
+          ],
+          steps: [
+            {
+              runShell: {
+                command: "node -i",
+                background: { name: "ttp-chrome-repl", waitUntil: { stdio: "/>/" } },
+                timeout: 15000,
+              },
+            },
+            {
+              type: {
+                keys: ["1 + 1", "$ENTER$"],
+                surface: "ttp-chrome-repl",
+                waitUntil: { stdio: "/THIS_WILL_NEVER_APPEAR/" },
+                timeout: 200,
+              },
+            },
+            { closeSurface: "ttp-chrome-repl" },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-chrome-no-retry-"));
+    const tempFilePath = path.join(tempDir, "spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
+    const config = { input: tempFilePath, logLevel: "debug" };
+    try {
+      const result = await runTests(config);
+      const ran = result.specs[0].tests[0].contexts.find(
+        (c) => c.result !== "SKIPPED"
+      );
+      assert.ok(ran, "expected the runner's platform context to run");
+      assert.equal(ran.retries, undefined, "context must not be retried");
+      assert.equal(ran.steps[0].result, "PASS");
+      assert.equal(ran.steps[1].result, "FAIL");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 

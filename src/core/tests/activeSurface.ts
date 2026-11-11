@@ -89,6 +89,18 @@ function isLive(handle: SurfaceHandle, registries: SurfaceRegistries): boolean {
   return !!registries.processRegistry?.has(handle.name);
 }
 
+// Whether this caller supplied the registry that adjudicates `handle`'s kind.
+// Without it, liveness is UNKNOWN — distinct from dead, and the difference
+// matters because the prune below is destructive.
+function canAdjudicate(
+  handle: SurfaceHandle,
+  registries: SurfaceRegistries
+): boolean {
+  if (handle.kind === "browser") return !!registries.browserRegistry;
+  if (handle.kind === "app") return !!registries.appSession;
+  return !!registries.processRegistry;
+}
+
 // The active surface: the most recently activated handle whose surface is
 // still open. Dead entries (closed surfaces) are pruned as they're passed
 // over, so closes never have to touch the tracker.
@@ -97,9 +109,17 @@ function currentSurface(
   registries: SurfaceRegistries
 ): SurfaceHandle | null {
   if (!tracker) return null;
-  const live = tracker.mru.filter((h) => isLive(h, registries));
-  tracker.mru = live;
-  return live[0] ?? null;
+  // Prune only what this caller can actually adjudicate. A kind whose registry
+  // wasn't supplied is unknown, not dead: dropping it would delete a LIVE
+  // surface from shared per-context state, breaking routing for every later
+  // step that does supply that registry.
+  tracker.mru = tracker.mru.filter(
+    (h) => !canAdjudicate(h, registries) || isLive(h, registries)
+  );
+  return (
+    tracker.mru.find((h) => canAdjudicate(h, registries) && isLive(h, registries)) ??
+    null
+  );
 }
 
 // Classify a step's surface target. Explicit references resolve by shape —

@@ -8,12 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Doc Detective discovers test sources by walking input files and directories, but a documentation
-site's full URL surface is not always reachable from a local file tree — many published pages are
+Doc Detective discovers test sources by walking input files and directories. But a documentation
+site's full URL surface is not always reachable from a local file tree. Many published pages are
 only enumerated in the site's `sitemap.xml`. Authors wanting to test every page a site advertises
-had to list them by hand. Should the resolver be able to expand its input set by crawling a
-`sitemap.xml`, and how should that behavior be opted into so the default stays a predictable
-local-file walk?
+had to list them by hand. Should the resolver expand its input set by crawling a `sitemap.xml`? And
+how should that be opted into, so the default stays a predictable local-file walk?
 
 ## Decision Drivers
 
@@ -32,11 +31,11 @@ local-file walk?
 ## Decision Outcome
 
 Chosen option: **A**, because a single validated boolean keeps the discovery contract uniform with
-the rest of `config_v3` and makes the network-touching behavior explicit. The contract: `config.crawl`
-is a boolean defaulting to `false`; when `true`, the resolver crawls `sitemap.xml` to discover
-additional files to test and folds them into the normal detect/resolve pipeline. When `false` (the
-default), discovery is the existing local file/directory walk with no network access (commit
-`856ce9a`, `doc-detective-common`).
+the rest of `config_v3` and makes the network-touching behavior explicit. The contract:
+`config.crawl` is a boolean defaulting to `false`. When `true`, the resolver crawls `sitemap.xml` to
+discover additional files to test, and folds them into the normal detect/resolve pipeline. When
+`false`, the default, discovery is the existing local file/directory walk with no network access
+(commit `856ce9a`, `doc-detective-common`).
 
 ### Consequences
 

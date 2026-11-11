@@ -183,6 +183,46 @@ describe("annotate step", function () {
     assert.match(result.description, /No annotation with id "nope"/);
   });
 
+  it("FAILs on a target that never appears, on the deadline the target asked for", async function () {
+    // A `timeout` buys a longer wait; it doesn't turn a missing element into a
+    // pass. The failure message is unchanged — only when it arrives is now the
+    // author's to set. This lives in mocha rather than a fixture because a
+    // fixture may never FAIL.
+    const driver = {
+      state: {},
+      async $$() {
+        return [];
+      },
+      async execute(fn) {
+        if (String(fn).includes("innerWidth"))
+          return { width: 800, height: 600 };
+        return undefined;
+      },
+    };
+
+    const started = Date.now();
+    const result = await annotate({
+      config: {},
+      step: {
+        annotate: {
+          add: [{ blur: { selector: ".never-appears", timeout: 300 }, all: true }],
+        },
+      },
+      driver,
+    });
+    const elapsed = Date.now() - started;
+
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Couldn't resolve every annotation target/);
+    assert.ok(
+      elapsed < 2500,
+      `expected the 300ms timeout to bound the failure, took ${elapsed}ms`
+    );
+    // A failed resolve leaves the stored set untouched, so a later step isn't
+    // rendering against a half-applied payload.
+    assert.deepEqual(driver.state.annotations, []);
+  });
+
   it("gives every match of an `all` annotation its own render id", async function () {
     // One stored annotation with `all: true` expands to one placed item per
     // match. If they shared an id the page's querySelector would only ever

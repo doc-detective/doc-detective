@@ -208,6 +208,14 @@ export interface HintContext {
    */
   failedRunShellWithoutShell: boolean;
   /**
+   * True if any step FAILed specifically because an annotation's target
+   * couldn't be found, and no annotation in that step asked for extra time
+   * with `timeout`. Powers `setAnnotationTimeout`. Covers both surfaces the
+   * field lives on — an `annotate` step and a screenshot's own `annotations`.
+   * Sourced from the `walkResults` step pass.
+   */
+  failedAnnotationTargetWithoutTimeout: boolean;
+  /**
    * True if any context in this run resolved to an iOS device
    * (`context.device.platform === "ios"`). Powers `prebuildWebDriverAgent`.
    * Sourced from the `walkResults` context pass.

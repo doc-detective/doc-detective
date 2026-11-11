@@ -6,7 +6,7 @@ In this tutorial, you create a basic test that navigates to a webpage, validates
 
 ## What is a test?
 
-A [test](/docs/get-started/how-testing-works) in Doc Detective is a series of steps, where each step performs a single [action](/docs/actions). An action can be navigating to a URL, finding an element, or taking a screenshot, for example.
+A [test](/docs/get-started/how-testing-works) in Doc Detective is a series of steps, where each step performs a single [action](/docs/get-started/how-testing-works). An action can be navigating to a URL, finding an element, or taking a screenshot, for example.
 
 {/* test {"testId":"create-first-test-setup","detectSteps":false} */}
 
@@ -110,8 +110,8 @@ To create your first test, follow these steps:
 
       <Note>
         The `-v` argument mounts your current directory (`.`) to `/app` in the
-        container, giving Doc Detective access to your test specification and enabling
-        it to output results and screenshots.
+        container. That gives Doc Detective access to your test specification, and
+        lets it output results and screenshots.
       </Note>
 
       </Tab>
@@ -164,8 +164,11 @@ After running the test, you should see the results in your terminal, which Doc D
               "platform": "linux",
               "browser": {
                 "name": "firefox",
-                "version": "nightly_136.0a1",
-                "path": "/home/hawkeyexl/Workspaces/doc-detective-core/browser-snapshots/firefox/linux-nightly_136.0a1/firefox/firefox"
+                "version": "136.0a1"
+              },
+              "driver": {
+                "name": "geckodriver",
+                "version": "0.36.0"
               },
               "steps": [
                 {
@@ -208,7 +211,7 @@ After running the test, you should see the results in your terminal, which Doc D
 }
 ```
 
-This output confirms that all the test steps passed successfully, and the screenshot was saved to the specified path.
+This output confirms that all the test steps passed successfully, and the screenshot was saved to the specified path. The example leaves out some fields. The full file also records when the run started and the machine that ran it. See [Tell environment changes from product changes](/docs/ci/reporters-and-artifacts#tell-environment-changes-from-product-changes).
 
 Additionally, you should see a new image file named `example.png` saved in your project folder. Open this file to view the captured screenshot of the page:
 
@@ -217,5 +220,5 @@ Additionally, you should see a new image file named `example.png` saved in your 
 ## Next steps
 
 - [Explore sample tests](/docs/get-started/sample-tests) to see more examples.
-- [Learn more about available actions](/docs/actions) to expand your test capabilities.
+- [Learn more about available actions](/docs/get-started/how-testing-works) to expand your test capabilities.
 - Try modifying this test to check for different elements or add more steps.

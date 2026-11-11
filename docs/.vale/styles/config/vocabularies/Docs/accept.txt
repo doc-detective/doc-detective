@@ -62,6 +62,7 @@ keypresses
 loadCookie
 loadVariables
 logLevel
+manni
 matchText
 maxVariation
 mockResponse
@@ -102,6 +103,7 @@ saveDirectory
 savePath
 saveScreenshot
 screenshotImage
+scrollbars
 session_token
 setVariables
 SHIFT
@@ -248,6 +250,8 @@ libc
 reinstalls
 tarball
 tarballs
+metacharacter
+metacharacters
 AXIdentifier
 AXRole
 AXTitle

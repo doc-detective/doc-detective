@@ -2,7 +2,9 @@
 language: "en-US"
 early_access: false
 reviews:
-  request_changes_workflow: true
+  # CodeRabbit comments only. It never sets a review status, so it can't
+  # block a merge; the Claude review gates merges (CLAUDE.md).
+  request_changes_workflow: false
   high_level_summary: true
   poem: true
   review_status: true

@@ -4,6 +4,9 @@ import {
   appendQueryParams,
   isDeviceWebContext,
   computeSettleCeiling,
+  issueNavigation,
+  probeStuckOnBlankDocument,
+  redactUrlForOutput,
 } from "../utils.js";
 import { findElement } from "./findElement.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
@@ -13,6 +16,7 @@ import {
   registerOpenedHandle,
   ensureSurfaceState,
 } from "./browserSurface.js";
+import { RENDER_SETTLE_MS } from "./timing.js";
 
 export { goTo };
 
@@ -175,7 +179,14 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
 
   // Run action
   try {
-    await driver.url(step.goTo.url);
+    // A navigation can silently not take: a fresh Chromium session stays parked
+    // on its initial blank document (`data:,`) while `url()` resolves and every
+    // wait condition below passes trivially against that blank page (ADR 01084,
+    // ADR 01088). issueNavigation re-issues BEFORE the waits run, so they are
+    // evaluated against the real page — retrying afterwards would leave the step
+    // reporting "all wait conditions met" for conditions that were only ever
+    // checked against the blank document.
+    const retriedNavigation = await issueNavigation(driver, step.goTo.url);
 
     // Wait for page to load with wait logic
     const waitStartTime = Date.now();
@@ -205,7 +216,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
       );
       waitResults.documentReady.passed = true;
       waitResults.documentReady.message = "Document ready";
-      await driver.pause(100); // Small pause to allow for rendering
+      await driver.pause(RENDER_SETTLE_MS);
 
       // Calculate remaining time
       const elapsedTime = Date.now() - waitStartTime;
@@ -404,6 +415,30 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
           // Ceiling elapsed with the tree still empty: proceed anyway. find's
           // own wait remains the authority on a genuinely-absent element.
         }
+      }
+
+      // Final guard, only when the retry above actually fired: still sitting on
+      // the initial blank document then means the navigation never took.
+      // Reporting PASS would strand the failure on whatever step next needs the
+      // page — a `find` timing out against a page that was never loaded, with
+      // nothing pointing at the navigation (issue #696). ADR 01084's retry
+      // covers the context's PRIMARY session only, so a secondary session
+      // opened by `startSurface` reaches here unprotected.
+      //
+      // Gated so the healthy path pays exactly one extra `getUrl()`: if the
+      // pre-wait probe already saw a navigated page, probeStuckOnBlankDocument
+      // reads nothing, because re-probing proves nothing there.
+      const observedUrl = await probeStuckOnBlankDocument(
+        driver,
+        retriedNavigation
+      );
+      if (observedUrl !== null) {
+        // Redact both URLs: step descriptions land in reports, logs and CI
+        // artifacts, and a target URL can carry tokens or signed query params.
+        const stuckOn = redactUrlForOutput(observedUrl);
+        result.status = "FAIL";
+        result.description = `The browser never left its initial blank document (${stuckOn}): navigation to ${redactUrlForOutput(step.goTo.url)} didn't take, even after a retry, so no wait condition was ever evaluated against the requested page. The session is alive; the page was never loaded.`;
+        return result;
       }
 
       result.description = "Opened URL and all wait conditions met.";

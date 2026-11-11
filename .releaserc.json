@@ -1,6 +1,7 @@
 {
   "branches": [
     "main",
+    { "name": "4.x", "range": "4.x", "channel": "release-4.x" },
     { "name": "next", "channel": "next", "prerelease": "next" },
     {
       "name": "feat/**",
@@ -25,6 +26,7 @@
     [
       "@semantic-release/exec",
       {
+        "verifyReleaseCmd": "node scripts/verify-major-release.js ${nextRelease.type} ${branch.prerelease ? 'prerelease' : 'release'}",
         "prepareCmd": "node scripts/sync-common-version.js ${nextRelease.version}"
       }
     ],
@@ -35,8 +37,15 @@
     [
       "@semantic-release/exec",
       {
-        "publishCmd": "node scripts/publish-staged-release.js ${nextRelease.version} ${nextRelease.channel ? nextRelease.channel : 'staging-' + nextRelease.version}",
+        "prepareCmd": "node scripts/reconcile-root-lockfile.js",
         "successCmd": "echo 'version=${nextRelease.version}' >> \"$GITHUB_OUTPUT\" && echo 'channel=${nextRelease.channel || \"\"}' >> \"$GITHUB_OUTPUT\" && echo 'published=true' >> \"$GITHUB_OUTPUT\""
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "node scripts/publish-staged-release.js ${nextRelease.version} ${nextRelease.channel ? nextRelease.channel : 'staging-' + nextRelease.version}",
+        "publishCmd": "node scripts/publish-guard.js"
       }
     ],
     [

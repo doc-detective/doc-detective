@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-In the v3 model, `resolveContexts` expands a test's `runOn` into a set of platform×browser contexts, and the runner executes the test once per resolved context. But a test may declare no `runOn` (or a `runOn` that resolves to nothing on the current machine), leaving `resolveContexts` to return zero contexts — and a test with zero contexts never runs, silently. Should a context-less test be skipped, or should the runner synthesize a default context so the test still executes?
+In the v3 model, `resolveContexts` expands a test's `runOn` into a set of platform×browser contexts. The runner executes the test once per resolved context. But a test may declare no `runOn`, or a `runOn` that resolves to nothing on the current machine. `resolveContexts` then returns zero contexts, and a test with zero contexts never runs, silently. Should a context-less test be skipped, or should the runner synthesize a default context so the test still executes?
 
 ## Decision Drivers
 
@@ -37,7 +37,7 @@ Commit `6472927f` in `core`.
 
 * Good: context-less and non-browser tests run instead of silently disappearing.
 * Good: browser auto-selection picks an available driver when one is needed.
-* Neutral: this is the runner's job — the resolver intentionally does **not** default browsers (`00111`).
+* Neutral: this is the runner's job, and the resolver intentionally does **not** default browsers (`00111`).
 * Bad: a `runOn` that resolves to nothing now runs on the default context rather than skipping, which may surprise authors expecting a skip.
 
 ### Confirmation
@@ -52,7 +52,7 @@ Shipped in `core` commit `6472927f`; a test with no resolved contexts executing 
 
 ### B. Skip zero-context tests
 * Good: explicit `runOn` is the only way to run.
-* Bad: context-less tests silently never run — surprising.
+* Bad: context-less tests silently never run, which is surprising.
 
 ### C. Require `runOn` everywhere
 * Good: no ambiguity.

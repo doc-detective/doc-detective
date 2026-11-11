@@ -8,10 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Doc Detective executes each resolved test context (a browser/platform pairing) sequentially, so a
-suite with many contexts pays the full driver-startup-plus-run cost once per context, end to end. An
-earlier worker-pool/`TestRunner` parallelism attempt in the standalone `core` repo (commits
-`2f31442`, `43251a8`) was **added and then reverted** — no parallelism shipped on that branch. With
+Doc Detective executes each resolved test context sequentially, where a context is a browser and
+platform pairing. A suite with many contexts pays the full driver-startup-plus-run cost once per
+context. An earlier worker-pool `TestRunner` parallelism attempt in the standalone `core` repo
+(commits `2f31442`, `43251a8`) was **added and then reverted**, so no parallelism shipped on that
+branch. With
 the repos merged into one monorepo, the question returned: should the runner execute contexts in
 parallel, and under what configuration knob?
 
@@ -30,16 +31,16 @@ parallel, and under what configuration knob?
 
 ## Decision Outcome
 
-Chosen option: **A**, because parallel context execution is the right scaling answer for large
-suites, and gating it behind an explicit, bounded `concurrentRunners` setting keeps the default safe
-while letting users dial in throughput. This is the monorepo re-land of the reverted Seq 180 attempt,
-done as a controlled change with the Appium configuration and post-run hints reworked to suit.
+Chosen option: **A**. Parallel context execution is the right scaling answer for large suites.
+Gating it behind an explicit, bounded `concurrentRunners` setting keeps the default safe,
+while letting users dial in throughput. This is the monorepo re-land of the reverted Seq 180
+attempt. It's a controlled change, with the Appium configuration and post-run hints reworked to suit.
 
 Contract decided:
 
 * `concurrentRunners` config controls how many test runners execute contexts in parallel; the
   default preserves serial behavior.
-* The large `tests.ts` rework drives contexts through the concurrent path; Appium configuration is
+* The large `tests.ts` rework drives contexts through the concurrent path. Appium configuration is
   adjusted to support multiple concurrent drivers, and new post-run hints surface the concurrency.
 
 Implementation in `src/core/tests.ts`; config field `concurrentRunners`.
@@ -47,9 +48,9 @@ Implementation in `src/core/tests.ts`; config field `concurrentRunners`.
 ### Consequences
 
 * Good: large suites complete substantially faster via parallel contexts.
-* Good: opt-in and bounded — the default run is unchanged.
+* Good: opt-in and bounded, so the default run is unchanged.
 * Neutral: shared-resource ordering (recordings, advanced ordering fields) now needs explicit gating
-  under concurrency — addressed separately (see `01000`).
+  under concurrency, addressed separately (see `01000`).
 * Bad: concurrency adds scheduling/resource-contention complexity that the serial path never had.
 
 ### Confirmation

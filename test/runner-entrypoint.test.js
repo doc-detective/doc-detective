@@ -3,6 +3,9 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { symlinkSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import {
   apiCall,
   buildEffectiveConfig,
@@ -1030,5 +1033,74 @@ describe("runner-entrypoint: main()", () => {
     assert.equal(code, 1);
     assert.equal(observed.finalize.status, "failed");
     assert.equal(observed.finalize.summary.reason, "workspace_provision_failed");
+  });
+});
+
+describe("runner-entrypoint: bin entry guard", () => {
+  // Regression: npm links `bin` entries as symlinks, so process.argv[1] is
+  // /usr/local/bin/doc-detective-runner while import.meta.url resolves to the
+  // real file under node_modules. A `file://${process.argv[1]}` comparison
+  // never matches, main() never runs, and the process exits 0 having done
+  // nothing — which on Fly looked like a machine that booted, "succeeded",
+  // and never called /spec. See ADR 01087.
+  let dir;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(path.join(os.tmpdir(), "dd-bin-entry-"));
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  /** Runs the entrypoint with no DD_* env, so main() fails fast and loudly. */
+  function runEntrypoint(target) {
+    return new Promise((resolve, reject) => {
+      const child = spawn(process.execPath, [target], {
+        env: {
+          PATH: process.env.PATH,
+          HOME: process.env.HOME,
+          SystemRoot: process.env.SystemRoot,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      let out = "";
+      child.stdout.on("data", (c) => (out += c));
+      child.stderr.on("data", (c) => (out += c));
+      // A failed spawn emits 'error', and 'close' is not guaranteed to
+      // follow — without this the promise never settles and the test dies
+      // on the mocha timeout instead of naming the cause. Whichever event
+      // fires first wins; a later one is a no-op.
+      child.on("error", (err) =>
+        reject(new Error(`failed to spawn ${target}: ${err.message}`))
+      );
+      child.on("close", (code) => resolve({ code, out }));
+    });
+  }
+
+  const realEntrypoint = fileURLToPath(
+    new URL("../bin/runner-entrypoint.js", import.meta.url)
+  );
+
+  it("runs main() when invoked through a symlink, as npm installs it", async function () {
+    const link = path.join(dir, "doc-detective-runner");
+    try {
+      symlinkSync(realEntrypoint, link);
+    } catch {
+      // Windows without developer mode can't create symlinks unprivileged.
+      this.skip();
+    }
+    const { code, out } = await runEntrypoint(link);
+    // Missing DD_API_BASE => readRequiredEnv throws => fatal log, exit 1.
+    // Before the fix this was a silent exit 0 with no output at all.
+    assert.equal(code, 1, `expected exit 1, got ${code}; output: ${out}`);
+    assert.match(out, /entrypoint crashed/);
+    assert.match(out, /DD_API_BASE/);
+  });
+
+  it("still runs main() when invoked by its real path", async () => {
+    const { code, out } = await runEntrypoint(realEntrypoint);
+    assert.equal(code, 1, `expected exit 1, got ${code}; output: ${out}`);
+    assert.match(out, /DD_API_BASE/);
   });
 });

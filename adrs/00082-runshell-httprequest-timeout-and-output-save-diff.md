@@ -8,11 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-`runShell` and `httpRequest` could hang indefinitely on a slow command or endpoint, and there
-was no way to persist their output to a file or to tolerate small, expected variation in that
+`runShell` and `httpRequest` could hang indefinitely on a slow command or endpoint. There
+was no way to persist their output to a file, or to tolerate small, expected variation in that
 output. `runShell` also always executed in the process's current working directory. How should
-these two steps bound their execution time, save and compare their output with a variation
-tolerance, and let a test choose where the command runs?
+these two steps bound their execution time and save their output? How should they compare it with a
+variation tolerance, and let a test choose where the command runs?
 
 ## Decision Drivers
 
@@ -34,11 +34,12 @@ tolerance, and let a test choose where the command runs?
 
 Chosen option: **A**, because bounded execution, persisted output, and a tolerance-based diff are
 all first-class testing needs. The contract added `timeout` (default `60000`) to `runShell` and
-`httpRequest`; an output-save block (`savePath`/`saveDirectory`/`maxVariation`/`overwrite`) that
-writes output and compares against a saved baseline using a Levenshtein-distance variation diff;
-`allowAdditionalFields` (default `true`) governing strict response matching; and `workingDirectory`
-(default `"."`) for runShell (common `d196a560`, `da53d5b2`, `dbf80a01`, `a09a3fea`, `8a3ac5cd`;
-core `4bf886`, `1e4a1c`, `19c72d`, `95426e23`, `e2c48af0`, `4a15af63`, Seq 123).
+`httpRequest`. It added an output-save block (`savePath`/`saveDirectory`/`maxVariation`/`overwrite`)
+that writes output and compares against a saved baseline, using a Levenshtein-distance variation
+diff. It added `allowAdditionalFields` (default `true`) governing strict response matching, and
+`workingDirectory` (default `"."`) for runShell (common `d196a560`, `da53d5b2`, `dbf80a01`,
+`a09a3fea`, `8a3ac5cd`; core `4bf886`, `1e4a1c`, `19c72d`, `95426e23`, `e2c48af0`, `4a15af63`,
+Seq 123).
 
 ### Consequences
 

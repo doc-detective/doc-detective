@@ -8,8 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Driving a browser deterministically across machines requires control over whether it runs headless,
-which browser binary to launch, and the viewport size used for screenshots and recordings. The runner
+Driving a browser deterministically across machines requires control over three things. Those are
+whether it runs headless, which browser binary to launch, and the viewport size used for screenshots
+and recordings. The runner
 had no configurable surface for any of these. How should browser launch options be exposed, and what
 should happen when the executable path is left empty?
 
@@ -30,8 +31,8 @@ should happen when the executable path is left empty?
 Chosen option: **A**. A `browserOptions` config object exposes `{headless, path}` (where `path` is the
 browser `executablePath`), and viewport dimensions are set via `--browserHeight`/`--browserWidth`.
 Crucially, when `browserOptions.path` is empty, `setBrowserPath` short-circuits to the default
-Chromium rather than resolving against the current working directory — preventing an empty value from
-producing a broken cwd-relative path. This pair of decisions (the options object and the empty-path
+Chromium, rather than resolving against the current working directory. That prevents an empty value
+from producing a broken cwd-relative path. This pair of decisions (the options object and the empty-path
 guard) forms one coherent "how do we configure the browser launch" contract.
 
 ### Consequences
@@ -54,7 +55,7 @@ Shipped 2022-05-17 (`6ce5ef9`, `34cf0a4`) for `browserOptions` + viewport flags,
 
 ### B. Hardcoded launch
 * Good: nothing to configure.
-* Bad: no headed mode, no custom binary, no viewport control — unusable for varied environments.
+* Bad: no headed mode, no custom binary, no viewport control, so it's unusable for varied environments.
 
 ## More Information
 

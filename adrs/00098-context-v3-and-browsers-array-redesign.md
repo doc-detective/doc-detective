@@ -8,7 +8,7 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-A v2 `context` carried per-browser keys (`chrome`, `firefox`, `safari`) as separate fields, which made "run on these browsers" awkward to express and impossible to iterate generically — adding a browser meant adding a field. The v3 redesign asked: how should a context declare its platforms and its browsers so that the set of browsers is a first-class, uniform collection, and how should Safari and WebKit be reconciled?
+A v2 `context` carried per-browser keys (`chrome`, `firefox`, `safari`) as separate fields. That made "run on these browsers" awkward to express and impossible to iterate generically, since adding a browser meant adding a field. The v3 redesign asked how a context should declare its platforms and its browsers. The set of browsers should be a first-class, uniform collection. And how should Safari and WebKit be reconciled?
 
 ## Decision Drivers
 
@@ -29,7 +29,7 @@ Chosen option: **A**. `context_v3` declares `platforms` and a unified `browsers`
 
 ### Consequences
 
-* Good: the browser set is a uniform, iterable array — adding a browser is data, not schema.
+* Good: the browser set is a uniform, iterable array, so adding a browser is data, not schema.
 * Good: each browser carries structured options.
 * Good: safari≡webkit removes a duplicate-name ambiguity.
 * Neutral: v2 per-browser-key contexts are converted on validate.

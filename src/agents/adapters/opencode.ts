@@ -1,7 +1,6 @@
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import axios from "axios";
 import type {
   AgentAdapter,
   DetectionResult,
@@ -11,7 +10,7 @@ import type {
   Scope,
 } from "../types.js";
 import { safeSpawn } from "../spawn-helper.js";
-import { fetchAgentToolsZip } from "../fetcher.js";
+import { AGENT_TOOLS_REF, agentToolsRawUrl, fetchAgentToolsZip } from "../fetcher.js";
 import { parseMetadataVersion } from "./codex.js";
 
 export interface RunResult {
@@ -35,8 +34,7 @@ export interface OpenCodeDeps {
 }
 
 const CANONICAL_SKILL = "doc-detective-init";
-const LATEST_SKILL_URL =
-  "https://raw.githubusercontent.com/doc-detective/agent-tools/main/skills/doc-detective-init/SKILL.md";
+const LATEST_SKILL_URL = agentToolsRawUrl("skills/doc-detective-init/SKILL.md");
 
 export function defaultOpenCodeDeps(): OpenCodeDeps {
   return {
@@ -55,7 +53,7 @@ export function defaultOpenCodeDeps(): OpenCodeDeps {
        * seam at this exact spot (this closure IS the seam other tests inject
        * a fake for). Exercising it would require a live network peer, which
        * would make the suite flaky/non-hermetic per ADR 01017. */
-      const response = await axios.get(LATEST_SKILL_URL, {
+      const response = await (await import("axios")).default.get(LATEST_SKILL_URL, {
         timeout: 5000,
         responseType: "text",
       });
@@ -209,7 +207,7 @@ export class OpenCodeAdapter implements AgentAdapter {
       };
     }
 
-    const fetched = await this.deps.fetchZip("main");
+    const fetched = await this.deps.fetchZip(AGENT_TOOLS_REF);
     try {
       const pluginSrc = path.join(fetched.tempDir, "plugins", "doc-detective");
       if (!this.deps.existsSync(pluginSrc)) {
