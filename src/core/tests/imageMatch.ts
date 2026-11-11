@@ -100,6 +100,9 @@ type Capture = {
 
 class ImageReferenceError extends Error {}
 
+// Both loaders keep their first load for the whole process, whatever `cacheDir` a
+// later call passes. The runner's preflight installs into `config.cacheDir` before
+// any step runs, so every call passes the same one.
 let _sharp: any = null;
 let _cv: Promise<any> | null = null;
 
