@@ -10,6 +10,6 @@ export function noteContextDone(specId: unknown, testId: unknown, contextReport:
     testId,
     result: contextReport?.result,
     platform: contextReport?.platform,
-    browser: contextReport?.browser,
+    browser: contextReport?.browser?.name,
   });
 }
