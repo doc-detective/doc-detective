@@ -15,7 +15,9 @@ for (const [file, code] of Object.entries(standaloneValidatorFiles())) {
   console.log(`Generated dist/schemas/${file}`);
 }
 
-// tsc copies src/schemas/schemas.json here; both loops share this outDir.
+// tsc copies src/schemas/schemas.json here pretty-printed (~100 MB); ship it
+// minified, and publish each v3 schema where `$schema` URLs on unpkg point.
+// ADR 01183.
 const schemasPath = path.join(outDir, "schemas.json");
 const schemas = JSON.parse(
   await readFile(schemasPath, "utf8").catch((err) => {
@@ -23,8 +25,8 @@ const schemas = JSON.parse(
     throw new Error(`generateValidators: ${schemasPath} not found. Did tsc run first and copy schemas.json?`);
   })
 );
+await writeFile(schemasPath, JSON.stringify(schemas));
 for (const [key, schema] of Object.entries(schemas)) {
-  if (!key.endsWith("_v3")) continue;
-  await writeFile(path.join(outDir, `${key}.schema.json`), JSON.stringify(schema, null, 2));
-  console.log(`Published dist/schemas/${key}.schema.json`);
+  if (key.endsWith("_v3")) await writeFile(path.join(outDir, `${key}.schema.json`), JSON.stringify(schema));
 }
+console.log("Minified dist/schemas/schemas.json and wrote the v3 schemas beside it");

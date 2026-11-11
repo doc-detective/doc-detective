@@ -134,6 +134,14 @@ See what's installed versus what the current version expects:
 doc-detective install status
 ```
 
+Each Doc Detective release pins every runtime npm package to the exact version its CI tested. `install status` marks a cached package at any other version, newer or older, as `(outdated)`. You don't need to fix it by hand. Doc Detective replaces it with the pinned version on the first run that loads it or on the next `doc-detective install runtime`. That includes a downgrade if the cached version is newer than the pin. The replacement needs network access and downloads only the packages that changed.
+
+<Tip>
+
+If you build a CI image or warm a shared cache, run `doc-detective install runtime` there after each upgrade so test jobs skip the download.
+
+</Tip>
+
 ### Override the cache location
 
 The default cache location is `$XDG_CACHE_HOME/doc-detective`, or `~/.cache/doc-detective` if `XDG_CACHE_HOME` isn't set. On Windows, it's `%LOCALAPPDATA%\doc-detective`. An existing `~/.doc-detective` keeps being used. All of these persist across reboots. For containers, shared CI caches, or any environment where the cache belongs somewhere else, set a custom location:

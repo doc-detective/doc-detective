@@ -205,7 +205,7 @@ export class CopilotCliAdapter implements AgentAdapter {
 
     const warnSkipped = (detail: string) =>
       opts.logger(
-        `Couldn't re-add the doc-detective marketplace at ${AGENT_TOOLS_REF}; updating it as is. (${detail})`,
+        `Couldn't re-add the \`doc-detective\` marketplace at \`${AGENT_TOOLS_REF}\` (${detail}). Updating it as is.`,
         "warning"
       );
     for (const { argv: [cmd, ...args], bestEffort } of steps) {

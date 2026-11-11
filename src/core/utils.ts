@@ -1481,7 +1481,7 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
         lines.push(`${prefix}no action, such as ${actions.slice(0, 3).join(", ")}.`);
       } else {
         const near = nearestCommand(unknown[0], actions);
-        lines.push(`${prefix}unknown action '${unknown[0]}'.${near ? ` Did you mean ${near}?` : ""}`);
+        lines.push(`${prefix}unknown action \`${unknown[0]}\`.${near ? ` Did you mean \`${near}\`?` : ""}`);
       }
       continue;
     }
@@ -1492,7 +1492,7 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     for (const key of unknownKeys) {
       const near = nearestCommand(key, known);
       if (near) suggested.add(near);
-      lines.push(`${prefix}unknown key '${key}'.${near ? ` Did you mean ${near}?` : ""}`);
+      lines.push(`${prefix}unknown key \`${key}\`.${near ? ` Did you mean \`${near}\`?` : ""}`);
     }
     // An error deeper down means the value took a branch that got further, so a
     // key only one branch requires came from a branch it didn't take. A key the
@@ -1535,9 +1535,15 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     if (deeper) continue;
     // An object never matches a list of scalars, so that list came from another branch.
     const isObject = value !== null && typeof value === "object";
-    const allowed = [
+    // When a branch lists values of another type, such as `concurrentRunners`'
+    // `auto` against a number, and another branch types this value, the value
+    // meant the typed branch, so those values don't print.
+    const listed = [
       ...new Set([...of("enum").flatMap((error) => error.params.allowedValues), ...of("const").map((error) => error.params.allowedValue)]),
     ];
+    const sameType = listed.filter((option) => typeof option === typeof value);
+    const explainedElsewhere = rest.some((error) => error.keyword !== "enum" && error.keyword !== "const");
+    const allowed = sameType.length > 0 ? sameType : explainedElsewhere ? [] : listed;
     // Allowed values print bare, here and in the list below; only `got` is JSON.
     if (!isObject && allowed.length === 1) lines.push(`${prefix}must be ${allowed[0]}${got}`);
     else if (!isObject && allowed.length) lines.push(`${prefix}must be one of ${allowed.join(", ")}${got}`);

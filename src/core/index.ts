@@ -6,6 +6,7 @@ import { beginRunMasking, looksSecret, maskDeep, maskedVariableNames, registerEn
 import {
   runSpecs,
   runViaApi,
+  emptyReport,
   getRunner,
   runNeedsAvailableApps,
   installAutoScreenshotPackages,
@@ -64,12 +65,6 @@ async function detectAndResolveFromConfig(config: any, { strictSpecs = false } =
     });
   }
   return resolvedTests;
-}
-
-// A run that found nothing to test still returns a report (ADR 01152).
-function emptyReport() {
-  const zero = () => ({ pass: 0, fail: 0, warning: 0, skipped: 0 });
-  return { summary: { specs: zero(), tests: zero(), contexts: zero(), steps: zero() }, specs: [] };
 }
 
 // Run tests defined in specifications and documentation source files. Returns
@@ -205,7 +200,15 @@ async function runTestsAndReport(config: any, options: any) {
         specs: resolvedTests.specs.length,
       });
     }
-    return maskDeep(resolvedTests);
+    // The plan matches resolvedTests_v3 (ADR 01186), so the runner's own
+    // `_`-prefixed bookkeeping on the config and specs stays out of it. Users
+    // can't write such keys there: both objects reject unknown keys.
+    const publicKeys = (node: any) => Object.fromEntries(Object.entries(node ?? {}).filter(([key]) => !key.startsWith("_")));
+    return maskDeep({
+      ...resolvedTests,
+      config: publicKeys(resolvedTests.config),
+      specs: resolvedTests.specs.map(publicKeys),
+    });
   }
 
   // Just-in-time install: inspect the resolved specs to learn which heavy

@@ -665,6 +665,12 @@ describe("resolveConcurrentRunners", function () {
     expect(n).to.be.at.most(4);
   });
 
+  it("maps auto the same as true (ADR 01188)", function () {
+    expect(resolveConcurrentRunners({ concurrentRunners: "auto" })).to.equal(
+      resolveConcurrentRunners({ concurrentRunners: true })
+    );
+  });
+
   it("falls back to 1 for missing or invalid values", function () {
     // API callers can bypass schema validation; an invalid value must never
     // size the worker/Appium pools to 0 and hang. 1.5 floors to 1.

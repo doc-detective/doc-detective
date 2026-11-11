@@ -1,3 +1,112 @@
+# [5.0.0-v5-rc.17](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.16...v5.0.0-v5-rc.17) (2026-11-11)
+
+
+### Bug Fixes
+
+* **cli:** name the browser in per-context progress lines ([5ef9c6b](https://github.com/doc-detective/doc-detective/commit/5ef9c6bb830523b6bf54ff42f636d6916fa9944e))
+
+# [5.0.0-v5-rc.16](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.15...v5.0.0-v5-rc.16) (2026-11-11)
+
+
+### Bug Fixes
+
+* **agents:** end the marketplace warning with a period, and split a long ADR sentence ([8533d2f](https://github.com/doc-detective/doc-detective/commit/8533d2f3f8a32a8b6514df97af82a2a89864c753))
+* **agents:** pin agent-tools installs to the v1 tag ([c6878dd](https://github.com/doc-detective/doc-detective/commit/c6878ddc8f36c5d7a81683eccc687d7a43d387a2)), closes [#815](https://github.com/doc-detective/doc-detective/issues/815) [#854](https://github.com/doc-detective/doc-detective/issues/854)
+* **common:** publish only dist and minify bundled schemas ([5c50a87](https://github.com/doc-detective/doc-detective/commit/5c50a87d84fd81f6831d6b4e97442a2d23a6e97e))
+* **runtime:** pin just-in-time runtime dependencies to exact versions ([0384b01](https://github.com/doc-detective/doc-detective/commit/0384b0169dec361cc54a2c3b3a6e482ec4661b8b)), closes [#722](https://github.com/doc-detective/doc-detective/issues/722)
+* **runtime:** reject prerelease runtime pins ([73c66d3](https://github.com/doc-detective/doc-detective/commit/73c66d3840d088c236ab3b9c4c03408045192e5e))
+* **runtime:** update outdated cached Chrome runtime before getRunner starts Appium ([2c05073](https://github.com/doc-detective/doc-detective/commit/2c050736ff908697b1ff0ecda1c6ce01657a459d))
+
+
+### Features
+
+* **container:** ship Xvfb in the Linux image ([1c4b27c](https://github.com/doc-detective/doc-detective/commit/1c4b27cb561daf4581f0b9722d752d5c6f8f8b22))
+
+# [5.0.0-v5-rc.15](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.14...v5.0.0-v5-rc.15) (2026-11-11)
+
+
+* feat(cli)!: compose output modes, or refuse the ones that share stdout ([c08b113](https://github.com/doc-detective/doc-detective/commit/c08b11329e347a34fae1972707b1f2e36c1864f2))
+* feat(outputs)!: name three boolean match outputs as statements ([1583d24](https://github.com/doc-detective/doc-detective/commit/1583d240f68dc1152747d7524883e774fc374df9))
+* feat(report)!: rename the step's automatic screenshot field to autoScreenshotPath ([7fb56bf](https://github.com/doc-detective/doc-detective/commit/7fb56bf507f17244150c648516528c075ede394c))
+* feat(reporters)!: report the same results in every reporter ([f7ef1f4](https://github.com/doc-detective/doc-detective/commit/f7ef1f43a3d7f40ad483519a2e44e8d475191a44))
+* feat(schemas)!: reject keys that do nothing ([5a42812](https://github.com/doc-detective/doc-detective/commit/5a42812dba45dae1aea786d95844f50bebdd423d))
+* fix(cli)!: reject global flags that lsp and runner can't honor ([93e5681](https://github.com/doc-detective/doc-detective/commit/93e568139a6cda9dc96b1dfce01aff1ae574875a))
+* fix(config)!: resolve each relative path against the source that set it ([f72579c](https://github.com/doc-detective/doc-detective/commit/f72579c40d13d8ed09b40145b827acd6689642ea))
+* fix(report)!: make every real report validate against report_v3 ([267d7e4](https://github.com/doc-detective/doc-detective/commit/267d7e4e710bf76d8ecbb3d150409e96001d1f60))
+
+
+### Bug Fixes
+
+* **config:** close small gaps between the schemas and the tool ([f158565](https://github.com/doc-detective/doc-detective/commit/f158565f466d6ea641e4a12eba061736a79c4df8))
+* **config:** close small gaps between the schemas and the tool ([3058099](https://github.com/doc-detective/doc-detective/commit/3058099084cb225c762b4805dcfc77e10425e534))
+* **core:** find bundled schemas from the package root ([ddd2325](https://github.com/doc-detective/doc-detective/commit/ddd23258f078414b02aee985205581c94905ced3))
+* **detect:** skip .doc-detective folders when scanning inputs ([97c22ac](https://github.com/doc-detective/doc-detective/commit/97c22ac8d601f2ca3a4293a82e510500f54f03d1))
+* **find:** skip near matches where nothing reports them ([bf96147](https://github.com/doc-detective/doc-detective/commit/bf96147ec122919091311ed7f334291424063071))
+* **html:** show the run's start time and environment in the report header ([d35e8d1](https://github.com/doc-detective/doc-detective/commit/d35e8d12c9f45cc05333c0d81d95b998c23dea63))
+* **messages:** one style for step failure, skip, and deprecation messages ([5122152](https://github.com/doc-detective/doc-detective/commit/512215212dcb1a82b1bd105f342513b94d88b0ba))
+* **recording:** word a device recording's skip where it fails to start ([2ce0449](https://github.com/doc-detective/doc-detective/commit/2ce04493912098465c43ef2dc96467003e0dbde1))
+* **record:** size a browser recording by its steady frames ([b8a162d](https://github.com/doc-detective/doc-detective/commit/b8a162d98226c02c748cdf9bb692ab0656bd7b95))
+* **reporters:** say a report couldn't be built when render() throws ([a637a35](https://github.com/doc-detective/doc-detective/commit/a637a35524f9712bfc43dba99ab992caac7e255d))
+* **reporters:** separate render errors from write errors ([d633aea](https://github.com/doc-detective/doc-detective/commit/d633aea0281dfed536f45461bb5b388108867516))
+* **runner:** word every skip reason as `Skipped: <reason>.` ([faacd10](https://github.com/doc-detective/doc-detective/commit/faacd1082a340a63006747273409b4a0a9225db3))
+* **schemas:** backtick the unknown action and its suggestion ([111f3b8](https://github.com/doc-detective/doc-detective/commit/111f3b8801191dcddf03c2fb08041db38ea682f5))
+
+
+### Features
+
+* **find:** classify a failed automatic recording, and promise the fields ([790ccd6](https://github.com/doc-detective/doc-detective/commit/790ccd6fa66a6e0afd8cfa7e342ef39aa03ef8f4))
+* **find:** report near matches and structured failure fields ([b28a3c8](https://github.com/doc-detective/doc-detective/commit/b28a3c8393e277b90f87e8768ecab0527637473b))
+* **reporters:** write a Markdown summary into the run folder ([179aa83](https://github.com/doc-detective/doc-detective/commit/179aa83b26fc29ed13330e3a4b67e851dd549b49))
+
+
+### BREAKING CHANGES
+
+* config `crawl`, `integrations.heretto[].fileMapping`, step
+`breakpoint`, `$schema` inside `saveCookie`/`loadCookie`, and an app's
+`startSurface.workingDirectory` are invalid (exit 2). The unknown-key
+message changes from `unknown key 'x'. Did you mean y?` to
+"unknown key `x`. Did you mean `y`?".
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a routing failure no longer adds a step to the results;
+the step that routed fails instead, and summary.steps no longer counts a
+marker. A failed Doc Detective API run exits 2 instead of writing
+{status, error} as results.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* `$$stdioMatched`, `$$aspectRatioMatch`, and
+`$$resolutionMatch` are now `$$stdioMatches`, `$$aspectRatioMatches`, and
+`$$resolutionMatches`, with no alias. An old name resolves to nothing.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a step result's `autoScreenshot` is now
+`autoScreenshotPath`. `autoScreenshot` on a step is invalid (exit 2); set
+it on the test, spec, or config. assertion records no longer accept
+`expected`, `actual`, or `description`.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* JUnit cases are named <testId> › <contextId> with the spec ID as
+classname, so CI test history restarts once; report-file notices print on stderr
+and follow the log level; the Markdown and HTML verdicts count tests; a report
+path you name is overwritten.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* `doc-detective lsp` and `doc-detective runner` reject
+the global flags --json, -q, -d, -l, --no-color, and --no-input.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* relative paths in the user config, DOC_DETECTIVE_CONFIG,
+and DOC_DETECTIVE no longer resolve against the project config's folder,
+and a relative apiKeyFile or apiTokenFile in a config file resolves
+against that file's folder, not the current directory.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* `--plain` with `--json`, `--output -`, or `--dry-run`
+(or config `output: "-"` or `dryRun: true`) exits 2. `--output -` no
+longer also writes a config `output` file.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [5.0.0-v5-rc.14](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.13...v5.0.0-v5-rc.14) (2026-11-10)
 
 

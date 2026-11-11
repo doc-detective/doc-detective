@@ -746,8 +746,9 @@ import { schemas } from "../dist/index.js";
         }
       });
 
-      it("should validate config_v3 concurrentRunners as a positive integer or true", function () {
-        for (const concurrentRunners of [1, 4, true]) {
+      it("should validate config_v3 concurrentRunners as a positive integer, true, or auto", function () {
+        // ADR 01188: `auto` means what `true` does, as on the CLI.
+        for (const concurrentRunners of [1, 4, true, "auto"]) {
           const result = validate({
             schemaKey: "config_v3",
             object: { input: ".", concurrentRunners },
@@ -759,8 +760,8 @@ import { schemas } from "../dist/index.js";
         }
       });
 
-      it("should reject config_v3 concurrentRunners of 0, false, or a fraction", function () {
-        for (const concurrentRunners of [0, false, 1.5]) {
+      it("should reject config_v3 concurrentRunners of 0, false, a fraction, or another string", function () {
+        for (const concurrentRunners of [0, false, 1.5, "lots", "AUTO"]) {
           const result = validate({
             schemaKey: "config_v3",
             object: { input: ".", concurrentRunners },
@@ -5485,7 +5486,6 @@ import { schemas } from "../dist/index.js";
               app: "/Applications/Calculator.app",
               name: "calc",
               args: ["--reset"],
-              workingDirectory: "./sandbox",
               env: { LOG_LEVEL: "debug" },
               driverOptions: { "appium:newCommandTimeout": 300 },
               waitUntil: { delayMs: 500, find: { elementText: "Ready" } },

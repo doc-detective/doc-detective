@@ -135,14 +135,19 @@ The 1 MiB byte cap (ADR 01092) cuts Skipped, then Warnings, before Failures.
 |---|---|---|
 | `json` | `<outputDir>/testResults-<runId>.json`; a path you name is overwritten | `Results: <abs>` |
 | `runFolder` | `<outputDir>/.doc-detective/runs/<runId>/testResults.json` and `.html` | `Run results: <abs>`, `Run report: <abs>` |
+| `runFolder` | `<outputDir>/.doc-detective/runs/<runId>/testResults.md`, the Markdown summary, with paths relative to the run folder | `Run summary: <abs>` |
 | `html` | `<outputDir>/testResults-<runId>.html`; a path you name is overwritten | `HTML report: <abs>` |
 | `junit` | `<outputDir>/junit.xml`, overwritten | `JUnit report: <abs>` |
 | `markdown` | `<outputDir>/doc-detective-summary.md`, overwritten | `Markdown summary: <abs>` |
 
+A directory scan for inputs skips any folder named `.doc-detective`, as it skips `node_modules`. Otherwise the default
+`input` of `.` would test the run folder's `testResults.md` on the next run. A `.doc-detective` path passed as the input
+itself is still read.
+
 All go through `log()`, so `-l warning` and quieter hide them, and they're masked like every other log line
 (ADR 01178). The string `results at ` never prints on any stream: GitHub Action tags up to v1.4.1 split stdout on it.
 
-A write failure, or a report that can't be built, logs at error level, and the reporter returns `null`. It doesn't change the exit code. The line carries `log()`'s usual `Error: ` label. `<name>` is one of `results`, `run results`, `run report`, `HTML report`, `JUnit report`, or `Markdown summary`.
+A write failure, or a report that can't be built, logs at error level, and the reporter returns `null`. It doesn't change the exit code. The line carries `log()`'s usual `Error: ` label. `<name>` is one of `results`, `run results`, `run report`, `run summary`, `HTML report`, `JUnit report`, or `Markdown summary`.
 
 - A report that can't be built: `Couldn't build the <name>: <message>.`, where `<message>` is the error's message without its trailing period. No file is written.
 - A write failure: `Couldn't write the <name> to <abs>: <cause>.`

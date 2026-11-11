@@ -513,7 +513,7 @@ The following passing step jumps ahead to a cleanup step, skipping the steps in 
 
 As with every routing action, `goToStep` controls flow only and never changes a step's result. A step that fails and routes `goToStep` stays FAIL, the jump still happens, and the test still rolls up to FAIL. An `onSkip` handler can use `goToStep` too, so a step that's reached but skipped can still jump.
 
-Suppose `goToStep` names a `stepId` that doesn't exist in the test. Doc Detective treats it as a routing error instead of skipping the jump silently. It records a FAIL step report that names the missing step and stops the test, so the test rolls up to FAIL. This happens whether the jump comes from an `onPass`, `onFail`, `onWarning`, or `onSkip` handler. Backward jumps are bounded by a per-context limit on how many steps a test can run. Suppose a `goToStep` loop never makes progress and reaches that limit. Doc Detective records a FAIL step report that describes the loop and stops. A runaway loop therefore fails the test instead of hanging or reporting a passing result.
+Suppose `goToStep` names a `stepId` that doesn't exist in the test. Doc Detective treats it as a routing error instead of skipping the jump silently. The step that routed fails, and the test stops, so the test rolls up to FAIL. The step keeps its own `resultDescription` and adds ``Couldn't route to step `<stepId>`: no step has that `stepId`.`` This happens whether the jump comes from an `onPass`, `onFail`, `onWarning`, or `onSkip` handler. Backward jumps are bounded by a per-context limit on how many steps a test can run. Suppose a `goToStep` loop never makes progress and reaches that limit. The last step that ran fails and adds ``Couldn't finish the context: routing ran more than <n> steps. Check `goToStep` for a loop.`` A runaway loop therefore fails the test instead of hanging or reporting a passing result.
 
 When a backward `goToStep` re-runs a step, each report after the first records a `visit` field with the visit number. That's `2` for the second visit, `3` for the third, and so on. The field is omitted on a step's first visit, so reports for steps that aren't revisited are unchanged.
 
@@ -855,7 +855,7 @@ You can also set this in your configuration file using the `concurrentRunners` p
 }
 ```
 
-Set `concurrentRunners` to `true` to use your CPU core count (capped at 4), or specify an explicit number of runners. On the command line, `--concurrent-runners true` works the same as `--concurrent-runners auto`.
+Set `concurrentRunners` to `true` or `"auto"` to use your CPU core count (capped at 4), or specify an explicit number of runners. On the command line, `--concurrent-runners true` works the same as `--concurrent-runners auto`.
 
 <Warning>
 **Cross-context variables**: Some tests share variables between contexts through `loadVariables` or `variables` steps. Those won't work correctly with concurrent runners, because variables write to a `process.env` shared across all contexts. Keep `concurrentRunners` at `1` for these tests.
@@ -870,9 +870,13 @@ Recordings are safe to run concurrently, so you no longer need to keep `concurre
 Doc Detective supports multiple output reporters. By default, it uses `terminal` and `runFolder`. Customize reporters with the `--reporters` (or `-r`) flag:
 
 - **terminal**: Displays a colored summary of test results in your terminal.
-- **runFolder**: Saves results, reports, screenshots, and recordings to `.doc-detective/runs/<runId>/`.
+- **runFolder**: Saves results, the HTML report, a Markdown summary, screenshots, and recordings to `.doc-detective/runs/<runId>/`.
 - **json**: Saves results to a `testResults-<runId>.json` file.
 - **html**: Generates a self-contained HTML report with an interactive dashboard.
+- **junit**: Writes a `junit.xml` report for CI test summary views.
+- **markdown**: Writes a `doc-detective-summary.md` run summary for a CI job summary or a merge request comment.
+
+To see where each reporter writes its file, see [Find each report](/docs/ci/reporters-and-artifacts#find-each-report).
 
 <Tabs>
   <Tab title="NPX" language="npx">

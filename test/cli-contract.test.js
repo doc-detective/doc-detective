@@ -176,6 +176,17 @@ describe("CLI contract", function () {
       expect(r.status, r.stderr).to.equal(0);
     });
 
+    // ADR 01186: an API failure is an error, not a report.
+    it("exits 2 when the Doc Detective API can't run the tests", function () {
+      fs.writeFileSync(path.join(cwd, "api.json"), JSON.stringify({ integrations: { docDetectiveApi: { apiKey: "k" } } }));
+      const r = run(["-c", "api.json", "-i", "pass.spec.json"], {
+        env: { DOC_DETECTIVE_API_URL: "http://127.0.0.1:1" },
+        unset: ["DOC_DETECTIVE_API"],
+      });
+      expect(r.status, r.stderr).to.equal(2);
+      expect(r.stderr).to.match(/Couldn't run tests through the Doc Detective API: couldn't reach it \(\w+\)\./);
+    });
+
     it("exits 2 from an invalid config with --no-exit-on-fail too", function () {
       fs.writeFileSync(path.join(cwd, "bad.json"), JSON.stringify({ logLevel: "loud" }));
       const r = run(["--no-exit-on-fail", "-c", "bad.json"], { env: { DOC_DETECTIVE_CONFIG: JSON.stringify(noFail) } });
@@ -361,6 +372,7 @@ describe("CLI contract", function () {
       const real = fs.realpathSync(cwd);
       const lines = r.stderr.split(/\r?\n/);
       expect(lines.some((l) => l.startsWith("Run report: ") && l.endsWith("testResults.html") && l.includes(real)), r.stderr).to.equal(true);
+      expect(lines.some((l) => l.startsWith("Run summary: ") && l.endsWith("testResults.md") && l.includes(real)), r.stderr).to.equal(true);
       expect(lines.some((l) => l.startsWith("Run results: ") && l.endsWith("testResults.json") && l.includes(real)), r.stderr).to.equal(true);
     });
 
@@ -410,12 +422,40 @@ describe("CLI contract", function () {
       });
     }
 
+    // ADR 01186: every report a run can write validates, including the
+    // skipped, routed, and empty ones.
+    const otherPlatform = { win32: "linux", darwin: "windows", linux: "mac" }[process.platform] ?? "mac";
+    const reportCases = {
+      "skipped.spec.json": {
+        specId: "skipped",
+        tests: [{ testId: "skipped-t", runOn: [{ platforms: [otherPlatform] }], steps: [{ runShell: "echo hi" }] }],
+      },
+      "routed.spec.json": {
+        specId: "routed",
+        tests: [
+          {
+            testId: "routed-t",
+            steps: [
+              { stepId: "first", runShell: "echo hi", onPass: [{ goToStep: "nope" }] },
+              { stepId: "second", runShell: "echo hi" },
+            ],
+          },
+        ],
+      },
+    };
     for (const [name, file, args, status] of [
       ["a passing run", "pass.spec.json", [], 0],
       ["a failing run", "fail.spec.json", [], 1],
       ["a run whose filter matches nothing", "pass.spec.json", ["-t", "no-such-test"], 2],
+      ["a run that skipped everything", "skipped.spec.json", [], 2],
+      ["a run whose routing named a missing step", "routed.spec.json", [], 1],
+      ["a run with no tests", "empty.md", [], 2],
     ]) {
       it(`matches report_v3 for ${name}`, function () {
+        for (const [specFile, spec] of Object.entries(reportCases)) {
+          fs.writeFileSync(path.join(cwd, specFile), JSON.stringify(spec));
+        }
+        fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
         const r = run(["-i", file, "--json", ...args]);
         expect(r.status, r.stderr).to.equal(status);
         const report = JSON.parse(r.stdout);
@@ -423,6 +463,34 @@ describe("CLI contract", function () {
         expect(result.valid, result.errors).to.equal(true);
       });
     }
+
+    it("reports a routing miss on the step that routed, not on a step of its own", function () {
+      fs.writeFileSync(path.join(cwd, "routed.spec.json"), JSON.stringify(reportCases["routed.spec.json"]));
+      const r = run(["-i", "routed.spec.json", "--json"]);
+      const report = JSON.parse(r.stdout);
+      const [first, second] = report.specs[0].tests[0].contexts[0].steps;
+      expect(report.specs[0].tests[0].contexts[0].steps).to.have.lengthOf(2);
+      expect(first.result).to.equal("FAIL");
+      expect(first.resultDescription).to.match(/Couldn't route to step `nope`: no step has that `stepId`\.$/);
+      expect(second.result).to.equal("SKIPPED");
+      expect(report.summary.steps).to.deep.equal({ pass: 0, fail: 1, warning: 0, skipped: 1 });
+    });
+
+    it("writes the same report shape for every run with no tests", function () {
+      fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+      for (const args of [["-i", "empty.md"], ["-i", "pass.spec.json", "-t", "no-such-test"]]) {
+        const report = JSON.parse(run([...args, "--json"]).stdout);
+        expect(Object.keys(report)).to.include.members(["summary", "startedAt", "environment", "durationMs", "specs"]);
+        expect(report.specs).to.deep.equal([]);
+      }
+    });
+
+    it("matches resolvedTests_v3 for a --dry-run plan", function () {
+      const r = run(["-i", "pass.spec.json", "-n"]);
+      expect(r.status, r.stderr).to.equal(0);
+      const result = validate({ schemaKey: "resolvedTests_v3", object: JSON.parse(r.stdout), addDefaults: false });
+      expect(result.valid, result.errors).to.equal(true);
+    });
 
     // ADR 01167: the report echoes the effective step, not the authored shorthand.
     // The page server lives in this process, so the CLI runs asynchronously
@@ -468,6 +536,9 @@ describe("CLI contract", function () {
         const status = await new Promise((resolve) => child.on("close", resolve));
         clearTimeout(stall);
         expect(status, stderr).to.equal(0);
+        // ADR 01186: a browser run's report validates too.
+        const validated = validate({ schemaKey: "report_v3", object: JSON.parse(stdout), addDefaults: false });
+        expect(validated.valid, validated.errors).to.equal(true);
         const [goTo, httpRequest, wholeVariable, shot] = JSON.parse(stdout).specs[0].tests[0].contexts[0].steps;
         expect(goTo.goTo).to.include({ url, timeout: 30000 });
         expect(httpRequest.httpRequest).to.deep.include({ method: "get", statusCodes: [200, 201], timeout: 60000 });
@@ -712,7 +783,7 @@ describe("CLI contract", function () {
       const r = run(["-i", "invalid.spec.json"]);
       expect(r.status).to.equal(2);
       expect(r.stderr).to.include("goToo");
-      expect(r.stderr).to.include("Did you mean goTo?");
+      expect(r.stderr).to.include("Did you mean `goTo`?");
       expect(r.stderr).to.not.include("must have required property");
       expect(r.stderr).to.not.include('"object"');
       expect(r.stderr.length).to.be.lessThan(600);
@@ -726,7 +797,7 @@ describe("CLI contract", function () {
       const r = run(["-n", "-i", "invalid.spec.json"]);
       expect(r.status).to.equal(2);
       expect(r.stderr).to.include("invalid.spec.json");
-      expect(r.stderr).to.include("unknown action 'goToo'");
+      expect(r.stderr).to.include("unknown action `goToo`");
       expect(r.stdout).to.equal("");
     });
 
@@ -817,10 +888,40 @@ describe("CLI contract", function () {
       expect(r.stderr).to.equal(
         [
           "Error: Invalid config in bad.json:",
-          "unknown key 'logLevl'. Did you mean logLevel?",
-          'concurrentRunners: must be integer or boolean (got "lots").',
+          "unknown key `logLevl`. Did you mean `logLevel`?",
+          'concurrentRunners: must be auto (got "lots").',
           'shell: must be one of bash, cmd, powershell (got "zsh").',
           "See https://docs.doc-detective.com/reference/schemas/config",
+          "",
+        ].join("\n")
+      );
+    });
+
+    // ADR 01187: a key that did nothing is now an unknown key.
+    it("rejects config `crawl` as an unknown key", function () {
+      fs.writeFileSync(path.join(cwd, "bad.json"), JSON.stringify({ crawl: true }));
+      const r = run(["-c", "bad.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid config in bad.json:",
+          "unknown key `crawl`.",
+          "See https://docs.doc-detective.com/reference/schemas/config",
+          "",
+        ].join("\n")
+      );
+    });
+
+    it("rejects step `breakpoint` as an unknown key", function () {
+      writeSpec("bp.spec.json", { runShell: "echo hi", breakpoint: true });
+      const r = run(["-i", "bp.spec.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid test specifications, so nothing ran:",
+          "bp.spec.json",
+          "tests[0].steps[0]: unknown key `breakpoint`.",
+          "Fix them, or pass --no-exit-on-fail to skip them.",
           "",
         ].join("\n")
       );
@@ -841,7 +942,7 @@ describe("CLI contract", function () {
       expect(r.stderr).to.equal(
         [
           "Error: Invalid config in DOC_DETECTIVE_CONFIG:",
-          "unknown key 'logLevl'. Did you mean logLevel?",
+          "unknown key `logLevl`. Did you mean `logLevel`?",
           "See https://docs.doc-detective.com/reference/schemas/config",
           "",
         ].join("\n")
@@ -854,7 +955,7 @@ describe("CLI contract", function () {
       expect(r.stderr).to.include(
         [
           "Error: Invalid config in DOC_DETECTIVE:",
-          "unknown key 'logLevl'. Did you mean logLevel?",
+          "unknown key `logLevl`. Did you mean `logLevel`?",
           "See https://docs.doc-detective.com/reference/schemas/config",
         ].join("\n")
       );
@@ -910,9 +1011,9 @@ describe("CLI contract", function () {
         [
           "Error: Invalid test specifications, so nothing ran:",
           "enum.spec.json",
-          "tests[0]: unknown key 'stepz'. Did you mean steps?",
+          "tests[0]: unknown key `stepz`. Did you mean `steps`?",
           'tests[0].steps[0].click.button: must be one of left, right, middle (got "middle-ish").',
-          "tests[0].steps[1].runShell: unknown key 'comand'. Did you mean command?",
+          "tests[0].steps[1].runShell: unknown key `comand`. Did you mean `command`?",
           "Fix them, or pass --no-exit-on-fail to skip them.",
           "",
         ].join("\n")
@@ -1196,7 +1297,7 @@ describe("CLI contract", function () {
       fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ logLevl: "info" }));
       const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: path.join(cwd, "cache") } });
       expect(r.status).to.equal(2);
-      expect(r.stderr).to.include("unknown key 'logLevl'. Did you mean logLevel?");
+      expect(r.stderr).to.include("unknown key `logLevl`. Did you mean `logLevel`?");
     });
 
     describe("precedence", function () {

@@ -45,10 +45,10 @@ describe("routing scopes through the CLI", function () {
   for (const [name, spec, expected] of [
     ["stop: spec on a step", onStep({ stop: "spec" }), "tests[0].steps[0].onFail[0].stop:"],
     ["stop: run on a step", onStep({ stop: "run" }), "tests[0].steps[0].onFail[0].stop:"],
-    ["goToTest on a step", onStep({ goToTest: "t" }), "tests[0].steps[0].onFail[0]: unknown key 'goToTest'."],
+    ["goToTest on a step", onStep({ goToTest: "t" }), "tests[0].steps[0].onFail[0]: unknown key `goToTest`."],
     ["stop: run on a test", onTest({ stop: "run" }), "tests[0].onFail[0].stop:"],
-    ["retry on a test", onTest({ retry: { limit: 1 } }), "tests[0].onFail[0]: unknown key 'retry'."],
-    ["goToStep on a test", onTest({ goToStep: "s" }), "tests[0].onFail[0]: unknown key 'goToStep'."],
+    ["retry on a test", onTest({ retry: { limit: 1 } }), "tests[0].onFail[0]: unknown key `retry`."],
+    ["goToStep on a test", onTest({ goToStep: "s" }), "tests[0].onFail[0]: unknown key `goToStep`."],
     // The other handlers share the schema; a case per handler pins that through the CLI.
     ...["onPass", "onWarning", "onSkip"].map((handler) => [
       `stop: run on a step's ${handler}`,
@@ -58,7 +58,7 @@ describe("routing scopes through the CLI", function () {
     ...["onPass", "onWarning", "onSkip"].map((handler) => [
       `retry on a test's ${handler}`,
       { tests: [{ steps: [echo], [handler]: [{ retry: { limit: 1 } }] }] },
-      `tests[0].${handler}[0]: unknown key 'retry'.`,
+      `tests[0].${handler}[0]: unknown key \`retry\`.`,
     ]),
   ]) {
     it(`exits 2 on ${name}`, function () {

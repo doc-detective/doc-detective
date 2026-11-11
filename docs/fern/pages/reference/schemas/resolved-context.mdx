@@ -23,7 +23,16 @@ autoRecording | object([Automatic recording](/reference/schemas/automatic-record
 platform | string | Optional. Platform to run the test on. This is a resolved version of the `platforms` property. | —
 browser | object([Browser](/reference/schemas/browser)) | Optional. Browser configuration. | —
 openApi | array of unknown | Optional. No description provided. | —
-steps | array of object([step](/reference/schemas/step)) | Optional. Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed. | —
+steps | array of object([step](/reference/schemas/step)) | Optional. Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed. In test results, a context that never ran, such as a skipped one, has an empty list. | —
+contextId | string | Optional. Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one. | —
+unsafe | boolean | ReadOnly. Whether this context's test is marked `unsafe`. Present in a resolved test plan. System-populated. | —
+requires | one of:<br/>- string<br/>- array of string<br/>- object([Requirements](/reference/schemas/requirements)) | Optional. Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch. | —
+browserFallback | string | Optional. Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).<br/><br/>Accepted values: `auto`, `explicit`, `off` | —
+retries | integer | Optional. In a resolved test plan, the `retries` policy from the `runOn` entry. In test results, how many times the context re-ran on a fresh session after its session died. Absent from results when it didn't re-run.<br/><br/>Minimum: 0 | —
+device | string or object | Optional. The device a mobile (`android` or `ios`) context runs on. In a resolved test plan, the `device` from the `runOn` entry. In test results, an object with the device's `platform` and `name`. Absent for a desktop context. | —
+warnings | array of string | ReadOnly. Warnings from this context's preflight checks, such as a toolchain that Doc Detective had to install first. Present only in test results, when there are any. System-populated. | —
+fallback | object | ReadOnly. The browser this context asked for, and the one that ran instead because `browserFallback` allowed it. Present only in test results, when a fallback happened. System-populated. | —
+viewportFloored | boolean | ReadOnly. `true` when the browser couldn't shrink to the requested viewport and stopped at its smallest size. Present only in test results, when that happened. System-populated. | —
 
 ## Examples
 
@@ -34,6 +43,10 @@ steps | array of object([step](/reference/schemas/step)) | Optional. Steps to pe
     "name": "chrome"
   },
   "openApi": [],
-  "steps": []
+  "steps": [],
+  "contextId": "example",
+  "requires": "example",
+  "browserFallback": "auto",
+  "retries": 42
 }
 ```

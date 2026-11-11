@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "5.0.0-v5-rc.14",
+  "version": "5.0.0-v5-rc.17",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "workspaces": [
     "src/common"
@@ -41,7 +41,7 @@
     "docs:build-cli-ref": "node docs/.scripts/buildCliReference.js",
     "compile": "tsc && npm run copy:schemas && node scripts/createCjsWrapper.js",
     "watch": "npm run build:common && nodemon --watch src --ext ts --exec \"npm run compile\"",
-    "copy:schemas": "node -e \"const fs=require('fs');const p=require('path');const d=p.join('dist','common','src','schemas');fs.mkdirSync(d,{recursive:true});fs.copyFileSync(p.join('src','common','src','schemas','schemas.json'),p.join(d,'schemas.json'));for(const f of ['validators.cjs','validatorsCheck.cjs'])fs.copyFileSync(p.join('src','common','dist','schemas',f),p.join(d,f));\"",
+    "copy:schemas": "node -e \"const fs=require('fs');const p=require('path');const d=p.join('dist','common','src','schemas');fs.mkdirSync(d,{recursive:true});for(const f of ['schemas.json','validators.cjs','validatorsCheck.cjs'])fs.copyFileSync(p.join('src','common','dist','schemas',f),p.join(d,f));\"",
     "build": "npm run build:common && npm run compile",
     "build:ci": "npm --prefix src/common run build:ci && npm run compile",
     "mocha": "mocha",
@@ -104,25 +104,25 @@
     "yaml": "^2.9.1"
   },
   "ddRuntimeDependencies": {
-    "@homebridge/node-pty-prebuilt-multiarch": "^0.14.1",
-    "appium": "^3.8.0",
-    "appium-chromium-driver": "^3.1.2",
-    "appium-geckodriver": "^3.0.17",
-    "appium-mac2-driver": "^4.5.0",
-    "appium-novawindows-driver": "^1.4.5",
-    "appium-safari-driver": "^5.0.10",
-    "appium-uiautomator2-driver": "^8.7.0",
-    "appium-xcuitest-driver": "^12.20.0"
+    "@homebridge/node-pty-prebuilt-multiarch": "0.14.1",
+    "appium": "3.9.0",
+    "appium-chromium-driver": "3.2.0",
+    "appium-geckodriver": "3.0.18",
+    "appium-mac2-driver": "4.6.1",
+    "appium-novawindows-driver": "1.5.0",
+    "appium-safari-driver": "5.0.11",
+    "appium-uiautomator2-driver": "8.7.3",
+    "appium-xcuitest-driver": "12.22.8"
   },
   "optionalDependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@puppeteer/browsers": "^3.2.6",
-    "geckodriver": "^8.0.0",
-    "pixelmatch": "^8.0.0",
-    "pngjs": "^7.0.0",
-    "proxy-agent": "^8.0.2",
-    "sharp": "^0.35.5",
-    "webdriverio": "^10.1.0"
+    "@ffmpeg-installer/ffmpeg": "1.1.0",
+    "@puppeteer/browsers": "3.2.6",
+    "geckodriver": "8.0.0",
+    "pixelmatch": "8.0.0",
+    "pngjs": "7.0.0",
+    "proxy-agent": "8.0.2",
+    "sharp": "0.35.5",
+    "webdriverio": "10.1.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",

@@ -30,9 +30,11 @@ The run folder holds the screenshots and recordings Doc Detective takes by defau
 | `terminal` | A summary on stdout with the counts, every failure, warning, and skip, the run's environment, and a one-line verdict. Writes no files. |
 | `json` | A JSON results file, `testResults-<runId>.json`, with the full step-by-step outcome. |
 | `html` | A self-contained HTML report you can open in a browser, with the run's screenshots and recordings. It's the same page as the run folder's copy. |
-| `runFolder` | A per-run folder containing the results (JSON and HTML) alongside the screenshots and recordings the run captured. |
+| `runFolder` | A per-run folder containing the results (JSON, HTML, and a Markdown summary) alongside the screenshots and recordings the run captured. |
 | `junit` | A `junit.xml` report that CI platforms render in their test summary views, with each failure's screenshot and recording attached. See [Read the JUnit report](#read-the-junit-report). |
 | `markdown` | A `doc-detective-summary.md` run summary for a CI job summary or a merge request comment. See [Read the Markdown summary](#read-the-markdown-summary). |
+
+Doc Detective doesn't look for tests in folders named `.doc-detective`. That keeps a run from testing the files an earlier run saved there.
 
 On GitLab, point the test summary at the `junit.xml` file, and upload the run folder with it so the attachments resolve:
 
@@ -90,7 +92,7 @@ The `terminal`, `markdown`, and `junit` reporters list the same results in the s
 | A context's [automatic recording](/docs/test-docs/automatic-recording), when it didn't pass | `<specId> › <testId> › <contextId> › autoRecording` |
 | A context that didn't pass and has neither, such as one `runOn` skipped | `<specId> › <testId> › <contextId>` |
 
-Steps that skip because an earlier step failed don't get a line of their own. Instead, the failure adds a line such as `3 more steps skipped after the failure`, with its count. A failed automatic recording can be the only reason a context failed, so it gets a line like a failed step.
+Skipped steps that come after a failure in the same context don't get a line of their own, whatever their reason. Instead, the failure adds a line such as `3 more steps skipped after the failure`, with its count. To see why each of those steps skipped, open `testResults.json` or `testResults.html` in the run folder. See [Find each report](#find-each-report). A failed automatic recording can be the only reason a context failed, so it gets a line like a failed step.
 
 An item shows its reason and, when the files exist, the step's screenshot and the context's recording. Terminal paths are absolute. Markdown and JUnit paths are relative to the file they're in.
 
@@ -178,6 +180,8 @@ Doc Detective 5.0.0 · Node.js 24.15.0 · linux 6.8.0-1017-azure (x64) · Starte
 Run artifacts: `.doc-detective/runs/2026-11-06T02-33-28-631Z`
 ```
 
+The default `runFolder` reporter writes this summary as `testResults.md` in the run folder, so you get one without adding the `markdown` reporter. The run prints the file's path after `Run summary:`. Paths inside `testResults.md` are relative to the run folder, not to the working folder as in the preceding example.
+
 Paths print as code rather than links, because a CI job summary can't serve your files. `Run artifacts` prints only when the run has a run folder.
 
 GitHub rejects a job summary over 1 MiB, so the summary limits its size. Each section stops at 100 rows, then says how many more there are. Each reason or name stops at 300 characters. A summary that's still too large drops its skips, then its warnings, before it touches its failures. It then ends with a note that says so.
@@ -189,7 +193,7 @@ Reporters that write a file name it on stderr, with its absolute path:
 | Reporter | File | Line on stderr |
 |---|---|---|
 | `json` | `<outputDir>/testResults-<runId>.json` | `Results: <path>` |
-| `runFolder` | `<outputDir>/.doc-detective/runs/<runId>/testResults.html` and `testResults.json` | `Run report: <path>` and `Run results: <path>` |
+| `runFolder` | `<outputDir>/.doc-detective/runs/<runId>/testResults.html`, `testResults.md`, and `testResults.json` | `Run report: <path>`, `Run summary: <path>`, and `Run results: <path>` |
 | `html` | `<outputDir>/testResults-<runId>.html` | `HTML report: <path>` |
 | `junit` | `<outputDir>/junit.xml` | `JUnit report: <path>` |
 | `markdown` | `<outputDir>/doc-detective-summary.md` | `Markdown summary: <path>` |
@@ -276,7 +280,7 @@ These parts of the results are a stable contract for scripts. A change to any of
 - `result` on every spec, test, context, and step, with the value `PASS`, `FAIL`, `WARNING`, or `SKIPPED`.
 - `resultCode` on every step and automatic recording whose `result` is `FAIL`, and only then. It says what kind of failure it was:
   - `environment`: the network, the browser session, or the page load failed.
-  - `drift`: a `find` missed its element, but similar ones exist, so the page probably changed.
+  - `drift`: a browser `find` or `click` missed its element, or a `dragAndDrop` missed its source or target, but similar ones exist, so the page probably changed.
   - `assertion`: anything else, such as a missing element with nothing close, or a wrong status code.
 - `resultHint` on a failed step or automatic recording, when Doc Detective has a suggested fix. A `drift` step's hint names the closest matches. See [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
 - `durationMs` on the run and on every spec, test, context, and step.
@@ -284,7 +288,7 @@ These parts of the results are a stable contract for scripts. A change to any of
 - `runId` and `runDir`, except when a filter matches nothing. That run has no run folder, and `specs` is empty.
 - The four `--plain` columns, in order. New columns only go at the end.
 
-Doc Detective can add new fields at any time, so ignore the ones you don't recognize. The [`report_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/report_v3.schema.json) defines the full shape.
+Doc Detective can add new fields at any time, so ignore the ones you don't recognize. The [`report_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/report_v3.schema.json) defines the full shape. Every results file validates against it, including a run that skipped everything or found no tests. A skipped context has an empty `steps` list. A run with no tests still has `startedAt`, `environment`, and `durationMs`. The `--dry-run` plan validates against the [`resolvedTests_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/resolvedTests_v3.schema.json).
 
 ### Steps show what ran
 
@@ -409,6 +413,7 @@ The `runFolder` reporter archives each run into its own folder so you can attach
 <outputDir>/.doc-detective/runs/<runId>/
 ├── testResults.json
 ├── testResults.html
+├── testResults.md
 └── specs/<specId>/
     └── tests/<testId>/
         └── contexts/<contextId>/

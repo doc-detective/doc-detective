@@ -607,7 +607,7 @@ export type OpenApi = {
    */
   validateAgainstSchema?: "request" | "response" | "both" | "none";
   /**
-   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code.
+   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code.
    */
   mockResponse?: boolean;
   /**
@@ -660,22 +660,6 @@ export type HerettoCMSIntegration = {
    * Local path where Heretto content was downloaded. Set automatically during processing.
    */
   outputPath?: string;
-  /**
-   * Mapping of local file paths to Heretto file metadata. Set automatically during content loading.
-   */
-  fileMapping?: {
-    [k: string]: {
-      /**
-       * The UUID of the file in Heretto.
-       */
-      fileId?: string;
-      /**
-       * The path of the file in Heretto.
-       */
-      filePath?: string;
-      [k: string]: unknown;
-    };
-  };
   /**
    * If `true`, uploads changed screenshots and other media files back to Heretto CMS after test execution.
    */
@@ -751,7 +735,7 @@ export interface Config {
    */
   testFilter?: string[];
   /**
-   * If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files.
+   * If `true`, searches the `input`, `beforeAll`, and `afterAll` folders recursively for test specifications and source files.
    */
   recursive?: boolean;
   /**
@@ -795,10 +779,6 @@ export interface Config {
    */
   allowUnsafeSteps?: boolean;
   /**
-   * If `true`, crawls sitemap.xml files specified by URL to find additional files to test.
-   */
-  crawl?: boolean;
-  /**
    * If `true`, processes DITA maps and includes generated files as inputs.
    */
   processDitaMaps?: boolean;
@@ -822,9 +802,9 @@ export interface Config {
   hints?: HintsOptions;
   verification?: VerificationOptions;
   /**
-   * Number of concurrent test runners. Set to true to use CPU core count (capped at 4).
+   * Number of concurrent test runners. `true` or `"auto"` uses one runner per CPU core, up to 4. Equivalent to `--concurrent-runners` on the CLI.
    */
-  concurrentRunners?: number | boolean;
+  concurrentRunners?: (number | boolean) | "auto";
   environment?: EnvironmentDetails;
   /**
    * @deprecated
@@ -836,12 +816,12 @@ export interface Config {
    */
   dryRun?: boolean;
   /**
-   * Defaults to `true`. Captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` and `--no-auto-screenshot` on the CLI.
+   * Defaults to `true`. Captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`. Doc Detective saves images in the per-run artifact directory (`<outputDir>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` and `--no-auto-screenshot` on the CLI.
    */
   autoScreenshot?: boolean;
   annotationDefaults?: AnnotationDefaults;
   /**
-   * Defaults to `true`. Records a video of every context that drives a browser, native app, or device: headless Chrome with the `browser` engine, which captures its tab; headed browsers and desktop apps with the `ffmpeg` engine; and Android and iOS devices on the device. Headless Firefox runs headed so it can be recorded, when the host can capture the screen. The recording wraps the whole context, alongside any explicit `record` steps; in headless Chrome, an explicit `record` step replaces it. Left unset, a context the host can't record isn't recorded, and a recording that can't start is SKIPPED. `true` is strict: a recording the host can't make is SKIPPED, and one that fails to start fails. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` and `--no-auto-record` on the CLI.
+   * Defaults to `true`. Records a video of every context that drives a browser, native app, or device: headless Chrome with the `browser` engine, which captures its tab; headed browsers and desktop apps with the `ffmpeg` engine; and Android and iOS devices on the device. Headless Firefox runs headed so it can be recorded, when the host can capture the screen. The recording wraps the whole context, alongside any explicit `record` steps; in headless Chrome, an explicit `record` step replaces it. Left unset, a context the host can't record isn't recorded, and a recording that can't start is SKIPPED. `true` is strict: a recording the host can't make is SKIPPED, and one that fails to start fails. Videos are saved in the per-run artifact directory (`<outputDir>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` and `--no-auto-record` on the CLI.
    */
   autoRecord?: boolean;
   /**
@@ -1279,6 +1259,12 @@ export interface EnvironmentDetails {
    * The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.
    */
   osRelease?: string;
+  /**
+   * The browsers and drivers Doc Detective found on the host. Empty in a resolved test plan from `--dry-run`, and when no context needs a browser.
+   */
+  apps?: {
+    [k: string]: unknown;
+  }[];
 }
 /**
  * Default visual theme for screenshot and recording annotations. Specs and tests can override this value with their own `annotationDefaults` fields (test level wins over spec level, which wins over config level), and an individual annotation's `style` wins over all of them. Fields left unset fall back to Doc Detective's built-in theme. Setting a theme here keeps every annotated image in a doc set visually consistent.

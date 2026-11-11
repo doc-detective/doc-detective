@@ -384,7 +384,7 @@ function buildPage(data) {
   parts.push(
     "### run",
     "",
-    "Run tests as the bare command does, with file and folder paths as arguments. The paths are added to any `--input` values. A `-` argument reads a spec or document from stdin. `runTests` and `runtests` still work, but print a deprecation warning on stderr. Replace them with `run`.",
+    "Run tests as the bare command does, with file and folder paths as arguments. The paths are added to any `--input` values. A `-` argument reads a spec or document from stdin. `runTests` and `runtests` still work, but print a deprecation warning on stderr, which `--quiet`, `-l error`, and `-l silent` hide. Replace them with `run`.",
     "",
     "```bash",
     "npx doc-detective run ./docs a.spec.json",
@@ -479,7 +479,7 @@ function buildPage(data) {
     "| Source | A relative path resolves against |",
     "|---|---|",
     "| The project config | Its folder. With `relativePathBase: \"cwd\"`, or for a config loaded from a URL, the current directory |",
-    "| Your user config | Its folder |",
+    "| Your user config | Its folder, even with `relativePathBase: \"cwd\"` |",
     "| `DOC_DETECTIVE_CONFIG` and `DOC_DETECTIVE` | The current directory |",
     "| Flags and single-purpose variables | The current directory |",
     "",
