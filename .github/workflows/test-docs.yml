@@ -28,6 +28,8 @@ jobs:
   test-docs:
     name: Test docs
     runs-on: ubuntu-latest
+    # Successful runs take up to about 30 minutes, so match the Windows job.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -134,7 +136,7 @@ jobs:
             for (const test of spec.tests || []) {
               for (const context of test.contexts || []) {
                 if (!context || context.platform !== "windows") continue;
-                const row = `${test.testId} (${spec.specId}): ${context.result}`;
+                const row = `${test.testId ?? "(no id)"} (${spec.specId ?? "(no id)"}): ${context.result}`;
                 if (context.result === "SKIPPED") {
                   skipped.push(`${row} - ${context.resultDescription || "no reason given"}`);
                 } else {
