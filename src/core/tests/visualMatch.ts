@@ -82,7 +82,7 @@ function createVisualMatch(driver: any, match: Rect & { score: number }) {
 const capturing = new WeakMap<object, Promise<unknown>>();
 function captureSurface(driver: any): Promise<Buffer> {
   const run = (capturing.get(driver) ?? Promise.resolve()).then(() => captureNow(driver));
-  capturing.set(driver, run.catch(() => {}));
+  capturing.set(driver, run.catch(() => {})); // Its caller gets the failure; the next capture goes on.
   return run;
 }
 
