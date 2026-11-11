@@ -9,8 +9,8 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 Documentation frequently embeds URLs that rot over time, and Doc Detective had no way to assert that
-a referenced link still resolved. The runner needed a step type that took a URL, issued an HTTP
-request, and produced a PASS/FAIL verdict based on the response status — without spinning up a
+a referenced link still resolved. The runner needed a step type that took a URL and issued an HTTP
+request. It would produce a PASS/FAIL verdict from the response status, without spinning up a
 browser. What shape should that link-checking step take, and how should it decide pass vs. fail?
 
 ## Decision Drivers
@@ -29,12 +29,12 @@ browser. What shape should that link-checking step take, and how should it decid
 ## Decision Outcome
 
 Chosen option: **A**, because an HTTP GET is the cheapest reliable reachability probe and needs no
-browser. A `checkLink` action was added in `tests.js`, performing an axios GET against the target URL
-and deriving the verdict from the response status (a successful status passes, an error status
-fails); `axios` was added as a dependency.
+browser. A `checkLink` action was added in `tests.js`, performing an axios GET against the target
+URL. The verdict comes from the response status: a successful status passes, an error status fails.
+`axios` was added as a dependency.
 
-This established link-checking as a browser-free step; its pass/fail contract later grew to accept a
-configurable list of acceptable status codes and to mitigate bot-protection (see `00065`, `00142`,
+This established link-checking as a browser-free step. Its pass/fail contract later grew to accept a
+configurable list of acceptable status codes, and to mitigate bot-protection (see `00065`, `00142`,
 `00151`, `00152`).
 
 ### Consequences

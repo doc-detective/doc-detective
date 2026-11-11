@@ -125,6 +125,7 @@ src/container/test/artifacts/*.png
 # screenshot/recording specs; not curated baselines, regenerated per run)
 /screenshot-boolean.png
 test/core-artifacts/**/*.png
+test/server/public/screenshot-reference-local.png
 test/core-artifacts/**/*.webm
 test/core-artifacts/**/*.gif
 
@@ -154,3 +155,7 @@ src/common/node_modules/
 
 # Agent/dev scratch space (see CLAUDE.md "Testing behavior")
 .tmp/
+
+# Locally packed doc-detective tarballs staged for a container build
+# (src/container/scripts/localPackage.cjs). The directory itself is tracked.
+src/container/.local-package/*.tgz

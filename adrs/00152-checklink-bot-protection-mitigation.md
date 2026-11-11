@@ -8,11 +8,11 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-`checkLink` already sent a browser-like User-Agent and Accept header (`00142`), but
+`checkLink` already sent a browser-like User-Agent and Accept header (`00142`). But
 bot-protected and rate-limited sites still returned spurious `429` (Too Many Requests) and
-`403` (Forbidden) responses that failed otherwise-valid documented links. The audit needed
-`checkLink` to distinguish a genuinely broken link from a defensive bounce by a CDN or WAF,
-without flagging every protected URL as a failure. How should `checkLink` mitigate
+`403` (Forbidden) responses, failing otherwise-valid documented links. The audit needed
+`checkLink` to distinguish a genuinely broken link from a defensive bounce by a CDN or WAF.
+It must not flag every protected URL as a failure. How should `checkLink` mitigate
 bot-protection false negatives, and what new contract surface (in `checkLink_v3` and
 `config_v3`) does that require?
 
@@ -21,7 +21,7 @@ bot-protection false negatives, and what new contract surface (in `checkLink_v3`
 * `429`/`403` from bot-protection are false failures, not broken links.
 * Real reachability should still be confirmed, not assumed.
 * Mitigation must be configurable so authors can tune retries/timeouts for strict sites.
-* Some servers reject `GET` from automation but answer `HEAD` — and vice versa.
+* Some servers reject `GET` from automation but answer `HEAD`, and vice versa.
 
 ## Considered Options
 
@@ -35,7 +35,7 @@ Chosen option: **A**, because the goal is to actually reach the URL the way a br
 not to paper over protection by assuming success. `checkLink` (rewritten in
 `src/core/tests/checkLink.ts`, ~192 lines) sends fuller browser-like request headers,
 retries on `429`/`403` responses, and falls back to a `HEAD` request when the primary
-method is bounced — only failing the step when every attempt still resolves outside the
+method is bounced. It fails the step only when every attempt still resolves outside the
 acceptable `statusCodes`. The behavior is governed by new fields added to the `checkLink_v3`
 step schema and corresponding `config_v3` additions, so retry/header behavior is tunable
 rather than hardcoded.

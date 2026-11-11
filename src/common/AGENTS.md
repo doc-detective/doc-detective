@@ -10,7 +10,9 @@
 
 This is a dependency package, not a standalone application. Changes here affect downstream packages.
 
-> Schema changes are user-facing: they alter the test/config contract. A change here that adds, renames, or constrains a field owes a **docs-impact assessment** — see ["Documentation impact"](../../CLAUDE.md#documentation-impact-required) and the [content strategy](../../docs/content-strategy/) in the root guide.
+> Schema changes are user-facing, because they alter the test and config contract. A change here that adds, renames, or constrains a field owes a **docs-impact assessment**. See ["Documentation impact"](../../CLAUDE.md#documentation-impact-required) and the [content strategy](../../docs/content-strategy/) in the root guide.
+
+> Schema keys and descriptions follow ["Plans and interfaces"](../../CLAUDE.md#plans-and-interfaces-required) in the root guide. That means shared values, present-tense descriptions, a deprecated alias for every rename, and units kept in names.
 
 ## Architecture
 
@@ -26,8 +28,12 @@ This is a dependency package, not a standalone application. Changes here affect 
 - Updates `$ref` paths to absolute file paths
 - Dereferences all references using `@apidevtools/json-schema-ref-parser`
 - Removes `$id` properties
-- Generates `schemas.json` (all schemas as single object)
-- Publishes v3 schemas to `dist/schemas/` for external consumption
+- Generates `schemas.json` (all schemas as single object), pretty-printed because it's committed and reviewed
+
+`compile` then cleans `dist/`, and `scripts/generateValidators.js` minifies the `dist/schemas/schemas.json`
+that `tsc` emits and writes every v3 schema beside it as `dist/schemas/<name>_v3.schema.json`. Published
+`$schema` URLs on unpkg point at those files. The package's `files` allowlist ships only `dist/`, and
+the CJS bundle `require`s `schemas.json` instead of inlining it ([ADR 01183](../../adrs/01183-ship-minified-schemas-and-only-dist-in-common.md)).
 
 **Schema versioning:**
 - v2 schemas: Legacy, supported via `compatibleSchemas` transformation map
@@ -57,6 +63,35 @@ When `validate()` is called:
 - Dynamic defaults: `uuid` generates unique IDs for `stepId`, `configId`
 - Custom errors via `ajv-errors`
 - Formats via `ajv-formats`, keywords via `ajv-keywords`
+
+**Precompiled validators ([ADR 01138](../../adrs/01138-precompile-validators-with-ajv-standalone.md)):**
+`validate()` never compiles a schema at runtime. `compile` runs
+`scripts/generateValidators.js` after `tsc`, which writes Ajv standalone code for every schema
+key to `dist/schemas/validators.cjs` (mutating set) and `validatorsCheck.cjs` (non-mutating
+probe set, loaded on first use). The Ajv options live in one place, `createAjv` in `src/ajv.ts`.
+Its `standalone: true` mode swaps `ajv-keywords`' closure-based `dynamicDefaults` for a
+code-generating equivalent that supports only `"uuid"`. A schema using any other dynamic
+default fails the build, and you then have to extend that keyword.
+`test/precompiledValidators.test.js` checks that the shipped files match a fresh generation. It
+also checks that every validator behaves like the runtime-compiled one across the corpus. The
+generated files are gitignored build output. Never commit or hand-edit them.
+
+Two hazards come with generation:
+
+- **Deep Ajv imports.** `src/ajv.ts` imports `ajv/dist/standalone`, `ajv/dist/compile/codegen`,
+  and `ajv/dist/compile/codegen/code` (`_Code`). Those paths are Ajv internals, not its semver
+  contract. The generated code also `require`s `ajv/dist/runtime/*` and the `ajv-keywords`
+  transform functions. So a minor Ajv or `ajv-keywords` bump can break the build. It can also
+  change the generated code. Every build regenerates the code, and the parity test fails on any
+  behavior change. Treat an Ajv bump as a change to verify, not a routine one. `ajv` keeps its
+  caret range on purpose. A pin would need a guard in
+  [test/dependency-pins.test.js](../../test/dependency-pins.test.js) and would stop compatible
+  fixes reaching consumers. The parity test is the safety net instead.
+- **Inlined function source.** The uuid dynamic default inlines `getRandomUUID.toString()` into
+  the generated code, so it must be self-contained, with no closures or imports. Generation runs
+  from the unminified `dist/ajv.js` that `tsc` emits. Keep it ahead of any minification or
+  bundling step. A minifier that renamed or rewrote the function first would ship its mangled
+  source.
 
 ### Path Resolution (`resolvePaths.js`)
 
@@ -92,31 +127,45 @@ When `validate()` is called:
 1. Edit source schema in `src/schemas/src_schemas/`
 2. Add/update `examples` array (required for tests)
 3. If adding new file, add to `files` array in `dereferenceSchemas.js`
-4. Run `npm run build` (`dereferenceSchemas` + `generate:types` + `compile`; it does NOT run tests — run `npm run test:coverage` separately, per ADR 01057)
-5. If creating v3 schema, add to published list in `dereferenceSchemas.js` (line ~130)
+4. Run `npm run build`, which sequences `dereferenceSchemas`, `generate:types`, and `compile`. It does NOT run tests. Run `npm run test:coverage` separately, per ADR 01057.
+5. A new v3 schema is published to `dist/schemas/` automatically; no list to update
 
 ### Dual-build requirement (schema edits aren't live until BOTH builds run)
 
 Schemas compile to **two separate dist artifacts**, and a schema edit isn't fully live until both
 are regenerated:
 
-1. `src/common/dist` — produced by `npm run build` inside `src/common`. The `src/common` test
+1. `src/common/dist`, produced by `npm run build` inside `src/common`. The `src/common` test
    suite reads this.
-2. **Root `dist/common`** — a separate copy the **runner** imports `validate` from. Regenerate
-   from the repo root with `npm run build`, which sequences `build:common` (rebuilds
-   `src/common`), then `compile` and `copy:schemas`. Running `compile` + `copy:schemas` alone can
-   copy a **stale** `src/common/src/schemas/schemas.json` if `src/common` wasn't rebuilt first.
+2. **Root `dist/common`**, a separate copy the **runner** imports `validate` from. Regenerate
+   it from the repo root with `npm run build`. That sequences `build:common`, which rebuilds
+   `src/common`, then `compile`, which runs `copy:schemas` between `tsc` and the CJS bundle.
+   It copies `schemas.json` and the precompiled validators from `src/common/dist/schemas/`.
+   Running `compile` alone can copy **stale** ones, if `src/common` wasn't rebuilt first. It fails outright when `src/common` was never built.
+   Root `npm run watch` builds `src/common` once at startup, then reruns only `compile` on `.ts`
+   changes. A schema edit during watch leaves the schemas and validators stale. Rerun
+   `npm run build:common`, or restart watch, after editing a schema.
 
-Symptom of forgetting #2: `src/common` tests pass, but the runner (runTests / core fixtures)
-still validates against the stale schema — a fixture using a newly-added field fails with
-`/<field> must NOT be valid` even though the source schema allows it.
+Forgetting #2 has a clear symptom. `src/common` tests pass, but the runner (runTests and core
+fixtures) still validates against the stale schema. A fixture using a newly-added field then fails
+with `/<field> must NOT be valid`, even though the source schema allows it.
 
 Related notes:
-- `output_schemas/*` regeneration on Windows produces large CRLF-only diffs — harmless build
+- **A stale `node_modules` guts the committed types.** Take a worktree installed before a
+  `json-schema-to-typescript` major bump (15.x against a declared `^16.0.0`). It emits
+  `{ [k: string]: unknown }` for every object next to `oneOf`/`anyOf`/`allOf`. One observation:
+  142k deletions across ~17 files. `generate:types` now refuses to run on a major mismatch with
+  `src/common/package.json`, and tells you to `npm ci`. Same-major drift (e.g. a prettier bump
+  reflowing unions) still builds. The "Schema reference drift" workflow runs `dereferenceSchemas`
+  and `generate:types`, then fails the PR on any diff under `src/common/src`. **Never commit that
+  churn**: `git checkout -- src/common/src/types/generated/`, reinstall, and rebuild. That reset is
+  a blunt instrument, so check what it would discard first. A schema edit in the same branch SHOULD
+  regenerate types, and those are the one change in that directory worth keeping.
+- `output_schemas/*` regeneration on Windows produces large CRLF-only diffs. That's harmless build
   churn, not content changes.
 - `spec_v3` has no `additionalProperties: false`, so unknown root keys on a spec are silently
-  accepted (a misplaced spec-level key validates but is ignored) — spec-level fields can't be
-  enforced by rejection without making `spec_v3` strict (a separate, potentially-breaking change).
+  accepted. A misplaced spec-level key validates but is ignored. Enforcing spec-level fields by
+  rejection would need `spec_v3` to be strict, a separate and potentially-breaking change.
 
 ### Schema Compatibility
 
@@ -189,7 +238,7 @@ npm run test:coverage:html
 
 ### Version Management & CI/CD Workflows
 
-Releases are driven end-to-end by **semantic-release** from conventional-commit history. `doc-detective-common` and the root `doc-detective` package are always published together at the **same version** — this package is never versioned or released independently. Config lives at the repo root: [.releaserc.json](../../.releaserc.json).
+Releases are driven end-to-end by **semantic-release** from conventional-commit history. `doc-detective-common` and the root `doc-detective` package are always published together at the **same version**. This package is never versioned or released independently. Config lives at the repo root, in [.releaserc.json](../../.releaserc.json).
 
 #### Release channels
 
@@ -201,7 +250,7 @@ Each branch maps to an npm dist-tag:
 | `next` | `X.Y.Z-next.N` | `next` | `npm i doc-detective-common@next` |
 | `feat/**` (any depth) | `X.Y.Z-<slug>.N` | `<slug>` | `npm i doc-detective-common@<slug>` |
 
-Dist-tags for `feat/**` branches are **automatically removed** when the branch is deleted, via [.github/workflows/cleanup-dist-tag.yml](../../.github/workflows/cleanup-dist-tag.yml). The pattern matches any depth (e.g., `feat/foo`, `feat/team/foo-bar`); slug normalization lowercases the name and replaces any non-`[a-z0-9-]` character with `-` so the resulting dist-tag is npm-safe.
+Dist-tags for `feat/**` branches are **automatically removed** when the branch is deleted, through [.github/workflows/cleanup-dist-tag.yml](../../.github/workflows/cleanup-dist-tag.yml). The pattern matches any depth, such as `feat/foo` and `feat/team/foo-bar`. Slug normalization lowercases the name and replaces any non-`[a-z0-9-]` character with `-`, so the resulting dist-tag is npm-safe.
 
 #### Release pipeline (`.github/workflows/release.yml`)
 
@@ -210,12 +259,14 @@ Triggered by push to `main`, `next`, or any `feat/**` branch. Steps:
 2. `npx semantic-release` analyzes commits since the last tag, then:
    - Computes the next semver from commit types (`fix` → patch, `feat` → minor, `!` or `BREAKING CHANGE` → major)
    - Updates `CHANGELOG.md` (root)
-   - Runs [scripts/sync-common-version.js](../../scripts/sync-common-version.js) to mirror the new version into this package's `package.json`
+   - Runs [scripts/sync-common-version.js](../../scripts/sync-common-version.js) to mirror the new version into this package's `package.json`. It then rebuilds `src/common/package-lock.json` so its dependency tree matches that manifest, and verifies the root lockfile still installs. See [ADR 01091](../../adrs/01091-rebuild-the-common-lockfile-during-release.md).
    - Publishes both `doc-detective` (root) and `doc-detective-common` (this package) to the channel's dist-tag
    - Commits the version bump + changelog back to the branch with `chore(release): X.Y.Z [skip ci]`
    - Creates the git tag `vX.Y.Z` and a GitHub Release
 
 **No human ever edits `version` in either `package.json`.** The sync script overwrites `src/common/package.json` during release.
+
+**`src/common/package-lock.json` is release-managed too.** The sync script regenerates it every release, so it self-heals. Bump a dependency in `src/common/package.json`, and the lockfile catches up at the next release rather than needing a hand-run `npm install`. If you *do* regenerate it manually, run npm from inside `src/common` **with `--no-workspaces`**. Without that flag npm walks up, finds `workspaces: ["src/common"]` in the root manifest, and rewrites the **root** `package-lock.json` instead, leaving this one untouched.
 
 #### Downstream (`.github/workflows/npm-test.yaml`)
 
@@ -230,29 +281,50 @@ Required format (conventional commits):
 Enforced in three places:
 - **Locally** via husky `commit-msg` hook → `commitlint` (auto-installed on `npm install`)
 - **On PRs** via [.github/workflows/commitlint.yml](../../.github/workflows/commitlint.yml)
-- **At release time** — non-conforming commits are silently ignored by semantic-release and won't trigger a bump
+- **At release time**, semantic-release silently ignores non-conforming commits, so they won't trigger a bump
 
 Allowed types default to `@commitlint/config-conventional`: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
 
 #### Secrets used by release workflows
 
-- `NPM_TOKEN` — npm publish for both packages
-- `DD_DEP_UPDATE_TOKEN` — fed to semantic-release as `GITHUB_TOKEN`; has push rights for the release commit and tag
-- `DOCKERHUB_USERNAME` / `DOCKERHUB_TOKEN` — Docker image push (stable releases only)
+- `NPM_TOKEN`: npm publish for both packages
+- `DD_DEP_UPDATE_TOKEN`: fed to semantic-release as `GITHUB_TOKEN`. It has push rights for the release commit and tag
+- `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`: Docker image push (stable releases only)
 
 ## Important Patterns
 
 ### Ajv coercion vs. `anyOf` branch ordering
 
-`validate()` builds Ajv with `coerceTypes: true`, so in any `anyOf` union that includes a string
-branch, **branch order decides what authored values become**: Ajv tries branches in order and
-coerces values to make a branch pass. With a string branch first, an authored integer (`tab: 0`,
-`tab: -1`) is silently coerced to the string `"0"`/`"-1"` and reaches the runtime as a name, not
-an index — string branches accept coercion from nearly everything, so whichever branch is first
-wins.
+`validate()` builds Ajv with `coerceTypes: true`. In any `anyOf` union that includes a string
+branch, **branch order decides what authored values become**. Ajv tries branches in order and
+coerces values to make a branch pass. With a string branch first, an authored integer such as
+`tab: 0` or `tab: -1` is silently coerced to the string `"0"` or `"-1"`. It then reaches the
+runtime as a name rather than an index. String branches accept coercion from nearly everything,
+so whichever branch is first wins.
 
-**Rule:** in schema `anyOf` unions, order narrow scalar types (integer, boolean) BEFORE string
-branches, and note the reasoning in the schema description.
+Order alone can't fix every union, because scalars coerce into each other. A leading
+`type: boolean` branch turns `"true"` into `true` and `1` into `true`. A leading `type: number`
+branch turns `true` into `1`. Ajv coerces only through `type`, and only when a value matches none
+of the listed types. So make the first branches non-coercing
+([ADR 01161](../../adrs/01161-keep-authored-scalar-types-through-coercion.md)):
+
+- **Scalar-only union: one `type` array**, such as `{"type": ["boolean", "number", "string"]}`
+  for `elementAttribute` values. Every listed type survives as authored.
+- **Scalar branches without their own constraints: merge them into one leading `type` array.**
+  `wait` uses `["number", "boolean"]` ahead of its `$VAR` string branch. Order inside the array
+  doesn't change what an authored value becomes. The LSP offers the first listed type as the
+  value kind, so list the usual one first.
+- **A boolean branch ahead of a free-form string branch: write it as `enum: [true, false]`**,
+  with no `type`. It matches only real booleans and coerces nothing, so `"true"` stays a string.
+  `click_v3` does this.
+- **A plain `type: boolean` first is fine** when no later branch accepts `"true"`, `"false"`,
+  `0`, or `1`, such as a string branch with a file-extension `pattern` (`record_v3`,
+  `screenshot_v3`).
+
+Say why in a `$comment` on the branch. The ratchet in `test/schema.test.js` fails on any
+`anyOf`/`oneOf` where a branch's `type` would coerce a scalar meant for a later branch. That
+includes a `type: boolean` branch ahead of a string branch with no `pattern`, `enum`, or `const`. Pair a
+schema change with a `validate.test.js` case that checks the validated value, not only validity.
 
 Also, `useDefaults: true` means shared/`$ref`'d schemas inject their `default:` values into every
 consumer's validated objects. Keep shared schemas default-free unless every consumer wants the
@@ -344,7 +416,7 @@ Prints the computed version and release notes diff.
 - ❌ Don't assume validation mutates objects (it returns new validated object)
 - ❌ Don't forget to clone objects before validation if original needs preservation
 - ❌ Don't publish manually to npm (semantic-release owns publishing for both packages)
-- ❌ Don't edit `version` in `package.json` (root or common) — semantic-release overwrites it during release
-- ❌ Don't bump `doc-detective-common` independently — it is always released in lockstep with the root package
-- ❌ Don't use non-conventional commit messages — they're blocked locally by husky and on PRs by commitlint
-- ❌ Don't create git tags manually — semantic-release cuts `vX.Y.Z` tags
+- ❌ Don't edit `version` in `package.json`, root or common. semantic-release overwrites it during release
+- ❌ Don't bump `doc-detective-common` independently. It is always released in lockstep with the root package
+- ❌ Don't use non-conventional commit messages. Husky blocks them locally, and commitlint blocks them on PRs
+- ❌ Don't create git tags manually. semantic-release cuts `vX.Y.Z` tags

@@ -14,17 +14,17 @@ Two problems surfaced for Phase 3:
 
 1. **YAML is a first-class spec format** (`.spec.yaml`, `.doc-detective.yaml`) but got no
    authoring-time feedback. The JSON pipeline is built on jsonc-parser's CST (`getNodeValue`,
-   `findNodeAtLocation`, source offsets); YAML needs an equivalent, and we do not want two parallel
+   `findNodeAtLocation`, source offsets). YAML needs an equivalent, and we do not want two parallel
    copies of the schema/diagnostic logic.
 2. **The flagship error was a false positive on valid input.** A legacy **v2** spec writes steps in
    exactly the `action`-keyed form (`{action: "goTo", url: …}`). Doc Detective still supports v2 by
-   transforming it to a valid `spec_v3` at validation time, so such a spec is *valid* — yet the
+   transforming it to a valid `spec_v3` at validation time, so such a spec is *valid*. Yet the
    flagship error fired on every step, telling the author their valid document was wrong.
 
 ## Decision Drivers
 
 * Write the schema/diagnostic logic once, not once per serialization format.
-* Never emit an **error** on a document the runner would accept — an LSP that red-squiggles valid
+* Never emit an **error** on a document the runner would accept. An LSP that red-squiggles valid
   input is worse than one that stays quiet.
 * Still nudge authors off the deprecated v2 form (the original intent of the flagship), without
   lying about validity.
@@ -52,13 +52,13 @@ formats. YAML nodes are located with `doc.getIn(path, true).range`; syntax error
 
 For the v2 question, the action-keyed diagnostic is now **conditioned on validity**:
 
-- **Invalid** document with an action-keyed step → the flagship **error** (with the raw `anyOf`
-  noise suppressed), because in a v3 context that step is a genuine mistake.
+- **Invalid** document with an action-keyed step → the flagship **error**, with the raw `anyOf`
+  noise suppressed. In a v3 context that step is a genuine mistake.
 - **Valid** document that used the action-keyed form → a non-blocking **warning** steering to the
-  compact v3 form. It transformed to a valid `spec_v3`, so it is not an error; the warning is the
-  correct home for the deprecation nudge (which is why the version-mixing check lives here).
+  compact v3 form. It transformed to a valid `spec_v3`, so it is not an error. The warning is the
+  correct home for the deprecation nudge, which is why the version-mixing check lives here.
 
-A syntactically broken buffer shows only its **syntax** errors — schema validation of the partial
+A syntactically broken buffer shows only its **syntax** errors. Schema validation of the partial
 value produces misleading "must be object" noise, so it is skipped until the buffer parses.
 
 B was rejected: two diagnostics paths would drift and double the maintenance of every future check.
@@ -71,18 +71,19 @@ single most valuable diagnostic.
   handling as JSON, with zero duplicated schema logic.
 * Good: no false-positive errors on valid v2 specs; authors still get a migration nudge.
 * Good: the `SpecModel` seam is exactly what Phase 4 (inline tests) needs to reuse.
-* Neutral (accepted): YAML **completion/hover** are not yet provided (they need YAML cursor-context,
-  which jsonc's `getLocation` gives JSON for free); deferred and documented in the design doc.
+* Neutral (accepted): YAML **completion/hover** are not yet provided. They need YAML cursor-context,
+  which jsonc's `getLocation` gives JSON for free. It's deferred and documented in the design doc.
 * Neutral: fs/cross-file semantic checks (`loadVariables` path existence, variable origin, deep
-  `runOn` sanity) remain deferred — they need a workspace-filesystem seam, out of scope for the
+  `runOn` sanity) remain deferred. They need a workspace-filesystem seam, out of scope for the
   pure in-process modules shipped here.
 
 ### Confirmation
 
-* Red→green hermetic tests in `test/lsp.test.js`: YAML valid/invalid/syntax/action-keyed diagnostics;
-  the "warns (not errors) on a valid legacy v2 spec" case for both JSON and YAML; the YAML
-  positions module (instancePath→range, action-keyed detection, syntax spans); and the `SpecModel`
-  contract. `dist/lsp` stays at 100% line/branch/function/statement coverage.
+* Red→green hermetic tests in `test/lsp.test.js` cover YAML valid, invalid, syntax, and
+  action-keyed diagnostics. They cover the "warns (not errors) on a valid legacy v2 spec" case for
+  both JSON and YAML. They also cover the YAML positions module (instancePath→range, action-keyed
+  detection, syntax spans), plus the `SpecModel` contract. `dist/lsp` stays at 100% line, branch, function, and
+  statement coverage.
 
 ## Pros and Cons of the Options
 

@@ -10,8 +10,8 @@ decision-makers: doc-detective maintainers
 
 Authoring tests by hand for existing documentation is slow, and coverage analysis can already
 identify coverable markup that has no test. Could Doc Detective go a step further and *generate*
-candidate tests from documentation content automatically, so an author starts from a draft rather
-than a blank file? Where should those generated tests be written?
+candidate tests from documentation content automatically? An author would then start from a draft
+rather than a blank file. Where should those generated tests be written?
 
 ## Decision Drivers
 
@@ -67,6 +67,6 @@ confirmed by the 3.0.0 test-surface trimming.
 
 ## More Information
 
-Recorded retrospectively (ADR backfill). Origin: doc-detective PR #12 — commits `9f3240d3`,
+Recorded retrospectively (ADR backfill). Origin: doc-detective PR #12, commits `9f3240d3`,
 `f6be91d5`. Inventory ref: BACKFILL-INVENTORY.md Seq 50. The core `suggestTests()` impl (Seq 86) is
 its implementation; removal at 3.0.0 is covered by `00103`. Related: coverage feature (`00035`).

@@ -9,7 +9,7 @@
  */
 export type CloseSurface = Surface | [Surface1, ...Surface1[]];
 /**
- * The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.
+ * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.
  */
 export type Surface = SurfaceByName | ProcessSurface | BrowserSurface | AppSurface;
 /**
@@ -53,7 +53,7 @@ export type ByIndex2 = number;
  */
 export type ByName2 = string;
 /**
- * The surface a step acts on. Omit to act on the active surface. Supports background processes, browser windows/tabs, and native app windows.
+ * The surface a step acts on. Omit to act on the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind. Specifying a surface switches the active surface for the steps that follow. Supports background processes, browser windows/tabs, and native app windows.
  */
 export type Surface1 = SurfaceByName1 | ProcessSurface1 | BrowserSurface1 | AppSurface1;
 /**

@@ -42,8 +42,22 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 # `try/catch` doesn't trap native-command non-zero exits under the
 # SHELL-level `$ErrorActionPreference = 'Stop'`, so real `install all`
 # failures throw explicitly via `$LASTEXITCODE` check.
+#
+# Same local-package escape hatch as linux.Dockerfile: a CI build of a pull
+# request installs the tarball staged in `.local-package/` when there is one, so
+# the image under test is the change under review rather than the last published
+# package. See src/container/scripts/localPackage.cjs and ADR 01097.
+COPY .local-package/ C:/local-package/
+
 RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
-    npm install -g doc-detective@$env:PACKAGE_VERSION; \
+    $localPkg = @(Get-ChildItem -Path 'C:/local-package' -Filter '*.tgz' -ErrorAction SilentlyContinue); \
+    if ($localPkg.Count -gt 0) { \
+      $pkgPath = $localPkg[0].FullName; \
+      Write-Host "[build] installing the locally packed $($localPkg[0].Name) instead of doc-detective@$env:PACKAGE_VERSION"; \
+      npm install -g $pkgPath \
+    } else { \
+      npm install -g doc-detective@$env:PACKAGE_VERSION \
+    }; \
     if ($LASTEXITCODE -ne 0) { throw "npm install -g doc-detective failed with exit code $LASTEXITCODE" }; \
     $help = (doc-detective --help 2>&1 | Out-String); \
     if ($help -match 'install <subcommand>') { \

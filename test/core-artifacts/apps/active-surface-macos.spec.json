@@ -1,0 +1,154 @@
+{
+  "specId": "active-surface-macos",
+  "description": "Uniform active-surface routing (ADR 01081) on macOS: the A2 analogue of active-surface.spec.json. Surface-sensitive steps that omit `surface` act on the most recently active surface (TextEdit, opened via startSurface), an explicit reference switches the active surface for later surface-less steps, and the mixed test proves the most-recently-active rule across the browser and app kinds. TextEdit + the untitled-document launch args mirror app-surfaces-macos.spec.json; the runner needs Accessibility (TCC) granted, which CI images pre-grant.",
+  "tests": [
+    {
+      "testId": "active-surface-app-only-macos",
+      "description": "Launch TextEdit, then drive it with ONLY surface-less steps: type into the text view, find the typed content back (elementText matches AXValue on text views), and screenshot — none carry `surface`. Then reference the app explicitly once and follow with another surface-less find to prove the explicit reference persists as the active surface.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.TextEdit",
+            "args": [
+              "-NSShowAppCentricOpenPanelInsteadOfUntitledFile",
+              "NO"
+            ],
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "selector": "//XCUIElementTypeTextView"
+              }
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "Active surface routing"
+            ],
+            "selector": "//XCUIElementTypeTextView",
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Active surface routing",
+            "timeout": 15000
+          }
+        },
+        {
+          "screenshot": {
+            "path": "active-surface-app-macos.png",
+            "overwrite": "true"
+          }
+        },
+        {
+          "find": {
+            "elementText": "Active surface routing",
+            "surface": {
+              "app": "TextEdit"
+            }
+          }
+        },
+        {
+          "find": {
+            "selector": "//XCUIElementTypeTextView",
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "TextEdit"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "active-surface-mixed-macos",
+      "description": "The most-recently-active rule across kinds on macOS: goTo makes the browser active, startSurface makes TextEdit active (surface-less type + find hit the app), an explicit engine reference switches back to the browser (the surface-less follow-up stays there), an explicit app reference switches back to TextEdit, and closing the app falls through to the browser for the final surface-less find. Pinned to chrome so the engine-keyword reference matches the context's session.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": [
+            {
+              "name": "chrome"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "find": "Common HTML Elements"
+        },
+        {
+          "startSurface": {
+            "app": "com.apple.TextEdit",
+            "args": [
+              "-NSShowAppCentricOpenPanelInsteadOfUntitledFile",
+              "NO"
+            ],
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "selector": "//XCUIElementTypeTextView"
+              }
+            }
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "Mixed surfaces"
+            ],
+            "selector": "//XCUIElementTypeTextView",
+            "timeout": 30000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Mixed surfaces",
+            "timeout": 15000
+          }
+        },
+        {
+          "find": {
+            "elementText": "Common HTML Elements",
+            "surface": "chrome"
+          }
+        },
+        {
+          "find": "Text Inputs"
+        },
+        {
+          "find": {
+            "elementText": "Mixed surfaces",
+            "surface": {
+              "app": "TextEdit"
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "TextEdit"
+          }
+        },
+        {
+          "find": "Buttons"
+        }
+      ]
+    }
+  ]
+}

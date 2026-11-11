@@ -11,8 +11,8 @@ decision-makers: doc-detective maintainers
 A run executed every detected spec and test; there was no way to run a subset by identifier.
 Authors iterating on one failing test, or CI sharding a large suite, had to either point at
 narrower input paths or run everything. The audit needed `--test` and `--spec` CLI flags that
-filter the resolved run by `testId`/`specId`, flowing through the merged `config` object as
-`config.testFilter`/`config.specFilter` (the repo's required CLI-flag-to-config pattern). What
+filter the resolved run by `testId`/`specId`. They flow through the merged `config` object as
+`config.testFilter`/`config.specFilter`, per the repo's required CLI-flag-to-config pattern. What
 shape should these filters take, and how should they be matched?
 
 ## Decision Drivers
@@ -31,13 +31,13 @@ shape should these filters take, and how should they be matched?
 
 ## Decision Outcome
 
-Chosen option: **A**, because regex matching on stable identifiers gives both pinpoint
-selection and prefix/group selection, and the strict-array schema shape (`minLength`, `\S`
-pattern) is the established convention for new multi-value flags. `--test` and `--spec`
-populate `config.testFilter` and `config.specFilter` — case-insensitive regex arrays matched
+Chosen option: **A**. Regex matching on stable identifiers gives both pinpoint selection and
+prefix or group selection. The strict-array schema shape (`minLength`, `\S` pattern) is the
+established convention for new multi-value flags. `--test` and `--spec` populate
+`config.testFilter` and `config.specFilter`. Those are case-insensitive regex arrays, matched
 against `testId` and `specId` respectively. The `config_v3` array fields use the strict shape
-(`items: {minLength, pattern: "\\S"}`) so whitespace-only entries can't compile into
-accidentally-matching regexes; the runner gates which tests/specs execute by these filters.
+(`items: {minLength, pattern: "\\S"}`), so whitespace-only entries can't compile into
+accidentally-matching regexes. The runner gates which tests and specs execute by these filters.
 
 ### Consequences
 

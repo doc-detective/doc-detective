@@ -62,6 +62,7 @@ keypresses
 loadCookie
 loadVariables
 logLevel
+manni
 matchText
 maxVariation
 mockResponse
@@ -102,6 +103,7 @@ saveDirectory
 savePath
 saveScreenshot
 screenshotImage
+scrollbars
 session_token
 setVariables
 SHIFT
@@ -243,3 +245,10 @@ onboarding
 startSurface
 passthrough
 TUIs
+metacharacter
+metacharacters
+AXIdentifier
+AXRole
+AXTitle
+AXValue
+AXDescription

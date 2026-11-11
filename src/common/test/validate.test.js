@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import { validate, transformToSchemaKey } from "../dist/validate.js";
+import { schemas } from "../dist/index.js";
 
   describe("validate", function () {
     describe("input validation", function () {
@@ -34,6 +35,32 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("strict mode logging", function () {
+      it("should not log Ajv strict-mode warnings while compiling schemas", async function () {
+        this.timeout(60000);
+        // Fresh module instance so schemas compile here, not from an earlier test's cache.
+        const fresh = await import(`../dist/validate.js?strict-logging-${Date.now()}`);
+        const { schemas } = await import("../dist/schemas/index.js");
+        const logged = [];
+        const original = { warn: console.warn, log: console.log, error: console.error };
+        console.warn = (...args) => logged.push(args.join(" "));
+        console.log = (...args) => logged.push(args.join(" "));
+        console.error = (...args) => logged.push(args.join(" "));
+        try {
+          for (const schemaKey of Object.keys(schemas)) {
+            try {
+              fresh.validate({ schemaKey, object: {} });
+            } catch {
+              // Only compile-time logging matters here, not validation outcomes.
+            }
+          }
+        } finally {
+          Object.assign(console, original);
+        }
+        expect(logged.filter((line) => line.includes("strict mode"))).to.deep.equal([]);
+      });
+    });
+
     describe("schema not found", function () {
       it("should return error when schema key does not exist", function () {
         const result = validate({
@@ -44,6 +71,16 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.equal("Schema not found: nonexistent_schema");
         expect(result.object).to.deep.equal({ test: "value" });
+      });
+
+      it("should not treat inherited object keys as schema keys", function () {
+        const result = validate({
+          schemaKey: "constructor",
+          object: { test: "value" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.equal("Schema not found: constructor");
       });
     });
 
@@ -130,14 +167,14 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.autoScreenshot).to.equal(true);
       });
 
-      it("should default autoScreenshot to false when unset", function () {
+      it("should leave autoScreenshot unset when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.autoScreenshot).to.equal(false);
+        expect(result.object.autoScreenshot).to.equal(undefined);
       });
 
       it("should reject a config_v3 object whose autoScreenshot is not a boolean", function () {
@@ -149,6 +186,22 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("autoScreenshot");
+      });
+
+      it("should validate each verification.write mode and default it to existing", function () {
+        for (const write of ["existing", true, false]) {
+          const result = validate({ schemaKey: "config_v3", object: { verification: { write } } });
+          expect(result.valid, String(write)).to.be.true;
+          expect(result.object.verification.write).to.equal(write);
+        }
+        const unset = validate({ schemaKey: "config_v3", object: {} });
+        expect(unset.object.verification).to.deep.equal({ write: "existing" });
+      });
+
+      it("should reject an unknown verification.write mode", function () {
+        const result = validate({ schemaKey: "config_v3", object: { verification: { write: "always" } } });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("verification");
       });
 
       it("should validate spec_v3 and test_v3 objects with autoScreenshot overrides", function () {
@@ -198,6 +251,62 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("autoScreenshot");
+      });
+
+      it("should validate a test_v3 object with badge: true", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            badge: true,
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.badge).to.equal(true);
+      });
+
+      it("should reject a test_v3 object whose badge is not a boolean", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            badge: "yes",
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("badge");
+      });
+
+      it("should validate a test_v3 object carrying a system-populated location", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            location: { line: 5, startIndex: 10, endIndex: 40 },
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.location).to.deep.equal({ line: 5, startIndex: 10, endIndex: 40 });
+      });
+
+      it("should reject a test_v3 object whose location is not an object", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            location: "line 5",
+            steps: [{ goTo: { url: "https://example.com" } }],
+          },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("location");
       });
 
       it("should accept a relative forward-slash step autoScreenshot path", function () {
@@ -391,6 +500,117 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.record.engine.target).to.equal(undefined);
       });
 
+      it("should validate every record overwrite enum value including aboveVariation", function () {
+        for (const overwrite of ["true", "false", "aboveVariation"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", overwrite } },
+          });
+          expect(result.valid, `overwrite: ${overwrite} -> ${result.errors}`).to
+            .be.true;
+        }
+      });
+
+      it("should reject a record step with an invalid overwrite value", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { record: { path: "out.mp4", overwrite: "sometimes" } },
+        });
+        expect(result.valid).to.be.false;
+      });
+
+      it("should validate a record step with verify guards", function () {
+        for (const verify of [
+          {},
+          { minDuration: 1 },
+          { minDuration: 0.5, maxDuration: 30 },
+          { resolution: true },
+          { resolution: false },
+          { resolution: { width: 1280, height: 720 } },
+          { notBlack: true },
+          {
+            minDuration: 1,
+            resolution: { width: 640, height: 480 },
+            notBlack: true,
+          },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", verify } },
+          });
+          expect(
+            result.valid,
+            `verify: ${JSON.stringify(verify)} -> ${result.errors}`
+          ).to.be.true;
+        }
+      });
+
+      it("should reject a record step with invalid verify guards", function () {
+        // Note: primitives coerce under ajv coerceTypes, so negatives use
+        // out-of-range numbers, unknown keys, incomplete objects, and arrays.
+        for (const verify of [
+          { minDuration: -1 },
+          { maxDuration: -1 },
+          { minDuration: "soon" },
+          { notBlack: {} },
+          { unknownGuard: true },
+          { resolution: { width: 1280 } },
+          { resolution: { width: 0, height: 480 } },
+          [true],
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", verify } },
+          });
+          expect(
+            result.valid,
+            `expected invalid verify: ${JSON.stringify(verify)}`
+          ).to.be.false;
+        }
+      });
+
+      it("should validate a record step with checkpoints enabled", function () {
+        for (const checkpoints of [
+          true,
+          false,
+          {},
+          { maxVariation: 0.02 },
+          { directory: "baselines" },
+          { maxVariation: 0.1, directory: "baselines" },
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", checkpoints } },
+          });
+          expect(
+            result.valid,
+            `checkpoints: ${JSON.stringify(checkpoints)} -> ${result.errors}`
+          ).to.be.true;
+        }
+      });
+
+      it("should reject a record step with invalid checkpoints", function () {
+        // Note: string/number primitives coerce under ajv coerceTypes (7 ->
+        // "7"), so negatives use shapes that never coerce clean: out-of-range
+        // numbers, unknown keys, arrays, and object-typed field values.
+        for (const checkpoints of [
+          { maxVariation: 2 },
+          { maxVariation: -0.5 },
+          { unknownField: true },
+          { directory: {} },
+          [true],
+        ]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { record: { path: "out.mp4", checkpoints } },
+          });
+          expect(
+            result.valid,
+            `expected invalid checkpoints: ${JSON.stringify(checkpoints)}`
+          ).to.be.false;
+        }
+      });
+
       it("should validate a config_v3 object with autoRecord set", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -402,14 +622,14 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.object.autoRecord).to.equal(true);
       });
 
-      it("should default autoRecord to false when unset", function () {
+      it("should leave autoRecord unset when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.autoRecord).to.equal(false);
+        expect(result.object.autoRecord).to.equal(undefined);
       });
 
       it("should reject a config_v3 object whose autoRecord is not a boolean", function () {
@@ -638,6 +858,99 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.include("autoUpdate");
       });
 
+      it("should validate a config_v3 object with exitOnFail set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { exitOnFail: true },
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.exitOnFail).to.equal(true);
+      });
+
+      it("should leave exitOnFail unset when omitted", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.exitOnFail).to.equal(undefined);
+      });
+
+      it("should reject a config_v3 object whose exitOnFail is not a boolean", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { exitOnFail: "yes" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+        expect(result.errors).to.include("exitOnFail");
+      });
+
+      it("should accept publicVariables on config_v3, spec_v3, and test_v3", function () {
+        const steps = [{ goTo: { url: "https://example.com" } }];
+        const cases = [
+          { schemaKey: "config_v3", object: { publicVariables: ["BASE_URL", "DD_*"] } },
+          { schemaKey: "test_v3", object: { publicVariables: ["*"], steps } },
+          { schemaKey: "spec_v3", object: { publicVariables: [], tests: [{ publicVariables: ["A"], steps }] } },
+        ];
+        for (const { schemaKey, object } of cases) {
+          const result = validate({ schemaKey, object: structuredClone(object) });
+          expect(result.valid, `${schemaKey}: ${result.errors}`).to.be.true;
+          expect(result.object.publicVariables).to.deep.equal(object.publicVariables);
+        }
+      });
+
+      it("should reject a publicVariables that isn't an array of names", function () {
+        const steps = [{ goTo: { url: "https://example.com" } }];
+        for (const bad of ["BASE_URL", [""], ["  "]]) {
+          for (const [schemaKey, object] of [
+            ["config_v3", { publicVariables: bad }],
+            ["test_v3", { publicVariables: bad, steps }],
+            ["spec_v3", { publicVariables: bad, tests: [{ steps }] }],
+          ]) {
+            const result = validate({ schemaKey, object });
+            expect(result.valid, `${schemaKey}: ${JSON.stringify(bad)}`).to.be.false;
+            expect(result.errors).to.include("publicVariables");
+          }
+        }
+      });
+
+      it("should validate a config_v3 object with retries set (including 0)", function () {
+        for (const retries of [0, 1, 3]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.true;
+          expect(result.object.retries).to.equal(retries);
+        }
+      });
+
+      it("should default retries to 1 when omitted", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {},
+        });
+
+        expect(result.valid).to.be.true;
+        expect(result.object.retries).to.equal(1);
+      });
+
+      it("should reject a config_v3 object whose retries is negative or non-integer", function () {
+        for (const retries of [-1, 11, 1.5, "two"]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.false;
+          expect(result.errors).to.include("retries");
+        }
+      });
+
       it("should validate a config_v3 object with cacheDir set", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -862,6 +1175,35 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
       });
     });
 
+    describe("checkLink timeout", function () {
+      it("should accept a positive integer timeout", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { checkLink: { url: "https://example.com", timeout: 5000 } },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.checkLink.timeout).to.equal(5000);
+      });
+
+      it("should reject a non-positive timeout", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { checkLink: { url: "https://example.com", timeout: 0 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("must be >= 1");
+      });
+
+      it("should document a 10000 ms default", function () {
+        const timeout =
+          schemas.checkLink_v3.components.schemas.object.properties.timeout;
+        expect(timeout.default).to.equal(10000);
+        expect(timeout.minimum).to.equal(1);
+      });
+    });
+
     describe("swipe step", function () {
       it("should validate the simple direction string form", function () {
         const result = validate({
@@ -1045,6 +1387,451 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         const result = validate({
           schemaKey: "step_v3",
           object: { click: { elementText: "Message", duration: 1.5 } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+    });
+
+    // The screenshot `path` pattern gates every screenshot step, including the
+    // ones doc-detective synthesizes internally with ABSOLUTE paths derived
+    // from the user's project location (captureAutoScreenshot in
+    // src/core/tests.ts, and recording checkpoints in
+    // src/core/tests/recordingCheckpoints.ts). The Windows branch accepts any
+    // absolute path, so the POSIX branch must be equally permissive — a mac or
+    // Linux project under "/Users/jane doe/..." must not be second-class.
+    describe("screenshot path pattern", function () {
+      const validPath = (path) =>
+        validate({ schemaKey: "step_v3", object: { screenshot: { path } } })
+          .valid;
+
+      it("accepts absolute POSIX paths containing characters real projects use", function () {
+        for (const path of [
+          "/Users/jane doe/docs/shot.png",
+          "/home/u/docs (v2)/shot.png",
+          "/home/u/~backup/shot.png",
+          "/home/u/café/shot.png",
+          "/home/u/a'b/shot.png",
+          "/home/u/shot.PNG",
+        ]) {
+          expect(validPath(path), `expected valid: ${path}`).to.be.true;
+        }
+      });
+
+      it("keeps accepting the forms it already did", function () {
+        for (const path of [
+          "shot.png",
+          "screenshots/spec/01.png",
+          "/home/user/shot.png",
+          "C:\\Users\\jane doe\\docs (v2)\\shot.png",
+          "https://example.com/a.png",
+          "https://example.com/a.png?sig=1",
+          "$MY_VAR",
+        ]) {
+          expect(validPath(path), `expected valid: ${path}`).to.be.true;
+        }
+      });
+
+      it("still requires a .png/.PNG target", function () {
+        for (const path of [
+          "/Users/jane doe/docs/shot.jpg",
+          "/Users/jane doe/docs/shot.png.exe",
+          "/Users/jane doe/docs/shot",
+          "shot.gif",
+        ]) {
+          expect(validPath(path), `expected invalid: ${path}`).to.be.false;
+        }
+      });
+    });
+
+    describe("annotations", function () {
+      const TYPES = ["outline", "arrow", "badge", "callout", "blur", "text"];
+
+      it("should validate an annotation_v3 object for each type with a string target", function () {
+        for (const type of TYPES) {
+          const result = validate({
+            schemaKey: "annotation_v3",
+            object: { [type]: "#submit-button" },
+          });
+
+          expect(result.valid, `expected valid: ${type} — ${result.errors}`).to
+            .be.true;
+          expect(result.errors).to.equal("");
+        }
+      });
+
+      it("should validate an annotation_v3 object with a find-criteria target", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: {
+            outline: {
+              elementClass: ["form-field", "/^billing-/"],
+              elementAttribute: { "data-state": "invalid" },
+            },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate an annotation_v3 target with a timeout", function () {
+        // Annotation targets resolve through the same findElement as `find`,
+        // so they take the same `timeout`. Without it every target polls for a
+        // hardcoded 5s and authors have to precede `annotate` with a guard
+        // `find` just to buy a longer wait.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { selector: "#slow-widget", timeout: 15000 } },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.outline.timeout).to.equal(15000);
+      });
+
+      it("should reject an annotation_v3 target whose only field is a timeout", function () {
+        // `timeout` is a deadline, not a way to find an element — it can't
+        // satisfy the at-least-one-element-finding-field guard on its own.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { timeout: 15000 } },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject a non-integer annotation_v3 target timeout", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { selector: "#a", timeout: "soon" } },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
+      it("should validate an annotation_v3 object with a position target", function () {
+        const named = validate({
+          schemaKey: "annotation_v3",
+          object: { text: { position: "top-right" }, label: "Demo data" },
+        });
+        expect(named.valid, named.errors).to.be.true;
+
+        const point = validate({
+          schemaKey: "annotation_v3",
+          object: { arrow: { position: { x: 640, y: 220 } } },
+        });
+        expect(point.valid, point.errors).to.be.true;
+      });
+
+      it("should reject an annotation_v3 object with no type key", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { label: "Orphaned label" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an annotation_v3 object with more than one type key", function () {
+        // Exactly one type key per annotation — two shapes in one object is
+        // ambiguous about what should be drawn.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", blur: "#b" },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should validate an annotation_v3 object with the full shared prop set", function () {
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: {
+            id: "redact-api-keys",
+            blur: { elementAttribute: { "data-sensitive": true } },
+            all: true,
+            track: true,
+            duration: 3500,
+            position: "right",
+            style: { intensity: 22, color: "#E11D48", strokeWidth: 3 },
+            transition: { enter: "none", exit: "fade", durationMs: 400 },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject unknown annotation_v3 properties and bad style values", function () {
+        const unknown = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", bogus: true },
+        });
+        expect(unknown.valid).to.be.false;
+
+        const badOpacity = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", style: { opacity: 5 } },
+        });
+        expect(badOpacity.valid).to.be.false;
+
+        const badTransition = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a", transition: { enter: "explode" } },
+        });
+        expect(badTransition.valid).to.be.false;
+      });
+
+      it("should not inject defaults into an annotation_v3 object", function () {
+        // annotation_v3 is $ref'd from screenshot steps and the defaults
+        // cascade alike; a schema-level default here would be force-injected
+        // into every consumer and break the config→spec→test resolution.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: "#a" },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object).to.deep.equal({ outline: "#a" });
+      });
+
+      it("should not inject the target timeout default into an object target", function () {
+        // The string form above never enters target_element_shape, so it
+        // can't exercise the one `default` that shape carries. This does.
+        //
+        // `timeout` declares `"default": 5000` to document the wait on the
+        // generated reference page, and it stays inert only because Ajv skips
+        // defaults inside `anyOf` — which is how every target is reached. If
+        // that ever changed, every annotation target would silently gain a
+        // timeout it didn't ask for, and the runtime's own default (find's)
+        // would stop being the one in charge.
+        const result = validate({
+          schemaKey: "annotation_v3",
+          object: { outline: { selector: "#a" } },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object).to.deep.equal({ outline: { selector: "#a" } });
+        expect(result.object.outline.timeout).to.equal(undefined);
+      });
+
+      it("should validate a screenshot step with an annotations array", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: {
+              path: "checkout.png",
+              crop: { selector: "#checkout-panel", padding: 24 },
+              annotations: [
+                { outline: "#credit-card-number" },
+                { badge: "#expiry", label: "2" },
+                {
+                  callout: { elementTestId: "cvv-input" },
+                  label: "Never stored",
+                  position: "right",
+                  style: { maxWidth: 240 },
+                },
+                { blur: ".customer-email", all: true },
+              ],
+            },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.screenshot.annotations).to.have.lengthOf(4);
+      });
+
+      it("should reject a screenshot annotations entry that isn't a valid annotation", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: { path: "a.png", annotations: [{ label: "no type" }] },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
+      it("should validate annotationDefaults at the config level", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {
+            annotationDefaults: {
+              color: "#E11D48",
+              strokeWidth: 3,
+              fontFamily: "Inter, system-ui, sans-serif",
+              fontSize: 14,
+              badge: { background: "#E11D48", color: "#FFFFFF" },
+              callout: { background: "#1E293B", maxWidth: 280 },
+              blur: { intensity: 14 },
+              transition: { enter: "fade", exit: "fade", durationMs: 250 },
+            },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.annotationDefaults.color).to.equal("#E11D48");
+      });
+
+      it("should validate annotationDefaults overrides on specs and tests", function () {
+        const result = validate({
+          schemaKey: "spec_v3",
+          object: {
+            annotationDefaults: { color: "#7C3AED" },
+            tests: [
+              {
+                annotationDefaults: { color: "#0EA5E9" },
+                steps: [{ goTo: { url: "https://example.com" } }],
+              },
+            ],
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.annotationDefaults.color).to.equal("#7C3AED");
+        expect(result.object.tests[0].annotationDefaults.color).to.equal(
+          "#0EA5E9"
+        );
+      });
+
+      it("should not default annotationDefaults at any cascade level when unset", function () {
+        // Same contract as autoScreenshot: absent must stay absent so the
+        // runtime can resolve test > spec > config > built-in theme.
+        const spec = validate({
+          schemaKey: "spec_v3",
+          object: {
+            tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }],
+          },
+        });
+        expect(spec.valid, spec.errors).to.be.true;
+        expect(spec.object.annotationDefaults).to.equal(undefined);
+        expect(spec.object.tests[0].annotationDefaults).to.equal(undefined);
+
+        const config = validate({ schemaKey: "config_v3", object: {} });
+        expect(config.valid, config.errors).to.be.true;
+        expect(config.object.annotationDefaults).to.equal(undefined);
+      });
+
+      it("should validate an annotate step's add, update, and clear forms", function () {
+        const add = validate({
+          schemaKey: "step_v3",
+          object: {
+            annotate: {
+              add: [
+                { id: "guide", callout: "#totp", label: "Only with 2FA on" },
+                { id: "redact", blur: { selector: ".key" }, all: true, track: true },
+              ],
+            },
+          },
+        });
+        expect(add.valid, add.errors).to.be.true;
+
+        const update = validate({
+          schemaKey: "step_v3",
+          object: {
+            annotate: { update: [{ id: "guide", callout: "#metadata-url" }] },
+          },
+        });
+        expect(update.valid, update.errors).to.be.true;
+
+        const clearAll = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { clear: true } },
+        });
+        expect(clearAll.valid, clearAll.errors).to.be.true;
+
+        const clearSome = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { clear: ["guide", "redact"] } },
+        });
+        expect(clearSome.valid, clearSome.errors).to.be.true;
+
+        const combined = validate({
+          schemaKey: "step_v3",
+          object: {
+            annotate: { add: [{ outline: "#a" }], clear: ["old"] },
+          },
+        });
+        expect(combined.valid, combined.errors).to.be.true;
+      });
+
+      it("should require an id on every annotate update entry", function () {
+        // `update` addresses an annotation that's already on screen, so
+        // without an id there's nothing to address.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { update: [{ callout: "#a", label: "x" }] } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.be.a("string");
+      });
+
+      it("should reject an empty annotate step", function () {
+        // An annotate that neither adds, updates, nor clears is a no-op the
+        // author didn't mean to write.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { annotate: {} },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
+      it("should reject annotate entries that aren't valid annotations", function () {
+        const noType = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { add: [{ label: "orphan" }] } },
+        });
+        expect(noType.valid).to.be.false;
+
+        const twoTypes = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { add: [{ outline: "#a", blur: "#b" }] } },
+        });
+        expect(twoTypes.valid).to.be.false;
+
+        const unknown = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { add: [{ outline: "#a" }], bogus: true } },
+        });
+        expect(unknown.valid).to.be.false;
+      });
+
+      it("should keep clear's boolean form a boolean rather than coercing it", function () {
+        // AJV runs with coerceTypes; a leading array/string branch could turn
+        // `true` into something else. The boolean branch comes first.
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { annotate: { clear: true } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.annotate.clear).to.equal(true);
+      });
+
+      it("should list annotate as a markup action", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {
+            fileTypes: [
+              {
+                name: "markdown",
+                extensions: [".md"],
+                markup: [
+                  { name: "annotateStep", regex: ["x"], actions: ["annotate"] },
+                ],
+              },
+            ],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject an invalid annotationDefaults theme", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { annotationDefaults: { color: 5, bogus: true } },
         });
 
         expect(result.valid).to.be.false;
@@ -1480,6 +2267,261 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
     });
+
+    describe("report_v3 durationMs", function () {
+      const minimalSpecs = [
+        { tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }] },
+      ];
+      // Negative cases must fail on the `minimum`/`integer` constraint, not on
+      // `additionalProperties` — otherwise they'd pass identically against a
+      // schema that never declared `durationMs` at all.
+      const expectConstraintError = (errors) => {
+        expect(errors).to.be.a("string");
+        expect(errors).to.include("durationMs");
+        expect(errors).to.not.include("additional properties");
+      };
+      // A fully timed report: `durationMs` on the run, spec, test, resolved
+      // context, and step nodes. System-populated output, never authored.
+      const timedReport = {
+        durationMs: 5000,
+        specs: [
+          {
+            durationMs: 4000,
+            tests: [
+              {
+                durationMs: 4000,
+                contexts: [
+                  {
+                    durationMs: 4000,
+                    steps: [
+                      { goTo: { url: "https://example.com" }, durationMs: 900 },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      it("should validate durationMs on every report node", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: structuredClone(timedReport),
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.errors).to.equal("");
+        expect(result.object.durationMs).to.equal(5000);
+        expect(result.object.specs[0].durationMs).to.equal(4000);
+        expect(result.object.specs[0].tests[0].durationMs).to.equal(4000);
+        expect(
+          result.object.specs[0].tests[0].contexts[0].durationMs
+        ).to.equal(4000);
+        expect(
+          result.object.specs[0].tests[0].contexts[0].steps[0].durationMs
+        ).to.equal(900);
+      });
+
+      it("should validate a report_v3 object without durationMs (back-compat)", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: { specs: minimalSpecs },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.durationMs).to.equal(undefined);
+      });
+
+      it("should accept a zero durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].contexts[0].steps[0].durationMs = 0;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject a negative run durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.durationMs = -1;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a fractional step durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].contexts[0].steps[0].durationMs = 12.5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a negative test durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].durationMs = -5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a negative context durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].tests[0].contexts[0].durationMs = -5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+
+      it("should reject a negative spec durationMs", function () {
+        const object = structuredClone(timedReport);
+        object.specs[0].durationMs = -5;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expectConstraintError(result.errors);
+      });
+    });
+
+    // Ajv runs with coerceTypes, so a union's earlier branch can rewrite a
+    // value meant for a later one (`false` → "false", `true` → 1). Each case
+    // is [authored step, path to the value, expected validated value]. ADR 01161.
+    describe("authored scalar types survive coercion", function () {
+      const attr = (value) => ({ "data-x": value });
+      const cases = [
+        [{ find: { selector: "#a", click: false } }, ["find", "click"], false],
+        [{ find: { selector: "#a", click: true } }, ["find", "click"], true],
+        [{ find: { selector: "#a", click: "right" } }, ["find", "click"], "right"],
+        [{ click: false }, ["click"], false],
+        [{ click: true }, ["click"], true],
+        [{ click: "true" }, ["click"], "true"],
+        [{ click: "false" }, ["click"], "false"],
+        [{ wait: true }, ["wait"], true],
+        [{ wait: false }, ["wait"], false],
+        [{ wait: 1 }, ["wait"], 1],
+        [{ wait: 0 }, ["wait"], 0],
+        [{ wait: "5000" }, ["wait"], 5000],
+        [{ wait: "true" }, ["wait"], true],
+        [{ wait: "$WAIT" }, ["wait"], "$WAIT"],
+        [{ record: false }, ["record"], false],
+        [{ record: "true" }, ["record"], true],
+        [{ screenshot: false }, ["screenshot"], false],
+        [{ find: { elementAttribute: { disabled: false } } }, ["find", "elementAttribute", "disabled"], false],
+        [{ find: { elementAttribute: attr(true) } }, ["find", "elementAttribute", "data-x"], true],
+        [{ find: { elementAttribute: attr("true") } }, ["find", "elementAttribute", "data-x"], "true"],
+        [{ find: { elementAttribute: attr(5) } }, ["find", "elementAttribute", "data-x"], 5],
+        [{ find: { elementAttribute: attr("5") } }, ["find", "elementAttribute", "data-x"], "5"],
+        [{ click: { elementAttribute: attr(false) } }, ["click", "elementAttribute", "data-x"], false],
+        [{ annotate: { add: [{ outline: { elementAttribute: attr(true) } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], true],
+        [{ annotate: { add: [{ outline: { elementAttribute: attr("true") } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], "true"],
+      ];
+      for (const [step, keys, expected] of cases) {
+        it(`keeps ${JSON.stringify(step)} as ${JSON.stringify(expected)}`, function () {
+          const result = validate({ schemaKey: "step_v3", object: step });
+          expect(result.valid, result.errors).to.be.true;
+          const actual = keys.reduce((value, key) => value[key], result.object);
+          expect(actual).to.equal(expected);
+        });
+      }
+    });
+
+    describe("report_v3 run metadata", function () {
+      // The run environment and start times (ADR 01163). System-populated
+      // output, never authored.
+      const metadataReport = {
+        runId: "2026-11-06T02-33-28-631Z",
+        startedAt: "2026-11-06T02:33:28.631Z",
+        environment: {
+          platform: "linux",
+          arch: "x64",
+          docDetectiveVersion: "4.42.0",
+          nodeVersion: "24.15.0",
+          osRelease: "6.8.0-1017-azure",
+        },
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  {
+                    contextId: "default",
+                    startedAt: "2026-11-06T02:33:28.640Z",
+                    browser: { name: "chrome", version: "131.0.6778.85" },
+                    driver: { name: "chromedriver", version: "131.0.6778.85" },
+                    steps: [
+                      {
+                        goTo: { url: "https://example.com" },
+                        startedAt: "2026-11-06T02:33:28.645Z",
+                        durationMs: 138,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+
+      it("should validate the environment and start times", function () {
+        const result = validate({
+          schemaKey: "report_v3",
+          object: structuredClone(metadataReport),
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.environment).to.deep.equal(
+          metadataReport.environment
+        );
+        const context = result.object.specs[0].tests[0].contexts[0];
+        expect(context.startedAt).to.equal("2026-11-06T02:33:28.640Z");
+        expect(context.browser.version).to.equal("131.0.6778.85");
+        expect(context.driver).to.deep.equal({
+          name: "chromedriver",
+          version: "131.0.6778.85",
+        });
+        expect(context.steps[0].startedAt).to.equal(
+          "2026-11-06T02:33:28.645Z"
+        );
+      });
+
+      it("should validate a context with no browser or driver", function () {
+        const object = structuredClone(metadataReport);
+        const context = object.specs[0].tests[0].contexts[0];
+        delete context.browser;
+        delete context.driver;
+        context.steps = [{ runShell: "echo hi", startedAt: context.startedAt }];
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should reject an unknown environment platform", function () {
+        const object = structuredClone(metadataReport);
+        object.environment.platform = "plan9";
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("environment");
+      });
+
+      it("should reject an unknown environment field", function () {
+        const object = structuredClone(metadataReport);
+        object.environment.hostname = "build-07";
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("environment");
+      });
+
+      it("should reject a run startedAt that isn't an ISO 8601 date-time", function () {
+        const object = structuredClone(metadataReport);
+        object.startedAt = "yesterday";
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("startedAt");
+      });
+
+      it("should reject a driver without a name", function () {
+        const object = structuredClone(metadataReport);
+        object.specs[0].tests[0].contexts[0].driver = { version: "1.0" };
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("driver");
+      });
+    });
   });
 
   describe("transformToSchemaKey", function () {
@@ -1912,6 +2954,41 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("browserFallback");
+      });
+    });
+
+    describe("context_v3 retries", function () {
+      it("should validate a context_v3 object with a retries override (including 0)", function () {
+        for (const retries of [0, 1, 3]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { platforms: ["linux"], retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.true;
+          expect(result.object.retries).to.equal(retries);
+        }
+      });
+
+      it("should NOT inject a default retries at the context level (inherits config when omitted)", function () {
+        // Only the config-level field defaults to 1; a context override must stay
+        // undefined when unset so resolveRetryPolicy falls through to config.
+        const result = validate({
+          schemaKey: "context_v3",
+          object: { platforms: ["linux"] },
+        });
+        expect(result.valid).to.be.true;
+        expect(result.object.retries).to.equal(undefined);
+      });
+
+      it("should reject a context_v3 object whose retries is negative or non-integer", function () {
+        for (const retries of [-1, 11, 1.5, "two"]) {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: { platforms: ["linux"], retries },
+          });
+          expect(result.valid, `retries: ${retries}`).to.be.false;
+          expect(result.errors).to.include("retries");
+        }
       });
     });
 
@@ -3294,6 +4371,70 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         });
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
+      });
+
+      for (const tty of [{}, { cols: 80 }, { cols: 80, rows: 24 }, { cols: 1000, rows: 1 }]) {
+        it(`should validate a background runShell with tty ${JSON.stringify(tty)}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              runShell: { command: "my-tui", background: { name: "x", tty } },
+            },
+          });
+          expect(result.valid, result.errors).to.be.true;
+          expect(result.object.runShell.background.tty).to.deep.equal(tty);
+        });
+      }
+
+      for (const [tty, pattern] of [
+        [{ cols: 0 }, /tty\/cols must be >= 1/],
+        [{ cols: 1001 }, /tty\/cols must be <= 1000/],
+        [{ rows: 0 }, /tty\/rows must be >= 1/],
+        [{ cols: 80.5 }, /tty\/cols must be integer/],
+        [{ width: 80 }, /must NOT have additional properties/],
+      ]) {
+        it(`should reject a background runShell with tty ${JSON.stringify(tty)}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              runShell: { command: "my-tui", background: { name: "x", tty } },
+            },
+          });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.match(pattern);
+        });
+      }
+
+      it("should validate a background runCode with tty {cols, rows}", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            runCode: {
+              language: "python",
+              code: "print('hi')",
+              background: { name: "x", tty: { cols: 80, rows: 24 } },
+            },
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("should validate a startSurface process with tty {cols, rows} and reject cols 0", function () {
+        const ok = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { process: "my-tui", name: "x", tty: { cols: 100, rows: 40 } },
+          },
+        });
+        expect(ok.valid, ok.errors).to.be.true;
+        const bad = validate({
+          schemaKey: "step_v3",
+          object: {
+            startSurface: { process: "my-tui", name: "x", tty: { cols: 0 } },
+          },
+        });
+        expect(bad.valid).to.be.false;
+        expect(bad.errors).to.match(/tty\/cols must be >= 1/);
       });
 
       it("should validate a background runCode with tty:true", function () {
@@ -4765,4 +5906,102 @@ import { validate, transformToSchemaKey } from "../dist/validate.js";
         expect(result.errors).to.be.a("string");
       });
     });
+  });
+
+  describe("httpRequest statusCodes shapes", function () {
+    it("accepts a single integer", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: 404 } },
+      });
+      expect(result.valid, result.errors).to.be.true;
+    });
+
+    it("still accepts an array of integers", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: [200, 404] } },
+      });
+      expect(result.valid, result.errors).to.be.true;
+    });
+
+    it("rejects a non-numeric string", function () {
+      const result = validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { url: "https://example.com", statusCodes: "ok" } },
+      });
+      expect(result.valid).to.be.false;
+    });
+  });
+
+  describe("config environment arch", function () {
+    for (const arch of [
+      "arm",
+      "arm64",
+      "ia32",
+      "loong64",
+      "mips",
+      "mipsel",
+      "ppc",
+      "ppc64",
+      "riscv64",
+      "s390",
+      "s390x",
+      "x64",
+    ]) {
+      it(`accepts Node's os.arch() value ${arch}`, function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { environment: { platform: "linux", arch } },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+    }
+
+    for (const arch of ["arm32", "x32"]) {
+      it(`rejects the non-Node value ${arch}`, function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { environment: { platform: "linux", arch } },
+        });
+        expect(result.valid).to.be.false;
+      });
+    }
+  });
+
+  describe("$schema is a free-form string", function () {
+    const legacy = (name) =>
+      `https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/${name}_v3.schema.json`;
+    const versioned = (name) =>
+      `https://unpkg.com/doc-detective-common@5/dist/schemas/${name}_v3.schema.json`;
+    const cases = {
+      spec_v3: { name: "spec", object: { tests: [{ steps: [{ wait: 1 }] }] } },
+      config_v3: { name: "config", object: {} },
+      context_v3: { name: "context", object: { platforms: "linux" } },
+      step_v3: { name: "step", object: { wait: 1 } },
+      test_v3: { name: "test", object: { steps: [{ wait: 1 }] } },
+    };
+
+    for (const [schemaKey, { name, object }] of Object.entries(cases)) {
+      for (const [label, $schema] of [
+        ["the versioned unpkg URL", versioned(name)],
+        ["the legacy URL", legacy(name)],
+        ["a local path", `./schemas/${name}_v3.schema.json`],
+      ]) {
+        it(`${schemaKey} accepts ${label}`, function () {
+          const result = validate({ schemaKey, object: { ...object, $schema } });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      it(`${schemaKey} rejects an empty $schema`, function () {
+        const result = validate({ schemaKey, object: { ...object, $schema: "" } });
+        expect(result.valid).to.be.false;
+      });
+
+      it(`${schemaKey} rejects a non-string $schema`, function () {
+        const result = validate({ schemaKey, object: { ...object, $schema: {} } });
+        expect(result.valid).to.be.false;
+      });
+    }
   });

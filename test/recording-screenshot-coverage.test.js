@@ -233,6 +233,22 @@ describeIfSharp("saveScreenshot: extra branches", function () {
     assert.ok(fs.existsSync(target));
   });
 
+  it("reports the saved screenshot's rendered dimensions in outputs (ground truth)", async function () {
+    // The article's workaround was captioning screenshots with the size the
+    // page actually rendered. saveScreenshot now reports that size directly, so
+    // a floored/emulated viewport is reconcilable against the file.
+    const target = path.join(tmpDir, "dims.png");
+    const buf = await makePngBuffer(375, 812);
+    const result = await saveScreenshot({
+      config,
+      step: { stepId: "dims1", screenshot: target },
+      driver: fakeDriver(buf),
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.outputs.width, 375);
+    assert.equal(result.outputs.height, 812);
+  });
+
   it("new capture (no reference) preserves sourceIntegration on the output", async function () {
     const target = path.join(tmpDir, "new-si.png");
     const buf = await makePngBuffer(24, 18);
@@ -656,6 +672,62 @@ describe("startRecording: guards + browser engine", function () {
     assert.match(result.description, /File already exists/);
   });
 
+  // ADR 01079: an existing target skips the *video*, but checkpoints are a
+  // separate concern — the span still compares read-only, or `checkpoints: true`
+  // would seed baselines on the first run and never compare again.
+  it("existing target file + checkpoints -> SKIPPED with a phantom span", async function () {
+    const target = path.join(tmpDir, "exists.mp4");
+    fs.writeFileSync(target, "stub");
+    const result = await startRecording({
+      config,
+      context: {},
+      step: {
+        stepId: "x",
+        record: { path: target, overwrite: "false", checkpoints: true },
+      },
+      driver: {},
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.match(result.description, /File already exists/);
+    assert.match(result.description, /checkpoint comparisons only/);
+    assert.equal(result.recording?.type, "phantom");
+    assert.equal(result.recording?.targetPath, target);
+  });
+
+  it("existing target file + aboveVariation -> records (never skips)", async function () {
+    const target = path.join(tmpDir, "av.mp4");
+    fs.writeFileSync(target, "stub");
+    const result = await startRecording({
+      config,
+      context: {},
+      step: {
+        stepId: "x",
+        record: { path: target, overwrite: "aboveVariation" },
+      },
+      driver: {},
+    });
+    // Must not hit the existing-file skip: aboveVariation always records, then
+    // decides at stopRecord whether the capture replaces the target.
+    assert.ok(
+      !/File already exists/.test(String(result.description)),
+      `aboveVariation must not skip an existing target, got: ${result.description}`
+    );
+  });
+
+  it("existing target file + overwrite:false, no checkpoints -> plain SKIPPED, no phantom", async function () {
+    const target = path.join(tmpDir, "plain.mp4");
+    fs.writeFileSync(target, "stub");
+    const result = await startRecording({
+      config,
+      context: {},
+      step: { stepId: "x", record: { path: target, overwrite: "false" } },
+      driver: {},
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.match(result.description, /File already exists/);
+    assert.equal(result.recording, undefined);
+  });
+
   it("target already claimed by an active recording -> SKIPPED", async function () {
     const target = path.join(tmpDir, "busy.mp4");
     const driver = {
@@ -754,7 +826,9 @@ describe("startRecording: guards + browser engine", function () {
 
   // A fake driver for the browser-engine happy/fail paths. instantiateCursor
   // is satisfied by driver.$ returning an already-instantiated cursor
-  // (truthy elementId) so it skips the DOM/performActions work.
+  // (truthy elementId) so it skips the DOM/performActions work. Shaped like
+  // webdriverio 10: no executeAsync, and `execute` runs an async function
+  // through Execute Async Script, so only the recorder script is async.
   function browserDriver({ recorderStarted = true } = {}) {
     let title = "Original Title";
     return {
@@ -772,6 +846,7 @@ describe("startRecording: guards + browser engine", function () {
         return { elementId: "cursor-exists" };
       },
       async execute(fn, arg) {
+        if (fn?.constructor?.name === "AsyncFunction") return recorderStarted;
         // document.title setter: (title) => (document.title = title)
         if (typeof fn === "function" && fn.length >= 1 && typeof arg === "string") {
           title = arg;
@@ -783,9 +858,6 @@ describe("startRecording: guards + browser engine", function () {
       },
       async switchToWindow() {},
       async url() {},
-      async executeAsync() {
-        return recorderStarted;
-      },
       async closeWindow() {},
     };
   }

@@ -8,12 +8,12 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-Doc Detective's heavy dependencies — Appium, webdriverio, the browser drivers, and the browsers
-themselves — made `npm i doc-detective` slow, large, and prone to failure on machines that would
-never run a browser test. But installing nothing eagerly meant the first real run had to provision
-everything just-in-time. How should Doc Detective provision its heavy runtime and browsers: at
-install time, on first use, or some staged combination, and how should that provisioning be made
-observable and bounded?
+Doc Detective's heavy dependencies made `npm i doc-detective` slow, large, and prone to failure.
+Those are Appium, webdriverio, the browser drivers, and the browsers themselves. Machines that
+would never run a browser test paid that cost. But installing nothing eagerly meant the first real
+run had to provision everything just-in-time. How should Doc Detective provision its heavy runtime
+and browsers: at install time, on first use, or some staged combination? And how should that
+provisioning be made observable and bounded?
 
 ## Decision Drivers
 
@@ -25,7 +25,7 @@ observable and bounded?
 
 ## Considered Options
 
-* **A. A runtime cache + lazy-install layer, with an eager-by-default pre-warm that degrades to lazy on timeout, an install log, JIT browser provisioning, and companion-aware install planning** (chosen).
+* **A. A runtime cache plus a lazy-install layer. An eager-by-default pre-warm degrades to lazy on timeout, with an install log, JIT browser provisioning, and companion-aware install planning** (chosen).
 * **B. Eager full install at `npm i` (the prior behavior).**
 * **C. Purely lazy: never pre-install; always provision on first run.**
 
@@ -49,12 +49,12 @@ always falls back to lazy and stays observable and bounded. The chain landed acr
 5. **Companions + accurate planning.** `withPeerCompanions` expansion so dry-run and real install
    reports match actual installs; `parseSemverCore` anchored with `$` for OR/composite ranges
    (commits `23b54636`, `0257797d`, `19e19121`).
-6. **Bounded pre-warm.** postinstall enforces a 10-minute wall-clock ceiling that kills the runtime
-   pre-warm child non-fatally — it falls back to lazy install and exits 0 (commit `fb99ca7a`).
+6. **Bounded pre-warm.** postinstall enforces a 10-minute wall-clock ceiling. That kills the runtime
+   pre-warm child non-fatally, falling back to lazy install and exiting 0 (commit `fb99ca7a`).
 
-Net contract: heavy runtime/browsers live in `cacheDir`, are pre-warmed by default (opt-out env),
-fall back to lazy/JIT provisioning, are logged, time-bounded, and reported consistently between
-dry-run and real installs.
+Net contract: the heavy runtime and browsers live in `cacheDir`, and are pre-warmed by default,
+with an opt-out env var. They fall back to lazy or JIT provisioning. They are logged, time-bounded,
+and reported consistently between dry-run and real installs.
 
 ### Consequences
 

@@ -9,7 +9,7 @@ decision-makers: doc-detective maintainers
 ## Context and Problem Statement
 
 The genesis engine drove browsers through Selenium and a Puppeteer recording experiment
-(see `00001`), which limited Doc Detective to a narrow set of Chromium-flavored targets and made
+(see `00001`). That limited Doc Detective to a narrow set of Chromium-flavored targets, and made
 multi-browser support awkward. As `doc-detective-core` took shape, we needed a driver layer that
 could automate Chrome **and** Firefox through one client and leave room for more engines later.
 Should the new core keep Puppeteer, or adopt the Appium/WebdriverIO stack?
@@ -31,17 +31,17 @@ Should the new core keep Puppeteer, or adopt the Appium/WebdriverIO stack?
 
 Chosen option: **A**, because Appium speaks WebDriver to every supported browser and WebdriverIO
 gives a single ergonomic client, replacing the Chromium-bound Puppeteer path. The runner owns the
-full driver lifecycle: start an **in-process Appium** server, poll its `/sessions` endpoint until
-ready, open a session via `wdio.remote`, run the test's steps against that session, then
-`deleteSession` to tear it down. This becomes the core's standard "how do we drive a browser"
-contract and the foundation every later engine decision builds on (child-process Appium in `00056`,
-per-context options in `00061`, driver gating in `00062`, browser-fallback order in `00079`).
+full driver lifecycle. It starts an **in-process Appium** server and polls its `/sessions` endpoint
+until ready. It opens a session through `wdio.remote`, runs the test's steps against that session,
+then calls `deleteSession` to tear it down. This becomes the core's standard "how do we drive a
+browser" contract. Every later engine decision builds on it: child-process Appium in `00056`,
+per-context options in `00061`, driver gating in `00062`, browser-fallback order in `00079`.
 
 ### Consequences
 
 * Good: one client drives Chrome and Firefox; clear lifecycle the runner controls end to end.
 * Good: opens the door to Safari/Edge and Appium-native app automation later.
-* Bad: an Appium server must be running — added startup latency and a process to manage.
+* Bad: an Appium server must be running, adding startup latency and a process to manage.
 * Neutral: Puppeteer-specific recording capabilities are dropped here; recording is rebuilt on a
   separate track (see the recording-engine ADRs).
 

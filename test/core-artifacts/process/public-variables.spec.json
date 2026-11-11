@@ -1,0 +1,29 @@
+{
+  "specId": "public-variables",
+  "description": "4.x accepts publicVariables on a spec and a test. It has no effect until 5.0 (ADR 01147). The config permutation is in test/upgrade-warnings.test.js.",
+  "publicVariables": [
+    "DD_*"
+  ],
+  "tests": [
+    {
+      "testId": "public-variables-on-a-test",
+      "publicVariables": [
+        "*"
+      ],
+      "steps": [
+        {
+          "wait": 1
+        }
+      ]
+    },
+    {
+      "testId": "public-variables-empty-list",
+      "publicVariables": [],
+      "steps": [
+        {
+          "wait": 1
+        }
+      ]
+    }
+  ]
+}

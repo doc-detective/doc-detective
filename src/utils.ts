@@ -2,15 +2,22 @@ import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
 import { resolvePaths, readFile } from "./core/index.js";
-import { getRunOutputDir } from "./core/utils.js";
+import { getRunOutputDir, loadAxios } from "./core/utils.js";
+import {
+  browsersDirWarnings,
+  concurrentRunnersWarnings,
+  configWarnings,
+  envWarnings,
+  flagWarnings,
+  outputWarnings,
+  warnUpgrade,
+} from "./upgradeNotice.js";
+import { getBrowsersDir } from "./runtime/cacheDir.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import os from "node:os";
-import axios from "axios";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
+import { ownVersion, readShimPackageJson } from "./runtime/heavyDeps.js";
 
 export {
   buildYargs,
@@ -110,7 +117,7 @@ function buildYargs(args: any): any {
     .option("reporters", {
       alias: "r",
       description:
-        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
+        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside <output> when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside <output> when it names a file). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
       type: "string",
       array: true,
     })
@@ -131,14 +138,19 @@ function buildYargs(args: any): any {
         "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
       type: "boolean",
     })
+    .option("verification", {
+      description:
+        "What to write back into source files after a run: `existing` (default) fills only the verified-by entries and badge tests a page declares, `true` also declares them on passing pages and inline tests, `false` writes nothing back. Overrides `verification.write`.",
+      type: "string",
+    })
     .option("auto-screenshot", {
       description:
-        "Capture a screenshot after every browser-based step. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
+        "Capture a screenshot after every browser-based step. Off by default. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
       type: "boolean",
     })
     .option("auto-record", {
       description:
-        "Record a video of every browser-based test context, in addition to any explicit record steps. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
+        "Record a video of every browser-based test context, in addition to any explicit record steps. Off by default. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
       type: "boolean",
     })
     .option("auto-update", {
@@ -148,12 +160,12 @@ function buildYargs(args: any): any {
     })
     .option("cache-dir", {
       description:
-        "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to <os.tmpdir()>/doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
+        "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to ~/.doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
       type: "string",
     })
     .option("concurrent-runners", {
       description:
-        "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass the flag with no value to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
+        "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass true to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
       type: "string",
     })
     .option("browser-fallback", {
@@ -166,7 +178,13 @@ function buildYargs(args: any): any {
         "Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field.",
       type: "string",
     })
-    .version(require("../package.json").version)
+    .option("exit-on-fail", {
+      alias: "e",
+      description:
+        "Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it.",
+      type: "boolean",
+    })
+    .version(ownVersion() ?? "unknown")
     .help()
     .alias("help", "h");
 }
@@ -202,7 +220,7 @@ async function getResolvedTestsFromEnv(config: any = {}) {
     log(`CLI:Fetching resolved tests from ${apiConfig.url}/resolved-tests`, "debug", config);
 
     // Make GET request to the specified URL with token in header
-    const response = await axios.get(`${apiConfig.url}/resolved-tests`, {
+    const response = await (await loadAxios()).get(`${apiConfig.url}/resolved-tests`, {
       headers: {
         "x-runner-token": apiConfig.token,
       },
@@ -333,6 +351,9 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     config = { ...config, ...envConfig };
   }
 
+  // Read before validation fills in the default, which the user didn't choose.
+  const outputSetting = args.output || config.output;
+
   // Validate config
   const validation = validate({
     schemaKey: "config_v3",
@@ -413,8 +434,27 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     config.hints = config.hints || { enabled: true };
     config.hints.enabled = args.hints;
   }
+  if (typeof args.verification === "string" && args.verification.length > 0) {
+    // Validation ran before this block, so drop an unknown value and keep the
+    // validated `verification.write` (which defaults to "existing").
+    const write = ({ existing: "existing", true: true, false: false } as Record<string, string | boolean>)[
+      args.verification.trim().toLowerCase()
+    ];
+    if (write === undefined) {
+      log(
+        `Ignoring invalid --verification value '${args.verification}'. Expected one of: existing, true, false.`,
+        "warning",
+        config
+      );
+    } else {
+      config.verification = { ...(config.verification || {}), write };
+    }
+  }
   if (typeof args.autoUpdate === "boolean") {
     config.autoUpdate = args.autoUpdate;
+  }
+  if (typeof args.exitOnFail === "boolean") {
+    config.exitOnFail = args.exitOnFail;
   }
   if (typeof args.autoScreenshot === "boolean") {
     config.autoScreenshot = args.autoScreenshot;
@@ -496,6 +536,18 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     objectType: "config",
   });
 
+  warnUpgrade(
+    [
+      ...outputWarnings(outputSetting, String(config.output)),
+      ...concurrentRunnersWarnings(args.concurrentRunners),
+      ...flagWarnings(args),
+      ...envWarnings(process.env, config),
+      ...configWarnings(config),
+      ...browsersDirWarnings(getBrowsersDir({ cacheDir: config.cacheDir })),
+    ],
+    config.logLevel
+  );
+
   return config;
 }
 
@@ -504,19 +556,26 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
 // the reporter also accepts a file path (e.g. `results.json`), in which case
 // the run folder belongs *beside* the file, not inside it.
 //
-// A report-file extension (`.json`/`.html`/`.htm`) always resolves to the
-// parent, matching getRunOutputDir exactly — even for an existing directory
-// oddly named `reports.json` — so the archive root never diverges from the
-// stamped runDir (a divergence would reject the stamp and break runId/runDir
-// correlation with autoScreenshot). Any other path is then resolved by real
-// filesystem type: an existing file (any extension) archives beside it, an
-// existing or not-yet-created directory (including a dotted name like
-// `reports.v1`) archives inside it. Scoped to the runFolder reporter — the
-// shared getRunOutputDir is unchanged, so autoScreenshot and report stamping
-// are unaffected.
+// A report-file extension (`.json`/`.html`/`.htm`/`.xml`/`.md`) always
+// resolves to the parent, matching getRunOutputDir exactly — even for an
+// existing directory oddly named `reports.json` — so the archive root never
+// diverges from the stamped runDir (a divergence would reject the stamp and
+// break runId/runDir correlation with autoScreenshot). Any other path is then
+// resolved by real filesystem type: an existing file (any extension) archives
+// beside it, an existing or not-yet-created directory (including a dotted name
+// like `reports.v1`) archives inside it.
+//
+// `.xml`/`.md` joined the list when the junit and markdown reporters landed;
+// getRunOutputDir carries the same two so the three resolvers stay in
+// agreement (see the note on the list below).
 function runFolderBaseDir(output: any): string {
   const base = String(output ?? ".") || ".";
-  const reportFileExtensions = [".json", ".html", ".htm"];
+  // Must match the lists in getRunOutputDir (src/core/utils.ts) and
+  // reportOutputDir (src/reporters/outputDir.ts). If `.xml`/`.md` were missing
+  // here, `--output junit.xml --reporters runFolder junit` would have the
+  // junit reporter write the file while this resolver tried to create a
+  // directory of the same name — concurrently, under Promise.all.
+  const reportFileExtensions = [".json", ".html", ".htm", ".xml", ".md"];
   if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
     return path.dirname(base);
   }
@@ -535,6 +594,18 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
   htmlReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
     const { htmlReporter } = await import("./reporters/htmlReporter.js");
     return htmlReporter(config, outputPath, results, options);
+  },
+
+  // JUnit reporter: writes `junit.xml` for CI test-summary widgets
+  junitReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { junitReporter } = await import("./reporters/junitReporter.js");
+    return junitReporter(config, outputPath, results, options);
+  },
+
+  // Markdown reporter: writes a run summary for CI job summaries and comments
+  markdownReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { markdownReporter } = await import("./reporters/markdownReporter.js");
+    return markdownReporter(config, outputPath, results, options);
   },
 
   // JSON reporter: outputs results to a JSON file
@@ -1196,7 +1267,7 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
     const url = `${apiConfig.url}/contexts`;
     const payload = { contexts };
 
-    const response = await axios.post(url, payload, {
+    const response = await (await loadAxios()).post(url, payload, {
       headers: {
         "x-runner-token": apiConfig.token,
       },
@@ -1236,6 +1307,10 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
             return "runFolderReporter";
           case "terminal":
             return "terminalReporter";
+          case "junit":
+            return "junitReporter";
+          case "markdown":
+            return "markdownReporter";
           default:
             return reporter;
         }
@@ -1340,9 +1415,8 @@ function setMeta() {
     process.env["DOC_DETECTIVE_META"] !== undefined
       ? JSON.parse(process.env["DOC_DETECTIVE_META"])
       : {};
-  const pkg = require("../package.json");
   meta.distribution = "doc-detective";
-  meta.dist_version = pkg.version;
+  meta.dist_version = ownVersion();
   meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();
@@ -1356,8 +1430,7 @@ function setMeta() {
 // Get version data programmatically (no console output)
 function getVersionData() {
   try {
-    // Get main package version
-    const mainPackage = require("../package.json");
+    const mainPackage: any = readShimPackageJson();
     const versionData: any = {
       main: {
         "doc-detective": {

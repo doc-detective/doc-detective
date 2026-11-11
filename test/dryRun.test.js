@@ -82,12 +82,26 @@ describe("--dry-run short-circuits before execution", function () {
   });
 
   it("without dryRun, runTests returns an executed-results shape", async function () {
-    // Sanity control: the same spec, run normally, returns an object with
-    // `summary` and `specs[].tests[].contexts[].steps[]` carrying step
-    // results (a `result` field). This proves the dry-run case above is
-    // returning a *different* shape, not just an empty execution.
+    // Sanity control: a real (non-dry) run returns an object with `summary`,
+    // proving the dry-run case above returns a *different* shape, not just an
+    // empty execution.
+    //
+    // Uses a browserless `wait` step rather than the shared `goTo` spec. This
+    // is the only test in the file that actually EXECUTES, and driving a real
+    // browser to a live URL made it the shard's flakiest test: a dead
+    // WebDriver session (ECONNREFUSED on the Windows runner) hung it to the
+    // 30s mocha timeout and failed the whole shard — repeatedly, including on
+    // release runs. The shape assertion doesn't need a browser or the network,
+    // only a real execution, and `wait` provides one with neither. (The
+    // sibling dry-run tests never execute, so their `goTo` spec is fine.)
+    const execSpecPath = path.join(tmpDir, "exec.spec.json");
+    fs.writeFileSync(
+      execSpecPath,
+      JSON.stringify({ tests: [{ steps: [{ wait: 1 }] }] })
+    );
+
     const result = await runTests({
-      input: [specPath],
+      input: [execSpecPath],
       output: tmpDir,
       logLevel: "silent",
       telemetry: { send: false },

@@ -33,14 +33,14 @@ export const HINTS: Hint[] = [
       "",
       "```json",
       "{",
-      "  \"$schema\": \"https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json\",",
+      "  \"$schema\": \"https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/src/schemas/src_schemas/config_v3.schema.json\",",
       "  \"input\": \"docs\",",
       "  \"output\": \"doc-detective-output\",",
       "  \"reporters\": [\"terminal\", \"json\", \"html\"]",
       "}",
       "```",
       "",
-      "More: [doc-detective.com/docs/configuration](https://doc-detective.com/docs/get-started/configuration)",
+      "More: [configuration reference](https://docs.doc-detective.com/reference/schemas/config)",
     ].join("\n"),
     when: (ctx) => ctx.configPath === null,
   },
@@ -244,10 +244,10 @@ export const HINTS: Hint[] = [
       "Install the Doc Detective agent tools so your AI assistant can author and debug Doc Detective tests:",
       "",
       "```bash",
-      "doc-detective install-agents",
+      "doc-detective install agents",
       "```",
       "",
-      "More: [doc-detective.com/docs/agents](https://doc-detective.com/docs/integrations/ai-agents)",
+      "More: [AI and agent tools](https://docs.doc-detective.com/ai/ai-agents/overview)",
     ].join("\n"),
     // Fire when at least one detected agent does NOT have the adapter
     // installed. Earlier versions used `every(!hasAdapterInstalled)`,
@@ -281,9 +281,29 @@ export const HINTS: Hint[] = [
       "      - run: npx doc-detective",
       "```",
       "",
-      "More: [doc-detective.com/docs](https://doc-detective.com/docs/)",
+      "More: [GitHub Action](https://docs.doc-detective.com/docs/ci/github-action)",
     ].join("\n"),
     when: (ctx) => ctx.isGitHubRepo && !ctx.hasDocDetectiveWorkflow,
+  },
+
+  // ------------------------------------------------------------------
+  // omitSurfaceForActiveApp (optimization & advanced)
+  // ------------------------------------------------------------------
+  {
+    id: "omitSurfaceForActiveApp",
+    priority: 50,
+    markdown: [
+      "Steps that omit `surface` act on the **active surface** — the surface most recently opened, focused, or explicitly targeted. After `startSurface` opens an app it is the active surface, so the repeated `surface: { \"app\": … }` on the steps that follow can be dropped; use `surface` only to switch targets mid-test.",
+      "",
+      "```diff",
+      "  { \"startSurface\": { \"app\": \"notepad\" } },",
+      "- { \"click\": { \"elementText\": \"Save\", \"surface\": { \"app\": \"notepad\" } } }",
+      "+ { \"click\": \"Save\" }",
+      "```",
+      "",
+      "More: [startSurface](https://docs.doc-detective.com/docs/actions/startsurface#target-an-app-surface)",
+    ].join("\n"),
+    when: (ctx) => ctx.repeatedAppSurfaceRefs,
   },
 
   // ------------------------------------------------------------------
@@ -299,7 +319,7 @@ export const HINTS: Hint[] = [
       "doc-detective install ios --yes",
       "```",
       "",
-      "More: [doc-detective.com/reference/cli/install](https://doc-detective.com/reference/cli/install#install-ios)",
+      "More: [install ios](https://docs.doc-detective.com/reference/reference/cli/install#install-ios)",
     ].join("\n"),
     when: (ctx) => ctx.ranIosContexts && !ctx.hasManagedWdaProducts,
   },
@@ -320,6 +340,42 @@ export const HINTS: Hint[] = [
       "Recordings on Android/iOS contexts capture the device screen and always run concurrently — no engine change needed there.",
     ].join("\n"),
     when: (ctx) => ctx.recordingSerialized,
+  },
+
+  // ------------------------------------------------------------------
+  // refreshStaleRecording (current-run problems)
+  // ------------------------------------------------------------------
+  {
+    id: "refreshStaleRecording",
+    priority: 20,
+    markdown: [
+      "A recording in this run appears stale: its checkpoint screenshots couldn't be verified against committed baselines, or no longer match them — but the capture was skipped, so the video couldn't refresh itself.",
+      "",
+      "Check the `stopRecord` step's description for which skip applies. A headless run needs a re-run on a headed context (a visible display). A recording skipped because its target already exists needs `overwrite` set to `\"true\"` or `\"aboveVariation\"` (or the file removed) — with `overwrite: \"aboveVariation\"`, the recording and its baselines then refresh together automatically.",
+      "",
+      "More: [record](https://docs.doc-detective.com/docs/actions/record#detecting-staleness-without-re-recording)",
+    ].join("\n"),
+    when: (ctx) => ctx.hasStaleRecordings,
+  },
+
+  // ------------------------------------------------------------------
+  // setAnnotationTimeout (current-run problems)
+  // ------------------------------------------------------------------
+  {
+    id: "setAnnotationTimeout",
+    priority: 20,
+    markdown: [
+      "An annotation's target wasn't on the page yet. Element targets wait 5 seconds by default — give a slower one more time with `timeout`, the same field `find` takes:",
+      "",
+      "```json",
+      '{ "annotate": { "add": [{ "callout": { "selector": "#dashboard", "timeout": 20000 }, "label": "Your data" }] } }',
+      "```",
+      "",
+      "It works the same on a screenshot's own `annotations`, and it needs the object form of the target — the string shorthand has nowhere to put it.",
+      "",
+      "More: [annotate](https://docs.doc-detective.com/docs/actions/annotate)",
+    ].join("\n"),
+    when: (ctx) => ctx.failedAnnotationTargetWithoutTimeout === true,
   },
 
   // ------------------------------------------------------------------
@@ -456,6 +512,49 @@ export const HINTS: Hint[] = [
       "More: [Node.js release schedule](https://nodejs.org/en/about/previous-releases)",
     ].join("\n"),
     when: (ctx) => ctx.nodeMajor > 0 && ctx.nodeMajor < 20,
+  },
+
+  // ------------------------------------------------------------------
+  // useAnnotateStepForRecordings (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "useAnnotateStepForRecordings",
+    priority: 40,
+    markdown: [
+      "Recording a walkthrough? An `annotate` step draws annotations into the page, so they stay on screen across steps and appear in the video.",
+      "",
+      "```json",
+      '{ "record": "walkthrough.webm" },',
+      '{ "annotate": { "add": [{ "id": "tip", "callout": "#submit", "label": "Sends a code" }] } },',
+      '{ "click": "#submit" },',
+      '{ "annotate": { "clear": ["tip"] } }',
+      "```",
+      "",
+      "More: [annotate](https://docs.doc-detective.com/docs/actions/annotate)",
+    ].join("\n"),
+    when: (ctx) =>
+      ctx.producedRecordings && !ctx.usedStepTypes.has("annotate"),
+  },
+
+  // ------------------------------------------------------------------
+  // useAnnotationsOnScreenshots (feature discovery)
+  // ------------------------------------------------------------------
+  {
+    id: "useAnnotationsOnScreenshots",
+    priority: 40,
+    markdown: [
+      "Annotating screenshots by hand? `annotations` draws them as part of the capture, so the callouts regenerate with the image instead of drifting from it.",
+      "",
+      "```json",
+      '{ "screenshot": { "path": "./login.png", "annotations": [',
+      '  { "badge": "#username", "label": "1" },',
+      '  { "blur": { "selector": ".account-id" }, "all": true }',
+      "] } }",
+      "```",
+      "",
+      "More: [screenshot annotations](https://docs.doc-detective.com/docs/actions/screenshot#annotations)",
+    ].join("\n"),
+    when: (ctx) => ctx.producedScreenshots && !ctx.usedAnnotations,
   },
 
   // ------------------------------------------------------------------
@@ -634,6 +733,26 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // useMobilePlatforms (current-run problem)
+  // ------------------------------------------------------------------
+  {
+    id: "useMobilePlatforms",
+    priority: 20,
+    markdown: [
+      "A browser floored a viewport this run: desktop browsers enforce a minimum window size (about 500px wide), so a smaller request (a 375px phone width, say) rendered larger. Screenshots and measurements show the size that actually rendered, not the size you asked for.",
+      "",
+      "Resizing a desktop window doesn't emulate a phone. To test a real mobile viewport, run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions:",
+      "",
+      "```json",
+      "{ \"runOn\": [{ \"platforms\": \"android\" }] }",
+      "```",
+      "",
+      "More: [platforms and browsers](https://docs.doc-detective.com/docs/test-docs/platforms-and-browsers)",
+    ].join("\n"),
+    when: (ctx) => ctx.viewportFloored && !ctx.ranMobileContexts,
+  },
+
+  // ------------------------------------------------------------------
   // useOpenApiValidation (feature discovery)
   // ------------------------------------------------------------------
   {
@@ -709,7 +828,7 @@ export const HINTS: Hint[] = [
       "{ \"runBrowserScript\": { \"script\": \"return document.title;\", \"output\": \"Welcome\" } }",
       "```",
       "",
-      "More: [doc-detective.com/docs/runBrowserScript](https://doc-detective.com/docs/references/schemas/runbrowserscript)",
+      "More: [runBrowserScript](https://docs.doc-detective.com/docs/actions/runbrowserscript)",
     ].join("\n"),
     when: (ctx) =>
       ctx.usedBrowserContexts.size > 0 &&
@@ -794,7 +913,7 @@ export const HINTS: Hint[] = [
       "+ find: { elementText: \"Sign in\", elementAria: \"Sign in to your account\" }",
       "```",
       "",
-      "More: [doc-detective.com/docs/find](https://doc-detective.com/docs/references/schemas/find)",
+      "More: [find](https://docs.doc-detective.com/docs/actions/find)",
     ].join("\n"),
     when: (ctx) => ctx.failedCount > 0 && ctx.usedSelectorOnlyFinds,
   },

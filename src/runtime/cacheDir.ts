@@ -1,9 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { packageRoot } from "./heavyDeps.js";
 
 export interface InstalledNpmPackage {
   installedVersion: string;
@@ -63,13 +61,16 @@ function emptyRecord(): InstalledRecord {
   return { npmPackages: {}, browsers: {} };
 }
 
+// A persistent per-user dir, NOT the OS temp dir (ADR 01105): temp is cleared
+// on reboot, and its `doc-detective/` root is also where cleanTemp sweeps run
+// scratch — a cache there lost its Android SDK/JRE/WDA builds after each run.
 function defaultCacheRoot(): string {
-  return path.join(os.tmpdir(), "doc-detective");
+  return path.join(os.homedir(), ".doc-detective");
 }
 
 /**
  * Resolve the cache root, honoring DOC_DETECTIVE_CACHE_DIR > config.cacheDir
- * > <os.tmpdir()>/doc-detective. The directory is created if missing — every
+ * > <os.homedir()>/.doc-detective. The directory is created if missing — every
  * downstream helper depends on it existing, and lazy-mkdir at first read is
  * the single chokepoint that lets us avoid sprinkling existsSync/mkdirSync
  * across the codebase.
@@ -180,15 +181,11 @@ export function getBrowsersDir(ctx: CacheDirContext = {}): string {
 
 function legacyBrowserSnapshotCandidates(): string[] {
   const out = [path.resolve("browser-snapshots")];
-  // Compiled output lives at <pkgRoot>/dist/runtime/cacheDir.js, so
-  // `__dirname` is `<pkgRoot>/dist/runtime` and `path.resolve(..., "..", "..")`
-  // climbs two segments (`dist/runtime` → `dist` → `<pkgRoot>`) — that's
-  // the shim's package root, where the legacy postinstall would have
-  // written `browser-snapshots/`. (Mirrors the `../../package.json`
-  // pattern in src/runtime/heavyDeps.ts.)
-  const shimRoot = path.resolve(__dirname, "..", "..");
-  const fromShim = path.join(shimRoot, "browser-snapshots");
-  if (fromShim !== out[0]) out.push(fromShim);
+  // The shim's package root, where the legacy postinstall would have
+  // written `browser-snapshots/`.
+  const shimRoot = packageRoot();
+  const fromShim = shimRoot && path.join(shimRoot, "browser-snapshots");
+  if (fromShim && fromShim !== out[0]) out.push(fromShim);
   return out;
 }
 

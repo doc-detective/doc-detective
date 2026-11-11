@@ -1,14 +1,35 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
 import { switchToSurface } from "./browserSurface.js";
-import { resolveAppSurfaceRef, ensureAppForeground } from "./appSurface.js";
-import { resolveAppWindow, appWindowScreenshot } from "./appWindows.js";
+import { ensureAppForeground } from "./appSurface.js";
+import {
+  resolveTargetSurface,
+  type ActiveSurfaceTracker,
+} from "./activeSurface.js";
+import {
+  resolveAppWindow,
+  appWindowScreenshot,
+  appWindowRect,
+} from "./appWindows.js";
+import { resolveTheme, resolveAnnotation } from "../annotations/model.js";
+import { annotationsToSvg } from "../annotations/svg.js";
+import {
+  computeScale,
+  appWindowOrigin,
+  resolveAnnotationRects,
+} from "../annotations/geometry.js";
+import { compositeAnnotations } from "../annotations/composite.js";
 import {
   log,
   fetchFile,
+  UrlGuardError,
   getOrInitRunTimestamp,
   redactUrlForOutput,
   sanitizeFilesystemName,
+  realizeViewport,
+  viewportMismatchWarning,
+  VIEWPORT_TOLERANCE_PX,
+  type SizeTarget,
 } from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -19,6 +40,7 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import { RENDER_SETTLE_MS } from "./timing.js";
 
 // pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
 // the first time a screenshot step needs it. Use `typeof import('…')`
@@ -60,7 +82,7 @@ async function getPixelmatch(ctx: { cacheDir?: string } = {}) {
   return _pixelmatch;
 }
 
-export { saveScreenshot, clampCropRect, aspectRatiosMatch };
+export { saveScreenshot, clampCropRect, aspectRatiosMatch, referenceViewport };
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -97,7 +119,207 @@ function aspectRatiosMatch(
   return Math.abs(ra - rb) / Math.max(ra, rb) <= 0.05;
 }
 
-async function saveScreenshot({ config, step, driver, appSession }: { config: any; step: any; driver: any; appSession?: any }) {
+type Size = { width: number; height: number };
+
+// A fixed 5% guess at how far an authored window may move before a reference
+// counts as out of date rather than drifted. A viewport is checked exactly and
+// a default has nothing to protect, so only `window` needs it. Storing the
+// authored size in the PNG would make it exact (ADR 01144, option 3).
+const WINDOW_DRIFT_TOLERANCE = 0.05;
+
+// The viewport (CSS px) to resize to so a retake matches the reference, or
+// null to compare as captured. Null when the sizes already match, when they
+// differ by a uniform scale (a devicePixelRatio difference, which the resample
+// handles — resizing would change the layout instead), or when the reference
+// doesn't show what the author asked for, so an intentional config change
+// isn't reverted to match an out-of-date reference. See ADR 01144.
+function referenceViewport({
+  target,
+  capture,
+  reference,
+  dpr,
+  viewport,
+  window,
+}: {
+  target: SizeTarget | undefined;
+  capture: Size;
+  reference: Size;
+  dpr: number;
+  viewport: Size;
+  window: Size;
+}): Size | null {
+  if (!target) return null;
+  if (capture.width === reference.width && capture.height === reference.height)
+    return null;
+  const scaleW = reference.width / capture.width;
+  const scaleH = reference.height / capture.height;
+  if (Math.abs(scaleW - scaleH) <= 0.01) return null;
+  const ratio = dpr > 0 ? dpr : 1;
+  const wanted = {
+    width: Math.round(reference.width / ratio),
+    height: Math.round(reference.height / ratio),
+  };
+  if (target.kind === "viewport") {
+    if (viewportMismatchWarning(target, wanted, VIEWPORT_TOLERANCE_PX))
+      return null;
+  } else if (target.kind === "window") {
+    for (const dim of ["width", "height"] as const) {
+      const requested = Number(target[dim]);
+      if (!(requested > 0)) continue;
+      const neededWindow = window[dim] + wanted[dim] - viewport[dim];
+      if (Math.abs(neededWindow - requested) > requested * WINDOW_DRIFT_TOLERANCE)
+        return null;
+    }
+  }
+  return wanted;
+}
+
+// Resize the window so the viewport matches the reference and capture again.
+// Returns null when no resize applies or the retake didn't match; the window is
+// already back by then, so later work sees the page the first capture showed.
+// On a match, the caller runs `restore` when the step ends.
+async function retakeAtReferenceSize({
+  driver,
+  captureBuffer,
+  referencePath,
+  sharp,
+  config,
+  label,
+}: {
+  driver: any;
+  captureBuffer: Buffer;
+  referencePath: string;
+  sharp: any;
+  config: any;
+  label: string;
+}): Promise<{
+  restore: () => Promise<void>;
+  buffer: Buffer;
+  from: Size;
+  to: Size;
+} | null> {
+  let capture: Size;
+  let reference: Size;
+  let wanted: Size | null;
+  let originalWindow: Size;
+  try {
+    // A malformed image reads back without dimensions: both sides undefined
+    // compare equal, so no resize, and the comparison reports the bad image.
+    const captureMeta = await sharp(captureBuffer).metadata();
+    const referenceMeta = await sharp(referencePath).metadata();
+    capture = { width: captureMeta.width, height: captureMeta.height };
+    reference = { width: referenceMeta.width, height: referenceMeta.height };
+    const metrics = await driver.execute(() => ({
+      width: window.innerWidth,
+      height: window.innerHeight,
+      dpr: window.devicePixelRatio,
+    }));
+    originalWindow = await driver.getWindowSize();
+    const activeHandle = await driver.getWindowHandle?.();
+    wanted = referenceViewport({
+      target:
+        driver.state?.sizeTargetHandle === activeHandle
+          ? driver.state?.sizeTarget
+          : undefined,
+      capture,
+      reference,
+      dpr: Number(metrics?.dpr),
+      viewport: { width: Number(metrics?.width), height: Number(metrics?.height) },
+      window: originalWindow,
+    });
+  } catch {
+    // An unreadable reference fails in the comparison, with its own message.
+    return null;
+  }
+  if (!wanted) return null;
+  const restore = async () => {
+    await driver.setWindowSize(originalWindow.width, originalWindow.height);
+  };
+  let got: string;
+  try {
+    await realizeViewport(driver, wanted, config, label, "debug");
+    const buffer = Buffer.from(await driver.takeScreenshot(), "base64");
+    const retaken = await sharp(buffer).metadata();
+    if (
+      retaken.width === reference.width &&
+      retaken.height === reference.height
+    ) {
+      return { restore, buffer, from: capture, to: reference };
+    }
+    got = `${retaken.width}×${retaken.height}`;
+  } catch (error: any) {
+    got = `an error: ${error?.message ?? error}`;
+  }
+  log(
+    config,
+    "warning",
+    `${label}: couldn't render at the reference's ${reference.width}×${reference.height} (got ${got}), so comparing the capture as taken. A headed browser can't grow past the display, and a window can't shrink below the browser's minimum.`
+  );
+  // A session that can't take the screenshot may not resize back either; that
+  // mustn't turn a fallback into a crashed step.
+  try {
+    await restore();
+  } catch (error: any) {
+    log(
+      config,
+      "warning",
+      `${label}: couldn't restore the window size after the failed retake: ${error?.message ?? error}`
+    );
+  }
+  return null;
+}
+
+// Window restoration lives out here rather than in the body: annotations
+// resolve against the live page after capture, so a resize for the reference
+// must hold until the step is done, whichever return the body takes.
+async function saveScreenshot(
+  args: Parameters<typeof captureScreenshot>[0]
+) {
+  const session: { restoreWindow?: () => Promise<void> } = {};
+  try {
+    return await captureScreenshot(args, session);
+  } finally {
+    try {
+      await session.restoreWindow?.();
+    } catch (error: any) {
+      log(
+        args.config,
+        "warning",
+        `Couldn't restore the window size after resizing for a screenshot reference: ${error?.message ?? error}`
+      );
+    }
+  }
+}
+
+// `internal` is a core-only seam (not a schema field): recording checkpoints
+// run comparisons against persistent baselines that must never be written
+// mid-span — baseline writes belong to stopRecord (ADR 01075). In compareOnly
+// mode the fresh capture always persists to `capturePath` (staging) instead,
+// and a missing reference reports `outputs.baselineMissing` rather than
+// seeding the file.
+async function captureScreenshot({
+  config,
+  step,
+  driver,
+  appSession,
+  processRegistry,
+  surfaceTracker,
+  internal,
+  annotationTheme,
+}: {
+  config: any;
+  step: any;
+  driver: any;
+  appSession?: any;
+  processRegistry?: Map<string, any>;
+  surfaceTracker?: ActiveSurfaceTracker;
+  internal?: { compareOnly: true; capturePath: string };
+  // The resolved annotation theme (test > spec > config > built-in). The
+  // runner resolves it where spec/test are in scope and passes it down; when
+  // absent (direct callers, unit tests) we fall back to the config level so a
+  // config-only theme still applies.
+  annotationTheme?: any;
+}, session: { restoreWindow?: () => Promise<void> }) {
   let result: any = {
     status: "PASS",
     description: "Saved screenshot.",
@@ -120,10 +342,12 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
   // FAIL > WARNING > SKIPPED > PASS roll-up.
   //
   // Applicable verification specs, IN ORDER:
-  //   (1) crop element found      `$$outputs.cropElementFound == true`  (fail)    — only when `crop` is set
-  //   (2) element fits viewport   `$$outputs.fitsViewport == true`      (fail)    — only when `crop` is set
-  //   (3) aspect ratios match     `$$outputs.aspectRatioMatch == true`  (fail)    — only when comparing against an existing/URL reference
-  //   (4) variation <= max        `$$outputs.variation <= <max>`        (warning) — only when comparing against an existing/URL reference
+  //   (1) crop element found      `$$outputs.cropElementFound == true`      (fail)    — only when `crop` is set
+  //   (2) element fits viewport   `$$outputs.fitsViewport == true`          (fail)    — only when `crop` is set
+  //   (3) annotation targets found `$$outputs.annotationTargetsFound == true` (fail)   — only when `annotations` is set
+  //   (4) annotations in bounds   `$$outputs.annotationsInBounds == true`   (warning) — only when `annotations` is set
+  //   (5) aspect ratios match     `$$outputs.aspectRatioMatch == true`      (fail)    — only when comparing against an existing/URL reference
+  //   (6) variation <= max        `$$outputs.variation <= <max>`            (warning) — only when comparing against an existing/URL reference
   //
   // EXECUTION errors (NOT assertions) still return FAIL with NO assertion
   // records, preserving the prior early returns + messages exactly:
@@ -187,69 +411,83 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
   let isAppCapture = false;
   let appEntry: any = null;
   let appWindowTarget: any = null;
-  if (
-    typeof step.screenshot === "object" &&
-    step.screenshot !== null &&
-    step.screenshot.surface !== undefined
-  ) {
-    const appRef = resolveAppSurfaceRef(step.screenshot.surface, appSession);
-    if (appRef) {
-      if (appRef.error) {
+  // Uniform surface routing (ADR 01081): classify the step's target — the
+  // explicit `surface` reference, or the context's active surface — then
+  // capture through that surface's driver.
+  const target = resolveTargetSurface({
+    surface:
+      typeof step.screenshot === "object" && step.screenshot !== null
+        ? step.screenshot.surface
+        : undefined,
+    tracker: surfaceTracker,
+    driver,
+    appSession,
+    processRegistry,
+  });
+  if (target.kind === "error") {
+    result.status = "FAIL";
+    result.description = target.message;
+    return result;
+  }
+  if (target.kind === "process") {
+    // A background process has no screen to capture — a capability gap, not
+    // a reroute.
+    result.status = "FAIL";
+    result.description = `The resolved surface is the background process "${target.name}", which doesn't support screenshot steps. Target a browser or app surface with \`surface\`.`;
+    return result;
+  }
+  if (target.kind === "app") {
+    const appRef = { entry: target.entry, window: target.window };
+    // Window selectors (ADR 01036): resolve to a real window. Selector-less
+    // app captures use the sticky/default window — on macOS that's the
+    // window ELEMENT (Mac2's driver screenshot is the whole display).
+    if (appRef.window !== undefined) {
+      const resolvedWindow = await resolveAppWindow({
+        entry: appRef.entry!,
+        selector: appRef.window,
+        timeoutMs: 5000,
+      });
+      if (!resolvedWindow.ok) {
         result.status = "FAIL";
-        result.description = appRef.error;
+        result.description = resolvedWindow.message;
         return result;
       }
-      // Window selectors (ADR 01036): resolve to a real window. Selector-less
-      // app captures use the sticky/default window — on macOS that's the
-      // window ELEMENT (Mac2's driver screenshot is the whole display).
-      if (appRef.window !== undefined) {
-        const resolvedWindow = await resolveAppWindow({
-          entry: appRef.entry!,
-          selector: appRef.window,
-          timeoutMs: 5000,
-        });
-        if (!resolvedWindow.ok) {
-          result.status = "FAIL";
-          result.description = resolvedWindow.message;
-          return result;
-        }
-        appWindowTarget = resolvedWindow.target;
-      }
-      if (step.screenshot.crop) {
-        result.status = "FAIL";
-        result.description =
-          "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
-        return result;
-      }
-      const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
-      if (switchedApp.error) {
-        result.status = "FAIL";
-        result.description = switchedApp.error;
-        return result;
-      }
-      captureDriver = appRef.entry!.driver;
-      appEntry = appRef.entry!;
-      isAppCapture = true;
-    } else {
-      const switched = await switchToSurface(driver, step.screenshot.surface);
-      if (!switched.ok) {
-        result.status = "FAIL";
-        result.description = switched.message;
-        return result;
-      }
-      driver = switched.driver ?? driver;
-      captureDriver = driver;
+      appWindowTarget = resolvedWindow.target;
     }
+    if (typeof step.screenshot === "object" && step.screenshot?.crop) {
+      result.status = "FAIL";
+      result.description =
+        "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
+      return result;
+    }
+    const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
+    if (switchedApp.error) {
+      result.status = "FAIL";
+      result.description = switchedApp.error;
+      return result;
+    }
+    captureDriver = appRef.entry!.driver;
+    appEntry = appRef.entry!;
+    isAppCapture = true;
+  } else if (target.surface !== undefined) {
+    const switched = await switchToSurface(driver, target.surface);
+    if (!switched.ok) {
+      result.status = "FAIL";
+      result.description = switched.message;
+      return result;
+    }
+    driver = switched.driver ?? driver;
+    captureDriver = driver;
   }
 
-  // In an app-only context (no browser driver), a screenshot step that omits
-  // `surface` has nothing to capture — fail with the fix named instead of a
-  // TypeError on the missing driver. Checked BEFORE the path/crop handling
-  // below, which dereferences `driver` for crop geometry.
+  // Defense-in-depth: the resolver should never route here without a driver,
+  // but a missing one must be a clean FAIL, not a TypeError. Checked BEFORE
+  // the path/crop handling below, which dereferences `driver` for crop
+  // geometry.
   if (!captureDriver) {
     result.status = "FAIL";
     result.description =
-      'No browser session is running in this context to capture. Target an app surface explicitly (e.g. "surface": { "app": "…" }).';
+      "No active surface to act on. Open one first with a startSurface step (or a goTo step for a browser), or target a surface explicitly with `surface`.";
     return result;
   }
 
@@ -305,7 +543,11 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
     const fetched: any = await fetchFile(originalUrlPath!, { binary: true });
     if (fetched.result !== "success") {
       result.status = "FAIL";
-      result.description = `Couldn't fetch remote reference image (${redactedUrl}): ${fetched.message}`;
+      // A guard error's message is complete; don't wrap it.
+      const msg = fetched.message?.message ?? String(fetched.message);
+      result.description = fetched.message instanceof UrlGuardError
+        ? msg
+        : `Couldn't fetch remote reference image (${redactedUrl}): ${msg}`;
       return result;
     }
     existFilePath = fetched.path;
@@ -365,8 +607,10 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
   } else {
     // Set path directory
     dir = path.dirname(step.screenshot.path);
-    // If `dir` doesn't exist, create it
-    if (!fs.existsSync(dir)) {
+    // If `dir` doesn't exist, create it. Compare-only callers never write
+    // the target path, so creating its directory mid-span would litter an
+    // empty baseline folder that seeding (stopRecord) owns.
+    if (!internal?.compareOnly && !fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
@@ -494,7 +738,7 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
     );
 
     // Wait for scroll to complete
-    await driver.pause(100);
+    await driver.pause(RENDER_SETTLE_MS);
   }
 
   // Hide the synthetic cursor during capture so it isn't baked into the image,
@@ -568,10 +812,43 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
     }
   }
 
+  // The reference's size wins over this environment's (#769, ADR 01144): when
+  // they differ, resize the window to the reference's viewport and capture
+  // again rather than resampling. Not for crops (their size is the element's),
+  // app windows, an unconditional local overwrite (nothing to compare), or
+  // recordings (the resize would show in the video).
+  if (
+    !isAppCapture &&
+    !step.screenshot.crop &&
+    existFilePath &&
+    !(step.screenshot.overwrite === "true" && !isUrlPath) &&
+    !internal?.compareOnly &&
+    !recordingActive
+  ) {
+    const retake = await retakeAtReferenceSize({
+      driver: captureDriver,
+      captureBuffer,
+      referencePath: existFilePath,
+      sharp,
+      config,
+      label: `Screenshot ${step.stepId}`,
+    });
+    if (retake) {
+      session.restoreWindow = retake.restore;
+      captureBuffer = retake.buffer;
+      result.outputs.resizedToReference = { from: retake.from, to: retake.to };
+      result.description += ` Resized the window to match the reference's ${retake.to.width}×${retake.to.height} before comparing.`;
+    }
+  }
+
   // If crop is set, compute element bounds and crop the captured buffer in
   // memory (no temp file, no re-read, no rename). `finalBuffer` carries the
   // bytes we ultimately write.
   let finalBuffer: Buffer = captureBuffer;
+  // Where the final canvas starts within the capture, in image pixels.
+  // Annotations resolve against the capture (that's the space element rects
+  // live in) but draw onto the cropped canvas, so their rects shift by this.
+  let cropOrigin = { x: 0, y: 0 };
   if (step.screenshot.crop) {
     let padding = { top: 0, right: 0, bottom: 0, left: 0 };
     if (typeof step.screenshot.crop.padding === "number") {
@@ -625,6 +902,7 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
     rect.height = clamped.height;
 
     log(config, "debug", { padded_rect: rect });
+    cropOrigin = { x: rect.x, y: rect.y };
 
     // Extract the cropped region straight to a PNG buffer. This matches the
     // prior sharp(...).extract(...).toFile("….png") encoding (PNG output),
@@ -644,6 +922,146 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
       result.description = `Couldn't crop image. ${error}`;
       return result;
     }
+  }
+
+  // Burn annotations into the buffer, after any crop and before the single
+  // write. Annotations are composited in image space rather than injected into
+  // the page: that keeps the page under test untouched, works identically on
+  // app surfaces, and can't flash into a recording that's running concurrently.
+  const annotationSpecs = Array.isArray(step.screenshot.annotations)
+    ? step.screenshot.annotations
+    : [];
+  if (annotationSpecs.length > 0) {
+    try {
+      // Without a crop these are the same buffer, so read metadata once.
+      const captureMeta = await sharp(captureBuffer).metadata();
+      const canvasMeta =
+        finalBuffer === captureBuffer
+          ? captureMeta
+          : await sharp(finalBuffer).metadata();
+      const canvas = { width: canvasMeta.width!, height: canvasMeta.height! };
+
+      // Scale comes from the CAPTURE, not the cropped canvas: it relates the
+      // capture's pixels to the logical units element rects are reported in,
+      // and cropping changes the canvas but not that relationship.
+      let logicalWidth: unknown;
+      let windowOrigin = { x: 0, y: 0 };
+      if (isAppCapture) {
+        const windowRect = await appWindowRect(appEntry, appWindowTarget);
+        if (windowRect) {
+          logicalWidth = windowRect.w;
+          // Whether native rects need rebasing onto the window is
+          // platform-specific — see appWindowOrigin for the evidence.
+          windowOrigin = appWindowOrigin(appEntry?.platform, windowRect);
+        }
+      } else {
+        logicalWidth = await driver.execute(() => window.innerWidth);
+      }
+      const scale = computeScale(captureMeta.width!, logicalWidth);
+
+      const theme = annotationTheme ?? resolveTheme([config?.annotationDefaults]);
+      const resolved = annotationSpecs.map((annotation: any) =>
+        resolveAnnotation(annotation, theme)
+      );
+      const { placed, errors } = await resolveAnnotationRects({
+        config,
+        annotations: resolved,
+        driver,
+        surface: step.screenshot.surface,
+        appSession,
+        isAppCapture,
+        appDriver: captureDriver,
+        windowOrigin,
+        canvas,
+        scale,
+        cropOrigin,
+      });
+
+      // (3) Annotation targets resolved is a VERIFICATION ASSERTION, and a
+      // FAILING one: an annotation that silently vanishes is a documentation
+      // bug, and for `blur` it's a disclosure — the shot looks redacted but
+      // isn't. Better a failed step than a false sense of safety.
+      result.outputs.annotationTargetsFound = errors.length === 0;
+      specs.push({
+        statement: `$$outputs.annotationTargetsFound == true`,
+        severity: "fail",
+      });
+      if (errors.length > 0) {
+        result.description = `Couldn't resolve every annotation target. ${errors.join(" ")}`;
+        return await evaluateApplicable();
+      }
+
+      log(config, "debug", {
+        annotations: {
+          canvas,
+          scale,
+          cropOrigin,
+          windowOrigin,
+          logicalWidth,
+          placed: placed.map((item) => ({ type: item.type, rect: item.rect })),
+        },
+      });
+
+      const { svg, blurRegions } = annotationsToSvg(placed, canvas);
+
+      // (4) Annotations landing inside the canvas is a WARNING-level check: an
+      // annotation cropped out of frame still produced a valid image, so don't
+      // fail the run — but it's almost always a mistake worth surfacing.
+      //
+      // Two carve-outs:
+      //   - Bounds are edge-INCLUSIVE. A position target like "top-right"
+      //     resolves to exactly (width, 0); that's a legitimate placement the
+      //     renderer slides back on-canvas, not an escape.
+      //   - `all` annotations are exempt. Matching every element and finding
+      //     some below the fold is expected, and nothing outside the frame is
+      //     in the image to leak — only a TARGETED annotation missing the
+      //     frame suggests a mistake.
+      const inBounds = placed.every(
+        (item) =>
+          item.all ||
+          (item.rect.x <= canvas.width &&
+            item.rect.y <= canvas.height &&
+            item.rect.x + item.rect.width >= 0 &&
+            item.rect.y + item.rect.height >= 0)
+      );
+      result.outputs.annotationsInBounds = inBounds;
+      specs.push({
+        statement: `$$outputs.annotationsInBounds == true`,
+        severity: "warning",
+      });
+
+      finalBuffer = await compositeAnnotations({
+        sharp,
+        buffer: finalBuffer,
+        svg,
+        blurRegions,
+      });
+    } catch (error) {
+      // Compositing failures are EXECUTION errors, not assertions — same
+      // contract as the crop extract above.
+      result.status = "FAIL";
+      result.description = `Couldn't annotate image. ${error}`;
+      return result;
+    }
+  }
+
+  // Record the saved image's actual pixel dimensions — the size the page really
+  // rendered (or was cropped to), which can differ from the requested viewport
+  // when the browser/OS floors it. Surfacing it here makes the report and any
+  // caption reflect ground truth rather than the requested size. Best-effort:
+  // never fail the step over a metadata read.
+  //
+  // Read AFTER annotating so this describes the bytes actually written. The
+  // overlay composites at the canvas size and so shouldn't change dimensions,
+  // but reporting the pre-annotation size would be a lie waiting to happen.
+  try {
+    const savedMeta = await sharp(finalBuffer).metadata();
+    if (savedMeta.width && savedMeta.height) {
+      result.outputs.width = savedMeta.width;
+      result.outputs.height = savedMeta.height;
+    }
+  } catch {
+    /* dimensions are best-effort metadata */
   }
 
   // Write the final (captured or cropped) PNG buffer to disk exactly once. On
@@ -667,6 +1085,14 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
   // reference. This is the single write of the final PNG on the URL path.
   if (isUrlPath) {
     if (!writeFinalPng(filePath)) return result;
+  }
+
+  // Compare-only callers (recording checkpoints) always persist the fresh
+  // capture to their staging path — whether a baseline exists or not, and
+  // whatever the comparison says. The baseline decision happens later, at
+  // stopRecord. This is the single write in compareOnly mode.
+  if (internal?.compareOnly) {
+    if (!writeFinalPng(internal.capturePath)) return result;
   }
 
   // If a reference already exists (local target or fetched URL temp):
@@ -767,13 +1193,16 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
         result.description = `Couldn't load screenshot comparison dependency (pixelmatch). ${error?.message ?? error}`;
         return result;
       }
+      // threshold 0: any color change counts (anti-aliasing is still
+      // excused); maxVariation is the only tolerance. Reproduces pixelmatch
+      // 7's counts at its old 0.0005 exactly (ADR 01142).
       const numDiffPixels = pixelmatchFn(
         img1.data,
         img2.data,
         null,
         width,
         height,
-        { threshold: 0.0005 }
+        { threshold: 0 }
       );
       fractionalDiff = numDiffPixels / (width * height);
 
@@ -795,7 +1224,11 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
       });
 
       if (fractionalDiff > step.screenshot.maxVariation) {
-        if (step.screenshot.overwrite == "aboveVariation" && !isUrlPath) {
+        if (
+          step.screenshot.overwrite == "aboveVariation" &&
+          !isUrlPath &&
+          !internal?.compareOnly
+        ) {
           // Replace old file with the new capture (single write to the target).
           if (!writeFinalPng(existFilePath)) return result;
         }
@@ -813,6 +1246,11 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
           // capture path (already written above) + referenceUrl.
           result.outputs.screenshotPath = filePath;
           result.outputs.referenceUrl = redactedUrl;
+        } else if (internal?.compareOnly) {
+          // Compare-only: the baseline stayed untouched and nothing user-owned
+          // changed — keep `outputs.changed` false. The drift signal is the
+          // WARNING + outputs.variation; the staged capture carries the pixels.
+          result.outputs.screenshotPath = internal.capturePath;
         } else {
           result.outputs.changed = true;
           result.outputs.screenshotPath = existFilePath;
@@ -846,13 +1284,22 @@ async function saveScreenshot({ config, step, driver, appSession }: { config: an
   // it. (URL paths already wrote and set screenshotPath above, so they never
   // reach this branch.)
   if (!result.outputs.screenshotPath) {
-    if (!writeFinalPng(filePath)) return result;
-    result.outputs.screenshotPath = filePath;
-    // Mark new screenshots as changed so they can be uploaded
-    result.outputs.changed = true;
-    // Preserve sourceIntegration metadata
-    if (step.screenshot.sourceIntegration) {
-      result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
+    if (internal?.compareOnly) {
+      // No baseline yet: report it instead of seeding the file — first-run
+      // baseline writes belong to stopRecord (ADR 01075). The capture is
+      // already staged at internal.capturePath; `changed` stays false so
+      // upload pipelines ignore compare-only captures.
+      result.outputs.screenshotPath = internal.capturePath;
+      result.outputs.baselineMissing = true;
+    } else {
+      if (!writeFinalPng(filePath)) return result;
+      result.outputs.screenshotPath = filePath;
+      // Mark new screenshots as changed so they can be uploaded
+      result.outputs.changed = true;
+      // Preserve sourceIntegration metadata
+      if (step.screenshot.sourceIntegration) {
+        result.outputs.sourceIntegration = step.screenshot.sourceIntegration;
+      }
     }
   }
 

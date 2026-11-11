@@ -7,11 +7,9 @@
   },
   "properties": {
     "$schema": {
-      "description": "JSON Schema for this object.",
+      "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
       "type": "string",
-      "enum": [
-        "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/spec_v3.schema.json"
-      ]
+      "minLength": 1
     },
     "specId": {
       "type": "string",
@@ -38,6 +36,9 @@
     "openApi": {
       "$ref": "test_v3.schema.json#/properties/openApi"
     },
+    "publicVariables": {
+      "$ref": "test_v3.schema.json#/properties/publicVariables"
+    },
     "autoScreenshot": {
       "type": "boolean",
       "description": "If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level."
@@ -45,6 +46,16 @@
     "autoRecord": {
       "type": "boolean",
       "description": "If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level."
+    },
+    "annotationDefaults": {
+      "description": "Default visual theme for annotations in this spec's tests. Overrides the config-level `annotationDefaults`; individual tests can override this value with their own `annotationDefaults`. When unset, defers to the config level.",
+      "$ref": "annotationDefaults_v3.schema.json#"
+    },
+    "durationMs": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total time this specification's tests took, in milliseconds: the sum of the per-test durations. A sum rather than a wall-clock span, because this spec's contexts share a concurrent pool with every other spec's. Present only in test results. System-populated.",
+      "readOnly": true
     },
     "tests": {
       "description": "[Tests](test) to perform.",
@@ -214,6 +225,32 @@
                 "overwrite": "aboveVariation"
               },
               "variables": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "annotationDefaults": {
+        "color": "#E11D48",
+        "strokeWidth": 3,
+        "badge": {
+          "background": "#E11D48",
+          "color": "#FFFFFF"
+        }
+      },
+      "tests": [
+        {
+          "steps": [
+            {
+              "screenshot": {
+                "path": "a.png",
+                "annotations": [
+                  {
+                    "outline": "#submit"
+                  }
+                ]
+              }
             }
           ]
         }

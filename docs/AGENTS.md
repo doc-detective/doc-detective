@@ -4,7 +4,9 @@ This repository contains files to generate a [Fern Docs](https://buildwithfern.c
 
 ## Content strategy (read first)
 
-Before drafting or restructuring any page, consult the content strategy in [content-strategy/](content-strategy/) — the audiences, personas, Critical User Journeys (CUJs), and information architecture that govern this site. The site is **organized by user intent (persona + journey), not by document type**. Identify the persona and CUJ a page serves, sequence the content by that journey, deep-link into the Reference shelf rather than duplicating it, and record any new page in [content-strategy/information-architecture.md](content-strategy/information-architecture.md). See [content-strategy/README.md](content-strategy/README.md) for the full workflow.
+Before drafting or restructuring any page, consult the content strategy in [content-strategy/](content-strategy/). It holds the audiences, personas, Critical User Journeys (CUJs), and information architecture that govern this site. The site is **organized by user intent (persona + journey), not by document type**. Identify the persona and CUJ a page serves, then sequence the content by that journey. Deep-link into the Reference shelf rather than duplicating it, and record any new page in [content-strategy/information-architecture.md](content-strategy/information-architecture.md). See [content-strategy/README.md](content-strategy/README.md) for the full workflow.
+
+Pages describe what the tool does today, and quoted messages follow one style. See ["Plans and interfaces"](../CLAUDE.md#plans-and-interfaces-required) (rule 4) and ["Messages"](../CLAUDE.md#messages-required) in the root guide.
 
 ## Repository layout
 
@@ -37,14 +39,14 @@ This project uses Doc Detective to test its own documentation.
 
 Two Doc Detective configs live at the docs root:
 
-- `.doc-detective.json` — used in CI ([`.github/workflows/test-docs.yml`](../.github/workflows/test-docs.yml)). Its `beforeAny`/`afterAll` start and stop only the static fixture server (`test/server/start.js`, port `8092`), which the inline tests on the action reference pages target.
-- `.doc-detective.preview.json` — for local runs. It layers a second background process on top of the static server that starts the **Fern docs preview server** (`fern docs dev --legacy`, port `3000`), so you can write and run tests against the rendered docs site itself. Run with:
+- `.doc-detective.json` is used in CI ([`.github/workflows/test-docs.yml`](../.github/workflows/test-docs.yml)). Its `beforeAny` and `afterAll` start and stop only the static fixture server (`test/server/start.js`, port `8092`), which the inline tests on the action reference pages target.
+- `.doc-detective.preview.json` is for local runs. It layers a second background process on top of the static server, starting the **Fern docs preview server** (`fern docs dev --legacy`, port `3000`). You can then write and run tests against the rendered docs site itself. Run with:
 
   ```bash
   npx doc-detective --config docs/.doc-detective.preview.json
   ```
 
-The setup/teardown specs are in `test-setup/`. The docs preview uses the `--legacy` server because the default preview bundle can take several minutes to build and is prone to a `pnpm` patch error on some platforms; the legacy server starts in seconds. This second server is intentionally **not** wired into the CI config so `test-docs.yml` stays fast and network-independent.
+The setup and teardown specs are in `test-setup/`. The docs preview uses the `--legacy` server for two reasons. The default preview bundle can take several minutes to build, and it's prone to a `pnpm` patch error on some platforms. The legacy server starts in seconds. This second server is intentionally **not** wired into the CI config, so `test-docs.yml` stays fast and network-independent.
 
 ## Documentation pages
 
@@ -63,6 +65,34 @@ The setup/teardown specs are in `test-setup/`. The docs preview uses the `--lega
   - Use level 1 Markdown headings `#`
   - Use the `.md` file extension.
 
+### Internal links (the published route is not the file path)
+
+A link that looks right against the file tree can still 404. Fern builds a route from the
+**tab slug plus the section slug plus the page slug**. A section with no explicit `slug:`
+still contributes one, derived from its title. That doubles a segment whenever the two names
+match. So `pages/reference/expressions.mdx` publishes at `/reference/reference/expressions`,
+and `/reference/expressions` silently serves the **home page** rather than a 404.
+
+Three rules, each one the cause of real broken links found in a sweep:
+
+- **Routes are case-sensitive.** Action pages publish lowercased and unhyphenated, so
+  `goTo.mdx` is `/docs/actions/goto` and `runShell.mdx` is `/docs/actions/runshell`.
+  `/docs/actions/goTo` and `/docs/actions/run-shell` both serve the home page.
+- **A `folder:` entry has no landing page.** `/docs/actions` is not a route. Link to a page
+  that lists the actions, such as `/docs/get-started/how-testing-works`.
+- **Check the slug, not the filename.** `pages/docs/config/contexts.mdx` publishes at
+  `/docs/test-docs/platforms-and-browsers`, because `docs.yml` gives it that slug in that
+  section.
+
+To verify a route rather than guess it, read the deployed site's own list. Every PR gets a
+Fern preview comment, and `curl -s <preview>/sitemap.xml` is the authoritative route set.
+Deriving routes from `docs.yml` by hand produces false positives in both directions.
+
+**One page is generated: `pages/reference/cli.mdx`.** Fix a link in
+`.scripts/buildCliReference.js` and regenerate with `npm run docs:build-cli-ref`. Editing the
+page directly looks like it worked, then the `cli-ref` gate regenerates it and fails on the
+diff.
+
 ### Custom React components
 
 No custom React components at this time.
@@ -75,15 +105,15 @@ No custom React components at this time.
 ### User-impact lens (applies to every docs change, including bot-authored PRs)
 
 Filter every addition through: **what does the user need to know, and does it solve their pain
-point?** Do not document functionality merely because it exists — the code is the record of *what
+point?** Do not document functionality merely because it exists. The code is the record of *what
 it does*. Only document things with direct user impact: something users configure, run, rely on,
 or get burned by.
 
 - When a PR (especially a Promptless one) adds a paragraph, ask whether a real user hits it.
 - Cut or soften narrow edge cases and internal-mechanics detail; keep the practical "here's what
   you set and what happens."
-- Prefer trimming over documenting a corner case. Rare edge cases tied to internal mechanics — or
-  to unmerged behavior — are noise.
+- Prefer trimming over documenting a corner case. Rare edge cases tied to internal mechanics are
+  noise, as are those tied to unmerged behavior.
 
 This aligns with the persona/CUJ organization in [content-strategy/](content-strategy/): pages
 serve journeys, not an exhaustive mirror of the code surface.

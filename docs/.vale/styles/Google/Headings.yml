@@ -7,6 +7,7 @@ match: $sentence
 indicators:
   - ":"
 exceptions:
+  - Android
   - Azure
   - CLI
   - Cosmos
@@ -14,6 +15,7 @@ exceptions:
   - Emmet
   - gRPC
   - I
+  - iOS
   - Kubernetes
   - Linux
   - macOS

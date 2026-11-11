@@ -8,9 +8,9 @@ decision-makers: doc-detective maintainers
 
 ## Context and Problem Statement
 
-The `goTo` step navigated and waited for `document.readyState === "complete"` (`00106`), but many
-modern pages keep loading content asynchronously after `readyState` — XHR/fetch traffic, DOM
-mutations, or a specific element appearing. Authors needed to express *what* "loaded enough" means
+The `goTo` step navigated and waited for `document.readyState === "complete"` (`00106`). But many
+modern pages keep loading content asynchronously after `readyState`. That's XHR and fetch traffic,
+DOM mutations, or a specific element appearing. Authors needed to express *what* "loaded enough" means
 for a given page before subsequent steps run. How should `goTo_v3` let an author specify the
 readiness conditions and bound the wait with a timeout?
 
@@ -36,8 +36,8 @@ pages while sane defaults keep the common case simple. The contract: `goTo_v3` g
 (default `30000` ms) and a `waitUntil` object with `networkIdleTime` (default `500` ms),
 `domIdleTime` (default `1000` ms), and an `element` to wait for; setting a condition to `null`
 disables it. The runner evaluates the readyState, network-idle, DOM-stable, and element-found checks
-in parallel and proceeds when the configured conditions are satisfied or the timeout elapses (schema
-`doc-detective-common` `9d7d503`; runner `doc-detective-core` `107766`).
+in parallel. It proceeds when the configured conditions are satisfied, or when the timeout elapses
+(schema `doc-detective-common` `9d7d503`; runner `doc-detective-core` `107766`).
 
 ### Consequences
 

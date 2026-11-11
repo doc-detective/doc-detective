@@ -1,0 +1,79 @@
+{
+  "specId": "app-annotations-macos",
+  "description": "Screenshot annotations on a macOS app surface. This spec exists to verify the ONE piece of annotation geometry that couldn't be checked on the development machine: macOS rebases native element rects onto the window origin, while Windows doesn't (the Windows session is rooted at the app window, so getElementRect is already window-relative — proven against Character Map in app-annotations.spec.json). The macOS side is inferred from Mac2 reporting screen coordinates: appWindowRect reads the window element's rect and hands it to ffmpeg as a display crop, which only works in screen space, while appWindowScreenshot captures the window ELEMENT. If that inference is wrong, annotations land offset by the window's desktop position and this fixture is where it surfaces. Calculator is the target: it's on every macOS host and its buttons carry stable accessible names. Gated to macOS; elsewhere runOn lands it SKIPPED. Needs Accessibility (TCC), which CI grants — without it the app preflight SKIPs the context.",
+  "tests": [
+    {
+      "testId": "app-annotations-macos-element",
+      "description": "Annotate a native macOS element by its accessible name, plus a position-anchored annotation that needs no element lookup.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "/System/Applications/Calculator.app",
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "elementAria": "1"
+              }
+            }
+          }
+        },
+        {
+          "stepId": "app-annotation-macos-element",
+          "description": "Outline a native button found by accessible name. If the window-origin rebasing is wrong, the outline lands off the button — visible in the artifact even though the step still passes.",
+          "screenshot": {
+            "path": "app-annotation-macos-element.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "surface": {
+              "app": "Calculator"
+            },
+            "annotations": [
+              {
+                "outline": {
+                  "elementAria": "1"
+                }
+              },
+              {
+                "badge": {
+                  "elementAria": "2"
+                },
+                "label": "1"
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "app-annotation-macos-position",
+          "screenshot": {
+            "path": "app-annotation-macos-position.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "surface": {
+              "app": "Calculator"
+            },
+            "annotations": [
+              {
+                "text": {
+                  "position": "top-left"
+                },
+                "label": "Calculator"
+              }
+            ]
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "Calculator"
+          }
+        }
+      ]
+    }
+  ]
+}

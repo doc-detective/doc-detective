@@ -35,3 +35,14 @@ tests:
     savePath: response.json
     maxVariation: 0
     overwrite: aboveVariation
+- description: statusCodes accepts a single integer as a one-item list.
+  steps:
+  - description: A scalar statusCodes accepts the non-default 404.
+    httpRequest:
+      url: http://localhost:8092/status/404
+      statusCodes: 404
+  - description: The equivalent one-item array behaves the same.
+    httpRequest:
+      url: http://localhost:8092/status/404
+      statusCodes:
+      - 404

@@ -12,7 +12,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import sinon from "sinon";
 import { getOperation, loadDescription } from "../dist/core/openapi.js";
+import { requireYaml } from "../dist/core/lazyYaml.js";
+import { HTTPResolver } from "@apidevtools/json-schema-ref-parser";
 
 // Helper: wrap an operation under a path + method and attach a server.
 function defWith(operation, { server = "https://api.example.com", paths } = {}) {
@@ -455,6 +458,95 @@ describe("core/openapi coverage", function () {
     it("rejects when descriptionPath is empty", async function () {
       await assert.rejects(() => loadDescription(""), /Description is required/);
     });
+
+    const unreadable = (location) =>
+      `Couldn't read ${location}: it's empty or isn't a JSON or YAML object.`;
+
+    // One message, naming the cause: readFile throws it instead of warning.
+    it("fails a missing local description with one message that names the cause", async function () {
+      const missing = "no-such-openapi-description.yaml";
+      const logged = sinon.stub(console, "log");
+      try {
+        await assert.rejects(() => loadDescription(missing), {
+          message: `Couldn't read ${path.resolve(missing)}: the file doesn't exist.`,
+        });
+        sinon.assert.notCalled(logged);
+      } finally {
+        logged.restore();
+      }
+    });
+
+    // Empty YAML parses to null, and plain text stays a string, which the ref
+    // parser would read as a path. An array parses but isn't a description
+    // either.
+    for (const [name, body] of [
+      ["empty.yaml", ""],
+      ["notes.txt", "plain text"],
+      ["array.json", "[]"],
+    ]) {
+      it(`fails a local description that isn't an object (${name})`, async function () {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openapi-cov-"));
+        const file = path.join(tmpDir, name);
+        fs.writeFileSync(file, body);
+        await assert.rejects(() => loadDescription(file), { message: unreadable(file) });
+      });
+    }
+
+    // One message naming the parser's cause, not a parse warning and then an
+    // error. A YAML error's first line is the cause; a code frame follows.
+    const parseError = (parse, body) => {
+      try {
+        parse(body);
+      } catch (error) {
+        return error.message.split("\n")[0].replace(/:$/, "");
+      }
+    };
+    for (const [name, body, format, parse] of [
+      ["empty.json", "", "JSON", JSON.parse],
+      ["broken.json", "{ not json", "JSON", JSON.parse],
+      ["broken.yaml", "key: : : broken\n  - nope", "YAML", (text) => requireYaml().parse(text)],
+    ]) {
+      it(`fails a local description that isn't valid ${format} with one message (${name})`, async function () {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openapi-cov-"));
+        const file = path.join(tmpDir, name);
+        fs.writeFileSync(file, body);
+        const logged = sinon.stub(console, "log");
+        try {
+          await assert.rejects(() => loadDescription(file), {
+            message: `Couldn't read ${file}: it isn't valid ${format} (${parseError(parse, body)}).`,
+          });
+          sinon.assert.notCalled(logged);
+        } finally {
+          logged.restore();
+        }
+      });
+    }
+
+    // The guard overrides the ref parser's `http` resolver. If an update
+    // reshapes it, loading fails loudly instead of skipping the guard.
+    for (const [name, reshape] of [
+      ["has no safeUrlResolver option", (resolver) => delete resolver.safeUrlResolver],
+      ["has no read function", (resolver) => (resolver.read = undefined)],
+    ]) {
+      it(`refuses to load when json-schema-ref-parser's http resolver ${name}`, async function () {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openapi-cov-"));
+        const file = path.join(tmpDir, "spec.json");
+        fs.writeFileSync(
+          file,
+          JSON.stringify({ openapi: "3.0.0", info: { title: "t", version: "1" }, paths: {} })
+        );
+        const saved = { ...HTTPResolver };
+        reshape(HTTPResolver);
+        try {
+          await assert.rejects(() => loadDescription(file), {
+            message:
+              "Couldn't load the OpenAPI description: json-schema-ref-parser's http resolver has no read function or safeUrlResolver option, so Doc Detective can't guard its $refs.",
+          });
+        } finally {
+          Object.assign(HTTPResolver, saved);
+        }
+      });
+    }
 
     it("loads and dereferences a local OpenAPI JSON file", async function () {
       tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openapi-cov-"));

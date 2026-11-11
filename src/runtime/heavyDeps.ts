@@ -104,24 +104,50 @@ export function resolveManagedDepNames(pkg: ShimPackageJson): string[] {
 }
 
 export interface ShimPackageJson {
-  // The published manifest carries heavy-dep version constraints here:
-  // the publish step moves `optionalDependencies` into this custom field so npm
-  // never auto-installs them, while the source manifest keeps
-  // `optionalDependencies` for Dependabot. See scripts/publish-manifest.js.
+  // The published manifest carries every heavy-dep version constraint here:
+  // the publish step merges `optionalDependencies` into this custom field so
+  // npm never auto-installs them. The source manifest keeps most heavy deps in
+  // `optionalDependencies` for Dependabot, and declares runtime-cache-only deps
+  // (Appium and its drivers, the PTY backend) here directly.
+  // See scripts/publish-manifest.js.
   ddRuntimeDependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
   dependencies?: Record<string, string>;
+  version?: string;
 }
 
+let cachedRoot: string | undefined;
 let cachedPkg: ShimPackageJson | null = null;
 
-function readShimPackageJson(): ShimPackageJson {
-  if (cachedPkg) return cachedPkg;
-  // dist/runtime/heavyDeps.js sits two directories below the shim root.
-  const pkgPath = path.resolve(__dirname, "../../package.json");
-  const raw = fs.readFileSync(pkgPath, "utf8");
-  cachedPkg = JSON.parse(raw) as ShimPackageJson;
-  return cachedPkg;
+/**
+ * doc-detective's own package root: the nearest ancestor of this module whose
+ * package.json is named doc-detective. Walks up rather than using a fixed
+ * `../..`: modules run from dist/<dir>/ in the ESM build and from the
+ * dist/index.cjs bundle, one level shallower. Matching the name keeps it off a
+ * user's package.json. Undefined only when run outside the package.
+ */
+export function packageRoot(): string | undefined {
+  for (let dir = __dirname; !cachedRoot; dir = path.dirname(dir)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
+      if (pkg.name === "doc-detective") {
+        cachedRoot = dir;
+        cachedPkg = pkg;
+      }
+    } catch {}
+    if (path.dirname(dir) === dir) break;
+  }
+  return cachedRoot;
+}
+
+/** doc-detective's own version, from the package.json packageRoot() found. */
+export function ownVersion(): string | undefined {
+  return packageRoot() && cachedPkg!.version;
+}
+
+export function readShimPackageJson(): ShimPackageJson {
+  if (!packageRoot()) throw new Error("doc-detective's package.json not found");
+  return cachedPkg as ShimPackageJson;
 }
 
 /**
@@ -166,6 +192,7 @@ export function resolveDeclaredVersion(
 
 /** Test seam: drop the cached package.json read. */
 export function _resetCacheForTests(): void {
+  cachedRoot = undefined;
   cachedPkg = null;
 }
 
