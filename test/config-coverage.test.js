@@ -583,7 +583,7 @@ describe("config.ts — setConfig", function () {
         setConfig({
           config: { logLevel: "silent", concurrentRunners: "not-a-number-or-bool-or-int" },
         }),
-      /Invalid config:\nconcurrentRunners: must be integer or boolean/
+      /Invalid config:\nconcurrentRunners: must be auto/
     );
   });
 

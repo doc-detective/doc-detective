@@ -103,7 +103,7 @@ describe("normalization", function () {
     it("leaves step-level keys as authored", function () {
       expect(Object.keys(effective({ goTo: "https://x.com" }).object)).to.deep.equal(["goTo"]);
       // Values that differ from the schema defaults, so a default can't stand in for them.
-      const authored = { unsafe: true, breakpoint: true, outputs: { TITLE: "$$title" }, variables: { X: "1" } };
+      const authored = { unsafe: true, outputs: { TITLE: "$$title" }, variables: { X: "1" } };
       const result = effective({ goTo: "https://x.com", ...authored });
       expect(result.valid, result.errors).to.equal(true);
       expect(result.object).to.deep.include(authored);

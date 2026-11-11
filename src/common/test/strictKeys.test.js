@@ -93,6 +93,34 @@ describe("unknown keys", function () {
     });
   });
 
+  // ADR 01187: keys that validated but did nothing are gone, so setting one is
+  // an unknown key.
+  describe("keys that did nothing", function () {
+    const heretto = { name: "h", organizationId: "o", username: "u", apiToken: "t" };
+    for (const [name, schemaKey, clean, extra] of [
+      ["config `crawl`", "config_v3", {}, (o) => (o.crawl = true)],
+      ["`integrations.heretto[].fileMapping`", "config_v3", { integrations: { heretto: [heretto] } }, (o) => (o.integrations.heretto[0].fileMapping = {})],
+      ["step `breakpoint`", "step_v3", { ...goTo }, (o) => (o.breakpoint = true)],
+      ["`$schema` in `saveCookie`", "step_v3", { saveCookie: { name: "c", path: "c.txt" } }, (o) => (o.saveCookie.$schema = "x")],
+      ["`$schema` in `loadCookie`", "step_v3", { loadCookie: { name: "c", path: "c.txt" } }, (o) => (o.loadCookie.$schema = "x")],
+      ["`workingDirectory` on a `startSurface` app", "step_v3", { startSurface: { app: "com.apple.TextEdit" } }, (o) => (o.startSurface.workingDirectory = "/tmp")],
+    ]) {
+      it(`rejects ${name}, and accepts the same object without it`, function () {
+        const object = structuredClone(clean);
+        extra(object);
+        expect(validate({ schemaKey, object, addDefaults: false }).valid).to.equal(false);
+        const without = validate({ schemaKey, object: structuredClone(clean), addDefaults: false });
+        expect(without.valid, without.errors).to.equal(true);
+      });
+    }
+
+    it("still accepts `workingDirectory` on a `startSurface` process", function () {
+      const object = { startSurface: { process: "node -i", name: "repl", workingDirectory: "." } };
+      const result = validate({ schemaKey: "step_v3", object, addDefaults: false });
+      expect(result.valid, result.errors).to.equal(true);
+    });
+  });
+
   describe("action objects", function () {
     for (const [name, step] of [
       ["click", { click: { selector: "a", timeout: 50, typo: 1 } }],

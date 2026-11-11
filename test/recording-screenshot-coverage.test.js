@@ -312,7 +312,7 @@ describeIfSharp("saveScreenshot: extra branches", function () {
     });
     // Same solid color at both sizes -> near-zero diff -> within variation.
     assert.equal(result.status, "PASS");
-    assert.equal(result.outputs.aspectRatioMatch, true);
+    assert.equal(result.outputs.aspectRatioMatches, true);
     assert.equal(typeof result.outputs.variation, "number");
   });
 
@@ -666,7 +666,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /record: false/);
+    assert.equal(result.description, "Skipped: `record` is `false`.");
   });
 
   it("existing target file + overwrite:false -> SKIPPED", async function () {
@@ -679,7 +679,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /File already exists/);
+    assert.match(result.description, /^Skipped: file already exists at `/);
   });
 
   // ADR 01079: an existing target skips the *video*, but checkpoints are a
@@ -698,7 +698,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /File already exists/);
+    assert.match(result.description, /^Skipped: file already exists at `/);
     assert.match(result.description, /checkpoint comparisons only/);
     assert.equal(result.recording?.type, "phantom");
     assert.equal(result.recording?.targetPath, target);
@@ -719,7 +719,7 @@ describe("startRecording: guards + browser engine", function () {
     // Must not hit the existing-file skip: aboveVariation always records, then
     // decides at stopRecord whether the capture replaces the target.
     assert.ok(
-      !/File already exists/.test(String(result.description)),
+      !/file already exists/.test(String(result.description)),
       `aboveVariation must not skip an existing target, got: ${result.description}`
     );
   });
@@ -734,7 +734,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /File already exists/);
+    assert.match(result.description, /^Skipped: file already exists at `/);
     assert.equal(result.recording, undefined);
   });
 
@@ -752,7 +752,7 @@ describe("startRecording: guards + browser engine", function () {
       driver,
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /already in use by an active recording/);
+    assert.match(result.description, /^Skipped: recording target `.*` is already in use by an active recording\.$/);
   });
 
   it("browser engine on non-chrome -> SKIPPED", async function () {
@@ -764,7 +764,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /requires Chrome/);
+    assert.match(result.description, /^Skipped: the `browser` recording engine requires Chrome\./);
   });
 
   // A headless browser can't be screen-recorded; the SKIP names the browser
@@ -1176,17 +1176,17 @@ describe("stopRecording: guards + MediaRecorder", function () {
       driver: { state: { recordings: [{ type: "ffmpeg" }] } },
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /disabled \(stopRecord: false\)/);
+    assert.equal(result.description, "Skipped: `stopRecord` is `false`.");
   });
 
-  it("no recordings at all -> SKIPPED 'isn't started'", async function () {
+  it("no recordings at all -> SKIPPED 'no recording is active'", async function () {
     const result = await stopRecording({
       config,
       step: { stopRecord: true },
       driver: { state: { recordings: [] } },
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /isn't started/);
+    assert.equal(result.description, "Skipped: no recording is active.");
   });
 
   it("named target not found -> SKIPPED with the target name", async function () {
@@ -1196,7 +1196,7 @@ describe("stopRecording: guards + MediaRecorder", function () {
       driver: { state: { recordings: [{ type: "ffmpeg", name: "other" }] } },
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /No active recording named 'demo'/);
+    assert.equal(result.description, "Skipped: no active recording named `demo`.");
   });
 
   it("only a synthetic autoRecord recording present, untargeted stop -> SKIPPED (still running)", async function () {
@@ -1208,7 +1208,7 @@ describe("stopRecording: guards + MediaRecorder", function () {
       },
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /automatic \(autoRecord\) recording is still running/);
+    assert.match(result.description, /^Skipped: no user-stoppable recording is active\. An automatic \(`autoRecord`\) recording is still running/);
   });
 
   it("MediaRecorder whose recorder object is missing -> FAIL and drops the handle", async function () {

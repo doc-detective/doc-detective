@@ -15,10 +15,6 @@ export type CookieNameOrFilePath = string;
 export type LoadCookieDetailed = {
   [k: string]: unknown;
 } & {
-  /**
-   * Optional self-describing schema URI for linters
-   */
-  $schema?: string;
   name: CookieName;
   variable?: EnvironmentVariableName;
   path?: CookieFilePath;

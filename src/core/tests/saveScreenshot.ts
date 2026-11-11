@@ -366,7 +366,7 @@ async function captureScreenshot({
   //   (2) element fits viewport   `$$outputs.fitsViewport == true`          (fail)    — only when `crop` is set
   //   (3) annotation targets found `$$outputs.annotationTargetsFound == true` (fail)   — only when `annotations` is set
   //   (4) annotations in bounds   `$$outputs.annotationsInBounds == true`   (warning) — only when `annotations` is set
-  //   (5) aspect ratios match     `$$outputs.aspectRatioMatch == true`      (fail)    — only when comparing against an existing/URL reference
+  //   (5) aspect ratios match     `$$outputs.aspectRatioMatches == true`    (fail)    — only when comparing against an existing/URL reference
   //   (6) variation <= max        `$$outputs.variation <= <max>`            (warning) — only when comparing against an existing/URL reference
   //
   // EXECUTION errors (NOT assertions) still return FAIL with NO assertion
@@ -620,7 +620,7 @@ async function captureScreenshot({
       if (step.screenshot.overwrite == "false") {
         // File already exists
         result.status = "SKIPPED";
-        result.description = `File already exists: ${filePath}`;
+        result.description = `Skipped: file already exists at \`${filePath}\`. Set \`overwrite\` to \`true\` to replace it.`;
         // No verification specs were gathered (we short-circuit before capture
         // and comparison), but keep the `assertions` shape consistent with every
         // other return path — an empty array rather than undefined. The SKIPPED
@@ -1145,17 +1145,17 @@ async function captureScreenshot({
       }
 
       // (3) Aspect ratios match is a VERIFICATION ASSERTION. Compute the boolean
-      // with the existing helper, expose it as `outputs.aspectRatioMatch`, and
+      // with the existing helper, expose it as `outputs.aspectRatioMatches`, and
       // push the spec. On mismatch we evaluate immediately and return (the
       // variation spec is never pushed — the diff can't be computed across
       // mismatched ratios), preserving the prior FAIL status exactly.
-      const aspectRatioMatch = aspectRatiosMatch(img1, img2);
-      result.outputs.aspectRatioMatch = aspectRatioMatch;
+      const aspectRatioMatches = aspectRatiosMatch(img1, img2);
+      result.outputs.aspectRatioMatches = aspectRatioMatches;
       specs.push({
-        statement: `$$outputs.aspectRatioMatch == true`,
+        statement: `$$outputs.aspectRatioMatches == true`,
         severity: "fail",
       });
-      if (!aspectRatioMatch) {
+      if (!aspectRatioMatches) {
         result.description = `Couldn't compare images. Images have different aspect ratios.`;
         return await evaluateApplicable();
       }

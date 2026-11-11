@@ -38,9 +38,11 @@ const savedRecording = (report, rec) =>
   /\.mp4$/i.test(rec?.recordingPath ?? "") && fs.existsSync(path.join(report.runDir, rec.recordingPath));
 
 // Every authored UI step has an image in the run folder, and the first is 01-….
+// The step's field is autoScreenshotPath; the pre-5.0 name is gone (ADR 01184).
 function expectScreenshots(report, check) {
-  const shots = authored(report).map((s) => s.autoScreenshot);
-  check(shots.length === uiSteps.length && shots.every(Boolean), `every UI step has an autoScreenshot (${JSON.stringify(shots)})`);
+  const shots = authored(report).map((s) => s.autoScreenshotPath);
+  check(shots.length === uiSteps.length && shots.every(Boolean), `every UI step has an autoScreenshotPath (${JSON.stringify(shots)})`);
+  check(steps(report).every((s) => !("autoScreenshot" in s)), "no step has the old autoScreenshot field");
   for (const shot of shots.filter(Boolean)) check(fs.existsSync(path.join(report.runDir, shot)), `${shot} exists in the run folder`);
   check(path.basename(String(shots[0])).startsWith("01-"), `the first authored image is 01-… (${shots[0]})`);
 }
@@ -71,7 +73,7 @@ function expectScreenRecording(report, check, dir, stderr) {
   if (rec.result === "PASS") check(savedRecording(report, rec), "its MP4 exists under runDir");
 }
 function expectNoScreenshots(report, check) {
-  check(steps(report).every((s) => !s.autoScreenshot), "no step has an autoScreenshot");
+  check(steps(report).every((s) => !s.autoScreenshotPath && !s.autoScreenshot), "no step has an autoScreenshotPath");
 }
 
 // cli/auto-capture-defaults.spec.json runs the cases through junit-run-folder,
@@ -116,8 +118,8 @@ const cases = {
   },
   // Both HTML copies show the automatic media: the run folder's
   // testResults.html and the html reporter's copy in outputDir each point at
-  // every automatic screenshot and the context's MP4 through their
-  // REPORT_MEDIA_BASE.
+  // every automatic screenshot and the context's MP4 through the hrefs in their
+  // dd-report-view.
   "html-media": {
     spec: uiSpec("hm", "chrome"),
     args: ["-r", "html"],
@@ -126,17 +128,16 @@ const cases = {
       check(flat, "the html reporter wrote its copy");
       const copies = [path.join(report.runDir, "testResults.html"), flat && path.join(dir, flat)].filter(Boolean);
       const media = [
-        ...authored(report).map((s) => s.autoScreenshot).filter(Boolean),
+        ...authored(report).map((s) => s.autoScreenshotPath).filter(Boolean),
         autoRecording(report)?.recordingPath,
       ];
       check(media.length === uiSteps.length + 1 && media.every(Boolean), "there are automatic screenshots and a recording");
       for (const file of copies) {
         const html = fs.readFileSync(file, "utf8");
-        const base = JSON.parse(/window\.REPORT_MEDIA_BASE = ("[^"]*");/.exec(html)?.[1] ?? "null");
-        check(typeof base === "string", `${path.basename(file)} sets REPORT_MEDIA_BASE`);
+        const hrefs = JSON.parse(/<script id="dd-report-view" type="application\/json">(.*?)<\/script>/s.exec(html)?.[1] ?? "{}").hrefs ?? {};
         for (const rel of media.filter(Boolean)) {
-          const resolved = path.join(path.dirname(file), base ?? "", rel);
-          check(fs.existsSync(resolved), `${path.basename(file)} resolves ${rel}`);
+          const resolved = path.join(path.dirname(file), decodeURIComponent(hrefs[rel] ?? ""));
+          check(hrefs[rel] && fs.existsSync(resolved), `${path.basename(file)} resolves ${rel}`);
         }
       }
     },

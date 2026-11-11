@@ -60,6 +60,7 @@ import {
 import { instantiateCursor } from "./tests/moveTo.js";
 import { validate } from "../common/src/validate.js";
 import { normalize } from "../common/src/normalize/index.js";
+import type { AutomaticRecording } from "../common/src/types/generated/report_v3.js";
 import { goTo } from "./tests/goTo.js";
 import { findElement } from "./tests/findElement.js";
 import { runShell } from "./tests/runShell.js";
@@ -258,6 +259,7 @@ const APPIUM_READY_POLL_MS = 50;
 export {
   runSpecs,
   runViaApi,
+  emptyReport,
   getRunner,
   useEffectiveStep,
   placeCapturePaths,
@@ -1378,6 +1380,19 @@ async function allowUnsafeSteps({ config }: { config: any }) {
   return config.allowUnsafeSteps === true;
 }
 
+// A run that tested nothing still returns a report (ADR 01152), with the
+// metadata every report has (ADR 01186).
+function emptyReport(runStart = Date.now()) {
+  const zero = () => ({ pass: 0, fail: 0, warning: 0, skipped: 0 });
+  return {
+    summary: { specs: zero(), tests: zero(), contexts: zero(), steps: zero() },
+    startedAt: new Date(runStart).toISOString(),
+    environment: getEnvironment(),
+    durationMs: Date.now() - runStart,
+    specs: [],
+  };
+}
+
 // Run specifications via API.
 async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests: any; apiKey: any; config?: any }): Promise<any> {
   const axios = await loadAxios();
@@ -1396,19 +1411,7 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
         "warning",
         "No specs or tests matched the configured filters. Nothing was sent to the Doc Detective API."
       );
-      return {
-        summary: {
-          specs: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-          tests: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-          contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-          steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-        },
-        // Nothing ran, but the shape stays parity with runSpecs' short-circuit.
-        startedAt: new Date().toISOString(),
-        environment: getEnvironment(),
-        durationMs: 0,
-        specs: [],
-      };
+      return emptyReport();
     }
     resolvedTests = { ...resolvedTests, specs: filteredSpecs };
   }
@@ -1429,40 +1432,32 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
     httpsAgent: new https.Agent({ keepAlive: false }),
   };
 
+  // A failure throws (ADR 01186): a `{status, error}` object would reach the
+  // reporters as if it were a report.
+  const apiError = (cause: string) => new Error(`Couldn't run tests through the Doc Detective API: ${cause}.`);
+  const request = async (what: string, expected: number, send: () => Promise<any>) => {
+    let response: any;
+    try {
+      response = await send();
+    } catch (error: any) {
+      response = error.response;
+      if (!response) throw apiError(`couldn't reach it (${error.code ?? "no response"})`);
+    }
+    if (response.status !== expected) {
+      const detail = typeof response.data?.error === "string" ? ` (${response.data.error})` : "";
+      throw apiError(`${what} returned HTTP ${response.status}${detail}`);
+    }
+    return response;
+  };
+
   // Create run
-  let createResponse;
-  try {
-    createResponse = await axios.post(apiUrl, resolvedTests, axiosConfig);
-  } catch (error: any) {
-    return {
-      status: error.response?.status,
-      error: error.response?.data?.error,
-    };
-  }
-  if (createResponse.status !== 201) {
-    return { status: createResponse.status, error: createResponse.data.error };
-  }
+  const createResponse = await request("creating the run", 201, () => axios.post(apiUrl, resolvedTests, axiosConfig));
   const runId = createResponse.data.run.runId;
 
   // TODO: Add file uploads, if any
 
   // Start run
-  let startResponse;
-  try {
-    startResponse = await axios.post(
-      `${apiUrl}/${runId}/start`,
-      {},
-      axiosConfig
-    );
-  } catch (error: any) {
-    return {
-      status: error.response?.status,
-      error: error.response?.data?.error,
-    };
-  }
-  if (startResponse.status !== 200) {
-    return { status: startResponse.status, error: startResponse.data.error };
-  }
+  await request("starting the run", 200, () => axios.post(`${apiUrl}/${runId}/start`, {}, axiosConfig));
 
   // Poll for results
   const pollInterval = 5000; // 5 seconds in milliseconds
@@ -1474,28 +1469,11 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
   while (true) {
     // Check if we've exceeded the max wait time
     if (Date.now() - startTime > maxWaitTime) {
-      return {
-        status: 408,
-        type: "TIMEOUT",
-        error: `Test execution exceeded maximum wait time of ${
-          maxWaitTime / 1000
-        } seconds`,
-      };
+      throw apiError(`the run didn't finish in ${maxWaitTime / 1000} seconds`);
     }
 
     // Poll for results
-    try {
-      response = await axios.get(`${apiUrl}/${runId}`, axiosConfig);
-    } catch (error: any) {
-      return {
-        status: error.response?.status,
-        error: error.response?.data?.error,
-      };
-    }
-
-    if (response.status !== 200) {
-      return { status: response.status, error: response.data.error };
-    }
+    response = await request("checking the run", 200, () => axios.get(`${apiUrl}/${runId}`, axiosConfig));
 
     // Check if the test run is complete
     if (response.data.status === "completed") {
@@ -1512,13 +1490,9 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
   // TODO: Handle file downloads/placement, if any
 
   try {
-    const results = JSON.parse(response.data.report);
-    return results;
-  } catch (error: any) {
-    return {
-      status: "PARSE_ERROR",
-      error: `Failed to parse API response: ${error.message}`,
-    };
+    return JSON.parse(response.data.report);
+  } catch {
+    throw apiError("its report isn't valid JSON");
   }
 }
 
@@ -1568,18 +1542,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // getAvailableApps and friends — wasted work, plus an avoidable error
     // path if discovery fails on the host. Mirrors the runViaApi early
     // return so both run paths behave the same way.
-    return {
-      summary: {
-        specs: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-        tests: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-        contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-        steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-      },
-      startedAt: new Date(runStart).toISOString(),
-      environment: getEnvironment(),
-      durationMs: Date.now() - runStart,
-      specs: [],
-    };
+    return emptyReport(runStart);
   }
 
   // Get runner details. Browser detection is skipped when no context can use
@@ -3731,7 +3694,7 @@ async function prepareTestPreflight({
     log(
       config,
       "warning",
-      `Skipping test '${test.testId}': recording name '${recordingNameConflict}' is reused while a recording with that name is still active. Names must be unique among recordings that overlap in time.`
+      `Skipped: test \`${test.testId}\` reuses recording name \`${recordingNameConflict}\` while a recording with that name is still active. Names must be unique among recordings that overlap in time.`
     );
   }
   // Track contextIds within this test so the deterministic fallback can suffix
@@ -3863,7 +3826,7 @@ function prepareContextSlot({
         platform: context.platform,
         browser: context.browser,
         result: "SKIPPED",
-        resultDescription: `Skipped — recording name '${recordingNameConflict}' is reused while still active; names must be unique among overlapping recordings.`,
+        resultDescription: `Skipped: recording name \`${recordingNameConflict}\` is reused while a recording with that name is still active. Names must be unique among recordings that overlap in time.`,
         steps: [],
       },
     };
@@ -4270,14 +4233,14 @@ const AUTO_RECORDING_RANK: Record<string, number> = { PASS: 0, SKIPPED: 1, WARNI
 // description (ADR 01179). The merged field is masked like a step report
 // (ADR 01178).
 function mergeAutoRecording(
-  contextReport: any,
-  { result, resultDescription, ...fields }: { result: string; resultDescription?: string; [key: string]: any }
+  contextReport: { autoRecording?: AutomaticRecording },
+  { result, resultDescription, ...fields }: AutomaticRecording
 ): void {
   const current = contextReport.autoRecording;
   const worse = !current || AUTO_RECORDING_RANK[result] > AUTO_RECORDING_RANK[current.result];
   // A worse result replaces the description, so it can't keep a milder result's.
   // The failure fields are recomputed from what wins (ADR 01194).
-  const { resultDescription: previous, resultCode, resultHint, ...kept } = current ?? {};
+  const { resultDescription: previous, resultCode, resultHint, ...kept } = current ?? ({ result } as AutomaticRecording);
   const description = worse ? (result !== "PASS" ? resultDescription : undefined) : previous;
   const merged = {
     ...kept,
@@ -4780,6 +4743,12 @@ async function runContext({
   // session was found dead mid-run. The caller (runContextWithRetries) reads
   // this off the returned report to decide whether to retry on a fresh session.
   let sessionDiedMidRun = false;
+  // Every step report goes through this. The step loop below replaces it with
+  // the full version; this one serves the cleanup sweep in `finally` when the
+  // context threw before the loop began.
+  let pushStepReport = (rep: any) => {
+    contextReport.steps.push(maskDeep(rep));
+  };
   if (driverRequired && !appiumPool) {
     throw new Error(
       "Browser driver requested but no Appium server pool was created; " +
@@ -5247,7 +5216,7 @@ async function runContext({
     // the failure wording (the only way execution stopped before routing); a
     // non-failure routing `stop` (e.g. onPass/onSkip stop) overwrites it with an
     // accurate message so a passing step's stop isn't mislabeled as a failure.
-    let stopReason = "Skipped due to previous failure in context.";
+    let stopReason = "Skipped: a prior step failed.";
     const usedStepIds = new Set(
       context.steps.map((s: any) => s.stepId).filter(Boolean)
     );
@@ -5294,9 +5263,10 @@ async function runContext({
     // Push a step report, stamping `visit` (1-based count of times this stepId
     // has been recorded) once a goToStep loop produces more than one. Additive:
     // a single-visit report omits `visit` and stays byte-identical (mirrors
-    // `attempts`). Used for EVERY step-report push in the loop — ran, skipped,
-    // and routing-error markers — so re-visited steps are stamped consistently.
-    const pushStepReport = (rep: any) => {
+    // `attempts`). Used for EVERY step-report push — ran, skipped, routing
+    // failures, and the end-of-context recording stops — so re-visited steps
+    // are stamped consistently.
+    pushStepReport = (rep: any) => {
       // The automatic recording isn't a step: its start reports on the context
       // (ADR 01179), and stopAllRecordings merges its stop there.
       if (rep.__autoRecord) {
@@ -5325,6 +5295,24 @@ async function runContext({
       // reading the real outputs (ADR 01178).
       contextReport.steps.push(maskDeep(rep));
     };
+    // A routing failure belongs to the step that routed (ADR 01186). Its report
+    // goes FAIL, keeps any reason it already had, and gains this one. It goes
+    // back through pushStepReport, so whatever that does to a report applies to
+    // the merged one too. A separate marker step would fail report_v3 (no
+    // action) and count in `summary.steps`.
+    const failRoutedStep = (reason: string) => {
+      clog("error", reason);
+      const last = contextReport.steps.pop();
+      if (!last) return;
+      if (last.stepId) visitCountById.set(last.stepId, (visitCountById.get(last.stepId) ?? 1) - 1);
+      pushStepReport({
+        ...last,
+        result: "FAIL",
+        resultDescription: [last.resultDescription, reason].filter(Boolean).join(" "),
+      });
+    };
+    const missingStepReason = (stepId: string) =>
+      `Couldn't route to step \`${stepId}\`: no step has that \`stepId\`.`;
     // Per-step outputs accumulator: maps each completed step's stepId to its
     // computed `outputs` bag, so later steps' guard `if` conditions can read a
     // prior step's outputs via `$$steps.<stepId>.outputs.*`. Additive
@@ -5339,24 +5327,17 @@ async function runContext({
       if (decision.action === "stop") {
         stepExecutionFailed = true;
         stopReason =
-          "Skipped because a prior step stopped execution (routing).";
+          "Skipped: a prior step stopped execution (routing).";
         return false;
       }
       if (decision.action === "goToStep") {
         const target = indexByStepId.get(decision.stepId);
         if (target === undefined) {
-          clog(
-            "error",
-            `Routing goToStep target '${decision.stepId}' not found in this test; stopping.`
-          );
-          // An unknown target is a routing misconfiguration. Push a FAIL marker
-          // so the verdict reflects the broken routing — mirrors the run-path.
-          pushStepReport({
-            result: "FAIL",
-            resultDescription: `Routing goToStep target '${decision.stepId}' does not exist.`,
-          });
+          // An unknown target is a routing misconfiguration. Fail the skipped
+          // step that routed, so the verdict reflects it — mirrors the run-path.
+          failRoutedStep(missingStepReason(decision.stepId));
           stepExecutionFailed = true;
-          stopReason = `Skipped because routing goToStep target '${decision.stepId}' does not exist.`;
+          stopReason = `Skipped: routing \`goToStep\` target \`${decision.stepId}\` doesn't exist.`;
           return false;
         }
         i = target; // JUMP (no stepExecutionFailed — flow != verdict)
@@ -5378,16 +5359,11 @@ async function runContext({
 
       totalVisits++;
       if (totalVisits > MAX_TOTAL_VISITS) {
-        clog(
-          "error",
-          `Routing exceeded ${MAX_TOTAL_VISITS} step executions in this context; stopping (possible goToStep loop).`
-        );
         // Surface the runaway as a FAIL so the verdict reflects the abnormal
         // termination — a force-terminated goToStep cycle must not report green.
-        pushStepReport({
-          result: "FAIL",
-          resultDescription: `Routing exceeded the maximum of ${MAX_TOTAL_VISITS} step executions in this context (possible goToStep loop).`,
-        });
+        failRoutedStep(
+          `Couldn't finish the context: routing ran more than ${MAX_TOTAL_VISITS} steps. Check \`goToStep\` for a loop.`
+        );
         stepExecutionFailed = true;
         break;
       }
@@ -5397,13 +5373,13 @@ async function runContext({
       if (step.unsafe && runnerDetails.allowUnsafeSteps === false) {
         clog(
           "warning",
-          `Skipping unsafe step: ${step.description} in test ${test.testId} context ${context.contextId}`
+          `Skipped: unsafe step \`${step.stepId}\` in test \`${test.testId}\`, context \`${context.contextId}\`.`
         );
         // Mark as skipped
         const stepReport = {
           ...step,
           result: "SKIPPED",
-          resultDescription: "Skipped because unsafe steps aren't allowed. Pass --allow-unsafe to run them.",
+          resultDescription: "Skipped: unsafe steps aren't allowed. Pass `--allow-unsafe` to run them.",
         };
         pushStepReport(stepReport);
         // onSkip fires only for a REACHED step. The unsafe check precedes the
@@ -5631,7 +5607,7 @@ async function runContext({
           processRegistry,
           surfaceTracker,
         });
-        if (capturedPath) stepReport.autoScreenshot = capturedPath;
+        if (capturedPath) stepReport.autoScreenshotPath = capturedPath;
       }
 
       // Recording checkpoints (ADR 01075): while a checkpoint-enabled
@@ -5676,29 +5652,22 @@ async function runContext({
       // cleanup steps; its FAIL still counts in the rollup so failures surface.
       if (routingDecision.action === "stop" && !step._fromAfter) {
         stepExecutionFailed = true;
-        // Preserve the historical wording when a FAIL stops the test (the
+        // Name the failure when a FAIL stops the test (the
         // default onFail:stop); otherwise record that routing stopped it.
         stopReason =
           stepReport.result === "FAIL"
-            ? "Skipped due to previous failure in context."
-            : "Skipped because a prior step stopped execution (routing).";
+            ? "Skipped: a prior step failed."
+            : "Skipped: a prior step stopped execution (routing).";
         i++;
       } else if (routingDecision.action === "goToStep") {
         const target = indexByStepId.get(routingDecision.stepId);
         if (target === undefined) {
-          clog(
-            "error",
-            `Routing goToStep target '${routingDecision.stepId}' not found in this test; stopping.`
-          );
           // An unknown target is a routing misconfiguration (e.g. a typo'd
-          // stepId). Surface a FAIL so it can't silently report green, then
-          // stop the rest of the context.
-          pushStepReport({
-            result: "FAIL",
-            resultDescription: `Routing goToStep target '${routingDecision.stepId}' does not exist.`,
-          });
+          // stepId). Fail the step that routed so it can't silently report
+          // green, then stop the rest of the context.
+          failRoutedStep(missingStepReason(routingDecision.stepId));
           stepExecutionFailed = true;
-          stopReason = `Skipped because routing goToStep target '${routingDecision.stepId}' does not exist.`;
+          stopReason = `Skipped: routing \`goToStep\` target \`${routingDecision.stepId}\` doesn't exist.`;
           i++;
         } else {
           i = target; // JUMP (no stepExecutionFailed — flow != verdict)
@@ -5715,7 +5684,7 @@ async function runContext({
     // Recordings live per session, so sweep every registered driver — and the
     // app session's recordingHost, which holds app-only-context recordings.
     for (const d of sessionDrivers(browserSessions, driver)) {
-      await stopAllRecordings({ config, context, driver: d, contextReport });
+      await stopAllRecordings({ config, context, driver: d, contextReport, pushStepReport });
     }
     if (appSession?.recordingHost.state.recordings.length) {
       await stopAllRecordings({
@@ -5723,6 +5692,7 @@ async function runContext({
         context,
         driver: appSession.recordingHost,
         contextReport,
+        pushStepReport,
       });
     }
 
@@ -5804,7 +5774,7 @@ async function runContext({
       // so this is a no-op; it only does work when the context threw before the
       // in-loop sweep, finalizing recordings before deleteSession kills them.
       for (const d of sessionDrivers(browserSessions, driver)) {
-        await stopAllRecordings({ config, context, driver: d, contextReport });
+        await stopAllRecordings({ config, context, driver: d, contextReport, pushStepReport });
       }
       if (appSession?.recordingHost.state.recordings.length) {
         await stopAllRecordings({
@@ -5812,6 +5782,7 @@ async function runContext({
           context,
           driver: appSession.recordingHost,
           contextReport,
+          pushStepReport,
         });
       }
     } catch (error: any) {
@@ -6024,11 +5995,13 @@ async function stopAllRecordings({
   context,
   driver,
   contextReport,
+  pushStepReport = (rep: any) => contextReport.steps.push(maskDeep(rep)),
 }: {
   config: any;
   context: any;
   driver: any;
   contextReport: any;
+  pushStepReport?: (rep: any) => void;
 }): Promise<void> {
   if (!Array.isArray(driver?.state?.recordings)) return;
   let guard = driver.state.recordings.length + 1;
@@ -6071,14 +6044,12 @@ async function stopAllRecordings({
         });
         continue;
       }
-      contextReport.steps.push(
-        maskDeep({
-          ...stopRecordStep,
-          ...stepResult,
-          startedAt: new Date(stopStart).toISOString(),
-          durationMs: Date.now() - stopStart,
-        })
-      );
+      pushStepReport({
+        ...stopRecordStep,
+        ...stepResult,
+        startedAt: new Date(stopStart).toISOString(),
+        durationMs: Date.now() - stopStart,
+      });
     } catch (error: any) {
       // A throw from runStep would otherwise strand the remaining handles.
       // Drop the top handle so the loop can't spin, and record the failure.
@@ -6095,15 +6066,13 @@ async function stopAllRecordings({
         );
         continue;
       }
-      contextReport.steps.push(
-        maskDeep({
-          ...stopRecordStep,
-          result: "FAIL",
-          resultDescription: failure,
-          startedAt: new Date(stopStart).toISOString(),
-          durationMs: Date.now() - stopStart,
-        })
-      );
+      pushStepReport({
+        ...stopRecordStep,
+        result: "FAIL",
+        resultDescription: failure,
+        startedAt: new Date(stopStart).toISOString(),
+        durationMs: Date.now() - stopStart,
+      });
     }
   }
 }
