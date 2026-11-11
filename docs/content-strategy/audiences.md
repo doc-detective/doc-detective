@@ -47,7 +47,8 @@ cache/install warming, concurrency, and the orchestration API. They overlap with
 
 Use coding agents such as Claude Code, GitHub Copilot CLI, and Gemini CLI, plus MCP and agent tools.
 They *generate and maintain* Doc Detective tests from prose rather than hand-writing step JSON. They
-lean on self-healing to keep tests green as the product drifts.
+hand failing tests to an agent, which suggests fixes they review, to keep tests green as the product
+drifts.
 
 This audience cross-cuts the others, since a writer or a developer can both be "an author working
 with an agent." It is still **raised to its own pillar**, because agent-native authoring is a

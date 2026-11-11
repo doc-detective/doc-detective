@@ -242,6 +242,8 @@ describe("CopilotCliAdapter.install()", function () {
         logged.some((m) => /Couldn't re-add/.test(m) && /ENOENT/.test(m)),
         `expected the spawn error in the warning; got ${JSON.stringify(logged)}`
       );
+      const warning = logged.find((m) => /Couldn't re-add/.test(m));
+      assert.ok(warning.endsWith("). Updating it as is."), `expected a full-sentence warning; got ${warning}`);
     });
 
     it("still gives the not-installed hint when `plugin update` throws ENOENT", async function () {

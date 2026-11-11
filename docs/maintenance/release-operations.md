@@ -135,6 +135,74 @@ Unset is the normal state. Prerelease channels are exempt.
 - **Stray `BREAKING CHANGE:` footer or `!`:** `git revert` the commit on main. The next release is then
   an ordinary patch.
 
+## Roll back a major release
+
+Fix forward first. Land a `fix:` on main, and the normal pipeline ships a 5.0.x and promotes it.
+
+Roll back only when 5.0 is unusable and no quick fix exists. `promote.yml` refuses to move `@latest`
+to an older version, so you do these steps by hand, in this order:
+
+1. **Stop main from releasing, and settle the runs already going.** Merge nothing to main until the
+   rollback is done. Then list every run that hasn't completed, in each unfinished status. That
+   includes `pending` runs waiting on a concurrency group. `--status` filters on GitHub's side, so
+   the limit counts only matching runs:
+
+   ```bash
+   for wf in release.yml promote.yml docker-build.yml; do
+     for s in requested waiting pending queued in_progress; do
+       gh run list --workflow "$wf" --status "$s" --limit 100
+     done
+   done
+   ```
+
+   A Release run includes the promote and Docker jobs it calls. Wait for each run to finish, or stop
+   it with `gh run cancel <run-id>`. Once a Release run's `release` job has started its `Release`
+   step, let it finish. That step publishes `doc-detective` and `doc-detective-common` to npm, and
+   cancelling it between the two leaves them at different versions. Cancel a Release run only before
+   that step starts. The three workflows' concurrency groups key on the ref or version
+   (`release-<ref>`, `promote-<version>`, `docker-build-<ref>-<version>`), so nothing queues them
+   behind your rollback. A 5.x Docker job that finishes after step 5 moves `latest` back to 5.x.
+2. **If the final 4.x update already shipped, remove its notice.** That notice tells users to move
+   to 5, the release you're pulling. Revert it on the `4.x` branch as a `fix:` commit, so the
+   release publishes a 4.x patch without it. Wait for that release to finish. Its patch is now the
+   last 4.x.
+3. **Pin Online to the last 5.0.x image.** Set Online's `RUNNER_IMAGE` environment variable to
+   `docdetective/docdetective:<last-5.0.x>`. Online's entrypoint runs `doc-detective runner`, which
+   fails on 4.x images, so do this before Docker's `latest` moves.
+4. **Move npm `@latest` back.** With an npm login that can publish both packages, run:
+
+   ```bash
+   npm dist-tag add doc-detective@<last-4.x> latest
+   npm dist-tag add doc-detective-common@<last-4.x> latest
+   ```
+
+5. **Rebuild Docker's floating tags from the 4.x tag.** `--ref` runs the workflow and Dockerfile from
+   that release:
+
+   ```bash
+   gh workflow run docker-build.yml --ref v<last-4.x> -f version=<last-4.x> -f publish_latest_tags=true
+   ```
+
+6. **Verify.** `gh run watch <run-id> --exit-status` on the Docker build exits 0. The Windows job
+   pushes its tags separately from Linux and can fail on its own. Then check:
+
+   - `npm view doc-detective dist-tags` and `npm view doc-detective-common dist-tags` show `latest`
+     on `<last-4.x>`.
+   - `docker buildx imagetools inspect` shows `docdetective/docdetective:latest` with the same digest
+     as `docdetective/docdetective:<last-4.x>`.
+   - It shows `docdetective/docdetective:latest-windows` and `docdetective/docdetective:windows` with
+     the same digest as `docdetective/docdetective:<last-4.x>-windows`.
+
+7. **After the fix ships, unpin Online.** While `latest` is on 4.x, every release from main promotes
+   again, because any 5.0.x is newer than 4.x. Merge only the fix that makes 5.0 usable. Its release
+   moves npm, then Docker, back to 5. Wait until that Release run finishes green, including its
+   Docker job. Then check that `docdetective/docdetective:latest` has the same digest as
+   `docdetective/docdetective:<fixed-5.0.x>`. Only then set Online's `RUNNER_IMAGE` back to
+   `latest`, since a 4.x `latest` breaks Online's runner.
+
+Action v1 pins CLI `4`, so the rollback doesn't affect it. The 4.x upgrade notice goes quiet once
+`latest` is 4.x again.
+
 ## Stuck `@latest` releases
 
 The release pipeline promotes `@latest` only after `promote.yml`'s "Smoke-test staged release" job
@@ -146,6 +214,10 @@ passes. If that job fails, the version is published to `staging-<version>` (and 
 - **Recover:** fix the cause on `main`, then run `gh workflow run promote.yml -f version=<X.Y.Z>`.
   The smoke→promote→docker chain re-runs, and the promote step is an idempotent
   `npm dist-tag add`.
+- **Smoke-test a prerelease:** dispatch the same workflow with the prerelease version, for example
+  `gh workflow run promote.yml -f version=5.0.0-v5-rc.12`. Only the smoke test runs. The promote and
+  Docker jobs skip for any version that contains a `-`, so an RC never reaches `@latest` or Docker's
+  floating tags.
 - One historical example: a committed screenshot baseline (`reference.png`) drifted from what
   headless Chrome captures on CI, and blocked two releases. It was removed in #395. Keep smoke-test
   fixtures baseline-free. The smoke test's purpose is exercising the action end-to-end, not visual

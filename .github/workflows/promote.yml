@@ -14,6 +14,10 @@
 #                         got past the promote step but failed during
 #                         docker, staging is already gone — this workflow
 #                         detects that and uses `<version>` directly.
+#
+# A prerelease version (one with a `-`, such as `5.0.0-v5-rc.12`) runs the
+# smoke test only. `promote` skips, and Docker skips with it through `needs`,
+# so a dispatched RC can never reach `@latest` or Docker's floating tags.
 
 name: Promote staged release
 
@@ -39,7 +43,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version to promote (must exist as `staging-<version>` or `<version>` on npm).
+        description: Version to promote (must exist as `staging-<version>` or `<version>` on npm). A prerelease version runs the smoke test only.
         required: true
         type: string
       publish_docker:
@@ -131,6 +135,9 @@ jobs:
   promote:
     name: Promote → @latest
     needs: smoke-test
+    # Never promote a prerelease. semver.gt below would let 5.0.0-v5-rc.12
+    # past 4.x, so dispatching an RC to smoke-test it would move @latest.
+    if: ${{ !contains(inputs.version, '-') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
