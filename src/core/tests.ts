@@ -6355,18 +6355,30 @@ async function driverStart(
  * ensureBrowserInstalled calls the runTests pre-flight makes. Heavy deps are
  * imported dynamically so a pure HTTP/CLI consumer never loads them.
  */
-async function provisionChromeRuntime(config: any): Promise<void> {
-  const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
-  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
-  const ctx = { cacheDir: config?.cacheDir };
-  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
-  // "warn" → "warning" the same way the runTests pre-flight does.
-  const logger = (msg: string, level: string = "info") =>
+// Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
+// "warn" → "warning" the same way the runTests pre-flight does.
+function chromeRuntimeLogger(config: any) {
+  return (msg: string, level: string = "info") =>
     log(config, level === "warn" ? "warning" : level, msg);
+}
+
+/**
+ * Install the npm half of the Chrome runtime, or reinstall any cached package
+ * whose version no longer matches its pin. A no-op when the cache is current.
+ */
+async function refreshChromeNpmRuntime(config: any): Promise<void> {
+  const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
   await ensureRuntimeInstalled(
     ["webdriverio", "appium", "@puppeteer/browsers", "appium-chromium-driver"],
-    { ctx, deps: { logger } }
+    { ctx: { cacheDir: config?.cacheDir }, deps: { logger: chromeRuntimeLogger(config) } }
   );
+}
+
+async function provisionChromeRuntime(config: any): Promise<void> {
+  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
+  const ctx = { cacheDir: config?.cacheDir };
+  const logger = chromeRuntimeLogger(config);
+  await refreshChromeNpmRuntime(config);
   await ensureBrowserInstalled("chrome", { ctx, deps: { logger } });
   await ensureBrowserInstalled("chromedriver", { ctx, deps: { logger } });
 }
@@ -6388,12 +6400,26 @@ async function ensureChromeAvailable(
   deps: {
     detect: (config: any) => Promise<any[]>;
     provision: (config: any) => Promise<void>;
+    /** Bring cached npm packages up to their pins when Chrome is already present. */
+    refresh?: (config: any) => Promise<void>;
     invalidate: (config: any) => void;
     log?: (config: any, level: string, msg: string) => void;
   }
 ): Promise<any[]> {
   let availableApps = await deps.detect(config);
   if (availableApps.some((app: any) => app.name === "chrome")) {
+    try {
+      await deps.refresh?.(config);
+    } catch (err: any) {
+      // Offline or a failed install: the cached versions still run.
+      deps.log?.(
+        config,
+        "warning",
+        `Couldn't update the cached browser runtime, so this run uses the cached versions: ${
+          err?.message ?? err
+        }`
+      );
+    }
     return availableApps;
   }
   // Chrome not detected — attempt to provision it, then re-detect.
@@ -6522,6 +6548,7 @@ async function getRunner(options: any = {}) {
     availableApps: await ensureChromeAvailable(config, {
       detect: (c: any) => getAvailableApps({ config: c }),
       provision: provisionChromeRuntime,
+      refresh: refreshChromeNpmRuntime,
       invalidate: clearAppCache,
       log,
     }),

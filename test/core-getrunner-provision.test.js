@@ -35,6 +35,52 @@ describe("ensureChromeAvailable", function () {
     assert.equal(invalidateCalls, 0, "should not invalidate cache when chrome present");
   });
 
+  it("brings an outdated cached runtime up to its pins when chrome is already present", async function () {
+    // Chrome present skips provisioning, but the cached Appium packages may
+    // predate their pins. The refresh runs the loader's outdated check.
+    let refreshCalls = 0;
+    let provisionCalls = 0;
+    const apps = [{ name: "chrome", path: "/chrome" }];
+    const result = await ensureChromeAvailable(
+      {},
+      {
+        detect: async () => apps,
+        provision: async () => {
+          provisionCalls++;
+        },
+        refresh: async () => {
+          refreshCalls++;
+        },
+        invalidate: () => {},
+      }
+    );
+    assert.deepEqual(result, apps);
+    assert.equal(refreshCalls, 1, "should refresh the cached runtime once");
+    assert.equal(provisionCalls, 0, "should not provision when chrome present");
+  });
+
+  it("keeps the cached runtime and warns when the refresh fails", async function () {
+    const logs = [];
+    const apps = [{ name: "chrome", path: "/chrome" }];
+    const result = await ensureChromeAvailable(
+      {},
+      {
+        detect: async () => apps,
+        provision: async () => {},
+        refresh: async () => {
+          throw new Error("network down");
+        },
+        invalidate: () => {},
+        log: (_config, level, msg) => logs.push({ level, msg }),
+      }
+    );
+    assert.deepEqual(result, apps);
+    assert.ok(
+      logs.some((l) => l.level === "warning" && /network down/.test(l.msg)),
+      "should warn about the failed refresh"
+    );
+  });
+
   it("provisions, invalidates the cache, and re-detects when chrome is initially missing", async function () {
     let provisionCalls = 0;
     let invalidateCalls = 0;

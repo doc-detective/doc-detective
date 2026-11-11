@@ -134,6 +134,14 @@ See what's installed versus what the current version expects:
 doc-detective install status
 ```
 
+Each Doc Detective release pins every runtime npm package to the exact version its CI tested. `install status` marks a cached package at any other version, newer or older, as `(outdated)`. You don't need to fix it by hand. Doc Detective replaces it with the pinned version on the first run that loads it or on the next `doc-detective install runtime`. That includes a downgrade if the cached version is newer than the pin. The replacement needs network access and downloads only the packages that changed.
+
+<Tip>
+
+If you build a CI image or warm a shared cache, run `doc-detective install runtime` there after each upgrade so test jobs skip the download.
+
+</Tip>
+
 ### Override the cache location
 
 The default cache location is `~/.doc-detective/`, which persists across reboots. For containers, shared CI caches, or any environment where the cache belongs somewhere else, set a custom location:
@@ -146,11 +154,13 @@ You can also set `cacheDir` in your `.doc-detective.json` config file or use the
 
 ## Auto-update
 
-By default, Doc Detective checks the npm registry on startup and updates itself when a newer version is available:
+By default, Doc Detective checks the npm registry on startup and updates itself when a newer version is available. In the commands below, `<version>` is that newer version:
 
-- **Global installs** (`npm i -g doc-detective`): Runs `npm install -g doc-detective@<latest>` and re-executes.
-- **npx invocations**: Re-executes with `npx -y doc-detective@latest`.
-- **Local project installs**: Prints an "update available" message instead of modifying your `package.json`.
+- **Global installs** (`npm i -g doc-detective`): Runs `npm install -g doc-detective@<version>` and re-executes.
+- **npx invocations**: Re-executes with `npx -y doc-detective@<version>`.
+- **Local project installs**: Prints an "update available" message with the `npm i doc-detective@<version>` command to run, instead of modifying your `package.json`.
+
+Auto-update never moves you to a new major version, because a major version has breaking changes. When a newer major version is out, Doc Detective prints the command to upgrade to it, such as `npm i doc-detective@5`. It keeps updating you to newer releases of your current major version. To prepare for the next major version, see [Prepare for Doc Detective 5.0](/docs/ci/upgrade-to-v5).
 
 To disable auto-update, use any of these methods:
 

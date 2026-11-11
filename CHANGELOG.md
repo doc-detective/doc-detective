@@ -1,3 +1,17 @@
+# [4.43.0](https://github.com/doc-detective/doc-detective/compare/v4.42.1...v4.43.0) (2026-11-09)
+
+
+### Bug Fixes
+
+* **cli:** clear the masking row's flag when each runTests call starts ([a6d4257](https://github.com/doc-detective/doc-detective/commit/a6d4257a2cadc904b78b352f5dd1f54396e9a4b7))
+* **cli:** read the masking row's flag per run, and keep the capture defaults in the CLI reference ([779ee81](https://github.com/doc-detective/doc-detective/commit/779ee81184dc248557c7f48f20eeae1b5514160a))
+* **cli:** warn on 4.x about 5.0's browser, capture, and masking defaults ([eb6626f](https://github.com/doc-detective/doc-detective/commit/eb6626f97192b000426af7e3d1d6f3644cce074f))
+
+
+### Features
+
+* **config:** accept publicVariables on config, specs, and tests ([77b21dc](https://github.com/doc-detective/doc-detective/commit/77b21dc07813e7cd656f960063c3eb5622abdef0))
+
 ## [4.42.1](https://github.com/doc-detective/doc-detective/compare/v4.42.0...v4.42.1) (2026-11-08)
 
 

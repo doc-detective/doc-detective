@@ -57,6 +57,30 @@ The older `doc-detective install-agents` form still works as a hidden alias on 4
 
 </Note>
 
+Doc Detective 4.x installs agent-tools 1.x, the release line that matches its CLI, from the agent-tools `v1` tag. Every agent installs from that tag, and every agent's up-to-date check reads it. Claude Code and Copilot CLI add agent-tools as a plugin marketplace pinned to `v1`. When they update an existing install, they re-add the marketplace at `v1` first.
+
+#### Pin a Gemini CLI or Qwen Code install made by an earlier release
+
+A Gemini CLI or Qwen Code install made by an earlier Doc Detective 4.x release recorded no agent-tools ref. It keeps updating from the agent-tools default branch, which can carry skills for a newer Doc Detective major. `install agents --force` doesn't change that.
+
+To pin it, uninstall the extension, then install it again. Gemini CLI and Qwen Code extensions always install globally, so the commands use `--scope global`.
+
+For Gemini CLI:
+
+```bash
+gemini extensions uninstall doc-detective
+doc-detective install agents --agent gemini --scope global --yes
+```
+
+For Qwen Code:
+
+```bash
+qwen extensions uninstall doc-detective
+doc-detective install agents --agent qwen --scope global --yes
+```
+
+Uninstalling may reset the extension's own settings. Neither CLI documents what an uninstall keeps.
+
 ### `install runtime`
 
 Install heavy npm packages into the cache directory. Doc Detective downloads these packages (webdriverio, appium, sharp, etc.) on first use if not pre-installed.
@@ -70,6 +94,10 @@ Without arguments, installs all heavy dependencies. Specify package names to ins
 ```bash
 doc-detective install runtime webdriverio appium
 ```
+
+Each Doc Detective release pins every runtime package to the exact version its CI tested. You don't need to fix a mismatch by hand. When a cached package is at any other version, for example after you upgrade Doc Detective, Doc Detective installs the pinned version in its place. That includes a downgrade if the cached version is newer than the pin.
+
+Doc Detective replaces the package automatically the first time a test loads it, or when you run `install runtime`. Either way, the replacement needs network access and downloads only the packages that changed. Until then, [`install status`](#install-status) marks the package `(outdated)`.
 
 ### `install browsers`
 
@@ -213,6 +241,18 @@ Priority: environment variable > config file > default home directory.
 <Note>
 Earlier versions defaulted to `<os.tmpdir()>/doc-detective/`. After upgrading, the first run re-downloads assets into `~/.doc-detective/`. To keep using the old location, set `DOC_DETECTIVE_CACHE_DIR` to it. You can delete the old directory once you no longer need it.
 </Note>
+
+### Restricted characters
+
+The cache path can't contain shell metacharacters. Doc Detective rejects any path set through `DOC_DETECTIVE_CACHE_DIR`, `cacheDir`, or `--cache-dir` that includes one of these characters, because on Windows the runtime installer runs `npm.cmd` through a shell, where an unescaped metacharacter could break out of the command's argument boundary. Doc Detective enforces this check on every platform, not just Windows, so a cache path stays portable across your runners. When a path contains a rejected character, the install fails with an error naming both the character and the path. Set the cache to a path without those characters to resolve it.
+
+The rejected characters are:
+
+```
+; & | ` $ < > " ' % ^ !
+```
+
+Doc Detective also rejects newlines and carriage returns. Spaces, backslashes, parentheses, tildes, and dots are all allowed, so ordinary paths like `C:\Users\John Doe\cache` work fine.
 
 ## Examples
 
