@@ -467,11 +467,11 @@ Save the response with `path` and `directory`, and cap the request with a `timeo
           "httpRequest": {
             "url": "https://reqres.in/api/users/2",
             "method": "get",
-            "timeout": 5000, // Fail if the request takes longer
-            "path": "user_2_response.json", // File name
-            "directory": "./output/api_responses", // Output directory
-            "maxVariation": 0.05, // Allow up to 5% difference
-            "overwrite": "aboveVariation" // Refresh the file when the difference exceeds maxVariation
+            "timeout": 5000,
+            "path": "user_2_response.json",
+            "directory": "./output/api_responses",
+            "maxVariation": 0.05,
+            "overwrite": "aboveVariation"
           }
         }
       ]
