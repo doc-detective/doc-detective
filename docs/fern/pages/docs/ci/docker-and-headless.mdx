@@ -21,10 +21,10 @@ docker run -v .:/app docdetective/docdetective:linux --input /app/api.spec.json
 The `-v .:/app` flag mounts your current directory to `/app` inside the container. Because the working directory is `/app`, point `--input` and `--output` at paths under `/app` so results and artifacts land back in your project.
 
 <Note>
-Inside the official image, unsafe steps run automatically without `--allow-unsafe`. Those include `runCode` snippets detected from Markdown code fences. The image sets `"allowUnsafeSteps": true` in a user config at `/etc/doc-detective-xdg/doc-detective/config.json`, and points `XDG_CONFIG_HOME` at it. A user config is the lowest config layer, so your project config, `DOC_DETECTIVE_CONFIG`, or `--no-allow-unsafe` overrides it. To opt out, set `allowUnsafeSteps` to `false` in your config. See [Configuration precedence](/reference/cli#configuration-precedence).
+Inside the official image, unsafe steps run automatically without `--allow-unsafe`. Those include `runCode` snippets detected from Markdown code fences. The image sets `"allowUnsafeSteps": true` in a user config at `/etc/doc-detective-xdg/doc-detective/config.json`, and points `XDG_CONFIG_HOME` at it. A user config is the lowest config layer, so your project config, `DOC_DETECTIVE_CONFIG`, or `--no-allow-unsafe` overrides it. To opt out, set `allowUnsafeSteps` to `false` in your config. See [Configuration precedence](/reference/reference/cli#configuration-precedence).
 </Note>
 
-The image also sets `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`, where its browsers are pre-installed, and `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1`, because the image tag sets the version. For every variable Doc Detective reads, see [Environment variables](/reference/cli#environment-variables).
+The image also sets `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`, where its browsers are pre-installed, and `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1`, because the image tag sets the version. For every variable Doc Detective reads, see [Environment variables](/reference/reference/cli#environment-variables).
 
 ## Step 2: Understand headless behavior
 
@@ -79,7 +79,7 @@ Containers and CI systems often mount secrets as files. Doc Detective can read c
 | `integrations.docDetectiveApi.apiKeyFile` config key | Path to a file holding the Orchestration API key. Use it in place of `apiKey`. |
 | `integrations.heretto[].apiTokenFile` config key | Path to a file holding a Heretto API token. Use it in place of `apiToken`. See [Heretto](/docs/test-docs/heretto). |
 
-A relative `DOC_DETECTIVE_API_FILE` resolves from the current directory. A relative `apiKeyFile` or `apiTokenFile` resolves against the config that sets it, as in [Configuration precedence](/reference/cli#configuration-precedence). Doc Detective trims whitespace around a key or token. If it can't read a file, the run exits `2` and names the file.
+A relative `DOC_DETECTIVE_API_FILE` resolves from the current directory. A relative `apiKeyFile` or `apiTokenFile` resolves against the config that sets it, as in [Configuration precedence](/reference/reference/cli#configuration-precedence). Doc Detective trims whitespace around a key or token. If it can't read a file, the run exits `2` and names the file.
 
 ```bash
 docker run -v .:/app \
