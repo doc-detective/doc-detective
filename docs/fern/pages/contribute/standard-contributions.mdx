@@ -195,14 +195,20 @@ Highlight important information with admonitions. Make sure you use the appropri
 
 ### Run automated checks locally (optional)
 
-If you're working locally, run these commands before submitting:
+If you're working locally, run these commands from the repository root before submitting. Each command runs in `docs/` through a subshell, so your shell stays in the root.
+
+Set up what each command needs first:
+
+- `fern check` needs the docs dependencies from [Install dependencies](/contribute/contribute/local-development#install-dependencies).
+- `vale` needs Vale from [System requirements](/contribute/contribute/local-development#system-requirements) and the `mdx2vast` parser, a global npm package that reads `.mdx` files, from [Style checking with Vale](/contribute/contribute/local-development#style-checking-with-vale).
 
 ```bash
-# Build the documentation
-npm run build
+# Validate the Fern configuration and pages
+(cd docs && npx fern check)
 
-# Run style checks (if Vale is installed)
-vale docs/
+# Run style checks from the docs/ directory
+# The glob skips the generated schema reference pages, as CI does
+(cd docs && vale '--glob=!fern/pages/reference/schemas/**' fern/pages/)
 ```
 
 Don't worry if you skip these. The CI/CD pipeline runs them automatically.
@@ -244,18 +250,20 @@ Before creating a pull request:
 
 #### Vale (style checking)
 
-Vale enforces the documentation style guide. Common suggestions include
+Vale enforces the documentation style guide. The check fails on any error-level alert, so fix every error Vale reports. The most common errors are em dashes and sentences longer than 25 words.
+
+Vale also reports warnings and suggestions when you run it locally. Common ones include:
 
 - Use "you" instead of "the user"
 - Avoid "please" in instructions
 - Use active voice instead of passive
 - Avoid gendered pronouns (use "they")
 
-Most Vale suggestions are exactly that: suggestions. Reviewers use judgment.
+Warnings and suggestions don't fail the check. Reviewers use judgment on them.
 
 #### Link validation
 
-Checks that all links work. If this fails,
+Checks that all links work. If the check fails:
 
 - Verify external URLs are correct
 - Check internal link paths (case-sensitive)
@@ -263,7 +271,7 @@ Checks that all links work. If this fails,
 
 #### Build check
 
-Make sure that the documentation site builds successfully. Failures usually indicate
+Checks that the documentation site builds. Failures usually indicate one of these problems:
 
 - Markdown syntax errors
 - Missing closing tags

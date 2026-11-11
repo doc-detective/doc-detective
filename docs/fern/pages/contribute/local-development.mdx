@@ -23,7 +23,8 @@ For quick fixes (typos, small wording changes), use the [browser-based workflow]
 - [Node.js](https://nodejs.org/) version 22 or later
 - [Git](https://git-scm.com/) for version control
 - [VS Code](https://code.visualstudio.com/) recommended as code editor
-- [Vale](https://vale.sh/) (optional) for style checking
+- [Vale](https://vale.sh/) 3.20.0 or later (optional) for style checking
+- `mdx2vast` parser for `.mdx` file linting with Vale (install it as described in [Style checking with Vale](#style-checking-with-vale))
 - Command line access (Terminal)
 
 ### Check your Node.js version
@@ -130,21 +131,31 @@ Fix any errors before submitting your PR. To preview the site, use the local ser
 
 ### Style checking with Vale
 
-Vale enforces the documentation style guide. Run it from the `docs/` directory, where it finds its `.vale.ini` configuration.
+Vale enforces the documentation style guide. The pull request check fails on any error-level alert, so run Vale locally to catch errors before you push. A local run also shows warnings and suggestions, which the check doesn't post.
+
+To check `.mdx` files, Vale needs the `mdx2vast` parser on your `PATH`. Install it with `npm install -g mdx2vast@0.5.0`, the version the pull request check uses.
+
+Run these commands from the repository root. Each one runs Vale in the `docs/` directory, where Vale finds its `.vale.ini` configuration.
 
 ```bash
-# Check all documentation except the generated schema reference pages, which CI also skips
-vale '--glob=!fern/pages/reference/schemas/**' fern/pages/
+# Check the docs site pages, skipping the generated schema reference pages as CI does
+(cd docs && vale '--glob=!fern/pages/reference/schemas/**' fern/pages/)
 
-# Check specific file
-vale fern/pages/path/to/file.mdx
+# Check a specific file
+(cd docs && vale fern/pages/path/to/file.mdx)
+```
+
+These commands cover the docs site pages. The pull request check lints every Markdown and MDX file in the repository. If you also edit a file outside `fern/pages/`, such as an ADR or `CLAUDE.md`, check it with the same configuration:
+
+```bash
+vale --config=docs/.vale.ini path/to/file.md
 ```
 
 **Interpret results:**
 
-- **Error**: Should be fixed
-- **Warning**: Strongly consider fixing
-- **Suggestion**: Optional improvement
+- **Error**: Fix it. Any error fails the pull request check.
+- **Warning**: Strongly consider fixing.
+- **Suggestion**: Optional improvement.
 
 Don't worry about fixing every suggestion. Reviewers use their judgment during reviews.
 
@@ -249,11 +260,10 @@ npm run start
 
 ### Vale can't find its configuration
 
-Make sure you're running Vale from the `docs/` directory, which holds `.vale.ini`:
+The configuration file is `docs/.vale.ini`, not a `.vale.ini` at the repository root. Run Vale in the `docs/` directory. From the repository root, wrap the command in parentheses so your shell stays at the root:
 
 ```bash
-cd /path/to/doc-detective/docs
-vale '--glob=!fern/pages/reference/schemas/**' fern/pages/
+(cd docs && vale '--glob=!fern/pages/reference/schemas/**' fern/pages/)
 ```
 
 ### npm install fails

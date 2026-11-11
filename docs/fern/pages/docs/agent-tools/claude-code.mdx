@@ -82,3 +82,17 @@ Or ask in plain language:
 You can also ask for more specific behavior:
 
 > Create tests for docs/new-feature.md and merge them with the existing test spec in tests/existing-spec.json.
+
+## Language server
+
+Installing the plugin also bundles a Doc Detective language server with Claude Code. It gives Claude Code authoring-time feedback on your test specs. It runs the same schema checks as the test runner, but it surfaces them the moment the agent edits a spec. Claude Code reads that feedback as it writes and fixes structural mistakes before a test runs. You spend fewer round trips on failed runs.
+
+The language server activates automatically after installation, with nothing for you to set up. It provides three things:
+
+- **Diagnostics**: Claude Code sees schema errors inline as it edits specs (`*.spec.json`, `*.spec.yaml`, and `*.spec.yml`) and `.doc-detective.*` config files. It also sees them for inline tests in Markdown, AsciiDoc, HTML, and DITA. A common mistake is writing `{"action": "goTo"}` instead of the compact `{"goTo": "https://example.com"}` form. The language server produces a single clear message instead of a cascade of schema errors.
+- **Completion** (`*.spec.json` files only): Suggestions for action keys and their fields, with schema-aware snippets for values.
+- **Hover** (`*.spec.json` files only): Action descriptions pulled straight from the schema.
+
+To avoid noise, the language server stays silent on files that aren't Doc Detective documents. It engages on specs and config files by name. It also engages on any file whose `$schema` points at a Doc Detective schema, and on JSON with a top-level `tests` array. In Markdown, AsciiDoc, HTML, and DITA files, it checks only the inline test statements and ignores the rest of the content. A document with no inline tests gets no feedback, and neither does an unrelated `package.json`.
+
+The language server runs through your project's Doc Detective CLI, falling back to `npx` when the project has no local copy. It's specific to Claude Code and doesn't apply to the other agent tools these docs cover.
