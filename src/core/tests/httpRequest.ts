@@ -12,6 +12,7 @@ import {
   parseHeaders,
   appendQueryParams,
   redactUrlForOutput,
+  invalidStepMessage,
 } from "../utils.js";
 import {
   buildConditionContext,
@@ -192,7 +193,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // The effective step: the object form with its defaults filled (ADR 01167).

@@ -42,7 +42,70 @@ import {
   shouldFailRun,
   findFreePort,
   evaluateContextRequirements,
+  classifyStepFailure,
+  invalidStepMessage,
 } from "../dist/core/utils.js";
+
+// ADR 01195: one message for every action whose step doesn't validate.
+describe("invalidStepMessage", function () {
+  it("names the problem the way spec validation does", function () {
+    assert.equal(
+      invalidStepMessage({ goTo: { url: "https://example.com", timeout: -1 } }),
+      "Couldn't run the step: its definition isn't valid. goTo.timeout: must be >= 1."
+    );
+  });
+
+  it("names a missing action", function () {
+    assert.equal(
+      invalidStepMessage({ description: "no action" }),
+      "Couldn't run the step: its definition isn't valid. No action, such as checkLink, click, find."
+    );
+  });
+});
+
+// ADR 01194: every FAIL step gets a resultCode, and near matches become a hint.
+describe("classifyStepFailure", function () {
+  it("adds nothing to a step that didn't fail", function () {
+    for (const result of ["PASS", "WARNING", "SKIPPED"]) {
+      assert.deepEqual(classifyStepFailure({ result, outputs: { nearMatches: [{ text: "Save" }] } }), {});
+    }
+  });
+
+  it("calls a failure with near matches drift, and names them in the hint", function () {
+    assert.deepEqual(
+      classifyStepFailure({
+        result: "FAIL",
+        resultDescription: "Element not found within timeout",
+        outputs: { nearMatches: [{ text: "Save changes", tag: "button" }, { tag: "button", ariaLabel: "Saved" }] },
+      }),
+      { resultCode: "drift", resultHint: "Closest matches: `Save changes`, `Saved`." }
+    );
+    assert.deepEqual(
+      classifyStepFailure({ result: "FAIL", outputs: { nearMatches: [{ tag: "div", id: "save" }] } }),
+      { resultCode: "drift", resultHint: "Closest match: `save`." }
+    );
+  });
+
+  it("calls network, session, and blank-page failures environment", function () {
+    for (const resultDescription of [
+      "getaddrinfo ENOTFOUND docs.example.invalid",
+      "net::ERR_CONNECTION_REFUSED at http://localhost:3000",
+      "connect ECONNREFUSED 127.0.0.1:4723",
+      "invalid session id",
+      "The browser never left its initial blank document (data:,): navigation didn't take.",
+    ]) {
+      assert.deepEqual(classifyStepFailure({ result: "FAIL", resultDescription }), { resultCode: "environment" }, resultDescription);
+    }
+  });
+
+  it("calls anything else assertion, including a find with no near matches", function () {
+    assert.deepEqual(
+      classifyStepFailure({ result: "FAIL", resultDescription: "No elements matched selector or text.", outputs: { nearMatches: [] } }),
+      { resultCode: "assertion" }
+    );
+    assert.deepEqual(classifyStepFailure({ result: "FAIL" }), { resultCode: "assertion" });
+  });
+});
 
 describe("core/utils coverage", function () {
   let sandbox;

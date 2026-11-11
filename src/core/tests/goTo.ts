@@ -7,6 +7,7 @@ import {
   issueNavigation,
   probeStuckOnBlankDocument,
   redactUrlForOutput,
+  invalidStepMessage,
 } from "../utils.js";
 import { findElement } from "./findElement.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
@@ -79,7 +80,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
 
@@ -288,6 +289,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
                 config,
                 step: findStep,
                 driver,
+                nearMatches: false,
               });
 
               if (findResult.status === "PASS") {

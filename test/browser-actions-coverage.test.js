@@ -484,7 +484,7 @@ describe("dragAndDrop action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("target not found → targetFound FAIL, status FAIL, 'target' in description", async () => {
@@ -627,7 +627,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("env variable missing → FAIL", async () => {
@@ -1021,7 +1021,7 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("cookie not found → FAIL", async () => {

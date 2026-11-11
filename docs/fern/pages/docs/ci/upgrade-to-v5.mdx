@@ -176,7 +176,23 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 **What changed:** The terminal summary ends with a one-line verdict, such as `1 of 1 test passed`. It lists every failure, warning, and skip by ID path, under `Failed (N):`, `Warnings (N):`, and `Skipped (N):`, which replace `Failed Items:` and the lists under it. Skips print whether or not a test failed. Doc Detective no longer prints the `See detailed results at` line.
 
-**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead. See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
+**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead.
+
+## Failure, skip, and warning messages
+
+**What changed:** A failure's `resultDescription` starts with `Couldn't`, and a skip's starts with `Skipped:`. The most common ones changed like this:
+
+| Version 4 | Version 5 |
+|---|---|
+| `Invalid step definition:`, then raw schema errors | ``Couldn't run the step: its definition isn't valid.``, then each problem, as spec validation names it |
+| `No elements matched selector or text.` | ``Couldn't find element `Save`.`` |
+| `Element not found within timeout` | ``Couldn't find an element within `timeout` (5000 ms).`` |
+| `Skipping context on 'linux': this context targets a different platform.` | ``Skipped: this context targets `windows`, not this host.`` |
+| `Warning: --logLevel is deprecated; use --log-level.` | ``Warning: `--logLevel` is deprecated. Rename it to `--log-level`.`` |
+
+Deprecation warnings print at the `warning` log level and above, so `-l silent` and `-l error` hide them, like `-q`.
+
+**What to do:** Don't match on message text. To triage a failure, read `result` and `resultCode`. See [Failed steps say what kind of failure it was](#failed-steps-say-what-kind-of-failure-it-was). See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
 
 ## Report notices moved to stderr
 
@@ -230,6 +246,12 @@ Steps that skip, such as the ones after a failure, show it too. Step-level field
 Other shorthand appears in its full form too. For example, `"wait": true` appears as `"wait": 5000`, `"runShell": "npm test"` as an object with `command`, and `"closeSurface": "web"` as `["web"]`.
 
 **What to do:** If a script reads a step's action as a string, read the object instead. For example, read `goTo.url` instead of `goTo`.
+
+## Failed steps say what kind of failure it was
+
+**What changed:** Every `FAIL` step has a `resultCode`: `environment`, `drift`, or `assertion`. A browser `find` that misses lists the closest elements in `outputs.nearMatches`, and its `resultHint` names them. Version 4 had none of these fields.
+
+**What to do:** Nothing, unless a script compares whole step objects. To triage failures, branch on `resultCode` instead of matching `resultDescription`. See [Read the result](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
 
 ## Renamed and removed report fields and outputs
 

@@ -802,6 +802,7 @@ describe("a context's autoRecording", function () {
       expect(report.autoRecording).to.deep.equal({
         result: "FAIL",
         resultDescription: "Couldn't start the device recording: boom",
+        resultCode: "assertion",
         startedAt,
       });
     });
@@ -823,6 +824,7 @@ describe("a context's autoRecording", function () {
       expect(report.autoRecording).to.deep.equal({
         result: "FAIL",
         resultDescription: "Couldn't stop recording. boom",
+        resultCode: "assertion",
         startedAt,
       });
     });
@@ -927,7 +929,7 @@ describe("a context's autoRecording", function () {
     it("stops the context when a strict start fails", async function () {
       const report = await runWith(unstartable());
       expect(report.result).to.equal("FAIL");
-      expect(Object.keys(report.autoRecording).sort()).to.deep.equal(["result", "resultDescription"]);
+      expect(Object.keys(report.autoRecording).sort()).to.deep.equal(["result", "resultCode", "resultDescription"]);
       expect(report.autoRecording.result).to.equal("FAIL");
       expect(report.autoRecording.resultDescription).to.match(/^Couldn't start the recording\./);
       expect(report.steps.map((s) => [s.stepId, s.result])).to.deep.equal([["shell", "SKIPPED"]]);
@@ -1409,13 +1411,17 @@ describe("mergeAutoRecording", function () {
   it("doesn't let a worse result keep a milder result's description", function () {
     const context = { autoRecording: { result: "SKIPPED", resultDescription: "Skipped: no display." } };
     mergeAutoRecording(context, { result: "FAIL" });
-    expect(context.autoRecording).to.deep.equal({ result: "FAIL" });
+    expect(context.autoRecording).to.deep.equal({ result: "FAIL", resultCode: "assertion" });
   });
 
   it("gives a worse result its own description", function () {
     const context = { autoRecording: { result: "SKIPPED", resultDescription: "Skipped: no display." } };
     mergeAutoRecording(context, { result: "FAIL", resultDescription: "Couldn't save the recording." });
-    expect(context.autoRecording).to.deep.equal({ result: "FAIL", resultDescription: "Couldn't save the recording." });
+    expect(context.autoRecording).to.deep.equal({
+      result: "FAIL",
+      resultDescription: "Couldn't save the recording.",
+      resultCode: "assertion",
+    });
   });
 
   it("keeps the worse result and its description when a milder one follows, and adds the fields", function () {
@@ -1424,8 +1430,23 @@ describe("mergeAutoRecording", function () {
     expect(context.autoRecording).to.deep.equal({
       result: "FAIL",
       resultDescription: "Couldn't start the recording.",
+      resultCode: "assertion",
       duration: 3,
     });
+  });
+
+  // ADR 01194, as ADR 01179 committed: a FAIL recording carries the step fields.
+  it("classifies a FAIL recording, and drops the code when a FAIL is replaced", function () {
+    const context = {};
+    mergeAutoRecording(context, { result: "FAIL", resultDescription: "invalid session id" });
+    expect(context.autoRecording).to.deep.equal({
+      result: "FAIL",
+      resultDescription: "invalid session id",
+      resultCode: "environment",
+    });
+    const warned = { autoRecording: { result: "WARNING", resultDescription: "Short video." } };
+    mergeAutoRecording(warned, { result: "PASS" });
+    expect(warned.autoRecording).to.not.have.property("resultCode");
   });
 
   it("leaves a first PASS with no description", function () {

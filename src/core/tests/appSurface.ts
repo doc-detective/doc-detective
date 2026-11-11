@@ -21,7 +21,7 @@ import {
   locateManagedWda,
   type ManagedWdaHit,
 } from "../../runtime/wdaProducts.js";
-import { log } from "../utils.js";
+import { log, invalidStepMessage } from "../utils.js";
 import {
   snapshotAppWindows,
   rewriteXPathForScopedFind,
@@ -995,7 +995,7 @@ async function appSurfacePreflight({
   if (!platformDriver) {
     return {
       ok: false,
-      reason: `Skipped: native app surfaces run on Windows, macOS, Android, and iOS, not \`${platform}\`. Gate the test with \`runOn\` platforms so this skip is intentional.`,
+      reason: `Skipped: native app surfaces don't run on \`${platform}\`. They run on Windows, macOS, Android, and iOS. Gate the test with \`runOn\` platforms so this skip is intentional.`,
     };
   }
   if (platform === "ios") {
@@ -1042,7 +1042,7 @@ async function appSurfacePreflight({
     } catch (error: any) {
       return {
         ok: false,
-        reason: `Skipped: the ${driverLabel} (${driverPackage}) needs ${missing.join(" and ")}, which couldn't be installed (${error?.message ?? error}). Install with \`doc-detective install runtime ${missing.join(" ")}\` or check network access.`,
+        reason: `Skipped: the ${driverLabel} (${driverPackage}) needs ${missing.join(" and ")}, which could not be installed (${error?.message ?? error}). Install with \`doc-detective install runtime ${missing.join(" ")}\` or check network access.`,
       };
     }
   }
@@ -1050,7 +1050,7 @@ async function appSurfacePreflight({
   if (!appiumEntry || !resolvePathInCache(driverPackage, ctx)) {
     return {
       ok: false,
-      reason: `Skipped: the ${driverLabel} (${driverPackage}) or Appium didn't resolve from the runtime cache after install. Reinstall with \`doc-detective install runtime ${needed.join(" ")}\`.`,
+      reason: `Skipped: the ${driverLabel} (${driverPackage}) or Appium did not resolve from the runtime cache after install. Reinstall with \`doc-detective install runtime ${needed.join(" ")}\`.`,
     };
   }
   const appiumHome = getRuntimeDir(ctx);
@@ -1202,7 +1202,7 @@ async function findAppElement({
     }
   }
   return {
-    error: `No element matched ${JSON.stringify(criteria)} on the app surface within ${timeout}ms (locator: ${selector}${scrolls ? `; scrolled ${scrolls} time(s) looking for it` : ""}).`,
+    error: `Couldn't find an element matching \`${JSON.stringify(criteria)}\` on the app surface within ${timeout} ms (locator: \`${selector}\`${scrolls ? `; scrolled ${scrolls} time(s) looking for it` : ""}).`,
   };
 }
 
@@ -1247,7 +1247,7 @@ async function startAppSurface({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   step = isValidStep.object;

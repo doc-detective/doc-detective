@@ -171,7 +171,7 @@ Doc Detective 5.0.0 · Node.js 24.15.0 · linux 6.8.0-1017-azure (x64) · Starte
 
 | Location | Details |
 |---|---|
-| `mac-guide › setup › default` Set up a Mac | Skipped: this context targets a different platform than `linux`. |
+| `mac-guide › setup › default` Set up a Mac | Skipped: this system can't run a `mac` context. |
 
 </details>
 
@@ -232,7 +232,7 @@ Warnings (1):
 
 Skipped (1):
 1. mac-guide › setup › default — Set up a Mac
-   Skipped: this context targets a different platform than `linux`.
+   Skipped: this system can't run a `mac` context.
 
 Doc Detective 5.0.0 · Node.js 24.15.0 · linux 6.8.0-1017-azure (x64) · Started 2026-11-06T02:33:28.631Z · Took 14.2 s
 ===============================
@@ -274,6 +274,11 @@ These parts of the results are a stable contract for scripts. A change to any of
 
 - `summary.specs`, `summary.tests`, `summary.contexts`, and `summary.steps`, each with whole-number `pass`, `fail`, `warning`, and `skipped` counts. `summary.steps` counts steps only, and the automatic recording isn't a step.
 - `result` on every spec, test, context, and step, with the value `PASS`, `FAIL`, `WARNING`, or `SKIPPED`.
+- `resultCode` on every step and automatic recording whose `result` is `FAIL`, and only then. It says what kind of failure it was:
+  - `environment`: the network, the browser session, or the page load failed.
+  - `drift`: a `find` missed its element, but similar ones exist, so the page probably changed.
+  - `assertion`: anything else, such as a missing element with nothing close, or a wrong status code.
+- `resultHint` on a failed step or automatic recording, when Doc Detective has a suggested fix. A `drift` step's hint names the closest matches. See [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
 - `durationMs` on the run and on every spec, test, context, and step.
 - `autoRecording.result` on every context Doc Detective tried to record automatically, and `autoRecording.recordingPath`, relative to `runDir`, when it saved a video. See [Where the recording shows up](/docs/test-docs/automatic-recording#where-the-recording-shows-up).
 - `runId` and `runDir`, except when a filter matches nothing. That run has no run folder, and `specs` is empty.

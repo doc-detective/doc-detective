@@ -93,7 +93,7 @@ export async function maybeShowHint(
         if (hint.when(ctx)) eligible.push(hint);
       } catch (err) {
         // A bad predicate must not poison the rest of the registry.
-        // Logged at debug — visible to `--logLevel debug` users who
+        // Logged at debug — visible to `--log-level debug` users who
         // reach this point precisely so they can diagnose issues.
         log(
           `hints: predicate for "${hint.id}" threw: ${(err as Error)?.message ?? err}`,

@@ -49,6 +49,7 @@ import {
   hasVariable,
   evaluateContextRequirements,
   isRetryableSessionError,
+  classifyStepFailure,
   classifyContextRetry,
   guardBlankDocumentNavigation,
   applyBrowserSize,
@@ -861,7 +862,7 @@ function contextRequirementsSkipMessage({
     deps,
   });
   if (met) return null;
-  return `Skipped: this context's \`requires\` aren't met on \`${context.platform}\`: ${missing.join(", ")}.`;
+  return `Skipped: unmet requirements: ${missing.join(", ")}.`;
 }
 
 // The device descriptors a test needs: each APP startSurface descriptor's
@@ -972,7 +973,7 @@ async function androidContextPreflight({
     return {
       ok: false,
       level: "warning",
-      reason: `Skipped: the Android SDK isn't installed, so emulator support can't be verified on this ${hostName} host. Install it with \`doc-detective install android\`. A machine with hardware virtualization (${accel}) can then run Android tests.`,
+      reason: `Skipped: the Android SDK isn't installed, so emulator support can't be verified on this ${hostName} host. Install it with \`doc-detective install android\` — a machine with hardware virtualization (${accel}) can then run Android tests.`,
     };
   }
 
@@ -997,7 +998,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipped: the Android toolchain isn't fully installed and auto-install is off (\`DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL\` is on). Install it with \`doc-detective install android\`.`,
+        reason: `Skipped: the Android toolchain isn't fully installed, and \`DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL\` turns off auto-install. Install it with \`doc-detective install android\`.`,
       };
     }
     // Loud warning to the terminal AND the report, then run the installer.
@@ -1015,7 +1016,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipped: couldn't install the Android toolchain (${error?.message ?? error}). Install it manually with \`doc-detective install android\`.`,
+        reason: `Skipped: the Android toolchain install failed (${error?.message ?? error}). Install it manually with \`doc-detective install android\`.`,
       };
     }
     // installAndroid reports terminal conditions by RETURN, not by throwing
@@ -1034,7 +1035,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipped: couldn't install the Android toolchain: ${detail}. See \`doc-detective install android\`.`,
+        reason: `Skipped: the Android toolchain couldn't be installed: ${detail}. See \`doc-detective install android\`.`,
       };
     }
     sdk = detectAndroidSdk({ cacheDir: config.cacheDir });
@@ -1101,7 +1102,7 @@ async function androidContextPreflight({
     return {
       ok: false,
       level: "warning",
-      reason: `Skipped: couldn't probe the Android environment (${error?.message ?? error}). Check the SDK, \`adb\`, and emulator installation, or run \`doc-detective install android\`.`,
+      reason: `Skipped: couldn't probe the Android environment (${error?.message ?? error}). Check the SDK / adb / emulator installation, or run \`doc-detective install android\`.`,
     };
   }
   /* c8 ignore stop */
@@ -1174,7 +1175,7 @@ async function iosContextPreflight({
     return {
       ok: false,
       level: "info",
-      reason: `Skipped: couldn't probe the iOS simulator environment (${error?.message ?? error}). Check Xcode and \`simctl\`, or run \`doc-detective install ios --yes\`.`,
+      reason: `Skipped: couldn't probe the iOS simulator environment (${error?.message ?? error}). Check Xcode / simctl, or run \`doc-detective install ios --yes\`.`,
     };
   }
   return {
@@ -1338,15 +1339,20 @@ function driverSkipDiagnostic({
   platformMatches,
   attemptedFallback,
   lastError,
+  targetPlatform,
 }: {
   requestedName: string;
   platform: string;
   platformMatches: boolean;
   attemptedFallback: boolean;
   lastError?: string;
+  // The context's platform, for the mismatch message. `platform` is the host's.
+  targetPlatform?: string;
 }): string {
   if (!platformMatches) {
-    return `Skipped: this context targets a different platform than \`${platform}\`.`;
+    return targetPlatform
+      ? `Skipped: this context targets \`${targetPlatform}\`, not this host.`
+      : "Skipped: this context targets another platform, not this host.";
   }
   // Name the driver for the actual requested engine so the hint doesn't always
   // point users at geckodriver when Chrome or Safari is the broken one.
@@ -1361,9 +1367,9 @@ function driverSkipDiagnostic({
   let msg = `Skipped: couldn't start a browser session for \`${requestedName}\` on \`${platform}\``;
   msg += attemptedFallback
     ? `, and no other available browser could start either.`
-    : ` and cross-browser fallback is disabled or unavailable.`;
-  if (lastError) msg += ` Last error: ${lastError.replace(/\.\s*$/, "")}.`;
-  msg += ` A present-but-broken driver (for example a partially downloaded ${driverHint}) can cause this; reinstall the driver or its browser.`;
+    : `, and cross-browser fallback is off or unavailable.`;
+  msg += ` A present-but-broken driver, such as a partially downloaded ${driverHint}, can cause this. Reinstall the driver or its browser.`;
+  if (lastError) msg += ` Last error: ${String(lastError).replace(/\.?\s*$/, ".")}`;
   return msg;
 }
 
@@ -4271,14 +4277,16 @@ function mergeAutoRecording(
   const current = contextReport.autoRecording;
   const worse = !current || AUTO_RECORDING_RANK[result] > AUTO_RECORDING_RANK[current.result];
   // A worse result replaces the description, so it can't keep a milder result's.
-  const { resultDescription: previous, ...kept } = current ?? { result };
+  // The failure fields are recomputed from what wins (ADR 01194).
+  const { resultDescription: previous, resultCode, resultHint, ...kept } = current ?? ({ result } as AutomaticRecording);
   const description = worse ? (result !== "PASS" ? resultDescription : undefined) : previous;
-  contextReport.autoRecording = maskDeep({
+  const merged = {
     ...kept,
     ...(worse ? { result } : {}),
     ...(description ? { resultDescription: description } : {}),
     ...fields,
-  });
+  };
+  contextReport.autoRecording = maskDeep({ ...merged, ...classifyStepFailure(merged) });
 }
 
 // A file's path relative to the run folder, with forward slashes, so the same
@@ -4622,7 +4630,7 @@ async function runContext({
   // browser object with no name), skip with an explicit reason instead of
   // letting it fail later as "Failed to start context 'undefined'".
   if (isBrowserRequired({ test: context }) && !context.browser?.name) {
-    const errorMessage = `Skipped: no supported browser is available on \`${context.platform}\` in the current environment.`;
+    const errorMessage = `Skipped: no supported browser is available on \`${context.platform}\`.`;
     clog("warning", errorMessage);
     contextReport.result = "SKIPPED";
     contextReport.resultDescription = errorMessage;
@@ -4727,8 +4735,8 @@ async function runContext({
   if (driverRequired && !mobileWebBrowserName && candidateEngines.length === 0) {
     const errorMessage = freshInstallRedetected
       ? freshInstallOutcome === "installed"
-        ? `Skipped: the missing browser dependency for \`${requestedBrowserName}\` on \`${context.platform}\` was installed, but Doc Detective still couldn't detect it.`
-        : `Skipped: couldn't install or repair the browser dependency for \`${requestedBrowserName}\` on \`${context.platform}\`.`
+        ? `Skipped: Doc Detective installed \`${requestedBrowserName}\`'s missing browser dependency, but still couldn't detect it.`
+        : `Skipped: couldn't install or repair \`${requestedBrowserName}\`'s browser dependency.`
       : driverSkipDiagnostic({
           requestedName: requestedBrowserName ?? "<none>",
           // driverSkipDiagnostic treats `platform` as the *current* runner
@@ -4737,6 +4745,7 @@ async function runContext({
           platform,
           platformMatches,
           attemptedFallback: false,
+          targetPlatform: context.platform,
         });
     clog(platformMatches ? "warning" : "info", errorMessage);
     contextReport.result = "SKIPPED";
@@ -4748,7 +4757,7 @@ async function runContext({
   // (android) different from the host and already primed its app session in the
   // mobile branch above.
   if (!driverRequired && !platformMatches && !appSession) {
-    const errorMessage = `Skipped: this context targets a different platform than \`${platform}\`.`;
+    const errorMessage = `Skipped: this system can't run a \`${context.platform}\` context.`;
     clog("info", errorMessage);
     contextReport.result = "SKIPPED";
     contextReport.resultDescription = errorMessage;
@@ -4859,7 +4868,7 @@ async function runContext({
                 deps: appSession!.iosSimulatorDeps,
               });
       } catch (error: any) {
-        const errorMessage = `Skipped: couldn't prepare the \`${mobileTarget}\` device for the \`${mobileWebBrowserName}\` session (${error?.message ?? error}). Check the emulator or simulator toolchain (\`doc-detective install ${mobileTarget}\`).`;
+        const errorMessage = `Skipped: couldn't prepare the \`${mobileTarget}\` device for the ${mobileWebBrowserName} session (${error?.message ?? error}). Check the emulator or simulator toolchain with \`doc-detective install ${mobileTarget}\`.`;
         clog("warning", errorMessage);
         contextReport.result = "SKIPPED";
         contextReport.resultDescription = errorMessage;
@@ -4905,7 +4914,7 @@ async function runContext({
           mobileTarget === "android"
             ? " Chrome may not be present on this emulator image — managed Android mobile-web needs a `google_apis` system image (see `doc-detective install android`)."
             : " Check that the simulator runtime includes Safari and that WebDriverAgent can build (see `doc-detective install ios`).";
-        const errorMessage = `Skipped: couldn't start the \`${mobileWebBrowserName}\` session on \`${mobileTarget}\` device \`${acquired.entry.name}\` (${error?.message ?? error}).${hint}`;
+        const errorMessage = `Skipped: couldn't start the ${mobileWebBrowserName} session on the \`${mobileTarget}\` device \`${acquired.entry.name}\` (${error?.message ?? error}).${hint}`;
         clog("warning", errorMessage);
         contextReport.result = "SKIPPED";
         contextReport.resultDescription = errorMessage;
@@ -5310,6 +5319,9 @@ async function runContext({
       // `{...step}` report spread already drops it; delete defensively here so
       // it can never leak into a report through any push site.
       delete rep._fromAfter;
+      // A FAIL gets its `resultCode` and, from near matches, its `resultHint`
+      // (ADR 01194). Before the mask, so the hint is masked like the rest.
+      Object.assign(rep, classifyStepFailure(rep));
       // The report gets a masked copy; routing, `$$`, and `variables` keep
       // reading the real outputs (ADR 01178).
       contextReport.steps.push(maskDeep(rep));
