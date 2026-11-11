@@ -80,6 +80,7 @@ The automatic recording isn't a step, so it isn't in a context's `steps`, and `s
 |---|---|
 | `result` | `PASS`, `FAIL`, `WARNING`, or `SKIPPED`, from starting the recording through saving it. |
 | `resultDescription` | Why, when the result isn't `PASS`. |
+| `resultCode` | What kind of failure it was, when the result is `FAIL`: `environment` or `assertion`. |
 | `recordingPath` | The video's path relative to the results' `runDir`, with forward slashes. It's there only when a file was saved. |
 | `startedAt` | When the recording started. It's left out when the recording didn't start. |
 | `format`, `duration`, `width`, `height`, `fps` | The saved video's file format, length in seconds, size in pixels, and frame rate. Each is left out when Doc Detective couldn't read it. |
@@ -93,9 +94,19 @@ The field is absent when Doc Detective didn't try to record the context. That me
 - A headless Chrome context has its own `record` step.
 - `autoRecord` is unset and the host check below failed.
 
-The [HTML report](/docs/ci/reporters-and-artifacts) plays the video at the top of the context, in a panel named **Automatic recording**. When the result isn't `PASS`, the panel also shows the result and the reason.
+Each reporter points at the video its own way:
 
-To watch a recording, open `testResults.html` in the run folder. The run prints its path after `Run report:`. Each context's video plays at the top of its section, labeled **Automatic recording**. If the recording didn't start or save, the report shows its result and the reason. The report loads the video from the run folder, so in CI, upload the whole folder. See [Find the HTML report](/docs/ci/reporters-and-artifacts#step-4-find-the-html-report) and [Collect the run folder and artifacts](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts).
+| Reporter | Where the recording shows up |
+|---|---|
+| `html`, and the run folder's `testResults.html` | The video plays at the top of the context, in a panel named **Automatic recording**. When the result isn't `PASS`, the panel also shows the result and the reason. |
+| `terminal` | A `Recording:` line with the absolute path, on each item the context lists. |
+| `markdown` | A `Recording:` path, relative to the summary file, on each item the context lists. |
+| `junit` | A `[[ATTACHMENT…]]` line holding the path, relative to `junit.xml`, on every test case that isn't skipped. |
+| `json`, and the run folder's `testResults.json` | The context's `autoRecording` field, with `recordingPath` relative to `runDir`. |
+
+The `terminal`, `markdown`, and `junit` reporters list a recording that didn't pass as an item of its own, named `<specId> › <testId> › <contextId> › autoRecording`, with its reason. See [What every reporter lists](/docs/ci/reporters-and-artifacts#what-every-reporter-lists).
+
+To watch a recording, open `testResults.html` in the run folder. The run prints its path after `Run report:`. The report loads the video from the run folder, so in CI, upload the whole folder. See [Find the HTML report](/docs/ci/reporters-and-artifacts#step-4-find-the-html-report) and [Collect the run folder and artifacts](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts).
 
 ## Before you record
 

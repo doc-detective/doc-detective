@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log } from "../utils.js";
+import { log, invalidStepMessage } from "../utils.js";
 import { maskString } from "../masking.js";
 import { syncHandles } from "./browserSurface.js";
 import { spawn } from "node:child_process";
@@ -15,6 +15,7 @@ import {
   detectDisplayPointSize,
   probeVideoMetadata,
   detectAllBlack,
+  probeDominantFrameSize,
   recordingFailureCause,
 } from "./ffmpegRecorder.js";
 import {
@@ -84,7 +85,7 @@ async function endRecording({
   const isValidStep = validate({ schemaKey: "step_v3", object: authoredStep });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(authoredStep);
     return result;
   }
   const { stopRecord } = isValidStep.object;
@@ -94,7 +95,7 @@ async function endRecording({
   // value here rather than in the schema (the boolean form stays valid).
   if (stopRecord === false) {
     result.status = "SKIPPED";
-    result.description = "Recording stop is disabled (stopRecord: false).";
+    result.description = "Skipped: `stopRecord` is `false`.";
     return result;
   }
 
@@ -136,13 +137,13 @@ async function endRecording({
     result.status = "SKIPPED";
     const target = stopRecordTargetName(stopRecord);
     if (target !== undefined) {
-      result.description = `No active recording named '${target}'.`;
+      result.description = `Skipped: no active recording named \`${target}\`.`;
     } else if (recordings.length > 0) {
       // An untargeted stop found only the synthetic autoRecord recording, which
-      // it deliberately skips — say so rather than the misleading "isn't started".
-      result.description = `No user-stoppable recording is active; an automatic (autoRecord) recording is still running and stops at the end of the context.`;
+      // it deliberately skips — say so rather than the misleading "no recording is active".
+      result.description = `Skipped: no user-stoppable recording is active. An automatic (\`autoRecord\`) recording is still running and stops at the end of the context.`;
     } else {
-      result.description = `Recording isn't started.`;
+      result.description = `Skipped: no recording is active.`;
     }
     return result;
   }
@@ -184,8 +185,8 @@ async function endRecording({
     // one, an existing target needs `overwrite` (or the file removed).
     const skipCause =
       recording.skipReason === "targetExists"
-        ? `Recording skipped (the target already exists)`
-        : `Recording skipped (headless)`;
+        ? `Skipped: the recording's target already exists`
+        : `Skipped: the headless context wasn't recorded`;
     const refreshRemedy =
       recording.skipReason === "targetExists"
         ? `Delete it, or set \`overwrite\` to "true" or "aboveVariation", to refresh it.`
@@ -227,12 +228,12 @@ async function endRecording({
       // An environment gap (missing host ffmpeg) is a gated SKIP; anything
       // else is a real start failure.
       result.status = recording.startSkip ? "SKIPPED" : "FAIL";
-      result.description = recording.startError;
+      result.description = recording.startSkip || recording.startError;
       return result;
     }
     result.status = "SKIPPED";
     result.description =
-      "The device recording never started (no app surface opened a device session), so there is nothing to save.";
+      "Skipped: the device recording never started (no app surface opened a device session), so there's nothing to save.";
     return result;
   }
 
@@ -332,12 +333,19 @@ async function endRecording({
         return result;
       }
 
-      // Convert the saved .webm into the target format/location.
+      // Convert the saved .webm into the target format/location, at the size
+      // of the frames that cover most of it. The first and last frames can
+      // come from the captured tab while it's behind the recorder tab, at
+      // another size, and ffmpeg would size the video by the first (ADR 01197).
       await transcode({
         config,
         sourcePath: recording.downloadPath,
         targetPath: writeTargetPath,
         deleteSource: true,
+        size: await probeDominantFrameSize({
+          cacheDir: config?.cacheDir,
+          filePath: recording.downloadPath,
+        }),
       });
       dropHandle();
     } else if (recording.type === "ffmpeg") {
@@ -701,13 +709,13 @@ async function endRecording({
           `verify.resolution: true has no capture expectation for this engine; skipping the check.`
         );
       } else {
-        result.outputs.resolutionMatch =
+        result.outputs.resolutionMatches =
           typeof result.outputs.width === "number" &&
           typeof result.outputs.height === "number" &&
           Math.abs(result.outputs.width - expected.width) <= 2 &&
           Math.abs(result.outputs.height - expected.height) <= 2;
         specs.push({
-          statement: `$$outputs.resolutionMatch == true`,
+          statement: `$$outputs.resolutionMatches == true`,
           severity: "fail",
         });
       }
@@ -816,26 +824,31 @@ async function endRecording({
 }
 
 // Transcode a recording into the requested target format/location with
-// ffmpeg, applying an optional crop and the gif scale filter. Deletes the
-// source on success when requested (and when it isn't the target itself).
+// ffmpeg, applying an optional size, crop, and the gif scale filter. Deletes
+// the source on success when requested (and when it isn't the target itself).
 async function transcode({
   config,
   sourcePath,
   targetPath,
   deleteSource,
   crop,
+  size,
 }: {
   config: any;
   sourcePath: string;
   targetPath: string;
   deleteSource: boolean;
   crop?: { x: number; y: number; w: number; h: number } | null;
+  size?: { width: number; height: number } | null;
 }): Promise<void> {
   // Drop audio (-an): doc recordings are visual, and the browser engine's
   // captured opus track fails to mux into mp4 ("Too many packets buffered for
   // output stream"). Silent video is the intended, reliable output.
   const ffmpegArgs = ["-y", "-i", `${sourcePath}`, "-an", "-pix_fmt", "yuv420p"];
   const filters: string[] = [];
+  // Only the browser engine passes `size` and only the ffmpeg engine passes
+  // `crop`; a crop after this scale would be in the scaled frame's pixels.
+  if (size) filters.push(`scale=${size.width}:${size.height}`);
   if (crop) {
     // Clamp the crop to the captured frame using ffmpeg expressions (iw/ih),
     // so a window/viewport rectangle larger than the captured display can't

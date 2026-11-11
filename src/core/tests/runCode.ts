@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { spawnCommand, log, resolveShellExecutable } from "../utils.js";
+import { spawnCommand, log, resolveShellExecutable, invalidStepMessage } from "../utils.js";
 import { runShell } from "./runShell.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -124,7 +124,7 @@ async function runCode({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // The effective step: defaults filled (ADR 01167).

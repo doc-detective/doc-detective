@@ -121,7 +121,7 @@ describe("Run tests successfully", function () {
       assert.ok(unmet.contexts.length > 0, "gate-unmet resolved no contexts");
       for (const ctx of unmet.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /unmet requirements/);
+        assert.match(ctx.resultDescription, /^Skipped: unmet requirements: /);
         assert.match(ctx.resultDescription, /doc-detective-no-such-binary-xyz/);
       }
       assert.equal(unmet.result, "SKIPPED");
@@ -471,9 +471,9 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(
+        assert.equal(
           ctx.resultDescription,
-          /native app surfaces run on Windows, macOS, Android, and iOS/
+          "Skipped: native app surfaces don't run on `linux`. They run on Windows, macOS, Android, and iOS. Gate the test with `runOn` platforms so this skip is intentional."
         );
       }
       assert.equal(result.summary.specs.fail, 0);
@@ -510,7 +510,7 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /'firefox' isn't available on android/);
+        assert.match(ctx.resultDescription, /^Skipped: `firefox` isn't available on `android`\./);
         assert.match(ctx.resultDescription, /chrome/);
       }
       assert.equal(result.summary.specs.fail, 0);
@@ -544,7 +544,7 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /'chrome' isn't available on ios/);
+        assert.match(ctx.resultDescription, /^Skipped: `chrome` isn't available on `ios`\./);
         assert.match(ctx.resultDescription, /safari/);
       }
       assert.equal(result.summary.specs.fail, 0);
@@ -683,11 +683,48 @@ describe("Run tests successfully", function () {
       );
       assert.equal(miss.result, "FAIL");
       assert.equal(miss.outputs.found, false);
-      assert.equal(miss.resultDescription, "No elements matched selector or text.");
+      assert.equal(miss.resultDescription, "Couldn't find element `No such shorthand target`.");
+      // Nothing on the page is close, so it's an assertion failure (ADR 01194).
+      assert.deepEqual(miss.outputs.nearMatches, []);
+      assert.equal(miss.resultCode, "assertion");
+      assert.equal(miss.resultHint, undefined);
+      assert.equal(hit.resultCode, undefined);
       assert.ok(
         miss.durationMs >= 5000,
         `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
       );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("A find that misses a renamed element reports near matches as drift, with a hint (ADR 01194)", async () => {
+    // The page's button says "Start late arrival". A step that still says
+    // "Start late" FAILs, so the PASS/SKIPPED fixture gate can't carry it.
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/find-shorthand.html" },
+            { find: { elementText: "Start late", timeout: 0 } },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "near-matches-"));
+    const tempFilePath = path.join(tempDir, "near-matches.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
+      const context = result.specs[0].tests[0].contexts.find((c) => c.steps && c.steps.length);
+      assert.ok(context, "expected a context that ran steps");
+      const miss = context.steps[1];
+      assert.equal(miss.result, "FAIL");
+      assert.deepEqual(miss.outputs.nearMatches, [
+        { text: "Start late arrival", tag: "button", id: "start-late" },
+      ]);
+      assert.equal(miss.resultCode, "drift");
+      assert.equal(miss.resultHint, "Closest match: `Start late arrival`.");
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -1036,7 +1073,7 @@ describe("Run tests successfully", function () {
       assert.equal(result.summary.specs.skipped, 1);
       assert.equal(result.summary.specs.pass, 0);
       assert.equal(result.summary.contexts.skipped, 1);
-      // Also verify the actual test result
+      assert.match(result.specs[0].tests[0].contexts[0].resultDescription, /^Skipped: this system can't run a `(windows|mac|linux)` context\.$/);
       assert.equal(result.specs[0].result, "SKIPPED");
       assert.equal(result.specs[0].tests[0].result, "SKIPPED");
       assert.equal(result.specs[0].tests[0].contexts[0].result, "SKIPPED");
@@ -1110,7 +1147,7 @@ describe("Run tests successfully", function () {
       assert.equal(ctx.result, "SKIPPED");
       assert.match(
         ctx.resultDescription,
-        /recording name 'dup'/,
+        /^Skipped: recording name `dup` is reused/,
         `expected the skip reason to name the conflict, got: ${ctx.resultDescription}`
       );
     } finally {
@@ -1340,11 +1377,11 @@ describe("Run tests successfully", function () {
       assert.equal(exit.result, "PASS");
       assert.equal(exit.statement, "$$outputs.exitCode oneOf [0]");
       const stdio = step.assertions.find((a) =>
-        a.statement.includes("stdioMatched")
+        a.statement.includes("stdioMatches")
       );
       assert.ok(stdio, "expected a stdio assertion record");
       assert.equal(stdio.result, "PASS");
-      assert.equal(stdio.statement, "$$outputs.stdioMatched == true");
+      assert.equal(stdio.statement, "$$outputs.stdioMatches == true");
     } finally {
       fs.unlinkSync(tempFilePath);
     }
@@ -2217,7 +2254,7 @@ describe("getRunner() function", function () {
     // NO routing. Step 1 fails -> the test stops (default onFail). Step 2 is
     // unsafe AND carries onSkip:[{stop:'test'}]; because it is downstream of the
     // stop its onSkip must NOT fire. Proof: step 3's skip reason stays the
-    // original failure reason ("previous failure"), not the routing reason — if
+    // original failure reason ("a prior step failed"), not the routing reason — if
     // step 2's onSkip had fired it would have overwritten the stop reason.
     const t = {
       tests: [
@@ -2253,7 +2290,7 @@ describe("getRunner() function", function () {
       // Step 3: still carries the ORIGINAL failure stop reason — proving step 2's
       // onSkip never fired (it would have rewritten the reason to "...routing").
       assert.equal(steps[2].result, "SKIPPED");
-      assert.match(steps[2].resultDescription, /previous failure/);
+      assert.equal(steps[2].resultDescription, "Skipped: a prior step failed.");
       assert.doesNotMatch(steps[2].resultDescription, /routing/);
     } finally {
       fs.unlinkSync(tempFilePath);
@@ -2370,7 +2407,7 @@ describe("getRunner() function", function () {
       assert.equal(steps[0].result, "FAIL");
       assert.equal(steps[0].attempts, 3); // 1 initial + 2 retries
       assert.equal(steps[1].result, "SKIPPED"); // default stop after exhaustion
-      assert.match(steps[1].resultDescription, /previous failure/);
+      assert.equal(steps[1].resultDescription, "Skipped: a prior step failed.");
     } finally {
       fs.unlinkSync(tempFilePath);
     }
@@ -2498,11 +2535,11 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("goToStep unknown target -> FAIL marker + remaining steps SKIPPED, verdict FAIL (no hang)", async () => {
+  it("goToStep unknown target -> the routing step FAILs + remaining steps SKIPPED, verdict FAIL (no hang)", async () => {
     // Step a routes goToStep to a nonexistent stepId. This is a routing
-    // misconfiguration, so the runner emits a FAIL marker (so it can't silently
-    // report green), stops, and SKIPs step b with the unknown-target reason.
-    // Verdict rolls up FAIL.
+    // misconfiguration, so step a itself FAILs (ADR 01186: no marker step, so
+    // it can't silently report green), the run stops, and step b SKIPs with the
+    // unknown-target reason. Verdict rolls up FAIL.
     const t = {
       tests: [
         {
@@ -2524,13 +2561,14 @@ describe("getRunner() function", function () {
     try {
       result = await runTests(config);
       const steps = result.specs[0].tests[0].contexts[0].steps;
-      // a PASS, then the FAIL marker, then b SKIPPED.
-      assert.equal(steps.length, 3);
-      assert.equal(steps[0].result, "PASS");
-      assert.equal(steps[1].result, "FAIL");
-      assert.match(steps[1].resultDescription, /does not exist/);
-      assert.equal(steps[2].result, "SKIPPED");
-      assert.match(steps[2].resultDescription, /does not exist/);
+      // a FAIL (its own reason kept, the routing reason added), then b SKIPPED.
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].stepId, "a");
+      assert.equal(steps[0].result, "FAIL");
+      assert.match(steps[0].resultDescription, /^\S.* Couldn't route to step `nope`: no step has that `stepId`\.$/);
+      assert.equal(steps[1].result, "SKIPPED");
+      assert.equal(steps[1].resultDescription, "Skipped: routing `goToStep` target `nope` doesn't exist.");
+      assert.deepEqual(result.summary.steps, { pass: 0, fail: 1, warning: 0, skipped: 1 });
       // A typo'd goToStep must NOT silently report green.
       assert.equal(result.specs[0].tests[0].result, "FAIL");
       assert.equal(result.summary.specs.fail, 1);
@@ -2542,8 +2580,8 @@ describe("getRunner() function", function () {
   it("goToStep infinite loop is bounded by the visit cap (terminates, verdict FAIL)", async () => {
     // A single step that unconditionally jumps to itself. The fail-safe cap
     // (steps.length * 1000 + 1000 = 2000 for one step) stops it rather than
-    // hanging, and emits a final FAIL marker so the force-terminated cycle
-    // reports FAIL instead of green.
+    // hanging, and FAILs the last visit so the force-terminated cycle reports
+    // FAIL instead of green (ADR 01186: no marker step).
     const t = {
       tests: [
         {
@@ -2567,16 +2605,20 @@ describe("getRunner() function", function () {
       result = await runTests(config);
       const steps = result.specs[0].tests[0].contexts[0].steps;
       // The cap (steps.length * 1000 + 1000 = 2000 for one step) bounds the
-      // executed visits: 2000 PASS reports, then a final FAIL marker emitted
-      // when the cap trips (2001 total). The point is it terminates rather than
-      // hanging — and reports FAIL, not green.
-      assert.equal(steps.length, 2001);
+      // executed visits: 2000 reports, and the last one FAILs when the cap
+      // trips. The point is it terminates rather than hanging — and reports
+      // FAIL, not green.
+      assert.equal(steps.length, 2000);
       assert.ok(
-        steps.slice(0, 2000).every((s) => s.result === "PASS"),
-        "every executed visit PASSes"
+        steps.slice(0, 1999).every((s) => s.result === "PASS"),
+        "every visit before the cap PASSes"
       );
-      assert.equal(steps[2000].result, "FAIL");
-      assert.match(steps[2000].resultDescription, /maximum|loop/);
+      assert.equal(steps[1999].result, "FAIL");
+      assert.equal(steps[1999].visit, 2000);
+      assert.match(
+        steps[1999].resultDescription,
+        / Couldn't finish the context: routing ran more than 2000 steps\. Check `goToStep` for a loop\.$/
+      );
       assert.equal(result.specs[0].tests[0].result, "FAIL");
     } finally {
       fs.unlinkSync(tempFilePath);
@@ -2622,9 +2664,10 @@ describe("getRunner() function", function () {
     }
   });
 
-  it("onSkip goToStep to an unknown target emits FAIL marker and rolls up FAIL", async () => {
+  it("onSkip goToStep to an unknown target FAILs the skipped step and rolls up FAIL", async () => {
     // A guard-skipped step with a typo'd goToStep must fail-safe identically to
-    // the run-path: push a FAIL marker so the verdict is FAIL, not silent green.
+    // the run-path: the step that routed FAILs, so the verdict is FAIL, not
+    // silent green.
     const t = {
       tests: [
         {
@@ -2646,16 +2689,15 @@ describe("getRunner() function", function () {
     let result;
     try {
       result = await runTests(config);
-      // FAIL marker pushes verdict to FAIL — typo'd target must not silently pass.
+      // The routing step FAILs — typo'd target must not silently pass.
       assert.equal(result.specs[0].tests[0].result, "FAIL");
       assert.equal(result.summary.specs.fail, 1);
       const steps = result.specs[0].tests[0].contexts[0].steps;
-      // step a (SKIPPED) + FAIL marker + step b (SKIPPED downstream of the stop).
-      assert.equal(steps.length, 3);
-      assert.equal(steps[0].result, "SKIPPED");
-      assert.equal(steps[1].result, "FAIL");
-      assert.match(steps[1].resultDescription, /does not exist/);
-      assert.equal(steps[2].result, "SKIPPED");
+      // step a (FAIL, with its skip reason kept) + step b (SKIPPED downstream).
+      assert.equal(steps.length, 2);
+      assert.equal(steps[0].result, "FAIL");
+      assert.match(steps[0].resultDescription, /^Skipped: .* Couldn't route to step `typo`: no step has that `stepId`\.$/);
+      assert.equal(steps[1].result, "SKIPPED");
     } finally {
       fs.unlinkSync(tempFilePath);
     }
@@ -3079,7 +3121,7 @@ describe("getRunner() function", function () {
 
   it("type with a stdio waitUntil that can't match within a tiny timeout FAILs via the assertion", async () => {
     // Start node -i, then type expecting output that will never appear within a
-    // very small timeout. The stdioMatched assertion must FAIL the step.
+    // very small timeout. The stdioMatches assertion must FAIL the step.
     const t = {
       tests: [
         {
@@ -3114,7 +3156,7 @@ describe("getRunner() function", function () {
     try {
       result = await runTests(config);
       const steps = result.specs[0].tests[0].contexts[0].steps;
-      // Step 0 (start) PASS; step 1 (type) FAIL via stdioMatched assertion.
+      // Step 0 (start) PASS; step 1 (type) FAIL via stdioMatches assertion.
       assert.equal(steps[0].result, "PASS");
       assert.equal(steps[1].result, "FAIL");
       const implicit = (steps[1].assertions || []).filter(
@@ -3122,7 +3164,7 @@ describe("getRunner() function", function () {
       );
       assert.ok(
         implicit.some((a) => a.result === "FAIL"),
-        "expected an implicit stdioMatched assertion to FAIL"
+        "expected an implicit stdioMatches assertion to FAIL"
       );
     } finally {
       fs.unlinkSync(tempFilePath);

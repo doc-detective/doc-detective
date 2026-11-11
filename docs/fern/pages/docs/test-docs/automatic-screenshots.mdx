@@ -53,7 +53,17 @@ The number is the step's place in the test, so the first step you wrote is `01-â
 
 While screenshots are on, the `runFolder` reporter runs even if `reporters` leaves it out. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
-To look through the screenshots, open `testResults.html` in the run folder. The run prints its path after `Run report:`. Each step's automatic screenshot appears with the step, labeled **Automatic**. The report loads the images from the run folder, so in CI, upload the whole folder. See [Find the HTML report](/docs/ci/reporters-and-artifacts#step-4-find-the-html-report) and [Collect the run folder and artifacts](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts).
+To look through the screenshots, open `testResults.html` in the run folder. The run prints its path after `Run report:`. The report loads the images from the run folder, so in CI, upload the whole folder. See [Find the HTML report](/docs/ci/reporters-and-artifacts#step-4-find-the-html-report) and [Collect the run folder and artifacts](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts).
+
+Each reporter points at the images its own way:
+
+| Reporter | Where the screenshot shows up |
+|---|---|
+| `html`, and the run folder's `testResults.html` | Every step's media strip, labeled **Automatic**. |
+| `terminal` | A `Screenshot:` line with the absolute path, on a step that failed or warned. |
+| `markdown` | A `Screenshot:` path, relative to the summary file, on a step that failed or warned. |
+| `junit` | A `[[ATTACHMENTâ€¦]]` line holding the path, relative to `junit.xml`, for the first step in a test case that failed or warned. |
+| `json`, and the run folder's `testResults.json` | The step's `autoScreenshotPath` field, relative to `runDir`. |
 
 Like `screenshot` steps, automatic browser screenshots blur elements whose text or form value holds a secret environment variable value. The blur appears in the saved image. Text inside iframes, shadow DOM, or a canvas isn't blurred, and neither are native app and device screenshots. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
 
@@ -61,7 +71,7 @@ Automatic screenshots don't compare against a reference. To gate on drift, add a
 
 ## Turn them off
 
-Set `autoScreenshot` to `false` at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
+Set `autoScreenshot` to `false` at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's. A step can't set it: `autoScreenshot` on a step is an unknown key, so the spec fails validation.
 
 ```json title=".doc-detective.json"
 {
@@ -91,7 +101,7 @@ The flag sets the config level, so a spec or test that sets `autoScreenshot` to 
 
 ## Verify it works
 
-- Each UI step in the results has an `autoScreenshot` path.
+- Each UI step in the results has an `autoScreenshotPath`.
 - The run folder holds a `screenshots/` folder per context.
 
 ## Troubleshooting

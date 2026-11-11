@@ -37,7 +37,7 @@ export type OpenApi = {
    */
   validateAgainstSchema?: "request" | "response" | "both" | "none";
   /**
-   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code.
+   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code.
    */
   mockResponse?: boolean;
   /**
@@ -173,6 +173,10 @@ export type Test = (
    * Total time this test took, in milliseconds: the sum of the per-context durations. A sum rather than a wall-clock span, because this test's contexts share a concurrent pool with every other test's. Present only in test results. System-populated.
    */
   durationMs?: number;
+  /**
+   * Which run of this test this report is, when a `goToTest` routing entry ran it again. Present only in test results, from the second run on. System-populated.
+   */
+  visit?: number;
   contexts?: ResolvedContexts;
 };
 export type DeviceByName1 = string;
@@ -209,7 +213,7 @@ export type OpenApi1 = (
    */
   validateAgainstSchema?: "request" | "response" | "both" | "none";
   /**
-   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code.
+   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code.
    */
   mockResponse?: boolean;
   /**
@@ -392,12 +396,13 @@ export type Step = (
   $schema?: unknown;
   result?: unknown;
   resultDescription?: unknown;
+  resultCode?: unknown;
+  resultHint?: unknown;
   stepId?: unknown;
   description?: unknown;
   unsafe?: unknown;
   outputs?: unknown;
   variables?: unknown;
-  breakpoint?: unknown;
   if?: unknown;
   assertions?: unknown;
   onPass?: unknown;
@@ -405,7 +410,7 @@ export type Step = (
   onWarning?: unknown;
   onSkip?: unknown;
   location?: unknown;
-  autoScreenshot?: unknown;
+  autoScreenshotPath?: unknown;
   attempts?: unknown;
   visit?: unknown;
   durationMs?: unknown;
@@ -457,12 +462,13 @@ export type Step = (
     $schema?: unknown;
     result?: unknown;
     resultDescription?: unknown;
+    resultCode?: unknown;
+    resultHint?: unknown;
     stepId?: unknown;
     description?: unknown;
     unsafe?: unknown;
     outputs?: unknown;
     variables?: unknown;
-    breakpoint?: unknown;
     if?: unknown;
     assertions?: unknown;
     onPass?: unknown;
@@ -470,7 +476,7 @@ export type Step = (
     onWarning?: unknown;
     onSkip?: unknown;
     location?: unknown;
-    autoScreenshot?: unknown;
+    autoScreenshotPath?: unknown;
     attempts?: unknown;
     visit?: unknown;
     durationMs?: unknown;
@@ -1218,7 +1224,7 @@ export type TypeKeysSimple = string | string[];
 export type TypeKeysDetailed = {
   keys: TypeKeysSimple1;
   /**
-   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.
+   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.
    */
   inputDelay?: number;
   surface?: Surface;
@@ -1227,7 +1233,7 @@ export type TypeKeysDetailed = {
    */
   waitUntil?: ProcessReadiness | BrowserReadiness | AppReadiness;
   /**
-   * Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once.
+   * Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once.
    */
   timeout?: number;
   /**
@@ -1984,7 +1990,7 @@ export type OpenApi2 = (
    */
   validateAgainstSchema?: "request" | "response" | "both" | "none";
   /**
-   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code.
+   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code.
    */
   mockResponse?: boolean;
   /**
@@ -2694,7 +2700,7 @@ export type TypeKeysSimple2 = string | string[];
 export type TypeKeysDetailed1 = {
   keys: TypeKeysSimple3;
   /**
-   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.
+   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.
    */
   inputDelay?: number;
   surface?: Surface1;
@@ -2703,7 +2709,7 @@ export type TypeKeysDetailed1 = {
    */
   waitUntil?: ProcessReadiness1 | BrowserReadiness1 | AppReadiness1;
   /**
-   * Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once.
+   * Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once.
    */
   timeout?: number;
   /**
@@ -3068,7 +3074,7 @@ export type CaptureScreenshot = boolean;
  * File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple = string;
-export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCropYet;
+export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCrop;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
@@ -3585,10 +3591,6 @@ export type SaveCookieDetailed = (
       [k: string]: unknown;
     }
 ) & {
-  /**
-   * Optional self-describing schema URI for linters
-   */
-  $schema?: string;
   name: CookieName1;
   variable?: EnvironmentVariableName;
   path?: CookieFilePath;
@@ -4158,7 +4160,7 @@ export type StepRouting55 = (
  */
 export type Condition89 = string | [string, ...string[]];
 /**
- * Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ "app": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
+ * Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ "app": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS).
  */
 export type CloseSurface1 = Surface2 | [Surface3, ...Surface3[]];
 /**
@@ -4402,7 +4404,7 @@ export type StepRouting59 = (
  */
 export type Condition95 = string | [string, ...string[]];
 /**
- * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md.
+ * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap.
  */
 export type StartSurface1 = AppDescriptor | BrowserDescriptor | ProcessDescriptor | ParallelSurfaces;
 export type DeviceByName2 = string;
@@ -5158,10 +5160,6 @@ export type LoadCookieDetailed = (
       [k: string]: unknown;
     }
 ) & {
-  /**
-   * Optional self-describing schema URI for linters
-   */
-  $schema?: string;
   name: CookieName2;
   variable?: EnvironmentVariableName1;
   path?: CookieFilePath1;
@@ -6277,7 +6275,7 @@ export type OpenApi3 = (
    */
   validateAgainstSchema?: "request" | "response" | "both" | "none";
   /**
-   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code.
+   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code.
    */
   mockResponse?: boolean;
   /**
@@ -6328,12 +6326,13 @@ export type Step1 = (
   $schema?: unknown;
   result?: unknown;
   resultDescription?: unknown;
+  resultCode?: unknown;
+  resultHint?: unknown;
   stepId?: unknown;
   description?: unknown;
   unsafe?: unknown;
   outputs?: unknown;
   variables?: unknown;
-  breakpoint?: unknown;
   if?: unknown;
   assertions?: unknown;
   onPass?: unknown;
@@ -6341,7 +6340,7 @@ export type Step1 = (
   onWarning?: unknown;
   onSkip?: unknown;
   location?: unknown;
-  autoScreenshot?: unknown;
+  autoScreenshotPath?: unknown;
   attempts?: unknown;
   visit?: unknown;
   durationMs?: unknown;
@@ -6367,72 +6366,7 @@ export type Step1 = (
   swipe?: unknown;
   wait?: unknown;
   annotate?: unknown;
-} & (
-    | (Common21 & CheckLink2)
-    | (Common22 & Click2)
-    | (Common23 & Find2)
-    | (Common24 & GoTo2)
-    | (Common25 & HttpRequest2)
-    | (Common26 & RunShell2)
-    | (Common27 & RunCode2)
-    | (Common28 & RunBrowserScript2)
-    | (Common29 & Type1)
-    | (Common30 & Screenshot2)
-    | (Common31 & SaveCookie2)
-    | (Common32 & Record2)
-    | (Common33 & StopRecord2)
-    | (Common34 & CloseSurface2)
-    | (Common35 & StartSurface2)
-    | (Common36 & LoadVariables2)
-    | (Common37 & DragAndDrop2)
-    | (Common38 & LoadCookie2)
-    | (Common39 & Swipe2)
-    | (Common40 & Wait2)
-    | (Common41 & Annotate2)
-  ) & {
-    $schema?: unknown;
-    result?: unknown;
-    resultDescription?: unknown;
-    stepId?: unknown;
-    description?: unknown;
-    unsafe?: unknown;
-    outputs?: unknown;
-    variables?: unknown;
-    breakpoint?: unknown;
-    if?: unknown;
-    assertions?: unknown;
-    onPass?: unknown;
-    onFail?: unknown;
-    onWarning?: unknown;
-    onSkip?: unknown;
-    location?: unknown;
-    autoScreenshot?: unknown;
-    attempts?: unknown;
-    visit?: unknown;
-    durationMs?: unknown;
-    startedAt?: unknown;
-    checkLink?: unknown;
-    click?: unknown;
-    find?: unknown;
-    goTo?: unknown;
-    httpRequest?: unknown;
-    runShell?: unknown;
-    runCode?: unknown;
-    runBrowserScript?: unknown;
-    type?: unknown;
-    screenshot?: unknown;
-    saveCookie?: unknown;
-    record?: unknown;
-    stopRecord?: unknown;
-    closeSurface?: unknown;
-    startSurface?: unknown;
-    loadVariables?: unknown;
-    dragAndDrop?: unknown;
-    loadCookie?: unknown;
-    swipe?: unknown;
-    wait?: unknown;
-    annotate?: unknown;
-  };
+};
 /**
  * A condition expression, or an array of expressions combined with logical AND.
  */
@@ -7154,7 +7088,7 @@ export type TypeKeysSimple4 = string | string[];
 export type TypeKeysDetailed2 = {
   keys: TypeKeysSimple5;
   /**
-   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.
+   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.
    */
   inputDelay?: number;
   surface?: Surface4;
@@ -7163,7 +7097,7 @@ export type TypeKeysDetailed2 = {
    */
   waitUntil?: ProcessReadiness2 | BrowserReadiness2 | AppReadiness4;
   /**
-   * Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once.
+   * Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once.
    */
   timeout?: number;
   /**
@@ -7920,7 +7854,7 @@ export type OpenApi4 = (
    */
   validateAgainstSchema?: "request" | "response" | "both" | "none";
   /**
-   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code.
+   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code.
    */
   mockResponse?: boolean;
   /**
@@ -8630,7 +8564,7 @@ export type TypeKeysSimple6 = string | string[];
 export type TypeKeysDetailed3 = {
   keys: TypeKeysSimple7;
   /**
-   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.
+   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.
    */
   inputDelay?: number;
   surface?: Surface5;
@@ -8639,7 +8573,7 @@ export type TypeKeysDetailed3 = {
    */
   waitUntil?: ProcessReadiness3 | BrowserReadiness3 | AppReadiness5;
   /**
-   * Maximum time in milliseconds to wait for `waitUntil` after sending the keys. `0` checks once.
+   * Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once.
    */
   timeout?: number;
   /**
@@ -9004,7 +8938,7 @@ export type CaptureScreenshot1 = boolean;
  * File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple2 = string;
-export type CaptureScreenshotDetailed1 = CaptureScreenshotFields1 & AppCapturesDonTSupportCropYet1;
+export type CaptureScreenshotDetailed1 = CaptureScreenshotFields1 & AppCapturesDonTSupportCrop1;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
@@ -9521,10 +9455,6 @@ export type SaveCookieDetailed1 = (
       [k: string]: unknown;
     }
 ) & {
-  /**
-   * Optional self-describing schema URI for linters
-   */
-  $schema?: string;
   name: CookieName4;
   variable?: EnvironmentVariableName2;
   path?: CookieFilePath2;
@@ -10094,7 +10024,7 @@ export type StepRouting139 = (
  */
 export type Condition215 = string | [string, ...string[]];
 /**
- * Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ "app": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS). Renames `stopProcess`.
+ * Close one or more surfaces: background processes, browser windows/tabs or whole browser sessions, and native app surfaces. A browser reference with a `tab` selector closes that tab; with a `window` selector it closes the window and its tabs; with neither it closes the whole browser session. An app reference ({ "app": … }) closes the app surface, terminating the app when Doc Detective launched it. Closing a surface that is not open is a no-op (PASS).
  */
 export type CloseSurface3 = Surface6 | [Surface7, ...Surface7[]];
 /**
@@ -10338,7 +10268,7 @@ export type StepRouting143 = (
  */
 export type Condition221 = string | [string, ...string[]];
 /**
- * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md.
+ * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap.
  */
 export type StartSurface3 = AppDescriptor2 | BrowserDescriptor2 | ProcessDescriptor2 | ParallelSurfaces1;
 export type DeviceByName4 = string;
@@ -11094,10 +11024,6 @@ export type LoadCookieDetailed1 = (
       [k: string]: unknown;
     }
 ) & {
-  /**
-   * Optional self-describing schema URI for linters
-   */
-  $schema?: string;
   name: CookieName5;
   variable?: EnvironmentVariableName3;
   path?: CookieFilePath3;
@@ -13332,11 +13258,15 @@ export interface Common {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep;
   if?: Condition6;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -13360,9 +13290,9 @@ export interface Common {
   onSkip?: StepRouting3[];
   location?: SourceLocation;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -13382,11 +13312,11 @@ export interface Common {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -13423,36 +13353,6 @@ export interface Assertion {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -13597,11 +13497,15 @@ export interface Common1 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep1;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep1;
   if?: Condition12;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -13625,9 +13529,9 @@ export interface Common1 {
   onSkip?: StepRouting7[];
   location?: SourceLocation1;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -13647,11 +13551,11 @@ export interface Common1 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep1 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep1`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -13688,36 +13592,6 @@ export interface Assertion1 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -13810,7 +13684,7 @@ export interface Click {
 }
 export interface BrowserSurface {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -13903,11 +13777,15 @@ export interface Common2 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep2;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep2;
   if?: Condition18;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -13931,9 +13809,9 @@ export interface Common2 {
   onSkip?: StepRouting11[];
   location?: SourceLocation2;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -13953,11 +13831,11 @@ export interface Common2 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep2 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep2`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -13994,36 +13872,6 @@ export interface Assertion2 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -14116,7 +13964,7 @@ export interface Find {
 }
 export interface BrowserSurface1 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -14201,7 +14049,7 @@ export interface ProcessSurface {
 }
 export interface BrowserSurface2 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -14340,11 +14188,15 @@ export interface Common3 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep3;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep3;
   if?: Condition24;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -14368,9 +14220,9 @@ export interface Common3 {
   onSkip?: StepRouting15[];
   location?: SourceLocation3;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -14390,11 +14242,11 @@ export interface Common3 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep3 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep3`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -14431,36 +14283,6 @@ export interface Assertion3 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -14553,7 +14375,7 @@ export interface GoTo {
 }
 export interface BrowserSurface3 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -14634,11 +14456,15 @@ export interface Common4 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep4;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep4;
   if?: Condition30;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -14662,9 +14488,9 @@ export interface Common4 {
   onSkip?: StepRouting19[];
   location?: SourceLocation4;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -14684,11 +14510,11 @@ export interface Common4 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep4 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep4`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -14725,36 +14551,6 @@ export interface Assertion4 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -14935,11 +14731,15 @@ export interface Common5 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep5;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep5;
   if?: Condition36;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -14963,9 +14763,9 @@ export interface Common5 {
   onSkip?: StepRouting23[];
   location?: SourceLocation5;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -14985,11 +14785,11 @@ export interface Common5 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep5 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep5`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -15026,36 +14826,6 @@ export interface Assertion5 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -15264,11 +15034,15 @@ export interface Common6 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep6;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep6;
   if?: Condition42;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -15292,9 +15066,9 @@ export interface Common6 {
   onSkip?: StepRouting27[];
   location?: SourceLocation6;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -15314,11 +15088,11 @@ export interface Common6 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep6 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep6`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -15355,36 +15129,6 @@ export interface Assertion6 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -15593,11 +15337,15 @@ export interface Common7 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep7;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep7;
   if?: Condition48;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -15621,9 +15369,9 @@ export interface Common7 {
   onSkip?: StepRouting31[];
   location?: SourceLocation7;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -15643,11 +15391,11 @@ export interface Common7 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep7 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep7`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -15684,36 +15432,6 @@ export interface Assertion7 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -15845,7 +15563,7 @@ export interface RunBrowserScriptDetailed {
 }
 export interface BrowserSurface4 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -15917,11 +15635,15 @@ export interface Common8 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep8;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep8;
   if?: Condition54;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -15945,9 +15667,9 @@ export interface Common8 {
   onSkip?: StepRouting35[];
   location?: SourceLocation8;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -15967,11 +15689,11 @@ export interface Common8 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep8 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep8`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -16008,36 +15730,6 @@ export interface Assertion8 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -16136,7 +15828,7 @@ export interface ProcessSurface1 {
 }
 export interface BrowserSurface5 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -16275,11 +15967,15 @@ export interface Common9 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep9;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep9;
   if?: Condition60;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -16303,9 +15999,9 @@ export interface Common9 {
   onSkip?: StepRouting39[];
   location?: SourceLocation9;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -16325,11 +16021,11 @@ export interface Common9 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep9 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep9`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -16366,36 +16062,6 @@ export interface Assertion9 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -16488,7 +16154,7 @@ export interface Screenshot {
 }
 export interface CaptureScreenshotFields {
   /**
-   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop` yet.
+   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop`.
    */
   surface?: SurfaceByBrowserEngine4 | BrowserSurface6 | AppSurface4;
   path?: ScreenshotSimple1;
@@ -16514,7 +16180,7 @@ export interface CaptureScreenshotFields {
 }
 export interface BrowserSurface6 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -17070,7 +16736,7 @@ export interface AnnotationTransition2 {
  */
 export interface SourceIntegration {
   /**
-   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
+   * The type of integration. The only type is `heretto`.
    */
   type: "heretto";
   /**
@@ -17090,7 +16756,7 @@ export interface SourceIntegration {
    */
   contentPath?: string;
 }
-export interface AppCapturesDonTSupportCropYet {
+export interface AppCapturesDonTSupportCrop {
   [k: string]: unknown;
 }
 export interface Common10 {
@@ -17119,11 +16785,15 @@ export interface Common10 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep10;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep10;
   if?: Condition66;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -17147,9 +16817,9 @@ export interface Common10 {
   onSkip?: StepRouting43[];
   location?: SourceLocation10;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -17169,11 +16839,11 @@ export interface Common10 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep10 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep10`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -17210,36 +16880,6 @@ export interface Assertion10 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -17356,11 +16996,15 @@ export interface Common11 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep11;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep11;
   if?: Condition72;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -17384,9 +17028,9 @@ export interface Common11 {
   onSkip?: StepRouting47[];
   location?: SourceLocation11;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -17406,11 +17050,11 @@ export interface Common11 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep11 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep11`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -17447,36 +17091,6 @@ export interface Assertion11 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -17594,7 +17208,7 @@ export interface RecordDetailed {
 }
 export interface BrowserSurface7 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -17736,11 +17350,15 @@ export interface Common12 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep12;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep12;
   if?: Condition78;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -17764,9 +17382,9 @@ export interface Common12 {
   onSkip?: StepRouting51[];
   location?: SourceLocation12;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -17786,11 +17404,11 @@ export interface Common12 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep12 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep12`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -17827,36 +17445,6 @@ export interface Assertion12 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -17979,11 +17567,15 @@ export interface Common13 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep13;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep13;
   if?: Condition84;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -18007,9 +17599,9 @@ export interface Common13 {
   onSkip?: StepRouting55[];
   location?: SourceLocation13;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -18029,11 +17621,11 @@ export interface Common13 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep13 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep13`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -18070,36 +17662,6 @@ export interface Assertion13 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -18198,7 +17760,7 @@ export interface ProcessSurface2 {
 }
 export interface BrowserSurface8 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -18273,7 +17835,7 @@ export interface ProcessSurface3 {
 }
 export interface BrowserSurface9 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -18366,11 +17928,15 @@ export interface Common14 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep14;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep14;
   if?: Condition90;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -18394,9 +17960,9 @@ export interface Common14 {
   onSkip?: StepRouting59[];
   location?: SourceLocation14;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -18416,11 +17982,11 @@ export interface Common14 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep14 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep14`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -18457,36 +18023,6 @@ export interface Assertion14 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -18590,10 +18126,6 @@ export interface AppDescriptor {
    * Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
    */
   args?: string[];
-  /**
-   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
-   */
-  workingDirectory?: string;
   /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */
@@ -18779,10 +18311,6 @@ export interface AppDescriptor1 {
    * Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
    */
   args?: string[];
-  /**
-   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
-   */
-  workingDirectory?: string;
   /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */
@@ -18981,11 +18509,15 @@ export interface Common15 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep15;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep15;
   if?: Condition96;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -19009,9 +18541,9 @@ export interface Common15 {
   onSkip?: StepRouting63[];
   location?: SourceLocation15;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -19031,11 +18563,11 @@ export interface Common15 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep15 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep15`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -19072,36 +18604,6 @@ export interface Assertion15 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -19218,11 +18720,15 @@ export interface Common16 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep16;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep16;
   if?: Condition102;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -19246,9 +18752,9 @@ export interface Common16 {
   onSkip?: StepRouting67[];
   location?: SourceLocation16;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -19268,11 +18774,11 @@ export interface Common16 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep16 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep16`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -19309,36 +18815,6 @@ export interface Assertion16 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -19452,7 +18928,7 @@ export interface DragAndDrop1 {
 }
 export interface BrowserSurface10 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -19524,11 +19000,15 @@ export interface Common17 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep17;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep17;
   if?: Condition108;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -19552,9 +19032,9 @@ export interface Common17 {
   onSkip?: StepRouting71[];
   location?: SourceLocation17;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -19574,11 +19054,11 @@ export interface Common17 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep17 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep17`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -19615,36 +19095,6 @@ export interface Assertion17 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -19761,11 +19211,15 @@ export interface Common18 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep18;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep18;
   if?: Condition114;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -19789,9 +19243,9 @@ export interface Common18 {
   onSkip?: StepRouting75[];
   location?: SourceLocation18;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -19811,11 +19265,11 @@ export interface Common18 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep18 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep18`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -19852,36 +19306,6 @@ export interface Assertion18 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -19989,7 +19413,7 @@ export interface SwipeDirectional {
 }
 export interface BrowserSurface11 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -20096,7 +19520,7 @@ export interface Point1 {
 }
 export interface BrowserSurface12 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -20189,11 +19613,15 @@ export interface Common19 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep19;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep19;
   if?: Condition120;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -20217,9 +19645,9 @@ export interface Common19 {
   onSkip?: StepRouting79[];
   location?: SourceLocation19;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -20239,11 +19667,11 @@ export interface Common19 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep19 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep19`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -20280,36 +19708,6 @@ export interface Assertion19 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -20426,11 +19824,15 @@ export interface Common20 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep20;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep20;
   if?: Condition126;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -20454,9 +19856,9 @@ export interface Common20 {
   onSkip?: StepRouting83[];
   location?: SourceLocation20;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -20476,11 +19878,11 @@ export interface Common20 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep20 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep20`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -20517,36 +19919,6 @@ export interface Assertion20 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -21630,11 +21002,59 @@ export interface ResolvedContext {
   browser?: Browser4;
   openApi?: (OpenApi3 & OpenAPIDescriptionTest2)[];
   /**
-   * Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed.
-   *
-   * @minItems 1
+   * Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed. In test results, a context that never ran, such as a skipped one, has an empty list.
    */
-  steps?: [Step1, ...Step1[]];
+  steps?: Step1[];
+  /**
+   * Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one.
+   */
+  contextId?: string;
+  /**
+   * Whether this context's test is marked `unsafe`. Present in a resolved test plan. System-populated.
+   */
+  unsafe?: boolean;
+  /**
+   * Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.
+   */
+  requires?: string | [string, ...string[]] | Requirements2;
+  /**
+   * Per-context override for the config-level [`browserFallback`](config) policy that governs whether a context whose browser can't start a driver session falls back to another available browser. Accepts the same values — `auto`, `explicit`, `off` — and, when set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which itself defaults to `auto`).
+   */
+  browserFallback?: "auto" | "explicit" | "off";
+  /**
+   * In a resolved test plan, the `retries` policy from the `runOn` entry. In test results, how many times the context re-ran on a fresh session after its session died. Absent from results when it didn't re-run.
+   */
+  retries?: number;
+  /**
+   * The device a mobile (`android` or `ios`) context runs on. In a resolved test plan, the `device` from the `runOn` entry. In test results, an object with the device's `platform` and `name`. Absent for a desktop context.
+   */
+  device?:
+    | string
+    | {
+        [k: string]: unknown;
+      };
+  /**
+   * Warnings from this context's preflight checks, such as a toolchain that Doc Detective had to install first. Present only in test results, when there are any. System-populated.
+   */
+  warnings?: string[];
+  /**
+   * The browser this context asked for, and the one that ran instead because `browserFallback` allowed it. Present only in test results, when a fallback happened. System-populated.
+   */
+  fallback?: {
+    /**
+     * Name of the browser the context asked for.
+     */
+    requested?: string;
+    /**
+     * Name of the browser that ran.
+     */
+    used?: string;
+    [k: string]: unknown;
+  };
+  /**
+   * `true` when the browser couldn't shrink to the requested viewport and stopped at its smallest size. Present only in test results, when that happened. System-populated.
+   */
+  viewportFloored?: boolean;
   [k: string]: unknown;
 }
 /**
@@ -21662,6 +21082,14 @@ export interface AutomaticRecording {
    * Why the automatic recording had its outcome. Absent on a `PASS`.
    */
   resultDescription?: string;
+  /**
+   * What kind of failure this was, present only when `result` is `FAIL`. The same field and values as a step's `resultCode`. `environment` means the network, the browser session, or the page load failed. `assertion` means anything else.
+   */
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed recording. The same field as a step's `resultHint`. Present only when Doc Detective has a suggestion.
+   */
+  resultHint?: string;
   /**
    * Path of the saved video, relative to the run's artifact directory (the report's `runDir`), with forward slashes. Absent when no file was written.
    */
@@ -21778,11 +21206,15 @@ export interface Common21 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep21;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep21;
   if?: Condition132;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -21806,9 +21238,9 @@ export interface Common21 {
   onSkip?: StepRouting87[];
   location?: SourceLocation21;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -21828,11 +21260,11 @@ export interface Common21 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep21 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep21`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -21869,36 +21301,6 @@ export interface Assertion21 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -22043,11 +21445,15 @@ export interface Common22 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep22;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep22;
   if?: Condition138;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -22071,9 +21477,9 @@ export interface Common22 {
   onSkip?: StepRouting91[];
   location?: SourceLocation22;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -22093,11 +21499,11 @@ export interface Common22 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep22 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep22`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -22134,36 +21540,6 @@ export interface Assertion22 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -22256,7 +21632,7 @@ export interface Click2 {
 }
 export interface BrowserSurface13 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -22349,11 +21725,15 @@ export interface Common23 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep23;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep23;
   if?: Condition144;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -22377,9 +21757,9 @@ export interface Common23 {
   onSkip?: StepRouting95[];
   location?: SourceLocation23;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -22399,11 +21779,11 @@ export interface Common23 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep23 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep23`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -22440,36 +21820,6 @@ export interface Assertion23 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -22562,7 +21912,7 @@ export interface Find2 {
 }
 export interface BrowserSurface14 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -22647,7 +21997,7 @@ export interface ProcessSurface4 {
 }
 export interface BrowserSurface15 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -22786,11 +22136,15 @@ export interface Common24 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep24;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep24;
   if?: Condition150;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -22814,9 +22168,9 @@ export interface Common24 {
   onSkip?: StepRouting99[];
   location?: SourceLocation24;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -22836,11 +22190,11 @@ export interface Common24 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep24 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep24`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -22877,36 +22231,6 @@ export interface Assertion24 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -22999,7 +22323,7 @@ export interface GoTo2 {
 }
 export interface BrowserSurface16 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -23080,11 +22404,15 @@ export interface Common25 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep25;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep25;
   if?: Condition156;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -23108,9 +22436,9 @@ export interface Common25 {
   onSkip?: StepRouting103[];
   location?: SourceLocation25;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -23130,11 +22458,11 @@ export interface Common25 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep25 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep25`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -23171,36 +22499,6 @@ export interface Assertion25 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -23381,11 +22679,15 @@ export interface Common26 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep26;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep26;
   if?: Condition162;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -23409,9 +22711,9 @@ export interface Common26 {
   onSkip?: StepRouting107[];
   location?: SourceLocation26;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -23431,11 +22733,11 @@ export interface Common26 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep26 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep26`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -23472,36 +22774,6 @@ export interface Assertion26 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -23710,11 +22982,15 @@ export interface Common27 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep27;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep27;
   if?: Condition168;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -23738,9 +23014,9 @@ export interface Common27 {
   onSkip?: StepRouting111[];
   location?: SourceLocation27;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -23760,11 +23036,11 @@ export interface Common27 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep27 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep27`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -23801,36 +23077,6 @@ export interface Assertion27 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -24039,11 +23285,15 @@ export interface Common28 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep28;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep28;
   if?: Condition174;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -24067,9 +23317,9 @@ export interface Common28 {
   onSkip?: StepRouting115[];
   location?: SourceLocation28;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -24089,11 +23339,11 @@ export interface Common28 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep28 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep28`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -24130,36 +23380,6 @@ export interface Assertion28 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -24291,7 +23511,7 @@ export interface RunBrowserScriptDetailed1 {
 }
 export interface BrowserSurface17 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -24363,11 +23583,15 @@ export interface Common29 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep29;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep29;
   if?: Condition180;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -24391,9 +23615,9 @@ export interface Common29 {
   onSkip?: StepRouting119[];
   location?: SourceLocation29;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -24413,11 +23637,11 @@ export interface Common29 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep29 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep29`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -24454,36 +23678,6 @@ export interface Assertion29 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -24582,7 +23776,7 @@ export interface ProcessSurface5 {
 }
 export interface BrowserSurface18 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -24721,11 +23915,15 @@ export interface Common30 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep30;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep30;
   if?: Condition186;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -24749,9 +23947,9 @@ export interface Common30 {
   onSkip?: StepRouting123[];
   location?: SourceLocation30;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -24771,11 +23969,11 @@ export interface Common30 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep30 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep30`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -24812,36 +24010,6 @@ export interface Assertion30 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -24934,7 +24102,7 @@ export interface Screenshot2 {
 }
 export interface CaptureScreenshotFields1 {
   /**
-   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop` yet.
+   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop`.
    */
   surface?: SurfaceByBrowserEngine13 | BrowserSurface19 | AppSurface14;
   path?: ScreenshotSimple3;
@@ -24960,7 +24128,7 @@ export interface CaptureScreenshotFields1 {
 }
 export interface BrowserSurface19 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -25516,7 +24684,7 @@ export interface AnnotationTransition5 {
  */
 export interface SourceIntegration1 {
   /**
-   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
+   * The type of integration. The only type is `heretto`.
    */
   type: "heretto";
   /**
@@ -25536,7 +24704,7 @@ export interface SourceIntegration1 {
    */
   contentPath?: string;
 }
-export interface AppCapturesDonTSupportCropYet1 {
+export interface AppCapturesDonTSupportCrop1 {
   [k: string]: unknown;
 }
 export interface Common31 {
@@ -25565,11 +24733,15 @@ export interface Common31 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep31;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep31;
   if?: Condition192;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -25593,9 +24765,9 @@ export interface Common31 {
   onSkip?: StepRouting127[];
   location?: SourceLocation31;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -25615,11 +24787,11 @@ export interface Common31 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep31 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep31`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -25656,36 +24828,6 @@ export interface Assertion31 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -25802,11 +24944,15 @@ export interface Common32 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep32;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep32;
   if?: Condition198;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -25830,9 +24976,9 @@ export interface Common32 {
   onSkip?: StepRouting131[];
   location?: SourceLocation32;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -25852,11 +24998,11 @@ export interface Common32 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep32 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep32`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -25893,36 +25039,6 @@ export interface Assertion32 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -26040,7 +25156,7 @@ export interface RecordDetailed1 {
 }
 export interface BrowserSurface20 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -26182,11 +25298,15 @@ export interface Common33 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep33;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep33;
   if?: Condition204;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -26210,9 +25330,9 @@ export interface Common33 {
   onSkip?: StepRouting135[];
   location?: SourceLocation33;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -26232,11 +25352,11 @@ export interface Common33 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep33 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep33`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -26273,36 +25393,6 @@ export interface Assertion33 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -26425,11 +25515,15 @@ export interface Common34 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep34;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep34;
   if?: Condition210;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -26453,9 +25547,9 @@ export interface Common34 {
   onSkip?: StepRouting139[];
   location?: SourceLocation34;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -26475,11 +25569,11 @@ export interface Common34 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep34 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep34`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -26516,36 +25610,6 @@ export interface Assertion34 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -26644,7 +25708,7 @@ export interface ProcessSurface6 {
 }
 export interface BrowserSurface21 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -26719,7 +25783,7 @@ export interface ProcessSurface7 {
 }
 export interface BrowserSurface22 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -26812,11 +25876,15 @@ export interface Common35 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep35;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep35;
   if?: Condition216;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -26840,9 +25908,9 @@ export interface Common35 {
   onSkip?: StepRouting143[];
   location?: SourceLocation35;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -26862,11 +25930,11 @@ export interface Common35 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep35 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep35`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -26903,36 +25971,6 @@ export interface Assertion35 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -27036,10 +26074,6 @@ export interface AppDescriptor2 {
    * Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
    */
   args?: string[];
-  /**
-   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
-   */
-  workingDirectory?: string;
   /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */
@@ -27225,10 +26259,6 @@ export interface AppDescriptor3 {
    * Launch arguments (desktop apps). On macOS they pass to the app as a real argument array. On Windows they join into a single shell-style argument string for the driver, so an argument with embedded spaces must carry its own quotes (e.g. "\"My File.txt\"").
    */
   args?: string[];
-  /**
-   * Working directory for the launched app. No app driver supports it, so any value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the working directory matters.
-   */
-  workingDirectory?: string;
   /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */
@@ -27427,11 +26457,15 @@ export interface Common36 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep36;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep36;
   if?: Condition222;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -27455,9 +26489,9 @@ export interface Common36 {
   onSkip?: StepRouting147[];
   location?: SourceLocation36;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -27477,11 +26511,11 @@ export interface Common36 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep36 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep36`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -27518,36 +26552,6 @@ export interface Assertion36 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -27664,11 +26668,15 @@ export interface Common37 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep37;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep37;
   if?: Condition228;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -27692,9 +26700,9 @@ export interface Common37 {
   onSkip?: StepRouting151[];
   location?: SourceLocation37;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -27714,11 +26722,11 @@ export interface Common37 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep37 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep37`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -27755,36 +26763,6 @@ export interface Assertion37 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -27898,7 +26876,7 @@ export interface DragAndDrop3 {
 }
 export interface BrowserSurface23 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -27970,11 +26948,15 @@ export interface Common38 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep38;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep38;
   if?: Condition234;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -27998,9 +26980,9 @@ export interface Common38 {
   onSkip?: StepRouting155[];
   location?: SourceLocation38;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -28020,11 +27002,11 @@ export interface Common38 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep38 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep38`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -28061,36 +27043,6 @@ export interface Assertion38 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -28207,11 +27159,15 @@ export interface Common39 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep39;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep39;
   if?: Condition240;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -28235,9 +27191,9 @@ export interface Common39 {
   onSkip?: StepRouting159[];
   location?: SourceLocation39;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -28257,11 +27213,11 @@ export interface Common39 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep39 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep39`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -28298,36 +27254,6 @@ export interface Assertion39 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -28435,7 +27361,7 @@ export interface SwipeDirectional1 {
 }
 export interface BrowserSurface24 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -28542,7 +27468,7 @@ export interface Point3 {
 }
 export interface BrowserSurface25 {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
   browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
@@ -28635,11 +27561,15 @@ export interface Common40 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep40;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep40;
   if?: Condition246;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -28663,9 +27593,9 @@ export interface Common40 {
   onSkip?: StepRouting163[];
   location?: SourceLocation40;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -28685,11 +27615,11 @@ export interface Common40 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep40 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep40`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -28726,36 +27656,6 @@ export interface Assertion40 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -28872,11 +27772,15 @@ export interface Common41 {
    * Why this step had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
-  variables?: VariablesStep41;
   /**
-   * Whether or not this step should act as a breakpoint when debugging is enabled. When `true`, execution will pause at this step when debug mode is enabled.
+   * What kind of failure this was, present only when `result` is `FAIL`. `environment` means the network, the browser session, or the page load failed. `drift` means the element wasn't found, but similar ones were, so the page probably changed. `assertion` means anything else. Doc Detective populates it. You never set it yourself.
    */
-  breakpoint?: boolean;
+  resultCode?: "environment" | "drift" | "assertion";
+  /**
+   * A suggested fix for a failed step, such as the closest elements to one a `find` couldn't locate. Present only when Doc Detective has a suggestion. Doc Detective populates it. You never set it yourself.
+   */
+  resultHint?: string;
+  variables?: VariablesStep41;
   if?: Condition252;
   /**
    * Assertions for this step. As authored input, a custom condition expression (or array of expressions, combined with logical AND). In a test result, the runner replaces this with the array of articulated assertion records it evaluated (implicit then custom).
@@ -28900,9 +27804,9 @@ export interface Common41 {
   onSkip?: StepRouting167[];
   location?: SourceLocation41;
   /**
-   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when `autoScreenshot` is enabled and the capture succeeded. This is system-populated metadata and should not be set manually.
+   * Path, relative to the run's artifact directory (the report's `runDir`), of the screenshot captured automatically after this step. Always a non-empty, forward-slash, relative path. Present only in test results, when the test's `autoScreenshot` setting is on and the capture succeeded. To turn automatic screenshots off, set `autoScreenshot` on the test, spec, or config, not on a step. This is system-populated metadata and should not be set manually.
    */
-  autoScreenshot?: string;
+  autoScreenshotPath?: string;
   /**
    * Total number of times this step ran (the initial attempt plus retries) when a routing `retry` action re-ran it. Present only in test results, and only when the step was retried at least once (so the value is always >= 2). The routing entry's `retry.limit` caps the retries. Not the same as the config and context `retries` field, which re-runs a whole context on a new session. This is system-populated metadata and should not be set manually.
    */
@@ -28922,11 +27826,11 @@ export interface Common41 {
   [k: string]: unknown;
 }
 /**
- * Outputs from step processes and user-defined expressions. Use the `outputs` object to reference outputs in subsequent steps. If a user-defined output matches the key for a step-defined output, the user-defined output takes precedence.
+ * The values this step produced, keyed by name, such as `exitCode` or `stdio`. Present only in test results. Doc Detective populates it, and a value set in a spec does nothing. To keep a value for later steps, capture it with `variables`.
  */
 export interface OutputsStep41 {
   /**
-   * In a step you write, a runtime expression for a user-defined output value. In a report, the value the step produced, which can be any type.
+   * A value the step produced, which can be any type.
    *
    * This interface was referenced by `OutputsStep41`'s JSON-Schema definition
    * via the `patternProperty` "^[A-Za-z0-9_]+$".
@@ -28963,36 +27867,6 @@ export interface Assertion41 {
    * Outcome of evaluating the assertion.
    */
   result: "PASS" | "FAIL" | "WARNING" | "SKIPPED";
-  /**
-   * The value (or values) the assertion expected. Optional.
-   */
-  expected?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * The value actually observed. Optional.
-   */
-  actual?:
-    | unknown[]
-    | boolean
-    | number
-    | null
-    | number
-    | {
-        [k: string]: unknown;
-      }
-    | string;
-  /**
-   * Human-readable explanation of the outcome. Optional.
-   */
-  description?: string;
 }
 /**
  * Retry the current step.
@@ -30049,4 +28923,24 @@ export interface AnnotationTransition7 {
 }
 export interface IdIsRequiredForUpdates1 {
   [k: string]: unknown;
+}
+export interface Requirements2 {
+  /**
+   * Commands that must be resolvable on the PATH.
+   *
+   * @minItems 1
+   */
+  commands?: [string, ...string[]];
+  /**
+   * Files that must exist. Entries support `$VAR` and `$HOME` expansion.
+   *
+   * @minItems 1
+   */
+  files?: [string, ...string[]];
+  /**
+   * Environment variables that must be set to a non-empty value.
+   *
+   * @minItems 1
+   */
+  env?: [string, ...string[]];
 }

@@ -1,0 +1,86 @@
+{
+  "specId": "output-names",
+  "description": "ADR 01185: the stdio match output is `stdioMatches` on runShell, runCode, and type, with no alias for the old `stdioMatched` name. Each test captures both names through step variables and asserts in runShell through process.env: the new name is the real verdict, and the old one never resolves to a verdict. Node only, so every test runs and PASSes on every platform.",
+  "tests": [
+    {
+      "testId": "runshell-stdio-matches",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo needle",
+            "stdio": "needle"
+          },
+          "variables": {
+            "ON_SHELL_NEW": "$$stdioMatches",
+            "ON_SHELL_OLD": "$$stdioMatched"
+          }
+        },
+        {
+          "description": "The new name is true, and the old name has no verdict.",
+          "runShell": "node -e \"const e = { n: process.env.ON_SHELL_NEW, o: process.env.ON_SHELL_OLD }; const ok = e.n === 'true' && e.o !== 'true' && e.o !== 'false'; if (!ok) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "runcode-stdio-matches",
+      "steps": [
+        {
+          "runCode": {
+            "language": "javascript",
+            "code": "console.log('needle')",
+            "stdio": "needle"
+          },
+          "variables": {
+            "ON_CODE_NEW": "$$stdioMatches",
+            "ON_CODE_OLD": "$$stdioMatched"
+          }
+        },
+        {
+          "description": "The new name is true, and the old name has no verdict.",
+          "runShell": "node -e \"const e = { n: process.env.ON_CODE_NEW, o: process.env.ON_CODE_OLD }; const ok = e.n === 'true' && e.o !== 'true' && e.o !== 'false'; if (!ok) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "type-stdio-matches",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "on-repl",
+              "waitUntil": {
+                "stdio": "/>/"
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "6 * 7",
+              "$ENTER$"
+            ],
+            "surface": "on-repl",
+            "waitUntil": {
+              "stdio": "/42/"
+            },
+            "timeout": 10000
+          },
+          "variables": {
+            "ON_TYPE_NEW": "$$stdioMatches",
+            "ON_TYPE_OLD": "$$stdioMatched"
+          }
+        },
+        {
+          "closeSurface": "on-repl"
+        },
+        {
+          "description": "The new name is true, and the old name has no verdict.",
+          "runShell": "node -e \"const e = { n: process.env.ON_TYPE_NEW, o: process.env.ON_TYPE_OLD }; const ok = e.n === 'true' && e.o !== 'true' && e.o !== 'false'; if (!ok) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
+    }
+  ]
+}

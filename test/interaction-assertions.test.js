@@ -201,6 +201,26 @@ describe("typeKeys unified assertion model", function () {
     assert.equal(findAssertion(result.assertions, "found").result, "FAIL");
   });
 
+  // ADR 01188: `type.timeout` also bounds the element search, and `0` checks once.
+  it("bounds the element search by type.timeout, and 0 checks once", async () => {
+    let checks = 0;
+    const driver = makeDriver({ candidates: [] });
+    const search = driver.$$;
+    driver.$$ = async (...args) => {
+      checks++;
+      return search(...args);
+    };
+    const started = Date.now();
+    const result = await typeKeys({
+      config,
+      step: { type: { keys: ["hello"], selector: "input", timeout: 0 } },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(checks, 1);
+    assert.ok(Date.now() - started < 2000, `took ${Date.now() - started} ms`);
+  });
+
   it("no criteria + keys (active element) → PASS with empty assertions", async () => {
     const driver = makeDriver();
     const result = await typeKeys({
@@ -338,6 +358,6 @@ describe("dragAndDrop unified assertion model", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 });

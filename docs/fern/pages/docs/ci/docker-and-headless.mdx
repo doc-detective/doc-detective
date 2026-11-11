@@ -79,7 +79,7 @@ Containers and CI systems often mount secrets as files. Doc Detective can read c
 | `integrations.docDetectiveApi.apiKeyFile` config key | Path to a file holding the Orchestration API key. Use it in place of `apiKey`. |
 | `integrations.heretto[].apiTokenFile` config key | Path to a file holding a Heretto API token. Use it in place of `apiToken`. See [Heretto](/docs/test-docs/heretto). |
 
-Relative paths resolve from the current directory, and Doc Detective trims whitespace around a key or token. If it can't read a file, the run exits `2` and names the file.
+A relative `DOC_DETECTIVE_API_FILE` resolves from the current directory. A relative `apiKeyFile` or `apiTokenFile` resolves against the config that sets it, as in [Configuration precedence](/reference/cli#configuration-precedence). Doc Detective trims whitespace around a key or token. If it can't read a file, the run exits `2` and names the file.
 
 ```bash
 docker run -v .:/app \

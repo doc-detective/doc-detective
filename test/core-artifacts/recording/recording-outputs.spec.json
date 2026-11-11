@@ -49,7 +49,8 @@
             "REC_MP4_WIDTH": "$$width",
             "REC_MP4_HEIGHT": "$$height",
             "REC_MP4_FPS": "$$fps",
-            "REC_MP4_RES_MATCH": "$$resolutionMatch",
+            "REC_MP4_RES_MATCH": "$$resolutionMatches",
+            "REC_MP4_RES_MATCH_OLD": "$$resolutionMatch",
             "REC_MP4_ALL_BLACK": "$$allBlack"
           }
         },
@@ -58,8 +59,8 @@
           "runShell": "node -e \"const ok = process.env.REC_MP4_FORMAT === 'mp4' && require('fs').existsSync(process.env.REC_MP4_PATH) && Number(process.env.REC_MP4_DURATION) > 0 && Number(process.env.REC_MP4_WIDTH) > 0 && Number(process.env.REC_MP4_HEIGHT) > 0 && Number(process.env.REC_MP4_FPS) > 0; process.exit(ok ? 0 : 1)\""
         },
         {
-          "description": "Assert the guards didn't just pass but measured: resolutionMatch and allBlack must be the real verdicts, not unresolved variables. A guard that silently never ran would leave the step green while proving nothing.",
-          "runShell": "node -e \"const e={res:process.env.REC_MP4_RES_MATCH,black:process.env.REC_MP4_ALL_BLACK};const ok = e.res === 'true' && e.black === 'false'; if (!ok) { console.error('verify guards did not report:', JSON.stringify(e)); process.exit(1) }\""
+          "description": "Assert the guards didn't just pass but measured: resolutionMatches and allBlack must be the real verdicts, not unresolved variables. A guard that silently never ran would leave the step green while proving nothing. The old resolutionMatch name has no verdict (ADR 01185).",
+          "runShell": "node -e \"const e={res:process.env.REC_MP4_RES_MATCH,old:process.env.REC_MP4_RES_MATCH_OLD,black:process.env.REC_MP4_ALL_BLACK};const ok = e.res === 'true' && e.old !== 'true' && e.old !== 'false' && e.black === 'false'; if (!ok) { console.error('verify guards did not report:', JSON.stringify(e)); process.exit(1) }\""
         }
       ]
     },
@@ -151,7 +152,7 @@
           "stopRecord": true,
           "variables": {
             "REC_OFF_DURATION": "$$duration",
-            "REC_OFF_RES_MATCH": "$$resolutionMatch",
+            "REC_OFF_RES_MATCH": "$$resolutionMatches",
             "REC_OFF_ALL_BLACK": "$$allBlack"
           }
         },

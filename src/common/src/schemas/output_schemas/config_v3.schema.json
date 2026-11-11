@@ -98,7 +98,7 @@
       }
     },
     "recursive": {
-      "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files.",
+      "description": "If `true`, searches the `input`, `beforeAll`, and `afterAll` folders recursively for test specifications and source files.",
       "type": "boolean",
       "default": true
     },
@@ -204,11 +204,6 @@
     "allowUnsafeSteps": {
       "type": "boolean",
       "description": "Whether or not to run potentially unsafe steps, such as those that might modify files or system state."
-    },
-    "crawl": {
-      "description": "If `true`, crawls sitemap.xml files specified by URL to find additional files to test.",
-      "type": "boolean",
-      "default": false
     },
     "processDitaMaps": {
       "description": "If `true`, processes DITA maps and includes generated files as inputs.",
@@ -2569,7 +2564,7 @@
                   },
                   "mockResponse": {
                     "type": "boolean",
-                    "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                    "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code."
                   },
                   "statusCode": {
                     "type": "integer",
@@ -2777,24 +2772,6 @@
                 "description": "Local path where Heretto content was downloaded. Set automatically during processing.",
                 "readOnly": true
               },
-              "fileMapping": {
-                "type": "object",
-                "description": "Mapping of local file paths to Heretto file metadata. Set automatically during content loading.",
-                "readOnly": true,
-                "additionalProperties": {
-                  "type": "object",
-                  "properties": {
-                    "fileId": {
-                      "type": "string",
-                      "description": "The UUID of the file in Heretto."
-                    },
-                    "filePath": {
-                      "type": "string",
-                      "description": "The path of the file in Heretto."
-                    }
-                  }
-                }
-              },
               "uploadOnChange": {
                 "type": "boolean",
                 "description": "If `true`, uploads changed screenshots and other media files back to Heretto CMS after test execution.",
@@ -2903,16 +2880,24 @@
       "title": "Verification options"
     },
     "concurrentRunners": {
-      "type": [
-        "integer",
-        "boolean"
+      "$comment": "The first branch keeps its type array, so Ajv's coerceTypes never turns `true` into `1` or `1` into `true`, and still turns a quoted `\"4\"` into `4` (ADR 01188).",
+      "anyOf": [
+        {
+          "type": [
+            "integer",
+            "boolean"
+          ],
+          "minimum": 1,
+          "not": {
+            "const": false
+          }
+        },
+        {
+          "const": "auto"
+        }
       ],
       "default": 1,
-      "minimum": 1,
-      "description": "Number of concurrent test runners. Set to true to use CPU core count (capped at 4).",
-      "not": {
-        "const": false
-      }
+      "description": "Number of concurrent test runners. `true` or `\"auto\"` uses one runner per CPU core, up to 4. Equivalent to `--concurrent-runners` on the CLI."
     },
     "environment": {
       "type": "object",
@@ -2965,6 +2950,13 @@
         "osRelease": {
           "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
           "type": "string"
+        },
+        "apps": {
+          "description": "The browsers and drivers Doc Detective found on the host. Empty in a resolved test plan from `--dry-run`, and when no context needs a browser.",
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
         }
       },
       "title": "Environment details"
@@ -2990,7 +2982,7 @@
       "default": false
     },
     "autoScreenshot": {
-      "description": "Defaults to `true`. Captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` and `--no-auto-screenshot` on the CLI.",
+      "description": "Defaults to `true`. Captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`. Doc Detective saves images in the per-run artifact directory (`<outputDir>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` and `--no-auto-screenshot` on the CLI.",
       "type": "boolean"
     },
     "annotationDefaults": {
@@ -3539,7 +3531,7 @@
       ]
     },
     "autoRecord": {
-      "description": "Defaults to `true`. Records a video of every context that drives a browser, native app, or device: headless Chrome with the `browser` engine, which captures its tab; headed browsers and desktop apps with the `ffmpeg` engine; and Android and iOS devices on the device. Headless Firefox runs headed so it can be recorded, when the host can capture the screen. The recording wraps the whole context, alongside any explicit `record` steps; in headless Chrome, an explicit `record` step replaces it. Left unset, a context the host can't record isn't recorded, and a recording that can't start is SKIPPED. `true` is strict: a recording the host can't make is SKIPPED, and one that fails to start fails. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` and `--no-auto-record` on the CLI.",
+      "description": "Defaults to `true`. Records a video of every context that drives a browser, native app, or device: headless Chrome with the `browser` engine, which captures its tab; headed browsers and desktop apps with the `ffmpeg` engine; and Android and iOS devices on the device. Headless Firefox runs headed so it can be recorded, when the host can capture the screen. The recording wraps the whole context, alongside any explicit `record` steps; in headless Chrome, an explicit `record` step replaces it. Left unset, a context the host can't record isn't recorded, and a recording that can't start is SKIPPED. `true` is strict: a recording the host can't make is SKIPPED, and one that fails to start fails. Videos are saved in the per-run artifact directory (`<outputDir>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` and `--no-auto-record` on the CLI.",
       "type": "boolean"
     },
     "autoUpdate": {
@@ -3639,6 +3631,13 @@
           "osRelease": {
             "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
             "type": "string"
+          },
+          "apps": {
+            "description": "The browsers and drivers Doc Detective found on the host. Empty in a resolved test plan from `--dry-run`, and when no context needs a browser.",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
           }
         },
         "title": "Environment details"
@@ -5665,9 +5664,6 @@
       }
     },
     {
-      "crawl": true
-    },
-    {
       "processDitaMaps": true
     },
     {
@@ -5693,7 +5689,7 @@
     },
     {
       "autoScreenshot": true,
-      "output": "./test-results"
+      "outputDir": "./test-results"
     },
     {
       "input": ".",

@@ -2597,6 +2597,11 @@
           "minimum": 0,
           "readOnly": true
         },
+        "visit": {
+          "type": "integer",
+          "minimum": 2,
+          "readOnly": true
+        },
         "contexts": {
           "type": "array",
           "readOnly": true,
@@ -2663,6 +2668,17 @@
                   "resultDescription": {
                     "type": "string"
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ]
+                  },
+                  "resultHint": {
+                    "type": "string"
+                  },
                   "recordingPath": {
                     "type": "string"
                   },
@@ -2702,10 +2718,55 @@
               },
               "steps": {
                 "type": "array",
-                "minItems": 1,
                 "items": {
                   "$ref": "step_v3.schema.json#"
                 }
+              },
+              "contextId": {
+                "type": "string"
+              },
+              "unsafe": {
+                "type": "boolean",
+                "readOnly": true
+              },
+              "requires": {
+                "$ref": "context_v3.schema.json#/properties/requires"
+              },
+              "browserFallback": {
+                "$ref": "context_v3.schema.json#/properties/browserFallback"
+              },
+              "retries": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "device": {
+                "type": [
+                  "string",
+                  "object"
+                ]
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "readOnly": true
+              },
+              "fallback": {
+                "type": "object",
+                "readOnly": true,
+                "properties": {
+                  "requested": {
+                    "type": "string"
+                  },
+                  "used": {
+                    "type": "string"
+                  }
+                }
+              },
+              "viewportFloored": {
+                "type": "boolean",
+                "readOnly": true
               }
             }
           }
@@ -3391,6 +3452,506 @@
       },
       "$id": "goTo_v3.schema.json"
     },
+    "context_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "additionalProperties": false,
+      "dynamicDefaults": {
+        "contextId": "uuid"
+      },
+      "properties": {
+        "$schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contextId": {
+          "type": "string"
+        },
+        "platforms": {
+          "anyOf": [
+            {
+              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/platform"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "context_v3.nodefaults.schema.json#/components/schemas/platform"
+              }
+            }
+          ]
+        },
+        "browsers": {
+          "anyOf": [
+            {
+              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browserName"
+            },
+            {
+              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browser"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browserName"
+                  },
+                  {
+                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browser"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "browserFallback": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "explicit",
+            "off"
+          ]
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "requires": {
+          "anyOf": [
+            {
+              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
+              },
+              "minItems": 1
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "minProperties": 1,
+              "properties": {
+                "commands": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
+                  },
+                  "minItems": 1
+                },
+                "files": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
+                  },
+                  "minItems": 1
+                },
+                "env": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
+                  },
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S",
+              "transform": [
+                "trim"
+              ]
+            },
+            {
+              "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/deviceDescriptor"
+            }
+          ]
+        }
+      },
+      "components": {
+        "schemas": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "linux",
+              "mac",
+              "windows",
+              "android",
+              "ios"
+            ]
+          },
+          "requirement": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "browserName": {
+            "type": "string",
+            "enum": [
+              "chrome",
+              "firefox",
+              "safari",
+              "webkit"
+            ]
+          },
+          "browser": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "$ref": "#/components/schemas/browserName"
+              },
+              "explicit": {
+                "type": "boolean",
+                "readOnly": true
+              },
+              "version": {
+                "type": "string",
+                "readOnly": true
+              },
+              "headless": {
+                "type": "boolean",
+                "default": true
+              },
+              "window": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "width": {
+                    "type": "integer"
+                  },
+                  "height": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "viewport": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "width": {
+                    "type": "integer"
+                  },
+                  "height": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "$id": "context_v3.schema.json"
+    },
+    "startSurface_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/appDescriptor"
+        },
+        {
+          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/browserDescriptor"
+        },
+        {
+          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processDescriptor"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/appDescriptor"
+              },
+              {
+                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/browserDescriptor"
+              },
+              {
+                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processDescriptor"
+              }
+            ]
+          }
+        }
+      ],
+      "components": {
+        "schemas": {
+          "browserDescriptor": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "browser"
+            ],
+            "properties": {
+              "browser": {
+                "type": "string",
+                "enum": [
+                  "chrome",
+                  "firefox",
+                  "safari",
+                  "webkit"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "headless": {
+                "type": "boolean"
+              },
+              "size": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "width": {
+                    "type": "integer"
+                  },
+                  "height": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "viewport": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "width": {
+                    "type": "integer"
+                  },
+                  "height": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "driverOptions": {
+                "type": "object"
+              }
+            }
+          },
+          "processDescriptor": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "process",
+              "name"
+            ],
+            "properties": {
+              "process": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "workingDirectory": {
+                "type": "string"
+              },
+              "tty": {
+                "default": false,
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "cols": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000,
+                        "default": 120
+                      },
+                      "rows": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000,
+                        "default": 30
+                      }
+                    }
+                  }
+                ]
+              },
+              "waitUntil": {
+                "$ref": "#/components/schemas/processStartWaitUntil"
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 60000
+              }
+            }
+          },
+          "processStartWaitUntil": {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "stdio": {
+                "type": "string",
+                "minLength": 1
+              },
+              "httpGet": {
+                "type": "string"
+              },
+              "delayMs": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "appDescriptor": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "app"
+            ],
+            "properties": {
+              "app": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "install": {
+                "type": "string",
+                "minLength": 1
+              },
+              "activity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "device": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "transform": [
+                      "trim"
+                    ]
+                  },
+                  {
+                    "allOf": [
+                      {
+                        "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/deviceDescriptor"
+                      },
+                      {
+                        "required": [
+                          "platform"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "driverOptions": {
+                "type": "object"
+              },
+              "waitUntil": {
+                "$ref": "waitUntil_v3.schema.json#/components/schemas/app"
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 60000
+              }
+            }
+          },
+          "deviceDescriptor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "platform": {
+                "type": "string",
+                "enum": [
+                  "android",
+                  "ios"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "deviceType": {
+                "type": "string",
+                "enum": [
+                  "phone",
+                  "tablet"
+                ]
+              },
+              "osVersion": {
+                "type": "string",
+                "minLength": 1
+              },
+              "headless": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "$id": "startSurface_v3.schema.json"
+    },
     "step_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
@@ -3425,13 +3986,15 @@
               "resultDescription": {
                 "$ref": "#/components/schemas/resultDescription"
               },
+              "resultCode": {
+                "$ref": "#/components/schemas/resultCode"
+              },
+              "resultHint": {
+                "$ref": "#/components/schemas/resultHint"
+              },
               "variables": {
                 "$ref": "#/components/schemas/variables",
                 "default": {}
-              },
-              "breakpoint": {
-                "$ref": "#/components/schemas/breakpoint",
-                "default": false
               },
               "if": {
                 "$ref": "#/components/schemas/if"
@@ -3454,8 +4017,8 @@
               "location": {
                 "$ref": "#/components/schemas/location"
               },
-              "autoScreenshot": {
-                "$ref": "#/components/schemas/autoScreenshot"
+              "autoScreenshotPath": {
+                "$ref": "#/components/schemas/autoScreenshotPath"
               },
               "attempts": {
                 "type": "integer",
@@ -3549,11 +4112,7 @@
               }
             }
           },
-          "breakpoint": {
-            "type": "boolean",
-            "default": false
-          },
-          "autoScreenshot": {
+          "autoScreenshotPath": {
             "type": "string",
             "minLength": 1,
             "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
@@ -3580,6 +4139,19 @@
             "readOnly": true
           },
           "resultDescription": {
+            "type": "string",
+            "readOnly": true
+          },
+          "resultCode": {
+            "type": "string",
+            "enum": [
+              "environment",
+              "drift",
+              "assertion"
+            ],
+            "readOnly": true
+          },
+          "resultHint": {
             "type": "string",
             "readOnly": true
           },
@@ -3618,12 +4190,13 @@
         "$schema": {},
         "result": {},
         "resultDescription": {},
+        "resultCode": {},
+        "resultHint": {},
         "stepId": {},
         "description": {},
         "unsafe": {},
         "outputs": {},
         "variables": {},
-        "breakpoint": {},
         "if": {},
         "assertions": {},
         "onPass": {},
@@ -3631,7 +4204,7 @@
         "onWarning": {},
         "onSkip": {},
         "location": {},
-        "autoScreenshot": {},
+        "autoScreenshotPath": {},
         "attempts": {},
         "visit": {},
         "durationMs": {},
@@ -4665,10 +5238,6 @@
               }
             ],
             "properties": {
-              "$schema": {
-                "type": "string",
-                "format": "uri-reference"
-              },
               "name": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9_.-]+$",
@@ -4851,310 +5420,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "string",
       "$id": "loadVariables_v3.schema.json"
-    },
-    "startSurface_v3": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "anyOf": [
-        {
-          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/appDescriptor"
-        },
-        {
-          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/browserDescriptor"
-        },
-        {
-          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processDescriptor"
-        },
-        {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/appDescriptor"
-              },
-              {
-                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/browserDescriptor"
-              },
-              {
-                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processDescriptor"
-              }
-            ]
-          }
-        }
-      ],
-      "components": {
-        "schemas": {
-          "browserDescriptor": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "browser"
-            ],
-            "properties": {
-              "browser": {
-                "type": "string",
-                "enum": [
-                  "chrome",
-                  "firefox",
-                  "safari",
-                  "webkit"
-                ]
-              },
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "headless": {
-                "type": "boolean"
-              },
-              "size": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "width": {
-                    "type": "integer"
-                  },
-                  "height": {
-                    "type": "integer"
-                  }
-                }
-              },
-              "viewport": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "width": {
-                    "type": "integer"
-                  },
-                  "height": {
-                    "type": "integer"
-                  }
-                }
-              },
-              "driverOptions": {
-                "type": "object"
-              }
-            }
-          },
-          "processDescriptor": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "process",
-              "name"
-            ],
-            "properties": {
-              "process": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "args": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "default": []
-              },
-              "workingDirectory": {
-                "type": "string"
-              },
-              "tty": {
-                "default": false,
-                "anyOf": [
-                  {
-                    "type": "boolean"
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "cols": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 1000,
-                        "default": 120
-                      },
-                      "rows": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 1000,
-                        "default": 30
-                      }
-                    }
-                  }
-                ]
-              },
-              "waitUntil": {
-                "$ref": "#/components/schemas/processStartWaitUntil"
-              },
-              "timeout": {
-                "type": "integer",
-                "minimum": 1,
-                "default": 60000
-              }
-            }
-          },
-          "processStartWaitUntil": {
-            "type": "object",
-            "additionalProperties": false,
-            "minProperties": 1,
-            "properties": {
-              "port": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 65535
-              },
-              "stdio": {
-                "type": "string",
-                "minLength": 1
-              },
-              "httpGet": {
-                "type": "string"
-              },
-              "delayMs": {
-                "type": "integer",
-                "minimum": 0
-              }
-            }
-          },
-          "appDescriptor": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "app"
-            ],
-            "properties": {
-              "app": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "args": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "workingDirectory": {
-                "type": "string",
-                "minLength": 1
-              },
-              "env": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string"
-                }
-              },
-              "install": {
-                "type": "string",
-                "minLength": 1
-              },
-              "activity": {
-                "type": "string",
-                "minLength": 1
-              },
-              "device": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S",
-                    "transform": [
-                      "trim"
-                    ]
-                  },
-                  {
-                    "allOf": [
-                      {
-                        "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/deviceDescriptor"
-                      },
-                      {
-                        "required": [
-                          "platform"
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              "driverOptions": {
-                "type": "object"
-              },
-              "waitUntil": {
-                "$ref": "waitUntil_v3.schema.json#/components/schemas/app"
-              },
-              "timeout": {
-                "type": "integer",
-                "minimum": 1,
-                "default": 60000
-              }
-            }
-          },
-          "deviceDescriptor": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "platform": {
-                "type": "string",
-                "enum": [
-                  "android",
-                  "ios"
-                ]
-              },
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "deviceType": {
-                "type": "string",
-                "enum": [
-                  "phone",
-                  "tablet"
-                ]
-              },
-              "osVersion": {
-                "type": "string",
-                "minLength": 1
-              },
-              "headless": {
-                "type": "boolean"
-              }
-            }
-          }
-        }
-      },
-      "$id": "startSurface_v3.schema.json"
     },
     "closeSurface_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5414,10 +5679,6 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "$schema": {
-                "type": "string",
-                "format": "uri-reference"
-              },
               "name": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9_.-]+$",
@@ -6785,234 +7046,9 @@
             "WARNING",
             "SKIPPED"
           ]
-        },
-        "expected": {
-          "type": [
-            "array",
-            "boolean",
-            "integer",
-            "null",
-            "number",
-            "object",
-            "string"
-          ]
-        },
-        "actual": {
-          "type": [
-            "array",
-            "boolean",
-            "integer",
-            "null",
-            "number",
-            "object",
-            "string"
-          ]
-        },
-        "description": {
-          "type": "string"
         }
       },
       "$id": "assertion_v3.schema.json"
-    },
-    "context_v3": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "additionalProperties": false,
-      "dynamicDefaults": {
-        "contextId": "uuid"
-      },
-      "properties": {
-        "$schema": {
-          "type": "string",
-          "minLength": 1
-        },
-        "contextId": {
-          "type": "string"
-        },
-        "platforms": {
-          "anyOf": [
-            {
-              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/platform"
-            },
-            {
-              "type": "array",
-              "items": {
-                "$ref": "context_v3.nodefaults.schema.json#/components/schemas/platform"
-              }
-            }
-          ]
-        },
-        "browsers": {
-          "anyOf": [
-            {
-              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browserName"
-            },
-            {
-              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browser"
-            },
-            {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browserName"
-                  },
-                  {
-                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browser"
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        "browserFallback": {
-          "type": "string",
-          "enum": [
-            "auto",
-            "explicit",
-            "off"
-          ]
-        },
-        "retries": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 10
-        },
-        "requires": {
-          "anyOf": [
-            {
-              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
-            },
-            {
-              "type": "array",
-              "items": {
-                "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
-              },
-              "minItems": 1
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "minProperties": 1,
-              "properties": {
-                "commands": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
-                  },
-                  "minItems": 1
-                },
-                "files": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
-                  },
-                  "minItems": 1
-                },
-                "env": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
-                  },
-                  "minItems": 1
-                }
-              }
-            }
-          ]
-        },
-        "device": {
-          "anyOf": [
-            {
-              "type": "string",
-              "minLength": 1,
-              "pattern": "\\S",
-              "transform": [
-                "trim"
-              ]
-            },
-            {
-              "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/deviceDescriptor"
-            }
-          ]
-        }
-      },
-      "components": {
-        "schemas": {
-          "platform": {
-            "type": "string",
-            "enum": [
-              "linux",
-              "mac",
-              "windows",
-              "android",
-              "ios"
-            ]
-          },
-          "requirement": {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "\\S"
-          },
-          "browserName": {
-            "type": "string",
-            "enum": [
-              "chrome",
-              "firefox",
-              "safari",
-              "webkit"
-            ]
-          },
-          "browser": {
-            "type": "object",
-            "required": [
-              "name"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "name": {
-                "$ref": "#/components/schemas/browserName"
-              },
-              "explicit": {
-                "type": "boolean",
-                "readOnly": true
-              },
-              "version": {
-                "type": "string",
-                "readOnly": true
-              },
-              "headless": {
-                "type": "boolean",
-                "default": true
-              },
-              "window": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "width": {
-                    "type": "integer"
-                  },
-                  "height": {
-                    "type": "integer"
-                  }
-                }
-              },
-              "viewport": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "width": {
-                    "type": "integer"
-                  },
-                  "height": {
-                    "type": "integer"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "$id": "context_v3.schema.json"
     },
     "annotationDefaults_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -7563,10 +7599,6 @@
         "allowUnsafeSteps": {
           "type": "boolean"
         },
-        "crawl": {
-          "type": "boolean",
-          "default": false
-        },
         "processDitaMaps": {
           "type": "boolean",
           "default": true
@@ -7751,21 +7783,6 @@
                     "type": "string",
                     "readOnly": true
                   },
-                  "fileMapping": {
-                    "type": "object",
-                    "readOnly": true,
-                    "additionalProperties": {
-                      "type": "object",
-                      "properties": {
-                        "fileId": {
-                          "type": "string"
-                        },
-                        "filePath": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  },
                   "uploadOnChange": {
                     "type": "boolean",
                     "default": false
@@ -7855,15 +7872,22 @@
           }
         },
         "concurrentRunners": {
-          "type": [
-            "integer",
-            "boolean"
+          "anyOf": [
+            {
+              "type": [
+                "integer",
+                "boolean"
+              ],
+              "minimum": 1,
+              "not": {
+                "const": false
+              }
+            },
+            {
+              "const": "auto"
+            }
           ],
-          "default": 1,
-          "minimum": 1,
-          "not": {
-            "const": false
-          }
+          "default": 1
         },
         "environment": {
           "$ref": "#/components/schemas/environment"
@@ -7979,6 +8003,12 @@
               },
               "osRelease": {
                 "type": "string"
+              },
+              "apps": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
               }
             }
           },
@@ -10836,6 +10866,11 @@
           "minimum": 0,
           "readOnly": true
         },
+        "visit": {
+          "type": "integer",
+          "minimum": 2,
+          "readOnly": true
+        },
         "contexts": {
           "type": "array",
           "readOnly": true,
@@ -10902,6 +10937,17 @@
                   "resultDescription": {
                     "type": "string"
                   },
+                  "resultCode": {
+                    "type": "string",
+                    "enum": [
+                      "environment",
+                      "drift",
+                      "assertion"
+                    ]
+                  },
+                  "resultHint": {
+                    "type": "string"
+                  },
                   "recordingPath": {
                     "type": "string"
                   },
@@ -10941,10 +10987,55 @@
               },
               "steps": {
                 "type": "array",
-                "minItems": 1,
                 "items": {
                   "$ref": "step_v3.nodefaults.schema.json#"
                 }
+              },
+              "contextId": {
+                "type": "string"
+              },
+              "unsafe": {
+                "type": "boolean",
+                "readOnly": true
+              },
+              "requires": {
+                "$ref": "context_v3.nodefaults.schema.json#/properties/requires"
+              },
+              "browserFallback": {
+                "$ref": "context_v3.nodefaults.schema.json#/properties/browserFallback"
+              },
+              "retries": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "device": {
+                "type": [
+                  "string",
+                  "object"
+                ]
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "readOnly": true
+              },
+              "fallback": {
+                "type": "object",
+                "readOnly": true,
+                "properties": {
+                  "requested": {
+                    "type": "string"
+                  },
+                  "used": {
+                    "type": "string"
+                  }
+                }
+              },
+              "viewportFloored": {
+                "type": "boolean",
+                "readOnly": true
               }
             }
           }
@@ -11609,6 +11700,496 @@
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "$schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contextId": {
+          "type": "string"
+        },
+        "platforms": {
+          "anyOf": [
+            {
+              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/platform"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "context_v3.nodefaults.schema.json#/components/schemas/platform"
+              }
+            }
+          ]
+        },
+        "browsers": {
+          "anyOf": [
+            {
+              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browserName"
+            },
+            {
+              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browser"
+            },
+            {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browserName"
+                  },
+                  {
+                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browser"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "browserFallback": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "explicit",
+            "off"
+          ]
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "requires": {
+          "anyOf": [
+            {
+              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
+              },
+              "minItems": 1
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "minProperties": 1,
+              "properties": {
+                "commands": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
+                  },
+                  "minItems": 1
+                },
+                "files": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
+                  },
+                  "minItems": 1
+                },
+                "env": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
+                  },
+                  "minItems": 1
+                }
+              }
+            }
+          ]
+        },
+        "device": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S",
+              "transform": [
+                "trim"
+              ]
+            },
+            {
+              "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/deviceDescriptor"
+            }
+          ]
+        }
+      },
+      "components": {
+        "schemas": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "linux",
+              "mac",
+              "windows",
+              "android",
+              "ios"
+            ]
+          },
+          "requirement": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "browserName": {
+            "type": "string",
+            "enum": [
+              "chrome",
+              "firefox",
+              "safari",
+              "webkit"
+            ]
+          },
+          "browser": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browserName"
+              },
+              "explicit": {
+                "type": "boolean",
+                "readOnly": true
+              },
+              "version": {
+                "type": "string",
+                "readOnly": true
+              },
+              "headless": {
+                "type": "boolean"
+              },
+              "window": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "width": {
+                    "type": "integer"
+                  },
+                  "height": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "viewport": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "width": {
+                    "type": "integer"
+                  },
+                  "height": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "$id": "context_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/appDescriptor"
+        },
+        {
+          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/browserDescriptor"
+        },
+        {
+          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processDescriptor"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/appDescriptor"
+              },
+              {
+                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/browserDescriptor"
+              },
+              {
+                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processDescriptor"
+              }
+            ]
+          }
+        }
+      ],
+      "components": {
+        "schemas": {
+          "browserDescriptor": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "browser"
+            ],
+            "properties": {
+              "browser": {
+                "type": "string",
+                "enum": [
+                  "chrome",
+                  "firefox",
+                  "safari",
+                  "webkit"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "headless": {
+                "type": "boolean"
+              },
+              "size": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "width": {
+                    "type": "integer"
+                  },
+                  "height": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "viewport": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "width": {
+                    "type": "integer"
+                  },
+                  "height": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "driverOptions": {
+                "type": "object"
+              }
+            }
+          },
+          "processDescriptor": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "process",
+              "name"
+            ],
+            "properties": {
+              "process": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "workingDirectory": {
+                "type": "string"
+              },
+              "tty": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "cols": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000
+                      },
+                      "rows": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000
+                      }
+                    }
+                  }
+                ]
+              },
+              "waitUntil": {
+                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processStartWaitUntil"
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "processStartWaitUntil": {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "stdio": {
+                "type": "string",
+                "minLength": 1
+              },
+              "httpGet": {
+                "type": "string"
+              },
+              "delayMs": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "appDescriptor": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "app"
+            ],
+            "properties": {
+              "app": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "install": {
+                "type": "string",
+                "minLength": 1
+              },
+              "activity": {
+                "type": "string",
+                "minLength": 1
+              },
+              "device": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S",
+                    "transform": [
+                      "trim"
+                    ]
+                  },
+                  {
+                    "allOf": [
+                      {
+                        "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/deviceDescriptor"
+                      },
+                      {
+                        "required": [
+                          "platform"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "driverOptions": {
+                "type": "object"
+              },
+              "waitUntil": {
+                "$ref": "waitUntil_v3.nodefaults.schema.json#/components/schemas/app"
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "deviceDescriptor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "platform": {
+                "type": "string",
+                "enum": [
+                  "android",
+                  "ios"
+                ]
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "deviceType": {
+                "type": "string",
+                "enum": [
+                  "phone",
+                  "tablet"
+                ]
+              },
+              "osVersion": {
+                "type": "string",
+                "minLength": 1
+              },
+              "headless": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "$id": "startSurface_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
       "components": {
         "schemas": {
           "common": {
@@ -11635,11 +12216,14 @@
               "resultDescription": {
                 "$ref": "step_v3.nodefaults.schema.json#/components/schemas/resultDescription"
               },
+              "resultCode": {
+                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/resultCode"
+              },
+              "resultHint": {
+                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/resultHint"
+              },
               "variables": {
                 "$ref": "step_v3.nodefaults.schema.json#/components/schemas/variables"
-              },
-              "breakpoint": {
-                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/breakpoint"
               },
               "if": {
                 "$ref": "step_v3.nodefaults.schema.json#/components/schemas/if"
@@ -11662,8 +12246,8 @@
               "location": {
                 "$ref": "step_v3.nodefaults.schema.json#/components/schemas/location"
               },
-              "autoScreenshot": {
-                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/autoScreenshot"
+              "autoScreenshotPath": {
+                "$ref": "step_v3.nodefaults.schema.json#/components/schemas/autoScreenshotPath"
               },
               "attempts": {
                 "type": "integer",
@@ -11754,10 +12338,7 @@
               }
             }
           },
-          "breakpoint": {
-            "type": "boolean"
-          },
-          "autoScreenshot": {
+          "autoScreenshotPath": {
             "type": "string",
             "minLength": 1,
             "pattern": "^(?![A-Za-z]:|[\\\\/])[^\\\\]+$",
@@ -11784,6 +12365,19 @@
             "readOnly": true
           },
           "resultDescription": {
+            "type": "string",
+            "readOnly": true
+          },
+          "resultCode": {
+            "type": "string",
+            "enum": [
+              "environment",
+              "drift",
+              "assertion"
+            ],
+            "readOnly": true
+          },
+          "resultHint": {
             "type": "string",
             "readOnly": true
           },
@@ -11822,12 +12416,13 @@
         "$schema": {},
         "result": {},
         "resultDescription": {},
+        "resultCode": {},
+        "resultHint": {},
         "stepId": {},
         "description": {},
         "unsafe": {},
         "outputs": {},
         "variables": {},
-        "breakpoint": {},
         "if": {},
         "assertions": {},
         "onPass": {},
@@ -11835,7 +12430,7 @@
         "onWarning": {},
         "onSkip": {},
         "location": {},
-        "autoScreenshot": {},
+        "autoScreenshotPath": {},
         "attempts": {},
         "visit": {},
         "durationMs": {},
@@ -12863,10 +13458,6 @@
               }
             ],
             "properties": {
-              "$schema": {
-                "type": "string",
-                "format": "uri-reference"
-              },
               "name": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9_.-]+$",
@@ -13047,304 +13638,6 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "string",
       "$id": "loadVariables_v3.nodefaults.schema.json"
-    },
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "anyOf": [
-        {
-          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/appDescriptor"
-        },
-        {
-          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/browserDescriptor"
-        },
-        {
-          "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processDescriptor"
-        },
-        {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/appDescriptor"
-              },
-              {
-                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/browserDescriptor"
-              },
-              {
-                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processDescriptor"
-              }
-            ]
-          }
-        }
-      ],
-      "components": {
-        "schemas": {
-          "browserDescriptor": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "browser"
-            ],
-            "properties": {
-              "browser": {
-                "type": "string",
-                "enum": [
-                  "chrome",
-                  "firefox",
-                  "safari",
-                  "webkit"
-                ]
-              },
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "headless": {
-                "type": "boolean"
-              },
-              "size": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "width": {
-                    "type": "integer"
-                  },
-                  "height": {
-                    "type": "integer"
-                  }
-                }
-              },
-              "viewport": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "width": {
-                    "type": "integer"
-                  },
-                  "height": {
-                    "type": "integer"
-                  }
-                }
-              },
-              "driverOptions": {
-                "type": "object"
-              }
-            }
-          },
-          "processDescriptor": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "process",
-              "name"
-            ],
-            "properties": {
-              "process": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "args": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "workingDirectory": {
-                "type": "string"
-              },
-              "tty": {
-                "anyOf": [
-                  {
-                    "type": "boolean"
-                  },
-                  {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                      "cols": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 1000
-                      },
-                      "rows": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 1000
-                      }
-                    }
-                  }
-                ]
-              },
-              "waitUntil": {
-                "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processStartWaitUntil"
-              },
-              "timeout": {
-                "type": "integer",
-                "minimum": 1
-              }
-            }
-          },
-          "processStartWaitUntil": {
-            "type": "object",
-            "additionalProperties": false,
-            "minProperties": 1,
-            "properties": {
-              "port": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 65535
-              },
-              "stdio": {
-                "type": "string",
-                "minLength": 1
-              },
-              "httpGet": {
-                "type": "string"
-              },
-              "delayMs": {
-                "type": "integer",
-                "minimum": 0
-              }
-            }
-          },
-          "appDescriptor": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "app"
-            ],
-            "properties": {
-              "app": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "args": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "workingDirectory": {
-                "type": "string",
-                "minLength": 1
-              },
-              "env": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string"
-                }
-              },
-              "install": {
-                "type": "string",
-                "minLength": 1
-              },
-              "activity": {
-                "type": "string",
-                "minLength": 1
-              },
-              "device": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "minLength": 1,
-                    "pattern": "\\S",
-                    "transform": [
-                      "trim"
-                    ]
-                  },
-                  {
-                    "allOf": [
-                      {
-                        "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/deviceDescriptor"
-                      },
-                      {
-                        "required": [
-                          "platform"
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              "driverOptions": {
-                "type": "object"
-              },
-              "waitUntil": {
-                "$ref": "waitUntil_v3.nodefaults.schema.json#/components/schemas/app"
-              },
-              "timeout": {
-                "type": "integer",
-                "minimum": 1
-              }
-            }
-          },
-          "deviceDescriptor": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "platform": {
-                "type": "string",
-                "enum": [
-                  "android",
-                  "ios"
-                ]
-              },
-              "name": {
-                "type": "string",
-                "minLength": 1,
-                "pattern": "\\S",
-                "transform": [
-                  "trim"
-                ]
-              },
-              "deviceType": {
-                "type": "string",
-                "enum": [
-                  "phone",
-                  "tablet"
-                ]
-              },
-              "osVersion": {
-                "type": "string",
-                "minLength": 1
-              },
-              "headless": {
-                "type": "boolean"
-              }
-            }
-          }
-        }
-      },
-      "$id": "startSurface_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13601,10 +13894,6 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "$schema": {
-                "type": "string",
-                "format": "uri-reference"
-              },
               "name": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9_.-]+$",
@@ -14928,230 +15217,9 @@
             "WARNING",
             "SKIPPED"
           ]
-        },
-        "expected": {
-          "type": [
-            "array",
-            "boolean",
-            "integer",
-            "null",
-            "number",
-            "object",
-            "string"
-          ]
-        },
-        "actual": {
-          "type": [
-            "array",
-            "boolean",
-            "integer",
-            "null",
-            "number",
-            "object",
-            "string"
-          ]
-        },
-        "description": {
-          "type": "string"
         }
       },
       "$id": "assertion_v3.nodefaults.schema.json"
-    },
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "$schema": {
-          "type": "string",
-          "minLength": 1
-        },
-        "contextId": {
-          "type": "string"
-        },
-        "platforms": {
-          "anyOf": [
-            {
-              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/platform"
-            },
-            {
-              "type": "array",
-              "items": {
-                "$ref": "context_v3.nodefaults.schema.json#/components/schemas/platform"
-              }
-            }
-          ]
-        },
-        "browsers": {
-          "anyOf": [
-            {
-              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browserName"
-            },
-            {
-              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browser"
-            },
-            {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browserName"
-                  },
-                  {
-                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browser"
-                  }
-                ]
-              }
-            }
-          ]
-        },
-        "browserFallback": {
-          "type": "string",
-          "enum": [
-            "auto",
-            "explicit",
-            "off"
-          ]
-        },
-        "retries": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 10
-        },
-        "requires": {
-          "anyOf": [
-            {
-              "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
-            },
-            {
-              "type": "array",
-              "items": {
-                "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
-              },
-              "minItems": 1
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "minProperties": 1,
-              "properties": {
-                "commands": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
-                  },
-                  "minItems": 1
-                },
-                "files": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
-                  },
-                  "minItems": 1
-                },
-                "env": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "context_v3.nodefaults.schema.json#/components/schemas/requirement"
-                  },
-                  "minItems": 1
-                }
-              }
-            }
-          ]
-        },
-        "device": {
-          "anyOf": [
-            {
-              "type": "string",
-              "minLength": 1,
-              "pattern": "\\S",
-              "transform": [
-                "trim"
-              ]
-            },
-            {
-              "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/deviceDescriptor"
-            }
-          ]
-        }
-      },
-      "components": {
-        "schemas": {
-          "platform": {
-            "type": "string",
-            "enum": [
-              "linux",
-              "mac",
-              "windows",
-              "android",
-              "ios"
-            ]
-          },
-          "requirement": {
-            "type": "string",
-            "minLength": 1,
-            "pattern": "\\S"
-          },
-          "browserName": {
-            "type": "string",
-            "enum": [
-              "chrome",
-              "firefox",
-              "safari",
-              "webkit"
-            ]
-          },
-          "browser": {
-            "type": "object",
-            "required": [
-              "name"
-            ],
-            "additionalProperties": false,
-            "properties": {
-              "name": {
-                "$ref": "context_v3.nodefaults.schema.json#/components/schemas/browserName"
-              },
-              "explicit": {
-                "type": "boolean",
-                "readOnly": true
-              },
-              "version": {
-                "type": "string",
-                "readOnly": true
-              },
-              "headless": {
-                "type": "boolean"
-              },
-              "window": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "width": {
-                    "type": "integer"
-                  },
-                  "height": {
-                    "type": "integer"
-                  }
-                }
-              },
-              "viewport": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "width": {
-                    "type": "integer"
-                  },
-                  "height": {
-                    "type": "integer"
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "$id": "context_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -15683,9 +15751,6 @@
         "allowUnsafeSteps": {
           "type": "boolean"
         },
-        "crawl": {
-          "type": "boolean"
-        },
         "processDitaMaps": {
           "type": "boolean"
         },
@@ -15861,21 +15926,6 @@
                     "type": "string",
                     "readOnly": true
                   },
-                  "fileMapping": {
-                    "type": "object",
-                    "readOnly": true,
-                    "additionalProperties": {
-                      "type": "object",
-                      "properties": {
-                        "fileId": {
-                          "type": "string"
-                        },
-                        "filePath": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  },
                   "uploadOnChange": {
                     "type": "boolean"
                   },
@@ -15952,14 +16002,21 @@
           }
         },
         "concurrentRunners": {
-          "type": [
-            "integer",
-            "boolean"
-          ],
-          "minimum": 1,
-          "not": {
-            "const": false
-          }
+          "anyOf": [
+            {
+              "type": [
+                "integer",
+                "boolean"
+              ],
+              "minimum": 1,
+              "not": {
+                "const": false
+              }
+            },
+            {
+              "const": "auto"
+            }
+          ]
         },
         "environment": {
           "$ref": "config_v3.nodefaults.schema.json#/components/schemas/environment"
@@ -16069,6 +16126,12 @@
               },
               "osRelease": {
                 "type": "string"
+              },
+              "apps": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
               }
             }
           },

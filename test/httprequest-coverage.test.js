@@ -1215,7 +1215,7 @@ describe("httpRequest coverage (stubbed axios)", function () {
         step: { httpRequest: { url: "http://api.example.com/", method: 12345 } },
       });
       assert.equal(result.status, "FAIL");
-      assert.match(result.description, /Invalid step definition/);
+      assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
       assert.ok(result.assertions === undefined || result.assertions.length === 0);
     });
   });

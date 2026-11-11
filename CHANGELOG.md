@@ -1,3 +1,234 @@
+# [5.0.0-v5-rc.15](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.14...v5.0.0-v5-rc.15) (2026-11-11)
+
+
+* feat(cli)!: compose output modes, or refuse the ones that share stdout ([c08b113](https://github.com/doc-detective/doc-detective/commit/c08b11329e347a34fae1972707b1f2e36c1864f2))
+* feat(outputs)!: name three boolean match outputs as statements ([1583d24](https://github.com/doc-detective/doc-detective/commit/1583d240f68dc1152747d7524883e774fc374df9))
+* feat(report)!: rename the step's automatic screenshot field to autoScreenshotPath ([7fb56bf](https://github.com/doc-detective/doc-detective/commit/7fb56bf507f17244150c648516528c075ede394c))
+* feat(reporters)!: report the same results in every reporter ([f7ef1f4](https://github.com/doc-detective/doc-detective/commit/f7ef1f43a3d7f40ad483519a2e44e8d475191a44))
+* feat(schemas)!: reject keys that do nothing ([5a42812](https://github.com/doc-detective/doc-detective/commit/5a42812dba45dae1aea786d95844f50bebdd423d))
+* fix(cli)!: reject global flags that lsp and runner can't honor ([93e5681](https://github.com/doc-detective/doc-detective/commit/93e568139a6cda9dc96b1dfce01aff1ae574875a))
+* fix(config)!: resolve each relative path against the source that set it ([f72579c](https://github.com/doc-detective/doc-detective/commit/f72579c40d13d8ed09b40145b827acd6689642ea))
+* fix(report)!: make every real report validate against report_v3 ([267d7e4](https://github.com/doc-detective/doc-detective/commit/267d7e4e710bf76d8ecbb3d150409e96001d1f60))
+
+
+### Bug Fixes
+
+* **config:** close small gaps between the schemas and the tool ([f158565](https://github.com/doc-detective/doc-detective/commit/f158565f466d6ea641e4a12eba061736a79c4df8))
+* **config:** close small gaps between the schemas and the tool ([3058099](https://github.com/doc-detective/doc-detective/commit/3058099084cb225c762b4805dcfc77e10425e534))
+* **core:** find bundled schemas from the package root ([ddd2325](https://github.com/doc-detective/doc-detective/commit/ddd23258f078414b02aee985205581c94905ced3))
+* **detect:** skip .doc-detective folders when scanning inputs ([97c22ac](https://github.com/doc-detective/doc-detective/commit/97c22ac8d601f2ca3a4293a82e510500f54f03d1))
+* **find:** skip near matches where nothing reports them ([bf96147](https://github.com/doc-detective/doc-detective/commit/bf96147ec122919091311ed7f334291424063071))
+* **html:** show the run's start time and environment in the report header ([d35e8d1](https://github.com/doc-detective/doc-detective/commit/d35e8d12c9f45cc05333c0d81d95b998c23dea63))
+* **messages:** one style for step failure, skip, and deprecation messages ([5122152](https://github.com/doc-detective/doc-detective/commit/512215212dcb1a82b1bd105f342513b94d88b0ba))
+* **recording:** word a device recording's skip where it fails to start ([2ce0449](https://github.com/doc-detective/doc-detective/commit/2ce04493912098465c43ef2dc96467003e0dbde1))
+* **record:** size a browser recording by its steady frames ([b8a162d](https://github.com/doc-detective/doc-detective/commit/b8a162d98226c02c748cdf9bb692ab0656bd7b95))
+* **reporters:** say a report couldn't be built when render() throws ([a637a35](https://github.com/doc-detective/doc-detective/commit/a637a35524f9712bfc43dba99ab992caac7e255d))
+* **reporters:** separate render errors from write errors ([d633aea](https://github.com/doc-detective/doc-detective/commit/d633aea0281dfed536f45461bb5b388108867516))
+* **runner:** word every skip reason as `Skipped: <reason>.` ([faacd10](https://github.com/doc-detective/doc-detective/commit/faacd1082a340a63006747273409b4a0a9225db3))
+* **schemas:** backtick the unknown action and its suggestion ([111f3b8](https://github.com/doc-detective/doc-detective/commit/111f3b8801191dcddf03c2fb08041db38ea682f5))
+
+
+### Features
+
+* **find:** classify a failed automatic recording, and promise the fields ([790ccd6](https://github.com/doc-detective/doc-detective/commit/790ccd6fa66a6e0afd8cfa7e342ef39aa03ef8f4))
+* **find:** report near matches and structured failure fields ([b28a3c8](https://github.com/doc-detective/doc-detective/commit/b28a3c8393e277b90f87e8768ecab0527637473b))
+* **reporters:** write a Markdown summary into the run folder ([179aa83](https://github.com/doc-detective/doc-detective/commit/179aa83b26fc29ed13330e3a4b67e851dd549b49))
+
+
+### BREAKING CHANGES
+
+* config `crawl`, `integrations.heretto[].fileMapping`, step
+`breakpoint`, `$schema` inside `saveCookie`/`loadCookie`, and an app's
+`startSurface.workingDirectory` are invalid (exit 2). The unknown-key
+message changes from `unknown key 'x'. Did you mean y?` to
+"unknown key `x`. Did you mean `y`?".
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a routing failure no longer adds a step to the results;
+the step that routed fails instead, and summary.steps no longer counts a
+marker. A failed Doc Detective API run exits 2 instead of writing
+{status, error} as results.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* `$$stdioMatched`, `$$aspectRatioMatch`, and
+`$$resolutionMatch` are now `$$stdioMatches`, `$$aspectRatioMatches`, and
+`$$resolutionMatches`, with no alias. An old name resolves to nothing.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a step result's `autoScreenshot` is now
+`autoScreenshotPath`. `autoScreenshot` on a step is invalid (exit 2); set
+it on the test, spec, or config. assertion records no longer accept
+`expected`, `actual`, or `description`.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* JUnit cases are named <testId> › <contextId> with the spec ID as
+classname, so CI test history restarts once; report-file notices print on stderr
+and follow the log level; the Markdown and HTML verdicts count tests; a report
+path you name is overwritten.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* `doc-detective lsp` and `doc-detective runner` reject
+the global flags --json, -q, -d, -l, --no-color, and --no-input.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* relative paths in the user config, DOC_DETECTIVE_CONFIG,
+and DOC_DETECTIVE no longer resolve against the project config's folder,
+and a relative apiKeyFile or apiTokenFile in a config file resolves
+against that file's folder, not the current directory.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* `--plain` with `--json`, `--output -`, or `--dry-run`
+(or config `output: "-"` or `dryRun: true`) exits 2. `--output -` no
+longer also writes a config `output` file.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+# [5.0.0-v5-rc.14](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.13...v5.0.0-v5-rc.14) (2026-11-10)
+
+
+### Bug Fixes
+
+* **runner:** turn automatic capture off in hosted runs ([1bca284](https://github.com/doc-detective/doc-detective/commit/1bca284fbaf60b57baff6584f1e6c1e25371dd40))
+
+# [5.0.0-v5-rc.13](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.12...v5.0.0-v5-rc.13) (2026-11-10)
+
+
+* feat(capture)!: hide environment variable values in browser screenshots and recordings ([2df0a78](https://github.com/doc-detective/doc-detective/commit/2df0a785305571b2158c34117d86be232f8ec563))
+* feat(capture)!: hide environment variable values in browser screenshots and recordings ([6ce099c](https://github.com/doc-detective/doc-detective/commit/6ce099c08560d5266a08a19bc3a212e85ad773d9))
+* feat(capture)!: hide environment variable values in browser screenshots and recordings ([4c7e409](https://github.com/doc-detective/doc-detective/commit/4c7e4091ed21cd700e31de9ab919e02ed7f6a6e8))
+* feat(capture)!: hide environment variable values in browser screenshots and recordings ([d1d7c1c](https://github.com/doc-detective/doc-detective/commit/d1d7c1c68cf4a71bc3a57be04e6e43bb833131a6))
+* feat(capture)!: take screenshots and recordings by default ([989e252](https://github.com/doc-detective/doc-detective/commit/989e2520142d1cc2fa5a0cf163c4a47719b01e1c))
+* feat(capture)!: take screenshots and recordings by default ([d316ef7](https://github.com/doc-detective/doc-detective/commit/d316ef78dfbe257329ed1a7a12927efa7e7f1266))
+* feat(capture)!: take screenshots and recordings by default ([58194e3](https://github.com/doc-detective/doc-detective/commit/58194e3c5ef65a79e081c469be2a1263279fa8e7))
+* feat(capture)!: take screenshots and recordings by default ([9008fa8](https://github.com/doc-detective/doc-detective/commit/9008fa8fe7196f1c92a380a020951912c8bd27e1))
+* feat(capture)!: take screenshots and recordings by default ([994af2e](https://github.com/doc-detective/doc-detective/commit/994af2eb4b0ebdc29a3de9555808228d906e2492))
+* feat(capture)!: take screenshots and recordings by default ([467c484](https://github.com/doc-detective/doc-detective/commit/467c484179ba069eaca8adf51802b026c0ba69e8))
+* feat(capture)!: take screenshots and recordings by default ([b3bf302](https://github.com/doc-detective/doc-detective/commit/b3bf302a1969da28db86d38bc3350da6d138f700))
+* feat(capture)!: take screenshots and recordings by default ([1893311](https://github.com/doc-detective/doc-detective/commit/189331129c9cb416156a7fd96b1013ff8767191e))
+* feat(output)!: mask environment variable values in saved step output ([21b0222](https://github.com/doc-detective/doc-detective/commit/21b02227e289ee0890bdf8735e1e3bfa3c3b9211))
+* feat(output)!: mask environment variable values in saved step output ([692c836](https://github.com/doc-detective/doc-detective/commit/692c836f1c4789b2db7ed8d91a8d6280115633b8))
+* feat(output)!: mask environment variable values in saved step output ([099d31c](https://github.com/doc-detective/doc-detective/commit/099d31c66ff169acc0946c327fcd2269b3a4da4a))
+* feat(output)!: mask environment variable values in saved step output ([dcc86c1](https://github.com/doc-detective/doc-detective/commit/dcc86c10eeba3bd6919da189277a5966e88cb049))
+* feat(record)!: record headless Chrome and use Chrome by default ([9f0b420](https://github.com/doc-detective/doc-detective/commit/9f0b420f718b6528663e59e8a9be0f3c4266295d))
+* feat(report)!: report the automatic recording on its context ([5bf3083](https://github.com/doc-detective/doc-detective/commit/5bf3083c72edfd329a6774dec8f80edaf8263e7b))
+
+
+### Bug Fixes
+
+* **capture:** count authored steps named like the automatic recording ([d899e65](https://github.com/doc-detective/doc-detective/commit/d899e654cebd86e74f18d89d99d81df565722fe0))
+* **capture:** count authored steps named like the automatic recording ([d15864b](https://github.com/doc-detective/doc-detective/commit/d15864ba8e803f778df774e886fe60d0a4990645))
+* **capture:** count authored steps named like the automatic recording ([12066ef](https://github.com/doc-detective/doc-detective/commit/12066ef5466293b7a6fe9b2684e2d61bce4ac966))
+* **capture:** count authored steps named like the automatic recording ([2241423](https://github.com/doc-detective/doc-detective/commit/22414239ffbc2f93e4887b22fca946105aad171e))
+* **capture:** count authored steps named like the automatic recording ([3b7335b](https://github.com/doc-detective/doc-detective/commit/3b7335b7f7abe6d7e79cebc2381354e60c985860))
+* **capture:** fail a screenshot closed when the page won't run the blur ([f017f12](https://github.com/doc-detective/doc-detective/commit/f017f12f09bd633fe3d2e3951280c067f12ccab4))
+* **capture:** fail a screenshot closed when the page won't run the blur ([5b9b7ba](https://github.com/doc-detective/doc-detective/commit/5b9b7bad2ba2a3fe4c12eb78f1569893284cab7a))
+* **capture:** fail a screenshot closed when the page won't run the blur ([cec890e](https://github.com/doc-detective/doc-detective/commit/cec890e739c7f5ae76173a0a218be398eccbd043))
+* **cli:** clear the masking row's flag when each runTests call starts ([a6d4257](https://github.com/doc-detective/doc-detective/commit/a6d4257a2cadc904b78b352f5dd1f54396e9a4b7))
+* **cli:** read the masking row's flag per run, and keep the capture defaults in the CLI reference ([779ee81](https://github.com/doc-detective/doc-detective/commit/779ee81184dc248557c7f48f20eeae1b5514160a))
+* **cli:** warn on 4.x about 5.0's browser, capture, and masking defaults ([eb6626f](https://github.com/doc-detective/doc-detective/commit/eb6626f97192b000426af7e3d1d6f3644cce074f))
+* **hints:** lead the gitignore hint with the outputDir you set ([5f641a9](https://github.com/doc-detective/doc-detective/commit/5f641a915e2b62610f3e2a7b0820bce1b378c057))
+* **hints:** lead the gitignore hint with the outputDir you set ([2097431](https://github.com/doc-detective/doc-detective/commit/2097431200fe95d578dfb48e54d04ddefaf5657f))
+* **hints:** lead the gitignore hint with the outputDir you set ([c936ce3](https://github.com/doc-detective/doc-detective/commit/c936ce3485075a1958c96e2b26ff1513bb717121))
+* **hints:** lead the gitignore hint with the outputDir you set ([efec960](https://github.com/doc-detective/doc-detective/commit/efec960f185771db17a26bc1d30ea79b0f431017))
+* **html:** find the automatic recording by the runner's markers ([6678beb](https://github.com/doc-detective/doc-detective/commit/6678bebcffbbbabdda612fc819bdcad19dab9421))
+* **html:** find the automatic recording by the runner's markers ([2d56e84](https://github.com/doc-detective/doc-detective/commit/2d56e845a78aeb265a1a09aa1326ec7274aa632b))
+* **html:** find the automatic recording by the runner's markers ([6d73b24](https://github.com/doc-detective/doc-detective/commit/6d73b2458e864939c6331dd2a6a78e939838ddbc))
+* **html:** find the automatic recording by the runner's markers ([7cab448](https://github.com/doc-detective/doc-detective/commit/7cab4481f9f516000d15c1e283564dc71792f548))
+* **html:** find the automatic recording by the runner's markers ([3f80194](https://github.com/doc-detective/doc-detective/commit/3f8019407a0f1bb2ecc5c1aeaee55b2c9c5ba56c))
+* **html:** find the automatic recording by the runner's markers ([33e1de2](https://github.com/doc-detective/doc-detective/commit/33e1de23cb41e50cc34119138cf8af879d5707af))
+* **html:** find the automatic recording by the runner's markers ([d4783ac](https://github.com/doc-detective/doc-detective/commit/d4783acb3006d960279247b14b588b77c0be5ce4))
+* **html:** show a recording's badge when its result has no reason ([6eafefe](https://github.com/doc-detective/doc-detective/commit/6eafefe8e600dcfc3479d9c16ea8d5aeac46b463))
+* **html:** style the automatic recording's label as a panel head ([1e93850](https://github.com/doc-detective/doc-detective/commit/1e93850c4b6549a7197de1837eef9dc5de59a92c))
+* **openapi:** check the ref parser's http resolver before overriding it ([7452aca](https://github.com/doc-detective/doc-detective/commit/7452aca7e5504660151fdaba263970acba23f250))
+* **record:** keep the viewport's size while Chrome records a tab ([55a9628](https://github.com/doc-detective/doc-detective/commit/55a9628b93bcac3e324c909324b49dfffaf1d5ad))
+* **record:** name an empty chunk when saving a browser recording ([818f293](https://github.com/doc-detective/doc-detective/commit/818f2933c889bd90894884e3b7256ada005d2a19))
+* **record:** point headless Chrome on ffmpeg at the browser engine ([3e9ac05](https://github.com/doc-detective/doc-detective/commit/3e9ac052c0cd0a4fc744493185a9d9b3e23c5831))
+* **record:** start Xvfb on a free display ([f0e1379](https://github.com/doc-detective/doc-detective/commit/f0e13795bf138b243eac5a7064f8695905755107))
+* **report:** don't let a worse recording result keep a milder one's description ([f1129cd](https://github.com/doc-detective/doc-detective/commit/f1129cd3ba8dbc47098063d1b69b36a850cbbab5))
+* **screenshot:** resize to a reference during the default recording ([1c6179a](https://github.com/doc-detective/doc-detective/commit/1c6179ae3e8b8bc6a3e4589aa8a87eaf6f4ffacf))
+* **screenshot:** resize to a reference during the default recording ([80509d6](https://github.com/doc-detective/doc-detective/commit/80509d60e5b87625fbd864c3459c94638c8d703b))
+
+
+### Features
+
+* **config:** accept publicVariables on config, specs, and tests ([77b21dc](https://github.com/doc-detective/doc-detective/commit/77b21dc07813e7cd656f960063c3eb5622abdef0))
+* **html:** show automatic screenshots and recordings in the HTML report ([b33591f](https://github.com/doc-detective/doc-detective/commit/b33591f7b27087be6f3588be72e01f735b67a271))
+* **html:** show automatic screenshots and recordings in the HTML report ([9e1db79](https://github.com/doc-detective/doc-detective/commit/9e1db79f857632a621ed46c256db0980de4d2f9d))
+* **html:** show automatic screenshots and recordings in the HTML report ([4f797aa](https://github.com/doc-detective/doc-detective/commit/4f797aabb88866f21d1a6ee68396353685ebdc83))
+* **html:** show automatic screenshots and recordings in the HTML report ([71d0561](https://github.com/doc-detective/doc-detective/commit/71d05616d2f47ce1c6c01b85eda8c20eabea1f19))
+* **html:** show automatic screenshots and recordings in the HTML report ([437aa85](https://github.com/doc-detective/doc-detective/commit/437aa85bebcb9f6bf5c2a8b88dd83744dca55428))
+* **html:** show automatic screenshots and recordings in the HTML report ([64f8a2f](https://github.com/doc-detective/doc-detective/commit/64f8a2fae74a64edf6fd757ca731a0f83e752a42))
+* **html:** show automatic screenshots and recordings in the HTML report ([22d10e5](https://github.com/doc-detective/doc-detective/commit/22d10e52d584c49db21f00fc93cd751801b63592))
+* **html:** show automatic screenshots and recordings in the HTML report ([9ba0165](https://github.com/doc-detective/doc-detective/commit/9ba01657403dcaa23a02be6a42c9385cba8dc0f0))
+* **html:** show automatic screenshots and recordings in the HTML report ([43d3330](https://github.com/doc-detective/doc-detective/commit/43d33301ad500a6a4183e7343e1dbdabfae79a9f))
+* **html:** show automatic screenshots and recordings in the HTML report ([b535f3c](https://github.com/doc-detective/doc-detective/commit/b535f3cd7065aff7258c174a9b99a4241bd12e49))
+
+
+### Reverts
+
+* **record:** leave the window alone while Chrome records a tab ([f5112c4](https://github.com/doc-detective/doc-detective/commit/f5112c4234118a8d47dd6eec6c30902e0cf1941c))
+
+
+### BREAKING CHANGES
+
+* a context's automatic recording is its `autoRecording` field,
+not steps in `contexts[].steps`, so `~autorecord` and the runner's markers are
+gone from the report. A passing recording no longer makes an all-SKIPPED context
+PASS, so a run where every test is like that exits 2.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* autoScreenshot (now after every browser, app, and device step) and autoRecord are on unless set to false; autoRecord runs headless Firefox headed when the host can capture it; the runFolder reporter runs whenever either is on; a host that can't record skips recordings instead of failing them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* autoScreenshot (now after every browser, app, and device step) and autoRecord are on unless set to false; autoRecord runs headless Firefox headed when the host can capture it; the runFolder reporter runs whenever either is on; a host that can't record skips recordings instead of failing them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* autoScreenshot (now after every browser, app, and device step) and autoRecord are on unless set to false; autoRecord runs headless Firefox headed when the host can capture it; the runFolder reporter runs whenever either is on; a host that can't record skips recordings instead of failing them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* autoScreenshot (now after every browser, app, and device step) and autoRecord are on unless set to false; autoRecord runs headless Firefox headed when the host can capture it; the runFolder reporter runs whenever either is on; a host that can't record skips recordings instead of failing them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a field that receives a typed secret shows dots, and browser screenshots blur elements that show a secret, so reference images that showed one will differ.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* files a step saves through path hold ***NAME*** in place of secret values.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* autoScreenshot (now after every browser, app, and device step) and autoRecord are on unless set to false; autoRecord runs headless Firefox headed when the host can capture it; the runFolder reporter runs whenever either is on; a host that can't record skips recordings instead of failing them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a field that receives a typed secret shows dots, and browser screenshots blur elements that show a secret, so reference images that showed one will differ.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* files a step saves through path hold ***NAME*** in place of secret values.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* autoScreenshot (now after every browser, app, and device step) and autoRecord are on unless set to false; autoRecord runs headless Firefox headed when the host can capture it; the runFolder reporter runs whenever either is on; a host that can't record skips recordings instead of failing them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a field that receives a typed secret shows dots, and browser screenshots blur elements that show a secret, so reference images that showed one will differ.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* files a step saves through path hold ***NAME*** in place of secret values.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a field that receives a typed secret shows dots, and browser screenshots blur elements that show a secret, so reference images that showed one will differ.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* files a step saves through path hold ***NAME*** in place of secret values.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* autoScreenshot (now after every browser, app, and device step) and autoRecord are on unless set to false; autoRecord runs headless Firefox headed when the host can capture it; the runFolder reporter runs whenever either is on; a host that can't record skips recordings instead of failing them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* autoScreenshot (now after every browser, app, and device step) and autoRecord are on unless set to false; autoRecord runs headless Firefox headed when the host can capture it; the runFolder reporter runs whenever either is on; a host that can't record skips recordings instead of failing them.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a context that names no browser uses Chrome before Firefox, and a record context with no browser now runs headless.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [5.0.0-v5-rc.12](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.11...v5.0.0-v5-rc.12) (2026-11-08)
 
 

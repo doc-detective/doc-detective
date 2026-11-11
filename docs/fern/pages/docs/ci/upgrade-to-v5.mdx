@@ -75,10 +75,24 @@ if: runner.os == 'macOS'
 **What to do:** Run your suite, then fix or remove each key the error names. The error suggests the closest valid key:
 
 ```text
-tests[0].steps[0]: unknown key 'asertions'. Did you mean assertions?
+tests[0].steps[0]: unknown key `asertions`. Did you mean `assertions`?
 ```
 
 Custom metadata needs to move out of the step. To skip these specs and run the rest while you clean up, pass `--no-exit-on-fail`.
+
+## Keys that did nothing
+
+**What changed:** Some keys validated in version 4 but changed nothing. They're unknown keys now, so the spec or config is invalid, and the run exits `2`.
+
+| Key | Where |
+|---|---|
+| `crawl` | Config |
+| `fileMapping` | Each `integrations.heretto` entry |
+| `breakpoint` | Step |
+| `$schema` | Inside `saveCookie` and `loadCookie` |
+| `workingDirectory` | A `startSurface` app. A `startSurface` process keeps it. |
+
+**What to do:** Delete these keys. To set the folder an app starts in, start it from a `runShell` step instead.
 
 ## Unknown keys in custom file types
 
@@ -174,9 +188,59 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 ## Summary format
 
-**What changed:** The terminal summary is shorter and ends with a one-line verdict, such as `1 of 1 test passed`. The `See detailed results at` line is gone. Run folder paths now print on stderr as `Run report:` and `Run results:`, relative to the current directory.
+**What changed:** The terminal summary ends with a one-line verdict, such as `1 of 1 test passed`. It lists every failure, warning, and skip by ID path, under `Failed (N):`, `Warnings (N):`, and `Skipped (N):`, which replace `Failed Items:` and the lists under it. Skips print whether or not a test failed. Doc Detective no longer prints the `See detailed results at` line.
 
-**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead. See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
+**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead.
+
+## Failure, skip, and warning messages
+
+**What changed:** A failure's `resultDescription` starts with `Couldn't`, and a skip's starts with `Skipped:`. The most common ones changed like this:
+
+| Version 4 | Version 5 |
+|---|---|
+| `Invalid step definition:`, then raw schema errors | ``Couldn't run the step: its definition isn't valid.``, then each problem, as spec validation names it |
+| `No elements matched selector or text.` | ``Couldn't find element `Save`.`` |
+| `Element not found within timeout` | ``Couldn't find an element within `timeout` (5000 ms).`` |
+| `Skipping context on 'linux': this context targets a different platform.` | ``Skipped: this context targets `windows`, not this host.`` |
+| `Warning: --logLevel is deprecated; use --log-level.` | ``Warning: `--logLevel` is deprecated. Rename it to `--log-level`.`` |
+
+Deprecation warnings print at the `warning` log level and above, so `-l silent` and `-l error` hide them, like `-q`.
+
+**What to do:** Don't match on message text. To triage a failure, read `result` and `resultCode`. See [Failed steps say what kind of failure it was](#failed-steps-say-what-kind-of-failure-it-was). See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
+
+## Report notices moved to stderr
+
+**What changed:** The `html`, `junit`, and `markdown` reporters no longer print `See … at <path>` on stdout. Every reporter that writes a file names it on stderr with its absolute path, as `Results:`, `Run report:`, `Run summary:`, `Run results:`, `HTML report:`, `JUnit report:`, or `Markdown summary:`. These lines follow the log level, so `-l warning` and quieter hide them. So `--json` stdout now holds only JSON, whichever reporters run.
+
+The run folder also holds a Markdown summary, `testResults.md`, beside `testResults.html` and `testResults.json`.
+
+If Doc Detective can't write a report, it prints `Couldn't write the <report> to <path>: <cause>.` at error level. The exit code still doesn't change.
+
+**What to do:** Update anything that reads `See HTML report at`, `See JUnit report at`, or `See Markdown summary at` from stdout. Better still, use the fixed paths in [Find each report](/docs/ci/reporters-and-artifacts#find-each-report).
+
+## JUnit case names
+
+**What changed:** A test suite's `name` and a test case's `classname` are the spec ID. A test case's `name` is `<testId> › <contextId> — <description>`. Version 4 used the spec's description, and `<description> [browser / platform]`. Each context now has a name of its own, so GitLab can't drop duplicates. `junit.xml` also gains attachments, warnings in `<system-err>`, step skips in `<system-out>`, a suite `timestamp`, and suite `<properties>`. See [Read the JUnit report](/docs/ci/reporters-and-artifacts#read-the-junit-report).
+
+**What to do:** Expect your CI's test history to restart once. Update any rule that matches case names, such as a quarantine list. On GitLab, keep `junit.xml` at the project root and add `.doc-detective/` to `artifacts:paths`, so the attachments resolve.
+
+## Markdown and HTML verdicts count tests
+
+**What changed:** The Markdown summary and the HTML report count tests in their verdicts, as the terminal does. Both used to count specs. A run with only warnings now reads **Passed with warnings**, and Markdown used to call it **Passed**. The Markdown summary also lists warnings and skips, and its failures table has `Location` and `Details` columns instead of `Spec`, `Test`, and `Details`. Its paths are relative to the summary file.
+
+**What to do:** Update anything that reads those verdicts or columns. For counts, read `summary` from the results file instead. See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields).
+
+## Skip reasons read the same way
+
+**What changed:** Every skip reason now reads `Skipped: <reason>.`, in `resultDescription` and in every reporter. Reasons that printed raw JSON now name the cause in words. The same contexts and steps skip as before.
+
+**What to do:** Update anything that matches skip text, such as `Skipping context on`. To find skips, read `result` instead, because it's `SKIPPED` for every one.
+
+## A report path you name is overwritten
+
+**What changed:** When `outputDir` names a `.json` or `.html` file, the matching reporter overwrites that file, as `--output` already does. It used to write `report-0.html`, then `report-1.html`, and so on.
+
+**What to do:** To keep a file per run, point `outputDir` at a folder. The `json` and `html` reporters then name each file after the run ID.
 
 ## Results show the effective step
 
@@ -198,6 +262,31 @@ Steps that skip, such as the ones after a failure, show it too. Step-level field
 Other shorthand appears in its full form too. For example, `"wait": true` appears as `"wait": 5000`, `"runShell": "npm test"` as an object with `command`, and `"closeSurface": "web"` as `["web"]`.
 
 **What to do:** If a script reads a step's action as a string, read the object instead. For example, read `goTo.url` instead of `goTo`.
+
+## Failed steps say what kind of failure it was
+
+**What changed:** Every `FAIL` step has a `resultCode`: `environment`, `drift`, or `assertion`. A browser `find` that misses lists the closest elements in `outputs.nearMatches`, and its `resultHint` names them. Version 4 had none of these fields.
+
+**What to do:** Nothing, unless a script compares whole step objects. To triage failures, branch on `resultCode` instead of matching `resultDescription`. See [Read the result](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
+
+## Renamed and removed report fields and outputs
+
+**What changed:** Some fields in the results and some step outputs have new names. Some fields that nothing wrote are gone. An old output name has no alias, so `$$stdioMatched` and the others resolve to nothing.
+
+| Version 4 | Version 5 |
+|---|---|
+| A step's automatic screenshot was its `autoScreenshot` field. | It's `autoScreenshotPath`. |
+| `"autoScreenshot": false` on a step validated, but the step still took a screenshot. | The spec is invalid, and the run exits `2`. Set `autoScreenshot` on the test, spec, or config instead. |
+| The `assertion` schema listed `expected`, `actual`, and `description`, which no record had. | The schema doesn't list them, and a record with one is invalid. |
+| `runShell`, `runCode`, and `type` output `$$stdioMatched`. | It's `$$stdioMatches`. |
+| `screenshot` output `$$aspectRatioMatch`. | It's `$$aspectRatioMatches`. |
+| `stopRecord` output `$$resolutionMatch`. | It's `$$resolutionMatches`. |
+| A `goToStep` to a missing step, or a `goToStep` loop, added a step with no action to the results. `summary.steps` counted it. | The step that routed fails, and its `resultDescription` gains the reason. No step is added. |
+| A results file could fail its own `report_v3` schema, such as a skipped context's empty `steps`. | Every results file validates against `report_v3`, and every `--dry-run` plan against `resolvedTests_v3`. |
+| A run with no tests wrote only `summary` and `specs`. | It also writes `startedAt`, `environment`, and `durationMs`, like every other run. |
+| A run through the Doc Detective API that failed wrote `{status, error}` as its results. | It prints ``Couldn't run tests through the Doc Detective API: <cause>.`` and exits `2`. |
+
+**What to do:** Update scripts that read these fields. Rename these outputs in `variables`, `if`, and `assertions`. Move a step's `autoScreenshot` to its test. To find a routing failure, read the failed step's `resultDescription`.
 
 ## `goTo` and `httpRequest` defaults
 
@@ -269,6 +358,7 @@ Two behaviors changed too:
 
 - A `dragAndDrop` with `duration: 0` drags instantly. Version 4 replaced `0` with the 1000-millisecond default.
 - A `find` with `"click": false` finds without clicking. Earlier 4.x releases clicked anyway.
+- A `type` step's `timeout` also bounds finding its target element in a browser, and `0` checks once. Version 4 always searched for 5 seconds.
 
 The results show these steps' effective forms. A `find.click` appears as the click that ran, such as `{ "button": "left" }` for `true`. A `type` step's `keys` is always a list. A `swipe` direction appears as `{ "direction": "up", "distance": 0.5, "duration": 500 }`.
 
@@ -364,6 +454,17 @@ doc-detective --input ./docs --output ./reports
 doc-detective --input ./docs --output-dir ./reports
 ```
 
+## Output modes share stdout
+
+**What changed:** Only one output mode can write stdout at a time:
+
+- `--plain` with `--json`, `--output -`, or `--dry-run` exits `2`. So does `--plain` with an `output` of `-` or a `dryRun` of `true` in config. The error names both flags, as in ``Error: set `--dry-run` or `--plain`, not both.``
+- `--output -` beats an `output` file in config, so the results go only to stdout.
+- An `output` of `-` in config writes the results to stdout, like `--output -`.
+- `--dry-run --output <file>` writes the test plan to the file, and still prints it.
+
+**What to do:** Drop one of the two modes the error names. To keep a results file beside `--plain`, pass `--output <file>`.
+
 ## No default results file in the current directory
 
 **What changed:** The default reporters are now `terminal` and `runFolder`. A run no longer leaves `testResults-<timestamp>.json` in the current directory. Results land in `.doc-detective/runs/<runId>/testResults.json` instead.
@@ -380,7 +481,7 @@ The `json` reporter still exists, and it still writes a timestamped file in `out
 
 **What changed:** A bare `--concurrent-runners` exits `2`.
 
-**What to do:** Pass a positive whole number, or `auto`. `true` works too, as it does in config:
+**What to do:** Pass a positive whole number, or `auto`. `true` works too. In config, `"concurrentRunners": "auto"` now validates and means the same as `true`:
 
 ```bash
 doc-detective --concurrent-runners auto
@@ -418,7 +519,7 @@ An explicit `"reporters": []` now means no reporters. Version 4 fell back to the
 
 ## Flags apply only where they make sense
 
-**What changed:** Each subcommand accepts only its own flags. For example, `doc-detective install status --input ./docs` and `doc-detective install status --yes` both exit `2` with `unknown option`.
+**What changed:** Each subcommand accepts only its own flags. For example, `doc-detective install status --input ./docs` and `doc-detective install status --yes` both exit `2` with `unknown option`. `lsp` and the hidden `runner` command take none of the global flags, such as `--json` or `-q`, because neither prints results or logs those flags could change.
 
 **What to do:** Remove flags the error names. Run `doc-detective <command> --help` to see what a command accepts.
 
@@ -532,9 +633,12 @@ A `./browser-snapshots/` folder from version 4 isn't used anymore. Browsers alwa
 - `--cache-dir` beats `DOC_DETECTIVE_CACHE_DIR`. It used to lose.
 - `install` reads `cacheDir` from your project and user config, and loads the project `.env`, like a run does. So an invalid config now makes `install` exit `2`. It doesn't read `apiKeyFile` or `apiTokenFile`, so a missing secret file doesn't stop it.
 - A config-level `loadVariables` file fills only variables the shell left unset, and prints no banner. It used to replace them. The `loadVariables` step still replaces them.
-- A relative `output` or `cacheDir` in a config file resolves against the config file, like `input` and `outputDir`. It used to resolve against the current directory.
+- A relative path resolves against the source that set it. A config file's paths resolve against its folder. `DOC_DETECTIVE_CONFIG`, `DOC_DETECTIVE`, and flags resolve against the current directory. See [Configuration precedence](/reference/cli#configuration-precedence). That changes three cases:
+  - A relative `output` or `cacheDir` in a config file used to resolve against the current directory.
+  - A relative `input`, `outputDir`, `loadVariables`, `beforeAll`, `afterAll`, or `descriptionPath` in your user config or the environment used to resolve against the project config's folder.
+  - A relative `apiKeyFile` or `apiTokenFile` in a config file used to resolve against the current directory.
 
-**What to do:** If a job relied on `DOC_DETECTIVE_CACHE_DIR` beating `--cache-dir`, drop one of them. If it relied on a config-level `loadVariables` file beating the shell, unset the shell variable or use a `loadVariables` step.
+**What to do:** If a job relied on `DOC_DETECTIVE_CACHE_DIR` beating `--cache-dir`, drop one of them. If it relied on a config-level `loadVariables` file beating the shell, unset the shell variable or use a `loadVariables` step. If a relative path now points somewhere else, make it relative to the source that sets it, or make it absolute.
 
 ## `DOC_DETECTIVE` is deprecated
 
@@ -666,6 +770,6 @@ See [Run in CI with the GitHub Action](/docs/ci/github-action) for the full setu
 
    A `1` means tests failed, and `results.json` holds the details. A `2` means nothing valid was tested, and stderr says why.
 
-3. Search your pipelines and scripts for the removed items: `testResults-`, `See detailed results`, `install-agents`, `doc-detective-lsp`, `doc-detective-runner`, and `--output` with a folder.
+3. Search your pipelines and scripts for the removed items: `testResults-`, `See detailed results`, `See HTML report`, `See JUnit report`, `See Markdown summary`, `install-agents`, `doc-detective-lsp`, `doc-detective-runner`, and `--output` with a folder.
 
 For every flag, see the [CLI reference](/reference/reference/cli).

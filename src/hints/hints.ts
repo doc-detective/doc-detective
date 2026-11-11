@@ -98,10 +98,10 @@ export const HINTS: Hint[] = [
     id: "enableDebugLog",
     priority: 20,
     markdown: [
-      "Tests failed. Re-run with `--logLevel debug` for a full trace of every step:",
+      "Tests failed. Re-run with `--log-level debug` for a full trace of every step:",
       "",
       "```bash",
-      "doc-detective --logLevel debug",
+      "doc-detective --log-level debug",
       "```",
     ].join("\n"),
     when: (ctx) => ctx.failedCount > 0,

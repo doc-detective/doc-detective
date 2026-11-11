@@ -5,6 +5,7 @@ import {
   calculateFractionalDifference,
   resolveShellName,
   resolveShellExecutable,
+  invalidStepMessage,
 } from "../utils.js";
 import { startBackgroundProcessSurface } from "./processSurface.js";
 import {
@@ -51,7 +52,7 @@ async function runShell({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // The effective step: shorthand expanded and defaults filled (ADR 01167).
@@ -173,30 +174,30 @@ async function runShell({
   // (b) stdio substring / regex match — APPLICABLE only when `stdio` is set.
   // The existing "expected found in stdout OR stderr" semantics (substring, or
   // regex when wrapped in /.../) are computed here and EXPOSED as a new boolean
-  // output, `result.outputs.stdioMatched`, so the spec is a simple equality
-  // (`$$outputs.stdioMatched == true`) — no OR operator needed, and users can
-  // reference `$$outputs.stdioMatched` in conditions / custom assertions.
+  // output, `result.outputs.stdioMatches`, so the spec is a simple equality
+  // (`$$outputs.stdioMatches == true`) — no OR operator needed, and users can
+  // reference `$$outputs.stdioMatches` in conditions / custom assertions.
   if (step.runShell.stdio) {
     const isRegex =
       step.runShell.stdio.startsWith("/") && step.runShell.stdio.endsWith("/");
-    let stdioMatched: boolean;
+    let stdioMatches: boolean;
     if (isRegex) {
       const regex = new RegExp(step.runShell.stdio.slice(1, -1));
-      stdioMatched =
+      stdioMatches =
         regex.test(result.outputs.stdio.stdout) ||
         regex.test(result.outputs.stdio.stderr);
     } else {
-      stdioMatched =
+      stdioMatches =
         result.outputs.stdio.stdout.includes(step.runShell.stdio) ||
         result.outputs.stdio.stderr.includes(step.runShell.stdio);
     }
-    result.outputs.stdioMatched = stdioMatched;
+    result.outputs.stdioMatches = stdioMatches;
     specs.push({
-      statement: `$$outputs.stdioMatched == true`,
+      statement: `$$outputs.stdioMatches == true`,
       severity: "fail",
     });
     descriptions.push(
-      stdioMatched
+      stdioMatches
         ? `Found expected output (${step.runShell.stdio}) in stdio.`
         : isRegex
         ? `Couldn't find expected output (${step.runShell.stdio}) in actual output (stdout or stderr).`
@@ -284,7 +285,7 @@ async function runShell({
   }
 
   // Evaluate the applicable specs through the shared engine against the current
-  // step's outputs (including the derived `stdioMatched` / `variation`).
+  // step's outputs (including the derived `stdioMatches` / `variation`).
   const ctx = buildConditionContext({ outputs: result.outputs });
   const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
   result.assertions = assertions;

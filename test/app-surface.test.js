@@ -576,8 +576,10 @@ describe("appSurfacePreflight", function () {
       platform: "linux",
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /Windows/);
-    assert.match(outcome.reason, /iOS/);
+    assert.equal(
+      outcome.reason,
+      "Skipped: native app surfaces don't run on `linux`. They run on Windows, macOS, Android, and iOS. Gate the test with `runOn` platforms so this skip is intentional."
+    );
   });
 
   it("skips ios on non-mac hosts with toolchain guidance", async function () {
@@ -587,7 +589,7 @@ describe("appSurfacePreflight", function () {
       deps: {
         probeIosToolchain: () => ({
           ok: false,
-          reason: "Skipping context on 'ios': iOS app surfaces require a macOS host.",
+          reason: "Skipped: iOS app surfaces require a macOS host.",
         }),
       },
     });
@@ -643,7 +645,7 @@ describe("appSurfacePreflight", function () {
       },
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /could not be installed/);
+    assert.match(outcome.reason, /^Skipped: .* could not be installed/);
     assert.match(outcome.reason, /offline/);
   });
 
@@ -750,7 +752,7 @@ describe("appSurfacePreflight", function () {
       deps: { resolvePathInCache: () => null, ensureInstalled: async () => {} },
     });
     assert.equal(outcome.ok, false);
-    assert.match(outcome.reason, /did not resolve/);
+    assert.match(outcome.reason, /^Skipped: .* did not resolve/);
   });
 });
 
@@ -913,7 +915,7 @@ describe("startAppSurface", function () {
       serverDeps: okServerDeps(fakeDriver()),
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("windows: snapshots the window baseline on open (main handle, pid, lazy baseline)", async function () {
@@ -1186,23 +1188,24 @@ describe("startAppSurface", function () {
     assert.equal(appSession.surfaces.get("Calculator").platform, "mac");
   });
 
-  it("fails any workingDirectory on macOS with guidance, including '.'", async function () {
+  it("rejects workingDirectory on an app as an invalid step (ADR 01187)", async function () {
     const appSession = preflighted();
-    for (const workingDirectory of ["/tmp", "."]) {
+    for (const [platform, app] of [
+      ["mac", "com.apple.TextEdit"],
+      ["windows", "C:\\x\\app.exe"],
+    ]) {
       const explicit = await startAppSurface({
         config: {},
-        step: {
-          startSurface: { app: "com.apple.TextEdit", workingDirectory },
-        },
+        step: { startSurface: { app, workingDirectory: "." } },
         appSession,
-        platform: "mac",
+        platform,
         serverDeps: okServerDeps(fakeDriver()),
       });
-      assert.equal(explicit.status, "FAIL", workingDirectory);
-      assert.match(explicit.description, /not supported by the macOS app driver/);
+      assert.equal(explicit.status, "FAIL", platform);
+      assert.match(explicit.description, /its definition isn't valid/);
     }
 
-    // The schema has no workingDirectory default, so an omitted one passes.
+    // An app without it launches.
     const omitted = await startAppSurface({
       config: {},
       step: { startSurface: { app: "com.apple.Notes" } },
@@ -1259,42 +1262,8 @@ describe("startAppSurface", function () {
     assert.equal(caps["appium:appArguments"], "--a --b");
     assert.equal(caps["nova:smoothMouseMove"], true);
     assert.equal(caps["appium:automationName"], "NovaWindows");
-    // workingDirectory is NOT mapped to a capability — NovaWindows ignores
-    // appWorkingDir, so it's rejected up front (see the FAIL test below)
-    // rather than silently sent.
+    // No working directory is ever sent: NovaWindows ignores appWorkingDir.
     assert.equal(caps["appium:appWorkingDir"], undefined);
-  });
-
-  it("fails any workingDirectory on Windows with guidance, including '.'", async function () {
-    // NovaWindows v1.4.1 silently ignores appWorkingDir (the launched app
-    // inherits the driver's cwd), so Doc Detective can't deliver a working
-    // directory on Windows — FAIL loudly with guidance rather than accept a
-    // silent no-op (matching the macOS LaunchServices precedent).
-    const appSession = preflighted();
-    for (const workingDirectory of ["./sandbox", "."]) {
-      const explicit = await startAppSurface({
-        config: {},
-        step: {
-          startSurface: { app: "C:\\x\\app.exe", workingDirectory },
-        },
-        appSession,
-        platform: "windows",
-        serverDeps: okServerDeps(fakeDriver()),
-      });
-      assert.equal(explicit.status, "FAIL", workingDirectory);
-      assert.match(explicit.description, /not supported by the Windows app driver/);
-      assert.match(explicit.description, /doesn't honor a launch working directory/);
-    }
-
-    // The schema has no workingDirectory default, so an omitted one passes.
-    const omitted = await startAppSurface({
-      config: {},
-      step: { startSurface: { app: "C:\\x\\other.exe" } },
-      appSession,
-      platform: "windows",
-      serverDeps: okServerDeps(fakeDriver()),
-    });
-    assert.equal(omitted.status, "PASS");
   });
 
   // --- Android (phase A3b): shared device session + activateApp switching ---
@@ -1391,7 +1360,10 @@ describe("startAppSurface", function () {
     });
     assert.equal(result.status, "PASS");
     assert.match(handle.startError, /ffmpeg/);
-    assert.equal(handle.startSkip, true);
+    assert.equal(
+      handle.startSkip,
+      "Skipped: couldn't start the pending device recording: 'ffmpeg' binary is not found in PATH."
+    );
   });
 
   it("android: a failed late-start stashes the error on the pending handle", async function () {
@@ -1779,8 +1751,8 @@ describe("startAppSurface", function () {
       [{ app: "com.apple.Preferences", activity: ".Main" }, /Android-only/],
       [{ app: "com.apple.Preferences", args: ["--x"] }, /does not honor desktop-style process arguments/],
       [{ app: "com.apple.Preferences", env: { A: "1" } }, /not supported by the iOS app driver/],
-      [{ app: "com.apple.Preferences", workingDirectory: "/tmp" }, /not meaningful for iOS/],
-      [{ app: "com.apple.Preferences", workingDirectory: "." }, /not meaningful for iOS/],
+      // ADR 01187: no app descriptor has workingDirectory, so it's invalid.
+      [{ app: "com.apple.Preferences", workingDirectory: "/tmp" }, /its definition isn't valid/],
     ];
     for (const [descriptor, pattern] of cases) {
       const result = await startAppSurface({
@@ -1837,7 +1809,10 @@ describe("findAppElement / closeAppSurface / teardownAppSession", function () {
       criteria: { elementText: "Save" },
       timeout: 10,
     });
-    assert.match(missing.error, /No element matched/);
+    assert.match(
+      missing.error,
+      /^Couldn't find an element matching `\{"elementText":"Save"\}` on the app surface within 10 ms \(locator: `[^`]+`\)\.$/
+    );
 
     const unmappable = await findAppElement({
       driver: {},

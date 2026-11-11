@@ -49,6 +49,7 @@ import {
   hasVariable,
   evaluateContextRequirements,
   isRetryableSessionError,
+  classifyStepFailure,
   classifyContextRetry,
   guardBlankDocumentNavigation,
   applyBrowserSize,
@@ -59,6 +60,7 @@ import {
 import { instantiateCursor } from "./tests/moveTo.js";
 import { validate } from "../common/src/validate.js";
 import { normalize } from "../common/src/normalize/index.js";
+import type { AutomaticRecording } from "../common/src/types/generated/report_v3.js";
 import { goTo } from "./tests/goTo.js";
 import { findElement } from "./tests/findElement.js";
 import { runShell } from "./tests/runShell.js";
@@ -257,6 +259,7 @@ const APPIUM_READY_POLL_MS = 50;
 export {
   runSpecs,
   runViaApi,
+  emptyReport,
   getRunner,
   useEffectiveStep,
   placeCapturePaths,
@@ -860,7 +863,7 @@ function contextRequirementsSkipMessage({
     deps,
   });
   if (met) return null;
-  return `Skipping context on '${context.platform}': unmet requirements — ${missing.join(", ")}.`;
+  return `Skipped: unmet requirements: ${missing.join(", ")}.`;
 }
 
 // The device descriptors a test needs: each APP startSurface descriptor's
@@ -971,7 +974,7 @@ async function androidContextPreflight({
     return {
       ok: false,
       level: "warning",
-      reason: `Skipping context on 'android': the Android SDK isn't installed, so emulator support can't be verified on this ${hostName} host. Install it with \`doc-detective install android\` — a machine with hardware virtualization (${accel}) can then run Android tests.`,
+      reason: `Skipped: the Android SDK isn't installed, so emulator support can't be verified on this ${hostName} host. Install it with \`doc-detective install android\` — a machine with hardware virtualization (${accel}) can then run Android tests.`,
     };
   }
 
@@ -996,7 +999,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipping context on 'android': the Android toolchain isn't fully installed and auto-install is off (DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL is on). Install it with \`doc-detective install android\`.`,
+        reason: `Skipped: the Android toolchain isn't fully installed, and \`DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL\` turns off auto-install. Install it with \`doc-detective install android\`.`,
       };
     }
     // Loud warning to the terminal AND the report, then run the installer.
@@ -1014,7 +1017,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipping context on 'android': the Android toolchain install failed (${error?.message ?? error}). Install it manually with \`doc-detective install android\`.`,
+        reason: `Skipped: the Android toolchain install failed (${error?.message ?? error}). Install it manually with \`doc-detective install android\`.`,
       };
     }
     // installAndroid reports terminal conditions by RETURN, not by throwing
@@ -1033,7 +1036,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipping context on 'android': the Android toolchain couldn't be installed — ${detail}. See \`doc-detective install android\`.`,
+        reason: `Skipped: the Android toolchain couldn't be installed: ${detail}. See \`doc-detective install android\`.`,
       };
     }
     sdk = detectAndroidSdk({ cacheDir: config.cacheDir });
@@ -1048,7 +1051,7 @@ async function androidContextPreflight({
       return {
         ok: false,
         level: "warning",
-        reason: `Skipping context on 'android': the Android toolchain is still incomplete after an install attempt. Install it manually with \`doc-detective install android\`.`,
+        reason: `Skipped: the Android toolchain is still incomplete after an install attempt. Install it manually with \`doc-detective install android\`.`,
       };
     }
   }
@@ -1100,7 +1103,7 @@ async function androidContextPreflight({
     return {
       ok: false,
       level: "warning",
-      reason: `Skipping context on 'android': couldn't probe the Android environment (${error?.message ?? error}). Check the SDK / adb / emulator installation, or run \`doc-detective install android\`.`,
+      reason: `Skipped: couldn't probe the Android environment (${error?.message ?? error}). Check the SDK / adb / emulator installation, or run \`doc-detective install android\`.`,
     };
   }
   /* c8 ignore stop */
@@ -1173,7 +1176,7 @@ async function iosContextPreflight({
     return {
       ok: false,
       level: "info",
-      reason: `Skipping context on 'ios': couldn't probe the iOS simulator environment (${error?.message ?? error}). Check Xcode / simctl, or run \`doc-detective install ios --yes\`.`,
+      reason: `Skipped: couldn't probe the iOS simulator environment (${error?.message ?? error}). Check Xcode / simctl, or run \`doc-detective install ios --yes\`.`,
     };
   }
   return {
@@ -1337,15 +1340,20 @@ function driverSkipDiagnostic({
   platformMatches,
   attemptedFallback,
   lastError,
+  targetPlatform,
 }: {
   requestedName: string;
   platform: string;
   platformMatches: boolean;
   attemptedFallback: boolean;
   lastError?: string;
+  // The context's platform, for the mismatch message. `platform` is the host's.
+  targetPlatform?: string;
 }): string {
   if (!platformMatches) {
-    return `Skipping context on '${platform}': this context targets a different platform.`;
+    return targetPlatform
+      ? `Skipped: this context targets \`${targetPlatform}\`, not this host.`
+      : "Skipped: this context targets another platform, not this host.";
   }
   // Name the driver for the actual requested engine so the hint doesn't always
   // point users at geckodriver when Chrome or Safari is the broken one.
@@ -1357,12 +1365,12 @@ function driverSkipDiagnostic({
         : normalizeBrowserName(requestedName) === "safari"
           ? "safaridriver"
           : "driver";
-  let msg = `Skipping context: could not start a browser session for '${requestedName}' on '${platform}'`;
+  let msg = `Skipped: couldn't start a browser session for \`${requestedName}\` on \`${platform}\``;
   msg += attemptedFallback
     ? `, and no other available browser could start either.`
-    : ` and cross-browser fallback is disabled or unavailable.`;
-  if (lastError) msg += ` Last error: ${lastError}`;
-  msg += ` A present-but-broken driver (for example a partially downloaded ${driverHint}) can cause this; reinstall the driver or its browser.`;
+    : `, and cross-browser fallback is off or unavailable.`;
+  msg += ` A present-but-broken driver, such as a partially downloaded ${driverHint}, can cause this. Reinstall the driver or its browser.`;
+  if (lastError) msg += ` Last error: ${String(lastError).replace(/\.?\s*$/, ".")}`;
   return msg;
 }
 
@@ -1370,6 +1378,19 @@ function driverSkipDiagnostic({
 // config, the lowest layer, so a project can still turn it off (ADR 01165).
 async function allowUnsafeSteps({ config }: { config: any }) {
   return config.allowUnsafeSteps === true;
+}
+
+// A run that tested nothing still returns a report (ADR 01152), with the
+// metadata every report has (ADR 01186).
+function emptyReport(runStart = Date.now()) {
+  const zero = () => ({ pass: 0, fail: 0, warning: 0, skipped: 0 });
+  return {
+    summary: { specs: zero(), tests: zero(), contexts: zero(), steps: zero() },
+    startedAt: new Date(runStart).toISOString(),
+    environment: getEnvironment(),
+    durationMs: Date.now() - runStart,
+    specs: [],
+  };
 }
 
 // Run specifications via API.
@@ -1390,19 +1411,7 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
         "warning",
         "No specs or tests matched the configured filters. Nothing was sent to the Doc Detective API."
       );
-      return {
-        summary: {
-          specs: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-          tests: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-          contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-          steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-        },
-        // Nothing ran, but the shape stays parity with runSpecs' short-circuit.
-        startedAt: new Date().toISOString(),
-        environment: getEnvironment(),
-        durationMs: 0,
-        specs: [],
-      };
+      return emptyReport();
     }
     resolvedTests = { ...resolvedTests, specs: filteredSpecs };
   }
@@ -1423,40 +1432,32 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
     httpsAgent: new https.Agent({ keepAlive: false }),
   };
 
+  // A failure throws (ADR 01186): a `{status, error}` object would reach the
+  // reporters as if it were a report.
+  const apiError = (cause: string) => new Error(`Couldn't run tests through the Doc Detective API: ${cause}.`);
+  const request = async (what: string, expected: number, send: () => Promise<any>) => {
+    let response: any;
+    try {
+      response = await send();
+    } catch (error: any) {
+      response = error.response;
+      if (!response) throw apiError(`couldn't reach it (${error.code ?? "no response"})`);
+    }
+    if (response.status !== expected) {
+      const detail = typeof response.data?.error === "string" ? ` (${response.data.error})` : "";
+      throw apiError(`${what} returned HTTP ${response.status}${detail}`);
+    }
+    return response;
+  };
+
   // Create run
-  let createResponse;
-  try {
-    createResponse = await axios.post(apiUrl, resolvedTests, axiosConfig);
-  } catch (error: any) {
-    return {
-      status: error.response?.status,
-      error: error.response?.data?.error,
-    };
-  }
-  if (createResponse.status !== 201) {
-    return { status: createResponse.status, error: createResponse.data.error };
-  }
+  const createResponse = await request("creating the run", 201, () => axios.post(apiUrl, resolvedTests, axiosConfig));
   const runId = createResponse.data.run.runId;
 
   // TODO: Add file uploads, if any
 
   // Start run
-  let startResponse;
-  try {
-    startResponse = await axios.post(
-      `${apiUrl}/${runId}/start`,
-      {},
-      axiosConfig
-    );
-  } catch (error: any) {
-    return {
-      status: error.response?.status,
-      error: error.response?.data?.error,
-    };
-  }
-  if (startResponse.status !== 200) {
-    return { status: startResponse.status, error: startResponse.data.error };
-  }
+  await request("starting the run", 200, () => axios.post(`${apiUrl}/${runId}/start`, {}, axiosConfig));
 
   // Poll for results
   const pollInterval = 5000; // 5 seconds in milliseconds
@@ -1468,28 +1469,11 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
   while (true) {
     // Check if we've exceeded the max wait time
     if (Date.now() - startTime > maxWaitTime) {
-      return {
-        status: 408,
-        type: "TIMEOUT",
-        error: `Test execution exceeded maximum wait time of ${
-          maxWaitTime / 1000
-        } seconds`,
-      };
+      throw apiError(`the run didn't finish in ${maxWaitTime / 1000} seconds`);
     }
 
     // Poll for results
-    try {
-      response = await axios.get(`${apiUrl}/${runId}`, axiosConfig);
-    } catch (error: any) {
-      return {
-        status: error.response?.status,
-        error: error.response?.data?.error,
-      };
-    }
-
-    if (response.status !== 200) {
-      return { status: response.status, error: response.data.error };
-    }
+    response = await request("checking the run", 200, () => axios.get(`${apiUrl}/${runId}`, axiosConfig));
 
     // Check if the test run is complete
     if (response.data.status === "completed") {
@@ -1506,13 +1490,9 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
   // TODO: Handle file downloads/placement, if any
 
   try {
-    const results = JSON.parse(response.data.report);
-    return results;
-  } catch (error: any) {
-    return {
-      status: "PARSE_ERROR",
-      error: `Failed to parse API response: ${error.message}`,
-    };
+    return JSON.parse(response.data.report);
+  } catch {
+    throw apiError("its report isn't valid JSON");
   }
 }
 
@@ -1562,18 +1542,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // getAvailableApps and friends — wasted work, plus an avoidable error
     // path if discovery fails on the host. Mirrors the runViaApi early
     // return so both run paths behave the same way.
-    return {
-      summary: {
-        specs: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-        tests: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-        contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-        steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
-      },
-      startedAt: new Date(runStart).toISOString(),
-      environment: getEnvironment(),
-      durationMs: Date.now() - runStart,
-      specs: [],
-    };
+    return emptyReport(runStart);
   }
 
   // Get runner details. Browser detection is skipped when no context can use
@@ -3725,7 +3694,7 @@ async function prepareTestPreflight({
     log(
       config,
       "warning",
-      `Skipping test '${test.testId}': recording name '${recordingNameConflict}' is reused while a recording with that name is still active. Names must be unique among recordings that overlap in time.`
+      `Skipped: test \`${test.testId}\` reuses recording name \`${recordingNameConflict}\` while a recording with that name is still active. Names must be unique among recordings that overlap in time.`
     );
   }
   // Track contextIds within this test so the deterministic fallback can suffix
@@ -3857,7 +3826,7 @@ function prepareContextSlot({
         platform: context.platform,
         browser: context.browser,
         result: "SKIPPED",
-        resultDescription: `Skipped — recording name '${recordingNameConflict}' is reused while still active; names must be unique among overlapping recordings.`,
+        resultDescription: `Skipped: recording name \`${recordingNameConflict}\` is reused while a recording with that name is still active. Names must be unique among recordings that overlap in time.`,
         steps: [],
       },
     };
@@ -4264,20 +4233,22 @@ const AUTO_RECORDING_RANK: Record<string, number> = { PASS: 0, SKIPPED: 1, WARNI
 // description (ADR 01179). The merged field is masked like a step report
 // (ADR 01178).
 function mergeAutoRecording(
-  contextReport: any,
-  { result, resultDescription, ...fields }: { result: string; resultDescription?: string; [key: string]: any }
+  contextReport: { autoRecording?: AutomaticRecording },
+  { result, resultDescription, ...fields }: AutomaticRecording
 ): void {
   const current = contextReport.autoRecording;
   const worse = !current || AUTO_RECORDING_RANK[result] > AUTO_RECORDING_RANK[current.result];
   // A worse result replaces the description, so it can't keep a milder result's.
-  const { resultDescription: previous, ...kept } = current ?? {};
+  // The failure fields are recomputed from what wins (ADR 01194).
+  const { resultDescription: previous, resultCode, resultHint, ...kept } = current ?? ({ result } as AutomaticRecording);
   const description = worse ? (result !== "PASS" ? resultDescription : undefined) : previous;
-  contextReport.autoRecording = maskDeep({
+  const merged = {
     ...kept,
     ...(worse ? { result } : {}),
     ...(description ? { resultDescription: description } : {}),
     ...fields,
-  });
+  };
+  contextReport.autoRecording = maskDeep({ ...merged, ...classifyStepFailure(merged) });
 }
 
 // A file's path relative to the run folder, with forward slashes, so the same
@@ -4621,7 +4592,7 @@ async function runContext({
   // browser object with no name), skip with an explicit reason instead of
   // letting it fail later as "Failed to start context 'undefined'".
   if (isBrowserRequired({ test: context }) && !context.browser?.name) {
-    const errorMessage = `Skipping context on '${context.platform}': no supported browser is available in the current environment.`;
+    const errorMessage = `Skipped: no supported browser is available on \`${context.platform}\`.`;
     clog("warning", errorMessage);
     contextReport.result = "SKIPPED";
     contextReport.resultDescription = errorMessage;
@@ -4726,8 +4697,8 @@ async function runContext({
   if (driverRequired && !mobileWebBrowserName && candidateEngines.length === 0) {
     const errorMessage = freshInstallRedetected
       ? freshInstallOutcome === "installed"
-        ? `Skipping context '${requestedBrowserName}' on '${context.platform}': the missing browser dependency was installed but still could not be detected.`
-        : `Skipping context '${requestedBrowserName}' on '${context.platform}': the on-demand install/repair of its browser dependency failed.`
+        ? `Skipped: Doc Detective installed \`${requestedBrowserName}\`'s missing browser dependency, but still couldn't detect it.`
+        : `Skipped: couldn't install or repair \`${requestedBrowserName}\`'s browser dependency.`
       : driverSkipDiagnostic({
           requestedName: requestedBrowserName ?? "<none>",
           // driverSkipDiagnostic treats `platform` as the *current* runner
@@ -4736,6 +4707,7 @@ async function runContext({
           platform,
           platformMatches,
           attemptedFallback: false,
+          targetPlatform: context.platform,
         });
     clog(platformMatches ? "warning" : "info", errorMessage);
     contextReport.result = "SKIPPED";
@@ -4747,9 +4719,7 @@ async function runContext({
   // (android) different from the host and already primed its app session in the
   // mobile branch above.
   if (!driverRequired && !platformMatches && !appSession) {
-    const errorMessage = `Skipping context. The current system doesn't support this context: {"platform": "${
-      context.platform
-    }", "apps": ${JSON.stringify(context.apps)}}`;
+    const errorMessage = `Skipped: this system can't run a \`${context.platform}\` context.`;
     clog("info", errorMessage);
     contextReport.result = "SKIPPED";
     contextReport.resultDescription = errorMessage;
@@ -4773,6 +4743,12 @@ async function runContext({
   // session was found dead mid-run. The caller (runContextWithRetries) reads
   // this off the returned report to decide whether to retry on a fresh session.
   let sessionDiedMidRun = false;
+  // Every step report goes through this. The step loop below replaces it with
+  // the full version; this one serves the cleanup sweep in `finally` when the
+  // context threw before the loop began.
+  let pushStepReport = (rep: any) => {
+    contextReport.steps.push(maskDeep(rep));
+  };
   if (driverRequired && !appiumPool) {
     throw new Error(
       "Browser driver requested but no Appium server pool was created; " +
@@ -4860,7 +4836,7 @@ async function runContext({
                 deps: appSession!.iosSimulatorDeps,
               });
       } catch (error: any) {
-        const errorMessage = `Skipping context on '${mobileTarget}': couldn't prepare the device for the ${mobileWebBrowserName} session (${error?.message ?? error}). Check the emulator/simulator toolchain (\`doc-detective install ${mobileTarget}\`).`;
+        const errorMessage = `Skipped: couldn't prepare the \`${mobileTarget}\` device for the ${mobileWebBrowserName} session (${error?.message ?? error}). Check the emulator or simulator toolchain with \`doc-detective install ${mobileTarget}\`.`;
         clog("warning", errorMessage);
         contextReport.result = "SKIPPED";
         contextReport.resultDescription = errorMessage;
@@ -4906,7 +4882,7 @@ async function runContext({
           mobileTarget === "android"
             ? " Chrome may not be present on this emulator image — managed Android mobile-web needs a `google_apis` system image (see `doc-detective install android`)."
             : " Check that the simulator runtime includes Safari and that WebDriverAgent can build (see `doc-detective install ios`).";
-        const errorMessage = `Skipping context on '${mobileTarget}': couldn't start the ${mobileWebBrowserName} session on device '${acquired.entry.name}' (${error?.message ?? error}).${hint}`;
+        const errorMessage = `Skipped: couldn't start the ${mobileWebBrowserName} session on the \`${mobileTarget}\` device \`${acquired.entry.name}\` (${error?.message ?? error}).${hint}`;
         clog("warning", errorMessage);
         contextReport.result = "SKIPPED";
         contextReport.resultDescription = errorMessage;
@@ -5240,7 +5216,7 @@ async function runContext({
     // the failure wording (the only way execution stopped before routing); a
     // non-failure routing `stop` (e.g. onPass/onSkip stop) overwrites it with an
     // accurate message so a passing step's stop isn't mislabeled as a failure.
-    let stopReason = "Skipped due to previous failure in context.";
+    let stopReason = "Skipped: a prior step failed.";
     const usedStepIds = new Set(
       context.steps.map((s: any) => s.stepId).filter(Boolean)
     );
@@ -5287,9 +5263,10 @@ async function runContext({
     // Push a step report, stamping `visit` (1-based count of times this stepId
     // has been recorded) once a goToStep loop produces more than one. Additive:
     // a single-visit report omits `visit` and stays byte-identical (mirrors
-    // `attempts`). Used for EVERY step-report push in the loop — ran, skipped,
-    // and routing-error markers — so re-visited steps are stamped consistently.
-    const pushStepReport = (rep: any) => {
+    // `attempts`). Used for EVERY step-report push — ran, skipped, routing
+    // failures, and the end-of-context recording stops — so re-visited steps
+    // are stamped consistently.
+    pushStepReport = (rep: any) => {
       // The automatic recording isn't a step: its start reports on the context
       // (ADR 01179), and stopAllRecordings merges its stop there.
       if (rep.__autoRecord) {
@@ -5311,10 +5288,31 @@ async function runContext({
       // `{...step}` report spread already drops it; delete defensively here so
       // it can never leak into a report through any push site.
       delete rep._fromAfter;
+      // A FAIL gets its `resultCode` and, from near matches, its `resultHint`
+      // (ADR 01194). Before the mask, so the hint is masked like the rest.
+      Object.assign(rep, classifyStepFailure(rep));
       // The report gets a masked copy; routing, `$$`, and `variables` keep
       // reading the real outputs (ADR 01178).
       contextReport.steps.push(maskDeep(rep));
     };
+    // A routing failure belongs to the step that routed (ADR 01186). Its report
+    // goes FAIL, keeps any reason it already had, and gains this one. It goes
+    // back through pushStepReport, so whatever that does to a report applies to
+    // the merged one too. A separate marker step would fail report_v3 (no
+    // action) and count in `summary.steps`.
+    const failRoutedStep = (reason: string) => {
+      clog("error", reason);
+      const last = contextReport.steps.pop();
+      if (!last) return;
+      if (last.stepId) visitCountById.set(last.stepId, (visitCountById.get(last.stepId) ?? 1) - 1);
+      pushStepReport({
+        ...last,
+        result: "FAIL",
+        resultDescription: [last.resultDescription, reason].filter(Boolean).join(" "),
+      });
+    };
+    const missingStepReason = (stepId: string) =>
+      `Couldn't route to step \`${stepId}\`: no step has that \`stepId\`.`;
     // Per-step outputs accumulator: maps each completed step's stepId to its
     // computed `outputs` bag, so later steps' guard `if` conditions can read a
     // prior step's outputs via `$$steps.<stepId>.outputs.*`. Additive
@@ -5329,24 +5327,17 @@ async function runContext({
       if (decision.action === "stop") {
         stepExecutionFailed = true;
         stopReason =
-          "Skipped because a prior step stopped execution (routing).";
+          "Skipped: a prior step stopped execution (routing).";
         return false;
       }
       if (decision.action === "goToStep") {
         const target = indexByStepId.get(decision.stepId);
         if (target === undefined) {
-          clog(
-            "error",
-            `Routing goToStep target '${decision.stepId}' not found in this test; stopping.`
-          );
-          // An unknown target is a routing misconfiguration. Push a FAIL marker
-          // so the verdict reflects the broken routing — mirrors the run-path.
-          pushStepReport({
-            result: "FAIL",
-            resultDescription: `Routing goToStep target '${decision.stepId}' does not exist.`,
-          });
+          // An unknown target is a routing misconfiguration. Fail the skipped
+          // step that routed, so the verdict reflects it — mirrors the run-path.
+          failRoutedStep(missingStepReason(decision.stepId));
           stepExecutionFailed = true;
-          stopReason = `Skipped because routing goToStep target '${decision.stepId}' does not exist.`;
+          stopReason = `Skipped: routing \`goToStep\` target \`${decision.stepId}\` doesn't exist.`;
           return false;
         }
         i = target; // JUMP (no stepExecutionFailed — flow != verdict)
@@ -5368,16 +5359,11 @@ async function runContext({
 
       totalVisits++;
       if (totalVisits > MAX_TOTAL_VISITS) {
-        clog(
-          "error",
-          `Routing exceeded ${MAX_TOTAL_VISITS} step executions in this context; stopping (possible goToStep loop).`
-        );
         // Surface the runaway as a FAIL so the verdict reflects the abnormal
         // termination — a force-terminated goToStep cycle must not report green.
-        pushStepReport({
-          result: "FAIL",
-          resultDescription: `Routing exceeded the maximum of ${MAX_TOTAL_VISITS} step executions in this context (possible goToStep loop).`,
-        });
+        failRoutedStep(
+          `Couldn't finish the context: routing ran more than ${MAX_TOTAL_VISITS} steps. Check \`goToStep\` for a loop.`
+        );
         stepExecutionFailed = true;
         break;
       }
@@ -5387,13 +5373,13 @@ async function runContext({
       if (step.unsafe && runnerDetails.allowUnsafeSteps === false) {
         clog(
           "warning",
-          `Skipping unsafe step: ${step.description} in test ${test.testId} context ${context.contextId}`
+          `Skipped: unsafe step \`${step.stepId}\` in test \`${test.testId}\`, context \`${context.contextId}\`.`
         );
         // Mark as skipped
         const stepReport = {
           ...step,
           result: "SKIPPED",
-          resultDescription: "Skipped because unsafe steps aren't allowed. Pass --allow-unsafe to run them.",
+          resultDescription: "Skipped: unsafe steps aren't allowed. Pass `--allow-unsafe` to run them.",
         };
         pushStepReport(stepReport);
         // onSkip fires only for a REACHED step. The unsafe check precedes the
@@ -5621,7 +5607,7 @@ async function runContext({
           processRegistry,
           surfaceTracker,
         });
-        if (capturedPath) stepReport.autoScreenshot = capturedPath;
+        if (capturedPath) stepReport.autoScreenshotPath = capturedPath;
       }
 
       // Recording checkpoints (ADR 01075): while a checkpoint-enabled
@@ -5666,29 +5652,22 @@ async function runContext({
       // cleanup steps; its FAIL still counts in the rollup so failures surface.
       if (routingDecision.action === "stop" && !step._fromAfter) {
         stepExecutionFailed = true;
-        // Preserve the historical wording when a FAIL stops the test (the
+        // Name the failure when a FAIL stops the test (the
         // default onFail:stop); otherwise record that routing stopped it.
         stopReason =
           stepReport.result === "FAIL"
-            ? "Skipped due to previous failure in context."
-            : "Skipped because a prior step stopped execution (routing).";
+            ? "Skipped: a prior step failed."
+            : "Skipped: a prior step stopped execution (routing).";
         i++;
       } else if (routingDecision.action === "goToStep") {
         const target = indexByStepId.get(routingDecision.stepId);
         if (target === undefined) {
-          clog(
-            "error",
-            `Routing goToStep target '${routingDecision.stepId}' not found in this test; stopping.`
-          );
           // An unknown target is a routing misconfiguration (e.g. a typo'd
-          // stepId). Surface a FAIL so it can't silently report green, then
-          // stop the rest of the context.
-          pushStepReport({
-            result: "FAIL",
-            resultDescription: `Routing goToStep target '${routingDecision.stepId}' does not exist.`,
-          });
+          // stepId). Fail the step that routed so it can't silently report
+          // green, then stop the rest of the context.
+          failRoutedStep(missingStepReason(routingDecision.stepId));
           stepExecutionFailed = true;
-          stopReason = `Skipped because routing goToStep target '${routingDecision.stepId}' does not exist.`;
+          stopReason = `Skipped: routing \`goToStep\` target \`${routingDecision.stepId}\` doesn't exist.`;
           i++;
         } else {
           i = target; // JUMP (no stepExecutionFailed — flow != verdict)
@@ -5705,7 +5684,7 @@ async function runContext({
     // Recordings live per session, so sweep every registered driver — and the
     // app session's recordingHost, which holds app-only-context recordings.
     for (const d of sessionDrivers(browserSessions, driver)) {
-      await stopAllRecordings({ config, context, driver: d, contextReport });
+      await stopAllRecordings({ config, context, driver: d, contextReport, pushStepReport });
     }
     if (appSession?.recordingHost.state.recordings.length) {
       await stopAllRecordings({
@@ -5713,6 +5692,7 @@ async function runContext({
         context,
         driver: appSession.recordingHost,
         contextReport,
+        pushStepReport,
       });
     }
 
@@ -5794,7 +5774,7 @@ async function runContext({
       // so this is a no-op; it only does work when the context threw before the
       // in-loop sweep, finalizing recordings before deleteSession kills them.
       for (const d of sessionDrivers(browserSessions, driver)) {
-        await stopAllRecordings({ config, context, driver: d, contextReport });
+        await stopAllRecordings({ config, context, driver: d, contextReport, pushStepReport });
       }
       if (appSession?.recordingHost.state.recordings.length) {
         await stopAllRecordings({
@@ -5802,6 +5782,7 @@ async function runContext({
           context,
           driver: appSession.recordingHost,
           contextReport,
+          pushStepReport,
         });
       }
     } catch (error: any) {
@@ -6014,11 +5995,13 @@ async function stopAllRecordings({
   context,
   driver,
   contextReport,
+  pushStepReport = (rep: any) => contextReport.steps.push(maskDeep(rep)),
 }: {
   config: any;
   context: any;
   driver: any;
   contextReport: any;
+  pushStepReport?: (rep: any) => void;
 }): Promise<void> {
   if (!Array.isArray(driver?.state?.recordings)) return;
   let guard = driver.state.recordings.length + 1;
@@ -6061,14 +6044,12 @@ async function stopAllRecordings({
         });
         continue;
       }
-      contextReport.steps.push(
-        maskDeep({
-          ...stopRecordStep,
-          ...stepResult,
-          startedAt: new Date(stopStart).toISOString(),
-          durationMs: Date.now() - stopStart,
-        })
-      );
+      pushStepReport({
+        ...stopRecordStep,
+        ...stepResult,
+        startedAt: new Date(stopStart).toISOString(),
+        durationMs: Date.now() - stopStart,
+      });
     } catch (error: any) {
       // A throw from runStep would otherwise strand the remaining handles.
       // Drop the top handle so the loop can't spin, and record the failure.
@@ -6085,15 +6066,13 @@ async function stopAllRecordings({
         );
         continue;
       }
-      contextReport.steps.push(
-        maskDeep({
-          ...stopRecordStep,
-          result: "FAIL",
-          resultDescription: failure,
-          startedAt: new Date(stopStart).toISOString(),
-          durationMs: Date.now() - stopStart,
-        })
-      );
+      pushStepReport({
+        ...stopRecordStep,
+        result: "FAIL",
+        resultDescription: failure,
+        startedAt: new Date(stopStart).toISOString(),
+        durationMs: Date.now() - stopStart,
+      });
     }
   }
 }
@@ -6827,17 +6806,29 @@ async function driverStart(
  * ensureBrowserInstalled calls the runTests pre-flight makes. Heavy deps are
  * imported dynamically so a pure HTTP/CLI consumer never loads them.
  */
-async function provisionChromeRuntime(config: any): Promise<void> {
+// Bridge runtime modules' (msg, level) logger to core/utils.ts#log. Typed as
+// Logger: its LogLevel has no "warn", which log() would drop.
+function chromeRuntimeLogger(config: any): Logger {
+  return (msg, level = "info") => log(config, level, msg);
+}
+
+/**
+ * Install the npm half of the Chrome runtime, or reinstall any cached package
+ * whose version no longer matches its pin. A no-op when the cache is current.
+ */
+async function refreshChromeNpmRuntime(config: any): Promise<void> {
   const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
-  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
-  const ctx = { cacheDir: config?.cacheDir };
-  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log. Typed as
-  // Logger: its LogLevel has no "warn", which log() would drop.
-  const logger: Logger = (msg, level = "info") => log(config, level, msg);
   await ensureRuntimeInstalled(
     ["webdriverio", "appium", "@puppeteer/browsers", "appium-chromium-driver"],
-    { ctx, deps: { logger } }
+    { ctx: { cacheDir: config?.cacheDir }, deps: { logger: chromeRuntimeLogger(config) } }
   );
+}
+
+async function provisionChromeRuntime(config: any): Promise<void> {
+  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
+  const ctx = { cacheDir: config?.cacheDir };
+  const logger = chromeRuntimeLogger(config);
+  await refreshChromeNpmRuntime(config);
   await ensureBrowserInstalled("chrome", { ctx, deps: { logger } });
   await ensureBrowserInstalled("chromedriver", { ctx, deps: { logger } });
 }
@@ -6859,12 +6850,26 @@ async function ensureChromeAvailable(
   deps: {
     detect: (config: any) => Promise<any[]>;
     provision: (config: any) => Promise<void>;
+    /** Bring cached npm packages up to their pins when Chrome is already present. */
+    refresh?: (config: any) => Promise<void>;
     invalidate: (config: any) => void;
     log?: (config: any, level: string, msg: string) => void;
   }
 ): Promise<any[]> {
   let availableApps = await deps.detect(config);
   if (availableApps.some((app: any) => app.name === "chrome")) {
+    try {
+      await deps.refresh?.(config);
+    } catch (err: any) {
+      // Offline or a failed install: the cached versions still run.
+      deps.log?.(
+        config,
+        "warning",
+        `Couldn't update the cached browser runtime, so this run uses the cached versions: ${
+          err?.message ?? err
+        }`
+      );
+    }
     return availableApps;
   }
   // Chrome not detected — attempt to provision it, then re-detect.
@@ -6992,6 +6997,7 @@ async function getRunner(options: any = {}) {
     availableApps: await ensureChromeAvailable(config, {
       detect: (c: any) => getAvailableApps({ config: c }),
       provision: provisionChromeRuntime,
+      refresh: refreshChromeNpmRuntime,
       invalidate: clearAppCache,
       log,
     }),

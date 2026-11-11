@@ -17,7 +17,7 @@ import {
   ensureRuntimeInstalled,
 } from "../runtime/loader.js";
 import { resolveWindowsBash as defaultResolveWindowsBash } from "../runtime/windowsBash.js";
-import { ownVersion } from "../runtime/heavyDeps.js";
+import { ownVersion, packageRoot } from "../runtime/heavyDeps.js";
 import {
   assertConptyAllocatable,
   ensurePtyBackendOnDisk,
@@ -25,6 +25,7 @@ import {
 import { createRequire } from "node:module";
 import type { AxiosRequestConfig } from "axios";
 import { applyVerification, declarePage, VERIFIED_TOOL } from "./verification.js";
+import { validate } from "../common/src/validate.js";
 
 // axios (~70 modules with its deps) loads on first use rather than at CLI
 // startup (see test/startup-modules.test.js). Cached, so hot paths pay the
@@ -98,6 +99,7 @@ export {
   timestamp,
   getOrInitRunTimestamp,
   getRunOutputDir,
+  reportOutputDir,
   runArchivesArtifacts,
   replaceEnvs,
   spawnCommand,
@@ -132,6 +134,7 @@ export {
   hasVariable,
   compileFilter,
   isRetryableSessionError,
+  classifyStepFailure,
   isSessionAlive,
   isPageBroken,
   isPageUnnavigated,
@@ -146,6 +149,7 @@ export {
   shouldFailRun,
   runExitCode,
   summarizeSchemaErrors,
+  invalidStepMessage,
   shortJson,
   knownKeysAt,
   configErrorMessage,
@@ -921,6 +925,35 @@ function isRetryableSessionError(
   return startupCeiling > 120000 && SESSION_TIMEOUT_ABORT.test(message);
 }
 
+// A failure the host or network caused rather than the docs or the product:
+// DNS, refused or dropped connections, a dead session, or a page that never
+// loaded (ADR 01194).
+// ponytail: a description-text heuristic, so a message that names none of
+// these lands in `assertion`. Move to error codes carried on the step result if
+// it misclassifies.
+const ENVIRONMENT_FAILURE =
+  /ENOTFOUND|EAI_AGAIN|getaddrinfo|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|net::ERR_|no such window|blank document/i;
+
+// The structured failure fields on a FAIL step report (ADR 01194): `resultCode`
+// says what kind of failure it was, and near matches become `resultHint`.
+// Any other result gets neither.
+function classifyStepFailure(step: any): { resultCode?: "environment" | "drift" | "assertion"; resultHint?: string } {
+  if (step?.result !== "FAIL") return {};
+  const near = step.outputs?.nearMatches;
+  if (Array.isArray(near) && near.length > 0) {
+    const names = near.map((m: any) => `\`${m.text || m.ariaLabel || m.id || m.testId}\``);
+    return {
+      resultCode: "drift",
+      resultHint: `${names.length > 1 ? "Closest matches" : "Closest match"}: ${names.join(", ")}.`,
+    };
+  }
+  const text = String(step.resultDescription ?? "");
+  if (TRANSIENT_SESSION_ERROR.test(text) || ENVIRONMENT_FAILURE.test(text)) {
+    return { resultCode: "environment" };
+  }
+  return { resultCode: "assertion" };
+}
+
 // Active liveness probe for the `retries` context-retry policy. A dead session
 // surfaces a step FAIL that is indistinguishable at the result level from a
 // legitimate assertion FAIL (handlers catch driver errors and return FAIL), so
@@ -1245,10 +1278,14 @@ function shouldFailRun(results: any): boolean {
 }
 
 // Every bundled schema, by key. Loaded only here, on the way to an error: the
-// file is about 40 MB, so the first error in a process waits for it.
+// file is about 40 MB, so the first error in a process waits for it. Found from
+// the package root, not this module's URL: the dist/index.cjs bundle sits one
+// level shallower than dist/core/.
 let loadedAllSchemas: any;
 function allSchemas() {
-  return (loadedAllSchemas ??= createRequire(import.meta.url)("../common/src/schemas/schemas.json"));
+  return (loadedAllSchemas ??= createRequire(import.meta.url)(
+    path.join(packageRoot() ?? ".", "dist", "common", "src", "schemas", "schemas.json")
+  ));
 }
 
 // Every schema node that can describe the value at `parts`, following
@@ -1349,6 +1386,19 @@ const branchRequired = /\/(anyOf|oneOf)\/\d+(\/allOf\/\d+)?\/required$/;
 // the noise of anyOf/oneOf branches the value didn't take dropped, and the
 // nearest real key named when something is unknown. Config and specs read the
 // same (ADR 01150). Raw errors stay available at debug level.
+// What an action reports when its step doesn't validate (ADR 01195). The
+// actions validate without structured errors, so the hot path pays nothing;
+// only this failing path validates again to summarize them.
+function invalidStepMessage(step: any): string {
+  const { errorObjects } = validate({ schemaKey: "step_v3", object: step, structuredErrors: true });
+  // A step-level line has no key path in front ("no action, ..."), so it
+  // starts a sentence here. A key path ("goTo.timeout: ...") keeps its case.
+  const summary = summarizeSchemaErrors(errorObjects, step, "step_v3").replace(/^[a-z]+ /, (word) =>
+    word[0].toUpperCase() + word.slice(1)
+  );
+  return `Couldn't run the step: its definition isn't valid. ${summary}`;
+}
+
 function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootSchemaKey = "spec_v3"): string {
   // AJV types `message` as optional. Name the keyword rather than print
   // "undefined", except `not`, which gets AJV's own words: "not." reads as nonsense.
@@ -1431,7 +1481,7 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
         lines.push(`${prefix}no action, such as ${actions.slice(0, 3).join(", ")}.`);
       } else {
         const near = nearestCommand(unknown[0], actions);
-        lines.push(`${prefix}unknown action '${unknown[0]}'.${near ? ` Did you mean ${near}?` : ""}`);
+        lines.push(`${prefix}unknown action \`${unknown[0]}\`.${near ? ` Did you mean \`${near}\`?` : ""}`);
       }
       continue;
     }
@@ -1442,7 +1492,7 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     for (const key of unknownKeys) {
       const near = nearestCommand(key, known);
       if (near) suggested.add(near);
-      lines.push(`${prefix}unknown key '${key}'.${near ? ` Did you mean ${near}?` : ""}`);
+      lines.push(`${prefix}unknown key \`${key}\`.${near ? ` Did you mean \`${near}\`?` : ""}`);
     }
     // An error deeper down means the value took a branch that got further, so a
     // key only one branch requires came from a branch it didn't take. A key the
@@ -1485,9 +1535,15 @@ function summarizeSchemaErrors(rawErrors: ErrorObject[] = [], object: any, rootS
     if (deeper) continue;
     // An object never matches a list of scalars, so that list came from another branch.
     const isObject = value !== null && typeof value === "object";
-    const allowed = [
+    // When a branch lists values of another type, such as `concurrentRunners`'
+    // `auto` against a number, and another branch types this value, the value
+    // meant the typed branch, so those values don't print.
+    const listed = [
       ...new Set([...of("enum").flatMap((error) => error.params.allowedValues), ...of("const").map((error) => error.params.allowedValue)]),
     ];
+    const sameType = listed.filter((option) => typeof option === typeof value);
+    const explainedElsewhere = rest.some((error) => error.keyword !== "enum" && error.keyword !== "const");
+    const allowed = sameType.length > 0 ? sameType : explainedElsewhere ? [] : listed;
     // Allowed values print bare, here and in the list below; only `got` is JSON.
     if (!isObject && allowed.length === 1) lines.push(`${prefix}must be ${allowed[0]}${got}`);
     else if (!isObject && allowed.length) lines.push(`${prefix}must be one of ${allowed.join(", ")}${got}`);
@@ -2603,16 +2659,16 @@ function evaluateContextRequirements({
 
   const missing: string[] = [];
   for (const command of commands) {
-    if (!commandExists(command)) missing.push(`command "${command}"`);
+    if (!commandExists(command)) missing.push(`command \`${command}\``);
   }
   for (const file of files) {
     if (!existsSync(expandRequirementPath(file, env)))
-      missing.push(`file "${file}"`);
+      missing.push(`file \`${file}\``);
   }
   for (const name of envVars) {
     const value = lookupEnvValue(env, name, platform);
     if (value === undefined || value === "")
-      missing.push(`environment variable "${name}"`);
+      missing.push(`environment variable \`${name}\``);
   }
   return { met: missing.length === 0, missing };
 }
@@ -3087,6 +3143,22 @@ function getOrInitRunTimestamp(config: any): string {
   return config.__runTimestamp;
 }
 
+// The folder a report lands in, given the run's `outputDir` or a report path. A
+// report extension always means a file, so `--output-dir results.json` puts
+// junit.xml beside it instead of making a folder where another reporter is writing
+// the file (reporters run concurrently). Anything else is checked on disk: a folder
+// is used as is, a file's folder is used, and a missing path is treated as a folder.
+// So a dotted folder name (`reports.v1`) stays a folder. Always absolute.
+function reportOutputDir(output: any): string {
+  const resolved = path.resolve(String(output ?? ".") || ".");
+  if (/\.(json|html?|xml|md)$/i.test(resolved)) return path.dirname(resolved);
+  try {
+    return fs.statSync(resolved).isDirectory() ? resolved : path.dirname(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
 // Per-run artifact directory: `<output>/.doc-detective/runs/<runId>/`, where
 // runId is the run timestamp — plus an ordinal suffix (`-2`, `-3`, …) on the
 // rare same-millisecond collision, so the effective runId stamped in the
@@ -3119,14 +3191,7 @@ function getRunOutputDir(
   // Coerce defensively: a programmatic caller could hand us a non-string
   // output (e.g. a PathLike), and the extension check / path ops below assume
   // a string. Mirrors the String() coercion in runFolderReporter.
-  let base = String(config?.outputDir ?? config?.output ?? ".");
-  // Must match the lists in runFolderBaseDir (src/utils.ts) and
-  // reportOutputDir (src/reporters/outputDir.ts) — a divergence would place
-  // the run folder inside a path another reporter writes as a file.
-  const reportFileExtensions = [".json", ".html", ".htm", ".xml", ".md"];
-  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
-    base = path.dirname(base);
-  }
+  const base = reportOutputDir(config?.outputDir ?? config?.output);
   const runsRoot = path.resolve(base, ".doc-detective", "runs");
   const runId = getOrInitRunTimestamp(config);
   let dir = path.join(runsRoot, runId);

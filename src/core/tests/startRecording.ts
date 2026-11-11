@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log, hasVariable } from "../utils.js";
+import { log, hasVariable, invalidStepMessage } from "../utils.js";
 import { maskString } from "../masking.js";
 import { instantiateCursor } from "./moveTo.js";
 import {
@@ -117,7 +117,7 @@ async function beginRecording({
   const isValidStep = validate({ schemaKey: "step_v3", object: authoredStep });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(authoredStep);
     return result;
   }
   // The effective step (ADR 01167): an object with its defaults filled, and a
@@ -125,7 +125,7 @@ async function beginRecording({
   step = isValidStep.object;
   if (step.record === false) {
     result.status = "SKIPPED";
-    result.description = "Recording is disabled (record: false).";
+    result.description = "Skipped: `record` is `false`.";
     return result;
   }
 
@@ -236,7 +236,7 @@ async function beginRecording({
   // then never compare again, silently retiring the drift detection it promises.
   if (fs.existsSync(filePath) && step.record.overwrite == "false") {
     return phantomRecordingResult(
-      `File already exists: ${filePath}`,
+      `Skipped: file already exists at \`${filePath}\`. Set \`overwrite\` to \`true\` to replace it.`,
       "targetExists"
     );
   }
@@ -263,7 +263,7 @@ async function beginRecording({
     )
   ) {
     result.status = "SKIPPED";
-    result.description = `Recording target is already in use by an active recording: ${filePath}`;
+    result.description = `Skipped: recording target \`${filePath}\` is already in use by an active recording.`;
     return result;
   }
 
@@ -279,7 +279,7 @@ async function beginRecording({
   // explicit-browser-engine-on-incapable-context behavior below.
   if (mobileTarget && plan.name !== "device") {
     result.status = "SKIPPED";
-    result.description = `Recordings on ${context.platform} contexts capture the device screen through the app driver; the "${plan.name}" engine doesn't apply — omit \`engine\`.`;
+    result.description = `Skipped: recordings on \`${context.platform}\` contexts capture the device screen through the app driver, so the \`${plan.name}\` engine doesn't apply. Omit \`engine\`.`;
     return result;
   }
 
@@ -289,13 +289,13 @@ async function beginRecording({
   if (appRef && plan.name === "browser") {
     result.status = "SKIPPED";
     result.description =
-      "The browser engine records a Chrome tab and can't capture a native app window. Omit `engine` to record an app surface (ffmpeg, cropped to the app window).";
+      "Skipped: the `browser` engine records a Chrome tab and can't capture a native app window. Omit `engine` to record an app surface (ffmpeg, cropped to the app window).";
     return result;
   }
   if (appRef && plan.name === "ffmpeg" && plan.target === "viewport") {
     result.status = "SKIPPED";
     result.description =
-      "The `viewport` target is the browser content area and doesn't apply to app surfaces. Use `window` (the default) or `display`.";
+      "Skipped: the `viewport` target is the browser content area and doesn't apply to app surfaces. Use `window` (the default) or `display`.";
     return result;
   }
 
@@ -345,7 +345,7 @@ async function beginRecording({
     if (hasActiveDeviceRecording) {
       result.status = "SKIPPED";
       result.description =
-        "A device recording is already running on this device; only one can run at a time. Stop it with stopRecord before starting another.";
+        "Skipped: a device recording is already running on this device, and only one can run at a time. Stop it with `stopRecord` before starting another.";
       return result;
     }
     const platform = appRef?.entry?.platform ?? context?.platform;
@@ -365,7 +365,7 @@ async function beginRecording({
       // bundled ffmpeg onto the app server's PATH, so this is a backstop.
       if (/ffmpeg.*not found/i.test(message)) {
         result.status = "SKIPPED";
-        result.description = `The device recording needs an ffmpeg binary on the Appium server's PATH and none was found; skipping the recording. ${message}`;
+        result.description = `Skipped: the device recording needs an \`ffmpeg\` binary on the Appium server's \`PATH\`, and none was found. ${message.replace(/\.\s*$/, "")}.`;
         return result;
       }
       result.status = "FAIL";
@@ -411,7 +411,7 @@ async function beginRecording({
     // window (headed) or tab (headless, ADR 01176) by a unique title.
     if (context.browser?.name !== "chrome") {
       result.status = "SKIPPED";
-      result.description = `The browser recording engine requires Chrome. Use the ffmpeg engine for '${context.browser?.name}'.`;
+      result.description = `Skipped: the \`browser\` recording engine requires Chrome. Use the \`ffmpeg\` engine for \`${context.browser?.name}\`.`;
       return result;
     }
 

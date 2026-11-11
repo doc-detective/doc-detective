@@ -33,56 +33,18 @@
         "WARNING",
         "SKIPPED"
       ]
-    },
-    "expected": {
-      "description": "The value (or values) the assertion expected. Optional.",
-      "type": [
-        "array",
-        "boolean",
-        "integer",
-        "null",
-        "number",
-        "object",
-        "string"
-      ]
-    },
-    "actual": {
-      "description": "The value actually observed. Optional.",
-      "type": [
-        "array",
-        "boolean",
-        "integer",
-        "null",
-        "number",
-        "object",
-        "string"
-      ]
-    },
-    "description": {
-      "description": "Human-readable explanation of the outcome. Optional.",
-      "type": "string"
     }
   },
   "examples": [
     {
       "statement": "exitCode in [0]",
       "source": "implicit",
-      "result": "PASS",
-      "expected": [
-        0
-      ],
-      "actual": 0,
-      "description": "Returned exit code 0."
+      "result": "PASS"
     },
     {
       "statement": "exitCode in [0]",
       "source": "implicit",
-      "result": "FAIL",
-      "expected": [
-        0
-      ],
-      "actual": 1,
-      "description": "Returned exit code 1. Expected one of [0]."
+      "result": "FAIL"
     },
     {
       "statement": "saved-file variation <= 0.1",

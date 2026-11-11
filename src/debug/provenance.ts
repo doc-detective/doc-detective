@@ -50,13 +50,13 @@ function commaListPresent(value: unknown): boolean {
   );
 }
 
-// Replicates setConfig's --concurrent-runners guard: the bare flag ("") and
-// "true" select CPU-count mode, otherwise the value must parse to a positive
-// integer; anything else (e.g. "abc", "0") logs a warning and does NOT
-// override, so it must not be reported.
+// Replicates setConfig's --concurrent-runners guard: the bare flag (""),
+// "true", and "auto" select CPU-count mode, otherwise the value must parse to
+// a positive integer; anything else (e.g. "abc", "0") logs a warning and does
+// NOT override, so it must not be reported.
 function concurrentRunnersPresent(value: unknown): boolean {
   if (typeof value !== "string") return false;
-  if (value === "" || value.toLowerCase() === "true") return true;
+  if (value === "" || value.toLowerCase() === "true" || value === "auto") return true;
   const count = Number(value);
   return Number.isInteger(count) && count >= 1;
 }

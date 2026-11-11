@@ -309,18 +309,18 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.include("location");
       });
 
-      it("should accept a relative forward-slash step autoScreenshot path", function () {
+      it("should accept a relative forward-slash step autoScreenshotPath", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             goTo: { url: "https://example.com" },
-            autoScreenshot: "screenshots/spec/test/ctx/01-goTo-sabc.png",
+            autoScreenshotPath: "screenshots/spec/test/ctx/01-goTo-sabc.png",
           },
         });
         expect(result.valid, result.errors).to.be.true;
       });
 
-      it("should reject step autoScreenshot paths that are empty, absolute, or backslashed", function () {
+      it("should reject step autoScreenshotPath values that are empty, absolute, or backslashed", function () {
         for (const bad of [
           "",
           "/abs/shot.png",
@@ -329,10 +329,24 @@ import { schemas } from "../dist/index.js";
         ]) {
           const result = validate({
             schemaKey: "step_v3",
-            object: { goTo: { url: "https://example.com" }, autoScreenshot: bad },
+            object: { goTo: { url: "https://example.com" }, autoScreenshotPath: bad },
           });
           expect(result.valid, `expected invalid: ${JSON.stringify(bad)}`).to.be
             .false;
+        }
+      });
+
+      // ADR 01184: a step's `autoScreenshot` was the report's path field, so
+      // `false` on a step validated (coerced to "false") but never stopped the
+      // capture. The key is now unknown on a step.
+      it("should reject autoScreenshot on a step, in either its old path or boolean form", function () {
+        for (const value of [false, true, "screenshots/a.png"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { goTo: { url: "https://example.com" }, autoScreenshot: value },
+          });
+          expect(result.valid, `expected invalid: ${JSON.stringify(value)}`).to.be.false;
+          expect(result.errors).to.include('"additionalProperty":"autoScreenshot"');
         }
       });
 
@@ -732,8 +746,9 @@ import { schemas } from "../dist/index.js";
         }
       });
 
-      it("should validate config_v3 concurrentRunners as a positive integer or true", function () {
-        for (const concurrentRunners of [1, 4, true]) {
+      it("should validate config_v3 concurrentRunners as a positive integer, true, or auto", function () {
+        // ADR 01188: `auto` means what `true` does, as on the CLI.
+        for (const concurrentRunners of [1, 4, true, "auto"]) {
           const result = validate({
             schemaKey: "config_v3",
             object: { input: ".", concurrentRunners },
@@ -745,8 +760,8 @@ import { schemas } from "../dist/index.js";
         }
       });
 
-      it("should reject config_v3 concurrentRunners of 0, false, or a fraction", function () {
-        for (const concurrentRunners of [0, false, 1.5]) {
+      it("should reject config_v3 concurrentRunners of 0, false, a fraction, or another string", function () {
+        for (const concurrentRunners of [0, false, 1.5, "lots", "AUTO"]) {
           const result = validate({
             schemaKey: "config_v3",
             object: { input: ".", concurrentRunners },
@@ -2434,10 +2449,21 @@ import { schemas } from "../dist/index.js";
           expect(result.valid, result.errors).to.be.true;
         });
 
+        it("should accept a failed recording's resultCode and resultHint (ADR 01194)", function () {
+          const result = validates({
+            result: "FAIL",
+            resultDescription: "invalid session id",
+            resultCode: "environment",
+            resultHint: "Rerun the context.",
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
         for (const [name, broken] of [
           ["an unknown key", { result: "PASS", engine: "ffmpeg" }],
           ["no result", { recordingPath: "c.mp4" }],
           ["an unknown result", { result: "BROKEN" }],
+          ["an unknown resultCode", { result: "FAIL", resultCode: "network" }],
         ]) {
           it(`should reject ${name}`, function () {
             expect(validates(broken).valid).to.be.false;
@@ -4347,7 +4373,7 @@ import { schemas } from "../dist/index.js";
 
       it("accepts a step result carrying the system-populated attempts field", function () {
         // `attempts` is a result-only, documented step field (like
-        // `autoScreenshot`). The top-level step schema is permissive (anyOf,
+        // `autoScreenshotPath`). The top-level step schema is permissive (anyOf,
         // no top-level additionalProperties), so this asserts the field is
         // accepted on a result object — its purpose is schema documentation +
         // generated types, not a runtime constraint.
@@ -4549,57 +4575,27 @@ import { schemas } from "../dist/index.js";
         expect(result.valid, result.errors).to.be.true;
       });
 
-      it("validates a full assertion record", function () {
-        const result = validate({
-          schemaKey: "assertion_v3",
-          object: {
-            statement: "exitCode in [0]",
-            source: "implicit",
-            result: "PASS",
-            expected: [0],
-            actual: 0,
-            description: "Returned exit code 0.",
-          },
+      // ADR 01184: the runner never wrote these, so the record doesn't declare them.
+      for (const [key, value] of [
+        ["expected", [0]],
+        ["actual", 0],
+        ["description", "Returned exit code 0."],
+      ]) {
+        it(`rejects an assertion record with ${key}`, function () {
+          const result = validate({
+            schemaKey: "assertion_v3",
+            object: { statement: "exitCode in [0]", source: "implicit", result: "PASS", [key]: value },
+          });
+          expect(result.valid).to.be.false;
         });
-        expect(result.valid, result.errors).to.be.true;
-      });
+      }
 
-      it("validates an assertion record with array expected and number actual", function () {
-        const result = validate({
-          schemaKey: "assertion_v3",
-          object: {
-            statement: "exitCode in [0]",
-            source: "implicit",
-            result: "PASS",
-            expected: [0],
-            actual: 0,
-          },
-        });
-        expect(result.valid, result.errors).to.be.true;
-      });
-
-      it("validates an assertion record with string expected and boolean actual (permissive)", function () {
+      it("rejects an assertion record missing required result", function () {
         const result = validate({
           schemaKey: "assertion_v3",
           object: {
             statement: "value matches",
             source: "custom",
-            result: "PASS",
-            expected: "x",
-            actual: true,
-          },
-        });
-        expect(result.valid, result.errors).to.be.true;
-      });
-
-      it("rejects an assertion record with permissive expected/actual but missing required result", function () {
-        const result = validate({
-          schemaKey: "assertion_v3",
-          object: {
-            statement: "value matches",
-            source: "custom",
-            expected: "x",
-            actual: true,
           },
         });
         expect(result.valid).to.be.false;
@@ -4663,9 +4659,6 @@ import { schemas } from "../dist/index.js";
                 statement: "exitCode in [0]",
                 source: "implicit",
                 result: "PASS",
-                expected: [0],
-                actual: 0,
-                description: "Returned exit code 0.",
               },
             ],
           },
@@ -5493,7 +5486,6 @@ import { schemas } from "../dist/index.js";
               app: "/Applications/Calculator.app",
               name: "calc",
               args: ["--reset"],
-              workingDirectory: "./sandbox",
               env: { LOG_LEVEL: "debug" },
               driverOptions: { "appium:newCommandTimeout": 300 },
               waitUntil: { delayMs: 500, find: { elementText: "Ready" } },

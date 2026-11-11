@@ -1,0 +1,49 @@
+{
+  "specId": "cli-concurrent-runners-auto",
+  "description": "ADR 01188: `concurrentRunners` takes `auto` in config, the same as `true` and `--concurrent-runners auto`, through the real CLI. A string other than `auto` exits 2. Node only, so it PASSes on every platform.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the configs and the spec the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-runners';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/auto.json',JSON.stringify({concurrentRunners:'auto',telemetry:{send:false}}));fs.writeFileSync(d+'/lots.json',JSON.stringify({concurrentRunners:'lots',telemetry:{send:false}}));fs.writeFileSync(d+'/pass.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi'}]}]}));\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "auto-in-config",
+      "description": "`\"concurrentRunners\": \"auto\"` validates and runs.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-runners/auto.json -i .tmp/fixture-runners/pass.spec.json --output-dir .tmp/fixture-runners/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "other-string-exits-2",
+      "description": "Any other string is invalid config.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-runners/lots.json -i .tmp/fixture-runners/pass.spec.json --output-dir .tmp/fixture-runners/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "concurrentRunners: must be auto (got \"lots\")."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -350,10 +350,11 @@ describe("contextRequirementsSkipMessage", function () {
       },
       deps: nothing,
     });
-    assert.ok(message.startsWith("Skipping context on 'windows'"));
-    assert.match(message, /command "adb"/);
-    assert.match(message, /file "\$HOME\/\.config\/app\.toml"/);
-    assert.match(message, /environment variable "API_TOKEN"/);
+    assert.ok(message.startsWith("Skipped: unmet requirements: "), message);
+    assert.ok(message.endsWith("."), message);
+    assert.match(message, /command `adb`/);
+    assert.match(message, /file `\$HOME\/\.config\/app\.toml`/);
+    assert.match(message, /environment variable `API_TOKEN`/);
   });
 
   it("handles the string shorthand as a required command", function () {
@@ -361,7 +362,7 @@ describe("contextRequirementsSkipMessage", function () {
       context: { platform: "mac", requires: "claude" },
       deps: nothing,
     });
-    assert.match(message, /command "claude"/);
+    assert.match(message, /command `claude`/);
   });
 });
 
