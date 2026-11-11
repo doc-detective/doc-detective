@@ -101,6 +101,22 @@ What changed:
 3. The text scan runs once and keeps the `selector` label. The second run
    behind `elementText` repeated the same scan, so it never won.
 
+### Follow-up (#757)
+
+Two costs the change above left in place, with matches still identical:
+
+4. The existence check asks about the matched element's own ID, with the
+   raw `getElementTagName` protocol command, instead of `isExisting()`. One
+   round trip per match, and a stale element still fails it and is skipped.
+   An `all: true` scan with n matches was still O(n²) before this. Drivers
+   without the command, or elements without an ID, fall back to
+   `isExisting()`.
+5. The aria scan queries `//*[@aria-label or not(text()[normalize-space()])]`
+   instead of `//*`. It only runs after the text scan missed on the same
+   pass, and that scan already tested `getText()` on every element with its
+   own text. Those elements can only match by `aria-label`, so the query
+   drops the ones without one. The first hit in document order is the same.
+
 ### The one semantic edge that changes
 
 The shorthand regex path used to look at the page once, a full timeout after
@@ -125,7 +141,7 @@ wait conditions.
   regex steps took 100–514 ms, down from 5.1–5.3 seconds.
 * Neutral, because an aria, id, or testid hit re-runs the higher scans once.
   An id hit pays for one more aria scan, which calls `getText()` on every
-  element that has no matching `aria-label`.
+  element without its own text and without a matching `aria-label`.
 * Good, because matching is unchanged. The candidate set and order are the
   same, the text is the same `getText()`, and the same `RegExp` runs in Node.
 * Neutral, because a regex scan is still one `getText()` round trip per

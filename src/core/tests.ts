@@ -45,10 +45,11 @@ import {
   isRetryableSessionError,
   classifyContextRetry,
   guardBlankDocumentNavigation,
-  realizeViewport,
+  applyBrowserSize,
   isViewportFloored,
+  loadAxios,
+  sessionVersions,
 } from "./utils.js";
-import axios from "axios";
 import { instantiateCursor } from "./tests/moveTo.js";
 import { goTo } from "./tests/goTo.js";
 import { findElement } from "./tests/findElement.js";
@@ -129,6 +130,7 @@ import {
 } from "./warmPhase.js";
 import { locateManagedWda } from "../runtime/wdaProducts.js";
 import { getCacheDir } from "../runtime/cacheDir.js";
+import { packageRoot } from "../runtime/heavyDeps.js";
 import { detectAndroidSdk } from "../runtime/androidSdk.js";
 import {
   hostAbi,
@@ -177,7 +179,19 @@ import {
   useDriversArgs,
   browserPoolDriverPackages,
 } from "./appium.js";
-import { contentHash } from "../common/src/detectTests.js";
+import {
+  reuseAppiumEnabled,
+  appiumServerKey,
+  createServerCache,
+  takeServer,
+  handBackServer,
+  probeStatus,
+  listSessions,
+  allowSessionDiscovery,
+  APPIUM_WATCHDOG_IMPORT,
+} from "./appiumReuse.js";
+import type { Server as AppiumServer } from "./appiumReuse.js";
+import { contentHash } from "../common/src/textUtils.js";
 import { resolveExpression } from "./expressions.js";
 import {
   evaluateCustomAssertions,
@@ -199,9 +213,32 @@ import {
 import { uploadChangedFiles } from "./integrations/index.js";
 import http from "node:http";
 import https from "node:https";
-import { fileURLToPath } from "node:url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Idle browser-pool Appium servers kept between runs in this process, only
+// when DOC_DETECTIVE_REUSE_APPIUM is set (ADR 01125). Empty otherwise.
+// killTree is a hoisted function declaration, called only when a server dies.
+// Background kill failures log at debug under the last reusing run's config.
+// Used only for that log line, so last-writer-wins across concurrent runs is fine.
+// Only logLevel is read (by log()).
+let lastReuseConfig: { logLevel?: string } | undefined;
+const appiumServerCache = createServerCache({
+  kill: (server) => killTree(server.process?.pid),
+  onKillError: (server, err) =>
+    log(
+      lastReuseConfig ?? {},
+      "debug",
+      `Failed to close idle Appium server on port ${server.port}: ${(err as Error)?.message ?? err}`
+    ),
+  idleMs: 60000,
+  maxIdle: 4,
+});
+
+// The runner's appiumIsReady call sites poll at this interval. A refused
+// /status on loopback fails in about a millisecond, so a tighter poll costs
+// nothing and trims the lag between Appium coming up and the run noticing
+// (ADR 01124). appiumIsReady's own 250ms default stays for callers that don't
+// pass `pollMs`.
+const APPIUM_READY_POLL_MS = 50;
 
 export {
   runSpecs,
@@ -228,11 +265,13 @@ export {
   buildAutoRecordStep,
   specIsRouted,
   killTree,
+  appiumServerCache,
   jobDisplayResources,
   buildWarmPlanDeps,
   warmBrowserInstall,
   prefetchMobileChromedriver,
   appiumIsReady,
+  APPIUM_READY_POLL_MS,
   driverStart,
 };
 
@@ -718,6 +757,32 @@ function isBrowserRequired({ test }: { test: any }): boolean {
         // Phase 6: `startSurface: { browser: … }` opens a browser session
         // (the goTo-opener sibling); app/process descriptors don't.
         stepOpensBrowserSurface(step))
+  );
+}
+
+// Whether any context in `specs` could read the available-apps list: it names a
+// browser, targets a mobile platform, or has a step that drives a browser or
+// opens/closes a surface. A deliberate superset of every availableApps reader in
+// this file, so a run where it's false never consults the list and can skip
+// detection (ADR 01133). Falls back to the test's steps only when a context has
+// no steps array; an explicit `steps: []` is a context with nothing to run.
+export function runNeedsAvailableApps(specs: any[]): boolean {
+  const list = (v: any) => (Array.isArray(v) ? v : []);
+  const stepNeedsApps = (step: any) =>
+    Boolean(step) &&
+    typeof step === "object" &&
+    (step.startSurface !== undefined ||
+      step.closeSurface !== undefined ||
+      driverActions.some((key) => step[key] !== undefined));
+  return list(specs).some((spec: any) =>
+    list(spec?.tests).some((test: any) =>
+      list(test?.contexts).some(
+        (context: any) =>
+          Boolean(context?.browser) ||
+          isMobileTargetPlatform(context?.platform) ||
+          list(Array.isArray(context?.steps) ? context.steps : test?.steps).some(stepNeedsApps)
+      )
+    )
   );
 }
 
@@ -1253,36 +1318,6 @@ function driverSkipDiagnostic({
   return msg;
 }
 
-// Realize a context's target viewport and return the size the page actually
-// rendered. Prefers viewport emulation (exact size, no window floor) and falls
-// back to window resizing, warning if the browser/OS floored the request. The
-// `// Confirm viewport size` intent is now realized by realizeViewport's
-// read-back.
-async function setViewportSize(
-  context: any,
-  driver: any,
-  config: any = {}
-): Promise<{ width: number; height: number } | undefined> {
-  // Guard on POSITIVE dimensions (not truthiness): the schema doesn't floor
-  // these, so a 0/negative/NaN value must not enter the resize path — matching
-  // the startSurface browser descriptor's guard.
-  const vw = Number(context.browser?.viewport?.width);
-  const vh = Number(context.browser?.viewport?.height);
-  if (vw > 0 || vh > 0) {
-    const requested = {
-      ...(vw > 0 ? { width: vw } : {}),
-      ...(vh > 0 ? { height: vh } : {}),
-    };
-    // Attribute the warning so a multi-context run can tell which context's
-    // viewport was floored.
-    const label = `viewport for ${context.browser?.name ?? "browser"} on ${
-      context.platform ?? "host"
-    }`;
-    return realizeViewport(driver, requested, config, label);
-  }
-  return undefined;
-}
-
 async function allowUnsafeSteps({ config }: { config: any }) {
   // If allowUnsafeSteps is set to true, return true
   if (config.allowUnsafeSteps === true) return true;
@@ -1302,6 +1337,7 @@ async function allowUnsafeSteps({ config }: { config: any }) {
 
 // Run specifications via API.
 async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests: any; apiKey: any; config?: any }): Promise<any> {
+  const axios = await loadAxios();
   // Apply specFilter / testFilter before sending. Without this the API run
   // path silently ignores --test / --spec, since the orchestration server
   // sees the full unfiltered payload.
@@ -1325,6 +1361,8 @@ async function runViaApi({ resolvedTests, apiKey, config = {} }: { resolvedTests
           steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         },
         // Nothing ran, but the shape stays parity with runSpecs' short-circuit.
+        startedAt: new Date().toISOString(),
+        environment: getEnvironment(),
         durationMs: 0,
         specs: [],
       };
@@ -1494,15 +1532,23 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         contexts: { pass: 0, fail: 0, warning: 0, skipped: 0 },
         steps: { pass: 0, fail: 0, warning: 0, skipped: 0 },
       },
+      startedAt: new Date(runStart).toISOString(),
+      environment: getEnvironment(),
       durationMs: Date.now() - runStart,
       specs: [],
     };
   }
 
-  // Get runner details
+  // Get runner details. Browser detection is skipped when no context can use
+  // its result (ADR 01133); APPIUM_HOME is still set, as detection would have.
+  const needsApps = runNeedsAvailableApps(specs);
+  if (!needsApps) {
+    log(config, "debug", "No context in this run uses a browser; skipping browser detection.");
+    setAppiumHome({ cacheDir: config?.cacheDir });
+  }
   const runnerDetails = {
     environment: getEnvironment(),
-    availableApps: await getAvailableApps({ config }),
+    availableApps: needsApps ? await getAvailableApps({ config }) : [],
     allowUnsafeSteps: await allowUnsafeSteps({ config }),
   };
 
@@ -1542,6 +1588,10 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const report: any = {
     runId,
     runDir,
+    // Run metadata (ADR 01163): when execution started and the host that ran
+    // it, so a consumer can tell product drift from environment drift.
+    startedAt: new Date(runStart).toISOString(),
+    environment: runnerDetails.environment,
     summary: {
       specs: {
         pass: 0,
@@ -1699,6 +1749,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
         description: test.description,
         contentPath: test.contentPath,
         detectSteps: test.detectSteps,
+        // Resolved by position via applyBadgeAnchoredTests (ADR 01141), not by name.
+        badge: test.badge,
+        location: test.location,
         contexts: new Array(test.contexts.length),
       };
       specReport.tests.push(testReport);
@@ -1833,8 +1886,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // (see startAppSurface) and are excluded here, so an app-only run starts no
   // browser server. Non-driver runs start none.
   const browserPoolJobCount = browserJobCount(sizingJobs);
-  let appiumServers: Array<{ port: number; process: any; display?: string }> =
-    [];
+  let appiumServers: AppiumServer[] = [];
   let appiumPool:
     | { acquire(): Promise<number>; release(port: number): void }
     | undefined;
@@ -1844,6 +1896,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const xvfbProcesses: any[] = [];
   const useXvfbDisplays = concurrency.xvfbContexts.length > 0;
   let portToDisplay: Map<number, string> | undefined;
+  // Set only when this run takes and hands back idle servers (ADR 01125).
+  // Xvfb runs never reuse: their displays die with the run.
+  let reuseKey: string | undefined;
 
   if (browserPoolJobCount > 0) {
     setAppiumHome({ cacheDir: config?.cacheDir });
@@ -1876,32 +1931,59 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
       const readinessWaits: Promise<boolean>[] = [];
       // Load only the desktop browser drivers (ADR 01117): the shared home
       // also holds the mobile drivers, which roughly doubled startup.
-      const useDrivers = useDriversArgs(
-        process.env.APPIUM_HOME!,
-        browserPoolDriverPackages(process.platform)
-      );
+      const poolDriverPackages = browserPoolDriverPackages(process.platform);
+      const useDrivers = useDriversArgs(process.env.APPIUM_HOME!, poolDriverPackages);
+      // Every desktop pool server allows the geckodriver-path insecure
+      // feature, not just the ones a Firefox context lands on: these servers
+      // are shared across contexts and cross-browser fallback can route a
+      // chrome-authored context to Firefox mid-run, so gating the flag on the
+      // run's authored browsers would leave the capability illegal exactly
+      // when the fallback needs it. See GECKODRIVER_EXECUTABLE_ARGS.
+      let serverArgs = [...GECKODRIVER_EXECUTABLE_ARGS, ...useDrivers];
+      if (reuseAppiumEnabled() && !useXvfbDisplays) {
+        // Hand-back must be able to list leftover sessions.
+        serverArgs = allowSessionDiscovery(serverArgs);
+        lastReuseConfig = config;
+        reuseKey = appiumServerKey({
+          entry: appiumEntry,
+          args: serverArgs,
+          env: process.env,
+          appiumHome: process.env.APPIUM_HOME!,
+          packages: ["appium", ...poolDriverPackages],
+        });
+      }
       for (let i = 0; i < serverCount; i++) {
+        const reused = reuseKey
+          ? await takeServer(appiumServerCache, reuseKey, { isReady: probeStatus })
+          : undefined;
+        if (reused) {
+          log(config, "debug", `Reusing idle Appium server on port ${reused.port}.`);
+          // A spawn would prefetch webdriverio (ADR 01135); a reused server
+          // skips the spawn, so start the import here instead.
+          prefetchHeavyDep("webdriverio", { cacheDir: config?.cacheDir });
+          appiumServers.push(reused);
+          continue;
+        }
         let display: string | undefined;
         if (useXvfbDisplays) {
           display = xvfbDisplay(i);
           xvfbProcesses.push(await startXvfb(display));
           log(config, "debug", `Started Xvfb on ${display} for recording.`);
         }
-        // Every desktop pool server allows the geckodriver-path insecure
-        // feature, not just the ones a Firefox context lands on: these servers
-        // are shared across contexts and cross-browser fallback can route a
-        // chrome-authored context to Firefox mid-run, so gating the flag on the
-        // run's authored browsers would leave the capability illegal exactly
-        // when the fallback needs it. See GECKODRIVER_EXECUTABLE_ARGS.
+        // A reusable server exits once this process dies (ADR 01125).
         const server = await spawnAppiumServer(
           appiumEntry,
           config,
           display,
           undefined,
-          [...GECKODRIVER_EXECUTABLE_ARGS, ...useDrivers]
+          serverArgs,
+          reuseKey ? ["--import", APPIUM_WATCHDOG_IMPORT] : undefined
         );
+        appiumServerCache.resetPort(server.port);
         appiumServers.push(server);
-        const wait = appiumIsReady(server.port);
+        const wait = appiumIsReady(server.port, undefined, {
+          pollMs: APPIUM_READY_POLL_MS,
+        });
         // Attach a no-op catch so that once Promise.all rejects on the FIRST
         // failing server, the other still-pending readiness rejections don't
         // surface as unhandled promise rejections. Promise.all still sees the
@@ -2269,8 +2351,23 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     // (shells out to `taskkill /T /F` on Windows); firing it without
     // awaiting let the run finish before the browser was really dead,
     // orphaning it.
+    // With reuse on (ADR 01125), a server with no sessions left goes back to
+    // the cache instead; one that still has a session is killed the same way.
     await Promise.all(
-      appiumServers.map((server) => {
+      appiumServers.map(async (server) => {
+        if (reuseKey) {
+          const outcome = await handBackServer(appiumServerCache, reuseKey, server, {
+            listSessions,
+          });
+          log(
+            config,
+            "debug",
+            outcome === "parked"
+              ? `Keeping idle Appium server on port ${server.port} for reuse.`
+              : `Closed Appium server on port ${server.port}`
+          );
+          return;
+        }
         log(config, "debug", `Closing Appium server on port ${server.port}`);
         return killTree(server.process?.pid);
       })
@@ -2324,35 +2421,55 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
     process.off("SIGTERM", onSignal);
   }
 
-  // Upload changed files back to source integrations (best-effort)
-  // This automatically syncs any changed screenshots back to their source CMS
-  // Only upload if uploadOnChange is enabled (defaults to true for backward compatibility)
-  // Check both global config.uploadOnChange and per-integration uploadOnChange settings
-  const herettoConfigs = config?.integrations?.heretto || [];
-  const hasUploadEnabledIntegration = herettoConfigs.some(
-    (h: any) => h.uploadOnChange !== false // Default to true if not explicitly set to false
-  );
-  const globalUploadOnChange = config?.uploadOnChange ?? true;
-  if (globalUploadOnChange && hasUploadEnabledIntegration && herettoConfigs.length > 0) {
-    try {
-      const uploadResults = await uploadChangedFiles({ config, report, log });
-      report.uploadResults = uploadResults;
-    } catch (error: any) {
-      log(config, "warning", `Failed to upload changed files: ${error.message}`);
-      report.uploadResults = {
-        total: 0,
-        successful: 0,
-        failed: 0,
-        skipped: 0,
-        error: error.message,
-      };
-    }
-  }
+  // An absent `report.uploadResults` means no integration opted in, so no
+  // upload was attempted.
+  const uploadResults = await uploadChangedFilesIfEnabled({ config, report, log });
+  if (uploadResults) report.uploadResults = uploadResults;
 
   // Stamped last, after teardown and any Heretto upload, so the number matches
   // the elapsed time a user actually observes.
   report.durationMs = Date.now() - runStart;
   return report;
+}
+
+/**
+ * Upload changed files back to their source integrations (best-effort). Opt-in:
+ * runs only when some integration, of any type, sets `uploadOnChange: true`
+ * (schema default false); uploadChangedFiles then skips files from
+ * integrations that didn't. Returns undefined when nothing opted in. A thrown
+ * upload still returns the success shape, with empty `details` and `error`.
+ * `upload` is injectable for tests.
+ */
+export async function uploadChangedFilesIfEnabled({
+  config,
+  report,
+  log: logFn,
+  upload = uploadChangedFiles,
+}: {
+  config: any;
+  report: any;
+  log: any;
+  upload?: typeof uploadChangedFiles;
+}): Promise<any> {
+  const integrationEntries = Object.values(config?.integrations ?? {}).flatMap(
+    (entries: any) => (Array.isArray(entries) ? entries : [])
+  );
+  if (!integrationEntries.some((entry: any) => entry?.uploadOnChange === true)) {
+    return undefined;
+  }
+  try {
+    return await upload({ config, report, log: logFn });
+  } catch (error: any) {
+    logFn(config, "warning", `Failed to upload changed files: ${error.message}`);
+    return {
+      total: 0,
+      successful: 0,
+      failed: 0,
+      skipped: 0,
+      details: [],
+      error: error.message,
+    };
+  }
 }
 
 /**
@@ -2503,6 +2620,8 @@ async function runRoutedSpec({
       description: test.description,
       contentPath: test.contentPath,
       detectSteps: test.detectSteps,
+      badge: test.badge,
+      location: test.location,
       contexts: new Array(test.contexts.length),
     };
     // Stamp the visit number when a backward goToTest re-ran this test (additive
@@ -4458,6 +4577,15 @@ async function runContext({
         engine: String(mobileWebBrowserName).toLowerCase(),
         driver,
       });
+      // Device browser versions, as far as the session reports them (ADR
+      // 01163); there's no desktop app entry to fall back on.
+      const versions = sessionVersions({ capabilities: driver?.capabilities });
+      if (versions.browserVersion)
+        contextReport.browser = {
+          ...contextReport.browser,
+          version: versions.browserVersion,
+        };
+      if (versions.driver) contextReport.driver = versions.driver;
       /* c8 ignore stop */
     } else if (driverRequired) {
       // Check out a server for this context's lifetime — released in the
@@ -4505,14 +4633,6 @@ async function runContext({
             runnerDetails,
             name: browserName,
             options: {
-              width:
-                overrides?.size?.width ||
-                context.browser?.window?.width ||
-                1200,
-              height:
-                overrides?.size?.height ||
-                context.browser?.window?.height ||
-                800,
               headless,
               ...recordOptions,
             },
@@ -4664,6 +4784,20 @@ async function runContext({
         };
         clog("warning", fellBackNote);
       }
+      // The browser and driver that actually ran, for the report (ADR 01163).
+      // A copy, so the version never feeds back into the context's settings.
+      const versions = sessionVersions({
+        capabilities: driver?.capabilities,
+        app: availableApps.find(
+          (app: any) => app.name === normalizeBrowserName(startedName)
+        ),
+      });
+      if (versions.browserVersion)
+        contextReport.browser = {
+          ...contextReport.browser,
+          version: versions.browserVersion,
+        };
+      if (versions.driver) contextReport.driver = versions.driver;
 
       // Multi-surface Phase 4 (ADR 01019): register the default session in the
       // context's session registry under its engine name, so it resolves like
@@ -4678,6 +4812,26 @@ async function runContext({
           open: async (engine: string, overrides?: BrowserOpenOverrides) => {
             const res = await startDriverForBrowser(engine, overrides);
             if (!res.ok) throw new Error(res.error);
+            // A later session takes the context's size unless its
+            // startSurface descriptor sets `size`. A sizing failure leaves
+            // the session usable at its default size, so warn, don't fail.
+            try {
+              await applyBrowserSize(
+                res.driver,
+                Number(overrides?.size?.width) > 0 ||
+                  Number(overrides?.size?.height) > 0
+                  ? { window: overrides!.size }
+                  : context.browser,
+                config,
+                `browser session for ${engine}`
+              );
+            } catch (error: any) {
+              log(
+                config,
+                "warning",
+                `Couldn't size the new ${engine} session: ${error?.message ?? error}`
+              );
+            }
             return res.driver;
           },
           isNameTaken: (name: string) => !!processRegistry?.has(name),
@@ -4690,40 +4844,27 @@ async function runContext({
         });
       }
 
-      // Positive-dimension guard (not truthiness): a 0/negative/NaN viewport
-      // must fall through to the window-size branch rather than entering the
-      // (no-op) viewport path.
-      const viewportW = Number(context.browser?.viewport?.width);
-      const viewportH = Number(context.browser?.viewport?.height);
-      if (viewportW > 0 || viewportH > 0) {
-        // Set driver viewport size
-        const realized = await setViewportSize(context, driver, config);
-        // Stamp the context REPORT (not the context object — the report is a
-        // curated copy) when the browser floored the request. A context-level
-        // viewport has no step output to carry the realized size, so this is
-        // the only signal the post-run `useMobilePlatforms` hint can read.
-        if (
-          isViewportFloored(
-            {
-              ...(viewportW > 0 ? { width: viewportW } : {}),
-              ...(viewportH > 0 ? { height: viewportH } : {}),
-            },
-            realized
-          )
-        ) {
-          contextReport.viewportFloored = true;
-        }
-      } else if (
-        context.browser?.window?.width ||
-        context.browser?.window?.height
+      // Size the session: the authored viewport, else the authored window,
+      // else the default viewport (ADR 01144). The label attributes a floor
+      // warning to this context in a multi-context run.
+      const sizing = await applyBrowserSize(
+        driver,
+        context.browser,
+        config,
+        `viewport for ${context.browser?.name ?? "browser"} on ${
+          context.platform ?? "host"
+        }`
+      );
+      // Stamp the context REPORT (not the context object — the report is a
+      // curated copy) when the browser floored an authored viewport. A
+      // context-level viewport has no step output to carry the realized size,
+      // so this is the only signal the post-run `useMobilePlatforms` hint can
+      // read.
+      if (
+        sizing.target.kind === "viewport" &&
+        isViewportFloored(sizing.target, sizing.realized)
       ) {
-        // Get driver window size
-        const windowSize = await driver.getWindowSize();
-        // Resize window if necessary
-        await driver.setWindowSize(
-          context.browser?.window?.width || windowSize.width,
-          context.browser?.window?.height || windowSize.height
-        );
+        contextReport.viewportFloored = true;
       }
     }
 
@@ -5003,7 +5144,12 @@ async function runContext({
         // and `r` is the runStep result — neither may clobber the timing.
         // On retry the loop below discards this report wholesale, so the
         // surviving value is the FINAL attempt's, per ADR 01083.
-        return { ...step, ...r, durationMs: Date.now() - stepStart } as any;
+        return {
+          ...step,
+          ...r,
+          startedAt: new Date(stepStart).toISOString(),
+          durationMs: Date.now() - stepStart,
+        } as any;
       };
 
       // Run the step, then resolve routing. A `retry` decision re-runs the step
@@ -5403,6 +5549,7 @@ async function runContextWithRetries(
     const start = Date.now();
     const report = await runContextFn(a);
     if (report && typeof report === "object") {
+      report.startedAt = new Date(start).toISOString();
       report.durationMs = Date.now() - start;
     }
     return report;
@@ -5519,6 +5666,7 @@ async function stopAllRecordings({
       contextReport.steps.push({
         ...stopRecordStep,
         ...stepResult,
+        startedAt: new Date(stopStart).toISOString(),
         durationMs: Date.now() - stopStart,
       });
     } catch (error: any) {
@@ -5530,6 +5678,7 @@ async function stopAllRecordings({
         ...stopRecordStep,
         result: "FAIL",
         resultDescription: `Couldn't stop recording. ${error?.message ?? error}`,
+        startedAt: new Date(stopStart).toISOString(),
         durationMs: Date.now() - stopStart,
       });
     }
@@ -5942,8 +6091,10 @@ async function spawnAppiumServer(
   extraEnv?: Record<string, string>,
   // Extra CLI args for the server, e.g. the scoped `--allow-insecure`
   // chromedriver-autodownload opt-in for android mobile-web sessions.
-  extraArgs?: string[]
-): Promise<{ port: number; process: any; display?: string }> {
+  extraArgs?: string[],
+  // Node args placed before the entry, e.g. the reuse watchdog (ADR 01125).
+  nodeArgs?: string[]
+): Promise<AppiumServer> {
   const port = await findFreePort();
   log(config, "debug", `Starting Appium on port ${port}`);
   // When a virtual display is supplied (Linux Xvfb recording), launch the
@@ -5959,12 +6110,20 @@ async function spawnAppiumServer(
           ...(extraEnv ?? {}),
         }
       : process.env;
-  const proc: any = spawn(
+  const proc = spawn(
     process.execPath,
-    [appiumEntry, "-a", "127.0.0.1", "-p", String(port), ...(extraArgs ?? [])],
+    [
+      ...(nodeArgs ?? []),
+      appiumEntry,
+      "-a",
+      "127.0.0.1",
+      "-p",
+      String(port),
+      ...(extraArgs ?? []),
+    ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      cwd: packageRoot(),
       env,
     }
   );
@@ -5990,7 +6149,7 @@ async function startAppiumServer(
   // Extra CLI args for the server, e.g. the scoped `--allow-insecure`
   // chromedriver-autodownload opt-in for android mobile-web sessions.
   extraArgs?: string[]
-): Promise<{ port: number; process: any; display?: string }> {
+): Promise<AppiumServer> {
   const server = await spawnAppiumServer(
     appiumEntry,
     config,
@@ -5999,7 +6158,9 @@ async function startAppiumServer(
     extraArgs
   );
   try {
-    await appiumIsReady(server.port);
+    await appiumIsReady(server.port, undefined, {
+      pollMs: APPIUM_READY_POLL_MS,
+    });
   } catch (error) {
     // appiumIsReady threw or timed out — the spawned child is still alive and
     // would leak (orphan process, port still bound). Tear it down before
@@ -6030,8 +6191,10 @@ async function appiumIsReady(
   deps: {
     probe?: (port: number) => Promise<boolean>;
     sleep?: (ms: number) => Promise<void>;
+    pollMs?: number;
   } = {}
 ) {
+  const pollMs = deps.pollMs ?? 250;
   const probe =
     deps.probe ??
     (async (p: number) => {
@@ -6039,7 +6202,7 @@ async function appiumIsReady(
         // Bound each probe: without a per-request timeout a hung /status
         // response would block this await indefinitely, and the overall
         // `timeoutMs` guard (checked only between probes) could never fire.
-        const resp = await axios.get(`http://127.0.0.1:${p}/status`, {
+        const resp = await (await loadAxios()).get(`http://127.0.0.1:${p}/status`, {
           timeout: STATUS_PROBE_TIMEOUT_MS,
         });
         return resp.status === 200;
@@ -6057,7 +6220,7 @@ async function appiumIsReady(
         `Appium server on port ${port} failed to start within ${timeoutMs / 1000} seconds`
       );
     }
-    await sleep(250);
+    await sleep(pollMs);
   }
 }
 
@@ -6110,7 +6273,12 @@ async function driverStart(
       const attemptCaps = driverPortCapability(capabilities)
         ? withDriverPort(capabilities, await findFreePort())
         : capabilities;
-      const driver: any = await (ctx.remote ?? wdio.remote)({
+      // Every attempt is reported to the reuse cache: a failed or abandoned
+      // start may still register a session on this server, so it must not be
+      // handed to a later run (ADR 01125).
+      const settle = appiumServerCache.sessionStarting(port);
+      // Start from a resolved promise so a synchronous throw still settles.
+      const driver: any = await Promise.resolve().then(() => (ctx.remote ?? wdio.remote)({
         protocol: "http",
         hostname: "127.0.0.1",
         port,
@@ -6119,7 +6287,19 @@ async function driverStart(
         capabilities: attemptCaps,
         connectionRetryTimeout: startupCeiling,
         waitforTimeout: 120000, // 2 minutes
-      });
+        // webdriverio 10's `$` throws when a selector matches several
+        // elements. Keep the documented first-match behavior (ADR 01143).
+        strictSelectors: false,
+      })).then(
+        (d: any) => {
+          settle(true);
+          return d;
+        },
+        (e: any) => {
+          settle(false);
+          throw e;
+        }
+      );
       // Per-context mutable state. `recordings` lives here (not on config)
       // so concurrent contexts can't clobber each other's recordings. It is a
       // stack of active recording handles (LIFO) so several can overlap within
@@ -6175,18 +6355,30 @@ async function driverStart(
  * ensureBrowserInstalled calls the runTests pre-flight makes. Heavy deps are
  * imported dynamically so a pure HTTP/CLI consumer never loads them.
  */
-async function provisionChromeRuntime(config: any): Promise<void> {
-  const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
-  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
-  const ctx = { cacheDir: config?.cacheDir };
-  // Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
-  // "warn" → "warning" the same way the runTests pre-flight does.
-  const logger = (msg: string, level: string = "info") =>
+// Bridge runtime modules' (msg, level) logger to core/utils.ts#log, mapping
+// "warn" → "warning" the same way the runTests pre-flight does.
+function chromeRuntimeLogger(config: any) {
+  return (msg: string, level: string = "info") =>
     log(config, level === "warn" ? "warning" : level, msg);
+}
+
+/**
+ * Install the npm half of the Chrome runtime, or reinstall any cached package
+ * whose version no longer matches its pin. A no-op when the cache is current.
+ */
+async function refreshChromeNpmRuntime(config: any): Promise<void> {
+  const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
   await ensureRuntimeInstalled(
     ["webdriverio", "appium", "@puppeteer/browsers", "appium-chromium-driver"],
-    { ctx, deps: { logger } }
+    { ctx: { cacheDir: config?.cacheDir }, deps: { logger: chromeRuntimeLogger(config) } }
   );
+}
+
+async function provisionChromeRuntime(config: any): Promise<void> {
+  const { ensureBrowserInstalled } = await import("../runtime/browsers.js");
+  const ctx = { cacheDir: config?.cacheDir };
+  const logger = chromeRuntimeLogger(config);
+  await refreshChromeNpmRuntime(config);
   await ensureBrowserInstalled("chrome", { ctx, deps: { logger } });
   await ensureBrowserInstalled("chromedriver", { ctx, deps: { logger } });
 }
@@ -6208,12 +6400,26 @@ async function ensureChromeAvailable(
   deps: {
     detect: (config: any) => Promise<any[]>;
     provision: (config: any) => Promise<void>;
+    /** Bring cached npm packages up to their pins when Chrome is already present. */
+    refresh?: (config: any) => Promise<void>;
     invalidate: (config: any) => void;
     log?: (config: any, level: string, msg: string) => void;
   }
 ): Promise<any[]> {
   let availableApps = await deps.detect(config);
   if (availableApps.some((app: any) => app.name === "chrome")) {
+    try {
+      await deps.refresh?.(config);
+    } catch (err: any) {
+      // Offline or a failed install: the cached versions still run.
+      deps.log?.(
+        config,
+        "warning",
+        `Couldn't update the cached browser runtime, so this run uses the cached versions: ${
+          err?.message ?? err
+        }`
+      );
+    }
     return availableApps;
   }
   // Chrome not detected — attempt to provision it, then re-detect.
@@ -6342,6 +6548,7 @@ async function getRunner(options: any = {}) {
     availableApps: await ensureChromeAvailable(config, {
       detect: (c: any) => getAvailableApps({ config: c }),
       provision: provisionChromeRuntime,
+      refresh: refreshChromeNpmRuntime,
       invalidate: clearAppCache,
       log,
     }),
@@ -6375,7 +6582,7 @@ async function getRunner(options: any = {}) {
     ],
     {
       windowsHide: true,
-      cwd: path.join(__dirname, "../.."),
+      cwd: packageRoot(),
     }
   );
   // Without a listener an "error" event from spawn (e.g. ENOENT, EACCES)
@@ -6390,7 +6597,9 @@ async function getRunner(options: any = {}) {
   // runSpecs above — without it, a startup timeout would leave an
   // orphan Appium child holding the ephemeral port.
   try {
-    await appiumIsReady(appiumPort);
+    await appiumIsReady(appiumPort, undefined, {
+      pollMs: APPIUM_READY_POLL_MS,
+    });
   } catch (error) {
     try {
       if (appium && appium.pid) kill(appium.pid);

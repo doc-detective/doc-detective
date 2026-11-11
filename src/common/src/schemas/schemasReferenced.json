@@ -1913,16 +1913,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -1969,13 +1963,13 @@
       "default": 5000,
       "anyOf": [
         {
-          "type": "number"
+          "type": [
+            "number",
+            "boolean"
+          ]
         },
         {
           "$ref": "wait_v3.nodefaults.schema.json#/components/schemas/string"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -2081,16 +2075,10 @@
                   "elementAttribute": {
                     "type": "object",
                     "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
-                        }
+                      "type": [
+                        "boolean",
+                        "number",
+                        "string"
                       ]
                     }
                   },
@@ -2468,6 +2456,10 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
       "properties": {
+        "$schema": {
+          "type": "string",
+          "minLength": 1
+        },
         "testId": {
           "type": "string"
         },
@@ -2477,9 +2469,43 @@
         "contentPath": {
           "type": "string"
         },
+        "publicVariables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
         "detectSteps": {
           "type": "boolean",
           "default": true
+        },
+        "badge": {
+          "type": "boolean"
+        },
+        "location": {
+          "type": "object",
+          "readOnly": true,
+          "properties": {
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "startIndex": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "endIndex": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "line",
+            "startIndex",
+            "endIndex"
+          ]
         },
         "autoScreenshot": {
           "type": "boolean"
@@ -2558,6 +2584,27 @@
                 "type": "integer",
                 "minimum": 0,
                 "readOnly": true
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "readOnly": true
+              },
+              "driver": {
+                "type": "object",
+                "readOnly": true,
+                "additionalProperties": false,
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                }
               },
               "platform": {
                 "type": "string"
@@ -2783,6 +2830,11 @@
                 "type": "integer",
                 "minimum": 0,
                 "readOnly": true
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "readOnly": true
               }
             }
           },
@@ -2828,9 +2880,7 @@
           },
           "$schema": {
             "type": "string",
-            "enum": [
-              "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-            ]
+            "minLength": 1
           },
           "stepId": {
             "type": "string"
@@ -3570,16 +3620,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -4077,16 +4121,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -4233,8 +4271,30 @@
                 "default": "."
               },
               "tty": {
-                "type": "boolean",
-                "default": false
+                "default": false,
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "cols": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000,
+                        "default": 120
+                      },
+                      "rows": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000,
+                        "default": 30
+                      }
+                    }
+                  }
+                ]
               },
               "waitUntil": {
                 "$ref": "#/components/schemas/processStartWaitUntil"
@@ -4462,13 +4522,13 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "type": "boolean"
+        },
+        {
           "$ref": "record_v3.nodefaults.schema.json#/components/schemas/string"
         },
         {
           "$ref": "record_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -4747,13 +4807,13 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "type": "boolean"
+        },
+        {
           "$ref": "screenshot_v3.nodefaults.schema.json#/components/schemas/path"
         },
         {
           "$ref": "screenshot_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -4925,16 +4985,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -5210,8 +5264,30 @@
                     }
                   },
                   "tty": {
-                    "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "cols": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000,
+                            "default": 120
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000,
+                            "default": 30
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               }
@@ -5352,8 +5428,30 @@
                     }
                   },
                   "tty": {
-                    "type": "boolean",
-                    "default": false
+                    "default": false,
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "cols": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000,
+                            "default": 120
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000,
+                            "default": 30
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               }
@@ -5427,14 +5525,17 @@
                 ]
               },
               "statusCodes": {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
                       "type": "integer"
                     }
-                  ]
-                },
+                  }
+                ],
                 "default": [
                   200,
                   201
@@ -5796,16 +5897,10 @@
                           "elementAttribute": {
                             "type": "object",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             }
                           },
@@ -6013,16 +6108,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -6086,13 +6175,16 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "enum": [
+            true,
+            false
+          ]
+        },
+        {
           "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
         },
         {
           "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -6199,16 +6291,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -6290,6 +6376,11 @@
                   307,
                   308
                 ]
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 10000
               },
               "headers": {
                 "default": {},
@@ -6488,9 +6579,7 @@
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "contextId": {
           "type": "string"
@@ -6640,6 +6729,10 @@
               },
               "explicit": {
                 "type": "boolean",
+                "readOnly": true
+              },
+              "version": {
+                "type": "string",
                 "readOnly": true
               },
               "headless": {
@@ -6826,9 +6919,7 @@
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/spec_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "specId": {
           "type": "string"
@@ -6850,6 +6941,9 @@
         },
         "openApi": {
           "$ref": "test_v3.schema.json#/properties/openApi"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.schema.json#/properties/publicVariables"
         },
         "autoScreenshot": {
           "type": "boolean"
@@ -6895,6 +6989,15 @@
         "runId": {
           "type": "string",
           "readOnly": true
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "environment": {
+          "readOnly": true,
+          "$ref": "config_v3.schema.json#/components/schemas/environment"
         },
         "runDir": {
           "type": "string",
@@ -6979,36 +7082,6 @@
       ],
       "$id": "report_v3.schema.json"
     },
-    "resolvedTests_v3": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "dynamicDefaults": {
-        "resolvedTestsId": "uuid"
-      },
-      "properties": {
-        "resolvedTestsId": {
-          "type": "string"
-        },
-        "config": {
-          "$ref": "config_v3.schema.json#"
-        },
-        "specs": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "spec_v3.nodefaults.schema.json#"
-              }
-            ]
-          }
-        }
-      },
-      "required": [
-        "specs"
-      ],
-      "$id": "resolvedTests_v3.schema.json"
-    },
     "config_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
@@ -7019,9 +7092,7 @@
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "configId": {
           "type": "string"
@@ -7084,6 +7155,9 @@
         },
         "loadVariables": {
           "$ref": "loadVariables_v3.schema.json#"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.schema.json#/properties/publicVariables"
         },
         "origin": {
           "type": "string"
@@ -7382,6 +7456,29 @@
             "enabled": true
           }
         },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "write": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "existing"
+                  ]
+                }
+              ],
+              "default": "existing"
+            }
+          },
+          "default": {
+            "write": "existing"
+          }
+        },
         "concurrentRunners": {
           "type": [
             "integer",
@@ -7415,23 +7512,20 @@
           "default": false
         },
         "autoScreenshot": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "annotationDefaults": {
           "$ref": "annotationDefaults_v3.schema.json#"
         },
         "autoRecord": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "autoUpdate": {
           "type": "boolean",
           "default": true
         },
         "exitOnFail": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "shell": {
           "type": "string",
@@ -7487,11 +7581,28 @@
               "arch": {
                 "type": "string",
                 "enum": [
-                  "arm32",
+                  "arm",
                   "arm64",
-                  "x32",
+                  "ia32",
+                  "loong64",
+                  "mips",
+                  "mipsel",
+                  "ppc",
+                  "ppc64",
+                  "riscv64",
+                  "s390",
+                  "s390x",
                   "x64"
                 ]
+              },
+              "docDetectiveVersion": {
+                "type": "string"
+              },
+              "nodeVersion": {
+                "type": "string"
+              },
+              "osRelease": {
+                "type": "string"
               }
             }
           },
@@ -7612,6 +7723,36 @@
         }
       },
       "$id": "config_v3.schema.json"
+    },
+    "resolvedTests_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "dynamicDefaults": {
+        "resolvedTestsId": "uuid"
+      },
+      "properties": {
+        "resolvedTestsId": {
+          "type": "string"
+        },
+        "config": {
+          "$ref": "config_v3.schema.json#"
+        },
+        "specs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "spec_v3.nodefaults.schema.json#"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "specs"
+      ],
+      "$id": "resolvedTests_v3.schema.json"
     }
   },
   "noDefaults": [
@@ -9221,16 +9362,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -9276,13 +9411,13 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
-          "type": "number"
+          "type": [
+            "number",
+            "boolean"
+          ]
         },
         {
           "$ref": "wait_v3.nodefaults.schema.json#/components/schemas/string"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -9386,16 +9521,10 @@
                   "elementAttribute": {
                     "type": "object",
                     "additionalProperties": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "boolean"
-                        }
+                      "type": [
+                        "boolean",
+                        "number",
+                        "string"
                       ]
                     }
                   },
@@ -9773,6 +9902,10 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
       "properties": {
+        "$schema": {
+          "type": "string",
+          "minLength": 1
+        },
         "testId": {
           "type": "string"
         },
@@ -9782,8 +9915,42 @@
         "contentPath": {
           "type": "string"
         },
+        "publicVariables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          }
+        },
         "detectSteps": {
           "type": "boolean"
+        },
+        "badge": {
+          "type": "boolean"
+        },
+        "location": {
+          "type": "object",
+          "readOnly": true,
+          "properties": {
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "startIndex": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "endIndex": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "line",
+            "startIndex",
+            "endIndex"
+          ]
         },
         "autoScreenshot": {
           "type": "boolean"
@@ -9862,6 +10029,27 @@
                 "type": "integer",
                 "minimum": 0,
                 "readOnly": true
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "readOnly": true
+              },
+              "driver": {
+                "type": "object",
+                "readOnly": true,
+                "additionalProperties": false,
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                }
               },
               "platform": {
                 "type": "string"
@@ -10074,6 +10262,11 @@
                 "type": "integer",
                 "minimum": 0,
                 "readOnly": true
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "readOnly": true
               }
             }
           },
@@ -10119,9 +10312,7 @@
           },
           "$schema": {
             "type": "string",
-            "enum": [
-              "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/step_v3.schema.json"
-            ]
+            "minLength": 1
           },
           "stepId": {
             "type": "string"
@@ -10856,16 +11047,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    },
-                    {
-                      "type": "string"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -11357,16 +11542,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -11510,7 +11689,27 @@
                 "type": "string"
               },
               "tty": {
-                "type": "boolean"
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "cols": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000
+                      },
+                      "rows": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000
+                      }
+                    }
+                  }
+                ]
               },
               "waitUntil": {
                 "$ref": "startSurface_v3.nodefaults.schema.json#/components/schemas/processStartWaitUntil"
@@ -11735,13 +11934,13 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "type": "boolean"
+        },
+        {
           "$ref": "record_v3.nodefaults.schema.json#/components/schemas/string"
         },
         {
           "$ref": "record_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -12017,13 +12216,13 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "type": "boolean"
+        },
+        {
           "$ref": "screenshot_v3.nodefaults.schema.json#/components/schemas/path"
         },
         {
           "$ref": "screenshot_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -12193,16 +12392,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -12466,7 +12659,27 @@
                     }
                   },
                   "tty": {
-                    "type": "boolean"
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "cols": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               }
@@ -12599,7 +12812,27 @@
                     }
                   },
                   "tty": {
-                    "type": "boolean"
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "cols": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000
+                          }
+                        }
+                      }
+                    ]
                   }
                 }
               }
@@ -12673,14 +12906,17 @@
                 ]
               },
               "statusCodes": {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
                       "type": "integer"
                     }
-                  ]
-                }
+                  }
+                ]
               },
               "method": {
                 "type": "string",
@@ -13023,16 +13259,10 @@
                           "elementAttribute": {
                             "type": "object",
                             "additionalProperties": {
-                              "anyOf": [
-                                {
-                                  "type": "string"
-                                },
-                                {
-                                  "type": "number"
-                                },
-                                {
-                                  "type": "boolean"
-                                }
+                              "type": [
+                                "boolean",
+                                "number",
+                                "string"
                               ]
                             }
                           },
@@ -13240,16 +13470,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -13311,13 +13535,16 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "anyOf": [
         {
+          "enum": [
+            true,
+            false
+          ]
+        },
+        {
           "$ref": "click_v3.nodefaults.schema.json#/components/schemas/string"
         },
         {
           "$ref": "click_v3.nodefaults.schema.json#/components/schemas/object"
-        },
-        {
-          "type": "boolean"
         }
       ],
       "components": {
@@ -13424,16 +13651,10 @@
               "elementAttribute": {
                 "type": "object",
                 "additionalProperties": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "boolean"
-                    }
+                  "type": [
+                    "boolean",
+                    "number",
+                    "string"
                   ]
                 }
               },
@@ -13507,6 +13728,10 @@
                     }
                   }
                 ]
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1
               },
               "headers": {
                 "anyOf": [
@@ -13701,9 +13926,7 @@
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/context_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "contextId": {
           "type": "string"
@@ -13853,6 +14076,10 @@
               },
               "explicit": {
                 "type": "boolean",
+                "readOnly": true
+              },
+              "version": {
+                "type": "string",
                 "readOnly": true
               },
               "headless": {
@@ -14035,9 +14262,7 @@
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/spec_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "specId": {
           "type": "string"
@@ -14059,6 +14284,9 @@
         },
         "openApi": {
           "$ref": "test_v3.nodefaults.schema.json#/properties/openApi"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.nodefaults.schema.json#/properties/publicVariables"
         },
         "autoScreenshot": {
           "type": "boolean"
@@ -14101,6 +14329,15 @@
         "runId": {
           "type": "string",
           "readOnly": true
+        },
+        "startedAt": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true
+        },
+        "environment": {
+          "readOnly": true,
+          "$ref": "config_v3.nodefaults.schema.json#/components/schemas/environment"
         },
         "runDir": {
           "type": "string",
@@ -14188,40 +14425,11 @@
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
-      "properties": {
-        "resolvedTestsId": {
-          "type": "string"
-        },
-        "config": {
-          "$ref": "config_v3.nodefaults.schema.json#"
-        },
-        "specs": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "anyOf": [
-              {
-                "$ref": "spec_v3.nodefaults.schema.json#"
-              }
-            ]
-          }
-        }
-      },
-      "required": [
-        "specs"
-      ],
-      "$id": "resolvedTests_v3.nodefaults.schema.json"
-    },
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
       "additionalProperties": false,
       "properties": {
         "$schema": {
           "type": "string",
-          "enum": [
-            "https://raw.githubusercontent.com/doc-detective/common/refs/heads/main/dist/schemas/config_v3.schema.json"
-          ]
+          "minLength": 1
         },
         "configId": {
           "type": "string"
@@ -14275,6 +14483,9 @@
         },
         "loadVariables": {
           "$ref": "loadVariables_v3.nodefaults.schema.json#"
+        },
+        "publicVariables": {
+          "$ref": "test_v3.nodefaults.schema.json#/properties/publicVariables"
         },
         "origin": {
           "type": "string"
@@ -14552,6 +14763,25 @@
             "enabled"
           ]
         },
+        "verification": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "write": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "existing"
+                  ]
+                }
+              ]
+            }
+          }
+        },
         "concurrentRunners": {
           "type": [
             "integer",
@@ -14648,11 +14878,28 @@
               "arch": {
                 "type": "string",
                 "enum": [
-                  "arm32",
+                  "arm",
                   "arm64",
-                  "x32",
+                  "ia32",
+                  "loong64",
+                  "mips",
+                  "mipsel",
+                  "ppc",
+                  "ppc64",
+                  "riscv64",
+                  "s390",
+                  "s390x",
                   "x64"
                 ]
+              },
+              "docDetectiveVersion": {
+                "type": "string"
+              },
+              "nodeVersion": {
+                "type": "string"
+              },
+              "osRelease": {
+                "type": "string"
               }
             }
           },
@@ -14772,6 +15019,33 @@
         }
       },
       "$id": "config_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "resolvedTestsId": {
+          "type": "string"
+        },
+        "config": {
+          "$ref": "config_v3.nodefaults.schema.json#"
+        },
+        "specs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "spec_v3.nodefaults.schema.json#"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "specs"
+      ],
+      "$id": "resolvedTests_v3.nodefaults.schema.json"
     }
   ]
 }

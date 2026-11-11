@@ -15,12 +15,12 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import YAML from "yaml";
 
 import type { AgentAdapter } from "../agents/types.js";
 import { listAdapters } from "../agents/registry.js";
 import { getWdaRoot, readProductsMarker } from "../runtime/wdaProducts.js";
 import type { AgentDetection, HintContext } from "./types.js";
+import { requireYaml } from "../core/lazyYaml.js";
 
 // Action keys recognized by the v3 `step` schema. Kept in sync with
 // `step_v3.schema.json`'s anyOf branches — extra entries here would
@@ -272,7 +272,7 @@ export function detectDocDetectiveWorkflow(cwd: string): boolean {
       }
       let doc: any;
       try {
-        doc = YAML.parse(text);
+        doc = requireYaml().parse(text);
       } catch {
         continue;
       }

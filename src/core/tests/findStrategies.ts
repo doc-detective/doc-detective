@@ -78,7 +78,15 @@ async function findElementByRegex({ pattern, driver }: { pattern: any; driver: a
 async function findElementByAriaRegex({ pattern, driver }: { pattern: any; driver: any }) {
   // Find an element based on a regex pattern in accessible name
   // WebDriverIO's aria selector uses accessible name
-  const elements = await driver.$$("//*");
+  // Only ever runs right after findElementByRegex missed on the same pass, and
+  // that scan already tested the getText() of every element with its own
+  // text. So those elements only need their aria-label checked; the getText()
+  // fallback below is for elements without their own text, e.g. a container
+  // whose match spans children. Same first hit in document order as `//*`,
+  // without a second getText() over every text element (#757).
+  const elements = await driver.$$(
+    "//*[@aria-label or not(text()[normalize-space()])]"
+  );
   for (const element of elements) {
     try {
       // Try to get accessible name - this is an approximation
@@ -153,6 +161,9 @@ async function findElementByShorthand({ string, timeout = 5000, driver }: { stri
     // which is what running them all and applying precedence returned. A scan
     // that throws counts as no match on that pass, as Promise.allSettled did.
     // do/while so `timeout: 0` scans once, now (ADR 01090).
+    // `run` reports each hit under `scans[i].type` and drops the scan's own
+    // `foundBy` on purpose: the aria scan's text fallback says "elementAria",
+    // and a text match must not surface under that label.
     const run = async (i: number) =>
       (await scans[i].scan({ pattern, driver }).catch(() => ({ element: null })))
         .element;
@@ -172,6 +183,8 @@ async function findElementByShorthand({ string, timeout = 5000, driver }: { stri
         }
         return { element, foundBy: scans[i].type };
       }
+      // Both exits are needed: this `break` skips the sleep on the last pass,
+      // and the `while` catches a sleep that overshot the timeout.
       if (Date.now() - startTime >= timeout) break;
       await new Promise((resolve) => setTimeout(resolve, 100));
     } while (Date.now() - startTime < timeout);
@@ -318,6 +331,19 @@ async function findElementBySelectorAndText({
   // If multiple elements match, return the first one
   element = elements[0];
   return { element, foundBy: "selector and text" };
+}
+
+// One round trip on the element's own ID; a stale or removed element throws.
+// The raw protocol command skips wdio's stale-element refetch, which would
+// re-run the query. Drivers without it fall back to isExisting().
+function stillExists(driver: any, element: any): Promise<boolean> {
+  if (!element.elementId || typeof driver.getElementTagName !== "function") {
+    return element.isExisting();
+  }
+  return driver.getElementTagName(element.elementId).then(
+    () => true,
+    () => false
+  );
 }
 
 // Helper function to check if a string is a regex pattern
@@ -690,13 +716,12 @@ async function findElementByCriteria({
           }
 
           // If all checks passed, confirm the element still exists, then
-          // we found our element. The existence check runs only for matches:
-          // wdio's isExisting() re-runs the whole candidate query (`$$`), so
-          // calling it first on every candidate made the scan O(n²) (ADR
-          // 01131). Both are reads, so the order doesn't change which
-          // candidates pass.
+          // we found our element. The existence check runs only for matches
+          // (ADR 01131), and asks about this element's own ID: wdio's
+          // isExisting() re-runs the whole candidate query (`$$`), which made
+          // an `all: true` scan with n matches O(n²) (#757).
           if (allChecksPassed) {
-            if (!(await element.isExisting())) continue;
+            if (!(await stillExists(driver, element))) continue;
             matchedElements.push(element);
             // `foundBy` describes the FIRST match, so it means the same thing
             // whether or not `all` was set — later matches must not rewrite it.

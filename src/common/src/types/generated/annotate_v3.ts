@@ -331,7 +331,7 @@ export interface ElementFindingFields {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -386,7 +386,7 @@ export interface ElementFindingFields1 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -441,7 +441,7 @@ export interface ElementFindingFields2 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -496,7 +496,7 @@ export interface ElementFindingFields3 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -551,7 +551,7 @@ export interface ElementFindingFields4 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -606,7 +606,7 @@ export interface ElementFindingFields5 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -806,7 +806,7 @@ export interface ElementFindingFields6 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -861,7 +861,7 @@ export interface ElementFindingFields7 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -916,7 +916,7 @@ export interface ElementFindingFields8 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -971,7 +971,7 @@ export interface ElementFindingFields9 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -1026,7 +1026,7 @@ export interface ElementFindingFields10 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
@@ -1081,7 +1081,7 @@ export interface ElementFindingFields11 {
    * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
    */
   elementAttribute?: {
-    [k: string]: number | boolean | string;
+    [k: string]: boolean | number | string;
   };
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.

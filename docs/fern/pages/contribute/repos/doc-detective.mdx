@@ -7,9 +7,10 @@ title: "doc-detective"
 This monorepo contains:
 
 - The main CLI tool
+- The test runner that performs each action (located in `src/core/`), formerly the separate [`doc-detective-core`](doc-detective-core) package
 - [`doc-detective-common`](doc-detective-common): JSON schema definitions, schema validation logic, and path resolution logic (located in `src/common/`)
-
-This repo depends on [`doc-detective-core`](doc-detective-core) for the primary testing logic.
+- The Docker image configs (located in `src/container/`)
+- The documentation site (located in `docs/`)
 
 ## Commit conventions
 

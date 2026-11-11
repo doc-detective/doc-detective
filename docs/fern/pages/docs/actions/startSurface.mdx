@@ -50,7 +50,7 @@ On Windows and macOS, opening two app surfaces with the same `name` in one conte
 - `browser`: (Required) Engine: `chrome`, `firefox`, `safari`, `webkit`, or `edge`. Opens a blank, ready session on the context's automation server. There's no cross-engine fallback. You named the engine, so Doc Detective never substitutes another. The exception is `edge`. Because it's Chromium, it opens on the Chrome/chromedriver stack and registers under the `chrome` engine name. An unnamed `edge` session therefore collides with a `chrome` one, so one of them needs an explicit `name` (see the next bullet).
 - `name`: (Optional) Surface-registry name. Defaults to the engine keyword. The context's default browser already registers under its engine name, so a second session of the same engine needs an explicit `name`. An unnamed duplicate fails with guidance.
 - `headless`: (Optional) Overrides the context's headless setting for this session.
-- `size`: (Optional) Outer window dimensions (`{ "width": …, "height": … }`).
+- `size`: (Optional) Outer window dimensions (`{ "width": …, "height": … }`). If you set neither `size` nor `viewport`, the session uses the context's size. That's the context's `viewport` setting (applied by resizing the window), its `window` setting, or the 1200×800 default viewport. See [Browsers](/docs/test-docs/platforms-and-browsers#browsers).
 - `viewport`: (Optional) Page-content dimensions, which win over `size`. Doc Detective sizes the viewport by resizing the window, so the ~500px minimum window width applies (in headless mode too). A smaller requested viewport renders at the larger realized size. The step still passes, but Doc Detective logs a `warning` and reports both sizes in the step's `viewport` output as `{ requested, actual }`. Trust the rendered size over the request. To render content at true sub-500px widths, run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions.
 - `driverOptions`: (Optional) Escape-hatch capability passthrough.
 
@@ -61,7 +61,7 @@ The browser descriptor deliberately has no `url`, because [`goTo`](goto) stays t
 - `process`: (Required) The shell command, same semantics as [`runShell`](/docs/actions/runshell).
 - `name`: (Required) Surface-registry name. Required because background commands are generic interpreters (`node`, `docker`) whose derived defaults would collide.
 - `args`, `workingDirectory`: (Optional) Command arguments and working directory.
-- `tty`: (Optional) Spawn under a pseudo-terminal for full-screen/interactive TUIs (needs the optional `node-pty` dependency, whose absence skips the step).
+- `tty`: (Optional) Spawn under a pseudo-terminal for full-screen/interactive TUIs (needs the optional `node-pty` dependency, whose absence skips the step). `true` uses a terminal 120 columns by 30 rows. An object such as `{"cols": 100, "rows": 40}` sets the size, from 1 to 1000 each. Same shape as runShell's [`background.tty`](/docs/actions/runshell#full-screen-terminal-uis).
 - `waitUntil`: (Optional) Readiness: `port`, `stdio` (substring or `/regex/`), `httpGet`, and/or `delayMs`. Same conditions as runShell's `background.waitUntil`.
 - `timeout`: (Optional) Readiness ceiling in milliseconds (default 60000).
 
@@ -271,7 +271,7 @@ Without a `device`, an iOS app runs on the context's default simulator. Doc Dete
 - `name` is the simulator's identity. If a simulator with that name already exists, Doc Detective reuses it (booting it if needed); otherwise it creates one under that name. Reusing a name across steps and tests targets the same simulator.
 - `deviceType` picks the device family that Doc Detective creates: `phone` (the default, an iPhone) or `tablet` (an iPad). Doc Detective ignores it when `name` matches an existing simulator.
 - `osVersion` picks the iOS runtime version for a newly created simulator and must match a runtime you've installed through Xcode. It defaults to the newest installed version. Doc Detective ignores it when `name` matches an existing simulator.
-- `headless` is a no-op on iOS: simulators boot without the Simulator UI on CI, so there's no window to suppress.
+- `headless` is a no-op on iOS. Doc Detective opens each simulator it uses in the Simulator app, so expect a Simulator window during the run, including on CI runners. If the window can't open, the run continues unaffected.
 
 Doc Detective only ever boots an iPhone or iPad simulator for an `ios` context, so a visionOS, watchOS, or tvOS simulator is never selected. At the end of a run, Doc Detective shuts down only the simulators it booted, leaving any you had already booted running.
 

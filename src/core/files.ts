@@ -1,18 +1,32 @@
 import fs from "node:fs";
 import path from "node:path";
-import YAML from "yaml";
-import axios from "axios";
 import { validate } from "../common/src/validate.js";
+import { requireYaml } from "./lazyYaml.js";
+import { log, redactUrlForOutput } from "./utils.js";
+
+// An error's message as the reason that ends a sentence: ": <text>." keeping
+// its own final `.`, `!` or `?`. Just "." for an empty or blank message.
+const reason = (text?: string) => {
+  const trimmed = text?.trim();
+  return !trimmed ? "." : `: ${/[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`}`;
+};
 
 /**
  * Reads and parses content from a remote URL or local file path, supporting JSON and YAML formats.
  *
  * @param {Object} options - Options object
  * @param {string} options.fileURLOrPath - The URL or local file path to read.
+ * @param {boolean} [options.throwOnError=false] - Throw the read failure's message instead of warning and returning null.
  * @returns {Promise<Object|string|null>} Parsed object for JSON or YAML files, raw string for other formats, or null if reading fails.
- * @throws {Error} If fileURLOrPath is missing, not a string, or is an empty string.
+ * @throws {Error} If fileURLOrPath is missing, not a string, or is an empty string, or, with throwOnError, if reading fails.
  */
-async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
+async function readFile({
+  fileURLOrPath,
+  throwOnError = false,
+}: {
+  fileURLOrPath: string;
+  throwOnError?: boolean;
+}) {
   if (!fileURLOrPath) {
     throw new Error("fileURLOrPath is required");
   }
@@ -34,45 +48,87 @@ async function readFile({ fileURLOrPath }: { fileURLOrPath: string }) {
     // Not a valid URL, assume local file path
   }
 
+  // A read failure: a warning and null, or with throwOnError, an Error.
+  const fail = (message: string) => {
+    if (throwOnError) throw new Error(message);
+    log({}, "warning", message);
+    return null;
+  };
+
   if (isRemote) {
     try {
-      const response = await axios.get(fileURLOrPath);
+      const response = await (await import("axios")).default.get(fileURLOrPath);
       content = response.data;
     } catch (error: any) {
-      console.warn(
-        `Error reading remote file from ${fileURLOrPath}: ${error.message}`
-      );
-      return null;
+      return fail(`Couldn't read ${redactUrlForOutput(fileURLOrPath)}${reason(error.message)}`);
     }
   } else {
     try {
       content = await fs.promises.readFile(fileURLOrPath, "utf8");
     } catch (error: any) {
-      if (error.code === "ENOENT") {
-        console.warn(`File not found: ${fileURLOrPath}`);
-      } else {
-        console.warn(`Error reading file: ${error.message}`);
-      }
-      return null;
+      return fail(
+        `Couldn't read ${path.resolve(fileURLOrPath)}${
+          error.code === "ENOENT" ? ": the file doesn't exist." : reason(error.message)
+        }`
+      );
     }
   }
 
-  // Parse based on file extension
-  const ext = fileURLOrPath.split(".").pop()?.toLowerCase();
+  return parseFileContent(content, fileURLOrPath, { throwOnError });
+}
+
+// Where a file is, for messages: its redacted URL, or its absolute path.
+function locationOf(fileURLOrPath: string): string {
+  return /^https?:\/\//i.test(fileURLOrPath)
+    ? redactUrlForOutput(fileURLOrPath)
+    : path.resolve(fileURLOrPath);
+}
+
+/**
+ * Parses file content by the extension of its URL or path: JSON, YAML, or as is.
+ *
+ * @param {any} content - The raw content, or a remote JSON body axios already parsed.
+ * @param {string} fileURLOrPath - The URL or path the content came from.
+ * @param {Object} [options] - Options object
+ * @param {boolean} [options.throwOnError=false] - Throw a parse failure, naming its cause, instead of warning and returning the content.
+ * @returns {Object|string} Parsed object for JSON or YAML files, the content otherwise.
+ */
+function parseFileContent(
+  content: any,
+  fileURLOrPath: string,
+  { throwOnError = false }: { throwOnError?: boolean } = {}
+) {
+  // Already parsed, as axios does for a JSON response.
+  if (typeof content !== "string") return content;
+  // A URL's extension comes from its path, so a query string can't hide it.
+  const name = /^https?:\/\//i.test(fileURLOrPath)
+    ? new URL(fileURLOrPath).pathname
+    : fileURLOrPath;
+  const ext = name.split(".").pop()?.toLowerCase();
+  // A parse failure: a warning and the content, or with throwOnError, an
+  // Error. A YAML error's first line is its cause; a code frame follows.
+  const failed = (format: string, error: any) => {
+    if (throwOnError) {
+      const cause = String(error.message).split("\n")[0].replace(/:$/, "");
+      throw new Error(
+        `Couldn't read ${locationOf(fileURLOrPath)}: it isn't valid ${format} (${cause}).`
+      );
+    }
+    log({}, "warning", `Failed to parse ${format}: ${error.message}`);
+    return content;
+  };
 
   if (ext === "json") {
     try {
       return JSON.parse(content);
     } catch (error: any) {
-      console.warn(`Failed to parse JSON: ${error.message}`);
-      return content;
+      return failed("JSON", error);
     }
   } else if (ext === "yaml" || ext === "yml") {
     try {
-      return YAML.parse(content);
+      return requireYaml().parse(content);
     } catch (error: any) {
-      console.warn(`Failed to parse YAML: ${error.message}`);
-      return content;
+      return failed("YAML", error);
     }
   } else {
     return content;
@@ -297,4 +353,4 @@ async function resolvePaths({
   return object;
 }
 
-export { readFile, resolvePaths };
+export { readFile, parseFileContent, locationOf, resolvePaths };

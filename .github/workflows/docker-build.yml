@@ -100,10 +100,10 @@ jobs:
     outputs:
       base: ${{ steps.filter.outputs.base }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -153,12 +153,12 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -197,7 +197,7 @@ jobs:
           echo "Packed $tarball from $(git rev-parse --short HEAD) at $full"
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build Docker Image
         # Local single-arch build so the test step has a daemon-loaded
@@ -231,7 +231,7 @@ jobs:
       # latest tags.
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -244,7 +244,7 @@ jobs:
         # (`:linux-amd64`, `:linux-arm64`) on Docker Hub.
         id: digest_push
         if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: src/container
           file: src/container/linux.Dockerfile
@@ -269,7 +269,7 @@ jobs:
 
       - name: Upload digest
         if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-digest-${{ matrix.arch }}
           path: /tmp/digests/${{ matrix.arch }}.digest
@@ -287,22 +287,22 @@ jobs:
       IMAGE_VERSION: ${{ inputs.version }}
     steps:
       - name: Download amd64 digest
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linux-digest-amd64
           path: /tmp/digests
 
       - name: Download arm64 digest
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: linux-digest-arm64
           path: /tmp/digests
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -377,12 +377,12 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -488,7 +488,7 @@ jobs:
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -550,12 +550,12 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
@@ -631,7 +631,7 @@ jobs:
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}

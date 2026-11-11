@@ -400,9 +400,13 @@ async function loadPuppeteerBrowsers(deps: BrowserDeps, ctx: CacheDirContext) {
   return await loadHeavyDep<any>("@puppeteer/browsers", { ctx, deps: { logger: deps.logger } });
 }
 
+// geckodriver 8's CommonJS entry re-exports its ESM build (`module.exports =
+// require('../index.js')`), which import() exposes only as `default`.
 async function loadGeckodriver(deps: BrowserDeps, ctx: CacheDirContext) {
-  if (deps.geckodriverModule) return deps.geckodriverModule;
-  return await loadHeavyDep<any>("geckodriver", { ctx, deps: { logger: deps.logger } });
+  const mod =
+    deps.geckodriverModule ??
+    (await loadHeavyDep<any>("geckodriver", { ctx, deps: { logger: deps.logger } }));
+  return mod.default ?? mod;
 }
 
 function isStillFresh(latestCheckedAt: string | undefined, now: Date): boolean {
