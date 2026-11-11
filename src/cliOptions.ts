@@ -1,4 +1,5 @@
 import { Command, InvalidArgumentError, Option } from "commander";
+import { diag } from "./cliOutput.js";
 
 export const GLOBAL_GROUP = "Global options:";
 const RUN_GROUP = "Run options:";
@@ -14,9 +15,19 @@ const DEPRECATED_LABELS = {
 
 export const DEPRECATED_COMMAND_LABEL = "[deprecated: use run]";
 
+// The warning each deprecated argument prints, in the renamed-key wording
+// (ADR 01195).
+const DEPRECATED_WARNINGS: Record<string, string> = {
+  "--logLevel": "`--logLevel` is deprecated. Rename it to `--log-level`.",
+  "--exit-on-fail": "`--exit-on-fail` is deprecated. It's now the default, so remove it.",
+  runTests: "`runTests` is deprecated. Rename it to `run`.",
+  runtests: "`runtests` is deprecated. Rename it to `run`.",
+};
+
 // Print a one-line warning for each deprecated argument a command received,
-// unless --quiet asked for less. Commander fires `option:<name>` per spelling,
-// which is how --logLevel is told apart from --log-level.
+// unless --quiet or a level below `warning` asked for less. Commander fires
+// `option:<name>` per spelling, which is how --logLevel is told apart from
+// --log-level.
 export function warnOnDeprecatedUse(program: Command) {
   const used = new Set<string>();
   const watch = (command: Command) => {
@@ -30,12 +41,9 @@ export function warnOnDeprecatedUse(program: Command) {
     if (name === "runTests" || name === "runtests") {
       used.add(name);
     }
-    if (actionCommand.optsWithGlobals().quiet) return;
-    for (const argument of used) {
-      const label =
-        DEPRECATED_LABELS[argument as keyof typeof DEPRECATED_LABELS] ?? DEPRECATED_COMMAND_LABEL;
-      console.error(`Warning: ${argument} is ${label.slice(1, -1).replace(":", ";")}.`);
-    }
+    const { quiet, logLevel } = actionCommand.optsWithGlobals();
+    if (quiet || logLevel === "silent" || logLevel === "error") return;
+    for (const argument of used) diag(`Warning: ${DEPRECATED_WARNINGS[argument]}`);
   });
 }
 

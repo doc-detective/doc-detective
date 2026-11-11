@@ -21,7 +21,7 @@ import {
   clearLayer,
   TARGET_ATTRIBUTE,
 } from "../annotations/domAdapter.js";
-import { log } from "../utils.js";
+import { log, invalidStepMessage } from "../utils.js";
 
 export { annotate, applyAnnotateOps, pruneExpired, renderLayer };
 
@@ -262,7 +262,7 @@ async function annotate({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   step = isValidStep.object;

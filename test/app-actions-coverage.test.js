@@ -627,7 +627,7 @@ describe("typeKeys app-surface branch", function () {
       appSession,
     });
     assert.equal(wrongReadiness.status, "FAIL");
-    assert.match(wrongReadiness.description, /Invalid step definition/);
+    assert.match(wrongReadiness.description, /Couldn't run the step: its definition isn't valid\./);
   });
 });
 

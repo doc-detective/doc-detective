@@ -1395,22 +1395,36 @@ describe("CLI contract", function () {
   });
 
   describe("deprecated arguments", function () {
+    // ADR 01195: the same wording as every other renamed key.
     const deprecated = [
-      { args: ["runTests", "-i", "pass.spec.json"], replacement: /use `?run/ },
-      { args: ["runtests", "-i", "pass.spec.json"], replacement: /use `?run/ },
-      { args: ["--logLevel", "info", "-i", "pass.spec.json"], replacement: /use `?--log-level/ },
-      { args: ["-e", "-i", "pass.spec.json"], replacement: /now the default/ },
-      { args: ["--exit-on-fail", "-i", "pass.spec.json"], replacement: /now the default/ },
+      { args: ["runTests", "-i", "pass.spec.json"], warning: "Warning: `runTests` is deprecated. Rename it to `run`." },
+      { args: ["runtests", "-i", "pass.spec.json"], warning: "Warning: `runtests` is deprecated. Rename it to `run`." },
+      {
+        args: ["--logLevel", "info", "-i", "pass.spec.json"],
+        warning: "Warning: `--logLevel` is deprecated. Rename it to `--log-level`.",
+      },
+      {
+        args: ["-e", "-i", "pass.spec.json"],
+        warning: "Warning: `--exit-on-fail` is deprecated. It's now the default, so remove it.",
+      },
+      {
+        args: ["--exit-on-fail", "-i", "pass.spec.json"],
+        warning: "Warning: `--exit-on-fail` is deprecated. It's now the default, so remove it.",
+      },
     ];
-    for (const { args, replacement } of deprecated) {
+    for (const { args, warning } of deprecated) {
       it(`\`${args[0]}\` still works, and warns on stderr`, function () {
         const r = run(args);
         expect(r.status, r.stderr).to.equal(0);
-        expect(r.stderr).to.match(/deprecated/i);
-        expect(r.stderr).to.match(replacement);
+        expect(r.stderr.split(/\r?\n/)).to.include(warning);
         expect(r.stdout).to.not.match(/deprecated/i);
       });
     }
+
+    it("hides the warning with -l silent", function () {
+      const r = run(["runTests", "-l", "silent", "-i", "pass.spec.json"]);
+      expect(r.stderr).to.not.match(/deprecated/i);
+    });
 
     it("doesn't warn for --no-exit-on-fail, which isn't deprecated", function () {
       const r = run(["--no-exit-on-fail", "-i", "pass.spec.json"]);

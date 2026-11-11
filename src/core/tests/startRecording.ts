@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log, hasVariable } from "../utils.js";
+import { log, hasVariable, invalidStepMessage } from "../utils.js";
 import { maskString } from "../masking.js";
 import { instantiateCursor } from "./moveTo.js";
 import {
@@ -117,7 +117,7 @@ async function beginRecording({
   const isValidStep = validate({ schemaKey: "step_v3", object: authoredStep });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(authoredStep);
     return result;
   }
   // The effective step (ADR 01167): an object with its defaults filled, and a

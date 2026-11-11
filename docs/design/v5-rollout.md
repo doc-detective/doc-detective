@@ -308,13 +308,16 @@ reports 5.0.0, an installed 4.x stays on 4.x and logs the upgrade notice.
 
 **Change:**
 
-- After a failed `find`, collect visible candidates and rank them by normalized text. Add the top three
-  to the description and to `outputs.nearMatches`.
-- Save a failure screenshot in the run folder.
-- Add `failureClass` to failed steps: `environment` (DNS, driver, or page never loaded), `drift` (a
-  near match exists), or `assertion` (everything else).
-- Show all of it in the terminal and markdown reporters. Annotations and the agent fix loop read the
-  same fields.
+- After a failed browser `find`, collect visible candidates and rank them by normalized text, id, test
+  ID, and accessible name. Add the top three to `outputs.nearMatches`, and name them in `resultHint`
+  ([ADR 01194](../../adrs/01194-near-matches-and-structured-failure-fields.md)). Done.
+- Save a failure screenshot in the run folder. Automatic screenshots
+  ([ADR 01177](../../adrs/01177-capture-screenshots-and-recordings-by-default.md)) capture failed steps too.
+- Add `resultCode` to failed steps: `environment` (DNS, driver, or page never loaded), `drift` (a
+  near match exists), or `assertion` (everything else). Done, in ADR 01194. The field was planned as
+  `failureClass`. It took the `result*` name the reporters read.
+- Show all of it in the terminal and markdown reporters (#878). Annotations and the agent fix loop read
+  the same fields.
 
 **Verify:** Focused `it(...)` cases in `test/core-core.test.js`, since fixtures must resolve to PASS or
 SKIPPED and can't express these failures.
@@ -623,7 +626,7 @@ Online moves in lockstep with GA, because the `doc-detective-runner` bin becomes
 - Update `doc-detective-init` and `doc-detective-project-bootstrap`, where `--exit-on-fail` is described as
   a `--ci` choice.
 - Update `doc-detective-install-github-action` to `@v2` and its `exit_on_fail` default.
-- After Phase 1, teach the fix loop to read `nearMatches` and `failureClass`.
+- After Phase 1, teach the fix loop to read `nearMatches`, `resultCode`, and `resultHint`.
 
 ### GitLab, Docker, and direct CLI use
 

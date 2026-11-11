@@ -62,9 +62,9 @@ describe("runCode coverage", function () {
     });
     // The point is exercising the path+directory join (forwarded to runShell);
     // the run itself may PASS or FAIL depending on file comparison, but it must
-    // get past step validation (i.e. not the "Invalid step definition" error).
+    // get past step validation (i.e. not the invalid-definition error).
     assert.equal(typeof result.status, "string");
-    assert.doesNotMatch(result.description || "", /Invalid step definition/);
+    assert.doesNotMatch(result.description || "", /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("retains the temp script and records its path for a background process", async function () {
@@ -152,7 +152,7 @@ describe("runCode coverage", function () {
       },
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /additionalProperty":"command"/);
+    assert.match(result.description, /^Couldn't run the step: its definition isn't valid\. runCode: unknown key .command./);
   });
 
   it("uses the .py extension and python command for a python snippet", async function () {
@@ -183,6 +183,6 @@ describe("runCode coverage", function () {
     // Exercises the `path` branch without a `directory` (the false arm of the
     // directory-join ternary).
     assert.equal(typeof result.status, "string");
-    assert.doesNotMatch(result.description || "", /Invalid step definition/);
+    assert.doesNotMatch(result.description || "", /Couldn't run the step: its definition isn't valid\./);
   });
 });

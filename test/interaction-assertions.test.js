@@ -358,6 +358,6 @@ describe("dragAndDrop unified assertion model", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 });

@@ -121,7 +121,7 @@ describe("Run tests successfully", function () {
       assert.ok(unmet.contexts.length > 0, "gate-unmet resolved no contexts");
       for (const ctx of unmet.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(ctx.resultDescription, /^Skipped: this context's `requires` aren't met on /);
+        assert.match(ctx.resultDescription, /^Skipped: unmet requirements: /);
         assert.match(ctx.resultDescription, /doc-detective-no-such-binary-xyz/);
       }
       assert.equal(unmet.result, "SKIPPED");
@@ -471,9 +471,9 @@ describe("Run tests successfully", function () {
       assert.ok(test.contexts.length > 0, "no contexts resolved");
       for (const ctx of test.contexts) {
         assert.equal(ctx.result, "SKIPPED");
-        assert.match(
+        assert.equal(
           ctx.resultDescription,
-          /^Skipped: native app surfaces run on Windows, macOS, Android, and iOS, not `/
+          "Skipped: native app surfaces don't run on `linux`. They run on Windows, macOS, Android, and iOS. Gate the test with `runOn` platforms so this skip is intentional."
         );
       }
       assert.equal(result.summary.specs.fail, 0);
@@ -683,11 +683,48 @@ describe("Run tests successfully", function () {
       );
       assert.equal(miss.result, "FAIL");
       assert.equal(miss.outputs.found, false);
-      assert.equal(miss.resultDescription, "No elements matched selector or text.");
+      assert.equal(miss.resultDescription, "Couldn't find element `No such shorthand target`.");
+      // Nothing on the page is close, so it's an assertion failure (ADR 01194).
+      assert.deepEqual(miss.outputs.nearMatches, []);
+      assert.equal(miss.resultCode, "assertion");
+      assert.equal(miss.resultHint, undefined);
+      assert.equal(hit.resultCode, undefined);
       assert.ok(
         miss.durationMs >= 5000,
         `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
       );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("A find that misses a renamed element reports near matches as drift, with a hint (ADR 01194)", async () => {
+    // The page's button says "Start late arrival". A step that still says
+    // "Start late" FAILs, so the PASS/SKIPPED fixture gate can't carry it.
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/find-shorthand.html" },
+            { find: { elementText: "Start late", timeout: 0 } },
+          ],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "near-matches-"));
+    const tempFilePath = path.join(tempDir, "near-matches.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
+      const context = result.specs[0].tests[0].contexts.find((c) => c.steps && c.steps.length);
+      assert.ok(context, "expected a context that ran steps");
+      const miss = context.steps[1];
+      assert.equal(miss.result, "FAIL");
+      assert.deepEqual(miss.outputs.nearMatches, [
+        { text: "Start late arrival", tag: "button", id: "start-late" },
+      ]);
+      assert.equal(miss.resultCode, "drift");
+      assert.equal(miss.resultHint, "Closest match: `Start late arrival`.");
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -1036,7 +1073,7 @@ describe("Run tests successfully", function () {
       assert.equal(result.summary.specs.skipped, 1);
       assert.equal(result.summary.specs.pass, 0);
       assert.equal(result.summary.contexts.skipped, 1);
-      assert.match(result.specs[0].tests[0].contexts[0].resultDescription, /^Skipped: this context targets a different platform than `(windows|mac|linux)`\.$/);
+      assert.match(result.specs[0].tests[0].contexts[0].resultDescription, /^Skipped: this system can't run a `(windows|mac|linux)` context\.$/);
       assert.equal(result.specs[0].result, "SKIPPED");
       assert.equal(result.specs[0].tests[0].result, "SKIPPED");
       assert.equal(result.specs[0].tests[0].contexts[0].result, "SKIPPED");

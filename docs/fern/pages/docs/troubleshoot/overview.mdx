@@ -9,6 +9,29 @@ When a test fails, the result tells you which step broke and why. This guide sho
 
 Doc Detective reports a result for every step. Open the terminal summary or the JSON results file (see [Reporters and artifacts](/docs/ci/reporters-and-artifacts)) and find the step whose `result` is `FAIL`. Each step includes a `resultDescription` that states what was expected and what happened.
 
+A failed step also carries a `resultCode` that says what kind of failure it was:
+
+| `resultCode` | Meaning | Where to look |
+|---|---|---|
+| `environment` | The network, the browser session, or the page load failed. | The host, the URL, or the test server. The docs are probably fine. |
+| `drift` | An element wasn't found, but similar ones were. The page probably changed. | The step's `resultHint` and `outputs.nearMatches`. |
+| `assertion` | Anything else, such as a missing element with nothing close, or a wrong status code. | The action's own fields, in the next step of this guide. |
+
+When Doc Detective has a suggestion, the step's `resultHint` gives it. For example, a `find` for "Save" on a page whose button now says "Save changes" reports:
+
+```json
+{
+  "find": "Save",
+  "result": "FAIL",
+  "resultCode": "drift",
+  "resultHint": "Closest match: `Save changes`.",
+  "outputs": {
+    "found": false,
+    "nearMatches": [{ "text": "Save changes", "tag": "button", "id": "save" }]
+  }
+}
+```
+
 Note which action failed, such as `find`, `httpRequest`, or `runShell`. The action determines what to check next.
 
 ## Step 2: Fix the most common causes
@@ -19,6 +42,7 @@ Find the cause that matches the failing action.
 
 The selector or text no longer matches the page, or the element hadn't rendered yet.
 
+- If the step has `outputs.nearMatches`, the element probably changed. Update the step, or the docs, to the text or ID the page uses now.
 - Confirm the selector still matches the current UI. See [CSS selectors](/docs/selectors/css) and [XPath selectors](/docs/selectors/xpath).
 - If the element appears after a delay, raise the step's `timeout` (it defaults to 5000 milliseconds). `find` waits up to `timeout` for the element to exist.
 
