@@ -461,6 +461,12 @@ function describeFind(find: any): string {
   return [
     find.selector && `selector: "${find.selector}"`,
     find.elementText && `text: "${find.elementText}"`,
+    find.elementId && `id: "${find.elementId}"`,
+    find.elementTestId && `test ID: "${find.elementTestId}"`,
+    find.elementAria && `accessible name: "${find.elementAria}"`,
+    find.elementClass && `class: "${[].concat(find.elementClass).join(" ")}"`,
+    find.elementAttribute &&
+      `attributes: ${Object.entries(find.elementAttribute).map(([k, v]) => `${k}="${v}"`).join(" ")}`,
     find.elementImage && `image: ${referenceLabel(find.elementImage)}`,
   ]
     .filter(Boolean)
