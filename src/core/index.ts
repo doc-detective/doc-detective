@@ -159,7 +159,8 @@ async function runTestsAndReport(config: any, options: any) {
     startTelemetry(effectiveConfig);
     willRunViaApi = runsViaApi(effectiveConfig);
     resolvedTests = await detectAndResolveFromConfig(effectiveConfig, {
-      strictSpecs: options.strictSpecs === true,
+      // Invalid specs reject unless `exitOnFail: false` (ADR 01199).
+      strictSpecs: options.strictSpecs ?? effectiveConfig.exitOnFail !== false,
     });
     if (!resolvedTests || resolvedTests.specs.length === 0) {
       // log() in src/core/utils.ts recognizes "warning", not "warn" —

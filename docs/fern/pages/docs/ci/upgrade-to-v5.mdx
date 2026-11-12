@@ -66,7 +66,7 @@ if: runner.os == 'macOS'
 
 **What changed:** An invalid spec exits `2` before any test runs. Version 4 warned, skipped that spec, and ran the rest.
 
-**What to do:** Fix the spec the error names. To skip invalid specs and run the valid ones while you clean up, pass `--no-exit-on-fail`.
+**What to do:** Fix the spec the error names. To skip invalid specs and run the valid ones while you clean up, pass `--no-exit-on-fail` or set `exitOnFail: false`.
 
 ## Unknown keys in specs and steps
 
@@ -681,6 +681,7 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 `runTests()` also changed:
 
 - When a run through the Doc Detective API fails, it rejects with the error `Couldn't run tests through the Doc Detective API: <cause>.` It used to resolve to an object with `status` and `error`.
+- It rejects invalid specs, with an error that starts `Invalid test specifications, so nothing ran:`, and runs nothing. Set `exitOnFail: false` to skip them with a warning, as version 4 did.
 - When it finds no tests, it returns a report with `specs: []` and a zero `summary`, not `null`. On the CLI, `--output` then gets that empty report, where it used to get no file.
 - With `dryRun: true`, it returns the resolved test plan and prints nothing. The CLI prints the plan.
 - It reads only the config you pass. `DOC_DETECTIVE`, `DOC_DETECTIVE_CONFIG`, config files, and `.env` are CLI layers. Process-level variables such as `DOC_DETECTIVE_CACHE_DIR` and `DO_NOT_TRACK` still apply.

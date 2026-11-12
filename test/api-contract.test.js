@@ -70,4 +70,30 @@ describe("JS API contract", function () {
         "Invalid config:\nunknown key `invalidKey`.\nSee https://docs.doc-detective.com/reference/schemas/config",
     });
   });
+
+  // An invalid spec rejects, as the CLI exits 2; `exitOnFail: false` skips it.
+  describe("with an invalid spec", function () {
+    const inputs = () => [path.join(dir, "pass.spec.json"), path.join(dir, "bad.spec.json")];
+    beforeEach(function () {
+      fs.writeFileSync(
+        path.join(dir, "bad.spec.json"),
+        JSON.stringify({ specId: "bad", tests: [{ steps: [{ runShell: "echo hi", breakpoint: true }] }] })
+      );
+    });
+
+    it("rejects, and runs nothing", async function () {
+      await assert.rejects(runTests({ ...base(), input: inputs() }), {
+        message: /^Invalid test specifications, so nothing ran:\n/,
+      });
+    });
+
+    it("skips it when `exitOnFail` is `false`", async function () {
+      const report = await runTests({ ...base(), input: inputs(), exitOnFail: false });
+      assert.deepEqual(
+        report.specs.map((spec) => spec.specId),
+        ["pass"]
+      );
+      assert.equal(report.summary.specs.pass, 1);
+    });
+  });
 });
