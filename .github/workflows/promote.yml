@@ -124,8 +124,9 @@ jobs:
           echo "Test server is ready."
 
       - name: Run github-action
-        # Pinned to the v1.4.1 commit; @latest is a moving target.
-        uses: doc-detective/github-action@49c73785b0ff864356ec2ef71b728f0623a8621d # v1.6.1
+        # Pinned to a commit, because tags move. v1 refuses CLI 5, so 5.x
+        # releases need the v2 action.
+        uses: doc-detective/github-action@1a2716b5169a1c31e44b99ccaa3d2847c0e37b9e # v2.0.0-rc.1
         with:
           version: ${{ steps.resolve.outputs.action_version }}
           config: ./test/artifacts/config.json
