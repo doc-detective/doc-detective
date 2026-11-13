@@ -90,7 +90,7 @@ docker run -v .:/app \
 
 ## Refuse local URLs on shared runners
 
-Tests can reach `localhost`, a Docker network, or a private network with no setting. Doc Detective guards two kinds of fetch, screenshot reference images and OpenAPI `$ref`s. By default, it refuses only a hop from a public address to a private one. That's a public URL that redirects to a private address, or a publicly hosted OpenAPI description whose `$ref` points at one.
+Tests can reach `localhost`, a Docker network, or a private network with no setting. Doc Detective guards two kinds of fetch: screenshot reference images, and OpenAPI descriptions loaded from a URL along with their `$ref`s. By default, it refuses only a hop from a public address to a private one. That's a public URL that redirects to a private address, or a publicly hosted OpenAPI description whose `$ref` points at one.
 
 Two environment variables change that. Each one accepts `1`, `true`, `yes`, or `on`. Setting both is a usage error, and the CLI exits `2`.
 

@@ -1,0 +1,47 @@
+{
+  "tests": [
+    {
+      "testId": "charmap-copy-characters",
+      "runOn": [
+        {
+          "platforms": ["windows"]
+        }
+      ],
+      "steps": [
+        {
+          "description": "Open Character Map and wait for the Select button.",
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": { "elementText": "Select" }
+            }
+          }
+        },
+        {
+          "description": "Select the highlighted character.",
+          "click": { "elementText": "Select" }
+        },
+        {
+          "description": "Type more characters into the Characters to copy box.",
+          "type": {
+            "keys": ["AB"],
+            "selector": "//Edit[@Name=\"Characters to copy :\"]"
+          }
+        },
+        {
+          "description": "Check that the Copy button is present.",
+          "find": { "elementText": "Copy" }
+        },
+        {
+          "description": "Take a screenshot of the window.",
+          "screenshot": "charmap.png"
+        },
+        {
+          "description": "Close Character Map.",
+          "closeSurface": { "app": "charmap" }
+        }
+      ]
+    }
+  ]
+}
