@@ -160,8 +160,6 @@ By default, Doc Detective checks the npm registry on startup and updates itself 
 - **npx invocations**: Re-executes with `npx -y doc-detective@<version>`.
 - **Local project installs**: Prints an "update available" message with the `npm i doc-detective@<version>` command to run, instead of modifying your `package.json`.
 
-Auto-update never moves you to a new major version, because a major version has breaking changes. When a newer major version is out, Doc Detective prints the command to upgrade to it, such as `npm i doc-detective@5`. It keeps updating you to newer releases of your current major version. To prepare for the next major version, see [Prepare for Doc Detective 5.0](/docs/ci/upgrade-to-v5).
-
 Auto-update never crosses a major version. When a new major version is out, Doc Detective tells you and leaves the upgrade to you. See [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5) for what changes in version 5.
 
 To disable auto-update, use any of these methods:
