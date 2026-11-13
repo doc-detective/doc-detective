@@ -32,7 +32,7 @@ Register the description once under `integrations.openApi` in your `.doc-detecti
 }
 ```
 
-`descriptionPath` accepts a local path or a URL, and Doc Detective resolves any `$ref`s in the description when it loads it. Both the description and its `$ref`s can be on `localhost` or a private network. A config-level entry applies to every test in the run, so this is the best place to declare a description you reuse across specs.
+`descriptionPath` accepts a local path or a URL, and Doc Detective resolves any `$ref`s in the description when it loads it. Both the description and its `$ref`s can be on `localhost` or a private network. If the runner sets `DOC_DETECTIVE_BLOCK_LOCAL_URLS`, a `descriptionPath` URL or `$ref` on a private or loopback address fails to load, while a local path still works. See [Refuse local URLs on shared runners](/docs/ci/docker-and-headless#refuse-local-urls-on-shared-runners). A config-level entry applies to every test in the run, so this is the best place to declare a description you reuse across specs.
 
 If you'd rather keep everything in one file, skip the config and load the description directly from the step instead. See [Step 2](#step-2-reference-an-operation-from-a-step).
 

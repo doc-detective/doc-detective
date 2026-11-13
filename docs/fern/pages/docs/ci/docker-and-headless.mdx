@@ -21,10 +21,10 @@ docker run -v .:/app docdetective/docdetective:linux --input /app/api.spec.json
 The `-v .:/app` flag mounts your current directory to `/app` inside the container. Because the working directory is `/app`, point `--input` and `--output` at paths under `/app` so results and artifacts land back in your project.
 
 <Note>
-Inside the official image, unsafe steps run automatically without `--allow-unsafe`. Those include `runCode` snippets detected from Markdown code fences. The image sets `"allowUnsafeSteps": true` in a user config at `/etc/doc-detective-xdg/doc-detective/config.json`, and points `XDG_CONFIG_HOME` at it. A user config is the lowest config layer, so your project config, `DOC_DETECTIVE_CONFIG`, or `--no-allow-unsafe` overrides it. To opt out, set `allowUnsafeSteps` to `false` in your config. See [Configuration precedence](/reference/cli#configuration-precedence).
+Inside the official image, unsafe steps run automatically without `--allow-unsafe`. Those include `runCode` snippets detected from Markdown code fences. The image sets `"allowUnsafeSteps": true` in a user config at `/etc/doc-detective-xdg/doc-detective/config.json`, and points `XDG_CONFIG_HOME` at it. A user config is the lowest config layer, so your project config, `DOC_DETECTIVE_CONFIG`, or `--no-allow-unsafe` overrides it. To opt out, set `allowUnsafeSteps` to `false` in your config. See [Configuration precedence](/reference/reference/cli#configuration-precedence).
 </Note>
 
-The image also sets `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`, where its browsers are pre-installed, and `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1`, because the image tag sets the version. For every variable Doc Detective reads, see [Environment variables](/reference/cli#environment-variables).
+The image also sets `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`, where its browsers are pre-installed, and `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1`, because the image tag sets the version. For every variable Doc Detective reads, see [Environment variables](/reference/reference/cli#environment-variables).
 
 ## Step 2: Understand headless behavior
 
@@ -33,7 +33,7 @@ A headless environment has no display, which affects browser-driven tests:
 - **Browser tests** run headless automatically when no display is available. On Ubuntu CI runners, Chrome and Firefox contexts fall back to headless mode.
 - **Video recording** works headless in Chrome. A context that names no browser runs headless Chrome, and the `browser` recording engine records its tab with no display. The `ffmpeg` engine captures the screen, so it needs a headed context on a real or virtual display. Headless Firefox and Safari can't be recorded.
 
-To record Firefox, Safari, or a native app on a headless Linux runner, run the context headed on Xvfb. A macOS or Windows runner has a display already. For engine details, see [Record video](/docs/test-docs/record-video).
+To record Firefox, Safari, or a native app on a headless Linux runner, run the context headed on Xvfb. The official Linux image includes Xvfb, so headless Firefox records there by default. When `autoRecord` is on, Doc Detective runs it headed on an Xvfb display. A macOS or Windows runner has a display already. For engine details, see [Record video](/docs/test-docs/record-video).
 
 ## Step 3: Warm runtime assets
 
@@ -79,7 +79,7 @@ Containers and CI systems often mount secrets as files. Doc Detective can read c
 | `integrations.docDetectiveApi.apiKeyFile` config key | Path to a file holding the Orchestration API key. Use it in place of `apiKey`. |
 | `integrations.heretto[].apiTokenFile` config key | Path to a file holding a Heretto API token. Use it in place of `apiToken`. See [Heretto](/docs/test-docs/heretto). |
 
-A relative `DOC_DETECTIVE_API_FILE` resolves from the current directory. A relative `apiKeyFile` or `apiTokenFile` resolves against the config that sets it, as in [Configuration precedence](/reference/cli#configuration-precedence). Doc Detective trims whitespace around a key or token. If it can't read a file, the run exits `2` and names the file.
+A relative `DOC_DETECTIVE_API_FILE` resolves from the current directory. A relative `apiKeyFile` or `apiTokenFile` resolves against the config that sets it, as in [Configuration precedence](/reference/reference/cli#configuration-precedence). Doc Detective trims whitespace around a key or token. If it can't read a file, the run exits `2` and names the file.
 
 ```bash
 docker run -v .:/app \
@@ -90,7 +90,7 @@ docker run -v .:/app \
 
 ## Refuse local URLs on shared runners
 
-Tests can reach `localhost`, a Docker network, or a private network with no setting. Doc Detective guards two kinds of fetch, screenshot reference images and OpenAPI `$ref`s. By default, it refuses only a hop from a public address to a private one. That's a public URL that redirects to a private address, or a publicly hosted OpenAPI description whose `$ref` points at one.
+Tests can reach `localhost`, a Docker network, or a private network with no setting. Doc Detective guards two kinds of fetch: screenshot reference images, and OpenAPI descriptions loaded from a URL along with their `$ref`s. By default, it refuses only a hop from a public address to a private one. That's a public URL that redirects to a private address, or a publicly hosted OpenAPI description whose `$ref` points at one.
 
 Two environment variables change that. Each one accepts `1`, `true`, `yes`, or `on`. Setting both is a usage error, and the CLI exits `2`.
 
@@ -113,7 +113,7 @@ On a runner that executes specs you don't control, set `DOC_DETECTIVE_BLOCK_LOCA
 
 **Cause:** The context is headless Firefox or Safari, or it uses the `ffmpeg` engine on a headless browser. A headless browser draws nothing on a display, so there's nothing to capture.
 
-**Solution:** Record in Chrome, which the `browser` engine records headless. Otherwise run the context headed: install Xvfb on a Linux runner, or move the test to a macOS or Windows runner. See [Record video](/docs/test-docs/record-video).
+**Solution:** Record in Chrome, which the `browser` engine records headless. Otherwise run the context headed: install Xvfb on a Linux runner, or move the test to a macOS or Windows runner. The official Linux image already includes Xvfb. See [Record video](/docs/test-docs/record-video).
 
 ### Runs are slow because assets download every time
 

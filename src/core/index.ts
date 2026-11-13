@@ -45,7 +45,7 @@ async function detectAndResolveFromConfig(config: any, { strictSpecs = false } =
   const detectedTests = await detectTests({ config });
   if (strictSpecs && config._invalidSpecs?.length) {
     throw new Error(
-      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs.join("\n")}\nFix them, or pass --no-exit-on-fail to skip them.`
+      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs.join("\n")}\nFix them, or skip them with \`--no-exit-on-fail\` or \`exitOnFail: false\`.`
     );
   }
   if (!detectedTests || detectedTests.length === 0) {
@@ -159,7 +159,8 @@ async function runTestsAndReport(config: any, options: any) {
     startTelemetry(effectiveConfig);
     willRunViaApi = runsViaApi(effectiveConfig);
     resolvedTests = await detectAndResolveFromConfig(effectiveConfig, {
-      strictSpecs: options.strictSpecs === true,
+      // Invalid specs reject unless `exitOnFail: false` (ADR 01199).
+      strictSpecs: options.strictSpecs ?? effectiveConfig.exitOnFail !== false,
     });
     if (!resolvedTests || resolvedTests.specs.length === 0) {
       // log() in src/core/utils.ts recognizes "warning", not "warn" —

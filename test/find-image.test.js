@@ -842,7 +842,7 @@ describe("elementImage matching", function () {
       expect(redacted.elementImage).to.equal("base64 image");
     });
 
-    it("image-base64-not-printed: a validation warning names the field and leaves the value out", async function () {
+    it("image-base64-not-printed: an invalid spec's error names the field and leaves the value out", async function () {
       const { runTests } = await import("../dist/core/index.js");
       const value = b64(icon(GEAR, "#e01b24", 24));
       const input = fileOf(
@@ -855,13 +855,15 @@ describe("elementImage matching", function () {
         printed += chunk;
         return true;
       };
+      let error;
       try {
-        await runTests({ input, logLevel: "warning", telemetry: { send: false }, detectSteps: false });
+        // runTests() rejects an invalid spec (ADR 01199).
+        error = await runTests({ input, logLevel: "warning", telemetry: { send: false }, detectSteps: false }).catch((e) => e);
       } finally {
         process.stderr.write = write;
       }
-      expect(printed).to.match(/elementImage\.threshold/);
-      expect(printed).to.not.include(value);
+      expect(error.message).to.match(/elementImage\.threshold/);
+      expect(error.message + printed).to.not.include(value);
     });
 
     it("image-no-mobile: fails on a mobile browser and says so", async function () {

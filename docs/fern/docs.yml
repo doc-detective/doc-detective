@@ -208,6 +208,9 @@ navigation:
               - section: Native & mobile apps (experimental)
                 skip-slug: true
                 contents:
+                  - page: Windows app tutorial
+                    path: pages/docs/test-docs/native-apps/windows-tutorial.mdx
+                    slug: windows-app-tutorial
                   - page: Native Windows apps
                     path: pages/docs/test-docs/native-apps/windows.mdx
                     slug: native-windows-apps
@@ -573,6 +576,8 @@ redirects:
     destination: /ai/ai-agents/overview
   - source: /docs/contribute/docs/testing
     destination: /contribute/contribute/testing
+  - source: /reference/cli
+    destination: /reference/reference/cli
   - source: /reference/cli/install
     destination: /reference/reference/cli/install
   # Action slugs are now lowercase, so a :slug pattern can't map these

@@ -327,7 +327,7 @@ function buildPage(data) {
     "",
     "These flags apply when you run tests, with no command or with `run`. Each has a config-file equivalent; see [Configuration precedence](#configuration-precedence).",
     "",
-    "The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, and `--no-input` work with every command except `lsp`. Other commands take only their own flags and the global flags, and reject anything else with an `unknown option` error. `lsp` speaks the language server protocol on stdout, so it takes only `--stdio`.",
+    "The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, and `--no-input` work with every command except `lsp` and the hidden `runner` command. Other commands take only their own flags and the global flags, and reject anything else with an `unknown option` error. `lsp` speaks the language server protocol on stdout, so it takes only `--stdio`.",
     "",
     runFlagsTable(runFlags, configSchema),
     ""
@@ -384,7 +384,7 @@ function buildPage(data) {
   parts.push(
     "### run",
     "",
-    "Run tests as the bare command does, with file and folder paths as arguments. The paths are added to any `--input` values. A `-` argument reads a spec or document from stdin. `runTests` and `runtests` still work, but print a deprecation warning on stderr. Replace them with `run`.",
+    "Run tests as the bare command does, with file and folder paths as arguments. The paths are added to any `--input` values. A `-` argument reads a spec or document from stdin. `runTests` and `runtests` still work, but print a deprecation warning on stderr, which `--quiet`, `-l error`, and `-l silent` hide. Replace them with `run`.",
     "",
     "```bash",
     "npx doc-detective run ./docs a.spec.json",
@@ -479,7 +479,7 @@ function buildPage(data) {
     "| Source | A relative path resolves against |",
     "|---|---|",
     "| The project config | Its folder. With `relativePathBase: \"cwd\"`, or for a config loaded from a URL, the current directory |",
-    "| Your user config | Its folder |",
+    "| Your user config | Its folder, even with `relativePathBase: \"cwd\"` |",
     "| `DOC_DETECTIVE_CONFIG` and `DOC_DETECTIVE` | The current directory |",
     "| Flags and single-purpose variables | The current directory |",
     "",

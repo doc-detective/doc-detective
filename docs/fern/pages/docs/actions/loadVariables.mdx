@@ -6,7 +6,7 @@ description: Load environment variables from a .env file.
 
 The `loadVariables` action loads environment variables from a specified `.env` file. This action is useful for accessing sensitive information, such as API keys or other credentials, without hardcoding them into your tests. Variables loaded this way are available for use in subsequent steps within the same test. The step replaces a variable that's already set, because a step sets variables on purpose.
 
-> You can also load globally applicable variables using the `loadVariables` property in the configuration file. This makes them available across all tests. The config-level file only fills variables that aren't already set. A variable set in your shell wins, as it does over a project `.env`. See [Configuration precedence](/reference/cli#configuration-precedence).
+> You can also load globally applicable variables using the `loadVariables` property in the configuration file. This makes them available across all tests. The config-level file only fills variables that aren't already set. A variable set in your shell wins, as it does over a project `.env`. See [Configuration precedence](/reference/reference/cli#configuration-precedence).
 >
 > For comprehensive options, see the [`loadVariables`](/reference/schemas/loadvariables) reference.
 
@@ -18,10 +18,10 @@ Assuming a file named `secrets.env` exists in the same directory as the test fil
 
 ```env title="secrets.env"
 API_KEY=your_secret_api_key
-BASE_URL=https://api.example.com
+DATA_URL=https://api.example.com/data
 ```
 
-You can load these variables using the `loadVariables` action:
+You can load these variables using the `loadVariables` action. The `httpRequest` step then uses `$DATA_URL` as the URL and `$API_KEY` in the `Authorization` header:
 
 {/* test {"testId":"loadvariables-env-file","detectSteps":false} */}
 
@@ -35,13 +35,13 @@ You can load these variables using the `loadVariables` action:
           "loadVariables": "./secrets.env"
         },
         {
-          "description": "Use the loaded API key in an HTTP request.",
+          "description": "Use the loaded URL and API key in an HTTP request.",
           "httpRequest": {
-            "url": "$BASE_URL/data", // Use loaded BASE_URL
+            "url": "$DATA_URL",
             "method": "GET",
             "request": {
               "headers": {
-                "Authorization": "Bearer $API_KEY" // Use loaded API_KEY
+                "Authorization": "Bearer $API_KEY"
               }
             }
           }
@@ -53,6 +53,7 @@ You can load these variables using the `loadVariables` action:
 ```
 
 {/* step {"stepId":"loadvariables-load","description":"Load environment variables from secrets.env","loadVariables":"./secrets.env"} */}
-{/* step {"stepId":"loadvariables-use","description":"Use both loaded variables: BASE_URL in the URL (proven by the request reaching the local server at all) and API_KEY in both a header and the request body -- only the body's substitution is independently verified below, since the echo API reflects the body/query but not request headers","httpRequest":{"url":"$BASE_URL/data","method":"POST","request":{"headers":{"Authorization":"Bearer $API_KEY"},"body":{"key":"$API_KEY"}},"response":{"body":{"key":"docs-test-secret-456"}}}} */}
+{/* Keep the loadvariables-use step as POST, even though the visible example shows the common GET case. The echo API reflects the request body and query, not headers. Only a request body can verify the $API_KEY substitution. The request reaching the local server proves the $DATA_URL substitution. */}
+{/* step {"stepId":"loadvariables-use","description":"Use DATA_URL and API_KEY in a POST request, and verify the API_KEY substitution in the echoed body","httpRequest":{"url":"$DATA_URL","method":"POST","request":{"headers":{"Authorization":"Bearer $API_KEY"},"body":{"key":"$API_KEY"}},"response":{"body":{"key":"docs-test-secret-456"}}}} */}
 {/* test end */}
 

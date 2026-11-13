@@ -1,3 +1,150 @@
+# [5.0.0-v5-rc.19](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.18...v5.0.0-v5-rc.19) (2026-11-13)
+
+
+* feat(api)!: reject invalid specs from runTests() by default ([85f1e0c](https://github.com/doc-detective/doc-detective/commit/85f1e0c881fe389a82c00fe27c666779924e1d3e))
+
+
+### Bug Fixes
+
+* **api:** name exitOnFail in the invalid-specs error ([3c34d3e](https://github.com/doc-detective/doc-detective/commit/3c34d3e39a725983471be15f3a708efad01ed582))
+
+
+### BREAKING CHANGES
+
+* `runTests()` rejects invalid specs instead of skipping
+them with a warning. Set `exitOnFail: false` to skip them, as in 4.x.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+# [5.0.0-v5-rc.18](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.17...v5.0.0-v5-rc.18) (2026-11-11)
+
+
+* feat(outputs)!: name three boolean match outputs as statements ([f97db7c](https://github.com/doc-detective/doc-detective/commit/f97db7cf185b3cfeeca2519a35c7c8ee8a89dac4))
+* feat(outputs)!: name three boolean match outputs as statements ([8703442](https://github.com/doc-detective/doc-detective/commit/870344217e69381335b2345b4b41d9d21eec8124))
+* feat(report)!: rename the step's automatic screenshot field to autoScreenshotPath ([03d0a3e](https://github.com/doc-detective/doc-detective/commit/03d0a3ef5dadfab7f5a9b4cc1d3fa58908d8a624))
+* feat(report)!: rename the step's automatic screenshot field to autoScreenshotPath ([33c55c5](https://github.com/doc-detective/doc-detective/commit/33c55c5e2f71fc3629bd26420cca21a2e62b5da1))
+* feat(reporters)!: report the same results in every reporter ([46ffa0a](https://github.com/doc-detective/doc-detective/commit/46ffa0a8ee1fab1d323e3933e2dd2846bd3537e1))
+* feat(reporters)!: report the same results in every reporter ([ed47784](https://github.com/doc-detective/doc-detective/commit/ed4778422c4c585d1a2031e848895891de32dde9))
+* feat(schemas)!: reject keys that do nothing ([b5e88fb](https://github.com/doc-detective/doc-detective/commit/b5e88fb438e2295cdeb8370db8f05bdebf3742ce))
+* feat(schemas)!: reject keys that do nothing ([3cebd3d](https://github.com/doc-detective/doc-detective/commit/3cebd3d809b8bdb05a1479e435003735ddc851da))
+* fix(report)!: make every real report validate against report_v3 ([c96b449](https://github.com/doc-detective/doc-detective/commit/c96b449fb95763769743e9de3e82a28ad20b900a))
+* fix(report)!: make every real report validate against report_v3 ([a4b3170](https://github.com/doc-detective/doc-detective/commit/a4b3170188e11951ab7860364972e39ca9f96d48))
+
+
+### Bug Fixes
+
+* **config:** close small gaps between the schemas and the tool ([44f8ec1](https://github.com/doc-detective/doc-detective/commit/44f8ec13c83675e54d610292b20005418e9e3d58))
+* **config:** close small gaps between the schemas and the tool ([c4a1c04](https://github.com/doc-detective/doc-detective/commit/c4a1c04dd39c2ef0d3468e3ec37fd30dfbff1200))
+* **config:** close small gaps between the schemas and the tool ([5078291](https://github.com/doc-detective/doc-detective/commit/50782916445f1c14f421c428fe2df7d049844f6b))
+* **config:** close small gaps between the schemas and the tool ([01637e7](https://github.com/doc-detective/doc-detective/commit/01637e730142cf9e39a856e47c052d1d2ad63fa7))
+* **core:** name a tag-only near match in the drift hint ([9c2583b](https://github.com/doc-detective/doc-detective/commit/9c2583bdd4c3f0c83fcc09c5a594a30b64f7ef88))
+* **detect:** skip .doc-detective folders when scanning inputs ([8e673a9](https://github.com/doc-detective/doc-detective/commit/8e673a9f8d6b92fde6c7cab302cd1e84d51942bc))
+* **detect:** skip .doc-detective folders when scanning inputs ([355dcae](https://github.com/doc-detective/doc-detective/commit/355dcaee177d16a1db2beb5db639dc24af1285dc))
+* **html:** show the run's start time and environment in the report header ([3b662e9](https://github.com/doc-detective/doc-detective/commit/3b662e9294aba42d151af5906cbb57ab4a8d83fb))
+* **html:** show the run's start time and environment in the report header ([719e2be](https://github.com/doc-detective/doc-detective/commit/719e2be1d05d11e42a315e835340e0fb198042fb))
+* **recording:** word a device recording's skip where it fails to start ([d595777](https://github.com/doc-detective/doc-detective/commit/d5957777da055d68801840b336285f148022bd56))
+* **recording:** word a device recording's skip where it fails to start ([2cb54e7](https://github.com/doc-detective/doc-detective/commit/2cb54e7c40143177fcc908b7db85a6d055ec2319))
+* **reporters:** say a report couldn't be built when render() throws ([c368e53](https://github.com/doc-detective/doc-detective/commit/c368e53fd389851a782a778e7cae86433a24ee37))
+* **reporters:** separate render errors from write errors ([48f5be6](https://github.com/doc-detective/doc-detective/commit/48f5be6c232cdddcc9cf34f882b5563f8c82f7d6))
+* **reporters:** separate render errors from write errors ([96b5ae7](https://github.com/doc-detective/doc-detective/commit/96b5ae7de491e4c3cffdaa81f67285635d22618e))
+* **runner:** word every skip reason as `Skipped: <reason>.` ([0e85324](https://github.com/doc-detective/doc-detective/commit/0e8532455c7a7424a3d8415a40d187282825927d))
+* **runner:** word every skip reason as `Skipped: <reason>.` ([c829270](https://github.com/doc-detective/doc-detective/commit/c829270706fbb1d86ff04fe288eacdbbf34542e8))
+
+
+### Features
+
+* **reporters:** write a Markdown summary into the run folder ([cecdd2a](https://github.com/doc-detective/doc-detective/commit/cecdd2aff8af1b03b1a92dff72074cea485ae100))
+* **reporters:** write a Markdown summary into the run folder ([5aa1cb8](https://github.com/doc-detective/doc-detective/commit/5aa1cb8ba079616680aa7b2b0ccb8c73f7650407))
+* **reporters:** write a Markdown summary into the run folder ([68efd27](https://github.com/doc-detective/doc-detective/commit/68efd27961e90c913e7861b983c22ccbc33fd03d))
+
+
+### BREAKING CHANGES
+
+* config `crawl`, `integrations.heretto[].fileMapping`, step
+`breakpoint`, `$schema` inside `saveCookie`/`loadCookie`, and an app's
+`startSurface.workingDirectory` are invalid (exit 2). The unknown-key
+message changes from `unknown key 'x'. Did you mean y?` to
+"unknown key `x`. Did you mean `y`?".
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a routing failure no longer adds a step to the results;
+the step that routed fails instead, and summary.steps no longer counts a
+marker. A failed Doc Detective API run exits 2 instead of writing
+{status, error} as results.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* `$$stdioMatched`, `$$aspectRatioMatch`, and
+`$$resolutionMatch` are now `$$stdioMatches`, `$$aspectRatioMatches`, and
+`$$resolutionMatches`, with no alias. An old name resolves to nothing.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a step result's `autoScreenshot` is now
+`autoScreenshotPath`. `autoScreenshot` on a step is invalid (exit 2); set
+it on the test, spec, or config. assertion records no longer accept
+`expected`, `actual`, or `description`.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* JUnit cases are named <testId> › <contextId> with the spec ID as
+classname, so CI test history restarts once; report-file notices print on stderr
+and follow the log level; the Markdown and HTML verdicts count tests; a report
+path you name is overwritten.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* config `crawl`, `integrations.heretto[].fileMapping`, step
+`breakpoint`, `$schema` inside `saveCookie`/`loadCookie`, and an app's
+`startSurface.workingDirectory` are invalid (exit 2). The unknown-key
+message changes from `unknown key 'x'. Did you mean y?` to
+"unknown key `x`. Did you mean `y`?".
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a routing failure no longer adds a step to the results;
+the step that routed fails instead, and summary.steps no longer counts a
+marker. A failed Doc Detective API run exits 2 instead of writing
+{status, error} as results.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* `$$stdioMatched`, `$$aspectRatioMatch`, and
+`$$resolutionMatch` are now `$$stdioMatches`, `$$aspectRatioMatches`, and
+`$$resolutionMatches`, with no alias. An old name resolves to nothing.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* a step result's `autoScreenshot` is now
+`autoScreenshotPath`. `autoScreenshot` on a step is invalid (exit 2); set
+it on the test, spec, or config. assertion records no longer accept
+`expected`, `actual`, or `description`.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+* JUnit cases are named <testId> › <contextId> with the spec ID as
+classname, so CI test history restarts once; report-file notices print on stderr
+and follow the log level; the Markdown and HTML verdicts count tests; a report
+path you name is overwritten.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+# [5.0.0-v5-rc.17](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.16...v5.0.0-v5-rc.17) (2026-11-11)
+
+
+### Bug Fixes
+
+* **cli:** name the browser in per-context progress lines ([5ef9c6b](https://github.com/doc-detective/doc-detective/commit/5ef9c6bb830523b6bf54ff42f636d6916fa9944e))
+
+# [5.0.0-v5-rc.16](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.15...v5.0.0-v5-rc.16) (2026-11-11)
+
+
+### Bug Fixes
+
+* **agents:** end the marketplace warning with a period, and split a long ADR sentence ([8533d2f](https://github.com/doc-detective/doc-detective/commit/8533d2f3f8a32a8b6514df97af82a2a89864c753))
+* **agents:** pin agent-tools installs to the v1 tag ([c6878dd](https://github.com/doc-detective/doc-detective/commit/c6878ddc8f36c5d7a81683eccc687d7a43d387a2)), closes [#815](https://github.com/doc-detective/doc-detective/issues/815) [#854](https://github.com/doc-detective/doc-detective/issues/854)
+* **common:** publish only dist and minify bundled schemas ([5c50a87](https://github.com/doc-detective/doc-detective/commit/5c50a87d84fd81f6831d6b4e97442a2d23a6e97e))
+* **runtime:** pin just-in-time runtime dependencies to exact versions ([0384b01](https://github.com/doc-detective/doc-detective/commit/0384b0169dec361cc54a2c3b3a6e482ec4661b8b)), closes [#722](https://github.com/doc-detective/doc-detective/issues/722)
+* **runtime:** reject prerelease runtime pins ([73c66d3](https://github.com/doc-detective/doc-detective/commit/73c66d3840d088c236ab3b9c4c03408045192e5e))
+* **runtime:** update outdated cached Chrome runtime before getRunner starts Appium ([2c05073](https://github.com/doc-detective/doc-detective/commit/2c050736ff908697b1ff0ecda1c6ce01657a459d))
+
+
+### Features
+
+* **container:** ship Xvfb in the Linux image ([1c4b27c](https://github.com/doc-detective/doc-detective/commit/1c4b27cb561daf4581f0b9722d752d5c6f8f8b22))
+
 # [5.0.0-v5-rc.15](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.14...v5.0.0-v5-rc.15) (2026-11-11)
 
 

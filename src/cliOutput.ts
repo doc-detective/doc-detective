@@ -45,6 +45,7 @@ export function applyColorFlags(argv: string[], env: NodeJS.ProcessEnv = process
 // `lsp` and `runner` take no global flags, so it stays for commander to reject
 // there (ADR 01193).
 export function applyInputFlag(argv: string[], env: NodeJS.ProcessEnv = process.env): string[] {
+  // argv[2] is the subcommand only when no global flag precedes it.
   if (!argv.includes("--no-input") || ["lsp", "runner"].includes(argv[2])) return argv;
   env.DOC_DETECTIVE_NO_INPUT = "1";
   return argv.filter((arg) => arg !== "--no-input");

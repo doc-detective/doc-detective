@@ -112,7 +112,7 @@ Example using environment variables with `loadVariables`:
 
 ### Read the token from a file
 
-If your CI system mounts secrets as files, you can keep the token out of your config file and the environment. Use `apiTokenFile` in place of `apiToken`. A relative path resolves against the config file that sets it:
+If your CI system mounts secrets as files, you can keep the token out of your config file and the environment. Use `apiTokenFile` in place of `apiToken`. A relative path resolves against the folder of the config file that sets it. In `DOC_DETECTIVE_CONFIG`, or in a project config that sets `relativePathBase: "cwd"`, it resolves against the current directory. See [Configuration precedence](/reference/reference/cli#configuration-precedence).
 
 ```json
 {
@@ -130,7 +130,7 @@ If your CI system mounts secrets as files, you can keep the token out of your co
 }
 ```
 
-Relative paths resolve from the current directory. If Doc Detective can't read the file, the run exits `2` and names the file.
+If Doc Detective can't read the file, the run exits `2` and names the file.
 
 ## Publishing scenario requirements
 

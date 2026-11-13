@@ -49,7 +49,7 @@ Screenshots land in the run folder, on a stable path for each step:
 <outputDir>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-<stepId>.png
 ```
 
-The number is the step's place in the test, so the first step you wrote is `01-…`. The IDs come from file paths and content hashes, not random values. So the same step lands on the same relative path in every run. Diff two run folders to spot UI changes over time. Each step in the results carries its image's path, relative to the run folder, in `autoScreenshot`.
+The number is the step's place in the test, so the first step you wrote is `01-…`. The IDs come from file paths and content hashes, not random values. So the same step lands on the same relative path in every run. Diff two run folders to spot UI changes over time.
 
 While screenshots are on, the `runFolder` reporter runs even if `reporters` leaves it out. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
@@ -61,9 +61,9 @@ Each reporter points at the images its own way:
 |---|---|
 | `html`, and the run folder's `testResults.html` | Every step's media strip, labeled **Automatic**. |
 | `terminal` | A `Screenshot:` line with the absolute path, on a step that failed or warned. |
-| `markdown` | A `Screenshot:` path, relative to the summary file, on a step that failed or warned. |
+| `markdown`, and the run folder's `testResults.md` | A `Screenshot:` path, relative to the summary file, on a step that failed or warned. |
 | `junit` | A `[[ATTACHMENT…]]` line holding the path, relative to `junit.xml`, for the first step in a test case that failed or warned. |
-| `json`, and the run folder's `testResults.json` | The step's `autoScreenshotPath` field, relative to `runDir`. |
+| `json`, and the run folder's `testResults.json` | The step's `autoScreenshotPath` field, relative to the run folder, which the report names in `runDir`. |
 
 Like `screenshot` steps, automatic browser screenshots blur elements whose text or form value holds a secret environment variable value. The blur appears in the saved image. Text inside iframes, shadow DOM, or a canvas isn't blurred, and neither are native app and device screenshots. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
 

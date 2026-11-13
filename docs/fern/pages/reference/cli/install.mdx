@@ -253,13 +253,25 @@ To use a different cache location, such as a shared directory or a volume baked 
 3. **Project config**: `cacheDir` in the file `--config` names, or else in `.doc-detective.json`, `.yaml`, or `.yml`. A relative path resolves against the config file.
 4. **User config**: `cacheDir` in `$XDG_CONFIG_HOME/doc-detective/config.json`
 
-`install` and test runs read the same settings, including the project `.env`, so they use the same cache. See [Configuration precedence](/reference/cli#configuration-precedence). An invalid config makes `install` exit `2`. `install` doesn't read `apiKeyFile` or `apiTokenFile`, so it runs before secrets are mounted, as in an image build.
+`install` and test runs read the same settings, including the project `.env`, so they use the same cache. See [Configuration precedence](/reference/reference/cli#configuration-precedence). An invalid config makes `install` exit `2`. `install` doesn't read `apiKeyFile` or `apiTokenFile`, so it runs before secrets are mounted, as in an image build.
 
 Browsers always install into `<cacheDir>/browsers`. A `./browser-snapshots/` folder from version 4 isn't used.
 
 <Note>
 Earlier versions defaulted to `<os.tmpdir()>/doc-detective/`. After upgrading from one of those versions, the first run re-downloads assets into the default location. To keep using the old location, set `DOC_DETECTIVE_CACHE_DIR` to it. You can delete the old directory once you no longer need it.
 </Note>
+
+### Restricted characters
+
+The cache path can't contain shell metacharacters. Doc Detective rejects any path set through `DOC_DETECTIVE_CACHE_DIR`, `cacheDir`, or `--cache-dir` that includes one of these characters. On Windows, the runtime installer runs `npm.cmd` through a shell, where an unescaped metacharacter could break out of the command's argument boundary. Doc Detective enforces this check on every platform, not just Windows, so a cache path stays portable across your runners. When a path contains a rejected character, the install fails with an error naming both the character and the path. Set the cache to a path without those characters to resolve it.
+
+The rejected characters are:
+
+```
+; & | ` $ < > " ' % ^ !
+```
+
+Doc Detective also rejects newlines and carriage returns. Spaces, backslashes, parentheses, tildes, and dots are all allowed, so ordinary paths like `C:\Users\John Doe\cache` work fine.
 
 ## Examples
 

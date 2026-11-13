@@ -469,6 +469,14 @@ describe("--no-input", function () {
     expect(applyInputFlag(["node", "x"], env)).to.deep.equal(["node", "x"]);
     expect(env).to.deep.equal({});
   });
+  it("stays in argv for `lsp` and `runner`, which reject it", function () {
+    for (const command of ["lsp", "runner"]) {
+      const env = {};
+      const argv = ["node", "x", command, "--no-input"];
+      expect(applyInputFlag(argv, env)).to.deep.equal(["node", "x", command, "--no-input"]);
+      expect(env).to.not.have.property("DOC_DETECTIVE_NO_INPUT");
+    }
+  });
   it("turns off prompting, even on a TTY", function () {
     expect(isInteractive({ isTTY: true }, {})).to.equal(true);
     expect(isInteractive({ isTTY: true }, { DOC_DETECTIVE_NO_INPUT: "1" })).to.equal(false);

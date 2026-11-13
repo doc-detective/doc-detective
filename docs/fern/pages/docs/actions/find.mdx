@@ -6,7 +6,7 @@ description: Locate and interact with an element on the page.
 
 The `find` action locates an element in the current interface based on its display text or a CSS/XPath selector. After finding the element, you can optionally interact with it, such as clicking it or typing into it.
 
-If multiple elements match the specified criteria (`elementText` and/or `selector`), the step operates on the first matched element. Ensure your criteria uniquely identify the target element.
+If multiple elements match the specified criteria, the step operates on the first matched element. Ensure your criteria uniquely identify the target element.
 
 Specify the target element directly with a string for basic text or selector lookup. Use an object for more detailed options and interactions:
 
@@ -20,10 +20,19 @@ Specify the target element directly with a string for basic text or selector loo
   If one element's text and another element's selector both match, the text match wins. A single word that names an HTML element, such as `Title` or `Menu`, is also a CSS selector, but an element with that text still wins. To be explicit, use the object format. `{ "selector": "#username" }` always matches as a selector, and `{ "elementText": "Login" }` always matches as text.
 
   Doc Detective checks all five ways together every 100 milliseconds, for up to 5 seconds, and uses the first check that finds an element. A match that's already on the page wins over a higher-ranked match that renders later.
-  - Example: `"find": "Login"` or `"find": "#username"`.
+
+  To match part of a value with a regular expression, wrap it in slashes, as in `"find": "/Order confirmed/"`. Doc Detective checks display text first, then accessible name, then `id`, then `data-testid`. If an element has no text of its own, such as a container, the accessible name check also matches all the text inside it. A regular expression never matches as a CSS or XPath selector. Doc Detective looks right away, then every 100 milliseconds for up to 5 seconds.
+
+  The match is case-sensitive and takes no flags. It can also match anywhere in the value, so `/Log ?in/` matches `Log into your account`. To require the whole value, anchor the expression, as in `/^Log ?in$/`.
+  - Example: `"find": "Login"`, `"find": "#username"`, or `"find": "/Log ?in/"`.
 - **Object Format:** Use an object with the following properties:
-  - `elementText`: (Optional) The display text of the element to find. If combined with `selector`, the element must match both. See [How text matching works](#how-text-matching-works) below.
-  - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to find. If combined with `elementText`, the element must match both. *At least one of `elementText` or `selector` is required.*
+  - `elementText`: (Optional) The display text of the element to find. If combined with other element-finding fields, the element must match all of them. See [How text matching works](#how-text-matching-works) below.
+  - `selector`: (Optional) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to find. If combined with other element-finding fields, the element must match all of them. *At least one element-finding field (`elementText`, `selector`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, `elementAria`, or `elementImage`) is required.*
+  - `elementId`: (Optional) ID attribute of the element. Supports exact match or a regex pattern using `/pattern/` syntax.
+  - `elementTestId`: (Optional) `data-testid` attribute of the element. Supports exact match or a regex pattern using `/pattern/` syntax.
+  - `elementClass`: (Optional) Class, or array of classes, the element must have. Each class supports exact match or a `/pattern/` regex. The element must have all specified classes.
+  - `elementAttribute`: (Optional) Object of attribute key-value pairs the element must have. Values can be strings (supporting `/pattern/` regex), numbers, or booleans. Boolean `true` matches attribute presence, and `false` matches absence.
+  - `elementAria`: (Optional) Computed accessible name of the element per the ARIA specification. Supports exact match or a `/pattern/` regex.
   - `elementImage`: (Optional) A picture of the element to find, for targets with no usable text or selector. If combined with other criteria, the match has to lie inside an element that meets them. See [Find elements by image](/docs/test-docs/find-elements-by-image).
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the element to exist (default: 5000). `0` checks once.
   - `moveTo`: (Optional) Move the cursor to the element. An element that isn't visible is scrolled into view. Defaults to `false`. A bare `find` leaves the viewport and cursor where they're already sitting. Set this explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.
@@ -69,13 +78,13 @@ On Windows, resolving a selector probes the app's candidate windows to read thei
 
 **Outputs:** the action also exposes `outputs.found`, a boolean indicating whether an element matching your criteria was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`.
 
-**Near matches:** when a browser `find` fails, `outputs.nearMatches` lists up to three visible elements closest to what you asked for, best first. Each entry has the element's `text` and `tag`, plus its `id`, `testId`, and `ariaLabel` when it has them. An empty list means nothing on the page was close. A `/regex/` target gets no near matches. The step's `resultHint` names them, and its `resultCode` is `drift`. See [Read the result](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
+**Near matches:** when a browser `find` fails, `outputs.nearMatches` lists up to three visible elements closest to what you asked for, best first. Each entry has the element's `text` and `tag`, plus its `id`, `testId`, and `ariaLabel` when it has them. An empty list means nothing on the page was close. A `/regex/` target gets no near matches. When the list isn't empty, the step's `resultHint` names them, and its `resultCode` is `drift`. Otherwise, its `resultCode` is `assertion`. See [Read the result](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
 
 > For comprehensive options, see the [`find`](/reference/schemas/find) reference.
 
 ## Examples
 
-Here are a few ways you might use the `find` action:
+The docs tests run every example below except the right-click, middle-click, specific-surface, and several-criteria examples.
 
 ### Find an element by its text (string shorthand)
 
@@ -121,6 +130,29 @@ Here are a few ways you might use the `find` action:
 
 {/* step {"stepId":"goto-find-selector","description":"Open the test page","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"find-selector","description":"Find an input by its CSS selector","find":"#text-input"} */}
+{/* test end */}
+
+### Find an element by a regular expression (string shorthand)
+
+{/* test {"testId":"find-by-regex","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find an element whose text contains 'Log in' or 'Login'.",
+          "find": "/Log ?in/"
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-regex","description":"Open the test page","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"find-regex","description":"Find a button by a regex on its text","find":"/Standard Butt/"} */}
 {/* test end */}
 
 ### Find an element by selector and click it (object format)
@@ -245,4 +277,206 @@ Here are a few ways you might use the `find` action:
 }
 ```
 
+### Find by ID, test ID, or accessible name
+
+When an element has no stable text, or a selector would be brittle, target it by its `id` attribute (`elementId`), its `data-testid` (`elementTestId`), or its computed accessible name (`elementAria`). The accessible name is the one your browser's DevTools accessibility panel reports for the element. Each takes an exact value or a `/regex/` pattern. The example below finds a button by its test ID. The forms `{ "elementId": "submit-button" }` and `{ "elementAria": "Save document button" }` work the same way.
+
+{/* test {"testId":"find-by-test-id","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find the login button by its data-testid.",
+          "find": {
+            "elementTestId": "login-form-submit"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-testid","description":"Open the enhanced elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"find-testid","description":"Find a button by its data-testid","find":{"elementTestId":"login-form-submit"}} */}
+{/* test end */}
+
+### Find by class and attribute
+
+Combine `elementClass` with `elementAttribute` to pin down an element by how it's styled and marked up. `elementClass` accepts a single class or an array of classes that must all be present. `elementAttribute` matches attribute values as strings (with `/regex/` support), numbers, or booleans, where `true` requires the attribute to be present and `false` requires it to be absent.
+
+{/* test {"testId":"find-by-class-attribute","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find a button that has the btn class and a data-count of 5.",
+          "find": {
+            "elementClass": "btn",
+            "elementAttribute": {
+              "data-count": 5
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-class-attr","description":"Open the enhanced elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"find-class-attr","description":"Find a button by class and a numeric attribute","find":{"elementClass":"btn","elementAttribute":{"data-count":5}}} */}
+{/* test end */}
+
+### Match an element with a regular expression
+
+`elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, and `elementAria` all match a substring by regular expression when you wrap the value in slashes. This is handy for IDs or text that carry a variable part, such as a generated suffix.
+
+{/* test {"testId":"find-by-regex-id","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find a button whose ID follows the submit-<name>-action pattern.",
+          "find": {
+            "elementId": "/^submit-.*-action$/"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-regex-id","description":"Open the enhanced elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"find-regex-id","description":"Find a button by an ID regular expression","find":{"elementId":"/^submit-.*-action$/"}} */}
+{/* test end */}
+
+### Move the cursor to an element
+
+Set `moveTo` to `true` to move the cursor to the element. If the element isn't visible, Doc Detective scrolls it into view. A bare `find` leaves the viewport and cursor in place, so set `moveTo` when a step should scroll or when a recording needs the cursor to travel.
+
+{/* test {"testId":"find-move-to","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Scroll a lower section into view.",
+          "find": {
+            "selector": "#tables",
+            "moveTo": true
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-moveto","description":"Open the test page","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"find-moveto","description":"Scroll the tables section into view","find":{"selector":"#tables","moveTo":true}} */}
+{/* test end */}
+
+### Find, click, and type using the object format
+
+Pass `type` an object to set an `inputDelay` alongside the keys, rather than the string form. Use `click: true` first so the element is active before you send the keys.
+
+{/* test {"testId":"find-click-type-object","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find the input, click it, and type with a delay.",
+          "find": {
+            "selector": "#input",
+            "click": true,
+            "type": {
+              "keys": "find action",
+              "inputDelay": 50
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-find-type-object","description":"Open the type test page","goTo":"http://localhost:8092/type-echo.html"} */}
+{/* step {"stepId":"find-type-object","description":"Find the input, click, and type using the object format","find":{"selector":"#type-input","click":true,"type":{"keys":"Object-format typing","inputDelay":50}}} */}
+{/* step {"stepId":"verify-find-type-object","description":"The input echoes its value only when text is actually typed","find":"Object-format typing"} */}
+{/* test end */}
+
+### Find an element in a specific tab or app surface
+
+Set `surface` to act on an element outside the active surface. A browser reference selects the window or tab the element lives in. An app reference targets a control on a [native app surface](/docs/actions/startsurface). Omit `surface` to act on the active surface.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find a button in the cart tab.",
+          "find": {
+            "elementText": "Place order",
+            "surface": { "browser": "chrome", "tab": "cart" }
+          }
+        },
+        {
+          "description": "Find a native control in an app window.",
+          "find": {
+            "elementText": "Save",
+            "surface": { "app": "notepad", "window": { "title": "/Save As/" } }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Find using several criteria at once
+
+Element-finding fields combine with AND semantics: the element must match every field you set. This example narrows to a single element by ID, class, and attribute, then moves the cursor to it and clicks. Use `elementAttribute` boolean `true` to require an attribute's presence.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Find one specific enabled button and click it.",
+          "find": {
+            "elementId": "primary-action",
+            "elementClass": ["btn", "btn-primary"],
+            "elementAttribute": {
+              "data-enabled": "true",
+              "disabled": false
+            },
+            "timeout": 8000,
+            "moveTo": true,
+            "click": true
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 

@@ -104,6 +104,7 @@ saveDirectory
 savePath
 saveScreenshot
 screenshotImage
+scrollbars
 session_token
 setVariables
 SHIFT
@@ -245,6 +246,8 @@ onboarding
 startSurface
 passthrough
 TUIs
+metacharacter
+metacharacters
 AXIdentifier
 AXRole
 AXTitle

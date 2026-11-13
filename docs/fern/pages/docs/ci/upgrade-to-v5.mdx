@@ -66,7 +66,7 @@ if: runner.os == 'macOS'
 
 **What changed:** An invalid spec exits `2` before any test runs. Version 4 warned, skipped that spec, and ran the rest.
 
-**What to do:** Fix the spec the error names. To skip invalid specs and run the valid ones while you clean up, pass `--no-exit-on-fail`.
+**What to do:** Fix the spec the error names. To skip invalid specs and run the valid ones while you clean up, pass `--no-exit-on-fail` or set `exitOnFail: false`.
 
 ## Unknown keys in specs and steps
 
@@ -91,6 +91,8 @@ Custom metadata needs to move out of the step. To skip these specs and run the r
 | `breakpoint` | Step |
 | `$schema` | Inside `saveCookie` and `loadCookie` |
 | `workingDirectory` | A `startSurface` app. A `startSurface` process keeps it. |
+
+An app's `workingDirectory` behaves differently. Version 4 failed the step at run time instead of ignoring the key. Version 5 rejects the spec before any test runs, and the run exits `2`. The error doesn't name `workingDirectory`. It points at the step's `startSurface` and names keys that other surface types need, such as `browser` or `process`.
 
 **What to do:** Delete these keys. To set the folder an app starts in, start it from a `runShell` step instead.
 
@@ -190,7 +192,7 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 **What changed:** The terminal summary ends with a one-line verdict, such as `1 of 1 test passed`. It lists every failure, warning, and skip by ID path, under `Failed (N):`, `Warnings (N):`, and `Skipped (N):`, which replace `Failed Items:` and the lists under it. Skips print whether or not a test failed. Doc Detective no longer prints the `See detailed results at` line.
 
-**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead.
+**What to do:** Stop parsing the summary. Read the results with `--output`, `--json`, or `--plain` instead, and use [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). For pass or fail, use the [exit code](#exit-codes).
 
 ## Failure, skip, and warning messages
 
@@ -206,7 +208,7 @@ A test without its own `testId` gets a new generated ID when its steps change.
 
 Deprecation warnings print at the `warning` log level and above, so `-l silent` and `-l error` hide them, like `-q`.
 
-**What to do:** Don't match on message text. To triage a failure, read `result` and `resultCode`. See [Failed steps say what kind of failure it was](#failed-steps-say-what-kind-of-failure-it-was). See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). Help text and error messages changed throughout too, so don't match on those either. Use the exit code.
+**What to do:** Don't match on message text. Help text and other error messages changed throughout too. To triage a failure, read `result` and `resultCode`. See [Failed steps say what kind of failure it was](#failed-steps-say-what-kind-of-failure-it-was).
 
 ## Report notices moved to stderr
 
@@ -214,7 +216,7 @@ Deprecation warnings print at the `warning` log level and above, so `-l silent` 
 
 The run folder also holds a Markdown summary, `testResults.md`, beside `testResults.html` and `testResults.json`.
 
-If Doc Detective can't write a report, it prints `Couldn't write the <report> to <path>: <cause>.` at error level. The exit code still doesn't change.
+If Doc Detective can't write a report, it prints `Couldn't write the <report> to <path>: <cause>.` at error level. If it can't build a report, it prints `Couldn't build the <report>: <cause>.` and writes no file. The exit code still doesn't change.
 
 **What to do:** Update anything that reads `See HTML report at`, `See JUnit report at`, or `See Markdown summary at` from stdout. Better still, use the fixed paths in [Find each report](/docs/ci/reporters-and-artifacts#find-each-report).
 
@@ -265,7 +267,7 @@ Other shorthand appears in its full form too. For example, `"wait": true` appear
 
 ## Failed steps say what kind of failure it was
 
-**What changed:** Every `FAIL` step has a `resultCode`: `environment`, `drift`, or `assertion`. A browser `find` that misses lists the closest elements in `outputs.nearMatches`, and its `resultHint` names them. Version 4 had none of these fields.
+**What changed:** Every `FAIL` step has a `resultCode`: `environment`, `drift`, or `assertion`. A browser `find` or `click` that misses its element, or a `dragAndDrop` that misses its source or target, lists the closest elements in `outputs.nearMatches`, and its `resultHint` names them. Version 4 had none of these fields.
 
 **What to do:** Nothing, unless a script compares whole step objects. To triage failures, branch on `resultCode` instead of matching `resultDescription`. See [Read the result](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
 
@@ -373,7 +375,7 @@ The results show these steps' effective forms. A `find.click` appears as the cli
 | `screenshot: true`, `screenshot: {}`, and `record: true` wrote `<stepId>.png` or `<stepId>.mp4` to the current folder. | They write to `outputDir`. |
 | A screenshot whose `path` is a URL saved the new screenshot to `./doc-detective-runs/<timestamp>/`. | It saves it in the context's `screenshots/` folder in the run folder, `<outputDir>/.doc-detective/runs/<runId>/`. |
 | A step with `screenshot: true` or `record: true` and no `stepId`, such as one passed to the JavaScript `getRunner()` API, wrote `undefined.png` or `undefined.mp4`. | The step fails: ``Couldn't name the screenshot. Set `path`, or set the step's `stepId`.`` A recording says ``Couldn't name the recording.`` |
-| A `path` or `directory` with a variable that isn't set, such as `$SHOTS_DIR`, wrote to a folder named after the variable. | The step fails: ``Couldn't save the screenshot. `directory` (`$SHOTS_DIR`) has a variable that isn't set.`` A recording says ``Couldn't start the recording.`` |
+| A `path` or `directory` with a variable that isn't set, such as `$SHOTS_DIR`, wrote to a folder named after the variable. | The step fails, and the message names whichever of `path` or `directory` holds the variable, such as ``Couldn't save the screenshot. `directory` (`$SHOTS_DIR`) has a variable that isn't set.`` A recording says ``Couldn't start the recording.`` |
 | `screenshot: false` took a screenshot. | It skips the step. |
 | `record: "Demo.MP4"` failed validation. | Extensions match in any case. |
 
@@ -556,11 +558,11 @@ npx doc-detective@5 install agents --scope project
 npx doc-detective@5 install agents --scope global
 ```
 
-Each command prompts you to choose which agents to update. To run without prompts, such as in a script, pass `--yes`, which requires `--scope` and an `--agent` flag for each agent you installed. Run one command per scope:
+Each command prompts you to choose which agents to update. To run without prompts, such as in a script, pass `--yes` with `--scope` and `--agent`. List every agent you installed in one comma-separated `--agent`, such as `--agent claude,copilot`. Run one command per scope:
 
 ```bash
-npx doc-detective@5 install agents --agent claude --scope project --yes
-npx doc-detective@5 install agents --agent claude --scope global --yes
+npx doc-detective@5 install agents --agent claude,copilot --scope project --yes
+npx doc-detective@5 install agents --agent claude,copilot --scope global --yes
 ```
 
 If you installed them through your agent's own plugin or extension manager, update them there. See the guide for [your agent](/ai/ai-agents/overview). For Gemini CLI or Qwen Code, see [Gemini CLI and Qwen Code agent installs](#gemini-cli-and-qwen-code-agent-installs).
@@ -628,12 +630,12 @@ A `./browser-snapshots/` folder from version 4 isn't used anymore. Browsers alwa
 
 ## One precedence order for config and environment
 
-**What changed:** Flags, the environment, `.env`, the project config, and the user config now layer in [one order](/reference/cli#configuration-precedence), and each layer merges objects key by key:
+**What changed:** Flags, the environment, `.env`, the project config, and the user config now layer in [one order](/reference/reference/cli#configuration-precedence), and each layer merges objects key by key:
 
 - `--cache-dir` beats `DOC_DETECTIVE_CACHE_DIR`. It used to lose.
 - `install` reads `cacheDir` from your project and user config, and loads the project `.env`, like a run does. So an invalid config now makes `install` exit `2`. It doesn't read `apiKeyFile` or `apiTokenFile`, so a missing secret file doesn't stop it.
 - A config-level `loadVariables` file fills only variables the shell left unset, and prints no banner. It used to replace them. The `loadVariables` step still replaces them.
-- A relative path resolves against the source that set it. A config file's paths resolve against its folder. `DOC_DETECTIVE_CONFIG`, `DOC_DETECTIVE`, and flags resolve against the current directory. See [Configuration precedence](/reference/cli#configuration-precedence). That changes three cases:
+- A relative path resolves against the source that set it. A config file's paths resolve against its folder. `DOC_DETECTIVE_CONFIG`, `DOC_DETECTIVE`, and flags resolve against the current directory. See [Configuration precedence](/reference/reference/cli#configuration-precedence). That changes three cases:
   - A relative `output` or `cacheDir` in a config file used to resolve against the current directory.
   - A relative `input`, `outputDir`, `loadVariables`, `beforeAll`, `afterAll`, or `descriptionPath` in your user config or the environment used to resolve against the project config's folder.
   - A relative `apiKeyFile` or `apiTokenFile` in a config file used to resolve against the current directory.
@@ -654,7 +656,7 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 
 ## Boolean environment variables
 
-**What changed:** Every `DOC_DETECTIVE_*` on-or-off variable reads `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, or `off` as off. Some used to treat any value as on, so `DOC_DETECTIVE_SKIP_AUTO_UPDATE=0` skipped the update check. It now checks for updates. Others accepted only `1` or `true`. Any other value counts as off and prints a warning. So `DOC_DETECTIVE_SKIP_AGENT_PROMPT=maybe`, which used to skip the prompt, no longer does. See [Environment variables](/reference/cli#environment-variables).
+**What changed:** Every `DOC_DETECTIVE_*` on-or-off variable reads `1`, `true`, `yes`, or `on` as on, and `0`, `false`, `no`, or `off` as off. Some used to treat any value as on, so `DOC_DETECTIVE_SKIP_AUTO_UPDATE=0` skipped the update check. It now checks for updates. Others accepted only `1` or `true`. Any other value counts as off and prints a warning. So `DOC_DETECTIVE_SKIP_AGENT_PROMPT=maybe`, which used to skip the prompt, no longer does. See [Environment variables](/reference/reference/cli#environment-variables).
 
 **What to do:** Set a variable to `1` to turn it on, and unset it or set it to `0` to turn it off. Replace `DOC_DETECTIVE_RUNTIME_DEBUG` with `DOC_DETECTIVE_DEBUG`. Setting both, with either one on, makes the CLI exit `2`.
 
@@ -678,13 +680,15 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 
 `runTests()` also changed:
 
+- When a run through the Doc Detective API fails, it rejects with the error `Couldn't run tests through the Doc Detective API: <cause>.` It used to resolve to an object with `status` and `error`.
+- It rejects invalid specs, with an error that starts `Invalid test specifications, so nothing ran:`, and runs nothing. Set `exitOnFail: false` to skip them with a warning, as version 4 did.
 - When it finds no tests, it returns a report with `specs: []` and a zero `summary`, not `null`. On the CLI, `--output` then gets that empty report, where it used to get no file.
 - With `dryRun: true`, it returns the resolved test plan and prints nothing. The CLI prints the plan.
 - It reads only the config you pass. `DOC_DETECTIVE`, `DOC_DETECTIVE_CONFIG`, config files, and `.env` are CLI layers. Process-level variables such as `DOC_DETECTIVE_CACHE_DIR` and `DO_NOT_TRACK` still apply.
 - `config.reporters` is a CLI setting. `runTests()` returns the results and runs no reporters.
 - The results and the dry-run plan it returns show environment variable values as `***NAME***`. See [Environment variable values are masked](#environment-variable-values-are-masked).
 
-**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it. Replace `runTests()` null checks with `report.specs.length === 0`.
+**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it. Replace `runTests()` null checks with `report.specs.length === 0`. Replace checks of an API run's `status` or `error` with a `catch`.
 
 ## Deprecated arguments
 
@@ -719,6 +723,16 @@ Action `@v2` drops the undocumented `issueUrl` output, so read `issue_url` inste
 
 Two inputs have new names: `integrations` is now `issue_mentions`, and `prompt` is now `issue_prompt`. The old names still work in `@v2`, with a deprecation warning.
 
+The pull requests and issues the action opens changed too:
+
+| Action `@v1` | Action `@v2` |
+|---|---|
+| `create_pr_on_change` opened a new pull request from a new `doc-detective-<timestamp>` branch on each run. | It commits to one branch, `pr_branch`, which defaults to `doc-detective-changes`. Each run force-pushes that branch and updates its open pull request, or opens one. |
+| The pull request targeted the branch checked out in the job. | It targets `GITHUB_BASE_REF`, the base of the pull request that triggered the run. Otherwise it targets `GITHUB_REF_NAME`, the branch the run is on. |
+| The pull request's Git commands ran in the job's directory. | They run in `working_directory`, so a `working_directory` inside another checkout gets its pull request from that checkout. |
+| `create_issue_on_fail` opened a new issue on each failing run. | It updates the open issue with the same title and the first label in `issue_labels`. Otherwise it creates one. |
+| The default `issue_body` held the results JSON, `$RESULTS`. | It holds the run's Markdown summary, `$SUMMARY`. |
+
 Exact pins to v1.6.1 or earlier are the risky case. They default to `version: latest`, so they get CLI 5 with no protection. A failing test then fails the job and skips the results, issue, and pull request steps.
 
 **What to do:**
@@ -734,6 +748,12 @@ Exact pins to v1.6.1 or earlier are the risky case. They default to `version: la
 4. If you pin an exact version of v1.6.1 or earlier and can't move to `@v2` yet, set `version: 4` on the step.
 5. If a later step reads reports from `${{ runner.temp }}`, read them from your `outputDir` instead.
 6. If you set `create_pr_on_change`, set `pr_paths` to a comma-separated list of the paths to stage. By default it stages everything, so the run's screenshots get committed.
+7. If you set `create_pr_on_change`, don't commit to `pr_branch` by hand, because the next run force-pushes it. If more than one workflow or job sets `create_pr_on_change`, give each its own `pr_branch`.
+8. To keep the results JSON in the issue, set `issue_body` to the `@v1` default. `$RESULTS` starts with a blank line, so it needs no separator before it:
+
+   ```yaml
+   issue_body: "A Doc Detective run ($RUN_URL) failed with the following results:$RESULTS"
+   ```
 
 See [Run in CI with the GitHub Action](/docs/ci/github-action) for the full setup.
 
