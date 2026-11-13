@@ -92,7 +92,7 @@ See [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-wh
 
 ## Step 4: Open a pull request when files change
 
-Doc Detective sometimes updates files during a run, refreshing screenshots or recording new command output. The action can commit those changes to a branch and open a pull request for review. To enable this, set `create_pr_on_change` to `true` and grant the job permission to write contents and pull requests:
+Doc Detective sometimes updates files during a run, refreshing screenshots, recording new command output, or writing ["Last verified on" dates](/docs/test-docs/last-verified-on). A passing run updates those dates at most once a day. A scheduled workflow can open a pull request whenever a run falls on a new UTC day. The action can commit those changes to a branch and open a pull request for review. To enable this, set `create_pr_on_change` to `true` and grant the job permission to write contents and pull requests:
 
 ```yaml
 name: doc-detective
@@ -177,7 +177,7 @@ This workflow runs on pushes to `main`. By default, a fork's pull request gets a
 |---|---|---|
 | `create_issue_on_fail` | `false` | Open or update an issue if one or more tests fail. |
 | `issue_title` | `Doc Detective Failure` | Issue title. |
-| `issue_body` | `A Doc Detective run ($RUN_URL) failed:`, a blank line, then `$SUMMARY` | Issue body. `$SUMMARY` inserts the run's summary, `$RESULTS` the results object, `$RUN_URL` the workflow run URL, and `$PROMPT` the `issue_prompt` text. `$RESULTS` adds a blank line, then the results object as a JSON code block. |
+| `issue_body` | `A Doc Detective run ($RUN_URL) failed:`, a blank line, then `$SUMMARY` | Issue body. `$SUMMARY` inserts the run's summary, `$RESULTS` the results object, `$RUN_URL` the workflow run URL, and `$PROMPT` the `issue_prompt` text. `$RESULTS` adds a blank line, then the results object as a JSON code block. If the body would exceed GitHub's 65,536-character limit, the action cuts `$SUMMARY` and `$RESULTS` to fit and adds a link to the workflow run. |
 | `issue_labels` | `doc-detective` | Comma-separated labels. |
 | `issue_assignees` | None | Comma-separated usernames to assign. |
 | `issue_mentions` | None | Comma-separated AI assistants to mention in the issue. See [AI issue mentions](/docs/ci/issue-mentions). |
@@ -305,11 +305,17 @@ jobs:
           node-version: 24
       - uses: actions/cache@v4
         with:
-          path: .dd-cache
-          key: dd-cache-${{ runner.os }}
+          path: ${{ env.DOC_DETECTIVE_CACHE_DIR }}  # Keeps the cache path in sync with DOC_DETECTIVE_CACHE_DIR
+          key: dd-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            dd-cache-${{ runner.os }}-
       - run: npx doc-detective install ios --yes
       - uses: doc-detective/github-action@v2
 ```
+
+The `actions/cache` step's `path` reads the same `DOC_DETECTIVE_CACHE_DIR` value, so the two stay in sync if you change the directory.
+
+Use a rotating key (`github.run_id`) with `restore-keys` rather than a static key. Doc Detective already keys the build by Xcode and driver version inside the cache directory. The `actions/cache` key doesn't need those versions, because its only job is to keep the stored copy fresh. An exact cache hit never re-uploads, so a static key keeps serving the first build it saved. That build goes stale the first time your runner picks up a new Xcode or driver version. A run-scoped key always saves the latest build, and `restore-keys` restores the newest earlier entry.
 
 ## Runtime caching
 

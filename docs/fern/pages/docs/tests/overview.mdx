@@ -857,6 +857,8 @@ You can also set this in your configuration file using the `concurrentRunners` p
 
 Set `concurrentRunners` to `true` or `"auto"` to use your CPU core count (capped at 4), or specify an explicit number of runners. On the command line, `--concurrent-runners true` works the same as `--concurrent-runners auto`.
 
+On the CLI, pass `true` rather than leaving the value off. `--concurrent-runners` with no value still works, but it prints a warning because [Doc Detective 5.0](/docs/ci/upgrade-to-v5) removes that form.
+
 <Warning>
 **Cross-context variables**: Some tests share variables between contexts through `loadVariables` or `variables` steps. Those won't work correctly with concurrent runners, because variables write to a `process.env` shared across all contexts. Keep `concurrentRunners` at `1` for these tests.
 </Warning>
