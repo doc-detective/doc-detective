@@ -16,10 +16,10 @@ Doc Detective agent tools work with Codex, Cursor, OpenCode, Qwen Code, and othe
 
 ```bash
 # User-global
-npx doc-detective install agents --agent codex --scope global
+npx doc-detective@5 install agents --agent codex --scope global
 
 # Or per-project
-npx doc-detective install agents --agent codex --scope project
+npx doc-detective@5 install agents --agent codex --scope project
 ```
 
 Without `--scope`, the CLI prompts for which scope to use.
@@ -29,7 +29,7 @@ The command fetches doc-detective's skills from GitHub and copies them into the 
 **Qwen Code:**
 
 ```bash
-npx doc-detective install agents --agent qwen
+npx doc-detective@5 install agents --agent qwen
 ```
 
 The command invokes `qwen extensions install` non-interactively to add the doc-detective extension with auto-update enabled. Qwen Code installs extensions user-globally only, so the `--scope` flag has no effect for this agent.
@@ -40,10 +40,10 @@ An extension installed before Doc Detective 5 keeps updating from the agent-tool
 
 ```bash
 # User-global
-npx doc-detective install agents --agent opencode --scope global
+npx doc-detective@5 install agents --agent opencode --scope global
 
 # Or per-project (committed)
-npx doc-detective install agents --agent opencode --scope project
+npx doc-detective@5 install agents --agent opencode --scope project
 ```
 
 Without `--scope`, the CLI prompts for which scope to use.
