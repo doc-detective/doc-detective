@@ -70,7 +70,7 @@ Tests are defined in `.spec.json` files, typically placed alongside the document
         {
           "find": {
             "selector": "h1",
-            "matchText": "Your Feature"
+            "elementText": "Your Feature"
           }
         }
       ]
@@ -134,7 +134,7 @@ Let's say you documented this tutorial:
           "runShell": "echo '{\"tests\":[{\"steps\":[{\"goTo\":\"https://doc-detective.com\"}]}]}' > test.spec.json"
         },
         {
-          "runShell": "npx doc-detective runTests --input test.spec.json"
+          "runShell": "npx doc-detective --input test.spec.json"
         },
         {
           "runShell": "rm test.spec.json"
@@ -168,36 +168,58 @@ This runs all `.spec.json` files in the repository.
 ### Run specific tests
 
 ```bash
-npx doc-detective runTests --input docs/your-feature/your-feature.spec.json
+npx doc-detective --input docs/your-feature/your-feature.spec.json
 ```
 
 ### Run tests for a directory
 
 ```bash
-npx doc-detective runTests --input docs/tutorials/
+npx doc-detective --input docs/tutorials/
 ```
 
 ### View test results
 
-Test results are output to `testResults-<timestamp>.json` in the repository root:
+Test results are saved to `.doc-detective/runs/<runId>/testResults.json`, or to the path you pass to `--output`:
 
 ```json
 {
-  "status": "pass",
-  "tests": [
+  "summary": {
+    "specs": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+    "tests": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+    "contexts": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+    "steps": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 }
+  },
+  "specs": [
     {
-      "testId": "test-your-feature",
-      "status": "pass",
-      "steps": [
+      "result": "PASS",
+      "tests": [
         {
-          "status": "pass",
-          "goTo": "https://doc-detective.com"
+          "testId": "test-your-feature",
+          "result": "PASS",
+          "contexts": [
+            {
+              "result": "PASS",
+              "steps": [
+                {
+                  "result": "PASS",
+                  "goTo": {
+                    "url": "https://doc-detective.com",
+                    "params": {},
+                    "timeout": 30000,
+                    "waitUntil": { "networkIdleTime": 500, "domIdleTime": 1000 }
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     }
   ]
 }
 ```
+
+`summary` counts results at each level. Each spec, test, context, and step has a `result` of `PASS`, `FAIL`, `WARNING`, or `SKIPPED`. Each step shows what Doc Detective ran, with defaults filled in, so a `goTo` you wrote as a string appears as an object. See [Steps show what ran](/docs/ci/reporters-and-artifacts#steps-show-what-ran). A real file holds more fields than this trimmed example. See [the fields you can rely on](/docs/ci/reporters-and-artifacts#rely-on-these-fields). To check a run from a script, use the [exit code](/reference/reference/cli#exit-codes).
 
 ## Common test patterns
 
@@ -212,13 +234,13 @@ Test that documented content exists:
 {
   "find": {
     "selector": "h1",
-    "matchText": "Expected Heading"
+    "elementText": "Expected Heading"
   }
 },
 {
   "find": {
     "selector": "code",
-    "matchText": "npm install"
+    "elementText": "npm install"
   }
 }
 ```
@@ -247,7 +269,7 @@ Verify user can navigate as documented:
 {
   "find": {
     "selector": "h1",
-    "matchText": "Introduction"
+    "elementText": "Introduction"
   }
 }
 ```
@@ -292,7 +314,7 @@ Define test contexts for different environments:
   "tests": [
     {
       "testId": "test-with-context",
-      "steps": []
+      "steps": [{ "goTo": "https://www.example.com" }]
     }
   ]
 }
@@ -385,7 +407,7 @@ BASE_URL=https://doc-detective.com
 Get detailed test output:
 
 ```bash
-npx doc-detective runTests --input your-test.spec.json --logLevel debug
+npx doc-detective --input your-test.spec.json --log-level debug
 ```
 
 ## Test best practices
@@ -464,7 +486,7 @@ If tests fail in CI but pass locally:
 2. **Look for environment differences**: Paths, dependencies, timing
 3. **Run tests in Docker** (mimics CI environment):
    ```bash
-   docker run --rm -v $(pwd):/app -w /app node:22 npm run doc-detective
+   docker run --rm -v $(pwd):/app -w /app node:24 npm run doc-detective
    ```
 4. **Ask for help**: Comment on the PR with the error details
 

@@ -1,5 +1,6 @@
 import { validate } from "../../common/src/validate.js";
-import { log } from "../utils.js";
+import { log, invalidStepMessage } from "../utils.js";
+import { maskString } from "../masking.js";
 import { syncHandles } from "./browserSurface.js";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -14,6 +15,8 @@ import {
   detectDisplayPointSize,
   probeVideoMetadata,
   detectAllBlack,
+  probeDominantFrameSize,
+  recordingFailureCause,
 } from "./ffmpegRecorder.js";
 import {
   buildConditionContext,
@@ -26,17 +29,38 @@ import {
   buildCheckpointOutputs,
 } from "./recordingCheckpoints.js";
 import type { CheckpointsConfig } from "./recordingCheckpoints.js";
-import { RECORDER_SETTLE_MS } from "./timing.js";
 
-export { stopRecording };
+export { stopRecording, saveBrowserRecording, defaultedStopSkip };
+
+// The skip for a recording autoRecord added while unset that couldn't be saved,
+// from the failure's own description (ADR 01177).
+function defaultedStopSkip(failure: any): string {
+  return `Skipped: couldn't save the automatic recording: ${recordingFailureCause(
+    failure
+  )}. Set \`autoRecord: false\` to turn it off.`;
+}
 
 // `deps` is a test seam for the pending-scale crop derivation (platform +
 // display probe); production callers omit it.
-async function stopRecording({
+async function stopRecording(args: Omit<Parameters<typeof endRecording>[0], "onSelected">) {
+  let handle: any;
+  const result = await endRecording({ ...args, onSelected: (h: any) => (handle = h) });
+  // A recording autoRecord added while unset never fails a test, at stop
+  // either: a save or transcode failure is SKIPPED, naming the off switch
+  // (ADR 01177). An explicit `autoRecord: true` keeps the FAIL.
+  if (handle?.defaulted && result.status === "FAIL") {
+    result.status = "SKIPPED";
+    result.description = defaultedStopSkip(result.description);
+  }
+  return result;
+}
+
+async function endRecording({
   config,
   step,
   driver,
   deps = {},
+  onSelected,
 }: {
   config: any;
   step: any;
@@ -45,28 +69,33 @@ async function stopRecording({
     platform?: string;
     detectDisplayPointSize?: () => Promise<{ w: number; h: number } | null>;
   };
+  // Called with the recording handle this stop chose.
+  onSelected?: (handle: any) => void;
 }) {
   let result: any = {
     status: "PASS",
     description: "Stopped recording.",
   };
 
-  // Validate step payload. (The stopRecord step carries no fields we read
-  // here — the recording state lives on driver.state — so we only assert
-  // validity and don't keep the coerced object.)
-  const isValidStep = validate({ schemaKey: "step_v3", object: step });
+  // Validate step payload. The recording state lives on driver.state, so the
+  // only field we read is the effective `stopRecord` (ADR 01167): `true`, a
+  // `{ name }` target, or `false`.
+  // `__stopAny` is the runner's own marker, and step_v3 rejects unknown keys.
+  const { __stopAny: _stopAny, ...authoredStep } = step;
+  const isValidStep = validate({ schemaKey: "step_v3", object: authoredStep });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(authoredStep);
     return result;
   }
+  const { stopRecord } = isValidStep.object;
 
   // `stopRecord: false` is an explicit no-op (mirrors `record: false`): it must
   // not stop anything. Runtime dispatch keys on property presence, so guard the
   // value here rather than in the schema (the boolean form stays valid).
-  if (step.stopRecord === false) {
+  if (stopRecord === false) {
     result.status = "SKIPPED";
-    result.description = "Recording stop is disabled (stopRecord: false).";
+    result.description = "Skipped: `stopRecord` is `false`.";
     return result;
   }
 
@@ -77,7 +106,7 @@ async function stopRecording({
   let recordings: any[] = Array.isArray(driver?.state?.recordings)
     ? driver.state.recordings
     : [];
-  let recording = selectRecordingToStop(recordings, step.stopRecord, {
+  let recording = selectRecordingToStop(recordings, stopRecord, {
     includeSynthetic: step?.__stopAny === true,
   });
   // Phase 4 (ADR 01019): the recording may live on a browser session other
@@ -92,7 +121,7 @@ async function stopRecording({
       )
         ? entry.driver.state.recordings
         : [];
-      const found = selectRecordingToStop(sessionRecordings, step.stopRecord, {
+      const found = selectRecordingToStop(sessionRecordings, stopRecord, {
         includeSynthetic: step?.__stopAny === true,
       });
       if (found) {
@@ -103,17 +132,18 @@ async function stopRecording({
       }
     }
   }
+  onSelected?.(recording);
   if (!recording) {
     result.status = "SKIPPED";
-    const target = stopRecordTargetName(step.stopRecord);
+    const target = stopRecordTargetName(stopRecord);
     if (target !== undefined) {
-      result.description = `No active recording named '${target}'.`;
+      result.description = `Skipped: no active recording named \`${target}\`.`;
     } else if (recordings.length > 0) {
       // An untargeted stop found only the synthetic autoRecord recording, which
-      // it deliberately skips — say so rather than the misleading "isn't started".
-      result.description = `No user-stoppable recording is active; an automatic (autoRecord) recording is still running and stops at the end of the context.`;
+      // it deliberately skips — say so rather than the misleading "no recording is active".
+      result.description = `Skipped: no user-stoppable recording is active. An automatic (\`autoRecord\`) recording is still running and stops at the end of the context.`;
     } else {
-      result.description = `Recording isn't started.`;
+      result.description = `Skipped: no recording is active.`;
     }
     return result;
   }
@@ -155,8 +185,8 @@ async function stopRecording({
     // one, an existing target needs `overwrite` (or the file removed).
     const skipCause =
       recording.skipReason === "targetExists"
-        ? `Recording skipped (the target already exists)`
-        : `Recording skipped (headless)`;
+        ? `Skipped: the recording's target already exists`
+        : `Skipped: the headless context wasn't recorded`;
     const refreshRemedy =
       recording.skipReason === "targetExists"
         ? `Delete it, or set \`overwrite\` to "true" or "aboveVariation", to refresh it.`
@@ -198,12 +228,12 @@ async function stopRecording({
       // An environment gap (missing host ffmpeg) is a gated SKIP; anything
       // else is a real start failure.
       result.status = recording.startSkip ? "SKIPPED" : "FAIL";
-      result.description = recording.startError;
+      result.description = recording.startSkip || recording.startError;
       return result;
     }
     result.status = "SKIPPED";
     result.description =
-      "The device recording never started (no app surface opened a device session), so there is nothing to save.";
+      "Skipped: the device recording never started (no app surface opened a device session), so there's nothing to save.";
     return result;
   }
 
@@ -280,37 +310,42 @@ async function stopRecording({
         return result;
       }
 
-      // Stop recording
-      await driver.execute(() => {
-        (window as any).recorder.stop();
-      });
-      // Wait for the download to appear AND finish writing. Chrome streams the
-      // blob to disk (and may use a .crdownload temp first), so existence
-      // alone isn't enough — transcoding a still-growing file makes ffmpeg
-      // fail. Wait for the size to hold steady across two reads.
-      const downloaded = await waitForStableFile(recording.downloadPath, 60);
-      if (!downloaded) {
-        result.status = "FAIL";
-        result.description = "Recording download timed out.";
-        // We're still focused inside the recorder tab (from switchToWindow
-        // above), so close it and restore focus before returning — otherwise
-        // later steps run in the recorder tab.
+      // Stop the recorder and copy its video out of the page. Whatever
+      // happens, close the recorder tab and return focus to the content tab
+      // (we're still focused inside the recorder tab, from switchToWindow
+      // above) — otherwise later steps run in the recorder tab.
+      let failure: string | null;
+      try {
+        failure = await saveBrowserRecording({
+          driver,
+          filePath: recording.downloadPath,
+        });
+      } finally {
         await closeRecorderTabAndRestoreFocus();
+      }
+      if (failure) {
+        result.status = "FAIL";
+        result.description = failure;
         // Clear the state so the auto-stop in runContext doesn't re-invoke
         // a doomed second stop (the recorder was already told to stop).
         dropHandle();
         discardCheckpointStaging();
         return result;
       }
-      // Close recording tab and switch back to the original content tab.
-      await closeRecorderTabAndRestoreFocus();
 
-      // Convert the downloaded .webm into the target format/location.
+      // Convert the saved .webm into the target format/location, at the size
+      // of the frames that cover most of it. The first and last frames can
+      // come from the captured tab while it's behind the recorder tab, at
+      // another size, and ffmpeg would size the video by the first (ADR 01197).
       await transcode({
         config,
         sourcePath: recording.downloadPath,
         targetPath: writeTargetPath,
         deleteSource: true,
+        size: await probeDominantFrameSize({
+          cacheDir: config?.cacheDir,
+          filePath: recording.downloadPath,
+        }),
       });
       dropHandle();
     } else if (recording.type === "ffmpeg") {
@@ -436,7 +471,7 @@ async function stopRecording({
         discardCheckpointStaging();
         return result;
       }
-      if (path.extname(writeTargetPath) === ".mp4") {
+      if (path.extname(writeTargetPath).toLowerCase() === ".mp4") {
         fs.writeFileSync(writeTargetPath, buffer);
       } else {
         const tempDir = path.join(os.tmpdir(), "doc-detective", "recordings");
@@ -607,7 +642,7 @@ async function stopRecording({
   // field list is copied explicitly — the outputs object is a documented
   // user-facing contract ($$duration etc.), so parser additions must opt in.
   result.outputs.recordingPath = path.resolve(finalTargetPath);
-  result.outputs.format = path.extname(finalTargetPath).slice(1);
+  result.outputs.format = path.extname(finalTargetPath).slice(1).toLowerCase();
   const meta = await probeVideoMetadata({
     cacheDir: config?.cacheDir,
     filePath: finalTargetPath,
@@ -674,13 +709,13 @@ async function stopRecording({
           `verify.resolution: true has no capture expectation for this engine; skipping the check.`
         );
       } else {
-        result.outputs.resolutionMatch =
+        result.outputs.resolutionMatches =
           typeof result.outputs.width === "number" &&
           typeof result.outputs.height === "number" &&
           Math.abs(result.outputs.width - expected.width) <= 2 &&
           Math.abs(result.outputs.height - expected.height) <= 2;
         specs.push({
-          statement: `$$outputs.resolutionMatch == true`,
+          statement: `$$outputs.resolutionMatches == true`,
           severity: "fail",
         });
       }
@@ -789,26 +824,31 @@ async function stopRecording({
 }
 
 // Transcode a recording into the requested target format/location with
-// ffmpeg, applying an optional crop and the gif scale filter. Deletes the
-// source on success when requested (and when it isn't the target itself).
+// ffmpeg, applying an optional size, crop, and the gif scale filter. Deletes
+// the source on success when requested (and when it isn't the target itself).
 async function transcode({
   config,
   sourcePath,
   targetPath,
   deleteSource,
   crop,
+  size,
 }: {
   config: any;
   sourcePath: string;
   targetPath: string;
   deleteSource: boolean;
   crop?: { x: number; y: number; w: number; h: number } | null;
+  size?: { width: number; height: number } | null;
 }): Promise<void> {
   // Drop audio (-an): doc recordings are visual, and the browser engine's
   // captured opus track fails to mux into mp4 ("Too many packets buffered for
   // output stream"). Silent video is the intended, reliable output.
   const ffmpegArgs = ["-y", "-i", `${sourcePath}`, "-an", "-pix_fmt", "yuv420p"];
   const filters: string[] = [];
+  // Only the browser engine passes `size` and only the ffmpeg engine passes
+  // `crop`; a crop after this scale would be in the scaled frame's pixels.
+  if (size) filters.push(`scale=${size.width}:${size.height}`);
   if (crop) {
     // Clamp the crop to the captured frame using ffmpeg expressions (iw/ih),
     // so a window/viewport rectangle larger than the captured display can't
@@ -820,7 +860,7 @@ async function transcode({
     const cy = `max(0\\,min(${crop.y}\\,ih-${ch}))`;
     filters.push(`crop=w=${cw}:h=${ch}:x=${cx}:y=${cy}`);
   }
-  if (path.extname(targetPath) === ".gif") {
+  if (path.extname(targetPath).toLowerCase() === ".gif") {
     filters.push("scale=iw:-1:flags=lanczos");
   }
   if (filters.length > 0) {
@@ -835,7 +875,8 @@ async function transcode({
     const child = spawn(ffmpegPath, ffmpegArgs);
     let stderr = "";
     child.stderr?.on("data", (d) => {
-      stderr = (stderr + d.toString()).slice(-2000);
+      // Masked before each cut, so no fragment of a secret is left (ADR 01178).
+      stderr = maskString(stderr + d.toString()).slice(-2000);
     });
     child
       .on("close", (code) => {
@@ -859,38 +900,75 @@ async function transcode({
   });
 }
 
-// Wait for a file to exist and stop growing (size unchanged across three reads
-// ~500ms apart, i.e. ~1s of stability), up to `maxSeconds`. Returns true once
-// stable, false on timeout. Guards against transcoding a download that's still
-// being written — concurrent recordings make a mid-write size plateau (the OS
-// flushing in chunks) more likely, so a single agreeing read isn't enough.
-async function waitForStableFile(
-  filePath: string,
-  maxSeconds: number
-): Promise<boolean> {
-  let lastSize = -1;
-  let stableReads = 0;
-  const deadline = maxSeconds * 2; // two checks per second
-  for (let i = 0; i < deadline; i++) {
-    let size = -1;
+// How long the recorder tab gets to finish the recording after it's stopped.
+// Under WebDriver's default 30 s script timeout, since the wait runs in-page.
+const BROWSER_RECORDING_WAIT_MS = 20000;
+// Raw bytes per WebDriver round trip (~5.6 MB of base64).
+const BROWSER_RECORDING_CHUNK_BYTES = 4 * 1024 * 1024;
+
+// Stop the browser-engine recorder (the driver is focused on its tab), then
+// copy the finished WebM out of the page to `filePath` in base64 chunks.
+// Chrome's own download of the blob dropped files intermittently in headless
+// Chrome, so the bytes come back through WebDriver instead (ADR 01176).
+// Returns null once the file is saved, or why it isn't. A failure never
+// leaves a partial file behind.
+async function saveBrowserRecording({
+  driver,
+  filePath,
+  chunkSize = BROWSER_RECORDING_CHUNK_BYTES,
+}: {
+  driver: any;
+  filePath: string;
+  chunkSize?: number;
+}): Promise<string | null> {
+  const fail = (reason: string) => {
     try {
-      size = fs.statSync(filePath).size;
+      fs.rmSync(filePath, { force: true });
     } catch {
-      size = -1;
+      /* best-effort */
     }
-    // Require a non-empty, steady size: Chrome may pre-create the .webm
-    // before writing data, and transcoding an empty file fails.
-    if (size > 0 && size === lastSize) {
-      stableReads++;
-      if (stableReads >= 2) return true;
-    } else {
-      stableReads = 0;
+    return `Couldn't save the recording: ${reason}.`;
+  };
+  try {
+    const size = await driver.execute(async (waitMs: number) => {
+      const w = window as any;
+      if (w.recorder && w.recorder.state !== "inactive") w.recorder.stop();
+      const deadline = Date.now() + waitMs;
+      while (!w.__ddRecording && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      return w.__ddRecording ? w.__ddRecording.size : -1;
+    }, BROWSER_RECORDING_WAIT_MS);
+    if (typeof size !== "number" || size < 0) {
+      return fail(
+        `the browser didn't finish it within ${BROWSER_RECORDING_WAIT_MS / 1000} seconds`
+      );
     }
-    lastSize = size;
-    await new Promise((r) => setTimeout(r, RECORDER_SETTLE_MS));
+    if (size === 0) return fail("the browser recorded no video");
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, Buffer.alloc(0));
+    for (let start = 0; start < size; start += chunkSize) {
+      const end = Math.min(start + chunkSize, size);
+      const base64 = await driver.execute(
+        async (from: number, to: number) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL((window as any).__ddRecording.slice(from, to));
+          }),
+        start,
+        end
+      );
+      if (typeof base64 !== "string" || base64.length === 0) {
+        return fail(`the browser sent no data for bytes ${start} to ${end}`);
+      }
+      fs.appendFileSync(filePath, Buffer.from(base64, "base64"));
+    }
+    const written = fs.statSync(filePath).size;
+    if (written !== size) return fail(`the browser sent ${written} of ${size} bytes`);
+    return null;
+  } catch (error: any) {
+    return fail(String(error?.message ?? error).replace(/\.\s*$/, ""));
   }
-  // Timed out without the size ever holding steady — the file is missing or
-  // still being written. Report not-stable so the caller fails cleanly rather
-  // than transcoding a partial download.
-  return false;
 }

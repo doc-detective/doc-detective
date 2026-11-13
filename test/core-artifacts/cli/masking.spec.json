@@ -1,0 +1,162 @@
+{
+  "specId": "cli-masking",
+  "description": "Environment variable values masked in every output (ADR 01178), through the real CLI. Each test runs one case of masking.cjs, which sets up a folder under .tmp/fixture-masking/, runs doc-detective at -l debug with -o, and checks stdout, stderr, and the results file. No browser. basic-auth-echo needs the 8092 test server.",
+  "tests": [
+    {
+      "testId": "referenced-value",
+      "description": "A value the spec references as $NAME is masked in the command and in its stdout, while stdio still matches the real value.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs referenced-value",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "dotenv-value-unreferenced",
+      "description": "A .env value is masked even though no step references it.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs dotenv-value-unreferenced",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "secret-name-unreferenced",
+      "description": "A variable whose name contains TOKEN is masked even though no step references it.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs secret-name-unreferenced",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "http-header-echo",
+      "description": "An Authorization header the 8092 server echoes back reaches the report as an httpRequest response header, masked.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs http-header-echo",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "public-config-exact",
+      "description": "publicVariables on the config shows the variable it names exactly, and only that one.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs public-config-exact",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "public-config-wildcard",
+      "description": "publicVariables on the config with DD_* shows every matching variable.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs public-config-wildcard",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "public-config-star",
+      "description": "publicVariables on the config with * turns masking off.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs public-config-star",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "public-spec",
+      "description": "publicVariables on a spec shows the variable it names.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs public-spec",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "public-test-across-specs",
+      "description": "publicVariables on a test in one spec shows the variable in another spec of the same run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs public-test-across-specs",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "short-value-not-masked",
+      "description": "A 3-character value is never masked, even under a secret-looking name.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs short-value-not-masked",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "encoded-forms",
+      "description": "URL-encoded and base64 forms of a value are masked.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs encoded-forms",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "path-save-and-compare",
+      "description": "A runShell path save holds ***NAME***, and a second run with maxVariation 0 compares masked against masked and passes.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs path-save-and-compare",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "basic-auth-echo",
+      "description": "A Basic auth token the 8092 server echoes back is masked whole, though its password is too short for a base64 needle.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/masking.cjs basic-auth-echo",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    }
+  ]
+}

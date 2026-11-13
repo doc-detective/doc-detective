@@ -39,6 +39,12 @@ const require = createRequire(import.meta.url);
         expect(schemas).to.have.property("config_v3");
       });
 
+      it("should export stepActions via require", function () {
+        const { stepActions } = require("../dist/index.cjs");
+        expect(stepActions).to.include("goTo");
+        expect(stepActions).to.include("annotate");
+      });
+
       it("should validate a step using CJS imports", function () {
         const { validate } = require("../dist/index.cjs");
         const result = validate({

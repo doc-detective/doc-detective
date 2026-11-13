@@ -1,14 +1,20 @@
-import { getRunOutputDir, runArchivesArtifacts } from "../dist/core/utils.js";
+import { getRunOutputDir, rollUpResults, runArchivesArtifacts } from "../dist/core/utils.js";
 import { resolveTests, detectTests } from "../dist/core/index.js";
 import { generateSpecId } from "../dist/core/detectTests.js";
 import {
   resolveAutoScreenshot,
   resolveAutoRecord,
   buildAutoRecordStep,
+  isSyntheticAutoRecordStart,
+  mergeAutoRecording,
+  contextResultSources,
+  runContext,
+  stopAllRecordings,
   runSpecs,
 } from "../dist/core/tests.js";
 import { getEnvironment } from "../dist/core/config.js";
-import { reporters } from "../dist/utils.js";
+import { registerEnvValue } from "../dist/core/masking.js";
+import { reporters, outputResults } from "../dist/utils.js";
 import { buildHtml } from "../dist/reporters/htmlReporter.js";
 import path from "node:path";
 import fs from "node:fs";
@@ -105,6 +111,9 @@ describe("getRunOutputDir", function () {
   });
 });
 
+// Both auto-capture keys off, so a test isolates the reporter gate.
+const OFF = { autoScreenshot: false, autoRecord: false };
+
 describe("runArchivesArtifacts", function () {
   it("is true when reporters include runFolder (case-insensitive)", function () {
     expect(runArchivesArtifacts({ reporters: ["terminal", "runFolder"] })).to.equal(
@@ -115,40 +124,40 @@ describe("runArchivesArtifacts", function () {
 
   it("is false when reporters are set but exclude runFolder", function () {
     expect(
-      runArchivesArtifacts({ reporters: ["terminal", "json", "html"] })
+      runArchivesArtifacts({ reporters: ["terminal", "json", "html"], ...OFF })
     ).to.equal(false);
   });
 
-  it("is true for an empty reporters array (mirrors the default fallback)", function () {
-    // outputResults falls back to the default reporter set (which includes
-    // runFolder) when reporters is empty, so this helper must agree.
-    expect(runArchivesArtifacts({ reporters: [] })).to.equal(true);
+  it("is false for an empty reporters array, which means no reporters", function () {
+    // outputResults runs no file reporter for an explicit empty list, as
+    // when --json or --plain replaces the only reporter (ADR 01166).
+    expect(runArchivesArtifacts({ reporters: [], ...OFF })).to.equal(false);
   });
 
   it("matches reporter tokens verbatim like outputResults (no trimming)", function () {
     // outputResults matches tokens as-is, so a padded `" runFolder "` runs no
     // reporter — the gate must agree, or it would reserve an empty folder.
-    expect(runArchivesArtifacts({ reporters: [" runFolder "] })).to.equal(false);
-    expect(runArchivesArtifacts({ reporters: ["runFolder"] })).to.equal(true);
+    expect(runArchivesArtifacts({ reporters: [" runFolder "], ...OFF })).to.equal(false);
+    expect(runArchivesArtifacts({ reporters: ["runFolder"], ...OFF })).to.equal(true);
     // A non-empty list with only blank/non-matching tokens is still an
     // override that excludes runFolder.
-    expect(runArchivesArtifacts({ reporters: ["", "  "] })).to.equal(false);
+    expect(runArchivesArtifacts({ reporters: ["", "  "], ...OFF })).to.equal(false);
   });
 
   it("does not treat a function reporter as the runFolder reporter", function () {
     // outputResults runs function reporters as-is; none of them is the
     // runFolder reporter, so a function-only override must not gate a folder.
-    expect(runArchivesArtifacts({ reporters: [() => {}] })).to.equal(false);
+    expect(runArchivesArtifacts({ reporters: [() => {}], ...OFF })).to.equal(false);
   });
 
   it("recognizes the internal runFolderReporter key verbatim, not just the shorthand", function () {
     // outputResults resolves the exact `runFolderReporter` key via its default
     // branch, but only verbatim — a padded or mis-cased variant runs nothing.
-    expect(runArchivesArtifacts({ reporters: ["runFolderReporter"] })).to.equal(
+    expect(runArchivesArtifacts({ reporters: ["runFolderReporter"], ...OFF })).to.equal(
       true
     );
     expect(
-      runArchivesArtifacts({ reporters: ["terminal", " runFolderReporter "] })
+      runArchivesArtifacts({ reporters: ["terminal", " runFolderReporter "], ...OFF })
     ).to.equal(false);
   });
 
@@ -179,9 +188,10 @@ describe("runArchivesArtifacts", function () {
     // disables screenshots even when config.autoScreenshot is true — the run
     // writes nothing, so it must not eagerly create the folder.
     expect(
-      runArchivesArtifacts({ reporters: ["terminal"], autoScreenshot: true }, [
-        { tests: [{ autoScreenshot: false }] },
-      ])
+      runArchivesArtifacts(
+        { reporters: ["terminal"], autoScreenshot: true, autoRecord: false },
+        [{ tests: [{ autoScreenshot: false }] }]
+      )
     ).to.equal(false);
   });
 
@@ -196,12 +206,28 @@ describe("runArchivesArtifacts", function () {
     ).to.equal(true);
   });
 
-  it("is false when no spec/test enables autoScreenshot and runFolder is off", function () {
+  it("is false only when every test turns both keys off and runFolder is off", function () {
     expect(
       runArchivesArtifacts({ reporters: ["terminal"] }, [
-        { tests: [{ autoScreenshot: false }, {}] },
+        { autoRecord: false, tests: [{ autoScreenshot: false }, { autoScreenshot: false }] },
       ])
     ).to.equal(false);
+    // One test left unset still captures, so the run folder runs (ADR 01177).
+    expect(
+      runArchivesArtifacts({ reporters: ["terminal"] }, [
+        { autoRecord: false, tests: [{ autoScreenshot: false }, {}] },
+      ])
+    ).to.equal(true);
+  });
+
+  // Unset means on (ADR 01177): the run folder runs even when `reporters`
+  // leaves it out.
+  it("is true when both keys are unset, even when reporters leave runFolder out", function () {
+    expect(runArchivesArtifacts({ reporters: ["junit"] })).to.equal(true);
+    expect(
+      runArchivesArtifacts({ reporters: ["junit"] }, [{ tests: [{}] }])
+    ).to.equal(true);
+    expect(runArchivesArtifacts({ reporters: ["junit"], ...OFF })).to.equal(false);
   });
 
   it("is true when autoRecord is on even without the runFolder reporter", function () {
@@ -223,9 +249,10 @@ describe("runArchivesArtifacts", function () {
 
   it("respects a test-level autoRecord:false override of a global true", function () {
     expect(
-      runArchivesArtifacts({ reporters: ["terminal"], autoRecord: true }, [
-        { tests: [{ autoRecord: false }] },
-      ])
+      runArchivesArtifacts(
+        { reporters: ["terminal"], autoRecord: true, autoScreenshot: false },
+        [{ tests: [{ autoRecord: false }] }]
+      )
     ).to.equal(false);
   });
 
@@ -278,13 +305,22 @@ describe("runSpecs run-folder creation", function () {
     };
   }
 
-  it("does not create a run folder when the runFolder reporter is deselected", async function () {
+  it("does not create a run folder when the runFolder reporter is deselected and both keys are off", async function () {
     await runSpecs({
-      resolvedTests: fixture({ reporters: ["terminal", "json"] }),
+      resolvedTests: fixture({ reporters: ["terminal", "json"], ...OFF }),
     });
     expect(fs.existsSync(path.resolve(tempBase, ".doc-detective"))).to.equal(
       false
     );
+  });
+
+  it("creates a run folder when reporters leave runFolder out and the keys are unset", async function () {
+    await runSpecs({
+      resolvedTests: fixture({ reporters: ["junit"] }),
+    });
+    expect(
+      fs.existsSync(path.resolve(tempBase, ".doc-detective", "runs"))
+    ).to.equal(true);
   });
 
   it("creates a run folder when the runFolder reporter is active", async function () {
@@ -304,6 +340,7 @@ describe("runSpecs run-folder creation", function () {
     const resolved = fixture({
       reporters: ["terminal", "json"],
       autoScreenshot: true,
+      autoRecord: false,
     });
     resolved.specs[0].tests[0].autoScreenshot = false;
     await runSpecs({ resolvedTests: resolved });
@@ -316,7 +353,7 @@ describe("runSpecs run-folder creation", function () {
     // Per-spec/test autoScreenshot must still reserve the folder up front
     // (atomic creation), even when global config.autoScreenshot is unset and
     // the runFolder reporter is deselected.
-    const resolved = fixture({ reporters: ["terminal", "json"] });
+    const resolved = fixture({ reporters: ["terminal", "json"], ...OFF });
     resolved.specs[0].tests[0].autoScreenshot = true;
     await runSpecs({ resolvedTests: resolved });
     const runsRoot = path.resolve(tempBase, ".doc-detective", "runs");
@@ -544,64 +581,6 @@ describe("runFolder reporter", function () {
     expect(html).to.include("20260612-140000");
   });
 
-  it("prints the per-run JSON path as the last 'results at' token", async function () {
-    // The doc-detective GitHub Action resolves the results file by splitting
-    // stdout on "results at " and `require()`-ing the trimmed last segment
-    // (see github-action dist/index.js). The HTML-report line ("...report at
-    // <html>") must therefore print *before* the per-run JSON line
-    // ("...results at <json>") — otherwise the action folds the trailing HTML
-    // line into the path and the require() fails the release smoke test.
-    const runDir = path.join(
-      tempBase,
-      ".doc-detective",
-      "runs",
-      "20260612-170000"
-    );
-    fs.mkdirSync(runDir, { recursive: true });
-    const results = { runId: "20260612-170000", runDir, summary: {}, specs: [] };
-
-    const lines = [];
-    const origLog = console.log;
-    console.log = (...args) => {
-      lines.push(args.join(" "));
-    };
-    let written;
-    try {
-      written = await reporters.runFolderReporter({}, tempBase, results, {
-        command: "runTests",
-      });
-    } finally {
-      console.log = origLog;
-    }
-
-    // Mirror the action's parser exactly.
-    const stdout = lines.join("\n");
-    const segments = stdout.split("results at ");
-    const parsed = segments[segments.length - 1].trim();
-    expect(parsed).to.equal(written);
-  });
-
-  it("names the HTML file to match the command's JSON report type", async function () {
-    const runDir = path.join(
-      tempBase,
-      ".doc-detective",
-      "runs",
-      "20260612-150000"
-    );
-    fs.mkdirSync(runDir, { recursive: true });
-    const results = { runId: "20260612-150000", runDir, summary: {}, specs: [] };
-    await reporters.runFolderReporter({}, tempBase, results, {
-      command: "runCoverage",
-    });
-    expect(fs.existsSync(path.resolve(runDir, "coverageResults.json"))).to.equal(
-      true
-    );
-    const htmlFile = path.resolve(runDir, "coverageResults.html");
-    expect(fs.existsSync(htmlFile)).to.equal(true);
-    const html = fs.readFileSync(htmlFile, "utf8");
-    expect(html).to.include("<!DOCTYPE html>");
-    expect(html).to.include("20260612-150000");
-  });
 
   it("writes the HTML beside the JSON when the stamped runDir is rejected", async function () {
     // When the stamped runDir is outside the output tree, both artifacts must
@@ -654,14 +633,348 @@ describe("runFolder reporter", function () {
   });
 });
 
+// ADR 01177, DA6: the runFolder reporter runs whenever the run archives
+// artifacts — runSpecs reserved the run folder because autoScreenshot or
+// autoRecord is on at some level — even when `reporters` leaves it out.
+describe("outputResults adds the runFolder reporter", function () {
+  let tempBase;
+  beforeEach(function () {
+    tempBase = fs.mkdtempSync(path.join(os.tmpdir(), "dd-add-runfolder-"));
+  });
+  afterEach(function () {
+    fs.rmSync(tempBase, { recursive: true, force: true });
+  });
+
+  const run = (reserve) => {
+    const runDir = path.join(tempBase, ".doc-detective", "runs", "20260612-130000");
+    if (reserve) fs.mkdirSync(runDir, { recursive: true });
+    return { runId: "20260612-130000", runDir, summary: {}, specs: [] };
+  };
+
+  it("runs it beside the listed reporters when the run reserved its folder", async function () {
+    const results = run(true);
+    const written = await outputResults(
+      { reporters: ["json"], outputDir: tempBase, logLevel: "silent" },
+      path.join(tempBase, "out.json"),
+      results,
+      { command: "runTests" }
+    );
+    expect(written).to.include(path.resolve(results.runDir, "testResults.json"));
+  });
+
+  it("leaves it out when the run reserved no folder", async function () {
+    const results = run(false);
+    const written = await outputResults(
+      { reporters: ["json"], outputDir: tempBase, logLevel: "silent" },
+      path.join(tempBase, "out.json"),
+      results,
+      { command: "runTests" }
+    );
+    expect(written.filter(Boolean).some((p) => String(p).endsWith("testResults.json"))).to.equal(false);
+    expect(fs.existsSync(results.runDir)).to.equal(false);
+  });
+
+  it("doesn't run it twice when it's already listed", async function () {
+    const results = run(true);
+    const written = await outputResults(
+      { reporters: ["runFolder"], outputDir: tempBase, logLevel: "silent" },
+      tempBase,
+      results,
+      { command: "runTests" }
+    );
+    expect(written).to.have.lengthOf(1);
+  });
+});
+
+// The synthetic ~autorecord start stays out of the automatic screenshots'
+// numbering (ADR 01177). The runner's marker decides, not the stepId, so an
+// authored step named like it still counts.
+describe("isSyntheticAutoRecordStart", function () {
+  it("matches the synthetic start by its marker, and nothing authored", function () {
+    expect(
+      isSyntheticAutoRecordStart({ stepId: "t~autorecord", record: { path: "x.mp4" }, __autoRecord: true })
+    ).to.equal(true);
+    expect(isSyntheticAutoRecordStart({ stepId: "login~autorecord", record: { path: "x.mp4" } })).to.equal(false);
+    expect(isSyntheticAutoRecordStart({ stepId: "stop", stopRecord: true })).to.equal(false);
+  });
+});
+
+// The automatic recording isn't a step: it's the context's autoRecording field
+// (ADR 01179).
+describe("a context's autoRecording", function () {
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  const MARKERS = /__autoRecord|~autorecord/;
+  const RELATIVE_VIDEO = "specs/s/tests/t/contexts/c/recordings/c.mp4";
+  let tempOutput;
+  let config;
+  let video;
+
+  beforeEach(function () {
+    tempOutput = fs.mkdtempSync(path.join(os.tmpdir(), "dd-auto-recording-"));
+    config = { logLevel: "silent", output: tempOutput };
+    video = path.join(getRunOutputDir(config), ...RELATIVE_VIDEO.split("/"));
+    fs.mkdirSync(path.dirname(video), { recursive: true });
+  });
+
+  afterEach(function () {
+    fs.rmSync(tempOutput, { recursive: true, force: true });
+  });
+
+  describe("the roll-up (DR1)", function () {
+    const rollUp = (results, autoRecording) =>
+      rollUpResults(contextResultSources({ steps: results.map((result) => ({ result })), autoRecording }));
+
+    it("lets a FAIL or WARNING recording set the context's result", function () {
+      expect(rollUp(["PASS"], { result: "FAIL" })).to.equal("FAIL");
+      expect(rollUp(["SKIPPED"], { result: "FAIL" })).to.equal("FAIL");
+      expect(rollUp(["PASS"], { result: "WARNING" })).to.equal("WARNING");
+      expect(rollUp(["SKIPPED"], { result: "WARNING" })).to.equal("WARNING");
+      // A step's FAIL still outranks a recording's WARNING.
+      expect(rollUp(["FAIL"], { result: "WARNING" })).to.equal("FAIL");
+    });
+
+    it("doesn't let a PASS or SKIPPED recording change it", function () {
+      expect(rollUp(["SKIPPED"], { result: "PASS" })).to.equal("SKIPPED");
+      expect(rollUp(["SKIPPED"], { result: "SKIPPED" })).to.equal("SKIPPED");
+      expect(rollUp(["PASS"], { result: "SKIPPED" })).to.equal("PASS");
+      expect(rollUp(["WARNING"], { result: "PASS" })).to.equal("WARNING");
+    });
+
+    it("rolls up the steps alone when there's no recording", function () {
+      expect(rollUp(["PASS", "SKIPPED"], undefined)).to.equal("PASS");
+    });
+
+    // A failed automatic stop on a dead session is a retryable failure, so the
+    // end-of-context session probe reads the same list.
+    it("gives the dead-session probe a failed recording to find", function () {
+      const failed = (report) => contextResultSources(report).some((source) => source.result === "FAIL");
+      expect(failed({ steps: [{ result: "PASS" }], autoRecording: { result: "FAIL" } })).to.equal(true);
+      expect(failed({ steps: [{ result: "PASS" }], autoRecording: { result: "SKIPPED" } })).to.equal(false);
+      expect(failed({ steps: [{ result: "PASS" }] })).to.equal(false);
+    });
+  });
+
+  describe("the stop's merge (stopAllRecordings)", function () {
+    const stop = async (recordings, contextReport = { steps: [] }) => {
+      await stopAllRecordings({ config, context: {}, driver: { state: { recordings } }, contextReport });
+      return contextReport;
+    };
+    // The device engine's stop writes the payload it's handed, with no browser
+    // or ffmpeg. The probe can't read this payload, so there's no metadata.
+    const savedHandle = (overrides = {}) => ({
+      type: "appium",
+      synthetic: true,
+      targetPath: video,
+      driver: { stopRecordingScreen: async () => Buffer.from("video").toString("base64") },
+      ...overrides,
+    });
+    const unsavedHandle = (overrides = {}) => ({
+      type: "appium-pending",
+      synthetic: true,
+      targetPath: video,
+      startError: "Couldn't start the device recording: boom",
+      ...overrides,
+    });
+    const throwingHandle = (message, overrides = {}) => ({
+      synthetic: true,
+      get type() {
+        throw new Error(message);
+      },
+      ...overrides,
+    });
+    const startedAt = "2026-11-06T02:33:29.010Z";
+
+    it("adds a saved file's path, relative to the run folder, and no step", async function () {
+      const report = await stop([savedHandle()], { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(report.steps).to.deep.equal([]);
+      expect(report.autoRecording).to.deep.equal({
+        result: "PASS",
+        startedAt,
+        recordingPath: RELATIVE_VIDEO,
+        format: "mp4",
+      });
+      expect(fs.existsSync(video)).to.equal(true);
+    });
+
+    it("lets a stop that fails win, with its description and no path", async function () {
+      const report = await stop([unsavedHandle()], { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(report.steps).to.deep.equal([]);
+      expect(report.autoRecording).to.deep.equal({
+        result: "FAIL",
+        resultDescription: "Couldn't start the device recording: boom",
+        resultCode: "assertion",
+        startedAt,
+      });
+    });
+
+    it("never FAILs a defaulted recording's stop", async function () {
+      const report = await stop([unsavedHandle({ defaulted: true })], { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(report.autoRecording.result).to.equal("SKIPPED");
+      expect(report.autoRecording.resultDescription).to.equal(
+        "Skipped: couldn't save the automatic recording: boom. Set `autoRecord: false` to turn it off."
+      );
+      expect(report.autoRecording).to.not.have.property("recordingPath");
+    });
+
+    it("records a stop that throws, and drains the handle", async function () {
+      const handles = [throwingHandle("boom")];
+      const report = await stop(handles, { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(handles).to.deep.equal([]);
+      expect(report.steps).to.deep.equal([]);
+      expect(report.autoRecording).to.deep.equal({
+        result: "FAIL",
+        resultDescription: "Couldn't stop recording. boom",
+        resultCode: "assertion",
+        startedAt,
+      });
+    });
+
+    it("never FAILs a defaulted recording's stop that throws", async function () {
+      const report = await stop([throwingHandle("boom", { defaulted: true })], { steps: [], autoRecording: { result: "PASS" } });
+      expect(report.autoRecording).to.deep.equal({
+        result: "SKIPPED",
+        resultDescription:
+          "Skipped: couldn't save the automatic recording: boom. Set `autoRecord: false` to turn it off.",
+      });
+    });
+
+    it("lets a WARNING win over a PASS", async function () {
+      // A stale span reports WARNING, with nothing saved.
+      const stale = {
+        type: "phantom",
+        synthetic: true,
+        targetPath: video,
+        checkpoints: {
+          entries: [{ fileName: "01.png", baselineMissing: true }],
+          baselineDir: tempOutput,
+          maxVariation: 0.05,
+        },
+      };
+      const report = await stop([stale], { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(report.autoRecording.result).to.equal("WARNING");
+      expect(report.autoRecording.resultDescription).to.match(/appears stale/);
+    });
+
+    it("keeps the worse result when the later one is better, and still adds the file", async function () {
+      const earlier = { result: "WARNING", resultDescription: "Earlier warning." };
+      const report = await stop([savedHandle()], { steps: [], autoRecording: earlier });
+      expect(report.autoRecording).to.deep.equal({
+        ...earlier,
+        recordingPath: RELATIVE_VIDEO,
+        format: "mp4",
+      });
+    });
+
+    it("masks the merged description, on both paths", async function () {
+      registerEnvValue("DD_R2A_SECRET", "s3cr3t-value");
+      for (const handle of [
+        unsavedHandle({ startError: "Couldn't start the device recording: s3cr3t-value" }),
+        throwingHandle("s3cr3t-value"),
+      ]) {
+        const report = await stop([handle]);
+        expect(report.autoRecording.resultDescription).to.include("***DD_R2A_SECRET***");
+        expect(JSON.stringify(report)).to.not.include("s3cr3t-value");
+      }
+    });
+
+    it("leaves your own recording's teardown stop as a step with its own ID", async function () {
+      const own = unsavedHandle({ synthetic: undefined, startError: undefined });
+      const report = await stop([savedHandle(), own], { steps: [], autoRecording: { result: "PASS", startedAt } });
+      expect(report.steps).to.have.lengthOf(1);
+      expect(report.steps[0].stopRecord).to.equal(true);
+      expect(report.steps[0].result).to.equal("SKIPPED");
+      expect(report.steps[0].stepId).to.match(UUID);
+      expect(report.autoRecording.result).to.equal("PASS");
+      expect(report.autoRecording.recordingPath).to.equal(RELATIVE_VIDEO);
+    });
+  });
+
+  describe("the start (runContext)", function () {
+    // No driver steps, so no browser starts: the synthetic start runs through
+    // the real step loop, and fails or skips before it needs a driver.
+    const runWith = (record, markers = {}, contextKeys = {}) => {
+      const environment = getEnvironment();
+      return runContext({
+        config,
+        spec: { specId: "s" },
+        test: { testId: "t" },
+        context: {
+          contextId: "c",
+          platform: environment.platform,
+          ...contextKeys,
+          steps: [
+            {
+              stepId: "t~autorecord",
+              description: "Automatic full-context recording",
+              record: { overwrite: "true", ...record },
+              __autoRecord: true,
+              ...markers,
+            },
+            { stepId: "shell", runShell: "node --version" },
+          ],
+        },
+        runnerDetails: { environment, availableApps: [] },
+        metaValues: { specs: { s: { tests: { t: { contexts: {} } } } } },
+        installAttempts: new Map(),
+        warmUpResults: new Map(),
+      });
+    };
+    // A path whose variable isn't set fails the start before anything else.
+    const unstartable = () => ({ path: path.join(path.dirname(video), "$DD_R2A_UNSET", "c.mp4") });
+    const failedPreflight = {
+      __recordingPreflight: { browser: { ok: false, reason: "ffmpeg isn't available (x)", fix: "run y" } },
+    };
+
+    // DR2: the start is the first step, so its failure stops the context.
+    it("stops the context when a strict start fails", async function () {
+      const report = await runWith(unstartable());
+      expect(report.result).to.equal("FAIL");
+      expect(Object.keys(report.autoRecording).sort()).to.deep.equal(["result", "resultCode", "resultDescription"]);
+      expect(report.autoRecording.result).to.equal("FAIL");
+      expect(report.autoRecording.resultDescription).to.match(/^Couldn't start the recording\./);
+      expect(report.steps.map((s) => [s.stepId, s.result])).to.deep.equal([["shell", "SKIPPED"]]);
+      expect(JSON.stringify(report)).to.not.match(MARKERS);
+    });
+
+    it("runs the steps when a defaulted start fails", async function () {
+      const report = await runWith(unstartable(), { __autoRecordDefaulted: true });
+      expect(report.result).to.equal("PASS");
+      expect(report.autoRecording.result).to.equal("SKIPPED");
+      expect(report.autoRecording.resultDescription).to.match(/^Skipped: couldn't start the automatic recording: /);
+      expect(report.autoRecording.resultDescription).to.match(/Set `autoRecord: false` to turn it off\.$/);
+      expect(report.steps.map((s) => [s.stepId, s.result])).to.deep.equal([["shell", "PASS"]]);
+      expect(JSON.stringify(report)).to.not.match(MARKERS);
+    });
+
+    // DR3: strict `true` with a failed preflight reports why.
+    it("reports a strict start's failed preflight as SKIPPED with its fix", async function () {
+      const report = await runWith({ path: video, engine: "browser" }, {}, failedPreflight);
+      expect(report.result).to.equal("PASS");
+      expect(report.autoRecording).to.deep.equal({
+        result: "SKIPPED",
+        resultDescription: "Skipped: ffmpeg isn't available (x). To record, run y, and rerun.",
+      });
+      expect(report.steps.map((s) => s.stepId)).to.deep.equal(["shell"]);
+    });
+
+    it("masks the start's description", async function () {
+      registerEnvValue("DD_R2A_SECRET", "s3cr3t-value");
+      const report = await runWith({ path: path.join(path.dirname(video), "s3cr3t-value", "$DD_R2A_UNSET", "c.mp4") });
+      expect(report.autoRecording.resultDescription).to.include("***DD_R2A_SECRET***");
+      expect(JSON.stringify(report)).to.not.include("s3cr3t-value");
+    });
+  });
+});
+
 describe("resolveAutoScreenshot precedence", function () {
   it("defers down the chain when levels are unset (test > spec > config)", function () {
     // Config only.
     expect(
       resolveAutoScreenshot({ config: { autoScreenshot: true }, spec: {}, test: {} })
     ).to.equal(true);
+    // Unset at every level resolves to undefined; callers treat it as on.
     expect(resolveAutoScreenshot({ config: {}, spec: {}, test: {} })).to.equal(
-      false
+      undefined
     );
     // Spec overrides config.
     expect(
@@ -701,7 +1014,7 @@ describe("resolveAutoRecord precedence", function () {
     expect(
       resolveAutoRecord({ config: { autoRecord: true }, spec: {}, test: {} })
     ).to.equal(true);
-    expect(resolveAutoRecord({ config: {}, spec: {}, test: {} })).to.equal(false);
+    expect(resolveAutoRecord({ config: {}, spec: {}, test: {} })).to.equal(undefined);
     // Spec overrides config.
     expect(
       resolveAutoRecord({
@@ -835,6 +1148,90 @@ describe("buildAutoRecordStep", function () {
     };
     const step = buildAutoRecordStep({ config, spec, test, context });
     expect(step.record.engine).to.equal("ffmpeg");
+  });
+
+  // ADR 01177, DA2: headless Chrome records its tab with the browser engine;
+  // everything else on a desktop records the screen with ffmpeg.
+  describe("engine table", function () {
+    const goTo = { goTo: { url: "https://example.com" } };
+    const ctx = (browser, steps = [goTo]) => ({
+      contextId: "c",
+      platform: "windows",
+      browser,
+      steps,
+    });
+
+    it("records headless Chrome with the browser engine", function () {
+      for (const browser of [{ name: "chrome", headless: true }, { name: "chrome" }]) {
+        const step = buildAutoRecordStep({ config, spec, test, context: ctx(browser) });
+        expect(step.record.engine, JSON.stringify(browser)).to.equal("browser");
+      }
+    });
+
+    it("adds nothing to headless Chrome with an authored record: the author's recording wins", function () {
+      const context = ctx({ name: "chrome", headless: true }, [goTo, { record: true }]);
+      expect(buildAutoRecordStep({ config, spec, test, context })).to.equal(null);
+    });
+
+    it("records headed Chrome, Firefox, and Safari with ffmpeg", function () {
+      for (const browser of [
+        { name: "chrome", headless: false },
+        { name: "firefox", headless: false },
+        { name: "firefox", headless: true },
+        { name: "safari" },
+      ]) {
+        const step = buildAutoRecordStep({ config, spec, test, context: ctx(browser) });
+        expect(step.record.engine, JSON.stringify(browser)).to.equal("ffmpeg");
+      }
+    });
+
+    it("tags the step as defaulted when autoRecord is unset, and not when it's true", function () {
+      const unset = buildAutoRecordStep({ config, spec, test, context: ctx({ name: "chrome" }) });
+      expect(unset.__autoRecordDefaulted).to.equal(true);
+      const strict = buildAutoRecordStep({
+        config: { ...config, autoRecord: true },
+        spec,
+        test,
+        context: ctx({ name: "chrome" }),
+      });
+      expect(strict.__autoRecordDefaulted).to.equal(undefined);
+    });
+
+    it("adds nothing when autoRecord is unset and the preflight failed for that engine", function () {
+      const preflight = { ffmpeg: { ok: false, reason: "r", fix: "f" } };
+      const firefox = ctx({ name: "firefox", headless: false });
+      expect(
+        buildAutoRecordStep({ config, spec, test, context: firefox, preflight })
+      ).to.equal(null);
+      // The browser engine needs only ffmpeg's transcode, checked separately.
+      const chrome = ctx({ name: "chrome", headless: true });
+      expect(
+        buildAutoRecordStep({ config, spec, test, context: chrome, preflight }).record.engine
+      ).to.equal("browser");
+    });
+
+    it("keeps Android's device recording when only the ffmpeg-based device check failed", function () {
+      const preflight = { device: { ok: false, reason: "r", fix: "f" } };
+      const mobile = (platform) => ({
+        contextId: platform,
+        platform,
+        steps: [{ startSurface: { app: "com.example" } }, { find: { elementText: "Ready" } }],
+      });
+      expect(buildAutoRecordStep({ config, spec, test, context: mobile("android"), preflight })).to.not.equal(null);
+      expect(buildAutoRecordStep({ config, spec, test, context: mobile("ios"), preflight })).to.equal(null);
+    });
+
+    it("still adds the step when autoRecord is true and the preflight failed (startRecording SKIPs it)", function () {
+      const preflight = { ffmpeg: { ok: false, reason: "r", fix: "f" } };
+      const step = buildAutoRecordStep({
+        config: { ...config, autoRecord: true },
+        spec,
+        test,
+        context: ctx({ name: "firefox", headless: false }),
+        preflight,
+      });
+      expect(step.record.engine).to.equal("ffmpeg");
+    });
   });
 });
 
@@ -1007,4 +1404,64 @@ describe("detected spec/test IDs from files", function () {
     expect(second.specId).to.equal(first.specId);
     expect(second.tests[0].testId).to.equal(first.tests[0].testId);
   });
+});
+
+// The worse result wins with its own description (ADR 01179).
+describe("mergeAutoRecording", function () {
+  it("doesn't let a worse result keep a milder result's description", function () {
+    const context = { autoRecording: { result: "SKIPPED", resultDescription: "Skipped: no display." } };
+    mergeAutoRecording(context, { result: "FAIL" });
+    expect(context.autoRecording).to.deep.equal({ result: "FAIL", resultCode: "assertion" });
+  });
+
+  it("gives a worse result its own description", function () {
+    const context = { autoRecording: { result: "SKIPPED", resultDescription: "Skipped: no display." } };
+    mergeAutoRecording(context, { result: "FAIL", resultDescription: "Couldn't save the recording." });
+    expect(context.autoRecording).to.deep.equal({
+      result: "FAIL",
+      resultDescription: "Couldn't save the recording.",
+      resultCode: "assertion",
+    });
+  });
+
+  it("keeps the worse result and its description when a milder one follows, and adds the fields", function () {
+    const context = { autoRecording: { result: "FAIL", resultDescription: "Couldn't start the recording." } };
+    mergeAutoRecording(context, { result: "PASS", resultDescription: "Stopped.", duration: 3 });
+    expect(context.autoRecording).to.deep.equal({
+      result: "FAIL",
+      resultDescription: "Couldn't start the recording.",
+      resultCode: "assertion",
+      duration: 3,
+    });
+  });
+
+  // ADR 01194, as ADR 01179 committed: a FAIL recording carries the step fields.
+  it("classifies a FAIL recording, and drops the code when a FAIL is replaced", function () {
+    const context = {};
+    mergeAutoRecording(context, { result: "FAIL", resultDescription: "invalid session id" });
+    expect(context.autoRecording).to.deep.equal({
+      result: "FAIL",
+      resultDescription: "invalid session id",
+      resultCode: "environment",
+    });
+    const warned = { autoRecording: { result: "WARNING", resultDescription: "Short video." } };
+    mergeAutoRecording(warned, { result: "PASS" });
+    expect(warned.autoRecording).to.not.have.property("resultCode");
+  });
+
+  it("leaves a first PASS with no description", function () {
+    const context = {};
+    mergeAutoRecording(context, { result: "PASS", resultDescription: "Started.", startedAt: "2026-11-09T00:00:00.000Z" });
+    expect(context.autoRecording).to.deep.equal({ result: "PASS", startedAt: "2026-11-09T00:00:00.000Z" });
+  });
+});
+
+describe("contextResultSources", function () {
+  for (const result of ["PASS", "SKIPPED", "FAIL", "WARNING"]) {
+    it(`never hands back the report's own step list, with a ${result} recording`, function () {
+      const report = { steps: [{ result: "PASS" }], autoRecording: { result } };
+      contextResultSources(report).push({ result: "FAIL" });
+      expect(report.steps).to.have.lengthOf(1);
+    });
+  }
 });

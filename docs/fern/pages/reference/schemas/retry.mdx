@@ -10,13 +10,13 @@ Retry the current step.
 
 ## Referenced In
 
-- [routing](/reference/schemas/routing)
+- [Step routing](/reference/schemas/step-routing)
 
 ## Fields
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-limit | integer | Required. Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default.<br/><br/>Minimum: 1. Maximum: 100 | —
+limit | integer | Required. Maximum number of retries — re-runs after the first attempt. A step that still fails after `limit` retries (so `limit + 1` total runs) falls through to the next matching handler entry or the status default. The step's `attempts` result field reports how many times it ran. Not the same as the config and context `retries` field, which re-runs a whole context on a new session.<br/><br/>Minimum: 1. Maximum: 100 | —
 delay | integer | Optional. Delay in milliseconds before each retry.<br/><br/>Minimum: 0. Maximum: 3600000 | —
 backoff | string | Optional. Backoff strategy applied to the delay between retries.<br/><br/>Accepted values: `fixed`, `exponential` | —
 

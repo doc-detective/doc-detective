@@ -90,9 +90,8 @@ export interface HintContext {
   totalSteps: number;
   /**
    * Set of v3 step-action keys seen at least once across the run.
-   * Mirrors the `step_v3` schema's action discriminators — the
-   * authoritative list is `STEP_ACTION_KEYS` in `context.ts`, kept in
-   * sync with `step_v3.schema.json`'s anyOf branches.
+   * Drawn from common's `stepActions`, which is generated from
+   * `step_v3.schema.json`'s oneOf branches.
    */
   usedStepTypes: Set<string>;
   /** Browser names seen across `results.specs[].tests[].contexts[]`. */
@@ -108,7 +107,7 @@ export interface HintContext {
   /**
    * True if any step produced an auto screenshot (the `--auto-screenshot` /
    * config/spec/test `autoScreenshot` feature), which lands in the separate
-   * `step.autoScreenshot` result field rather than `step.screenshot`.
+   * `step.autoScreenshotPath` result field rather than `step.screenshot`.
    */
   producedAutoScreenshots: boolean;
   /** True if any step produced a recording. */
@@ -176,6 +175,13 @@ export interface HintContext {
    * `recordConcurrently`.
    */
   recordingSerialized: boolean;
+  /**
+   * Variables whose values this run's output masked as `***NAME***` and whose
+   * names don't contain TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or
+   * CREDENTIAL (ADR 01178). Read from the in-process masking registry, so no
+   * I/O. Powers `listPublicVariables`.
+   */
+  maskedNonSecretNames: Set<string>;
   /**
    * True if any step report carried a `source: "custom"` assertion record —
    * i.e. the user authored a `step.assertions` condition. (Every step also has
@@ -270,8 +276,11 @@ export interface Hint {
    * existing ids should not change once shipped.
    */
   id: string;
-  /** Markdown body. Rendered through `src/hints/render.ts`. */
-  markdown: string;
+  /**
+   * Markdown body. Rendered through `src/hints/render.ts`. A function builds
+   * it from the run's context, for a hint that names what the run did.
+   */
+  markdown: string | ((ctx: HintContext) => string);
   /** Predicate. Hint is eligible iff this returns true. */
   when: (ctx: HintContext) => boolean;
   /**

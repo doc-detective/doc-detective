@@ -10,6 +10,9 @@ on:
     paths:
       - "src/utils.ts"
       - "src/cli.ts"
+      - "src/cliOptions.ts"
+      - "src/cliProgram.ts"
+      - "src/agents/command.ts"
       - "src/lsp/command.ts"
       - "src/debug/command.ts"
       - "src/runtime/installCommand.ts"
@@ -33,13 +36,16 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 #v7.1.0
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Install dependencies (no postinstall)
         run: npm ci --ignore-scripts
 
-      # Regenerates from the TypeScript CLI sources (read statically) and the
-      # committed config_v3 schema bundle. Build-free: no `npm run build` needed.
+      # The generator reads the compiled commander tree from dist/cliProgram.js.
+      - name: Build
+        run: npm run build:ci
+
+      # Regenerates from that tree and the committed config_v3 schema bundle.
       - name: Regenerate CLI reference page
         run: npm run docs:build-cli-ref
 

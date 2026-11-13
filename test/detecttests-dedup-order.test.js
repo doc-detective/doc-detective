@@ -29,9 +29,9 @@ describe("detectTests qualifyFiles dedup keeps first-seen order", function () {
     const config = await setConfig({
       config: {
         logLevel: "silent",
-        // c first (explicit, beforeAny), then the directory (a, b, c again),
+        // c first (explicit, beforeAll), then the directory (a, b, c again),
         // then c via a relative spelling.
-        beforeAny: [c],
+        beforeAll: [c],
         input: [dir, path.relative(process.cwd(), c)],
       },
     });
@@ -39,7 +39,7 @@ describe("detectTests qualifyFiles dedup keeps first-seen order", function () {
     const got = specs.map((s) => [path.basename(s.specId), s._phase]);
     // c stays first with its first phase; a and b follow in readdir order,
     // which the OS decides.
-    assert.deepEqual(got[0], ["c.json", "beforeAny"]);
+    assert.deepEqual(got[0], ["c.json", "beforeAll"]);
     assert.deepEqual(
       got.slice(1).sort(),
       [

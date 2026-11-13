@@ -15,7 +15,6 @@ const XVFB_SCREEN_SIZE = "1920x1080";
 export {
   resolveRecordPlan,
   recordSurfaceApp,
-  coerceRecordContextBrowser,
   safeContextId,
   browserCaptureTitle,
   browserDownloadDir,
@@ -28,6 +27,8 @@ export {
   parseBlackdetect,
   createMatchingLineCollector,
   detectAllBlack,
+  dominantFrameSize,
+  probeDominantFrameSize,
   deriveCropScale,
   detectDisplayPointSize,
   jobIsFfmpegRecording,
@@ -43,6 +44,7 @@ export {
   checkSystemBinary,
   xvfbDisplay,
   startXvfb,
+  startFreeXvfb,
   XVFB_SCREEN_SIZE,
   detectX11ScreenSize,
   isRecordingActive,
@@ -50,7 +52,235 @@ export {
   stopRecordTargetName,
   selectRecordingToStop,
   detectRecordingNameConflict,
+  recordingPreflight,
+  planRecordingPreflight,
+  createRecordingProbes,
+  frameProbeArgs,
+  macScreenStatus,
+  preflightKey,
+  recordingFailureCause,
 };
+export type { RecordingPreflightResult, RecordingProbes };
+
+// A recording failure's cause, without its own "Couldn't … recording" lead or
+// final period, for a sentence that already says what failed: an automatic
+// recording's SKIP (ADR 01177).
+function recordingFailureCause(description: any): string {
+  const text = String(description ?? "").trim();
+  const cause = text
+    .replace(/^Couldn't [a-z]+ (?:the )?(?:\w+ )?recording[.:]?\s*/i, "")
+    .replace(/\.\s*$/, "");
+  return cause || text.replace(/\.\s*$/, "");
+}
+
+// The preflight entry a recording engine answers to in a context, or null for
+// none. Android records with adb and writes the MP4 itself, so a broken ffmpeg
+// mustn't drop its recordings; iOS encodes with ffmpeg on the Appium server.
+function preflightKey(engine: string, contextPlatform?: string): string | null {
+  return engine === "device" && contextPlatform === "android" ? null : engine;
+}
+
+// ---------------------------------------------------------------------------
+// Recording preflight (ADR 01177, DA3/DA4). Once per run, before any test,
+// check what the planned recordings need on this host. Every probe is
+// injected (RecordingProbes), like appSurfacePreflight's, so each platform's
+// branch is unit-testable anywhere. A failed check doesn't fail a test: an
+// automatic recording that's unset isn't added, and any other recording it
+// applies to is SKIPPED with the fix named.
+// ---------------------------------------------------------------------------
+
+type RecordingPreflightResult =
+  | { ok: true; xvfb?: boolean }
+  | { ok: false; reason: string; fix: string };
+
+type ProbeResult = { ok: boolean; cause?: string };
+
+interface RecordingProbes {
+  // The managed ffmpeg resolves and runs (`ffmpeg -version`).
+  ffmpegVersion: () => Promise<ProbeResult>;
+  // A one-frame capture with the recorder's own input arguments.
+  captureFrame: (platform: string, displayEnv?: string) => Promise<ProbeResult>;
+  // macOS Screen Recording permission; null is inconclusive.
+  macScreenRecording: () => Promise<boolean | null>;
+  // Whether ffmpeg's avfoundation device listing shows a screen: "unknown"
+  // when the listing timed out or couldn't run (macScreenStatus).
+  macScreen: () => Promise<"found" | "none" | "unknown">;
+  hasXvfb: () => Promise<boolean>;
+  display?: string;
+}
+
+// ffmpeg arguments that capture one frame and throw it away: the recorder's
+// own input arguments (buildCaptureArgs), with a null output. buildCaptureArgs
+// ends with `-pix_fmt yuv420p <output>` on every platform it supports (it
+// throws on the rest), so the input arguments are everything before
+// `-pix_fmt`; the frameProbeArgs test pins that for each platform.
+function frameProbeArgs({
+  platform,
+  displayEnv,
+}: {
+  platform: string;
+  displayEnv?: string;
+}): string[] {
+  const args = buildCaptureArgs({ platform, fps: 1, displayEnv, outputPath: "-" });
+  return [
+    ...args.slice(0, args.indexOf("-pix_fmt")),
+    "-frames:v",
+    "1",
+    "-f",
+    "null",
+    "-",
+  ];
+}
+
+const FFMPEG_FIX = "run `doc-detective install runtime @ffmpeg-installer/ffmpeg`";
+
+// The checks one recording engine needs on `platform` (a process.platform
+// value). `plan` is the engine: "ffmpeg" captures the screen, "browser"
+// transcodes Chrome's WebM, and "device" encodes on iOS. All three need the
+// managed ffmpeg; only "ffmpeg" needs a screen to capture.
+async function recordingPreflight({
+  platform,
+  plan,
+  deps,
+}: {
+  platform: string;
+  plan: string;
+  deps: RecordingProbes;
+}): Promise<RecordingPreflightResult> {
+  const ffmpeg = await deps.ffmpegVersion();
+  if (!ffmpeg.ok) {
+    return {
+      ok: false,
+      reason: `ffmpeg isn't available (${ffmpeg.cause ?? "unknown error"})`,
+      fix: FFMPEG_FIX,
+    };
+  }
+  if (plan !== "ffmpeg") return { ok: true };
+  if (platform === "win32") {
+    const frame = await deps.captureFrame(platform);
+    return frame.ok
+      ? { ok: true }
+      : {
+          ok: false,
+          reason: `ffmpeg can't capture the desktop (${frame.cause ?? "unknown error"})`,
+          fix: "run Doc Detective in a signed-in desktop session, not as a service",
+        };
+  }
+  if (platform === "darwin") {
+    if ((await deps.macScreenRecording()) === false) {
+      return {
+        ok: false,
+        reason:
+          "macOS hasn't given Screen Recording permission to the app that runs Doc Detective",
+        fix: "turn it on in System Settings → Privacy & Security → Screen Recording for your terminal, IDE, or CI runner",
+      };
+    }
+    // Only a completed listing with no screen fails: a timed-out or failed
+    // one is inconclusive, and startRecording falls back to screen 0.
+    if ((await deps.macScreen()) === "none") {
+      return {
+        ok: false,
+        reason: "ffmpeg can't see a screen to capture",
+        fix: "run in a signed-in desktop session",
+      };
+    }
+    return { ok: true };
+  }
+  if (platform === "linux") {
+    const xvfb = await deps.hasXvfb();
+    const display = deps.display
+      ? (await deps.captureFrame(platform, deps.display)).ok
+      : false;
+    return display || xvfb
+      ? { ok: true, xvfb }
+      : {
+          ok: false,
+          reason: "there's no display to capture",
+          fix: "install Xvfb or set DISPLAY",
+        };
+  }
+  return { ok: true };
+}
+
+// Run the preflight for every engine the run plans to record with, sharing
+// each probe across engines so it runs once. No engines, no probes.
+async function planRecordingPreflight({
+  platform,
+  plans,
+  deps,
+}: {
+  platform: string;
+  plans: Set<string>;
+  deps: RecordingProbes;
+}): Promise<Record<string, RecordingPreflightResult>> {
+  const once = <T>(fn: () => Promise<T>) => {
+    let p: Promise<T> | undefined;
+    return () => (p ??= fn());
+  };
+  const frames = new Map<string, Promise<ProbeResult>>();
+  const shared: RecordingProbes = {
+    ...deps,
+    ffmpegVersion: once(deps.ffmpegVersion),
+    captureFrame: (p, d) => {
+      const key = `${p}|${d ?? ""}`;
+      if (!frames.has(key)) frames.set(key, deps.captureFrame(p, d));
+      return frames.get(key)!;
+    },
+    macScreenRecording: once(deps.macScreenRecording),
+    macScreen: once(deps.macScreen),
+    hasXvfb: once(deps.hasXvfb),
+  };
+  const results: Record<string, RecordingPreflightResult> = {};
+  for (const plan of plans) {
+    results[plan] = await recordingPreflight({ platform, plan, deps: shared });
+  }
+  return results;
+}
+
+// The real probes. `macScreenRecording` comes from appSurface.ts (passed in
+// by the runner to keep this module free of that import).
+function createRecordingProbes({
+  cacheDir,
+  macScreenRecording,
+}: {
+  cacheDir?: string;
+  macScreenRecording: () => Promise<boolean | null>;
+}): RecordingProbes {
+  let ffmpegPath: Promise<string> | undefined;
+  const resolveFfmpeg = () => (ffmpegPath ??= getFfmpegPath({ cacheDir }));
+  const run = (args: string[], timeout: number) =>
+    resolveFfmpeg().then(
+      (bin) =>
+        new Promise<ProbeResult>((resolve) => {
+          execFile(bin, args, { timeout }, (error, _stdout, stderr) => {
+            if (!error) return resolve({ ok: true });
+            const lines = String(stderr || error.message)
+              .trim()
+              .split(/\r?\n/);
+            resolve({ ok: false, cause: lines[lines.length - 1] || String(error) });
+          });
+        })
+    );
+  return {
+    ffmpegVersion: () =>
+      run(["-version"], 10000).catch((error: any) => ({
+        ok: false,
+        cause: String(error?.message ?? error),
+      })),
+    captureFrame: (platform, displayEnv) =>
+      run(frameProbeArgs({ platform, displayEnv }), 15000).catch(
+        (error: any) => ({ ok: false, cause: String(error?.message ?? error) })
+      ),
+    macScreenRecording,
+    macScreen: () =>
+      resolveFfmpeg()
+        .then((bin) => listMacDevices(bin))
+        .then(macScreenStatus)
+        .catch(() => "unknown" as const),
+    hasXvfb: () => checkSystemBinary("Xvfb"),
+    display: process.env.DISPLAY,
+  };
+}
 
 // True when the driver has at least one in-progress recording. Recordings now
 // live in `driver.state.recordings` (an array of handles); this keeps the many
@@ -246,12 +476,12 @@ function recordSurfaceApp(record: any): string | undefined {
 // Normalize a record step into a concrete plan. An explicit engine always
 // wins; otherwise auto-resolve: mobile-target contexts (android/ios) record
 // the device screen through the app driver (the internal "device" plan — never
-// user-selectable), a visible Chrome context uses the concurrency-safe browser
-// engine, and everything else falls back to ffmpeg. A record that targets an
-// app surface is an ffmpeg capture cropped to that app's window by default
-// (target "window"); the browser engine can't capture a native window. The
-// context handed in here is already coerced (see coerceRecordContextBrowser),
-// so this stays a pure read.
+// user-selectable), a Chrome context, headed or headless, uses the
+// concurrency-safe browser engine (headless records its tab, ADR 01176), and
+// everything else falls back to ffmpeg. A record that targets an app surface is
+// an ffmpeg capture cropped to that app's window by default (target "window");
+// the browser engine can't capture a native window. The runner settles the
+// context's default browser before this runs, so this stays a pure read.
 function resolveRecordPlan({
   step,
   context,
@@ -266,11 +496,8 @@ function resolveRecordPlan({
     if (isMobileTargetPlatform(context?.platform)) {
       engineName = "device";
     } else {
-      const b = context?.browser;
       engineName =
-        b?.name === "chrome" && b?.headless === false && !appSurface
-          ? "browser"
-          : "ffmpeg";
+        context?.browser?.name === "chrome" && !appSurface ? "browser" : "ffmpeg";
     }
   }
   return {
@@ -278,42 +505,6 @@ function resolveRecordPlan({
     target: target || (appSurface ? "window" : "display"),
     fps: fps ?? 30,
   };
-}
-
-function hasRecordStepWithoutEngine(context: any): boolean {
-  const steps = Array.isArray(context?.steps) ? context.steps : [];
-  return steps.some((s: any) => {
-    // Falsy record (undefined, or an explicit `record: false`) is not an
-    // active recording step.
-    if (!s?.record) return false;
-    // App-surface records never use the browser engine, so they don't
-    // justify coercing a browser into the context.
-    if (recordSurfaceApp(s.record)) return false;
-    return engineFields(s.record).name === undefined;
-  });
-}
-
-// When a context has a record step with no explicit engine and the user
-// never chose a browser, prefer to make the browser engine viable by
-// coercing to headed Chrome (the browser engine can't record headless).
-// Returns the browser to assign, or null when no coercion applies.
-function coerceRecordContextBrowser({
-  context,
-  availableApps,
-}: {
-  context: any;
-  availableApps: any[];
-}): { name: string; headless: boolean } | null {
-  if (context?.browser) return null; // user specified a browser
-  // Mobile-target contexts record the device screen through the app driver;
-  // a desktop browser would be the wrong engine on the wrong machine.
-  if (isMobileTargetPlatform(context?.platform)) return null;
-  if (!hasRecordStepWithoutEngine(context)) return null;
-  const chromeAvailable =
-    Array.isArray(availableApps) &&
-    availableApps.some((a: any) => a?.name === "chrome");
-  if (!chromeAvailable) return null;
-  return { name: "chrome", headless: false };
 }
 
 // Build the ffmpeg argument list for a full-display capture on the given
@@ -657,12 +848,51 @@ function parseBlackdetect(
   return covered >= (duration - frameInterval) * 0.95;
 }
 
+// The frame size that covers the most time in an ffmpeg `showinfo` log, or
+// null when every frame has the same size. Time, not frame count: a captured
+// tab sends frames only when it repaints. A tab capture's first and last
+// frames can come from the tab while it's behind the recorder tab, at another
+// size (ADR 01197).
+function dominantFrameSize(showinfo: string): { width: number; height: number } | null {
+  const frames = [...(showinfo ?? "").matchAll(/pts_time:\s*(-?[\d.]+).*?\bs:(\d+)x(\d+)/g)];
+  const seconds = new Map<string, number>();
+  frames.forEach((frame, i) => {
+    const next = frames[i + 1];
+    const span = next ? Number(next[1]) - Number(frame[1]) : 0;
+    const size = `${frame[2]}x${frame[3]}`;
+    seconds.set(size, (seconds.get(size) ?? 0) + Math.max(0, span));
+  });
+  if (seconds.size < 2) return null;
+  const [size] = [...seconds].reduce((best, entry) => (entry[1] > best[1] ? entry : best));
+  const [width, height] = size.split("x").map(Number);
+  return { width, height };
+}
+
+// Decode a recording and return the frame size that covers most of it, or
+// null when its frames are all one size or it couldn't be probed. Bounded
+// like detectAllBlack.
+async function probeDominantFrameSize({
+  cacheDir,
+  filePath,
+}: {
+  cacheDir?: string;
+  filePath: string;
+}): Promise<{ width: number; height: number } | null> {
+  const showinfo = await collectFfmpegLines({
+    cacheDir,
+    args: ["-hide_banner", "-i", filePath, "-an", "-vf", "showinfo", "-f", "null", "-"],
+    needle: "pts_time:",
+    // Every frame's line counts toward the size, so don't cap at the
+    // collector's 64 KiB default; the 30-second kill timer bounds the run.
+    limit: Infinity,
+  });
+  return showinfo === null ? null : dominantFrameSize(showinfo);
+}
+
 // Run a bounded ffmpeg blackdetect pass over a produced recording and report
 // whether it is (essentially) all black. Returns null when the analysis
 // couldn't run (missing binary, spawn error, timeout) — the caller skips the
-// guard rather than guessing. Bounded like probeVideoMetadata: no JIT
-// install, and a kill timer sized for a real decode pass (30s — doc
-// recordings are short).
+// guard rather than guessing.
 async function detectAllBlack({
   cacheDir,
   filePath,
@@ -674,9 +904,43 @@ async function detectAllBlack({
   duration?: number;
   fps?: number;
 }): Promise<boolean | null> {
+  const stderr = await collectFfmpegLines({
+    cacheDir,
+    args: [
+      "-hide_banner",
+      "-i",
+      filePath,
+      "-vf",
+      "blackdetect=d=0.1:pix_th=0.10",
+      "-an",
+      "-f",
+      "null",
+      "-",
+    ],
+    needle: "black_",
+  });
+  return stderr === null ? null : parseBlackdetect(stderr, duration, fps);
+}
+
+// Run an ffmpeg analysis pass and return the stderr lines containing
+// `needle`, or null when it couldn't run (missing binary, spawn error,
+// non-zero exit, timeout). Bounded like probeVideoMetadata: no JIT install,
+// and a kill timer sized for a real decode pass (30s — doc recordings are
+// short).
+async function collectFfmpegLines({
+  cacheDir,
+  args,
+  needle,
+  limit,
+}: {
+  cacheDir?: string;
+  args: string[];
+  needle: string;
+  limit?: number;
+}): Promise<string | null> {
   try {
     const ffmpegPath = await getFfmpegPath({ cacheDir, autoInstall: false });
-    const stderr = await new Promise<string | null>((resolve) => {
+    return await new Promise<string | null>((resolve) => {
       let settled = false;
       let proc: any = null;
       let timer: NodeJS.Timeout | undefined;
@@ -692,22 +956,8 @@ async function detectAllBlack({
         resolve(v);
       };
       try {
-        proc = spawn(
-          ffmpegPath,
-          [
-            "-hide_banner",
-            "-i",
-            filePath,
-            "-vf",
-            "blackdetect=d=0.1:pix_th=0.10",
-            "-an",
-            "-f",
-            "null",
-            "-",
-          ],
-          { stdio: ["ignore", "ignore", "pipe"] }
-        );
-        const lines = createMatchingLineCollector("black_");
+        proc = spawn(ffmpegPath, args, { stdio: ["ignore", "ignore", "pipe"] });
+        const lines = createMatchingLineCollector(needle, limit);
         proc.stderr?.on("data", (chunk: Buffer) => lines.push(chunk.toString()));
         proc.on("error", () => done(null));
         proc.on("close", (code: number | null) =>
@@ -718,8 +968,6 @@ async function detectAllBlack({
         done(null);
       }
     });
-    if (stderr === null) return null;
-    return parseBlackdetect(stderr, duration, fps);
   } catch {
     return null;
   }
@@ -799,8 +1047,8 @@ async function detectDisplayPointSize(): Promise<{
 // active (only one browser-engine recording can run per context). Simulating
 // the record/stopRecord sequence here keeps the concurrency planner in sync
 // with startRecording's runtime fallback, so a fallback ffmpeg capture still
-// gets the serial/Xvfb safeguards. Pure read — context browsers are already
-// coerced before this runs.
+// gets the serial/Xvfb safeguards. Pure read — the runner settles each
+// context's default browser before this runs.
 function jobIsFfmpegRecording(job: any): boolean {
   const context = job?.context;
   // Mobile-target contexts never capture the host display: auto-resolved
@@ -828,13 +1076,11 @@ function jobIsFfmpegRecording(job: any): boolean {
     const plan = resolveRecordPlan({ step: s, context });
     if (plan.name === "ffmpeg") return true;
     // plan.name === "browser": an explicit browser-engine record on a context
-    // that can't run one (headless or non-Chrome) is SKIPPED by startRecording,
-    // so it neither occupies the single browser slot nor falls back to ffmpeg —
+    // that can't run one (non-Chrome) is SKIPPED by startRecording, so it
+    // neither occupies the single browser slot nor falls back to ffmpeg —
     // don't let it force serial/Xvfb. (Auto-engine on such contexts already
-    // resolves to ffmpeg above.)
-    const supportsBrowser =
-      context?.browser?.name === "chrome" && !context?.browser?.headless;
-    if (!supportsBrowser) continue;
+    // resolves to ffmpeg above.) Headless Chrome records its tab (ADR 01176).
+    if (context?.browser?.name !== "chrome") continue;
     // A second concurrent browser-engine recording falls back to ffmpeg.
     if (activeBrowser.length > 0) return true;
     activeBrowser.push(recordStepName(s.record));
@@ -934,9 +1180,7 @@ function contextHasAnyFfmpegRecordStep(context: any): boolean {
     if (!s?.record || s.record === false) continue;
     const plan = resolveRecordPlan({ step: s, context });
     if (plan.name === "ffmpeg") return true;
-    const supportsBrowser =
-      context?.browser?.name === "chrome" && context?.browser?.headless === false;
-    if (supportsBrowser) browserRecords++;
+    if (context?.browser?.name === "chrome") browserRecords++;
   }
   return browserRecords >= 2;
 }
@@ -1029,6 +1273,22 @@ function parseMacScreenIndex(listing: string): string | null {
 async function detectMacScreenIndex(
   ffmpegPath: string
 ): Promise<string | null> {
+  const listing = await listMacDevices(ffmpegPath);
+  return listing === null ? null : parseMacScreenIndex(listing);
+}
+
+// Whether a device listing shows a screen. "none" only when the listing
+// completed (it names the video devices) without one; a missing or failed
+// listing is "unknown" (ADR 01177).
+function macScreenStatus(listing: string | null): "found" | "none" | "unknown" {
+  if (listing === null) return "unknown";
+  if (parseMacScreenIndex(listing) !== null) return "found";
+  return /AVFoundation video devices/i.test(listing) ? "none" : "unknown";
+}
+
+// ffmpeg's avfoundation device listing (its stderr), or null when the list
+// run failed to spawn or didn't finish within 5 seconds.
+async function listMacDevices(ffmpegPath: string): Promise<string | null> {
   return new Promise((resolve) => {
     let out = "";
     let settled = false;
@@ -1059,7 +1319,7 @@ async function detectMacScreenIndex(
       });
       proc.on("error", () => done(null));
       // ffmpeg exits non-zero for a list-only invocation; parse regardless.
-      proc.on("close", () => done(parseMacScreenIndex(out)));
+      proc.on("close", () => done(out));
       // Bound the probe so a hung ffmpeg can't stall recording startup.
       setTimeout(() => done(null), 5000);
     } catch {
@@ -1135,6 +1395,38 @@ async function checkSystemBinary(name: string): Promise<boolean> {
 // server-start and capture paths agree.
 function xvfbDisplay(index: number): string {
   return `:${99 + index}`;
+}
+
+// Start Xvfb on the runner's display, or the next free one. Another Doc
+// Detective run on the host (a parallel CI job, or a run inside a run) may
+// already hold it: Xvfb then exits early, so move on, skipping the displays
+// this run already took. Anything else is a real failure and rethrows.
+async function startFreeXvfb({
+  index,
+  taken,
+  start = startXvfb,
+  attempts = 20,
+}: {
+  index: number;
+  taken: Set<string>;
+  start?: (display: string) => Promise<any>;
+  attempts?: number;
+}): Promise<{ display: string; proc: any }> {
+  let lastError: any;
+  for (let n = 99 + index, tries = 0; tries < attempts; n++) {
+    const display = `:${n}`;
+    if (taken.has(display)) continue;
+    tries++;
+    try {
+      const proc = await start(display);
+      taken.add(display);
+      return { display, proc };
+    } catch (error: any) {
+      if (!/exited early/.test(String(error?.message))) throw error;
+      lastError = error;
+    }
+  }
+  throw lastError;
 }
 
 // Start an Xvfb virtual framebuffer on `display` and resolve once its X socket

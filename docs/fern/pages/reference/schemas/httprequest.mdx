@@ -8,7 +8,6 @@ description: "Reference for the `httpRequest` schema."
 
 ## Referenced In
 
-- [Markup definition](/reference/schemas/markup-definition)
 - [test](/reference/schemas/test)
 - [Resolved context](/reference/schemas/resolved-context)
 
@@ -28,8 +27,26 @@ httpRequest | one of:<br/>- string<br/>- object([HTTP request (detailed)](/refer
 
 ```json
 {
+  "httpRequest": "$API_URL/users"
+}
+```
+
+```json
+{
   "httpRequest": {
     "url": "https://reqres.in/api/users"
+  }
+}
+```
+
+```json
+{
+  "httpRequest": {
+    "url": "/api/users",
+    "statusCodes": 200,
+    "request": {
+      "headers": "Accept: application/json\nAuthorization: Bearer $TOKEN"
+    }
   }
 }
 ```

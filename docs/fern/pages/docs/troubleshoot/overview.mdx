@@ -9,6 +9,29 @@ When a test fails, the result tells you which step broke and why. This guide sho
 
 Doc Detective reports a result for every step. Open the terminal summary or the JSON results file (see [Reporters and artifacts](/docs/ci/reporters-and-artifacts)) and find the step whose `result` is `FAIL`. Each step includes a `resultDescription` that states what was expected and what happened.
 
+A failed step also carries a `resultCode` that says what kind of failure it was:
+
+| `resultCode` | Meaning | Where to look |
+|---|---|---|
+| `environment` | The network, the browser session, or the page load failed. | The host, the URL, or the test server. The docs are probably fine. |
+| `drift` | An element wasn't found, but similar ones were. The page probably changed. | The step's `resultHint` and `outputs.nearMatches`. |
+| `assertion` | Anything else, such as a missing element with nothing close, or a wrong status code. | The action's own fields, in the next step of this guide. |
+
+When Doc Detective has a suggestion, the step's `resultHint` gives it. For example, a `find` for "Save" on a page whose button now says "Save changes" reports:
+
+```json
+{
+  "find": "Save",
+  "result": "FAIL",
+  "resultCode": "drift",
+  "resultHint": "Closest match: `Save changes`.",
+  "outputs": {
+    "found": false,
+    "nearMatches": [{ "text": "Save changes", "tag": "button", "id": "save" }]
+  }
+}
+```
+
 Note which action failed, such as `find`, `httpRequest`, or `runShell`. The action determines what to check next.
 
 ## Step 2: Fix the most common causes
@@ -19,6 +42,7 @@ Find the cause that matches the failing action.
 
 The selector or text no longer matches the page, or the element hadn't rendered yet.
 
+- If the step has `outputs.nearMatches`, the element probably changed. Update the step, or the docs, to the text or ID the page uses now.
 - Confirm the selector still matches the current UI. See [CSS selectors](/docs/selectors/css) and [XPath selectors](/docs/selectors/xpath).
 - If the element appears after a delay, raise the step's `timeout` (it defaults to 5000 milliseconds). `find` waits up to `timeout` for the element to exist.
 
@@ -35,7 +59,7 @@ The selector or text no longer matches the page, or the element hadn't rendered 
 
 ### A request returned an unexpected status or body (`httpRequest`)
 
-- If the status code is wrong, set [`statusCodes`](/docs/actions/httprequest) to the codes you actually expect. The default is `[200, 201]`. A step that uses `openApi` and sets neither `statusCodes` nor `openApi.statusCode` accepts the operation's `2xx` response codes instead.
+- If the status code is wrong, set [`statusCodes`](/docs/actions/httprequest) to the codes you actually expect, such as `[204]`. The default is `[200, 201]`. A step that uses `openApi` and sets neither `statusCodes` nor `openApi.statusCode` accepts the `2xx` codes its operation defines instead.
 - If a dynamic field such as a timestamp or token breaks a `response.body` assertion, move it to `response.required` to assert that it exists without pinning its value. See [Test HTTP and APIs](/docs/test-docs/http-and-api#step-2-assert-on-the-response).
 
 ### A command returned the wrong exit code or output (`runShell`, `runCode`)
@@ -57,7 +81,7 @@ If a step occasionally fails for transient reasons, attach a retry handler so Do
 
 ### Allow expected output variation
 
-When you save command, code, or response output to a reference file, small run-to-run differences can fail an exact comparison. Set `maxVariation` so a difference within your threshold passes, and use `overwrite` to control whether the reference file updates. See the [`runShell`](/docs/actions/runshell) reference for the output-comparison fields.
+When you save command, code, or response output to a reference file, Doc Detective compares each run's output to that file. By default, any difference returns WARNING, which doesn't fail the run. Set `maxVariation` to the fraction of difference you accept, such as `0.1` for 10%. A difference within that threshold passes. Use `overwrite` to control whether the reference file updates. See the [`runShell`](/docs/actions/runshell) reference for the output-comparison fields.
 
 ### Account for headed versus headless
 

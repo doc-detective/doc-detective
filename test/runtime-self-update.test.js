@@ -2,7 +2,9 @@ import {
   checkForUpdate,
   compareVersions,
   detectInstallMode,
+  REEXEC_MARKER,
   selfUpdate,
+  updateCheckAllowed,
 } from "../dist/runtime/selfUpdate.js";
 import { EventEmitter } from "node:events";
 
@@ -252,6 +254,32 @@ describe("runtime/selfUpdate", function () {
         process.exit = savedExit;
       }
       expect(exitArg).to.equal(1);
+    });
+
+    // The child gets the original argv, so `--auto-update` sets autoUpdate
+    // true there; only the internal marker keeps it from checking again.
+    it("marks the re-exec, so the child never checks for updates again", async function () {
+      const savedExit = process.exit;
+      const spawner = fakeSpawner();
+      try {
+        process.exit = () => {};
+        await selfUpdate("4.6.0", "npx", { logger: () => {}, spawn: spawner });
+      } finally {
+        process.exit = savedExit;
+      }
+      const childEnv = spawner.calls[0].opts.env;
+      expect(childEnv[REEXEC_MARKER]).to.equal("1");
+      expect(updateCheckAllowed({ autoUpdate: true }, childEnv)).to.equal(false);
+    });
+  });
+
+  describe("updateCheckAllowed", function () {
+    it("follows config, CI, and the re-exec marker", function () {
+      expect(updateCheckAllowed({ autoUpdate: true }, {})).to.equal(true);
+      expect(updateCheckAllowed({}, {})).to.equal(true);
+      expect(updateCheckAllowed({ autoUpdate: false }, {})).to.equal(false);
+      expect(updateCheckAllowed({ autoUpdate: true }, { CI: "true" })).to.equal(false);
+      expect(updateCheckAllowed({ autoUpdate: true }, { [REEXEC_MARKER]: "1" })).to.equal(false);
     });
   });
 });

@@ -8,7 +8,7 @@ const config = { logLevel: "silent" };
 
 // Helper: find the implicit assertion whose statement CONTAINS `needle`. Under
 // the unified model `statement` is a runtime `$$` expression, so we match on the
-// distinguishing output reference (e.g. "exitCode", "stdioMatched", "variation").
+// distinguishing output reference (e.g. "exitCode", "stdioMatches", "variation").
 function findAssertion(assertions, needle) {
   return (assertions || []).find((a) => a.statement.includes(needle));
 }
@@ -67,13 +67,15 @@ describe("runShell articulated assertions (Phase 4a.1)", function () {
       },
     });
     assert.equal(result.status, "PASS");
-    const stdio = findAssertion(result.assertions, "stdioMatched");
+    const stdio = findAssertion(result.assertions, "stdioMatches");
     assert.ok(stdio, "expected a stdio assertion");
     assert.equal(stdio.source, "implicit");
     assert.equal(stdio.result, "PASS");
-    assert.equal(stdio.statement, "$$outputs.stdioMatched == true");
+    assert.equal(stdio.statement, "$$outputs.stdioMatches == true");
     // The computed boolean is exposed as a new output users can reference.
-    assert.equal(result.outputs.stdioMatched, true);
+    assert.equal(result.outputs.stdioMatches, true);
+    // ADR 01185: renamed with no alias, so the old name is gone.
+    assert.equal("stdioMatched" in result.outputs, false);
   });
 
   it("emits a FAIL stdio assertion when stdio substring does not match", async () => {
@@ -84,10 +86,10 @@ describe("runShell articulated assertions (Phase 4a.1)", function () {
       },
     });
     assert.equal(result.status, "FAIL");
-    const stdio = findAssertion(result.assertions, "stdioMatched");
+    const stdio = findAssertion(result.assertions, "stdioMatches");
     assert.ok(stdio);
     assert.equal(stdio.result, "FAIL");
-    assert.equal(result.outputs.stdioMatched, false);
+    assert.equal(result.outputs.stdioMatches, false);
   });
 
   it("short-circuits: a failing exitCode assertion emits a SKIPPED stdio record (applicable but not reached)", async () => {
@@ -106,11 +108,11 @@ describe("runShell articulated assertions (Phase 4a.1)", function () {
     assert.equal(exit.result, "FAIL");
     // stdio is APPLICABLE (stdio is set) but not reached due to short-circuit:
     // it must appear as a SKIPPED record, carrying its statement/source/expected.
-    const stdio = findAssertion(result.assertions, "stdioMatched");
+    const stdio = findAssertion(result.assertions, "stdioMatches");
     assert.ok(stdio, "applicable-but-not-reached stdio assertion must be present");
     assert.equal(stdio.result, "SKIPPED");
     assert.equal(stdio.source, "implicit");
-    assert.equal(stdio.statement, "$$outputs.stdioMatched == true");
+    assert.equal(stdio.statement, "$$outputs.stdioMatches == true");
     // No saved-file variation check is applicable here (path unset) -> omitted.
     const variation = findAssertion(result.assertions, "variation");
     assert.equal(
@@ -231,7 +233,7 @@ describe("runShell articulated assertions (Phase 4a.1)", function () {
       assert.equal(variation.statement, "$$outputs.variation <= 0.1");
       // stdio is NOT applicable here (unset) -> omitted entirely.
       assert.equal(
-        findAssertion(result.assertions, "stdioMatched"),
+        findAssertion(result.assertions, "stdioMatches"),
         undefined,
         "not-applicable stdio check must be omitted, not SKIPPED"
       );

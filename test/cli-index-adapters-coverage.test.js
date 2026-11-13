@@ -69,7 +69,7 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
         spec,
         JSON.stringify({ tests: [{ steps: [{ goTo: "https://example.com" }] }] })
       );
-      const r = runCli(["--input", spec, "--dry-run", "--output", dir]);
+      const r = runCli(["--input", spec, "--dry-run", "--output-dir", dir]);
       assert.equal(r.status, 0, `stderr: ${r.stderr}`);
       // Dry-run dumps resolved-tests JSON to stdout.
       const parsed = JSON.parse(r.stdout);
@@ -142,7 +142,7 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     }
   });
 
-  it("without --exit-on-fail a FAILing run still exits 0 (historical default preserved)", function () {
+  it("without any flag, a FAILing run exits 1", function () {
     const dir = mkTmp("dd-cli-eof-default-");
     try {
       const spec = writeSpec(dir, "f.spec.json", FAILING_SPEC);
@@ -151,7 +151,7 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
         "--output", path.join(dir, "out.json"),
         "--logLevel", "silent",
       ]);
-      assert.equal(r.status, 0, `expected exit 0 by default; stderr: ${r.stderr}`);
+      assert.equal(r.status, 1, `expected exit 1 by default; stderr: ${r.stderr}`);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -173,19 +173,17 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     }
   });
 
-  it("--exit-on-fail exits 0 for a zero-spec run (a filtered/empty run is not a failure)", function () {
+  it("a zero-spec run exits 2, because nothing was tested", function () {
     const dir = mkTmp("dd-cli-eof-zero-");
     try {
       // An input directory that exists but contains no specs → 0 specs run.
-      // summary.specs.fail is 0, so the gate must not fail the build; failing
-      // here would break legitimately-filtered runs that match nothing.
       const r = runCli([
         "--input", dir,
         "--output", path.join(dir, "out.json"),
         "--exit-on-fail",
         "--logLevel", "silent",
       ]);
-      assert.equal(r.status, 0, `expected exit 0 for a zero-spec run; stderr: ${r.stderr}`);
+      assert.equal(r.status, 2, `expected exit 2 for a zero-spec run; stderr: ${r.stderr}`);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -209,32 +207,24 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     }
   });
 
-  it("DOC_DETECTIVE_DEBUG=1 with a valid config prints the diagnostic dump and returns", function () {
+  it("DOC_DETECTIVE_DEBUG=1 adds debug output to a real run", function () {
     const dir = mkTmp("dd-cli-dbg-");
     try {
-      // Empty input dir → nothing to resolve, but the debug dump fires first
-      // and returns before any run. Fully offline.
-      const r = runCli(["--input", dir, "--logLevel", "silent"], {
-        env: { DOC_DETECTIVE_DEBUG: "1" },
-      });
-      assert.equal(r.status, 0, `stderr: ${r.stderr}`);
-      // printDebug emits a recognizable banner to stdout.
-      assert.match(
-        r.stdout + r.stderr,
-        /debug|diagnostic|config/i,
-        "expected some diagnostic output"
-      );
+      // An empty input dir exits 2, since nothing ran. The dump lives in
+      // `doc-detective debug` now.
+      const r = runCli(["--input", dir], { env: { DOC_DETECTIVE_DEBUG: "1" } });
+      assert.equal(r.status, 2, `stderr: ${r.stderr}`);
+      assert.match(r.stderr, /(DEBUG)/);
+      assert.doesNotMatch(r.stdout, /diagnostic dump/);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 
-  it("DOC_DETECTIVE_DEBUG=1 with an invalid config still dumps and exits non-zero", function () {
+  it("DOC_DETECTIVE_DEBUG=1 with an invalid config exits non-zero", function () {
     const dir = mkTmp("dd-cli-dbgerr-");
     try {
       // A .doc-detective.json that fails schema validation → setConfig throws.
-      // With the debug env var set, the handler renders a stub-config dump and
-      // sets process.exitCode = 1 rather than a hard throw.
       const cfg = path.join(dir, ".doc-detective.json");
       fs.writeFileSync(cfg, JSON.stringify({ logLevel: 12345 }));
       const r = runCli([], {
@@ -263,10 +253,10 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
     }
   });
 
-  it("an unknown flag triggers the yargs .fail handler and exits non-zero", function () {
+  it("an unknown flag is rejected and exits non-zero", function () {
     const r = runCli(["--definitelyNotAFlag", "x"]);
     assert.notEqual(r.status, 0);
-    assert.match(r.stderr + r.stdout, /Unknown argument|definitelyNotAFlag/i);
+    assert.match(r.stderr + r.stdout, /unknown option|definitelyNotAFlag/i);
   });
 
   it("discovers a .doc-detective.json config from the cwd when no --config is given", function () {
@@ -281,8 +271,8 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
       );
       const r = runCli(["--logLevel", "silent"], { cwd: dir });
       assert.ok(
-        !/Unknown argument/.test(r.stderr + r.stdout),
-        `unexpected yargs error: ${r.stderr}`
+        !/unknown option/.test(r.stderr + r.stdout),
+        `unexpected parser error: ${r.stderr}`
       );
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -302,8 +292,8 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
       // Either resolves nothing (exit 0) — the point is the yaml branch ran
       // without an "Unknown"/parse crash.
       assert.ok(
-        !/Unknown argument/.test(r.stderr + r.stdout),
-        `unexpected yargs error: ${r.stderr}`
+        !/unknown option/.test(r.stderr + r.stdout),
+        `unexpected parser error: ${r.stderr}`
       );
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -320,8 +310,8 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
       );
       const r = runCli(["--logLevel", "silent"], { cwd: dir });
       assert.ok(
-        !/Unknown argument/.test(r.stderr + r.stdout),
-        `unexpected yargs error: ${r.stderr}`
+        !/unknown option/.test(r.stderr + r.stdout),
+        `unexpected parser error: ${r.stderr}`
       );
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
@@ -342,7 +332,7 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
       const spec = path.join(dir, "w.spec.json");
       fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
       const r = runCli(
-        ["--input", spec, "--output", dir, "--logLevel", "silent"],
+        ["--input", spec, "--output-dir", dir, "--logLevel", "silent"],
         { env: { DOC_DETECTIVE_SKIP_AUTO_UPDATE: "" } }
       );
       assert.equal(r.status, 0, `stderr: ${r.stderr}`);
@@ -356,13 +346,13 @@ describe("cli.ts — runTestsHandler branches (offline child process)", function
 // core/index.ts — public API surface + in-process runTests branches.
 // ---------------------------------------------------------------------------
 
-describe("core/index.ts — public API surface", function () {
+describe("core/index.ts — internal API surface", function () {
   let mod;
   before(async function () {
     mod = await import("../dist/core/index.js");
   });
 
-  it("re-exports the documented public functions", function () {
+  it("re-exports the functions the CLI uses", function () {
     for (const name of [
       "runTests",
       "getRunner",
@@ -384,6 +374,7 @@ describe("core/index.ts — runTests offline branches", function () {
   let detectAndResolveTests;
   let tmpDir;
   let origLog;
+  let origError;
   let captured;
 
   before(async function () {
@@ -394,17 +385,20 @@ describe("core/index.ts — runTests offline branches", function () {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-core-idx-"));
     captured = [];
     origLog = console.log;
-    console.log = (...args) => captured.push(args.join(" "));
+    origError = console.error;
+    console.error = console.log = (...args) => captured.push(args.join(" "));
   });
 
   afterEach(function () {
     console.log = origLog;
+    console.error = origError;
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("returns null when the input resolves to no tests", async function () {
+  it("returns an empty report when the input resolves to no tests", async function () {
     // A directory with only non-test text → detectTests finds nothing →
-    // detectAndResolveTests returns null → runTests logs the warning + null.
+    // detectAndResolveTests returns null → runTests logs the warning and
+    // returns an empty report (ADR 01152).
     fs.writeFileSync(path.join(tmpDir, "readme.txt"), "just prose, no tests");
     const result = await runTests({
       input: [tmpDir],
@@ -413,7 +407,7 @@ describe("core/index.ts — runTests offline branches", function () {
       telemetry: { send: false },
       reporters: [],
     });
-    assert.equal(result, null);
+    assert.deepEqual(result.specs, []);
   });
 
   it("detectAndResolveTests returns null for an input with no detectable tests", async function () {
@@ -456,6 +450,27 @@ describe("core/index.ts — runTests offline branches", function () {
     );
     assert.ok(result.resolvedTestsId, "expected the resolved-tests shape back");
     assert.equal(result.summary, undefined, "must not have executed");
+  });
+
+  it("deep-merges the caller config over resolvedTests.config (ADR 01165)", async function () {
+    const spec = path.join(tmpDir, "deep.spec.json");
+    fs.writeFileSync(spec, JSON.stringify({ tests: [{ steps: [{ wait: 5 }] }] }));
+    const seed = await runTests({
+      input: [spec],
+      output: tmpDir,
+      logLevel: "silent",
+      dryRun: true,
+      telemetry: { send: false },
+    });
+    const tampered = JSON.parse(JSON.stringify(seed));
+    tampered.config.telemetry = { send: true, userId: "api-user" };
+
+    const result = await runTests(
+      { dryRun: true, logLevel: "silent", telemetry: { send: false } },
+      { resolvedTests: tampered }
+    );
+    // The caller's `send` wins; the embedded `userId` it doesn't set survives.
+    assert.deepEqual(result.config.telemetry, { send: false, userId: "api-user" });
   });
 
   it("merges against an empty {} when resolvedTests.config is absent (|| {} fallback)", async function () {

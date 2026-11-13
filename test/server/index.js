@@ -45,6 +45,16 @@ function createServer(options = {}) {
     res.status(code).json({ status: code });
   });
 
+  // Cookie fixtures: set a cookie on this host, and echo the cookies the
+  // browser sends back, so saveCookie/loadCookie specs need no external server.
+  app.get("/cookies/set/:name/:value", (req, res) => {
+    res.cookie(req.params.name, req.params.value, { path: "/" });
+    res.type("text").send("Cookie set.");
+  });
+  app.get("/cookies", (req, res) => {
+    res.type("text").send(req.headers.cookie || "");
+  });
+
   // Endpoint for testing DOC_DETECTIVE_API - returns resolved tests
   // IMPORTANT: Must be registered before the catch-all /api/:path route
   app.get("/api/resolved-tests", (req, res) => {
@@ -116,6 +126,11 @@ function createServer(options = {}) {
       // without adding a field that would trip an allowAdditionalFields:false
       // check on the echoed body.
       res.set("x-echo-path", req.path);
+      // Reflects the X-Test request header, so a spec can assert a header it sent.
+      if (req.headers["x-test"]) res.set("x-echo-test", req.headers["x-test"]);
+      // Reflects the Authorization header, so a masking fixture can check that a
+      // Basic token the server echoes back is masked (ADR 01178).
+      if (req.headers.authorization) res.set("x-echo-authorization", req.headers.authorization);
 
       console.log("Response:", { Body: modifiedResponse });
 

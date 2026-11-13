@@ -227,7 +227,7 @@
       ]
     },
     "retries": {
-      "description": "Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context.",
+      "description": "Per-context override for the config-level [`retries`](config) policy — how many times to re-run this context on a fresh session when its session turns out to be unusable mid-run. When set, takes precedence over the config-level value for the contexts this entry expands into. Omit it to inherit the config-level policy (which defaults to `1`). Set to `0` to disable retries for this context. Not the same as a step's routing `retry.limit`, which re-runs one step on the same session, and whose runs the step's `attempts` result field counts.",
       "type": "integer",
       "minimum": 0,
       "maximum": 10
@@ -404,23 +404,6 @@
             "headless": {
               "type": "boolean",
               "description": "Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable."
-            },
-            "orientation": {
-              "type": "string",
-              "enum": [
-                "portrait",
-                "landscape"
-              ],
-              "description": "Initial orientation. Reserved; validated now, not yet implemented."
-            },
-            "udid": {
-              "type": "string",
-              "minLength": 1,
-              "description": "Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented."
-            },
-            "provider": {
-              "type": "object",
-              "description": "Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented."
             }
           }
         }

@@ -25,6 +25,11 @@ A third source exists. Default markup also detects tests from prose and code fen
 an unlabeled fence that starts with a request line such as `GET https://api.example.com/items`,
 becomes an `httpRequest` step. Nobody wrote those blocks as tests. They're examples for readers.
 
+> **v5 note.** The `py`/`js` skip above describes 4.x. In v5, `runCode` accepts `py` and `js` as
+> aliases ([ADR 01154](01154-runcode-language-aliases.md)), so detected `py` and `js` fences run as
+> `runCode` steps. They're marked `unsafe` and gated exactly like `bash`, `python`, and `javascript`
+> fences. Nothing else in this ADR changes.
+
 ## Decision Drivers
 
 * A test is code the repository's authors wrote to run, whatever file format holds it.
@@ -52,8 +57,8 @@ Chosen option: **A**.
    from a comment. The `unsafe` gate in `src/core/tests.ts` reads the step's own `unsafe` field and
    the run's `allowUnsafeSteps`, and never the source format.
 2. **Code fences stay gated.** The `runCode` markup in the default file types
-   (`src/common/src/fileTypes.ts`) marks detected `bash`, `python`, and `javascript` fences
-   `unsafe: true`, because nobody authored them as tests. A run skips those steps unless unsafe steps
+   (`src/common/src/fileTypes.ts`) marks detected `bash`, `python`, and `javascript` fences (in
+   v5, also `py` and `js`) `unsafe: true`, because nobody authored them as tests. A run skips those steps unless unsafe steps
    are allowed, through `allowUnsafeSteps`, `--allow-unsafe`, or the official Docker image. The image
    allows them by default, and `allowUnsafeSteps: false` turns that off. Decision 1 doesn't change
    any of this.

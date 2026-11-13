@@ -217,7 +217,7 @@ async function evaluateCustomAssertions(args: {
   if (!step || !actionResult) return actionResult;
 
   // Normalize the author condition form. Only string | string[] is user input;
-  // an array-of-objects is the report shape and is ignored.
+  // an array-of-objects is the report shape, which fails below.
   const raw = step.assertions;
   let statements: string[] | null = null;
   if (typeof raw === "string") {
@@ -228,6 +228,16 @@ async function evaluateCustomAssertions(args: {
     raw.every((s) => typeof s === "string")
   ) {
     statements = raw as string[];
+  }
+  // The report's own shape validates, but it holds results, not checks. Passing
+  // it through would silently run nothing.
+  if (Array.isArray(raw) && raw.length > 0 && !statements) {
+    if (actionResult.status !== "FAIL") {
+      actionResult.status = "FAIL";
+      actionResult.description =
+        "Step assertions must be strings. This step's assertions are objects, so they can't run.";
+    }
+    return actionResult;
   }
   if (!statements || statements.length === 0) return actionResult;
 
@@ -409,12 +419,12 @@ interface RetrySpec {
  * `retry` re-runs the step (the runtime loops, then re-resolves with
  * `skipRetry` to get the terminal decision); `goToStep` jumps execution to the
  * step with the given stepId; `goToTest` jumps execution to the test with the
- * given testId (test-scope jumps are deferred to a later phase, but the variant
- * is in the union now so resolvers can name it).
+ * given testId. The schema allows each action only at the scope that performs
+ * it (ADR 01168).
  */
 type RoutingDecision =
   | { action: "continue" }
-  | { action: "stop"; scope: "test" | "spec" | "run" }
+  | { action: "stop"; scope: "test" | "spec" }
   | {
       action: "retry";
       limit: number;
@@ -425,13 +435,19 @@ type RoutingDecision =
   | { action: "goToTest"; testId: string };
 
 // One routing entry as authored: an optional `if` selector plus exactly one
-// action.
-interface RoutingEntry {
+// action. Each scope allows only the actions it performs (ADR 01168).
+interface StepRoutingEntry {
   if?: GuardCondition;
   continue?: true;
-  stop?: "test" | "spec" | "run";
+  stop?: "test";
   retry?: RetrySpec;
   goToStep?: string;
+}
+
+interface TestRoutingEntry {
+  if?: GuardCondition;
+  continue?: true;
+  stop?: "test" | "spec";
   goToTest?: string;
 }
 
@@ -462,7 +478,7 @@ const ROUTING_BY_STATUS: Record<
  *   - `{ retry: {...} }`   -> `{ action: "retry", limit, delay, backoff }`
  *                             (delay defaults to 0, backoff to "fixed")
  *   - `{ goToStep: <id> }` -> `{ action: "goToStep", stepId }`
- *   - goToTest (not implemented this phase) -> the status default
+ * The step schema rejects every other action (ADR 01168).
  *
  * If the handler is absent/empty or no entry matches, the status DEFAULT is
  * returned. Defaults reproduce today's behavior (FAIL stops the test; PASS,
@@ -485,10 +501,10 @@ const ROUTING_BY_STATUS: Record<
 async function resolveStepRouting(args: {
   status: StepRoutingStatus;
   step: {
-    onPass?: RoutingEntry[];
-    onFail?: RoutingEntry[];
-    onWarning?: RoutingEntry[];
-    onSkip?: RoutingEntry[];
+    onPass?: StepRoutingEntry[];
+    onFail?: StepRoutingEntry[];
+    onWarning?: StepRoutingEntry[];
+    onSkip?: StepRoutingEntry[];
   };
   context: ConditionContext;
   skipRetry?: boolean;
@@ -532,12 +548,11 @@ async function resolveStepRouting(args: {
     if (typeof entry.goToStep === "string" && entry.goToStep.trim() !== "") {
       // Return the trimmed id so `goToStep: "target "` matches the step `target`
       // rather than failing as an unknown target on incidental whitespace.
+      // The schema's `\S` pattern rules out whitespace-only ids, so the trim
+      // never empties it. A stepId that itself ends in whitespace can't be a
+      // target, a trade made for the common case.
       return { action: "goToStep", stepId: entry.goToStep.trim() };
     }
-    // Matched, but the action isn't implemented this phase (goToTest). Treat as
-    // the status default and stop scanning — a later entry must not override an
-    // already-matched selector.
-    return fallback;
   }
   // No entry matched.
   return fallback;
@@ -559,13 +574,11 @@ async function resolveStepRouting(args: {
  *   - `{ continue: true }` -> `{ action: "continue" }`
  *   - `{ stop: <scope> }`  -> `{ action: "stop", scope }`
  *       The sequencer interprets these scopes: `stop:test` is a NO-OP (the test
- *       already finished), `stop:spec` stops the spec's remaining tests, and
- *       `stop:run` is deferred (warned once and treated as `spec` this phase).
+ *       already finished), and `stop:spec` stops the spec's remaining tests.
  *   - `{ goToTest: <id> }` -> `{ action: "goToTest", testId }` (trimmed). The
  *       sequencer jumps to that test within the spec (unknown target -> a FAIL
  *       marker + stop, bounded by a per-spec visit cap).
- *   - `{ retry }` / `{ goToStep }` -> not applicable at test scope; treated as a
- *       matched-but-unhandled action -> the status default (stop scanning).
+ * The test schema rejects every other action (ADR 01168).
  *
  * If the handler is absent/empty or no entry matches, the status DEFAULT is
  * returned, so a test with no routing fields resolves to the same decision the
@@ -580,10 +593,10 @@ async function resolveStepRouting(args: {
 async function resolveTestRouting(args: {
   status: StepRoutingStatus;
   test: {
-    onPass?: RoutingEntry[];
-    onFail?: RoutingEntry[];
-    onWarning?: RoutingEntry[];
-    onSkip?: RoutingEntry[];
+    onPass?: TestRoutingEntry[];
+    onFail?: TestRoutingEntry[];
+    onWarning?: TestRoutingEntry[];
+    onSkip?: TestRoutingEntry[];
   };
   context: ConditionContext;
 }): Promise<RoutingDecision> {
@@ -611,14 +624,9 @@ async function resolveTestRouting(args: {
       return { action: "stop", scope: entry.stop };
     }
     if (typeof entry.goToTest === "string" && entry.goToTest.trim() !== "") {
-      // Return the trimmed id so `goToTest: "cleanup "` matches the test
-      // `cleanup` rather than failing as an unknown target on whitespace.
+      // Trimmed for the same reasons as goToStep in resolveStepRouting.
       return { action: "goToTest", testId: entry.goToTest.trim() };
     }
-    // retry/goToStep are not applicable at test scope. A matched selector whose
-    // action we don't execute here -> return the status default and STOP
-    // scanning (a later entry must not override an already-matched selector).
-    return fallback;
   }
   // No entry matched.
   return fallback;
@@ -675,6 +683,7 @@ export type {
   GuardCondition,
   StepRoutingStatus,
   RoutingDecision,
-  RoutingEntry,
+  StepRoutingEntry,
+  TestRoutingEntry,
   RetrySpec,
 };

@@ -1,20 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { reportOutputDir } from "./outputDir.js";
+import { reportOutputDir } from "../core/utils.js";
+import { environmentLine, mediaPath, nonPassItems, verdict, writeReport } from "./model.js";
 
 export { markdownReporter, buildMarkdown };
 
 const LEVELS = ["specs", "tests", "contexts", "steps"];
-// GitHub rejects a job step summary larger than 1 MiB outright rather than
-// truncating it. Bounding the row count is not enough on its own: a single
-// `resultDescription` carries captured output (a failed `runShell` step embeds
-// its stdout), so cell length has to be bounded too.
-const MAX_FAILURES = 100;
+// Bounding the row count is not enough on its own: a single `resultDescription`
+// carries captured output (a failed `runShell` step embeds its stdout), so each
+// value's length has to be bounded too. Evidence paths aren't clamped: a clamp over
+// the whole cell would cut off the screenshot the row exists to show.
+const MAX_ROWS = 100;
 const MAX_CELL = 300;
-// One context can fail an unbounded number of steps, so the row count and the
-// cell clamp together still leave `detail` unbounded without this.
-const MAX_STEPS_PER_FAILURE = 5;
 // GitHub rejects a job step summary larger than 1 MiB outright rather than
 // truncating it, so the whole artifact is lost if we go over by a byte.
 const MAX_SUMMARY_BYTES = 1024 * 1024;
@@ -55,22 +53,23 @@ function cell(value: any): string {
 
 // Inside an inline-code span Markdown processes no escapes, so `cell()`'s
 // backslash doubling would render a Windows path as `C:\\Users\\…`. Only a
-// backtick can break out of the span, and a newline would end the line.
-// Only called behind a truthiness guard, so no nullish default is needed.
+// backtick can break out of the span, and a newline would end the line. A table
+// splits on a pipe even inside a span, unless it's escaped.
 function codeSpan(value: any): string {
-  return String(value)
+  const text = String(value)
     .replace(/`/g, "'")
     .replace(/\r\n|\r|\n/g, " ")
-    .trim();
+    .trim()
+    .replace(/\|/g, "\\|");
+  return `\`${text}\``;
 }
 
 // Last line of defence on size.
 //
-// MAX_FAILURES, MAX_CELL and MAX_STEPS_PER_FAILURE all count UTF-16 code
-// units, but the limit GitHub enforces is UTF-8 bytes. A CJK character is one
-// code unit and three bytes, so a run whose descriptions are Chinese, Japanese
-// or Korean — entirely ordinary for a documentation tool — can clear every
-// character clamp and still land ~1.09 MB. Measured, not hypothesised.
+// MAX_ROWS and MAX_CELL count UTF-16 code units, but the limit GitHub enforces is
+// UTF-8 bytes. A CJK character is one code unit and three bytes, so a run whose
+// descriptions are Chinese, Japanese or Korean — entirely ordinary for a
+// documentation tool — can clear every character clamp and still go over.
 //
 // Truncating on a byte offset can split a multi-byte character; Node decodes
 // the remainder as U+FFFD, so strip any trailing replacement characters rather
@@ -86,8 +85,11 @@ function capBytes(text: string): string {
 }
 
 // Turn the results object into a run summary for a CI job summary
-// ($GITHUB_STEP_SUMMARY) or a merge request comment.
-function buildMarkdown(results: any): string {
+// ($GITHUB_STEP_SUMMARY) or a merge request comment. `outputFile` is where the
+// summary lands, since its paths are relative to it (ADR 01180).
+function buildMarkdown(results: any, outputFile?: string): string {
+  const fromDir = outputFile ? path.dirname(outputFile) : process.cwd();
+  const runDir = results?.runDir;
   const summary = results?.summary || {};
   const rows = LEVELS.map((level) => {
     const c = summary[level] || {};
@@ -96,88 +98,66 @@ function buildMarkdown(results: any): string {
     return `| ${label} | ${pass} | ${fail} | ${warn} | ${skip} | ${pass + fail + warn + skip} |`;
   });
 
-  const failed = (summary.specs?.fail || 0) > 0;
-  const allSkipped =
-    (summary.specs?.skipped || 0) > 0 &&
-    (summary.specs?.pass || 0) === 0 &&
-    (summary.specs?.fail || 0) === 0 &&
-    (summary.specs?.warning || 0) === 0;
-  const total =
-    (summary.specs?.pass || 0) +
-    (summary.specs?.fail || 0) +
-    (summary.specs?.warning || 0) +
-    (summary.specs?.skipped || 0);
-
-  const lines = [
+  const { status, label, text } = verdict(summary);
+  const footer = environmentLine(results);
+  const head = [
     "# Doc Detective results",
     "",
-    total === 0
-      ? "**No tests ran.**"
-      : failed
-      ? `**Failed** — ${summary.specs.fail} of ${total} ${total === 1 ? "spec" : "specs"} failed.`
-      : allSkipped
-      ? // Matches the terminal reporter, which calls this out rather than
-        // letting a green verdict imply something actually passed.
-        `**All items were skipped.** No specs passed or failed.`
-      : `**Passed** — ${total} ${total === 1 ? "spec" : "specs"}.`,
+    status === "none" ? `**${text}**` : `**${label}** — ${text}`,
     "",
     "| Level | Pass | Fail | Warning | Skipped | Total |",
     "| --- | ---: | ---: | ---: | ---: | ---: |",
     ...rows,
+    ...(footer ? ["", footer] : []),
   ];
 
-  // Failures get named; passes and skips stay as counts, so the summary stays
-  // skimmable.
-  // Count every failure but only build rows for the ones that get printed —
-  // a 5,000-failure run would otherwise allocate every row just to slice them
-  // away. `totalFailures` keeps the footer count honest.
-  const failures: string[] = [];
-  let totalFailures = 0;
-  for (const spec of (results?.specs || []).filter(Boolean)) {
-    for (const test of (spec.tests || []).filter(Boolean)) {
-      // `contexts` is pre-allocated and filled as contexts finish.
-      for (const ctx of (test.contexts || []).filter(Boolean)) {
-        if (ctx.result !== "FAIL") continue;
-        totalFailures++;
-        if (failures.length >= MAX_FAILURES) continue;
-        const steps = (ctx.steps || []).filter((s: any) => s && s.result === "FAIL");
-        const shown = steps
-          .slice(0, MAX_STEPS_PER_FAILURE)
-          .map((s: any) => `${cell(s.stepId || "step")} — ${cell(s.resultDescription)}`);
-        if (steps.length > MAX_STEPS_PER_FAILURE) {
-          shown.push(`…and ${steps.length - MAX_STEPS_PER_FAILURE} more failed steps`);
-        }
-        const detail = shown.length
-          ? shown.join("<br>")
-          : cell(ctx.resultDescription || "Context failed");
-        failures.push(
-          // `description` and the ids are all optional, so fall through to a
-          // generic label rather than emit `|  |  | … |`, which reads as a
-          // malformed row. Matches the junit reporter's fallback chain.
-          `| ${cell(spec.description || spec.specId || "spec")} | ${cell(
-            test.description || test.testId || "test"
-          )} | ${detail} |`
-        );
-      }
+  // One table per status. Only the rows that get printed are built: a 5,000-failure
+  // run would otherwise allocate every row just to slice them away.
+  const items = nonPassItems(results);
+  const table = (status: string) => {
+    const listed = items.filter((item) => item.status === status);
+    if (listed.length === 0) return [];
+    const lines = ["| Location | Details |", "|---|---|"];
+    for (const item of listed.slice(0, MAX_ROWS)) {
+      const details = [
+        cell(item.reason),
+        item.hint && `Hint: ${cell(item.hint)}`,
+        item.screenshot && `Screenshot: ${codeSpan(mediaPath(item.screenshot, runDir, fromDir))}`,
+        item.recording && `Recording: ${codeSpan(mediaPath(item.recording, runDir, fromDir))}`,
+        item.skippedNote,
+      ];
+      const location = `${codeSpan(item.idPath.length > MAX_CELL ? `${item.idPath.slice(0, MAX_CELL)}…` : item.idPath)}${
+        item.description ? ` ${cell(item.description)}` : ""
+      }`;
+      lines.push(`| ${location} | ${details.filter(Boolean).join("<br>")} |`);
     }
-  }
+    if (listed.length > MAX_ROWS) lines.push("", `… and ${listed.length - MAX_ROWS} more`);
+    return lines;
+  };
+  const details = (heading: string, status: string) => {
+    const lines = table(status);
+    if (lines.length === 0) return [];
+    const count = items.filter((item) => item.status === status).length;
+    return ["", `<details><summary>${heading} (${count})</summary>`, "", ...lines, "", "</details>"];
+  };
+  const failed = table("FAIL");
+  const failures = failed.length > 0 ? ["", "## Failures", "", ...failed] : [];
+  const warnings = details("Warnings", "WARNING");
+  const skips = details("Skipped", "SKIPPED");
 
-  if (failures.length) {
-    lines.push("", "## Failures", "", "| Spec | Test | Details |", "| --- | --- | --- |");
-    lines.push(...failures);
-    if (totalFailures > failures.length) {
-      lines.push(
-        "",
-        // Deliberately doesn't name the JSON report: `--reporters terminal
-        // markdown` is a documented combination, and that user has no JSON
-        // file to look in.
-        `_… and ${totalFailures - failures.length} more failures not shown._`
-      );
-    }
-  }
+  const artifacts =
+    typeof runDir === "string" && fs.existsSync(runDir)
+      ? ["", `Run artifacts: ${codeSpan(mediaPath(runDir, runDir, fromDir) || ".")}`]
+      : [];
+  const render = (...sections: string[][]) => [...head, ...sections.flat(), ...artifacts].join("\n") + "\n";
+  const cut = (...sections: string[][]) => render(...sections).replace(/\n$/, TRUNCATION_NOTE);
+  const fits = (text: string) => Buffer.byteLength(text, "utf8") <= MAX_SUMMARY_BYTES;
 
-  if (results?.runDir) lines.push("", `Run artifacts: \`${codeSpan(results.runDir)}\``);
-  return capBytes(lines.join("\n") + "\n");
+  // Over the limit, cut Skipped, then Warnings, before touching Failures.
+  const whole = render(failures, warnings, skips);
+  if (fits(whole)) return whole;
+  const withWarnings = cut(failures, warnings);
+  return fits(withWarnings) ? withWarnings : capBytes(cut(failures));
 }
 
 async function markdownReporter(
@@ -188,19 +168,6 @@ async function markdownReporter(
 ): Promise<string | null> {
   // Namespaced rather than `summary.md`: `output` defaults to `"."`, so a bare
   // `--reporters markdown` writes into the repo root.
-  const dir = reportOutputDir(outputPath);
-  const outputFile = path.resolve(dir, "doc-detective-summary.md");
-
-  try {
-    fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(outputFile, buildMarkdown(results));
-    // Not "results at": the GitHub Action splits stdout on that substring.
-    console.log(`See Markdown summary at ${outputFile}\n`);
-    return outputFile;
-  } catch (err) {
-    // Reporters run under Promise.all; throwing would skip the CLI's exit-code
-    // gate and telemetry flush.
-    console.error(`Error writing Markdown summary to ${outputFile}. ${err}`);
-    return null;
-  }
+  const outputFile = path.resolve(reportOutputDir(outputPath), "doc-detective-summary.md");
+  return writeReport("Markdown summary", outputFile, () => buildMarkdown(results, outputFile), config);
 }

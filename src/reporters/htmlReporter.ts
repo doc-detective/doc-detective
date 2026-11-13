@@ -1,5 +1,8 @@
-import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
+import { reportOutputDir, timestamp } from "../core/utils.js";
+import { stepActions } from "../common/src/stepActions.js";
+import { mediaPath, verdict, writeReport } from "./model.js";
 
 export async function htmlReporter(
   config: any = {},
@@ -7,59 +10,60 @@ export async function htmlReporter(
   results: any,
   options: any = {}
 ): Promise<string | null> {
-  const outputExtensions = [".html", ".htm"];
-
-  outputPath = path.resolve(outputPath);
-
-  let outputFile = "";
-  let outputDir = "";
-  let reportType = "doc-detective-results";
-  if (options.command) {
-    if (options.command === "runCoverage") {
-      reportType = "coverageResults";
-    } else if (options.command === "runTests") {
-      reportType = "testResults";
-    }
-  }
-
-  if (outputExtensions.some((ext) => outputPath.endsWith(ext))) {
-    outputDir = path.dirname(outputPath);
-    outputFile = outputPath;
-    if (fs.existsSync(outputFile)) {
-      let counter = 0;
-      const ext = path.extname(outputFile);
-      const base = outputFile.slice(0, -ext.length);
-      while (fs.existsSync(`${base}-${counter}${ext}`)) {
-        counter++;
-      }
-      outputFile = `${base}-${counter}${ext}`;
-    }
-  } else {
-    outputDir = outputPath;
-    outputFile = path.resolve(outputDir, `${reportType}-${Date.now()}.html`);
-  }
-
-  try {
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    const html = buildHtml(results);
-    fs.writeFileSync(outputFile, html);
-    console.log(`See HTML report at ${outputFile}\n`);
-    return outputFile;
-  } catch (err) {
-    console.error(`Error writing HTML report to ${outputFile}. ${err}`);
-    return null;
-  }
+  const reportType = options.command === "runTests" ? "testResults" : "doc-detective-results";
+  // A path you name is overwritten, and a name Doc Detective picks is unique per
+  // run (ADR 01180). A run whose filter matched nothing has no runId.
+  const outputFile = /\.html?$/i.test(String(outputPath ?? ""))
+    ? path.resolve(outputPath)
+    : path.resolve(reportOutputDir(outputPath), `${reportType}-${results?.runId ?? timestamp()}.html`);
+  return writeReport("HTML report", outputFile, () => buildHtml(results, outputFile), config);
 }
 
-export function buildHtml(results: any): string {
-  const reportJson = JSON.stringify(results, null, 2)
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/\u2028/g, "\\u2028")
-    .replace(/\u2029/g, "\\u2029");
+// Every media path the report stores, mapped to its link from `htmlFile`. Media
+// live on disk beside the report, and each copy of the page sits somewhere else, so
+// this is the one thing that differs between them. A path with no relative form
+// (another Windows drive) gets a file:/// URL. A remote screenshot keeps its URL.
+function mediaHrefs(results: any, htmlFile?: string): Record<string, string> {
+  const hrefs: Record<string, string> = {};
+  if (!htmlFile) return hrefs;
+  const add = (stored: any) => {
+    if (typeof stored !== "string" || !stored || /^https?:/i.test(stored)) return;
+    const link = mediaPath(stored, results?.runDir, path.dirname(htmlFile));
+    hrefs[stored] = path.isAbsolute(link) ? pathToFileURL(link).href : link.split("/").map(encodeURIComponent).join("/");
+  };
+  for (const spec of results?.specs ?? []) {
+    for (const test of spec?.tests ?? []) {
+      for (const context of test?.contexts ?? []) {
+        add(context?.autoRecording?.recordingPath);
+        for (const step of context?.steps ?? []) {
+          for (const stored of [
+            step?.outputs?.screenshotPath,
+            step?.outputs?.recordingPath,
+            step?.screenshot?.path,
+            step?.record?.path,
+            step?.autoScreenshotPath,
+          ]) {
+            add(stored);
+          }
+        }
+      }
+    }
+  }
+  return hrefs;
+}
+
+// `htmlFile` is where the page is written. dd-report-view holds what the page
+// shows that isn't in the report (ADR 01180), so REPORT_DATA stays the untouched
+// report and Download JSON stays clean.
+export function buildHtml(results: any, htmlFile?: string): string {
+  const safeJson = (value: any, space?: number) =>
+    JSON.stringify(value, null, space)
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e")
+      .replace(/\u2028/g, "\\u2028")
+      .replace(/\u2029/g, "\\u2029");
+  const reportJson = safeJson(results ?? null, 2);
+  const viewJson = safeJson({ verdict: verdict(results?.summary), hrefs: mediaHrefs(results, htmlFile) });
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -74,8 +78,10 @@ ${CSS_CONTENT}
 <body>
 <div id="root"></div>
 <script id="dd-report-data" type="application/json">${reportJson}</script>
+<script id="dd-report-view" type="application/json">${viewJson}</script>
 <script>
 window.REPORT_DATA = JSON.parse(document.getElementById("dd-report-data").textContent);
+window.REPORT_VIEW = JSON.parse(document.getElementById("dd-report-view").textContent);
 </script>
 <script>
 ${JS_CONTENT}
@@ -234,6 +240,10 @@ button { font: inherit; }
 }
 .hdr-title h1 .sub { color: var(--dd-gray-500); font-weight: 500; }
 .hdr-actions { display: flex; gap: 8px; align-items: center; }
+@media (max-width: 900px) {
+  .hdr-inner { flex-wrap: wrap; }
+  .hdr-title { order: 1; flex-basis: 100%; }
+}
 .hdr-btn {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 8px 12px; border-radius: 8px;
@@ -292,10 +302,10 @@ main {
   margin-bottom: 8px;
 }
 .verdict-card .vv {
-  display: flex; align-items: baseline; gap: 12px;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
 }
 .verdict-card .vv .big {
-  font-size: 48px; font-weight: 800; letter-spacing: -0.02em; line-height: 1;
+  font-size: 28px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1;
   font-family: var(--font-mono);
 }
 .verdict-card.fail .vv .big { color: var(--dd-fail); }
@@ -665,7 +675,8 @@ main {
   background: var(--dd-paper);
   overflow: hidden;
 }
-.detail-panel .dp-head {
+.detail-panel .dp-head,
+.auto-recording .dp-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px 12px; font-family: var(--font-mono); font-size: 11px;
   color: var(--fg3); letter-spacing: 0.06em; text-transform: uppercase;
@@ -748,6 +759,20 @@ main {
   background: var(--dd-green-bright); color: #07150C;
   letter-spacing: 0.05em;
 }
+.media-thumb .auto-flag {
+  /* Just above the .cap strip (6px padding twice, an 11px line, a 1px border); change both together. */
+  position: absolute; bottom: 34px; left: 6px;
+  font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+  padding: 2px 6px; border-radius: 3px;
+  background: rgba(13,14,17,0.78); color: #E6E8EC;
+  letter-spacing: 0.05em;
+}
+.auto-recording { margin: 8px 16px 10px; }
+.auto-recording-reason { padding: 8px 12px; font-size: 13px; color: var(--fg2); overflow-wrap: anywhere; }
+.auto-recording video {
+  display: block; width: 100%; max-width: 720px; max-height: 420px;
+  background: #000; border-radius: 6px;
+}
 
 /* Lightbox */
 .lightbox {
@@ -820,7 +845,8 @@ body.dark .step-detail { background: #0D0E11; border-color: #2A2D34; }
 body.dark .step-detail .result-note { background: #15171B; border-color: #2A2D34; }
 body.dark .step-detail.fail .result-note { background: #2a1414; border-color: #612323; }
 body.dark .step-detail.warn .result-note { background: #2a210a; border-color: #5a4510; }
-body.dark .detail-panel .dp-head { background: #0D0E11; border-color: #2A2D34; color: #B0B6C0; }
+body.dark .detail-panel .dp-head,
+body.dark .auto-recording .dp-head { background: #0D0E11; border-color: #2A2D34; color: #B0B6C0; }
 body.dark .detail-panel pre { color: #E6E8EC; }
 body.dark .search-input { background: #15171B; border-color: #3A3F47; color: #F1F3F6; }
 body.dark .search-input input { color: #F1F3F6; }
@@ -862,6 +888,7 @@ const JS_CONTENT = `
 "use strict";
 
 var report = window.REPORT_DATA;
+var VIEW = window.REPORT_VIEW || {};
 function isValidReport(r) {
   return r && r.summary && r.summary.specs && Array.isArray(r.specs);
 }
@@ -931,10 +958,7 @@ function hlJson(json) {
   );
 }
 
-var ACTIONS = ["goTo","find","click","screenshot","checkLink","httpRequest",
-  "runShell","runCode","runBrowserScript","type","typeKeys","wait","record",
-  "stopRecord","loadVariables","loadCookie","saveCookie","dragAndDrop",
-  "swipe","startSurface","closeSurface","moveTo","scroll"];
+var ACTIONS = ${JSON.stringify(stepActions)};
 function actionKey(step) {
   for (var i = 0; i < ACTIONS.length; i++) if (ACTIONS[i] in step) return ACTIONS[i];
   return "step";
@@ -1040,24 +1064,73 @@ function countTree(spec) {
   return { tests: tests, contexts: contexts, steps: steps, stepCounts: sc };
 }
 
+// A stored media path's link from this page: buildHtml works out every link, from
+// where this copy sits. A path it left out, such as a remote screenshot, stays as it is.
+// test/htmlReporter.test.js extracts this function, autoRecordingPanel, collectMedia,
+// contextLabel, and resultNote by regex: keep each closing } at column 0, and start no
+// other line in them with }.
+function mediaHref(p) {
+  return (VIEW.hrefs && VIEW.hrefs[p]) || p;
+}
+
+// The panel at the top of a context for its automatic recording: the video
+// whenever a file was saved, and the result's badge and reason whenever it isn't
+// a PASS. Empty when there's nothing to show.
+// Extracted by test/htmlReporter.test.js, like mediaHref.
+function autoRecordingPanel(ctx) {
+  var rec = ctx.autoRecording;
+  if (!rec) return "";
+  var notPass = rec.result !== "PASS";
+  if (!notPass && !rec.recordingPath) return "";
+  return '<div class="dp-head"><span>Automatic recording</span>' + (notPass ? badge(rec.result) : "") + '</div>' +
+    (notPass && rec.resultDescription ? '<div class="auto-recording-reason">' + esc(rec.resultDescription) + '</div>' : "") +
+    (rec.recordingPath
+      ? '<video src="' + escAttr(mediaHref(rec.recordingPath)) + '" controls muted playsinline preload="metadata"></video>'
+      : "");
+}
+
+// Extracted by test/htmlReporter.test.js, like mediaHref.
 function collectMedia(step) {
   var media = [];
   var outs = step.outputs || {};
   if (step.screenshot && (step.screenshot.path || outs.screenshotPath)) {
-    media.push({ kind: "image", path: outs.screenshotPath || step.screenshot.path, changed: outs.changed });
+    media.push({ kind: "image", path: mediaHref(outs.screenshotPath || step.screenshot.path), changed: outs.changed });
   }
-  if (outs.screenshotPath && !media.find(function(m) { return m.path === outs.screenshotPath; })) {
-    media.push({ kind: "image", path: outs.screenshotPath, changed: outs.changed });
+  if (outs.screenshotPath && !media.find(function(m) { return m.path === mediaHref(outs.screenshotPath); })) {
+    media.push({ kind: "image", path: mediaHref(outs.screenshotPath), changed: outs.changed });
   }
   if (step.record && (step.record.path || outs.recordingPath)) {
-    media.push({ kind: "video", path: outs.recordingPath || step.record.path });
+    media.push({ kind: "video", path: mediaHref(outs.recordingPath || step.record.path) });
   }
   // Match the runner's dispatch (presence, not truthiness): stopRecord null
   // is a valid untargeted stop that still saves a video.
   if (typeof step.stopRecord !== "undefined" && outs.recordingPath) {
-    media.push({ kind: "video", path: outs.recordingPath });
+    media.push({ kind: "video", path: mediaHref(outs.recordingPath) });
+  }
+  // The automatic screenshot, relative to runDir.
+  var auto = step.autoScreenshotPath;
+  if (typeof auto === "string" && auto) {
+    media.push({ kind: "image", path: mediaHref(auto), label: "Automatic" });
   }
   return media;
+}
+
+// What the header says about the run. It reads only the report, so tests can run it.
+function headerFacts(report) {
+  var env = report.environment || {};
+  var os = [env.platform, env.osRelease].filter(Boolean).join(" ");
+  if (env.arch) os += (os ? " " : "") + "(" + env.arch + ")";
+  return {
+    eyebrow: report.runId || "Report",
+    started: report.startedAt ? new Date(report.startedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "",
+    fields: [
+      ["Doc Detective", env.docDetectiveVersion],
+      ["Node.js", env.nodeVersion],
+      ["OS", os],
+      ["duration", report.durationMs == null ? "" : fmtDuration(report.durationMs)]
+    ].filter(function(f) { return f[1]; }),
+    download: "testResults" + (report.runId ? "-" + report.runId : "") + ".json"
+  };
 }
 
 // Build header
@@ -1068,9 +1141,7 @@ function buildHeader() {
   var pctFailEnd = tot ? ((s.pass + s.fail) / tot * 100) + "%" : "0%";
   var pctWarnEnd = tot ? ((s.pass + s.fail + s.warning) / tot * 100) + "%" : "0%";
 
-  var meta = report.meta || {};
-  var started = meta.startedAt ? new Date(meta.startedAt) : null;
-  var reportIdShort = (report.reportId || "").slice(0, 8);
+  var facts = headerFacts(report);
 
   var hdr = el("header", "hdr");
   hdr.style.setProperty("--pct-pass", pctPass);
@@ -1086,8 +1157,8 @@ function buildHeader() {
 
   // Title
   var title = el("div", "hdr-title");
-  title.innerHTML = '<div class="eyebrow">Report' + (reportIdShort ? " \\u00B7 " + esc(reportIdShort) : "") + '</div>' +
-    '<h1>Test run<span class="sub"> \\u00B7 ' + (started ? started.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "\\u2014") + '</span></h1>';
+  title.innerHTML = '<div class="eyebrow">' + esc(facts.eyebrow) + '</div>' +
+    '<h1>Test run' + (facts.started ? '<span class="sub"> \\u00B7 ' + esc(facts.started) + '</span>' : "") + '</h1>';
   inner.appendChild(title);
 
   // Actions
@@ -1119,7 +1190,7 @@ function buildHeader() {
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
-    a.download = "testResults-" + (report.reportId || "report").slice(0, 8) + ".json";
+    a.download = facts.download;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
   };
@@ -1129,50 +1200,32 @@ function buildHeader() {
   hdr.appendChild(inner);
 
   // Meta strip
-  var ms = el("div", "metastrip");
-  var msInner = el("div", "metastrip-inner");
-  var fields = [
-    ["tool", (meta.tool || "doc-detective") + "@" + (meta.version || "\\u2014")],
-    ["runtime", (meta.platform || "\\u2014") + " \\u00B7 node " + (meta.node || "\\u2014")],
-    ["branch", meta.branch || meta.commit ? (meta.branch || "\\u2014") + (meta.commit ? "@" + meta.commit.slice(0, 7) : "") : "\\u2014"],
-    ["actor", meta.actor || "\\u2014"],
-    ["duration", fmtDuration(report.durationMs)],
-    ["cwd", meta.cwd || "\\u2014"]
-  ];
-  fields.forEach(function(f) {
-    msInner.innerHTML += '<span class="m"><span class="k">' + f[0] + '</span> <span class="v">' + esc(f[1]) + '</span></span>';
-  });
-  ms.appendChild(msInner);
-  hdr.appendChild(ms);
+  if (facts.fields.length) {
+    var ms = el("div", "metastrip");
+    var msInner = el("div", "metastrip-inner");
+    facts.fields.forEach(function(f) {
+      msInner.innerHTML += '<span class="m"><span class="k">' + esc(f[0]) + '</span> <span class="v">' + esc(f[1]) + '</span></span>';
+    });
+    ms.appendChild(msInner);
+    hdr.appendChild(ms);
+  }
 
   return hdr;
 }
 
-// Verdict banner
+// Verdict banner: one verdict for every reporter (ADR 01180), counted at the test level.
 function buildVerdict() {
-  var s = report.summary.specs;
-  var total = s.pass + s.fail + s.warning + s.skipped;
-  var slug = s.fail ? "fail" : s.warning ? "warn" : s.pass ? "pass" : "skip";
-  var bigNum, note;
-  if (s.fail) {
-    bigNum = s.fail;
-    note = "spec" + (s.fail > 1 ? "s" : "") + " failing";
-  } else if (s.warning) {
-    bigNum = s.warning;
-    note = "warning" + (s.warning > 1 ? "s" : "");
-  } else if (s.pass) {
-    bigNum = s.pass;
-    note = "spec" + (s.pass > 1 ? "s" : "") + " passed";
-  } else {
-    bigNum = 0;
-    note = "specs ran";
-  }
+  var v = VIEW.verdict || {};
+  var t = report.summary.tests || {};
+  var counts = [t.pass || 0, t.fail || 0, t.warning || 0, t.skipped || 0];
+  var total = counts[0] + counts[1] + counts[2] + counts[3];
+  var slug = { fail: "fail", warning: "warn", pass: "pass" }[v.status] || "skip";
   var pct = function(n) { return total ? n / total * 100 : 0; };
 
   var card = el("div", "verdict-card " + slug);
   card.innerHTML = '<div class="vk">Overall verdict</div>' +
-    '<div class="vv"><div class="big">' + esc(String(bigNum)) + '</div><div class="note">' + esc(note) + '</div></div>' +
-    '<div class="vbar" style="grid-template-columns:' + pct(s.pass) + '% ' + pct(s.fail) + '% ' + pct(s.warning) + '% ' + pct(s.skipped) + '%">' +
+    '<div class="vv"><div class="big">' + esc(v.label) + '</div><div class="note">' + esc(v.text) + '</div></div>' +
+    '<div class="vbar" style="grid-template-columns:' + counts.map(function(n) { return pct(n) + '%'; }).join(' ') + '">' +
     '<span class="pass"></span><span class="fail"></span><span class="warn"></span><span class="skip"></span></div>';
   return card;
 }
@@ -1202,6 +1255,17 @@ function buildSumTile(label, counts, levelLabel) {
   return tile;
 }
 
+// A step's reason, with its hint and code when present.
+// Extracted by test/htmlReporter.test.js, like mediaHref.
+function resultNote(step, slug) {
+  if (!step.resultDescription && !step.resultHint && !step.resultCode) return "";
+  return '<div class="result-note">' + statusIcon(slug) + '<div class="body">' +
+    esc(step.resultDescription) +
+    (step.resultHint ? '<div>Hint: ' + esc(step.resultHint) + '</div>' : "") +
+    (step.resultCode ? '<code>' + esc(step.resultCode) + '</code>' : "") +
+    '</div></div>';
+}
+
 // Step detail
 function buildStepDetail(step) {
   var slug = statusSlug(step.result);
@@ -1210,10 +1274,7 @@ function buildStepDetail(step) {
   var detail = el("div", "step-detail " + slug);
   detail.onclick = function(e) { e.stopPropagation(); };
 
-  if (step.resultDescription) {
-    detail.innerHTML += '<div class="result-note">' + statusIcon(slug) +
-      '<div class="body">' + esc(step.resultDescription) + '</div></div>';
-  }
+  detail.innerHTML += resultNote(step, slug);
 
   if (media.length) {
     var mp = '<div class="media-panel"><div class="dp-head"><span>MEDIA \\u00B7 ' + media.length + ' item' + (media.length > 1 ? 's' : '') + '</span></div><div class="mp-body">';
@@ -1221,6 +1282,7 @@ function buildStepDetail(step) {
       mp += '<div class="media-thumb" data-media-path="' + escAttr(m.path || '') + '" data-media-kind="' + escAttr(m.kind) + '">' +
         '<span class="kind">' + (m.kind === "video" ? "MP4" : "PNG") + '</span>' +
         (m.changed ? '<span class="changed-flag">UPDATED</span>' : '') +
+        (m.label ? '<span class="auto-flag">' + esc(m.label) + '</span>' : '') +
         (m.kind === "video"
           ? '<video src="' + escAttr(m.path || '') + '" muted playsinline preload="metadata"></video>'
           : '<img src="' + escAttr(m.path || '') + '" alt="' + escAttr(m.path || '') + '" onerror="this.style.display=\\'none\\'"/>') +
@@ -1232,7 +1294,7 @@ function buildStepDetail(step) {
 
   // Input/output panels
   var rest = Object.assign({}, step);
-  delete rest.result; delete rest.resultDescription; delete rest.stepId; delete rest.outputs; delete rest.description; delete rest.duration; delete rest.durationMs; delete rest.startedAt;
+  delete rest.result; delete rest.resultDescription; delete rest.stepId; delete rest.outputs; delete rest.description; delete rest.duration; delete rest.durationMs; delete rest.startedAt; delete rest.resultHint; delete rest.resultCode;
   var inputJson = JSON.stringify(rest, null, 2);
   var outputJson = step.outputs && Object.keys(step.outputs).length ? JSON.stringify(step.outputs, null, 2) : null;
 
@@ -1251,15 +1313,23 @@ function stepKey(step, ctxId, idx) {
   return step.stepId || (ctxId + ":" + idx);
 }
 
+// A step's row label. Steps are effective (ADR 01167), with two exceptions the
+// fallbacks cover: a step that never ran keeps a whole-variable value such as
+// "goTo": "$URL" as a string, and an OpenAPI request has no method until the
+// operation supplies one.
+function stepLabel(step) {
+  return step.description
+    || (step.goTo && "Go to " + (step.goTo.url || step.goTo))
+    || (step.httpRequest && (step.httpRequest.method || "GET").toUpperCase() + " " + (step.httpRequest.url || ""))
+    || (step.runShell && (step.runShell.command || "") + " " + (step.runShell.args || []).join(" "))
+    || step.resultDescription || "(step)";
+}
+
 function buildStep(step, idx, ctxId, keyIdx) {
   var slug = statusSlug(step.result);
   var ak = actionKey(step);
   var sk = stepKey(step, ctxId, keyIdx == null ? idx : keyIdx);
-  var primary = step.description
-    || (step.goTo && "Go to " + step.goTo)
-    || (step.httpRequest && (step.httpRequest.method || "GET") + " " + (step.httpRequest.url || ""))
-    || (step.runShell && (step.runShell.command || "") + " " + (step.runShell.args || []).join(" "))
-    || step.resultDescription || "(step)";
+  var primary = stepLabel(step);
 
   var isOpen = !!state.openSteps[sk];
   var row = el("div", "step " + slug + (isOpen ? " open" : ""));
@@ -1281,22 +1351,36 @@ function buildStep(step, idx, ctxId, keyIdx) {
   return row;
 }
 
+// Extracted by test/htmlReporter.test.js, like mediaHref.
+function contextLabel(ctx) {
+  var b = ctx.browser || {};
+  var d = ctx.driver;
+  var label = ctx.platform || "shell";
+  if (b.name) {
+    label = b.name + (b.version ? " " + b.version : "") +
+      (d && d.name ? " (" + d.name + (d.version ? " " + d.version : "") + ")" : "") +
+      " / " + ctx.platform;
+  }
+  if (b.headless) label += " \\u00B7 headless";
+  if (b.viewport) label += " \\u00B7 " + b.viewport.width + "\\u00D7" + b.viewport.height;
+  return label;
+}
+
 // Context block
 function buildContext(ctx) {
-  var browser = ctx.browser && ctx.browser.name;
-  var headless = ctx.browser && ctx.browser.headless;
-  var vw = ctx.browser && ctx.browser.viewport;
-  var contextLabel = browser ? browser + " / " + ctx.platform : ctx.platform || "shell";
-  if (headless) contextLabel += " \\u00B7 headless";
-  if (vw) contextLabel += " \\u00B7 " + vw.width + "\\u00D7" + vw.height;
+  var label = contextLabel(ctx);
 
   var block = el("div", "context");
   var head = el("div", "context-head");
   head.innerHTML = ICON.chip +
-    '<span class="what">' + esc(contextLabel) + '</span>' +
+    '<span class="what">' + esc(label) + '</span>' +
     '<span class="meta">' + ICON.finger + ' ' + esc((ctx.contextId || "").slice(0, 8)) + '</span>' +
     badge(ctx.result);
   block.appendChild(head);
+
+  // The context's automatic recording shows above its steps.
+  var recordingPanel = autoRecordingPanel(ctx);
+  if (recordingPanel) block.appendChild(el("div", "auto-recording", recordingPanel));
 
   var visibleSteps = (ctx.steps || [])
     .map(function(s, i) { return { step: s, origIdx: i }; })

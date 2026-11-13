@@ -5,9 +5,9 @@
   "anyOf": [
     {
       "title": "HTTP request (simple)",
+      "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
       "type": "string",
-      "description": "URL for the HTTP request.",
-      "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
       "transform": [
         "trim"
       ]
@@ -30,10 +30,10 @@
       "additionalProperties": false,
       "properties": {
         "url": {
-          "title": "HTTP request (simple)",
+          "title": "Target URL",
+          "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
           "type": "string",
-          "description": "URL for the HTTP request.",
-          "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
           "transform": [
             "trim"
           ]
@@ -110,17 +110,17 @@
                     },
                     "mockResponse": {
                       "type": "boolean",
-                      "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                      "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code."
                     },
                     "statusCode": {
                       "type": "integer",
-                      "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                      "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
                     },
                     "useExample": {
                       "type": [
                         "string"
                       ],
-                      "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                      "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
                       "enum": [
                         "request",
                         "response",
@@ -135,12 +135,21 @@
                       "default": ""
                     },
                     "headers": {
-                      "type": "object",
-                      "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                      "additionalProperties": {
-                        "type": "string"
-                      },
-                      "title": "OpenAPI request headers"
+                      "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                      "title": "OpenAPI request headers",
+                      "anyOf": [
+                        {
+                          "title": "Request headers (object)",
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        {
+                          "title": "Request headers (string)",
+                          "type": "string"
+                        }
+                      ]
                     }
                   },
                   "components": {
@@ -162,6 +171,11 @@
                     {
                       "name": "Reqres",
                       "operationId": "getUserById"
+                    },
+                    {
+                      "name": "Reqres",
+                      "operationId": "getUserById",
+                      "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
                     },
                     {
                       "descriptionPath": "https://api.example.com/openapi.json",
@@ -236,7 +250,11 @@
             {
               "type": "array",
               "items": {
-                "type": "integer"
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  }
+                ]
               }
             }
           ],
@@ -263,27 +281,28 @@
         },
         "timeout": {
           "type": "integer",
-          "description": "Timeout for the HTTP request, in milliseconds.",
-          "default": 60000
+          "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+          "default": 60000,
+          "minimum": 1
         },
         "request": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "headers": {
-              "description": "Headers to include in the HTTP request.",
+              "description": "Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.",
               "default": {},
+              "title": "Request headers",
               "anyOf": [
                 {
                   "title": "Request headers (object)",
-                  "description": "Headers to include in the HTTP request, in key/value format.",
                   "type": "object",
-                  "additionalProperties": true,
-                  "properties": {}
+                  "additionalProperties": {
+                    "type": "string"
+                  }
                 },
                 {
                   "title": "Request headers (string)",
-                  "description": "Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json\nAuthorization: Bearer token`.",
                   "type": "string"
                 }
               ]
@@ -328,7 +347,7 @@
           "additionalProperties": false,
           "properties": {
             "headers": {
-              "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
+              "description": "Headers expected in the response, in key/value format. If one or more `response.headers` entries aren't present in the response, the step fails.",
               "type": "object",
               "additionalProperties": true,
               "properties": {},
@@ -336,7 +355,7 @@
               "title": "Response headers"
             },
             "body": {
-              "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
+              "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.",
               "anyOf": [
                 {
                   "type": "object",
@@ -356,8 +375,7 @@
                   "description": "String expected in the response.",
                   "type": "string"
                 }
-              ],
-              "default": {}
+              ]
             },
             "required": {
               "type": "array",
@@ -377,15 +395,15 @@
         },
         "path": {
           "type": "string",
-          "description": "File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
+          "description": "File path to save the response body, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
         },
         "directory": {
           "type": "string",
-          "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+          "description": "Directory to save the response in. If the directory doesn't exist, creates the directory. A relative `directory`, or a relative `path` without one, resolves against the spec file's folder."
         },
         "maxVariation": {
           "type": "number",
-          "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+          "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
           "default": 0,
           "minimum": 0,
           "maximum": 1
@@ -407,11 +425,28 @@
     "schemas": {
       "url": {
         "title": "HTTP request (simple)",
+        "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
         "type": "string",
-        "description": "URL for the HTTP request.",
-        "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
         "transform": [
           "trim"
+        ]
+      },
+      "requestHeaders": {
+        "title": "Request headers",
+        "description": "Headers to send with the request: an object of header names and string values, or a string with one `Name: value` header per line, such as `X-Api-Key: abc123\nAuthorization: Bearer token`. A line without a colon or a value is ignored.",
+        "anyOf": [
+          {
+            "title": "Request headers (object)",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          {
+            "title": "Request headers (string)",
+            "type": "string"
+          }
         ]
       },
       "object": {
@@ -432,10 +467,10 @@
         "additionalProperties": false,
         "properties": {
           "url": {
-            "title": "HTTP request (simple)",
+            "title": "Target URL",
+            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
             "type": "string",
-            "description": "URL for the HTTP request.",
-            "pattern": "(^(http://|https://).*|\\$[A-Za-z0-9_]+)",
+            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
             "transform": [
               "trim"
             ]
@@ -512,17 +547,17 @@
                       },
                       "mockResponse": {
                         "type": "boolean",
-                        "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code."
+                        "description": "If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code."
                       },
                       "statusCode": {
                         "type": "integer",
-                        "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified."
+                        "description": "Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes."
                       },
                       "useExample": {
                         "type": [
                           "string"
                         ],
-                        "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.",
+                        "description": "Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.",
                         "enum": [
                           "request",
                           "response",
@@ -537,12 +572,21 @@
                         "default": ""
                       },
                       "headers": {
-                        "type": "object",
-                        "description": "Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.",
-                        "additionalProperties": {
-                          "type": "string"
-                        },
-                        "title": "OpenAPI request headers"
+                        "description": "Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.",
+                        "title": "OpenAPI request headers",
+                        "anyOf": [
+                          {
+                            "title": "Request headers (object)",
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          {
+                            "title": "Request headers (string)",
+                            "type": "string"
+                          }
+                        ]
                       }
                     },
                     "components": {
@@ -564,6 +608,11 @@
                       {
                         "name": "Reqres",
                         "operationId": "getUserById"
+                      },
+                      {
+                        "name": "Reqres",
+                        "operationId": "getUserById",
+                        "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
                       },
                       {
                         "descriptionPath": "https://api.example.com/openapi.json",
@@ -638,7 +687,11 @@
               {
                 "type": "array",
                 "items": {
-                  "type": "integer"
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    }
+                  ]
                 }
               }
             ],
@@ -665,27 +718,28 @@
           },
           "timeout": {
             "type": "integer",
-            "description": "Timeout for the HTTP request, in milliseconds.",
-            "default": 60000
+            "description": "Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.",
+            "default": 60000,
+            "minimum": 1
           },
           "request": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
               "headers": {
-                "description": "Headers to include in the HTTP request.",
+                "description": "Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.",
                 "default": {},
+                "title": "Request headers",
                 "anyOf": [
                   {
                     "title": "Request headers (object)",
-                    "description": "Headers to include in the HTTP request, in key/value format.",
                     "type": "object",
-                    "additionalProperties": true,
-                    "properties": {}
+                    "additionalProperties": {
+                      "type": "string"
+                    }
                   },
                   {
                     "title": "Request headers (string)",
-                    "description": "Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json\nAuthorization: Bearer token`.",
                     "type": "string"
                   }
                 ]
@@ -730,7 +784,7 @@
             "additionalProperties": false,
             "properties": {
               "headers": {
-                "description": "Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.",
+                "description": "Headers expected in the response, in key/value format. If one or more `response.headers` entries aren't present in the response, the step fails.",
                 "type": "object",
                 "additionalProperties": true,
                 "properties": {},
@@ -738,7 +792,7 @@
                 "title": "Response headers"
               },
               "body": {
-                "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.",
+                "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.",
                 "anyOf": [
                   {
                     "type": "object",
@@ -758,8 +812,7 @@
                     "description": "String expected in the response.",
                     "type": "string"
                   }
-                ],
-                "default": {}
+                ]
               },
               "required": {
                 "type": "array",
@@ -779,15 +832,15 @@
           },
           "path": {
             "type": "string",
-            "description": "File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
+            "description": "File path to save the response body, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings."
           },
           "directory": {
             "type": "string",
-            "description": "Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory."
+            "description": "Directory to save the response in. If the directory doesn't exist, creates the directory. A relative `directory`, or a relative `path` without one, resolves against the spec file's folder."
           },
           "maxVariation": {
             "type": "number",
-            "description": "Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.",
+            "description": "Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.",
             "default": 0,
             "minimum": 0,
             "maximum": 1
@@ -808,8 +861,16 @@
   },
   "examples": [
     "https://reqres.in/api/users",
+    "$API_URL/users",
     {
       "url": "https://reqres.in/api/users"
+    },
+    {
+      "url": "/api/users",
+      "statusCodes": 200,
+      "request": {
+        "headers": "Accept: application/json\nAuthorization: Bearer $TOKEN"
+      }
     },
     {
       "url": "https://reqres.in/api/users/2",

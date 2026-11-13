@@ -21,7 +21,7 @@ import {
   locateManagedWda,
   type ManagedWdaHit,
 } from "../../runtime/wdaProducts.js";
-import { log } from "../utils.js";
+import { log, invalidStepMessage } from "../utils.js";
 import {
   snapshotAppWindows,
   rewriteXPathForScopedFind,
@@ -55,6 +55,7 @@ export {
   // on a real macOS host (a null there means the AXIsProcessTrusted bind
   // regressed), which the injectable `deps.probeAccessibility` can't catch.
   probeMacAccessibility,
+  probeMacScreenRecording,
   isAppDriverRequired,
   stepTargetsAppSurface,
   resolveAppSurfaceRef,
@@ -484,11 +485,8 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         // NovaWindows (like WinAppDriver) takes appArguments as one string.
         capabilities["appium:appArguments"] = descriptor.args.join(" ");
       }
-      // `workingDirectory` is NOT mapped: NovaWindows v1.4.1 silently ignores
-      // the appWorkingDir capability (the launched process inherits the
-      // driver's PowerShell session cwd), so mapping it would be a no-op the
-      // author can't see. It's rejected in unsupportedFields below instead —
-      // see the upstream report referenced in ADR 01036.
+      // No app descriptor has `workingDirectory` (ADR 01187): NovaWindows
+      // v1.4.1 ignores appWorkingDir, and no other app driver honors one.
       return capabilities;
     },
     unsupportedFields: [
@@ -498,13 +496,6 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         isSet: (value) => value !== undefined,
         guidance:
           "Set environment variables in the shell that launches Doc Detective, or launch the app via runShell instead.",
-      },
-      {
-        field: "workingDirectory",
-        // "." is the schema's injected default, not an author request.
-        isSet: (value) => value !== undefined && value !== ".",
-        guidance:
-          "The Windows app driver (NovaWindows) doesn't honor a launch working directory — the app inherits the driver's own working directory — so Doc Detective can't set it; launch the app via runShell if the cwd matters.",
       },
     ],
   },
@@ -544,16 +535,7 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
       capabilities["appium:serverStartupTimeout"] = Math.max(timeout, 120000);
       return capabilities;
     },
-    unsupportedFields: [
-      ...DESKTOP_UNSUPPORTED_MOBILE_FIELDS,
-      {
-        field: "workingDirectory",
-        // "." is the schema's injected default, not an author request.
-        isSet: (value) => value !== undefined && value !== ".",
-        guidance:
-          "The macOS app driver launches apps through LaunchServices, which offers no working-directory control; launch via runShell if the cwd matters.",
-      },
-    ],
+    unsupportedFields: [...DESKTOP_UNSUPPORTED_MOBILE_FIELDS],
   },
   android: {
     driverPackage: "appium-uiautomator2-driver",
@@ -600,12 +582,6 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         isSet: (value) => value !== undefined,
         guidance:
           "The Android driver can't set app environment variables; use driverOptions for driver-specific launch controls.",
-      },
-      {
-        field: "workingDirectory",
-        isSet: (value) => value !== undefined && value !== ".",
-        guidance:
-          "A working directory is meaningless for an Android package launch.",
       },
     ],
   },
@@ -662,11 +638,6 @@ export const APP_DRIVER_PLATFORMS: Record<string, AppDriverPlatform> = {
         isSet: (value) => Array.isArray(value) && value.length > 0,
         guidance:
           "The iOS driver does not honor desktop-style process arguments for AUT launch.",
-      },
-      {
-        field: "workingDirectory",
-        isSet: (value) => value !== undefined && value !== ".",
-        guidance: "A working directory is not meaningful for iOS app launches.",
       },
       {
         field: "env",
@@ -873,6 +844,30 @@ async function probeMacAccessibility(): Promise<boolean | null> {
   });
 }
 
+// Whether the app that runs Doc Detective may capture the screen on macOS
+// (Screen Recording permission), via CGPreflightScreenCaptureAccess, which
+// asks without prompting. null when the probe itself fails: inconclusive, so a
+// recording preflight never skips on it (ADR 01177).
+async function probeMacScreenRecording(): Promise<boolean | null> {
+  return await new Promise((resolve) => {
+    execFile(
+      "osascript",
+      [
+        "-l",
+        "JavaScript",
+        "-e",
+        "ObjC.import('CoreGraphics'); ObjC.bindFunction('CGPreflightScreenCaptureAccess', ['bool', []]); $.CGPreflightScreenCaptureAccess()",
+      ],
+      { timeout: 10000 },
+      (error, stdout) => {
+        if (error) return resolve(null);
+        const verdict = String(stdout).trim();
+        resolve(verdict === "true" ? true : verdict === "false" ? false : null);
+      }
+    );
+  });
+}
+
 // Probe the iOS simulator toolchain: a macOS host, a configured Xcode
 // (`xcode-select -p`), and a working `xcrun simctl`. Effects are injected
 // (platform + a command runner) so every branch is unit-testable on any host —
@@ -914,7 +909,7 @@ function probeIosToolchain(
     return {
       ok: false,
       reason:
-        "Skipping context on 'ios': iOS app surfaces require a macOS host with Xcode and Simulator tooling.",
+        "Skipped: iOS app surfaces require a macOS host with Xcode and Simulator tooling.",
     };
   }
   const xcodeSelect = run("xcode-select", ["-p"]);
@@ -922,7 +917,7 @@ function probeIosToolchain(
     return {
       ok: false,
       reason:
-        "Skipping context on 'ios': Xcode command-line tools are not configured. Install Xcode and run `xcode-select --install`.",
+        "Skipped: Xcode command-line tools aren't configured. Install Xcode and run `xcode-select --install`.",
     };
   }
   const developerDir = String(xcodeSelect.stdout ?? "").trim();
@@ -939,7 +934,7 @@ function probeIosToolchain(
         : `exit ${simctl.status}`);
     return {
       ok: false,
-      reason: `Skipping context on 'ios': \`xcrun simctl\` is unavailable (developer dir: ${developerDir || "unset"}; ${detail}). If \`xcode-select -p\` points at CommandLineTools, run \`sudo xcode-select -s /Applications/Xcode.app\`; otherwise open Xcode once to finish simulator components and rerun.`,
+      reason: `Skipped: \`xcrun simctl\` is unavailable (developer dir: ${developerDir || "unset"}; ${detail}). If \`xcode-select -p\` points at CommandLineTools, run \`sudo xcode-select -s /Applications/Xcode.app\`; otherwise open Xcode once to finish simulator components and rerun.`,
     };
   }
   return { ok: true };
@@ -972,7 +967,7 @@ async function appSurfacePreflight({
   if (!platformDriver) {
     return {
       ok: false,
-      reason: `Skipping context on '${platform}': native app surfaces run on Windows, macOS, Android, and iOS in this phase. Gate the test with runOn platforms so this skip is intentional.`,
+      reason: `Skipped: native app surfaces don't run on \`${platform}\`. They run on Windows, macOS, Android, and iOS. Gate the test with \`runOn\` platforms so this skip is intentional.`,
     };
   }
   if (platform === "ios") {
@@ -998,7 +993,7 @@ async function appSurfacePreflight({
     if (trusted === false) {
       return {
         ok: false,
-        reason: `Skipping context: macOS Accessibility (TCC) permission is not granted, so the macOS app driver cannot control apps. ${MAC_TCC_WALKTHROUGH}`,
+        reason: `Skipped: macOS Accessibility (TCC) permission isn't granted, so the macOS app driver can't control apps. ${MAC_TCC_WALKTHROUGH}`,
       };
     }
   }
@@ -1019,7 +1014,7 @@ async function appSurfacePreflight({
     } catch (error: any) {
       return {
         ok: false,
-        reason: `Skipping context: the ${driverLabel} (${driverPackage}) needs ${missing.join(" and ")}, which could not be installed (${error?.message ?? error}). Install with \`doc-detective install runtime ${missing.join(" ")}\` or check network access.`,
+        reason: `Skipped: the ${driverLabel} (${driverPackage}) needs ${missing.join(" and ")}, which could not be installed (${error?.message ?? error}). Install with \`doc-detective install runtime ${missing.join(" ")}\` or check network access.`,
       };
     }
   }
@@ -1027,7 +1022,7 @@ async function appSurfacePreflight({
   if (!appiumEntry || !resolvePathInCache(driverPackage, ctx)) {
     return {
       ok: false,
-      reason: `Skipping context: the ${driverLabel} (${driverPackage}) or Appium did not resolve from the runtime cache after install. Reinstall with \`doc-detective install runtime ${needed.join(" ")}\`.`,
+      reason: `Skipped: the ${driverLabel} (${driverPackage}) or Appium did not resolve from the runtime cache after install. Reinstall with \`doc-detective install runtime ${needed.join(" ")}\`.`,
     };
   }
   const appiumHome = getRuntimeDir(ctx);
@@ -1179,7 +1174,7 @@ async function findAppElement({
     }
   }
   return {
-    error: `No element matched ${JSON.stringify(criteria)} on the app surface within ${timeout}ms (locator: ${selector}${scrolls ? `; scrolled ${scrolls} time(s) looking for it` : ""}).`,
+    error: `Couldn't find an element matching \`${JSON.stringify(criteria)}\` on the app surface within ${timeout} ms (locator: \`${selector}\`${scrolls ? `; scrolled ${scrolls} time(s) looking for it` : ""}).`,
   };
 }
 
@@ -1224,7 +1219,7 @@ async function startAppSurface({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   step = isValidStep.object;
@@ -1237,7 +1232,7 @@ async function startAppSurface({
     return result;
   }
   // Per-platform unsupported fields (desktop rows reject the mobile-only
-  // device/install/activity; Android rejects args/env/workingDirectory) — fail
+  // device/install/activity; Android rejects args/env) — fail
   // with the alternative named rather than silently ignoring the author's ask.
   for (const { field, isSet, guidance } of platformDriver.unsupportedFields) {
     if (isSet(descriptor[field])) {
@@ -1502,10 +1497,13 @@ async function startAppSurface({
         // Stash the real error on the handle so stopRecording surfaces it as
         // a FAIL instead of the misleading "never started" skip. A missing
         // host ffmpeg (the XCUITest encoder dependency) is an environment
-        // gap, so it degrades to a SKIP instead.
-        const message = `Couldn't start the pending device recording: ${error?.message ?? error}`;
+        // gap, so it degrades to a SKIP instead, with its reason worded here.
+        const cause = String(error?.message ?? error).replace(/\.\s*$/, "");
+        const message = `Couldn't start the pending device recording: ${cause}.`;
         handle.startError = message;
-        if (/ffmpeg.*not found/i.test(message)) handle.startSkip = true;
+        if (/ffmpeg.*not found/i.test(message)) {
+          handle.startSkip = `Skipped: couldn't start the pending device recording: ${cause}.`;
+        }
         log(config, "warning", message);
       }
     }

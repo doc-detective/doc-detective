@@ -7,6 +7,7 @@ import {
   issueNavigation,
   probeStuckOnBlankDocument,
   redactUrlForOutput,
+  invalidStepMessage,
 } from "../utils.js";
 import { findElement } from "./findElement.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
@@ -33,14 +34,10 @@ function normalizeOpener(value: any): { name?: string; tab?: string } | null {
   return value;
 }
 
-// Open a URI in the browser
+// Open a URI in the browser. `step` is the effective step (ADR 01167): goTo is
+// an object, and its defaults are filled.
 async function goTo({ config, step, driver }: { config: any; step: any; driver: any }) {
   let result = { status: "PASS", description: "Opened URL." };
-
-  // Resolve to object
-  if (typeof step.goTo === "string") {
-    step.goTo = { url: step.goTo };
-  }
 
   const relative = isRelativeUrl(step.goTo.url);
 
@@ -83,28 +80,12 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
 
   // Use the validated object
   step = isValidStep.object;
-
-  // Apply defaults if not specified
-  step.goTo.timeout = step.goTo.timeout || 30000;
-  if (!step.goTo.waitUntil) {
-    step.goTo.waitUntil = {
-      networkIdleTime: 500,
-      domIdleTime: 1000,
-    };
-  } else {
-    if (step.goTo.waitUntil.networkIdleTime === undefined) {
-      step.goTo.waitUntil.networkIdleTime = 500;
-    }
-    if (step.goTo.waitUntil.domIdleTime === undefined) {
-      step.goTo.waitUntil.domIdleTime = 1000;
-    }
-  }
 
   // Multi-surface Phase 3/4: focus the requested session + window/tab, and
   // open a new tab/window when asked. goTo is the only step that opens
@@ -298,7 +279,6 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
             try {
               // Construct a findElement step with the timeout
               const findStep = {
-                action: "find",
                 find: {
                   ...step.goTo.waitUntil.find,
                   timeout: remainingTimeout,
@@ -309,6 +289,7 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
                 config,
                 step: findStep,
                 driver,
+                nearMatches: false,
               });
 
               if (findResult.status === "PASS") {

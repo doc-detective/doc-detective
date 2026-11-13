@@ -25,6 +25,30 @@ describe("doc-detective's own package", function () {
     assert.equal(heavyDeps.ownVersion?.(), version);
   });
 
+  it("packageRoot() walks once when no package root is found", function () {
+    heavyDeps._resetCacheForTests();
+    const original = fs.readFileSync;
+    let reads = 0;
+    fs.readFileSync = (file, ...rest) => {
+      if (String(file).endsWith("package.json")) {
+        reads += 1;
+        throw new Error("no package.json here");
+      }
+      return original(file, ...rest);
+    };
+    try {
+      assert.equal(heavyDeps.packageRoot(), undefined);
+      const firstWalk = reads;
+      assert.ok(firstWalk > 0);
+      assert.equal(heavyDeps.packageRoot(), undefined);
+      assert.equal(heavyDeps.ownVersion(), undefined);
+      assert.equal(reads, firstWalk);
+    } finally {
+      fs.readFileSync = original;
+      heavyDeps._resetCacheForTests();
+    }
+  });
+
   describe("CommonJS build", function () {
     this.timeout(120000);
 

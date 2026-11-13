@@ -20,7 +20,7 @@ For quick fixes (typos, small wording changes), use the [browser-based workflow]
 
 ## System requirements
 
-- [Node.js](https://nodejs.org/) version 22 or later
+- [Node.js](https://nodejs.org/) version 24.15 or later
 - [Git](https://git-scm.com/) for version control
 - [VS Code](https://code.visualstudio.com/) recommended as code editor
 - [Vale](https://vale.sh/) 3.20.0 or later (optional) for style checking
@@ -33,7 +33,7 @@ For quick fixes (typos, small wording changes), use the [browser-based workflow]
 node --version
 ```
 
-Should show `v22.0.0` or higher.
+Should show `v24.15.0` or higher.
 
 ## Fork and clone the repository
 
@@ -207,7 +207,7 @@ Use fenced code blocks with language identifiers:
 ````markdown
 ```json title="example.spec.json"
 {
-  "tests": []
+  "tests": [{ "steps": [{ "goTo": "https://www.example.com" }] }]
 }
 ```
 ````
@@ -271,7 +271,7 @@ The configuration file is `docs/.vale.ini`, not a `.vale.ini` at the repository 
 1. Check Node.js version:
 
    ```bash
-   node --version  # Should be 22 or higher
+   node --version  # Should be 24.15 or higher
    ```
 
    If needed, update [Node.js](https://nodejs.org/).

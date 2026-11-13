@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log } from "../utils.js";
+import { log, invalidStepMessage } from "../utils.js";
 import {
   parseSurfaceRef,
   reinterpretForSessions,
@@ -58,14 +58,12 @@ async function closeSurface({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
+  // The effective step always holds a list (ADR 01167).
   step = isValidStep.object;
-
-  const items = Array.isArray(step.closeSurface)
-    ? step.closeSurface
-    : [step.closeSurface];
+  const items = step.closeSurface;
 
   const closed: string[] = [];
   const absent: string[] = [];

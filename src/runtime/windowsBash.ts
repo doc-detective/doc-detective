@@ -364,7 +364,7 @@ function quarantineDir(dir: string, logger: Logger): void {
     fs.renameSync(dir, quarantined);
     logger(
       `Quarantined a broken Git Bash install to ${quarantined}.`,
-      "warn"
+      "warning"
     );
   } catch {
     // Rename can fail while a stale bash.exe is open; the installer's

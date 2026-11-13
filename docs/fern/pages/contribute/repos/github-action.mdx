@@ -21,33 +21,35 @@ The GitHub Action can automatically create GitHub issues when tests fail. Set `c
 - `issue_labels`: Comma-separated list of labels to apply.
 - `issue_assignees`: Comma-separated list of GitHub usernames to assign.
 
-### AI integrations
+### AI issue mentions
 
-Notify AI-powered integrations when issues are created to help investigate and fix failures faster. Use `integrations` to specify which integrations to notify.
+Mention AI assistants in created issues to help investigate and fix failures faster. Use `issue_mentions` to specify which assistants to mention.
 
-- `integrations`: Comma-separated list of integrations to notify. Supported values:
-  - `doc-sentinel`: Mentions @reem-sab
-  - `promptless`: Mentions @Promptless with the prompt
-  - `dosu`: Mentions @dosu with the prompt
-  - `claude`: Mentions @claude with the prompt
-  - `cursor`: Mentions @cursor with the prompt
+- `issue_mentions`: Comma-separated list of assistants to mention. Supported values:
+  - `doc-sentinel`: Adds the line `/cc @reem-sab`, without the prompt
+  - `promptless`: Mentions `@promptless` with the prompt
+  - `dosu`: Mentions `@dosu` with the prompt
+  - `claude`: Mentions `@claude` with the prompt
+  - `cursor`: Mentions `@cursor` with the prompt
   - `opencode`: Uses the `/opencode` command with the prompt
   - `copilot`: Auto-assigns the issue to Copilot (instead of adding to the accordion)
   
-  Integrations (except `copilot`) appear in a collapsible "Integrations" section in the issue body. Invalid integration names are warned and ignored.
+  Mentions (except `copilot`) appear in a collapsible section in the issue body. The action ignores unsupported values and logs a warning.
 
-- `prompt`: Text passed to integrations, inserted where `$PROMPT` appears in integration mentions. You can also use `$PROMPT` in your custom `issue_body` template. Default: `"Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes."`.
+- `issue_prompt`: Text that follows each mention. You can also use `$PROMPT` in your custom `issue_body` template. Default: `"Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes."`.
 
 ### Example
 
 ```yaml
-- uses: doc-detective/github-action@v1
+- uses: doc-detective/github-action@v2
   with:
     input: ./docs
     create_issue_on_fail: true
     token: ${{ secrets.DOC_DETECTIVE_ISSUE_TOKEN }}
-    integrations: claude,copilot
-    prompt: "Analyze these test failures and suggest documentation fixes"
+    issue_mentions: claude,copilot
+    issue_prompt: "Analyze these test failures and suggest documentation fixes"
 ```
+
+Action `@v2` renamed `integrations` to `issue_mentions` and `prompt` to `issue_prompt`. The old names still work as deprecated aliases that log a warning, and setting both an old and a new name fails the job. For the user-facing guide, see [AI issue mentions](/docs/ci/issue-mentions).
 
 `claude` needs `token`, because GitHub doesn't start Claude Code's workflow for an issue that the default `GITHUB_TOKEN` opens. See [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).

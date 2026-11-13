@@ -642,7 +642,7 @@ describe("android installer: installAndroid orchestration", function () {
       });
       expect(imageInstalls).to.equal(2); // failed once, retried, succeeded
       expect(reports.some((r) => r.assetId === "avd:doc-detective")).to.equal(true);
-      expect(warns.some(([m, l]) => l === "warn" && /retry/i.test(m))).to.equal(true);
+      expect(warns.some(([m, l]) => l === "warning" && /retry/i.test(m))).to.equal(true);
     });
   });
 
@@ -978,7 +978,7 @@ describe("android installer: SDK install self-repair", function () {
     expect(calls).to.equal(2);
     expect(slept).to.have.length(1); // backed off once
     // The retry is surfaced, never silent.
-    expect(warns.some(([m, l]) => l === "warn" && /retry/i.test(m))).to.equal(true);
+    expect(warns.some(([m, l]) => l === "warning" && /retry/i.test(m))).to.equal(true);
   });
 
   // #754: the real backoff must keep the process alive. An unref'd timer let

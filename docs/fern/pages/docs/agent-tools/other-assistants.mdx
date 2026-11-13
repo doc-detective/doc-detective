@@ -32,7 +32,9 @@ The command fetches doc-detective's skills from GitHub and copies them into the 
 npx doc-detective install agents --agent qwen
 ```
 
-The command invokes `qwen extensions install --ref v1` non-interactively to add the doc-detective extension. Qwen Code installs extensions user-globally only, so the `--scope` flag has no effect for this agent.
+The command invokes `qwen extensions install` non-interactively to add the doc-detective extension with auto-update enabled. Qwen Code installs extensions user-globally only, so the `--scope` flag has no effect for this agent.
+
+An extension installed before Doc Detective 5 keeps updating from the agent-tools default branch. To pin it, see [Pin a Gemini CLI or Qwen Code install made before Doc Detective 5](/reference/reference/cli/install#pin-a-gemini-cli-or-qwen-code-install-made-before-doc-detective-5).
 
 **OpenCode:**
 
@@ -48,32 +50,36 @@ Without `--scope`, the CLI prompts for which scope to use.
 
 The command fetches the agent-tools bundle and copies skills, the runtime plugin, hooks, and agents into the appropriate scope directory (`~/.config/opencode/` or `./.opencode/`). OpenCode auto-discovers them on next launch.
 
-All three installs are idempotent: re-running prints `already up to date` when nothing has changed. Use `--force` to reinstall regardless. Use `--dry-run` to preview actions without executing them.
+All three install the agent-tools ref that matches your Doc Detective version. For which ref that is, see [`install agents`](/reference/reference/cli/install#install-agents).
+
+These installs are idempotent. Re-running one prints `already up to date` when nothing has changed. Use `--force` to reinstall regardless. Use `--dry-run` to preview actions without executing them.
 
 ## Fallback procedures
 
 Use these if `npx doc-detective install agents` isn't an option for your workflow, or for agents that the command doesn't support directly (for example, Cursor).
-
-Each procedure installs from the agent-tools `v1` tag, which carries the agent tools for Doc Detective 4.x. The agent-tools default branch can carry tools for a newer Doc Detective major version.
 
 ### Install with `npx skills`
 
 The [`skills`](https://github.com/vercel-labs/skills) package from Vercel provides a quick way to install skills for multiple AI tools:
 
 ```bash
-npx skills add doc-detective/agent-tools#v1
+npx skills add doc-detective/agent-tools#v2
 ```
 
 Follow the prompts. The CLI auto-detects which AI tools you have installed and places the skills in the appropriate directories.
 
+The `#v2` suffix pins the same agent-tools ref that `install agents` uses.
+
 ### Manual installation
 
-Clone the repository and copy the skills to your agent's configuration directory:
+Clone agent-tools at the ref that `install agents` uses, and copy the skills to your agent's configuration directory:
 
 ```bash
-git clone --branch v1 https://github.com/doc-detective/agent-tools.git
+git clone --branch v2 https://github.com/doc-detective/agent-tools.git
 cp -r agent-tools/skills .{agent-dir}/skills
 ```
+
+To update, delete the clone and the copied skills, then repeat these steps.
 
 Replace `.{agent-dir}` with your agent's expected skill/plugin directory. Common directories include:
 

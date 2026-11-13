@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { loadEnvs } from "../utils.js";
+import { loadEnvs, invalidStepMessage } from "../utils.js";
 
 export { loadVariables };
 
@@ -19,7 +19,7 @@ async function loadVariables({ step }: { step: any }) {
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
 

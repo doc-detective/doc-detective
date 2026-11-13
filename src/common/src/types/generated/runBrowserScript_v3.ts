@@ -15,7 +15,7 @@ export type RunBrowserScriptSimple = string;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -63,7 +63,7 @@ export interface RunBrowserScriptDetailed {
    */
   path?: string;
   /**
-   * Directory to save the script's return value. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
@@ -82,9 +82,9 @@ export interface RunBrowserScriptDetailed {
 }
 export interface BrowserSurface {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */

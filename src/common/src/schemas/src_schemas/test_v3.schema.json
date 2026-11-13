@@ -22,7 +22,7 @@
       "description": "Path to the content that the test is associated with."
     },
     "publicVariables": {
-      "description": "Names of environment variables that aren't secret. Accepted for forward compatibility. Doc Detective 4 doesn't mask values, so this has no effect.",
+      "description": "Environment variables whose values Doc Detective shows in output. By default, Doc Detective masks the value of every variable a run substitutes or loads, and of any variable whose name contains TOKEN, SECRET, PASSWORD, API_KEY, PRIVATE_KEY, or CREDENTIAL, as `***NAME***`. A name listed on the config, any spec, or any test is public for the whole run. `*` matches any characters, so `[\"*\"]` turns masking off.",
       "type": "array",
       "items": { "type": "string", "minLength": 1, "pattern": "\\S" }
     },
@@ -60,11 +60,11 @@
     },
     "autoScreenshot": {
       "type": "boolean",
-      "description": "If `true`, captures a screenshot after every step in this test that runs in a browser. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level."
+      "description": "Defaults to `true`. If not `false`, captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`, in this test. Overrides `autoScreenshot` set at the spec or config level. When unset, defers to the spec level, then the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out."
     },
     "autoRecord": {
       "type": "boolean",
-      "description": "If `true`, records a video of every browser context in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level."
+      "description": "Defaults to `true`. If not `false`, records a video of every context that drives a browser, native app, or device in this test. Overrides `autoRecord` set at the spec or config level. When unset, defers to the spec level, then the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out."
     },
     "annotationDefaults": {
       "description": "Default visual theme for annotations in this test. Overrides `annotationDefaults` set at the spec or config level. When unset, defers to the spec level, then the config level.",
@@ -88,28 +88,28 @@
       "$ref": "routing_v3.schema.json#/components/schemas/condition"
     },
     "onPass": {
-      "description": "Routing entries evaluated after this test passes. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.",
+      "description": "Routing entries evaluated after this test passes. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), and `stop: spec` stops the spec's remaining tests. `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded). Each entry is one of `continue`, `stop: \"test\"`, `stop: \"spec\"`, or `goToTest`.",
       "type": "array",
       "items": {
         "$ref": "routing_v3.schema.json#"
       }
     },
     "onFail": {
-      "description": "Routing entries evaluated after this test fails. `continue` and `stop` are honored at runtime: `stop: test` (the default) is a no-op (the test already finished, so a failing test does not stop its siblings), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.",
+      "description": "Routing entries evaluated after this test fails. `continue` and `stop` are honored at runtime: `stop: test` (the default) is a no-op (the test already finished, so a failing test does not stop its siblings), and `stop: spec` stops the spec's remaining tests. `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded). Each entry is one of `continue`, `stop: \"test\"`, `stop: \"spec\"`, or `goToTest`.",
       "type": "array",
       "items": {
         "$ref": "routing_v3.schema.json#"
       }
     },
     "onWarning": {
-      "description": "Routing entries evaluated after this test produces a warning. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.",
+      "description": "Routing entries evaluated after this test produces a warning. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), and `stop: spec` stops the spec's remaining tests. `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded). Each entry is one of `continue`, `stop: \"test\"`, `stop: \"spec\"`, or `goToTest`.",
       "type": "array",
       "items": {
         "$ref": "routing_v3.schema.json#"
       }
     },
     "onSkip": {
-      "description": "Routing entries evaluated after this test is skipped. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), `stop: spec` stops the spec's remaining tests, and `stop: run` is deferred (currently behaves as `spec`). `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded); `retry` and `goToStep` are not applicable at test scope.",
+      "description": "Routing entries evaluated after this test is skipped. `continue` (the default) and `stop` are honored at runtime: `stop: test` is a no-op (the test already finished), and `stop: spec` stops the spec's remaining tests. `goToTest` jumps to the named test within the spec (unknown target -> a FAIL marker + stop; cycles are bounded). Each entry is one of `continue`, `stop: \"test\"`, `stop: \"spec\"`, or `goToTest`.",
       "type": "array",
       "items": {
         "$ref": "routing_v3.schema.json#"
@@ -131,10 +131,27 @@
         "$ref": "step_v3.schema.json#"
       }
     },
+    "result": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "WARNING", "SKIPPED"],
+      "description": "Outcome of this test. Doc Detective populates it. You never set it yourself.",
+      "readOnly": true
+    },
+    "resultDescription": {
+      "type": "string",
+      "description": "Why this test had its outcome. Doc Detective populates it. You never set it yourself.",
+      "readOnly": true
+    },
     "durationMs": {
       "type": "integer",
       "minimum": 0,
       "description": "Total time this test took, in milliseconds: the sum of the per-context durations. A sum rather than a wall-clock span, because this test's contexts share a concurrent pool with every other test's. Present only in test results. System-populated.",
+      "readOnly": true
+    },
+    "visit": {
+      "type": "integer",
+      "minimum": 2,
+      "description": "Which run of this test this report is, when a `goToTest` routing entry ran it again. Present only in test results, from the second run on. System-populated.",
       "readOnly": true
     },
     "contexts": {
@@ -145,6 +162,17 @@
       "items": {
         "type": "object",
         "properties": {
+          "result": {
+            "type": "string",
+            "enum": ["PASS", "FAIL", "WARNING", "SKIPPED"],
+            "description": "Outcome of this context. Doc Detective populates it. You never set it yourself.",
+            "readOnly": true
+          },
+          "resultDescription": {
+            "type": "string",
+            "description": "Why this context had its outcome. Doc Detective populates it. You never set it yourself.",
+            "readOnly": true
+          },
           "durationMs": {
             "type": "integer",
             "minimum": 0,
@@ -177,6 +205,85 @@
             },
             "title": "Driver"
           },
+          "autoRecording": {
+            "type": "object",
+            "title": "Automatic recording",
+            "description": "The video `autoRecord` made of this context. Absent when no automatic recording was attempted, including when `autoRecord` is unset and the run's recording check failed. Present only in test results. System-populated.",
+            "readOnly": true,
+            "additionalProperties": false,
+            "required": [
+              "result"
+            ],
+            "properties": {
+              "result": {
+                "type": "string",
+                "enum": ["PASS", "FAIL", "WARNING", "SKIPPED"],
+                "description": "Outcome of the automatic recording, from starting it through saving it. A `FAIL` or `WARNING` also sets the context's `result`. A `PASS` or `SKIPPED` doesn't."
+              },
+              "resultDescription": {
+                "type": "string",
+                "description": "Why the automatic recording had its outcome. Absent on a `PASS`."
+              },
+              "resultCode": {
+                "type": "string",
+                "enum": ["environment", "drift", "assertion"],
+                "description": "What kind of failure this was, present only when `result` is `FAIL`. The same field and values as a step's `resultCode`. `environment` means the network, the browser session, or the page load failed. `assertion` means anything else."
+              },
+              "resultHint": {
+                "type": "string",
+                "description": "A suggested fix for a failed recording. The same field as a step's `resultHint`. Present only when Doc Detective has a suggestion."
+              },
+              "recordingPath": {
+                "type": "string",
+                "description": "Path of the saved video, relative to the run's artifact directory (the report's `runDir`), with forward slashes. Absent when no file was written."
+              },
+              "startedAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the recording started, as an ISO 8601 UTC timestamp with milliseconds. Absent when it didn't start."
+              },
+              "format": {
+                "type": "string",
+                "description": "File format of the saved video, for example `mp4`. Absent when no file was written."
+              },
+              "duration": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Length of the saved video in seconds. Absent when it couldn't be read from the file."
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Width of the saved video in pixels. Absent when it couldn't be read from the file."
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Height of the saved video in pixels. Absent when it couldn't be read from the file."
+              },
+              "fps": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Frame rate of the saved video. Absent when it couldn't be read from the file."
+              }
+            },
+            "examples": [
+              {
+                "result": "PASS",
+                "recordingPath": "specs/install-guide/tests/install/contexts/linux-chrome/recordings/linux-chrome.mp4",
+                "startedAt": "2026-11-06T02:33:29.010Z",
+                "format": "mp4",
+                "duration": 8.1,
+                "width": 1280,
+                "height": 720,
+                "fps": 30
+              },
+              {
+                "result": "SKIPPED",
+                "resultDescription": "Skipped: couldn't start the automatic recording: the host has no display. Set `autoRecord: false` to turn it off."
+              }
+            ]
+          },
           "platform": {
             "type": "string",
             "description": "Platform to run the test on. This is a resolved version of the `platforms` property."
@@ -188,12 +295,63 @@
             "$ref": "#/components/schemas/openApi"
           },
           "steps": {
-            "description": "Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed.",
+            "description": "Steps to perform as part of the test. Performed in the sequence defined. If one or more actions fail, the test fails. By default, if a step fails, the test stops and the remaining steps are not executed. In test results, a context that never ran, such as a skipped one, has an empty list.",
             "type": "array",
-            "minItems": 1,
             "items": {
               "$ref": "step_v3.schema.json#"
             }
+          },
+          "contextId": {
+            "type": "string",
+            "description": "Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one."
+          },
+          "unsafe": {
+            "type": "boolean",
+            "description": "Whether this context's test is marked `unsafe`. Present in a resolved test plan. System-populated.",
+            "readOnly": true
+          },
+          "requires": {
+            "$ref": "context_v3.schema.json#/properties/requires"
+          },
+          "browserFallback": {
+            "$ref": "context_v3.schema.json#/properties/browserFallback"
+          },
+          "retries": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "In a resolved test plan, the `retries` policy from the `runOn` entry. In test results, how many times the context re-ran on a fresh session after its session died. Absent from results when it didn't re-run."
+          },
+          "device": {
+            "type": ["string", "object"],
+            "description": "The device a mobile (`android` or `ios`) context runs on. In a resolved test plan, the `device` from the `runOn` entry. In test results, an object with the device's `platform` and `name`. Absent for a desktop context."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Warnings from this context's preflight checks, such as a toolchain that Doc Detective had to install first. Present only in test results, when there are any. System-populated.",
+            "readOnly": true
+          },
+          "fallback": {
+            "type": "object",
+            "description": "The browser this context asked for, and the one that ran instead because `browserFallback` allowed it. Present only in test results, when a fallback happened. System-populated.",
+            "readOnly": true,
+            "properties": {
+              "requested": {
+                "type": "string",
+                "description": "Name of the browser the context asked for."
+              },
+              "used": {
+                "type": "string",
+                "description": "Name of the browser that ran."
+              }
+            }
+          },
+          "viewportFloored": {
+            "type": "boolean",
+            "description": "`true` when the browser couldn't shrink to the requested viewport and stopped at its smallest size. Present only in test results, when that happened. System-populated.",
+            "readOnly": true
           }
         },
         "title": "Resolved context"

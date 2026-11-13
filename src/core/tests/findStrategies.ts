@@ -1,4 +1,101 @@
-export { findElementBySelectorAndText, findElementByShorthand, findElementByCriteria, setElementOutputs };
+import { diag } from "../../cliOutput.js";
+import { distance } from "../../cliHelp.js";
+
+export {
+  findElementBySelectorAndText,
+  findElementByShorthand,
+  findElementByCriteria,
+  setElementOutputs,
+  rankNearMatches,
+  collectNearMatches,
+};
+
+// Near matches (ADR 01194): after a browser find fails, list up to three
+// visible elements whose text, id, test ID, or accessible name is closest to
+// what the step asked for. Diagnostic only: it never changes the result.
+type NearMatch = { text?: string; tag: string; id?: string; testId?: string; ariaLabel?: string };
+
+// Runs in the page. Every visible element with its own text, an id, a test ID,
+// or an accessible name, capped so a huge page stays one quick round trip.
+function pageCandidates() {
+  const out: any[] = [];
+  for (const el of Array.from(document.querySelectorAll("body *")) as any[]) {
+    if (out.length >= 1000) break;
+    const ownText = Array.from(el.childNodes as ArrayLike<any>).some(
+      (n: any) => n.nodeType === 3 && /\S/.test(n.nodeValue || "")
+    );
+    const id = el.id || undefined;
+    const testId = el.getAttribute("data-testid") || undefined;
+    const ariaLabel = el.getAttribute("aria-label") || undefined;
+    if (!ownText && !id && !testId && !ariaLabel) continue;
+    if (!el.getClientRects().length || getComputedStyle(el).visibility === "hidden") continue;
+    out.push({ text: String(el.innerText || "").slice(0, 200), tag: el.tagName.toLowerCase(), id, testId, ariaLabel });
+  }
+  return out;
+}
+
+// What the failed step looked for, as one string to compare against. A regex
+// has no spelling to be close to, so it gets no near matches.
+function nearMatchTarget(find: any): string | undefined {
+  const target =
+    typeof find === "string"
+      ? find
+      : find?.elementText ?? find?.elementAria ?? find?.elementId ?? find?.elementTestId ?? find?.selector?.replace(/^#/, "");
+  return typeof target === "string" && target.trim() && !isRegexPattern(target) ? target : undefined;
+}
+
+// Lower is closer: [tier, edits]. Tier 0 is the same text, tier 1 contains the
+// target as whole words ("Save" in "Save changes"), tier 2 is a close spelling
+// (at most one edit per three letters, so "Go" never matches "No").
+// ponytail: containment only counts for labels up to 40 characters (or 3x the
+// target), so a paragraph that mentions the word doesn't outrank a button.
+function nearness(target: string, value: string | undefined): [number, number] | undefined {
+  const a = normalizeText(target).toLowerCase();
+  const b = normalizeText(value).toLowerCase();
+  if (!a || !b) return undefined;
+  if (a === b) return [0, 0];
+  const words = (s: string) => ` ${s.replace(/[^\p{L}\p{N}]+/gu, " ")} `;
+  if (b.length <= Math.max(40, a.length * 3) && words(b).includes(words(a))) {
+    return [1, b.length - a.length];
+  }
+  // Edits are at least the length difference, so skip hopeless pairs cheaply.
+  if (Math.abs(a.length - b.length) * 3 > a.length) return undefined;
+  const d = distance(a, b);
+  return d * 3 <= a.length ? [2, d] : undefined;
+}
+
+function rankNearMatches(target: string, candidates: any[]): NearMatch[] {
+  if (!nearMatchTarget(target) || !Array.isArray(candidates)) return [];
+  const ranked: { match: NearMatch; score: [number, number] }[] = [];
+  for (const c of candidates) {
+    let score: [number, number] | undefined;
+    for (const value of [c?.text, c?.ariaLabel, c?.id, c?.testId]) {
+      const s = nearness(target, value);
+      if (s && (!score || s[0] < score[0] || (s[0] === score[0] && s[1] < score[1]))) score = s;
+    }
+    if (!score) continue;
+    const match: NearMatch = { tag: String(c.tag ?? "") };
+    const text = normalizeText(c.text);
+    if (text) match.text = text;
+    for (const key of ["id", "testId", "ariaLabel"] as const) if (c[key]) match[key] = String(c[key]);
+    ranked.push({ match, score });
+  }
+  return ranked
+    .sort((x, y) => x.score[0] - y.score[0] || x.score[1] - y.score[1])
+    .slice(0, 3)
+    .map((r) => r.match);
+}
+
+// Never throws: a page that can't run the script just has no near matches.
+async function collectNearMatches({ driver, find }: { driver: any; find: any }): Promise<NearMatch[]> {
+  const target = nearMatchTarget(find);
+  if (!target) return [];
+  try {
+    return rankNearMatches(target, await driver.execute(pageCandidates));
+  } catch {
+    return [];
+  }
+}
 
 // Set element outputs
 
@@ -487,7 +584,7 @@ async function findElementByCriteria({
     return {
       element: null,
       foundBy: null,
-      error: "At least one element finding criterion must be specified",
+      error: "Couldn't find an element: set `selector`, `elementText`, or another finding field.",
     };
   }
 
@@ -747,7 +844,8 @@ async function findElementByCriteria({
         };
       }
     } catch (error) {
-      console.error("Error finding elements:", error);
+      // Through diag, which masks secret values (ADR 01178).
+      diag(`Error finding elements: ${(error as any)?.message ?? error}`);
     }
 
     // No matching elements found. Return now if the budget is spent, so
@@ -762,6 +860,6 @@ async function findElementByCriteria({
     element: null,
     elements: [],
     foundBy: null,
-    error: "Element not found within timeout",
+    error: `Couldn't find an element within \`timeout\` (${timeout} ms).`,
   };
 }

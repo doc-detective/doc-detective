@@ -35,7 +35,7 @@ describe("Tier-2 core guard/error paths", function () {
       // to string, so step_v3 validation rejects it -> invalid-step branch.
       const result = await loadVariables({ step: { loadVariables: {} } });
       assert.equal(result.status, "FAIL");
-      assert.match(result.description, /Invalid step definition/);
+      assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
     });
 
     it("FAILs when the .env file does not exist (loadEnvs FAIL)", async function () {
@@ -69,25 +69,28 @@ describe("Tier-2 core guard/error paths", function () {
     it("SKIPs wait: false (ADR 01161)", async function () {
       const result = await wait({ step: { wait: false }, driver: undefined });
       assert.equal(result.status, "SKIPPED");
-      assert.equal(result.description, "Wait skipped.");
+      assert.equal(result.description, "Skipped: `wait` is `false`.");
     });
 
     it("FAILs an invalid step definition (non-env-ref string)", async function () {
       // wait's string form must match ^\$[A-Za-z0-9_]+$, so "abc" is invalid.
       const result = await wait({ step: { wait: "abc" }, driver: undefined });
       assert.equal(result.status, "FAIL");
-      assert.match(result.description, /Invalid step definition/);
+      assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
     });
 
-    it("FAILs a valid env-ref string that parses to NaN", async function () {
-      // "$DD_UNSET..." satisfies the schema pattern but is not substituted in
-      // a direct unit call, so parseInt() yields NaN -> the invalid-wait branch.
+    it("FAILs a variable that never resolved, naming it", async function () {
+      // "$DD_UNSET..." satisfies the schema pattern, but the variable isn't
+      // set, so the effective step still holds the variable, not a duration.
       const result = await wait({
         step: { wait: "$DD_UNSET_WAIT_VALUE" },
         driver: undefined,
       });
       assert.equal(result.status, "FAIL");
-      assert.match(result.description, /Invalid wait value/);
+      assert.equal(
+        result.description,
+        "Couldn't wait: the variable '$DD_UNSET_WAIT_VALUE' in `wait` isn't set. Set it to a number of milliseconds."
+      );
     });
 
     it("FAILs when driver.pause throws (outer catch)", async function () {
@@ -100,6 +103,18 @@ describe("Tier-2 core guard/error paths", function () {
       assert.equal(result.status, "FAIL");
       assert.match(result.description, /Couldn't wait/);
       assert.match(result.description, /pause boom/);
+    });
+
+    it("pauses 5000 ms for wait: true", async function () {
+      let paused = -1;
+      const result = await wait({ step: { wait: true }, driver: { pause: async (ms) => (paused = ms) } });
+      assert.equal(result.status, "PASS");
+      assert.equal(paused, 5000);
+    });
+
+    it("skips wait: false", async function () {
+      const result = await wait({ step: { wait: false }, driver: undefined });
+      assert.equal(result.status, "SKIPPED");
     });
 
     it("PASSes via driver.pause when a driver is present", async function () {
@@ -125,7 +140,7 @@ describe("Tier-2 core guard/error paths", function () {
         driver: undefined,
       });
       assert.equal(result.status, "FAIL");
-      assert.match(result.description, /Invalid step definition/);
+      assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
     });
   });
 

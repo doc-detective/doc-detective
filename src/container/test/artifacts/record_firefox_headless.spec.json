@@ -1,0 +1,79 @@
+{
+  "specId": "Record headless Firefox in the Linux image",
+  "description": "The image ships Xvfb, so autoRecord (on by default) runs headless Firefox headed on an Xvfb display and the ffmpeg engine records it. With autoRecord off, headless Firefox stays headless and its record step is SKIPPED.",
+  "runOn": [
+    {
+      "browsers": [
+        {
+          "name": "firefox",
+          "headless": true
+        }
+      ],
+      "platforms": [
+        "linux"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "testId": "firefox-headless-autorecord-on",
+      "description": "autoRecord on (the default): the record step records. Without Xvfb it's SKIPPED, stopRecord exports no path, and the assertion fails.",
+      "steps": [
+        {
+          "loadVariables": "env"
+        },
+        {
+          "goTo": "$URL"
+        },
+        {
+          "record": {
+            "path": "output/firefox_headless.mp4",
+            "overwrite": "true"
+          }
+        },
+        {
+          "wait": 1500
+        },
+        {
+          "stopRecord": true,
+          "variables": {
+            "FF_REC_PATH": "$$recordingPath"
+          }
+        },
+        {
+          "description": "Assert the recording exists and isn't empty.",
+          "runShell": "node -e \"const fs = require('fs'); const p = process.env.FF_REC_PATH; process.exit(p && fs.existsSync(p) && fs.statSync(p).size > 0 ? 0 : 1)\""
+        }
+      ]
+    },
+    {
+      "testId": "firefox-headless-autorecord-off",
+      "description": "autoRecord off: Firefox stays headless, so the record step is SKIPPED and writes no file.",
+      "autoRecord": false,
+      "steps": [
+        {
+          "loadVariables": "env"
+        },
+        {
+          "goTo": "$URL"
+        },
+        {
+          "record": {
+            "path": "output/firefox_headless_off.mp4",
+            "overwrite": "true"
+          }
+        },
+        {
+          "wait": 500
+        },
+        {
+          "stopRecord": true
+        },
+        {
+          "description": "Assert the skipped recording wrote no file.",
+          "runShell": "node -e \"process.exit(require('fs').existsSync('/app/output/firefox_headless_off.mp4') ? 1 : 0)\""
+        }
+      ]
+    }
+  ]
+}

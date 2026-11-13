@@ -1,27 +1,32 @@
-import yargs from "yargs/yargs";
-import { hideBin } from "yargs/helpers";
 import { validate } from "./common/src/validate.js";
+import { diag, displayPath, palette } from "./cliOutput.js";
+import { userConfigDir } from "./runtime/cacheDir.js";
 import { resolvePaths, readFile } from "./core/index.js";
-import { getRunOutputDir, loadAxios } from "./core/utils.js";
+import { renameDeprecatedConfigKeys } from "./core/config.js";
 import {
-  browsersDirWarnings,
-  concurrentRunnersWarnings,
-  configWarnings,
-  envWarnings,
-  flagWarnings,
-  outputWarnings,
-  warnUpgrade,
-} from "./upgradeNotice.js";
-import { getBrowsersDir } from "./runtime/cacheDir.js";
+  configErrorMessage,
+  deepMerge,
+  getRunOutputDir,
+  loadAxios,
+  redactUrlForOutput,
+  reportOutputDir,
+  summarizeSchemaErrors,
+  timestamp,
+} from "./core/utils.js";
+import { checkEnvAliases, envFlag, isDebugRequested, setEnvWarningSink, warnOnce } from "./envFlag.js";
+import { REPORTER_NAMES, splitList } from "./cliOptions.js";
+import { environmentLine, nonPassItems, writeReport } from "./reporters/model.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
 import os from "node:os";
 import { ownVersion, readShimPackageJson } from "./runtime/heavyDeps.js";
+import { registerEnvFile, registerEnvValue } from "./core/masking.js";
 
 export {
-  buildYargs,
-  setArgs,
+  loadProjectEnv,
+  readStdinInputs,
+  writeResultsFile,
   setConfig,
   outputResults,
   spawnCommand,
@@ -34,21 +39,8 @@ export {
   reporters,
   registerReporter,
   isDebugRequested,
+  discoverConfigPath,
 };
-
-// True when `DOC_DETECTIVE_DEBUG` env var is set to a truthy value.
-// Used by `runTestsHandler` in cli.ts to decide whether to catch
-// setConfig failures and still emit a diagnostic dump.
-//
-// The `--debug` CLI flag was retired in favor of the dedicated
-// `doc-detective debug` subcommand; the subcommand handler does its
-// own setConfig-error handling, so this helper is now env-var-only.
-function isDebugRequested(): boolean {
-  const envVal = process.env.DOC_DETECTIVE_DEBUG;
-  // Trim so a templated/copy-pasted value with stray whitespace (e.g.
-  // `"true "`) still activates debug mode.
-  return typeof envVal === "string" && /^(1|true|yes)$/i.test(envVal.trim());
-}
 
 // Log function that respects logLevel
 // Pure predicate: would `log(message, level, config)` actually print at this
@@ -67,154 +59,44 @@ function logLevelEnabled(level: string, config: any = {}): boolean {
 function log(message: any, level: string = "info", config: any = {}) {
   // Only log if the message level is at or above the current log level
   if (logLevelEnabled(level, config)) {
-    if (level === "error") {
-      console.error(message);
+    // stdout is for results. Labels and timestamps appear only at debug level.
+    if (config?.logLevel === "debug") {
+      diag(`${new Date().toISOString()} (${level.toUpperCase()}) ${message}`);
+    } else if (level === "warning") {
+      diag(`Warning: ${message}`);
+    } else if (level === "error") {
+      diag(`Error: ${message}`);
     } else {
-      console.log(message);
+      diag(message);
     }
   }
 }
 
-// Build a yargs instance with the global options shared across all subcommands.
-// Kept as its own export so src/cli.ts can attach .command(...) registrations
-// and route into subcommands, while setArgs() below preserves the legacy
-// no-subcommand parse signature used by test/utils.test.js.
-function buildYargs(args: any): any {
-  return yargs(hideBin(args))
-    .option("config", {
-      alias: "c",
-      description: "Path to a `config.json` or `config.yaml` file.",
-      type: "string",
-    })
-    .option("input", {
-      alias: "i",
-      description:
-        "Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files.",
-      type: "string",
-    })
-    .option("output", {
-      alias: "o",
-      description:
-        "Path of the directory in which to store the output of Doc Detective commands.",
-      type: "string",
-    })
-    .option("logLevel", {
-      alias: "l",
-      description:
-        "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
-      type: "string",
-    })
-    .option("allow-unsafe", {
-      description: "Allow execution of potentially unsafe tests",
-      type: "boolean",
-    })
-    .option("dry-run", {
-      alias: "n",
-      description:
-        "Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps.",
-      type: "boolean",
-    })
-    .option("reporters", {
-      alias: "r",
-      description:
-        "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <output>/.doc-detective/runs/<runId>/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside <output> when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside <output> when it names a file). Custom reporters registered via registerReporter() can also be referenced by name. Pass multiple values after the flag (e.g. --reporters terminal html) or repeat the flag (e.g. -r terminal -r html).",
-      type: "string",
-      array: true,
-    })
-    .option("test", {
-      alias: "t",
-      description:
-        "Run only tests whose testId matches the given regex (case-insensitive). Comma-separate multiple patterns; a test passes if any pattern matches.",
-      type: "string",
-    })
-    .option("spec", {
-      alias: "s",
-      description:
-        "Run only specs whose specId matches the given regex (case-insensitive). Comma-separate multiple patterns; a spec passes if any pattern matches.",
-      type: "string",
-    })
-    .option("hints", {
-      description:
-        "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
-      type: "boolean",
-    })
-    .option("verification", {
-      description:
-        "What to write back into source files after a run: `existing` (default) fills only the verified-by entries and badge tests a page declares, `true` also declares them on passing pages and inline tests, `false` writes nothing back. Overrides `verification.write`.",
-      type: "string",
-    })
-    .option("auto-screenshot", {
-      description:
-        "Capture a screenshot after every browser-based step. Off by default. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-screenshot to override a config file that enables it.",
-      type: "boolean",
-    })
-    .option("auto-record", {
-      description:
-        "Record a video of every browser-based test context, in addition to any explicit record steps. Off by default. The recording wraps the whole context and always uses the ffmpeg engine. Videos are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/, so the same context lands on the same relative path in every run's folder for run-over-run comparison. Use --no-auto-record to override a config file that enables it.",
-      type: "boolean",
-    })
-    .option("auto-update", {
-      description:
-        "Check the npm registry on startup for a newer doc-detective and self-update before running. Use --no-auto-update (or set autoUpdate: false in config) to pin to the installed version.",
-      type: "boolean",
-    })
-    .option("cache-dir", {
-      description:
-        "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to ~/.doc-detective/. Also overridable via DOC_DETECTIVE_CACHE_DIR.",
-      type: "string",
-    })
-    .option("concurrent-runners", {
-      description:
-        "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or pass true to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
-      type: "string",
-    })
-    .option("browser-fallback", {
-      description:
-        "How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage.",
-      type: "string",
-    })
-    .option("shell", {
-      description:
-        "Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field.",
-      type: "string",
-    })
-    .option("exit-on-fail", {
-      alias: "e",
-      description:
-        "Exit with a non-zero code (1) when any spec's result is FAIL, so a documentation-testing job fails the build like a broken unit test. Off by default: the CLI otherwise exits 0 on test failures (non-zero only on a crash or invalid config). WARNING results are non-fatal. Use --no-exit-on-fail to override a config file that enables it.",
-      type: "boolean",
-    })
-    .version(ownVersion() ?? "unknown")
-    .help()
-    .alias("help", "h");
-}
-
-// Define args
-function setArgs(args: any): any {
-  if (!args) return {};
-  return buildYargs(args).argv;
-}
-
 // Get resolved tests from environment variable, if set
 async function getResolvedTestsFromEnv(config: any = {}) {
-  if (!process.env.DOC_DETECTIVE_API) {
+  const apiFile = process.env.DOC_DETECTIVE_API_FILE;
+  if (!process.env.DOC_DETECTIVE_API && !apiFile) {
     return null;
   }
 
   let resolvedTests: any = null;
   let apiConfig: any = null;
   try {
-    // Parse the environment variable as JSON
-    apiConfig = JSON.parse(process.env.DOC_DETECTIVE_API);
+    // Parse the setting as JSON. A file keeps the token out of the environment.
+    apiConfig = JSON.parse(
+      apiFile ? fs.readFileSync(path.resolve(apiFile), "utf8") : (process.env.DOC_DETECTIVE_API as string)
+    );
 
-    // Validate the structure: { accountId, url, token, contextIds }
-    if (!apiConfig.accountId || !apiConfig.url || !apiConfig.token || !apiConfig.contextIds) {
+    // The setting has no schema, so name each missing key the way a schema
+    // error would: one `missing required key` line apiece.
+    const missing = ["accountId", "url", "token", "contextIds"].filter((key) => !apiConfig[key]);
+    if (missing.length) {
       log(
-        "Invalid DOC_DETECTIVE_API: must contain 'accountId', 'url', 'token', and 'contextIds' properties",
+        `Invalid DOC_DETECTIVE_API:\n${missing.map((key) => `missing required key '${key}'.`).join("\n")}`,
         "error",
         config
       );
-      process.exit(1);
+      process.exit(2);
     }
 
     log(`CLI:Fetching resolved tests from ${apiConfig.url}/resolved-tests`, "debug", config);
@@ -233,27 +115,26 @@ async function getResolvedTestsFromEnv(config: any = {}) {
     const validation = validate({
       schemaKey: "resolvedTests_v3",
       object: resolvedTests,
+      structuredErrors: true,
     });
 
     if (!validation.valid) {
       log(
-        "Invalid resolvedTests from API response. " + validation.errors,
+        `Invalid resolved tests from DOC_DETECTIVE_API:\n${summarizeSchemaErrors(
+          validation.errorObjects,
+          resolvedTests,
+          "resolvedTests_v3"
+        )}`,
         "error",
         config
       );
-      process.exit(1);
+      process.exit(2);
     }
 
     // Get config from environment variable for merging
     const envConfig = await getConfigFromEnv();
-    if (envConfig) {
-      // Apply config overrides to resolvedTests.config
-      if (resolvedTests.config) {
-        resolvedTests.config = { ...resolvedTests.config, ...envConfig };
-      } else {
-        resolvedTests.config = envConfig;
-      }
-    }
+    // Objects merge and arrays replace, as in setConfig (ADR 01165).
+    if (envConfig) resolvedTests.config = deepMerge(resolvedTests.config ?? {}, envConfig);
 
     log(
       `CLI:RESOLVED_TESTS:\n${JSON.stringify(resolvedTests, null, 2)}`,
@@ -266,7 +147,7 @@ async function getResolvedTestsFromEnv(config: any = {}) {
       "error",
       config
     );
-    process.exit(1);
+    process.exit(2);
   }
   return { apiConfig, resolvedTests };
 }
@@ -290,35 +171,249 @@ async function getConfigFromEnv() {
       );
     }
 
+    // Rename, then validate, as a config file does: setting both gets the same
+    // both-set error, and a null beforeAny counts as absent. It works on a
+    // copy, so envConfig is unchanged and setConfig still does the real rename
+    // and its warning.
+    const renamed = { ...envConfig };
+    renameDeprecatedConfigKeys([renamed], () => {});
+
     // Validate the environment variable config
     const envValidation = validate({
       schemaKey: "config_v3",
-      object: envConfig,
+      object: renamed,
+      structuredErrors: true,
     });
 
     if (!envValidation.valid) {
-      throw new Error(
-        `Invalid config from DOC_DETECTIVE_CONFIG environment variable. ${envValidation.errors}`
-      );
+      throw new Error(configErrorMessage("DOC_DETECTIVE_CONFIG", envValidation.errorObjects, renamed), {
+        cause: envValidation.errors,
+      });
     }
 
-    log(`CLI:ENV_CONFIG:\n${JSON.stringify(envConfig, null, 2)}`, "debug", envConfig);
+    // Log the validated shape, with beforeAny renamed.
+    log(`CLI:ENV_CONFIG:\n${JSON.stringify(renamed, null, 2)}`, "debug", renamed);
   } catch (error: any) {
     if (error instanceof SyntaxError) {
       throw new Error(
         `Error parsing DOC_DETECTIVE_CONFIG environment variable: ${error.message}`
       );
     }
+    // Re-throw the rest on purpose: the shape error, the validation error, and
+    // renameDeprecatedConfigKeys' both-set error. Don't swallow them here.
     throw error;
   }
   return envConfig;
 }
 
-// Override config values based on args and validate the config
-async function setConfig({ configPath, args }: { configPath?: any; args: any }) {
+// DOC_DETECTIVE's `config` object, the deprecated spelling of
+// DOC_DETECTIVE_CONFIG (ADR 01165). It sits just below that variable, and its
+// other keys, such as `container`, do nothing. Warnings wait for setConfig to
+// know the log level.
+async function readLegacyEnvConfig() {
+  if (!process.env.DOC_DETECTIVE) return null;
+  let legacy: any;
+  try {
+    legacy = JSON.parse(process.env.DOC_DETECTIVE);
+  } catch (error: any) {
+    warnOnce("DOC_DETECTIVE", `Ignoring \`DOC_DETECTIVE\`: it isn't valid JSON (${error.message}).`);
+    return null;
+  }
+  if (legacy?.container !== undefined) {
+    warnOnce(
+      "DOC_DETECTIVE.container",
+      '`DOC_DETECTIVE`\'s `container` key no longer turns on unsafe steps. Set `"allowUnsafeSteps": true` in your user config, `$XDG_CONFIG_HOME/doc-detective/config.json`, or pass `--allow-unsafe`.'
+    );
+  }
+  const config = legacy?.config;
+  if (config === null || typeof config !== "object" || Array.isArray(config)) return null;
+  warnOnce("DOC_DETECTIVE", '`DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.');
+  return await anchorPaths(assertValidConfig(config, "DOC_DETECTIVE"), process.cwd());
+}
+
+// A relative path resolves against the source that set it: a config file's
+// folder, or the working directory for the environment and flags (ADR 01165,
+// ADR 01192). `output` and `cacheDir` resolve here, with `path.join`, so `-`
+// stays stdout and `output: "x/"` still reads as a folder. resolvePaths does
+// the rest, nested keys such as a credential file included. Returns a copy;
+// the input is left as it was.
+async function anchorPaths(config: any, base: string) {
+  const anchored = structuredClone(config);
+  for (const key of ["output", "cacheDir"]) {
+    const value = anchored[key];
+    if (typeof value === "string" && value !== "-" && !path.isAbsolute(value) && !/^https?:\/\//.test(value)) {
+      anchored[key] = path.join(base, value);
+    }
+  }
+  // The trailing separator marks `base` as a folder, even one with a dot in its name.
+  return resolvePaths({
+    config: { relativePathBase: "file" },
+    object: anchored,
+    filePath: base + path.sep,
+    objectType: "config",
+  });
+}
+
+// Where a config file's relative paths resolve: its folder, unless it sets
+// `relativePathBase: "cwd"`, or it's a URL.
+function configFileBase(config: any, file: string) {
+  return config.relativePathBase === "cwd" || /^https?:\/\//.test(file) ? process.cwd() : path.dirname(path.resolve(file));
+}
+
+// `--output` and config `output` name the results file (ADR 01146). Fail on a
+// folder rather than guessing, so nobody loses results to a misread path.
+function resolveResultsFile(output: string): string {
+  const resolved = path.resolve(output);
+  let isFolder = /[\\/]$/.test(output);
+  try {
+    isFolder = isFolder || fs.statSync(resolved).isDirectory();
+  } catch {
+    // Doesn't exist yet, which is normal for a results file.
+  }
+  if (isFolder) {
+    throw new Error(
+      `--output is a results file, but '${output}' is a folder. Use --output-dir for a folder.`
+    );
+  }
+  return resolved;
+}
+
+// Write the run's results to the file `--output` names, replacing any file there.
+// A run that found no tests writes its empty report, so `--output` always
+// gets a file.
+function writeResultsFile(outputFile: string | undefined, results: any) {
+  if (!outputFile) return;
+  fs.mkdirSync(path.dirname(outputFile), { recursive: true });
+  fs.writeFileSync(outputFile, JSON.stringify(results, null, 2));
+}
+
+// `-` as an input reads stdin. Input is a path everywhere downstream, so it lands
+// in a temporary file in the current directory, where its relative paths still
+// resolve, and is removed when the process exits.
+async function readStdinInputs(args: any) {
+  const inputs = [
+    ...(typeof args.input === "string" ? args.input.split(",").map((i: string) => i.trim()) : []),
+    ...(args.inputs ?? []),
+  ];
+  if (!inputs.includes("-")) return;
+  let text = "";
+  for await (const chunk of process.stdin) text += chunk;
+  const extension = stdinFileExtension(text);
+  const file = path.resolve(`stdin-${process.pid}${extension}`);
+  fs.writeFileSync(file, text);
+  process.on("exit", () => fs.rmSync(file, { force: true }));
+  const swap = (input: string) => (input === "-" ? file : input);
+  if (typeof args.input === "string") {
+    args.input = args.input.split(",").map((i: string) => swap(i.trim())).join(",");
+  }
+  if (args.inputs) args.inputs = args.inputs.map(swap);
+}
+
+// Stdin has no filename, so detect a spec by its content. Anything else is treated
+// as Markdown, the most common documentation format.
+function stdinFileExtension(text: string): string {
+  const trimmed = text.trimStart();
+  if (trimmed.startsWith("{")) return ".spec.json";
+  if (/^(tests|specId|contexts)\s*:/m.test(trimmed)) return ".spec.yaml";
+  return ".md";
+}
+
+// Per-user defaults for everything on this machine, such as telemetry or a proxy.
+async function readUserConfig() {
+  const file = path.join(userConfigDir(), "config.json");
+  if (!fs.existsSync(file)) return null;
+  const config = await readFile({ fileURLOrPath: file });
+  if (config === null || typeof config !== "object") {
+    throw new Error(`Could not parse user config at ${file}: it isn't valid JSON.`);
+  }
+  const valid = assertValidConfig(config, `user config ${file}`);
+  // Always its own folder, even with `relativePathBase: "cwd"`: this file
+  // serves every project on the machine (ADR 01165, ADR 01192).
+  return await anchorPaths(valid, path.dirname(path.resolve(file)));
+}
+
+// Validate one config source on its own, so an error names where it came from.
+// `addDefaults: false` only picks which object validate() returns: it still
+// validates a defaulted clone, so a partial source such as
+// `{"telemetry":{"userId":"x"}}` passes even though `telemetry.send` is required.
+// Returns the source to merge: the caller's own object, or a v2 config's v3
+// form, so the merge never mixes v2 keys into a v3 config.
+// It validates a copy with `beforeAny` renamed, so both names in one source get
+// the rename's error and a null `beforeAny` counts as absent. setConfig renames
+// the source itself, and warns, before the merge (ADR 01169).
+function assertValidConfig(config: any, source: string): any {
+  const renamed = { ...config };
+  renameDeprecatedConfigKeys([renamed], () => {});
+  const validation = validate({ schemaKey: "config_v3", object: renamed, addDefaults: false, structuredErrors: true });
+  if (!validation.valid) {
+    throw new Error(configErrorMessage(source, validation.errorObjects, renamed), { cause: validation.errors });
+  }
+  // With addDefaults: false, validate() returns the object it was given, the
+  // renamed copy, unless it migrated a v2 config to v3. So a v3 source returns
+  // the caller's own object, and a v2 one its v3 form.
+  return validation.object === renamed ? config : validation.object;
+}
+
+// Secrets can come from a file rather than the config or environment, where they
+// leak into logs and child processes. `apiKeyFile` becomes `apiKey`, and so on.
+function readCredentialFiles(config: any) {
+  const read = (owner: any, fileKey: string, valueKey: string) => {
+    if (!owner?.[fileKey]) return;
+    try {
+      owner[valueKey] = fs.readFileSync(path.resolve(owner[fileKey]), "utf8").trim();
+      registerEnvValue(valueKey, owner[valueKey]);
+    } catch (error: any) {
+      throw new Error(`Could not read ${fileKey} at ${owner[fileKey]}: ${error.message}`);
+    }
+    delete owner[fileKey];
+  };
+  read(config.integrations?.docDetectiveApi, "apiKeyFile", "apiKey");
+  for (const heretto of config.integrations?.heretto ?? []) {
+    read(heretto, "apiTokenFile", "apiToken");
+  }
+}
+
+// Load `.env` from the current directory, for values that rarely change in a
+// project. Anything already set in the shell wins (ADR 01146).
+async function loadProjectEnv(args: any) {
+  if (args.envFile === false) return;
+  const file = path.resolve(".env");
+  if (!fs.existsSync(file)) return;
+  const { default: dotenv } = await import("dotenv");
+  const { parsed } = dotenv.config({ path: file, override: false, quiet: true });
+  registerEnvFile(parsed);
+}
+
+// The project config: `--config` when given, resolved to an absolute path so a
+// mistyped one fails rather than falling back, else the first of
+// `.doc-detective.json`, `.yaml`, and `.yml` in the working directory.
+function discoverConfigPath(args: { config?: unknown } = {}): string | null {
+  if (typeof args.config === "string" && args.config.trim()) return path.resolve(args.config.trim());
+  const found = [".doc-detective.json", ".doc-detective.yaml", ".doc-detective.yml"]
+    .map((name) => path.resolve(name))
+    .find((file) => fs.existsSync(file));
+  return found ?? null;
+}
+
+// Override config values based on args and validate the config.
+// `readCredentials: false` leaves `apiKeyFile` and `apiTokenFile` unread, for
+// `install`, which never uses them and may run before secrets are mounted.
+async function setConfig({
+  configPath,
+  args,
+  readCredentials = true,
+}: {
+  configPath?: any;
+  args: any;
+  readCredentials?: boolean;
+}) {
   if (args.config && !configPath) {
     configPath = args.config;
   }
+  // Unlike core setConfig, keep what's queued: the CLI's own startup, such as
+  // applyColorFlags, raises warnings before this runs, once per process.
+  // Both spellings of a renamed variable is a usage error.
+  checkEnvAliases();
 
   // If a config path is given, read it. `readFile` returns null on a read
   // failure (missing/unreadable file) and may throw on bad input; in both
@@ -342,50 +437,74 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
         `Could not read config file at ${configPath}. Check that the path exists and is readable.`
       );
     }
+    if (typeof config !== "object") {
+      throw new Error(`Could not parse config file at ${configPath}: it isn't valid JSON or YAML.`);
+    }
+    // A remote config's URL can carry a token in its query string; name it without.
+    config = assertValidConfig(config, /^https?:\/\//.test(configPath) ? redactUrlForOutput(configPath) : displayPath(path.resolve(configPath)));
+    config = await anchorPaths(config, configFileBase(config, configPath));
   }
 
-  // Check for DOC_DETECTIVE_CONFIG environment variable
+  // Lowest first: the user config, the project config, the deprecated
+  // DOC_DETECTIVE, then DOC_DETECTIVE_CONFIG. Objects merge, arrays replace
+  // (ADR 01165). Single-purpose variables and flags go on top, below.
+  // readUserConfig and readLegacyEnvConfig anchor their own relative paths;
+  // the project config, above, and DOC_DETECTIVE_CONFIG are anchored here.
+  const userConfig = await readUserConfig();
+  const legacyConfig = await readLegacyEnvConfig();
   const envConfig = await getConfigFromEnv();
-  if (envConfig) {
-    // Merge with file config, preferring environment variable config (use raw envConfig, not validated with defaults)
-    config = { ...config, ...envConfig };
-  }
+  // Rename each source before the merge, so a later source wins whichever name
+  // it uses (ADR 01169). Each was validated as a renamed copy, so both names in
+  // one source already failed. The callback only captures the warning, which
+  // prints once the log level is final, below.
+  let deprecation: string | undefined;
+  renameDeprecatedConfigKeys([userConfig, config, legacyConfig, envConfig], (message) => (deprecation = message));
+  config = deepMerge(userConfig ?? {}, config);
+  if (legacyConfig) config = deepMerge(config, legacyConfig);
+  if (envConfig) config = deepMerge(config, await anchorPaths(envConfig, process.cwd()));
 
-  // Read before validation fills in the default, which the user didn't choose.
-  const outputSetting = args.output || config.output;
+  if (readCredentials) readCredentialFiles(config);
 
-  // Validate config
+  // Validate config. Each source passed on its own, so this rarely fails.
   const validation = validate({
     schemaKey: "config_v3",
     object: config,
+    structuredErrors: true,
   });
   if (!validation.valid) {
-    throw new Error(`Invalid config. ${validation.errors}`);
+    throw new Error(configErrorMessage("", validation.errorObjects, config), { cause: validation.errors });
   }
 
   // Accept coerced and defaulted values
   config = validation.object;
-  // Set default values
+  // Set default values. `fileTypes` needs none here: validate() fills it from
+  // the config_v3 default.
   config = {
     ...config,
     input: config.input || ".",
-    output: config.output || ".",
+    outputDir: config.outputDir || ".",
     recursive: config.recursive ?? true,
     relativePathBase: config.relativePathBase || "file",
-    loadVariables: config.loadVariables || ".env",
     detectSteps: config.detectSteps ?? true,
     logLevel: config.logLevel || "info",
-    fileTypes: config.fileTypes || ["markdown", "asciidoc", "html"],
     telemetry: config.telemetry || { send: true },
     hints: config.hints || { enabled: true },
   };
+  // Single-purpose variables and flags resolve against the working directory.
+  const cacheDirFromEnv = process.env.DOC_DETECTIVE_CACHE_DIR?.trim();
+  if (cacheDirFromEnv) config.cacheDir = path.resolve(cacheDirFromEnv);
+  if (envFlag("DOC_DETECTIVE_SKIP_AUTO_UPDATE")) config.autoUpdate = false;
   // Override config values
   if (configPath) {
     config.configPath = configPath;
   }
-  if (args.input) {
-    // If input includes commas, split it into an array
-    args.input = args.input.split(",").map((item: any) => item.trim());
+  if (args.input || args.inputs?.length) {
+    // Split --input on commas, then add `run`'s positional inputs. Those aren't
+    // split: they're single paths, usually from a shell glob.
+    args.input = [
+      ...(args.input ? args.input.split(",").map((item: any) => item.trim()) : []),
+      ...(args.inputs ?? []),
+    ];
     // Resolve paths
     args.input = args.input.map((item: any) => {
       if (item.startsWith("https://") || item.startsWith("http://")) {
@@ -396,11 +515,33 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     // Add to config
     config.input = args.input;
   }
-  if (args.output) {
-    config.output = path.resolve(args.output);
+  // `-` means stdout, the same as --json, from the flag or config. The flag
+  // wins, so `-o -` drops a config results file (ADR 01191). Each source
+  // anchored its own relative path already.
+  const output = args.output || config.output;
+  const jsonOnStdout = args.json === true || output === "-";
+  if (typeof output === "string" && output !== "-") config.output = resolveResultsFile(output);
+  else delete config.output;
+  if (args.outputDir) {
+    config.outputDir = path.resolve(args.outputDir);
   }
+  // Least specific first: the environment, then --quiet and --debug, then an
+  // explicit level.
+  if (isDebugRequested()) config.logLevel = "debug";
+  if (args.quiet) config.logLevel = "error";
+  if (args.debug) config.logLevel = "debug";
   if (args.logLevel) {
     config.logLevel = args.logLevel;
+  }
+  // Now that the level is known, environment warnings (bad boolean values,
+  // deprecated names) print through log(), so -q and -l hide them.
+  const logged = config;
+  // The runner's setConfig sets the sink again on purpose, so JS API callers,
+  // who never reach this one, get the same warnings.
+  setEnvWarningSink((message) => log(message, "warning", logged));
+  if (deprecation) log(deprecation, "warning", config);
+  if (args.telemetry === false || process.env.DO_NOT_TRACK) {
+    config.telemetry = { ...(config.telemetry || {}), send: false };
   }
   if (typeof args.allowUnsafe === "boolean") {
     config.allowUnsafeSteps = args.allowUnsafe;
@@ -408,47 +549,39 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.dryRun === "boolean") {
     config.dryRun = args.dryRun;
   }
-  if (args.reporters != null) {
-    const reporterList = Array.isArray(args.reporters)
-      ? args.reporters
-      : [args.reporters];
-    if (reporterList.length > 0) {
-      config.reporters = reporterList.map((r: any) => String(r));
-    }
+  // Each of these writes its own stdout, so only one can have it (ADR 01191).
+  // Checked here, not with commander's conflicts(), which sees neither `-o -`
+  // nor config.
+  if (args.plain) {
+    const modes: [unknown, string][] = [
+      [args.json, "--json"],
+      [output === "-", "--output -"],
+      [config.dryRun, "--dry-run"],
+    ];
+    const other = modes.find(([on]) => on)?.[1];
+    if (other) throw new Error(`set \`${other}\` or \`--plain\`, not both.`);
   }
-  if (typeof args.test === "string" && args.test.length > 0) {
-    const list = args.test
-      .split(",")
-      .map((s: string) => s.trim())
-      .filter((s: string) => s.length > 0);
-    if (list.length > 0) config.testFilter = list;
-  }
-  if (typeof args.spec === "string" && args.spec.length > 0) {
-    const list = args.spec
-      .split(",")
-      .map((s: string) => s.trim())
-      .filter((s: string) => s.length > 0);
-    if (list.length > 0) config.specFilter = list;
+  // The CLI's list flags are one comma-separated value each (ADR 01166).
+  for (const [flag, key] of [
+    ["reporters", "reporters"],
+    ["test", "testFilter"],
+    ["spec", "specFilter"],
+  ]) {
+    const list = typeof args[flag] === "string" ? splitList(args[flag]) : [];
+    if (list.length > 0) config[key] = list;
   }
   if (typeof args.hints === "boolean") {
     config.hints = config.hints || { enabled: true };
     config.hints.enabled = args.hints;
   }
-  if (typeof args.verification === "string" && args.verification.length > 0) {
-    // Validation ran before this block, so drop an unknown value and keep the
-    // validated `verification.write` (which defaults to "existing").
-    const write = ({ existing: "existing", true: true, false: false } as Record<string, string | boolean>)[
-      args.verification.trim().toLowerCase()
-    ];
-    if (write === undefined) {
-      log(
-        `Ignoring invalid --verification value '${args.verification}'. Expected one of: existing, true, false.`,
-        "warning",
-        config
-      );
-    } else {
-      config.verification = { ...(config.verification || {}), write };
-    }
+  // setConfig is CLI-only (not a package export), so commander has already
+  // checked each value below against its choices: verification,
+  // browserFallback, shell, and concurrentRunners pass through unchecked. Its
+  // callers, cli.ts and the install command, hand it commander's parsed
+  // options; a new caller must too.
+  if (typeof args.verification === "string") {
+    const write = args.verification === "existing" ? "existing" : args.verification === "true";
+    config.verification = { ...(config.verification || {}), write };
   }
   if (typeof args.autoUpdate === "boolean") {
     config.autoUpdate = args.autoUpdate;
@@ -462,72 +595,33 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
   if (typeof args.autoRecord === "boolean") {
     config.autoRecord = args.autoRecord;
   }
-  if (typeof args.cacheDir === "string" && args.cacheDir.length > 0) {
-    // Assignment-only per the documented setConfig contract (the standard
-    // `length > 0` guard, no per-flag sanitization). getCacheDir() in
-    // runtime/cacheDir.ts trims and drops whitespace-only values, so a
-    // `--cache-dir "   "` override is neutralized at the consumption site.
-    config.cacheDir = args.cacheDir;
+  // Absolute, so a later chdir or another working directory finds the same
+  // cache. A whitespace-only value is ignored.
+  if (typeof args.cacheDir === "string" && args.cacheDir.trim().length > 0) {
+    config.cacheDir = path.resolve(args.cacheDir.trim());
   }
-  if (typeof args.browserFallback === "string" && args.browserFallback.length > 0) {
-    // Only accept a known mode. Unlike most overrides, the schema validation
-    // above can't catch a bad CLI value (it runs before this block), and a
-    // garbage mode would reach the runner unvalidated on the pre-resolved-tests
-    // API path — so drop unknown values and keep the validated config value
-    // (which defaults to "auto").
-    const mode = args.browserFallback.trim().toLowerCase();
-    if (mode === "auto" || mode === "explicit" || mode === "off") {
-      config.browserFallback = mode;
-    } else {
-      log(
-        `Ignoring invalid --browser-fallback value '${args.browserFallback}'. Expected one of: auto, explicit, off.`,
-        "warning",
-        config
-      );
-    }
-  }
-  if (typeof args.shell === "string" && args.shell.length > 0) {
-    // Same rationale as --browser-fallback: schema validation runs before
-    // this block, so a bad CLI value would reach the runner unvalidated —
-    // drop unknown shells and keep the validated config value (default
-    // "bash") instead.
-    const shell = args.shell.trim().toLowerCase();
-    if (shell === "bash" || shell === "cmd" || shell === "powershell") {
-      config.shell = shell;
-    } else {
-      log(
-        `Ignoring invalid --shell value '${args.shell}'. Expected one of: bash, cmd, powershell.`,
-        "warning",
-        config
-      );
-    }
-  }
+  if (typeof args.browserFallback === "string") config.browserFallback = args.browserFallback;
+  if (typeof args.shell === "string") config.shell = args.shell;
+  // `auto` and `true` both mean one runner per CPU core, as in config.
   if (typeof args.concurrentRunners === "string") {
-    // The bare flag ("" after yargs string parsing) and an explicit "true"
-    // select CPU-count mode; anything else must parse as a positive integer.
-    // CLI overrides land after the config_v3 validation above, and the
-    // pre-resolved-tests API path never re-validates, so a garbage value
-    // would otherwise reach the runner as NaN and silently degrade to
-    // sequential execution — warn and keep the validated value instead.
-    if (
-      args.concurrentRunners === "" ||
-      args.concurrentRunners.toLowerCase() === "true"
-    ) {
-      config.concurrentRunners = true;
-    } else {
-      const count = Number(args.concurrentRunners);
-      if (Number.isInteger(count) && count >= 1) {
-        config.concurrentRunners = count;
-      } else {
-        log(
-          `Ignoring invalid --concurrent-runners value '${args.concurrentRunners}'. Expected a positive integer, or no value (or 'true') for CPU-count mode.`,
-          "warning",
-          config
-        );
-      }
-    }
+    config.concurrentRunners =
+      args.concurrentRunners === "auto" || args.concurrentRunners === "true" ? true : Number(args.concurrentRunners);
+  } else if (config.concurrentRunners === "auto") {
+    config.concurrentRunners = true;
   }
-  // Resolve paths
+  // Modes that replace the terminal summary on stdout.
+  const stdoutReporters: string[] = [];
+  if (jsonOnStdout || args.plain || args.quiet || config.logLevel === "silent") {
+    config.reporters = (config.reporters ?? []).filter((reporter: any) => reporter !== "terminal");
+    if (jsonOnStdout) stdoutReporters.push("jsonStdoutReporter");
+    if (args.plain) stdoutReporters.push("plainReporter");
+  }
+  // --output is the JSON results file, so the json reporter would write a second copy.
+  if (config.output && Array.isArray(config.reporters)) {
+    config.reporters = config.reporters.filter((reporter: any) => reporter !== "json");
+  }
+  // Every source and flag resolved its own paths already. This resolves what
+  // none of them set, such as the default `input` and `outputDir`.
   config = await resolvePaths({
     config: config,
     object: config,
@@ -535,57 +629,15 @@ async function setConfig({ configPath, args }: { configPath?: any; args: any }) 
     nested: false,
     objectType: "config",
   });
-
-  warnUpgrade(
-    [
-      ...outputWarnings(outputSetting, String(config.output)),
-      ...concurrentRunnersWarnings(args.concurrentRunners),
-      ...flagWarnings(args),
-      ...envWarnings(process.env, config),
-      ...configWarnings(config),
-      ...browsersDirWarnings(getBrowsersDir({ cacheDir: config.cacheDir })),
-    ],
-    config.logLevel
-  );
+  // The stdout modes' reporters aren't config `reporters` values, so they ride
+  // along unenumerated, out of the runner's validation. Non-enumerable on
+  // purpose: the runner's JSON clone drops it, and only outputResults reads it.
+  Object.defineProperty(config, "_stdoutReporters", { value: stdoutReporters, configurable: true });
 
   return config;
 }
 
-// Resolve the directory the runFolder reporter's `.doc-detective/` archive
-// root sits under, from its `output`. `output` is normally a directory, but
-// the reporter also accepts a file path (e.g. `results.json`), in which case
-// the run folder belongs *beside* the file, not inside it.
-//
-// A report-file extension (`.json`/`.html`/`.htm`/`.xml`/`.md`) always
-// resolves to the parent, matching getRunOutputDir exactly — even for an
-// existing directory oddly named `reports.json` — so the archive root never
-// diverges from the stamped runDir (a divergence would reject the stamp and
-// break runId/runDir correlation with autoScreenshot). Any other path is then
-// resolved by real filesystem type: an existing file (any extension) archives
-// beside it, an existing or not-yet-created directory (including a dotted name
-// like `reports.v1`) archives inside it.
-//
-// `.xml`/`.md` joined the list when the junit and markdown reporters landed;
-// getRunOutputDir carries the same two so the three resolvers stay in
-// agreement (see the note on the list below).
-function runFolderBaseDir(output: any): string {
-  const base = String(output ?? ".") || ".";
-  // Must match the lists in getRunOutputDir (src/core/utils.ts) and
-  // reportOutputDir (src/reporters/outputDir.ts). If `.xml`/`.md` were missing
-  // here, `--output junit.xml --reporters runFolder junit` would have the
-  // junit reporter write the file while this resolver tried to create a
-  // directory of the same name — concurrently, under Promise.all.
-  const reportFileExtensions = [".json", ".html", ".htm", ".xml", ".md"];
-  if (reportFileExtensions.some((ext) => base.toLowerCase().endsWith(ext))) {
-    return path.dirname(base);
-  }
-  try {
-    return fs.statSync(base).isDirectory() ? base : path.dirname(base);
-  } catch {
-    // Not created yet — treat as a directory (matches getRunOutputDir).
-    return base;
-  }
-}
+const TERMINAL_RULE = "===============================";
 
 // Internal reporters
 const reporters: Record<string, (config: any, outputPath: any, results: any, options: any) => Promise<any>> = {
@@ -609,62 +661,41 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
   },
 
   // JSON reporter: outputs results to a JSON file
+  // `--json`: the results, and nothing else, on stdout.
+  jsonStdoutReporter: async (_config: any, _outputPath: any, results: any) => {
+    console.log(JSON.stringify(results, null, 2));
+  },
+
+  // `--plain`: one tab-separated line per test context, for grep and cut.
+  plainReporter: async (_config: any, _outputPath: any, results: any) => {
+    for (const spec of results?.specs ?? []) {
+      for (const test of spec.tests ?? []) {
+        const contexts = (test.contexts ?? []).filter(Boolean);
+        for (const context of contexts.length > 0 ? contexts : [{}]) {
+          const where = [context.platform, context.browser?.name].filter(Boolean).join("/");
+          console.log(
+            [context.result ?? test.result, spec.specId, test.testId, where].join("\t")
+          );
+        }
+      }
+    }
+  },
+
   jsonReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
-    // Define supported output extensions
-    const outputExtensions = [".json"];
-
-    // Normalize output path
-    outputPath = path.resolve(outputPath);
-
     // Reuse the results JSON serialized once by outputResults when present
     // (byte-identical to serializing `results` here); fall back for direct
     // callers that don't pass it.
-    const data =
+    const render = () =>
       typeof options.resultsJson === "string"
         ? options.resultsJson
         : JSON.stringify(results, null, 2);
-    let outputFile = "";
-    let outputDir = "";
-    let reportType = "doc-detective-results";
-    if (options.command) {
-      if (options.command === "runCoverage") {
-        reportType = "coverageResults";
-      } else if (options.command === "runTests") {
-        reportType = "testResults";
-      }
-    }
-
-    // Detect if output ends with a supported extension
-    if (outputExtensions.some((ext) => outputPath.endsWith(ext))) {
-      outputDir = path.dirname(outputPath);
-      outputFile = outputPath;
-      // If outputFile already exists, add a counter to the filename
-      if (fs.existsSync(outputFile)) {
-        let counter = 0;
-        while (fs.existsSync(outputFile.replace(".json", `-${counter}.json`))) {
-          counter++;
-        }
-        outputFile = outputFile.replace(".json", `-${counter}.json`);
-      }
-    } else {
-      outputDir = outputPath;
-      outputFile = path.resolve(outputDir, `${reportType}-${Date.now()}.json`);
-    }
-
-    try {
-      // Create output directory if it doesn't exist
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-      }
-
-      // Write results to output file
-      fs.writeFileSync(outputFile, data);
-      console.log(`See detailed results at ${outputFile}\n`);
-      return outputFile;
-    } catch (err) {
-      console.error(`Error writing results to ${outputFile}. ${err}`);
-      return null;
-    }
+    const reportType = options.command === "runTests" ? "testResults" : "doc-detective-results";
+    // A path you name is overwritten, and a name Doc Detective picks is unique per
+    // run (ADR 01180). A run whose filter matched nothing has no runId.
+    const outputFile = /\.json$/i.test(String(outputPath ?? ""))
+      ? path.resolve(outputPath)
+      : path.resolve(reportOutputDir(outputPath), `${reportType}-${results?.runId ?? timestamp()}.json`);
+    return writeReport("Results", outputFile, render, config);
   },
 
   // runFolder reporter: archives each run's results in its per-run artifact
@@ -674,9 +705,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
   // over time. Runs by default in addition to the flat json reporter.
   runFolderReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
     let reportType = "doc-detective-results";
-    if (options.command === "runCoverage") {
-      reportType = "coverageResults";
-    } else if (options.command === "runTests") {
+    if (options.command === "runTests") {
       reportType = "testResults";
     }
 
@@ -688,7 +717,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     // Resolve the output to a base directory once (file paths → parent), then
     // both the confinement root and the fresh-folder fallback below derive
     // from the same base, so a file-path output archives beside the file.
-    const baseDir = runFolderBaseDir(outputPath || config.output || ".");
+    const baseDir = reportOutputDir(outputPath || config.output);
     const expectedRunsRoot = path.resolve(baseDir, ".doc-detective", "runs");
     const stampedRunDir =
       typeof results?.runDir === "string" && results.runDir.length > 0
@@ -737,63 +766,31 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     // JSON outputResults already serialized. When we rewrote runId/runDir into a
     // fresh copy, that object differs from `results`, so serialize it directly —
     // keeping the written file byte-identical to before this optimization.
-    const persistedJson =
+    const renderJson = () =>
       useStampedRunDir && typeof options.resultsJson === "string"
         ? options.resultsJson
         : JSON.stringify(persistedResults, null, 2);
     const outputFile = path.resolve(runDir, `${reportType}.json`);
-
-    try {
-      fs.mkdirSync(runDir, { recursive: true });
-      fs.writeFileSync(outputFile, persistedJson);
-
-      // Archive a human-readable HTML report beside the JSON, so the run folder
-      // is a complete shareable artifact without the standalone `html` reporter.
-      // Best-effort and isolated: an HTML failure must not break the JSON
-      // archive (this reporter's primary contract). Dynamic import keeps the
-      // large inlined CSS/JS off the hot path, matching htmlReporter.
-      const htmlFile = path.resolve(runDir, `${reportType}.html`);
-      try {
-        const { buildHtml } = await import("./reporters/htmlReporter.js");
-        fs.writeFileSync(htmlFile, buildHtml(persistedResults));
-        console.log(`See per-run HTML report at ${htmlFile}\n`);
-      } catch (htmlErr) {
-        // Pass the error as a separate arg so its stack survives (string
-        // interpolation would flatten it, e.g. to "[object Object]").
-        console.error(
-          `Error writing per-run HTML report to ${htmlFile}.`,
-          htmlErr
-        );
-      }
-
-      // Log the JSON path *after* the HTML line so that, within this reporter,
-      // no "...report at <html>" line trails the per-run "results at" line. The
-      // doc-detective GitHub Action resolves the results file by splitting
-      // stdout on "results at " and require()-ing the trimmed last segment; a
-      // trailing HTML line folded into that segment broke the release smoke
-      // test. (Reporters run concurrently, so this line isn't guaranteed to be
-      // the final stdout token overall — but every reporter's "results at" line
-      // is itself a valid results path, so whichever lands last still resolves.)
-      console.log(`See per-run results at ${outputFile}\n`);
-
-      return outputFile;
-    } catch (err) {
-      console.error(`Error writing results to ${outputFile}. ${err}`);
-      return null;
-    }
+    // A human-readable HTML report beside the JSON, so the run folder is a complete
+    // shareable artifact without the standalone `html` reporter. writeReport never
+    // throws, so a failed HTML write can't cost the JSON archive. Dynamic import
+    // keeps the large inlined CSS/JS off the hot path, matching htmlReporter.
+    const htmlFile = path.resolve(runDir, `${reportType}.html`);
+    const { buildHtml } = await import("./reporters/htmlReporter.js");
+    writeReport("Run report", htmlFile, () => buildHtml(persistedResults, htmlFile), config);
+    // The Markdown summary too, which the GitHub Action reads for its job
+    // summary (ADR 01180, DR9). Like the HTML, a failure here leaves the JSON.
+    const mdFile = path.resolve(runDir, `${reportType}.md`);
+    const { buildMarkdown } = await import("./reporters/markdownReporter.js");
+    writeReport("Run summary", mdFile, () => buildMarkdown(persistedResults, mdFile), config);
+    return writeReport("Run results", outputFile, renderJson, config);
   },
 
   // Terminal reporter: outputs a summary to the terminal
   terminalReporter: async (config: any = {}, outputPath: any, results: any, options: any = {}) => {
-    // Defines colors for terminal output
-    const colors = {
-      red: "\x1b[31m",
-      green: "\x1b[32m",
-      yellow: "\x1b[33m",
-      cyan: "\x1b[36m",
-      reset: "\x1b[0m",
-      bold: "\x1b[1m",
-    };
+    const colors = palette(process.stdout);
+    // Emoji read well in a terminal, and as noise in a CI log.
+    const warningMark = process.stdout.isTTY ? "⚠️  " : "";
 
     // Single source of truth for the "No tests were run" warning so the
     // null-results path and the totalTests===0 path can't drift apart.
@@ -803,7 +800,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       const testFilterActive =
         Array.isArray(config?.testFilter) && config.testFilter.length > 0;
       console.log(
-        `\n${colors.yellow}⚠️  No tests were run. ⚠️${colors.reset}`
+        `\n${colors.yellow}${warningMark}No tests were run.${colors.reset}`
       );
       if (specFilterActive || testFilterActive) {
         console.log(
@@ -830,382 +827,68 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       return;
     }
 
-    // Handle results that have a summary section
+    console.log(TERMINAL_RULE);
     if (results.summary) {
-      // Extract summary data
       const { specs, tests, contexts, steps } = results.summary;
+      const totalOf = (c: any) => (c?.pass ?? 0) + (c?.fail ?? 0) + (c?.warning ?? 0) + (c?.skipped ?? 0);
 
-      // Calculate totals
-      const totalSpecs = specs
-        ? specs.pass + specs.fail + specs.warning + specs.skipped
-        : 0;
-      const totalTests = tests
-        ? tests.pass + tests.fail + tests.warning + tests.skipped
-        : 0;
-      const totalContexts = contexts
-        ? contexts.pass + contexts.fail + contexts.warning + contexts.skipped
-        : 0;
-      const totalSteps = steps
-        ? steps.pass + steps.fail + steps.warning + steps.skipped
-        : 0;
-
-      // Any failures overall?
-      const hasFailures =
-        (specs && specs.fail > 0) ||
-        (tests && tests.fail > 0) ||
-        (contexts && contexts.fail > 0) ||
-        (steps && steps.fail > 0);
-
-      // Any skipped overall?
-      const allSpecsSkipped =
-        specs && specs.pass === 0 && specs.fail === 0 && specs.skipped > 0;
-
-      console.log(
-        `\n${colors.bold}===== Doc Detective Results Summary =====${colors.reset}`
-      );
-
-      // Print specs summary if available
-      if (specs) {
-        console.log(`\n${colors.bold}Specs:${colors.reset}`);
-        console.log(`Total: ${totalSpecs}`);
-        if (specs.pass > 0) {
-          console.log(`${colors.green}Passed: ${specs.pass}${colors.reset}`);
-        } else {
-          console.log(`Passed: ${specs.pass}`);
-        }
-        console.log(
-          `${specs.fail > 0 ? colors.red : colors.green}Failed: ${specs.fail}${
-            colors.reset
-          }`
-        );
-        if (specs.warning > 0)
-          console.log(
-            `${colors.yellow}Warnings: ${specs.warning}${colors.reset}`
-          );
-        if (specs.skipped > 0)
-          console.log(
-            `${colors.yellow}Skipped: ${specs.skipped}${colors.reset}`
-          );
-      }
-
-      // Print tests summary if available
-      if (tests) {
-        console.log(`\n${colors.bold}Tests:${colors.reset}`);
-        console.log(`Total: ${totalTests}`);
-        if (tests.pass > 0) {
-          console.log(`${colors.green}Passed: ${tests.pass}${colors.reset}`);
-        } else {
-          console.log(`Passed: ${tests.pass}`);
-        }
-        console.log(
-          `${tests.fail > 0 ? colors.red : colors.green}Failed: ${tests.fail}${
-            colors.reset
-          }`
-        );
-        if (tests.warning > 0)
-          console.log(
-            `${colors.yellow}Warnings: ${tests.warning}${colors.reset}`
-          );
-        if (tests.skipped > 0)
-          console.log(
-            `${colors.yellow}Skipped: ${tests.skipped}${colors.reset}`
-          );
-      }
-
-      // Print contexts summary if available
-      if (contexts) {
-        console.log(`\n${colors.bold}Contexts:${colors.reset}`);
-        console.log(`Total: ${totalContexts}`);
-        if (contexts.pass > 0) {
-          console.log(`${colors.green}Passed: ${contexts.pass}${colors.reset}`);
-        } else {
-          console.log(`Passed: ${contexts.pass}`);
-        }
-        console.log(
-          `${contexts.fail > 0 ? colors.red : colors.green}Failed: ${
-            contexts.fail
-          }${colors.reset}`
-        );
-        if (contexts.warning > 0)
-          console.log(
-            `${colors.yellow}Warnings: ${contexts.warning}${colors.reset}`
-          );
-        if (contexts.skipped > 0)
-          console.log(
-            `${colors.yellow}Skipped: ${contexts.skipped}${colors.reset}`
-          );
-      }
-
-      // Print steps summary if available
-      if (steps) {
-        console.log(`\n${colors.bold}Steps:${colors.reset}`);
-        console.log(`Total: ${totalSteps}`);
-        if (steps.pass > 0) {
-          console.log(`${colors.green}Passed: ${steps.pass}${colors.reset}`);
-        } else {
-          console.log(`Passed: ${steps.pass}`);
-        }
-        console.log(
-          `${steps.fail > 0 ? colors.red : colors.green}Failed: ${steps.fail}${
-            colors.reset
-          }`
-        );
-        if (steps.warning > 0)
-          console.log(
-            `${colors.yellow}Warnings: ${steps.warning}${colors.reset}`
-          );
-        if (steps.skipped > 0)
-          console.log(
-            `${colors.yellow}Skipped: ${steps.skipped}${colors.reset}`
-          );
-      }
-
-      // If all specs were skipped, call it out
-      if (allSpecsSkipped) {
-        console.log(
-          `\n${colors.yellow}⚠️  All items were skipped. No specs passed or failed. ⚠️${colors.reset}`
-        );
-      }
+      const summaryLine = (label: string, counts: any) => {
+        if (!counts) return;
+        const { pass = 0, fail = 0, warning = 0, skipped = 0 } = counts;
+        const parts = [
+          `${totalOf(counts)} total`,
+          `${pass > 0 ? colors.green : ""}${pass} passed${pass > 0 ? colors.reset : ""}`,
+          `${fail > 0 ? colors.red : ""}${fail} failed${fail > 0 ? colors.reset : ""}`,
+        ];
+        if (warning > 0) parts.push(`${colors.yellow}${warning} warnings${colors.reset}`);
+        if (skipped > 0) parts.push(`${colors.yellow}${skipped} skipped${colors.reset}`);
+        console.log(`${colors.bold}${label}${colors.reset} ${parts.join(", ")}`);
+      };
+      summaryLine("Specs:   ", specs);
+      summaryLine("Tests:   ", tests);
+      summaryLine("Contexts:", contexts);
+      summaryLine("Steps:   ", steps);
 
       // If zero tests ran for any reason (filters excluded everything, no
       // input matched, no tests detected, etc.), surface that as a warning
       // rather than letting the green "Passed: 0" line read like success.
       // The run still exits 0 — this is an empty run, not a failure.
-      if (totalTests === 0) {
+      if (totalOf(tests) === 0) {
         printNoTestsWarning();
       }
 
-      // If we have specs with failures, display them
-      if (results.specs && hasFailures) {
-        console.log(
-          `\n${colors.bold}${colors.red}Failed Items:${colors.reset}`
-        );
-
-        // Collect failures
-        const failedSpecs: any[] = [];
-        const failedTests: any[] = [];
-        const failedContexts: any[] = [];
-        const failedSteps: any[] = [];
-
-        // Collect skipped
-        const skippedSpecs: any[] = [];
-        const skippedTests: any[] = [];
-        const skippedContexts: any[] = [];
-        const skippedSteps: any[] = [];
-
-        // Process specs array to collect failures and skipped
-        results.specs.forEach((spec: any, specIndex: any) => {
-          // Check if spec has failed
-          if (spec.result === "FAIL") {
-            failedSpecs.push({
-              index: specIndex,
-              id: spec.specId || `Spec ${specIndex + 1}`,
-            });
-          }
-          // Check if spec was skipped
-          if (spec.result === "SKIPPED") {
-            skippedSpecs.push({
-              index: specIndex,
-              id: spec.specId || `Spec ${specIndex + 1}`,
-            });
-          }
-
-          // Process tests in this spec
-          if (spec.tests && spec.tests.length > 0) {
-            spec.tests.forEach((test: any, testIndex: any) => {
-              // Check if test has failed
-              if (test.result === "FAIL") {
-                failedTests.push({
-                  specIndex,
-                  testIndex,
-                  specId: spec.specId || `Spec ${specIndex + 1}`,
-                  id: test.testId || `Test ${testIndex + 1}`,
-                });
-              }
-              // Check if test was skipped
-              if (test.result === "SKIPPED") {
-                skippedTests.push({
-                  specIndex,
-                  testIndex,
-                  specId: spec.specId || `Spec ${specIndex + 1}`,
-                  id: test.testId || `Test ${testIndex + 1}`,
-                });
-              }
-
-              // Process contexts in this test
-              if (test.contexts && test.contexts.length > 0) {
-                test.contexts.forEach((context: any, contextIndex: any) => {
-                  // Check if context has failed
-                  if (
-                    context.result === "FAIL" ||
-                    (context.result && context.result.status === "FAIL")
-                  ) {
-                    failedContexts.push({
-                      specIndex,
-                      testIndex,
-                      contextIndex,
-                      specId: spec.specId || `Spec ${specIndex + 1}`,
-                      testId: test.testId || `Test ${testIndex + 1}`,
-                      platform: context.platform || "unknown",
-                      browser: context.browser
-                        ? context.browser.name
-                        : "unknown",
-                    });
-                  }
-                  // Check if context was skipped
-                  if (
-                    context.result === "SKIPPED" ||
-                    (context.result && context.result.status === "SKIPPED")
-                  ) {
-                    skippedContexts.push({
-                      specIndex,
-                      testIndex,
-                      contextIndex,
-                      specId: spec.specId || `Spec ${specIndex + 1}`,
-                      testId: test.testId || `Test ${testIndex + 1}`,
-                      platform: context.platform || "unknown",
-                      browser: context.browser
-                        ? context.browser.name
-                        : "unknown",
-                    });
-                  }
-
-                  // Process steps in this context
-                  if (context.steps && context.steps.length > 0) {
-                    context.steps.forEach((step: any, stepIndex: any) => {
-                      // Check if step has failed
-                      if (step.result === "FAIL") {
-                        failedSteps.push({
-                          specIndex,
-                          testIndex,
-                          contextIndex,
-                          stepIndex,
-                          specId: spec.specId || `Spec ${specIndex + 1}`,
-                          testId: test.testId || `Test ${testIndex + 1}`,
-                          platform: context.platform || "unknown",
-                          browser: context.browser
-                            ? context.browser.name
-                            : "unknown",
-                          stepId: step.stepId || `Step ${stepIndex + 1}`,
-                          error: step.resultDescription || "Unknown error",
-                        });
-                      }
-                      // Check if step was skipped
-                      if (step.result === "SKIPPED") {
-                        skippedSteps.push({
-                          specIndex,
-                          testIndex,
-                          contextIndex,
-                          stepIndex,
-                          specId: spec.specId || `Spec ${specIndex + 1}`,
-                          testId: test.testId || `Test ${testIndex + 1}`,
-                          platform: context.platform || "unknown",
-                          browser: context.browser
-                            ? context.browser.name
-                            : "unknown",
-                          stepId: step.stepId || `Step ${stepIndex + 1}`,
-                        });
-                      }
-                    });
-                  }
-                });
-              }
-            });
-          }
+      // The same items, in the same order, as every other reporter (ADR 01180).
+      const items = nonPassItems(results);
+      for (const [status, heading, color] of [
+        ["FAIL", "Failed", colors.red],
+        ["WARNING", "Warnings", colors.yellow],
+        ["SKIPPED", "Skipped", colors.yellow],
+      ]) {
+        const listed = items.filter((item) => item.status === status);
+        if (listed.length === 0) continue;
+        console.log(`\n${colors.bold}${color}${heading} (${listed.length}):${colors.reset}`);
+        listed.forEach((item, index) => {
+          console.log(`${color}${index + 1}. ${item.idPath}${item.description ? ` — ${item.description}` : ""}${colors.reset}`);
+          const details = [
+            item.reason,
+            item.hint && `Hint: ${item.hint}`,
+            item.screenshot && `Screenshot: ${item.screenshot}`,
+            item.recording && `Recording: ${item.recording}`,
+            item.skippedNote,
+          ];
+          for (const line of details.filter(Boolean)) console.log(`   ${line}`);
         });
-
-        // Display failures
-        if (failedSpecs.length > 0) {
-          console.log(`\n${colors.red}Failed Specs:${colors.reset}`);
-          failedSpecs.forEach((item, i) => {
-            console.log(`${colors.red}${i + 1}. ${item.id}${colors.reset}`);
-          });
-        }
-
-        if (failedTests.length > 0) {
-          console.log(`\n${colors.red}Failed Tests:${colors.reset}`);
-          failedTests.forEach((item, i) => {
-            console.log(
-              `${colors.red}${i + 1}. ${item.id} (from ${item.specId})${
-                colors.reset
-              }`
-            );
-          });
-        }
-
-        if (failedContexts.length > 0) {
-          console.log(`\n${colors.red}Failed Contexts:${colors.reset}`);
-          failedContexts.forEach((item, i) => {
-            console.log(
-              `${colors.red}${i + 1}. ${item.platform}/${item.browser} (from ${
-                item.testId
-              })${colors.reset}`
-            );
-          });
-        }
-
-        if (failedSteps.length > 0) {
-          console.log(`\n${colors.red}Failed Steps:${colors.reset}`);
-          failedSteps.forEach((item, i) => {
-            console.log(
-              `${colors.red}${i + 1}. ${item.platform}/${item.browser} - ${
-                item.stepId
-              }${colors.reset}`
-            );
-            console.log(`   Error: ${item.error}`);
-          });
-        }
-
-        // Display skipped items in yellow
-        if (skippedSpecs.length > 0) {
-          console.log(`\n${colors.yellow}Skipped Specs:${colors.reset}`);
-          skippedSpecs.forEach((item, i) => {
-            console.log(`${colors.yellow}${i + 1}. ${item.id}${colors.reset}`);
-          });
-        }
-        if (skippedTests.length > 0) {
-          console.log(`\n${colors.yellow}Skipped Tests:${colors.reset}`);
-          skippedTests.forEach((item, i) => {
-            console.log(
-              `${colors.yellow}${i + 1}. ${item.id} (from ${item.specId})${
-                colors.reset
-              }`
-            );
-          });
-        }
-        if (skippedContexts.length > 0) {
-          console.log(`\n${colors.yellow}Skipped Contexts:${colors.reset}`);
-          skippedContexts.forEach((item, i) => {
-            console.log(
-              `${colors.yellow}${i + 1}. ${item.platform}/${
-                item.browser
-              } (from ${item.testId})${colors.reset}`
-            );
-          });
-        }
-        if (skippedSteps.length > 0) {
-          console.log(`\n${colors.yellow}Skipped Steps:${colors.reset}`);
-          skippedSteps.forEach((item, i) => {
-            console.log(
-              `${colors.yellow}${i + 1}. ${item.platform}/${item.browser} - ${
-                item.stepId
-              }${colors.reset}`
-            );
-          });
-        }
-      } else if (!hasFailures && !allSpecsSkipped && totalTests > 0) {
-        // Celebration when all tests pass. Gated on totalTests > 0 so an
-        // empty run (no input matched, all filtered out) doesn't print the
-        // success banner alongside the "No tests were run" warning above.
-        console.log(`\n${colors.green}🎉 All items passed! 🎉${colors.reset}`);
       }
+
+      const footer = environmentLine(results);
+      if (footer) console.log(`\n${footer}`);
     } else {
       console.log(
         "No tests were executed or results are in an unknown format."
       );
     }
 
-    console.log("\n===============================\n");
+    console.log(TERMINAL_RULE);
   },
 };
 
@@ -1280,43 +963,55 @@ async function reportResults({ apiConfig, results }: { apiConfig: any; results: 
   }
 }
 
-async function outputResults(config: any = {}, outputPath: any, results: any, options: any = {}) {
-  // Config is the source of truth. Fall back to options.reporters for
-  // programmatic callers that pass them directly, then to defaults.
-  const defaultReporters = ["terminal", "json", "runFolder"];
+// Convert a reporter's shorthand name to its key in `reporters`.
+function reporterKey(reporter: string): string {
+  const shorthand: Record<string, string> = {
+    json: "jsonReporter",
+    html: "htmlReporter",
+    runfolder: "runFolderReporter",
+    terminal: "terminalReporter",
+    junit: "junitReporter",
+    markdown: "markdownReporter",
+  };
+  return shorthand[reporter.toLowerCase()] ?? reporter;
+}
 
-  let activeReporters =
-    (config && Array.isArray(config.reporters) && config.reporters.length > 0
-      ? config.reporters
-      : null) ||
-    options.reporters ||
-    defaultReporters;
+async function outputResults(config: any = {}, outputPath: any, results: any, options: any = {}) {
+  // Config is the source of truth, and an empty list means no reporters, as
+  // when `--json` replaces the only one. Fall back to options.reporters for
+  // programmatic callers that pass them directly, then to defaults. The run
+  // folder gate, runArchivesArtifacts, follows the same rule.
+  const defaultReporters = ["terminal", "runFolder"];
+  // `--json` and `--plain` add their stdout reporters here, not to `reporters`.
+  const stdoutReporters = (config as { _stdoutReporters?: string[] } | undefined)?._stdoutReporters ?? [];
+
+  let activeReporters = Array.isArray(config?.reporters)
+    ? [...config.reporters, ...stdoutReporters]
+    : options.reporters || defaultReporters;
 
   // If the reporters option is provided as strings, normalize them
   if (activeReporters.length > 0) {
     // Convert any shorthand names to full reporter names
-    activeReporters = activeReporters.map((reporter: any) => {
-      if (typeof reporter === "string") {
-        // Convert shorthand names to actual reporter keys
-        switch (reporter.toLowerCase()) {
-          case "json":
-            return "jsonReporter";
-          case "html":
-            return "htmlReporter";
-          case "runfolder":
-            return "runFolderReporter";
-          case "terminal":
-            return "terminalReporter";
-          case "junit":
-            return "junitReporter";
-          case "markdown":
-            return "markdownReporter";
-          default:
-            return reporter;
-        }
-      }
-      return reporter;
-    });
+    activeReporters = activeReporters.map((reporter: any) =>
+      typeof reporter === "string" ? reporterKey(reporter) : reporter
+    );
+  }
+
+  // The run folder holds the run's automatic screenshots and recordings, so
+  // its reporter runs whenever autoScreenshot or autoRecord is on at any level,
+  // even if `reporters` leaves it out (ADR 01177). runSpecs reserves the folder
+  // exactly then (runArchivesArtifacts), so the folder on disk is the signal.
+  if (
+    !activeReporters.includes("runFolderReporter") &&
+    typeof results?.runDir === "string" &&
+    fs.existsSync(results.runDir)
+  ) {
+    activeReporters = [...activeReporters, "runFolderReporter"];
+    log(
+      "Added the runFolder reporter because autoScreenshot or autoRecord is on.",
+      "debug",
+      config
+    );
   }
 
   // Serialize the canonical results tree ONCE and share the string with the
@@ -1344,14 +1039,10 @@ async function outputResults(config: any = {}, outputPath: any, results: any, op
       // String reference to built-in or registered reporter
       return reporters[reporter](config, outputPath, results, reporterOptions);
     } else if (typeof reporter === "string" && !reporters[reporter]) {
-      console.error(
-        `Reporter "${reporter}" not found. Available reporters: ${Object.keys(
-          reporters
-        ).join(", ")}`
-      );
+      log(`Couldn't find reporter \`${reporter}\`. Available reporters: ${REPORTER_NAMES.join(", ")}.`, "error", config);
       return Promise.resolve();
     } else {
-      console.error(`Invalid reporter: ${reporter}`);
+      log(`Couldn't use reporter \`${String(reporter)}\`: it isn't a name or a function.`, "error", config);
       return Promise.resolve();
     }
   });
@@ -1379,19 +1070,17 @@ async function spawnCommand(cmd: string, args?: string[]) {
     env: process.env, // Explicitly pass environment variables
   });
 
-  // Capture stdout
-  let stdout = "";
-  for await (const chunk of runCommand.stdout) {
-    stdout += chunk;
-  }
+  // Drain both streams at once. Reading them in turn deadlocks: a child that fills
+  // the unread pipe blocks on its write and never closes the other.
+  const collect = async (stream: AsyncIterable<any>) => {
+    let text = "";
+    for await (const chunk of stream) text += chunk;
+    return text;
+  };
+  let [stdout, stderr] = await Promise.all([collect(runCommand.stdout), collect(runCommand.stderr)]);
   // Remove trailing newline
   stdout = stdout.replace(/\n$/, "");
 
-  // Capture stderr
-  let stderr = "";
-  for await (const chunk of runCommand.stderr) {
-    stderr += chunk;
-  }
   // Remove trailing newline
   stderr = stderr.replace(/\n$/, "");
 
@@ -1403,6 +1092,15 @@ async function spawnCommand(cmd: string, args?: string[]) {
   return { stdout, stderr, exitCode };
 }
 
+function parseMeta(value: string | undefined): any {
+  if (!value) return {};
+  try {
+    return JSON.parse(value);
+  } catch (error: any) {
+    throw new Error(`DOC_DETECTIVE_META isn't valid JSON: ${error.message}`);
+  }
+}
+
 function setMeta() {
   const platformMap: Record<string, string> = {
     win32: "windows",
@@ -1411,12 +1109,9 @@ function setMeta() {
   };
 
   // Set meta
-  const meta: any =
-    process.env["DOC_DETECTIVE_META"] !== undefined
-      ? JSON.parse(process.env["DOC_DETECTIVE_META"])
-      : {};
+  const meta: any = parseMeta(process.env["DOC_DETECTIVE_META"]);
   meta.distribution = "doc-detective";
-  meta.dist_version = ownVersion();
+  meta.dist_version = ownVersion() ?? "unknown";
   meta.dist_platform = platformMap[os.platform()] || os.platform();
   meta.dist_platform_version = os.release();
   meta.dist_platform_arch = os.arch();
@@ -1430,7 +1125,8 @@ function setMeta() {
 // Get version data programmatically (no console output)
 function getVersionData() {
   try {
-    const mainPackage: any = readShimPackageJson();
+    // A published package.json can lack either map, so default both.
+    const mainPackage: any = { dependencies: {}, devDependencies: {}, ...readShimPackageJson() };
     const versionData: any = {
       main: {
         "doc-detective": {

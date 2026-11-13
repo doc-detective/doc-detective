@@ -27,7 +27,8 @@ Test specs in standalone JSON or YAML files use the following basic structure:
       "steps": [
         {
           "stepId": "step-id",
-          "description": "Step description. This object also needs additional step properties like `find`, `goTo`, or `httpRequest`."
+          "description": "Step description. Each step has one action, such as `goTo`, `find`, or `httpRequest`.",
+          "goTo": "https://www.example.com"
         }
       ]
     }
@@ -44,8 +45,9 @@ tests:
   description: Test Description
   steps:
   - stepId: step-id
-    description: Step description. This object also needs additional step properties
-      like `find`, `goTo`, or `httpRequest`.
+    description: Step description. Each step has one action, such as `goTo`, `find`,
+      or `httpRequest`.
+    goTo: https://www.example.com
 ```
 </Tab>
 </Tabs>

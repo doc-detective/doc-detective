@@ -9,16 +9,12 @@
  */
 export type LoadCookie = CookieNameOrFilePath | LoadCookieDetailed;
 /**
- * Name of the specific cookie to load from default location, or file path to cookie file.
+ * A cookie file path ending in `.txt`, or a cookie name. `session.txt` loads the cookie named `session` from `session.txt` in `outputDir`. Any other value loads the cookie from the environment variable of the same name.
  */
 export type CookieNameOrFilePath = string;
 export type LoadCookieDetailed = {
   [k: string]: unknown;
 } & {
-  /**
-   * Optional self-describing schema URI for linters
-   */
-  $schema?: string;
   name: CookieName;
   variable?: EnvironmentVariableName;
   path?: CookieFilePath;
@@ -34,11 +30,11 @@ export type CookieName = string;
  */
 export type EnvironmentVariableName = string;
 /**
- * File path to cookie file, relative to directory. Supports Netscape cookie format.
+ * File path to the cookie file, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.
  */
 export type CookieFilePath = string;
 /**
- * Directory containing the cookie file.
+ * Directory containing the cookie file. A relative directory resolves against the spec file. Omit it to load from `outputDir`.
  */
 export type DirectoryPath = string;
 /**

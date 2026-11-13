@@ -3,6 +3,7 @@
   "title": "dragAndDrop",
   "description": "Drag and drop an element from source to target.",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "source",
     "target"
@@ -53,6 +54,7 @@
       },
       "object": {
         "title": "Element (detailed)",
+        "additionalProperties": false,
         "type": "object",
         "anyOf": [
           {
@@ -135,7 +137,8 @@
           },
           "timeout": {
             "type": "integer",
-            "description": "Max duration in milliseconds to wait for the element to exist.",
+            "minimum": 0,
+            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
             "default": 5000
           }
         }

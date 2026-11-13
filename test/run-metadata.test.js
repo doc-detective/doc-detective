@@ -5,6 +5,29 @@ import assert from "node:assert/strict";
 import { runTests } from "../dist/core/index.js";
 import { sessionVersions } from "../dist/core/utils.js";
 import { validate } from "../dist/common/src/validate.js";
+import { getEnvironment } from "../dist/core/config.js";
+import { _resetCacheForTests } from "../dist/runtime/heavyDeps.js";
+
+describe("getEnvironment's version", () => {
+  it("leaves docDetectiveVersion out when its own version is unknown", () => {
+    // Make ownVersion() come back undefined: drop its cache and fail every
+    // package.json read until the walk gives up.
+    _resetCacheForTests();
+    const readFileSync = fs.readFileSync;
+    fs.readFileSync = (p, ...rest) => {
+      if (String(p).endsWith("package.json")) throw new Error("no package.json");
+      return readFileSync(p, ...rest);
+    };
+    let environment;
+    try {
+      environment = getEnvironment();
+    } finally {
+      fs.readFileSync = readFileSync;
+      _resetCacheForTests();
+    }
+    assert.equal("docDetectiveVersion" in environment, false);
+  });
+});
 
 describe("sessionVersions", function () {
   it("reads Chrome and chromedriver from the session capabilities", () => {
@@ -104,10 +127,13 @@ describe("Run metadata on reports", function () {
         ],
       })
     );
+    // A scratch outputDir, so the run folder doesn't land in the repo.
+    const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-run-meta-"));
     try {
-      report = await runTests({ input });
+      report = await runTests({ input, outputDir });
     } finally {
       fs.unlinkSync(input);
+      fs.rmSync(outputDir, { recursive: true, force: true });
     }
   });
 
@@ -164,10 +190,12 @@ describe("Run metadata on reports", function () {
       })
     );
     let skipped;
+    const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-run-meta-"));
     try {
-      skipped = await runTests({ input });
+      skipped = await runTests({ input, outputDir });
     } finally {
       fs.unlinkSync(input);
+      fs.rmSync(outputDir, { recursive: true, force: true });
     }
     const context = skipped.specs[0].tests[0].contexts[0];
     assert.equal(context.result, "SKIPPED");
@@ -183,33 +211,10 @@ describe("Run metadata on reports", function () {
   });
 
   it("emits metadata that validates against report_v3", () => {
-    // Only the metadata fields, as emitted, on a minimal report skeleton. On
-    // main a full report doesn't validate yet for unrelated reasons (an
-    // undeclared test-level `result`, runShell's object `outputs.stdio`); the
-    // v5 report contract (ADR 01149, on feat/v5-rc) closes those.
+    // The whole report, as emitted: the v5 report contract (ADR 01149) makes a
+    // full report validate.
     assert.ok(report.startedAt && report.environment, "metadata missing");
-    const object = {
-      runId: report.runId,
-      startedAt: report.startedAt,
-      environment: report.environment,
-      specs: report.specs.map((spec) => ({
-        tests: spec.tests.map((test) => ({
-          contexts: test.contexts.map((c) => ({
-            contextId: c.contextId,
-            startedAt: c.startedAt,
-            ...(c.browser && { browser: c.browser }),
-            ...(c.driver && { driver: c.driver }),
-            steps: c.steps.map((s) => ({
-              runShell: s.runShell,
-              stepId: s.stepId,
-              startedAt: s.startedAt,
-              durationMs: s.durationMs,
-            })),
-          })),
-        })),
-      })),
-    };
-    const result = validate({ schemaKey: "report_v3", object });
+    const result = validate({ schemaKey: "report_v3", object: structuredClone(report) });
     assert.ok(result.valid, result.errors);
     assert.deepEqual(result.object.environment, report.environment);
   });

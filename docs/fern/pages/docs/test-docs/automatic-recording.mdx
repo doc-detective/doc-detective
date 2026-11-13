@@ -1,65 +1,177 @@
 ---
 title: Record video automatically
-description: Turn on autoRecord to record every driver-based context from start to finish.
+description: Doc Detective records every context that drives a browser, app, or device by default. Here's what you get, what the host needs, and how to turn it off.
 ---
 
-Record every driver-based context end to end without adding explicit `record` steps. Automatic recording is useful for a video archive or for replaying exactly what happened when a test fails. New to recording? Start with [Record video](/docs/test-docs/record-video-guide).
+Doc Detective records a video of every context that drives a browser, a native app, or a device, by default and with no `record` steps. It's a video archive of every run, and a replay of exactly what happened when a test fails. New to recording? Start with [Record video](/docs/test-docs/record-video-guide).
 
 ## Before you begin
 
 Make sure you have the following:
 
 - [Doc Detective installed](/docs/get-started/installation).
-- A directory where you can create a `.spec.json` file.
-- A visible display, or, on Linux and in CI, the `ffmpeg` engine's Xvfb virtual display. Automatic recording uses the [`ffmpeg` engine](/docs/test-docs/record-video-guide#choose-a-recording-engine), which needs a display to capture (see [Docker and headless](/docs/ci/docker-and-headless)).
+- A test with steps that drive a browser, a native app, or a device.
 
 The steps in this guide work the same in every authoring style. Write them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
 
-## Record video automatically
+## What you get by default
 
-Turn on `autoRecord` to record every driver-based context from start to finish without explicit `record` steps. Doc Detective captures each context end to end, which is useful for a video archive or for replaying exactly what happened when a test fails.
+With no setting at all, Doc Detective records each context from its first step to its last, with the engine that fits:
 
-Enable it at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
+| Context | How it's recorded |
+|---|---|
+| Headless Chrome, the default browser | The `browser` engine records the tab. It needs no display. |
+| Headless Chrome with its own `record` step | Not recorded automatically. Your `record` step wins, since a Chrome context records one tab at a time. |
+| Headed Chrome, Firefox, or Safari | The `ffmpeg` engine records the screen. |
+| Headless Firefox | Runs headed so the `ffmpeg` engine can record it, when the host can capture the screen. On Linux with Xvfb installed, it runs on an Xvfb display, so no window appears. With only `DISPLAY`, the window opens on that display. Otherwise it stays headless and isn't recorded. |
+| A native app on Windows or macOS | The `ffmpeg` engine records the whole display. |
+| An Android or iOS app, or mobile web | The device records its own screen. |
+| No browser, app, or device steps | Not recorded. |
 
-```json title="config.json"
+When Doc Detective runs headless Firefox headed, it says so once per run: `Running 2 headless Firefox contexts headed so autoRecord can record them. Set \`autoRecord: false\` to keep them headless.`
+
+{/* test {"testId":"record-guide-autorecord","detectSteps":false} */}
+
+```json title="login.spec.json"
 {
-  "autoRecord": true,
-  "output": "./test-results"
+  "tests": [
+    {
+      "steps": [
+        { "goTo": "http://localhost:8092" },
+        { "goTo": "http://localhost:8092/enhanced-elements.html" }
+      ]
+    }
+  ]
 }
 ```
 
-The CLI flag does the same for a single run; use `--no-auto-record` to override a config file that enables it:
-
-{/* test {"testId":"record-guide-autorecord","detectSteps":false,"autoRecord":true,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":false}}]} */}
-
-```bash
-doc-detective --auto-record
-```
-
-{/* step {"stepId":"record-guide-autorecord-goto","description":"Open the local test server; with autoRecord on, Doc Detective records this context end to end. This test is gated to headed Chrome via runOn (autoRecord uses the ffmpeg engine, which needs a visible display), so the whole test is SKIPPED on the headless docs-test runner and runs only on a headed runner","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"record-guide-autorecord-goto","description":"Open the local test server; this context names no browser, so it runs headless Chrome, and Doc Detective records its tab by default","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"record-guide-autorecord-step","description":"Take another step in the same context","goTo":"http://localhost:8092/enhanced-elements.html"} */}
 {/* test end */}
 
-Desktop contexts capture with the `ffmpeg` engine. Doc Detective saves each video on a stable path in the per-run artifact tree. The same context therefore lands on the same relative path in every run:
+Doc Detective saves each video in the run folder, on a stable path. The same context lands on the same relative path in every run:
 
 ```
-<output>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4
+<outputDir>/.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4
 ```
 
-An automatic recording coexists with any explicit `record` and `stopRecord` steps in the same context. An untargeted `stopRecord` never stops the automatic recording, so a stray `stopRecord: true` can't cut the full-context video short. On Linux, each runner records its own virtual display with Xvfb, so concurrent automatic recordings stay isolated. On Windows and macOS, concurrent automatic recordings share the same physical display and overlap. Doc Detective warns when a run records concurrently on those platforms.
+The recording runs alongside any `record` and `stopRecord` steps you write. An untargeted `stopRecord` never stops it, so a stray `stopRecord: true` can't cut the video short. While recordings are on, the `runFolder` reporter runs even if `reporters` leaves it out. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
-For where the artifacts land, see [Automatic recordings](/docs/actions/record#automatic-recordings), the [`config`](/reference/schemas/config) schema, and [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+## Where the recording shows up
+
+The automatic recording isn't a step, so it isn't in a context's `steps`, and `summary.steps` doesn't count it. Each context in the results has its own `autoRecording` field:
+
+```json title="testResults.json (one context)"
+{
+  "autoRecording": {
+    "result": "PASS",
+    "recordingPath": "specs/install-guide/tests/install/contexts/linux-chrome/recordings/linux-chrome.mp4",
+    "startedAt": "2026-11-06T02:33:29.010Z",
+    "format": "mp4",
+    "duration": 8.1,
+    "width": 1280,
+    "height": 720,
+    "fps": 30
+  }
+}
+```
+
+| Field | What it holds |
+|---|---|
+| `result` | `PASS`, `FAIL`, `WARNING`, or `SKIPPED`, from starting the recording through saving it. |
+| `resultDescription` | Why, when the result isn't `PASS`. |
+| `resultCode` | What kind of failure it was, when the result is `FAIL`: `environment` or `assertion`. |
+| `recordingPath` | The video's path relative to the results' `runDir`, with forward slashes. It's there only when a file was saved. |
+| `startedAt` | When the recording started. It's left out when the recording didn't start. |
+| `format`, `duration`, `width`, `height`, `fps` | The saved video's file format, length in seconds, size in pixels, and frame rate. Each is left out when Doc Detective couldn't read it. |
+
+A `FAIL` or `WARNING` sets the context's `result`, the way a step's does. `PASS` and `SKIPPED` don't, so a context whose steps were all SKIPPED stays SKIPPED.
+
+The field is absent when Doc Detective didn't try to record the context. That means one of these is true:
+
+- `autoRecord` is `false`.
+- The context drives no browser, app, or device.
+- A headless Chrome context has its own `record` step.
+- `autoRecord` is unset and the host check below failed.
+
+Each reporter points at the video its own way:
+
+| Reporter | Where the recording shows up |
+|---|---|
+| `html`, and the run folder's `testResults.html` | The video plays at the top of the context, in a panel named **Automatic recording**. When the result isn't `PASS`, the panel also shows the result and the reason. |
+| `terminal` | A `Recording:` line with the absolute path, on each item the context lists. |
+| `markdown`, and the run folder's `testResults.md` | A `Recording:` path, relative to the summary file, on each item the context lists. |
+| `junit` | A `[[ATTACHMENT…]]` line holding the path, relative to `junit.xml`, on every test case that isn't skipped. |
+| `json`, and the run folder's `testResults.json` | The context's `autoRecording` field, with `recordingPath` relative to `runDir`. |
+
+The `terminal`, `markdown`, and `junit` reporters list a recording that didn't pass as an item of its own, named `<specId> › <testId> › <contextId> › autoRecording`, with its reason. See [What every reporter lists](/docs/ci/reporters-and-artifacts#what-every-reporter-lists).
+
+To watch a recording, open `testResults.html` in the run folder. The run prints its path after `Run report:`. The report loads the video from the run folder, so in CI, upload the whole folder. See [Find the HTML report](/docs/ci/reporters-and-artifacts#step-4-find-the-html-report) and [Collect the run folder and artifacts](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts).
+
+## Before you record
+
+Once per run, before any test, Doc Detective checks what its recordings need on this host:
+
+| Host | What it checks |
+|---|---|
+| Every host | Doc Detective's own FFmpeg runs. It records the screen, converts the `browser` engine's video, and encodes iOS device videos. |
+| Windows | FFmpeg can capture one frame of the desktop, which needs a signed-in desktop session, not a service. |
+| macOS | The app that runs Doc Detective, such as your terminal, IDE, or CI runner, has Screen Recording permission, and FFmpeg can see a screen. |
+| Linux | `DISPLAY` works, or Xvfb is installed. |
+
+When a check fails, your tests still run:
+
+- **Left unset**, `autoRecord` records nothing the check covers. The run prints one warning with the fix:
+
+  ```text
+  Warning: Not recording automatically: there's no display to capture. To record, install Xvfb or set DISPLAY, or set `autoRecord: false` to stop checking.
+  ```
+- **Set to `true`**, the automatic recording is SKIPPED with the reason and the fix. So is any `record` step the check covers.
+
+If the checks pass but an automatic recording still can't start, it's SKIPPED too. With `autoRecord` set to `true`, it fails instead: the context fails, and its steps are SKIPPED.
+
+To give a macOS app Screen Recording permission, turn it on in **System Settings > Privacy & Security > Screen Recording**.
+
+## Turn it off
+
+Set `autoRecord` to `false` at the config, spec, or test level. A test's setting overrides a spec's, which overrides the config's:
+
+```json title=".doc-detective.json"
+{
+  "autoRecord": false
+}
+```
+
+For a single run, use the flag:
+
+```bash
+doc-detective --no-auto-record
+```
+
+The flag sets the config level, so a spec or test that sets `autoRecord` to `true` still records. `true` is strict: a recording the host can't make is SKIPPED with the reason, rather than left out.
 
 ## Verify it works
 
-- An automatic recording saves per driver-based context, on a stable path in the per-run artifact tree.
-- A headless run with no display skips the automatic recording. Run headed, or on Linux use the `ffmpeg` engine's Xvfb virtual display. See [Docker and headless](/docs/ci/docker-and-headless).
-- On Windows and macOS, Doc Detective warns when a run records concurrently, because the recordings share the same physical display and overlap. See [Two concurrent recordings overlap on Windows or macOS](/docs/test-docs/record-video-guide#two-concurrent-recordings-overlap-on-windows-or-macos).
+- Each recorded context has an `autoRecording` field in the results, and its `recordingPath` names a video in the run folder.
+- A host that can't record prints one `Not recording automatically` warning, and the tests still run.
+
+## Troubleshooting
+
+### A Firefox window opens during the run
+
+**Cause:** the context is headless Firefox, and Doc Detective runs it headed so it can record it.
+
+**Solution:** set `autoRecord` to `false` to keep it headless, or name `chrome` in the context, which records headless.
+
+### Recordings overlap on Windows or macOS
+
+**Cause:** the run sets `concurrentRunners` above 1 and `autoRecord` to `true`, so the `ffmpeg` engine records the same physical screen for several contexts at once. Doc Detective warns when this happens.
+
+**Solution:** leave `autoRecord` unset, which records those contexts one at a time, or use headless Chrome, which records each tab on its own. See [Two concurrent recordings overlap on Windows or macOS](/docs/test-docs/record-video-guide#two-concurrent-recordings-overlap-on-windows-or-macos).
 
 ## What's next
 
 - [Record video](/docs/test-docs/record-video-guide) to record a flow, stop it, and choose an engine.
+- [Capture screenshots automatically](/docs/test-docs/automatic-screenshots), which is also on by default.
 - [Detect visual regressions with checkpoints](/docs/test-docs/video-visual-regression) to watch a recording for visual drift.
-- [Narrate a recording with annotations](/docs/test-docs/narrate-recordings) that stay up across the flow.
-- Follow the worked [recording example](/docs/test-docs/record-video) end to end.
 - Look up automatic-recording fields in [Automatic recordings](/docs/actions/record#automatic-recordings) and the [`config`](/reference/schemas/config) schema.

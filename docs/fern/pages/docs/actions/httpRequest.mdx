@@ -8,13 +8,13 @@ The `httpRequest` action makes arbitrary HTTP calls, allowing you to interact wi
 
 You can specify a basic GET request using a string shorthand or use an object for more complex requests and validation:
 
-- **String Shorthand:** Provide the full URL directly as the value for the `httpRequest` key. This performs a basic GET request to that URL.
+- **String Shorthand:** Provide the URL directly as the value for the `httpRequest` key. This performs a basic GET request to that URL.
 - **Object Format:** Use an object with the following properties:
-  - `url`: (Required unless using `openApi`) The target URL for the request.
-  - `method`: (Optional) The HTTP method (for example, `GET`, `POST`, `PUT`, `DELETE`). Defaults to `GET`.
+  - `url`: (Required unless using `openApi`) The target URL. Use an absolute URL, a path that starts with one `/`, or a value that starts with a variable, such as `$API_URL/users`. Doc Detective joins a path to the global `origin` from the configuration and appends its `originParams`. Without an `origin`, a path fails the step. With `openApi`, a path still joins the configuration's `origin`, not the OpenAPI `server`.
+  - `method`: (Optional) The HTTP method (for example, `get`, `post`, `put`, `patch`, or `delete`). Case is normalized, so `GET` also works. Defaults to `get`.
   - `timeout`: (Optional) Maximum duration in milliseconds to wait for the request to complete.
   - `request`: (Optional) An object defining the request details:
-    - `headers`: (Optional) Request headers, as either key-value pairs or a newline-separated string block such as `Content-Type: application/json\nAuthorization: Bearer token`. In the string form, Doc Detective splits each line on its first colon. Header values can therefore contain colons themselves, including full URLs, timestamps like `12:00:00 GMT`, and `host:port` values.
+    - `headers`: (Optional) Request headers, as either key-value pairs with string values or a newline-separated string block such as `Content-Type: application/json\nAuthorization: Bearer token`. In the string form, Doc Detective splits each line on its first colon. Header values can therefore contain colons themselves, including full URLs, timestamps like `12:00:00 GMT`, and `host:port` values.
     - `parameters`: (Optional) Key-value pairs for query string parameters.
     - `body`: (Optional) The request body. Can be a string or JSON object.
   - `response`: (Optional) An object defining expected response validation:
@@ -30,12 +30,12 @@ You can specify a basic GET request using a string shorthand or use an object fo
     - `server`: (Optional) Base server URL for the request. If omitted, Doc Detective uses the first server defined in the OpenAPI description.
     - `validateAgainstSchema`: (Optional) Which parts of the request and response to validate against the OpenAPI schema (`request`, `response`, `both`, or `none`). The step fails on a mismatch. Defaults to `both`.
     - `mockResponse`: (Optional) When `true`, skips the HTTP request and uses the response example or schema from the OpenAPI description as the response data. Useful for testing an API that isn't fully implemented yet. If `statusCode` isn't set, Doc Detective uses the first response code defined for the operation.
-    - `statusCode`: (Optional) Response code to use for validation, examples, and status-code checking. Doc Detective adds this code to the step's accepted `statusCodes`.
+    - `statusCode`: (Optional) Response code to use for validation, examples, and status-code checking. Doc Detective adds this code to the step's accepted `statusCodes`. Without `statusCode` or `statusCodes`, the step accepts the operation's `2xx` response codes instead of `[200, 201]`.
     - `useExample`: (Optional) Which parts of the request and response to populate with example data from the OpenAPI description (`request`, `response`, `both`, or `none`). Defaults to `none`.
     - `exampleKey`: (Optional) Key of the specific example to use if multiple exist.
-    - `headers`: (Optional) Request headers to add to every request built from the definition, such as an `Authorization` header. A step-level value overrides a matching header set in your configuration.
+    - `headers`: (Optional) Request headers to add to every request built from the definition, such as an `Authorization` header, in the same two forms as `request.headers`. A step-level value overrides a matching header set in your configuration, and `request.headers` override these by name.
     *Note: Properties like `request.headers`, `request.parameters`, `request.body` can override values from the OpenAPI definition or example.*
-  - *Output Saving:* You can also save the response body using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`httpRequest`](/reference/schemas/httprequest) reference for details.
+  - *Output Saving:* You can also save the response body using `path`, `directory`, `maxVariation`, and `overwrite` properties. The saved file shows environment variable values as `***NAME***`. See [Saved files](/docs/ci/secrets#saved-files) and the [`httpRequest`](/reference/schemas/httprequest) reference.
 
 **Setting Variables:** To capture parts of the response for later steps, use the step-level `variables` object. You can assign values based on the response using expressions like `$$response.body`, `$$response.headers`, `$$response.status`, etc. You can use dot notation for nested JSON fields (for example, `$$response.body.user.id`).
 
@@ -50,9 +50,11 @@ Depending on which validations you configure, the action also exposes the result
 
 > For comprehensive options, see the [`httpRequest`](/reference/schemas/httprequest) reference.
 
+Reports show environment variable values in the URL, headers, body, and response as `***NAME***`, including a `Basic` auth token that holds one. Response checks compare the real values. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
+
 ## Examples
 
-Here are a few ways you might use the `httpRequest` action:
+The docs tests run every example below except the string-or-array body example and the save-and-timeout example.
 
 ### Basic GET request (string shorthand)
 
@@ -113,7 +115,7 @@ Here are a few ways you might use the `httpRequest` action:
           "description": "Create a user via POST request.",
           "httpRequest": {
             "url": "https://reqres.in/api/users",
-            "method": "POST",
+            "method": "post",
             "request": {
               "body": {
                 "name": "morpheus",
@@ -128,7 +130,7 @@ Here are a few ways you might use the `httpRequest` action:
 }
 ```
 
-{/* step {"stepId":"httprequest-post","description":"Create a user via POST request against the local echo API","httpRequest":{"url":"http://localhost:8092/api/users","method":"POST","request":{"body":{"name":"morpheus","job":"leader"}},"response":{"body":{"name":"morpheus","job":"leader"}}}} */}
+{/* step {"stepId":"httprequest-post","description":"Create a user via POST request against the local echo API","httpRequest":{"url":"http://localhost:8092/api/users","method":"post","request":{"body":{"name":"morpheus","job":"leader"}},"response":{"body":{"name":"morpheus","job":"leader"}}}} */}
 {/* test end */}
 
 ### PUT request with headers and query parameters
@@ -144,7 +146,7 @@ Here are a few ways you might use the `httpRequest` action:
           "description": "Update a user via PUT request.",
           "httpRequest": {
             "url": "https://reqres.in/api/users/2",
-            "method": "PUT",
+            "method": "put",
             "request": {
               "headers": {
                 "Content-Type": "application/json"
@@ -165,7 +167,67 @@ Here are a few ways you might use the `httpRequest` action:
 }
 ```
 
-{/* step {"stepId":"httprequest-put","description":"Update a user via PUT request with headers and query parameters, against the exact /api/users/2 path shown above","httpRequest":{"url":"http://localhost:8092/api/users/2","method":"PUT","request":{"headers":{"Content-Type":"application/json"},"parameters":{"source":"test"},"body":{"name":"morpheus","job":"zion resident"}},"response":{"body":{"name":"morpheus","job":"zion resident"}}}} */}
+{/* step {"stepId":"httprequest-put","description":"Update a user via PUT request with headers and query parameters, against the exact /api/users/2 path shown above","httpRequest":{"url":"http://localhost:8092/api/users/2","method":"put","request":{"headers":{"Content-Type":"application/json"},"parameters":{"source":"test"},"body":{"name":"morpheus","job":"zion resident"}},"response":{"body":{"name":"morpheus","job":"zion resident"}}}} */}
+{/* test end */}
+
+### Update fields with a PATCH request
+
+A `PATCH` request sends only the fields you want to change.
+
+{/* test {"testId":"httprequest-patch-body","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Update a user's job via PATCH request.",
+          "httpRequest": {
+            "url": "https://reqres.in/api/users/2",
+            "method": "patch",
+            "request": {
+              "body": {
+                "job": "captain"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"httprequest-patch","description":"Update a single field via PATCH against the local echo API","httpRequest":{"url":"http://localhost:8092/api/users/2","method":"patch","request":{"body":{"job":"captain"}},"response":{"body":{"job":"captain"}}}} */}
+{/* test end */}
+
+### Delete a resource with a DELETE request
+
+A `DELETE` request removes a resource. APIs vary in the status they return. Set `statusCodes` to the codes yours uses, such as `200` or `204`.
+
+{/* test {"testId":"httprequest-delete-resource","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Delete a user via DELETE request.",
+          "httpRequest": {
+            "url": "https://reqres.in/api/users/2",
+            "method": "delete",
+            "statusCodes": [204]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"httprequest-delete","description":"Delete a resource against the local echo API, which returns 200","httpRequest":{"url":"http://localhost:8092/api/users/2","method":"delete","statusCodes":[200]}} */}
 {/* test end */}
 
 ### Send request headers as a string block
@@ -183,7 +245,7 @@ You can also provide `request.headers` as a single newline-separated string inst
           "description": "Send request headers as a newline-separated string.",
           "httpRequest": {
             "url": "https://reqres.in/api/users",
-            "method": "POST",
+            "method": "post",
             "request": {
               "headers": "Content-Type: application/json\nX-Callback: https://example.com/cb",
               "body": {
@@ -199,8 +261,58 @@ You can also provide `request.headers` as a single newline-separated string inst
 }
 ```
 
-{/* step {"stepId":"httprequest-headers-str","description":"Send request headers as a newline-separated string","httpRequest":{"url":"http://localhost:8092/api/users","method":"POST","request":{"headers":"Content-Type: application/json\nX-Callback: https://example.com/cb","body":{"name":"morpheus","job":"leader"}},"response":{"body":{"name":"morpheus","job":"leader"}}}} */}
+{/* step {"stepId":"httprequest-headers-str","description":"Send request headers as a newline-separated string","httpRequest":{"url":"http://localhost:8092/api/users","method":"post","request":{"headers":"Content-Type: application/json\nX-Callback: https://example.com/cb","body":{"name":"morpheus","job":"leader"}},"response":{"body":{"name":"morpheus","job":"leader"}}}} */}
 {/* test end */}
+
+### Send a string or array request body
+
+`request.body` accepts a JSON object, a JSON array, or a raw string. Doc Detective sends an object or array as JSON. It sends a string unchanged, so set the matching `Content-Type` header yourself. The same three shapes apply to `response.body` when you validate the response.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Send an array body as JSON.",
+          "httpRequest": {
+            "url": "https://api.example.com/batch",
+            "method": "post",
+            "request": {
+              "body": [
+                { "id": 1, "name": "Neo" },
+                { "id": 2, "name": "Trinity" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Send a raw string body with a matching Content-Type.",
+          "httpRequest": {
+            "url": "https://api.example.com/graphql",
+            "method": "post",
+            "request": {
+              "headers": { "Content-Type": "application/graphql" },
+              "body": "{ user(id: 2) { name } }"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ### Validate response status code and body
 
@@ -215,7 +327,7 @@ You can also provide `request.headers` as a single newline-separated string inst
           "description": "Create user and validate response.",
           "httpRequest": {
             "url": "https://reqres.in/api/users",
-            "method": "POST",
+            "method": "post",
             "request": {
               "body": {
                 "name": "morpheus",
@@ -225,7 +337,7 @@ You can also provide `request.headers` as a single newline-separated string inst
             "response": {
               "body": {
                 "name": "morpheus",
-                "job": "leader",
+                "job": "leader"
               }
             },
             "statusCodes": [201] // Expect HTTP 201 Created
@@ -237,7 +349,7 @@ You can also provide `request.headers` as a single newline-separated string inst
 }
 ```
 
-{/* step {"stepId":"httprequest-status-body","description":"Create a user and validate the response status and body (the local echo API returns 200, unlike reqres.in's 201)","httpRequest":{"url":"http://localhost:8092/api/users","method":"POST","request":{"body":{"name":"morpheus","job":"leader"}},"response":{"body":{"name":"morpheus","job":"leader"}},"statusCodes":[200]}} */}
+{/* step {"stepId":"httprequest-status-body","description":"Create a user and validate the response status and body (the local echo API returns 200, unlike reqres.in's 201)","httpRequest":{"url":"http://localhost:8092/api/users","method":"post","request":{"body":{"name":"morpheus","job":"leader"}},"response":{"body":{"name":"morpheus","job":"leader"}},"statusCodes":[200]}} */}
 {/* test end */}
 
 ### Use OpenAPI definition (by operation ID)
@@ -316,7 +428,7 @@ Assumes an OpenAPI definition with operation ID `getUserById` is loaded.
           "description": "Create user and capture the ID.",
           "httpRequest": {
             "url": "https://reqres.in/api/users",
-            "method": "POST",
+            "method": "post",
             "request": {
               "body": {"name": "neo", "job": "the one"}
             },
@@ -330,7 +442,7 @@ Assumes an OpenAPI definition with operation ID `getUserById` is loaded.
           "description": "Use the captured ID in the next request.",
           "httpRequest": {
             "url": "https://reqres.in/api/users/$USER_ID", // Use variable in URL
-            "method": "GET"
+            "method": "get"
           }
         }
       ]
@@ -339,11 +451,13 @@ Assumes an OpenAPI definition with operation ID `getUserById` is loaded.
 }
 ```
 
-{/* step {"stepId":"httprequest-capture-var","description":"Create a user (including an id) and capture it into a variable","httpRequest":{"url":"http://localhost:8092/api/users","method":"POST","request":{"body":{"name":"neo","job":"the one","id":"neo-101"}}},"variables":{"USER_ID":"$$response.body.id"}} */}
-{/* step {"stepId":"httprequest-use-var","description":"Use the captured ID as a path segment, matching the doc's own URL shape exactly. The echo server reflects the resolved request path in an x-echo-path response header (not the body, so it can't be confused with real response data), which proves $USER_ID was genuinely substituted rather than left as a literal string","httpRequest":{"url":"http://localhost:8092/api/users/$USER_ID","method":"GET","response":{"headers":{"x-echo-path":"/api/users/neo-101"}}}} */}
+{/* step {"stepId":"httprequest-capture-var","description":"Create a user (including an id) and capture it into a variable","httpRequest":{"url":"http://localhost:8092/api/users","method":"post","request":{"body":{"name":"neo","job":"the one","id":"neo-101"}}},"variables":{"USER_ID":"$$response.body.id"}} */}
+{/* step {"stepId":"httprequest-use-var","description":"Use the captured ID as a path segment, matching the doc's own URL shape exactly. The echo server reflects the resolved request path in an x-echo-path response header (not the body, so it can't be confused with real response data), which proves $USER_ID was genuinely substituted rather than left as a literal string","httpRequest":{"url":"http://localhost:8092/api/users/$USER_ID","method":"get","response":{"headers":{"x-echo-path":"/api/users/neo-101"}}}} */}
 {/* test end */}
 
-### Save response body to a file
+### Save the response body and set a timeout
+
+Save the response with `path` and `directory`, and cap the request with a `timeout` in milliseconds. On later runs, `maxVariation` and `overwrite` compare the new response against the saved copy.
 
 ```json
 {
@@ -351,12 +465,15 @@ Assumes an OpenAPI definition with operation ID `getUserById` is loaded.
     {
       "steps": [
         {
-          "description": "Get user data and save response to file.",
+          "description": "Get user data, save the response, and cap the request time.",
           "httpRequest": {
             "url": "https://reqres.in/api/users/2",
-            "method": "GET",
-            "path": "user_2_response.json", // File name
-            "directory": "./output/api_responses" // Output directory
+            "method": "get",
+            "timeout": 5000,
+            "path": "user_2_response.json",
+            "directory": "./output/api_responses",
+            "maxVariation": 0.05,
+            "overwrite": "aboveVariation"
           }
         }
       ]
@@ -380,7 +497,7 @@ When testing APIs that return unpredictable values (like timestamps, UUIDs, or s
           "description": "Verify user response includes required fields.",
           "httpRequest": {
             "url": "https://api.example.com/users/123",
-            "method": "GET",
+            "method": "get",
             "response": {
               "required": ["id", "email", "createdAt", "sessionToken"]
             }
@@ -392,7 +509,7 @@ When testing APIs that return unpredictable values (like timestamps, UUIDs, or s
 }
 ```
 
-{/* step {"stepId":"httprequest-required","description":"Verify the response includes required fields with unpredictable values","httpRequest":{"url":"http://localhost:8092/api/users","method":"POST","request":{"body":{"id":"usr-101","email":"neo@zion.example","createdAt":"2026-01-01T00:00:00Z","sessionToken":"tok-abc123"}},"response":{"required":["id","email","createdAt","sessionToken"]}}} */}
+{/* step {"stepId":"httprequest-required","description":"Verify the response includes required fields with unpredictable values","httpRequest":{"url":"http://localhost:8092/api/users","method":"post","request":{"body":{"id":"usr-101","email":"neo@zion.example","createdAt":"2026-01-01T00:00:00Z","sessionToken":"tok-abc123"}},"response":{"required":["id","email","createdAt","sessionToken"]}}} */}
 {/* test end */}
 
 ### Validate nested fields and arrays
@@ -410,7 +527,7 @@ Use dot notation for nested object fields and bracket notation for array element
           "description": "Verify nested user profile fields exist.",
           "httpRequest": {
             "url": "https://api.example.com/users/123",
-            "method": "GET",
+            "method": "get",
             "response": {
               "required": [
                 "user.profile.name",
@@ -424,7 +541,7 @@ Use dot notation for nested object fields and bracket notation for array element
           "description": "Verify array elements contain required fields.",
           "httpRequest": {
             "url": "https://api.example.com/orders",
-            "method": "GET",
+            "method": "get",
             "response": {
               "required": [
                 "orders[0].id",
@@ -440,8 +557,8 @@ Use dot notation for nested object fields and bracket notation for array element
 }
 ```
 
-{/* step {"stepId":"httprequest-nested-object","description":"Verify nested user profile fields exist","httpRequest":{"url":"http://localhost:8092/api/users","method":"POST","request":{"body":{"user":{"profile":{"name":"Neo","avatar":"neo.png"},"settings":{"notifications":true}}}},"response":{"required":["user.profile.name","user.profile.avatar","user.settings.notifications"]}}} */}
-{/* step {"stepId":"httprequest-nested-array","description":"Verify array elements contain required fields","httpRequest":{"url":"http://localhost:8092/api/orders","method":"POST","request":{"body":{"orders":[{"id":1,"total":10,"items":[{"productId":99}]}]}},"response":{"required":["orders[0].id","orders[0].total","orders[0].items[0].productId"]}}} */}
+{/* step {"stepId":"httprequest-nested-object","description":"Verify nested user profile fields exist","httpRequest":{"url":"http://localhost:8092/api/users","method":"post","request":{"body":{"user":{"profile":{"name":"Neo","avatar":"neo.png"},"settings":{"notifications":true}}}},"response":{"required":["user.profile.name","user.profile.avatar","user.settings.notifications"]}}} */}
+{/* step {"stepId":"httprequest-nested-array","description":"Verify array elements contain required fields","httpRequest":{"url":"http://localhost:8092/api/orders","method":"post","request":{"body":{"orders":[{"id":1,"total":10,"items":[{"productId":99}]}]}},"response":{"required":["orders[0].id","orders[0].total","orders[0].items[0].productId"]}}} */}
 {/* test end */}
 
 ### Combine required fields with body validation
@@ -459,7 +576,7 @@ You can use both `response.required` and `response.body` together to validate th
           "description": "Validate both specific values and required fields.",
           "httpRequest": {
             "url": "https://api.example.com/users",
-            "method": "POST",
+            "method": "post",
             "request": {
               "body": {
                 "username": "testuser",
@@ -484,7 +601,7 @@ You can use both `response.required` and `response.body` together to validate th
 }
 ```
 
-{/* step {"stepId":"httprequest-required-body","description":"Validate specific values and required fields together (the local echo API returns 200, unlike reqres.in's 201)","httpRequest":{"url":"http://localhost:8092/api/users","method":"POST","request":{"body":{"username":"testuser","role":"admin","status":"success","sessionToken":"tok-abc","expiresAt":"2099-01-01T00:00:00Z","user":{"id":1,"role":"admin"}}},"response":{"required":["sessionToken","expiresAt","user.id"],"body":{"status":"success","user":{"role":"admin"}}},"statusCodes":[200]}} */}
+{/* step {"stepId":"httprequest-required-body","description":"Validate specific values and required fields together (the local echo API returns 200, unlike reqres.in's 201)","httpRequest":{"url":"http://localhost:8092/api/users","method":"post","request":{"body":{"username":"testuser","role":"admin","status":"success","sessionToken":"tok-abc","expiresAt":"2099-01-01T00:00:00Z","user":{"id":1,"role":"admin"}}},"response":{"required":["sessionToken","expiresAt","user.id"],"body":{"status":"success","user":{"role":"admin"}}},"statusCodes":[200]}} */}
 {/* test end */}
 
 > **Note:** Fields with `null`, `""`, `0`, or `false` values are considered to exist and will pass validation.
@@ -506,7 +623,7 @@ The check descends into nested objects. It catches an extra field at any depth a
           "description": "Fail if the response returns fields beyond those declared.",
           "httpRequest": {
             "url": "https://api.example.com/users/123",
-            "method": "GET",
+            "method": "get",
             "response": {
               "body": {
                 "id": 123,
@@ -522,7 +639,7 @@ The check descends into nested objects. It catches an extra field at any depth a
 }
 ```
 
-{/* step {"stepId":"httprequest-strict-fields","description":"Pass when the response contains only the declared fields (uses the port-8093 API server, which echoes requests without adding fields)","httpRequest":{"url":"http://localhost:8093/api/users","method":"POST","request":{"body":{"id":123,"name":"morpheus"}},"response":{"body":{"id":123,"name":"morpheus"}},"allowAdditionalFields":false}} */}
+{/* step {"stepId":"httprequest-strict-fields","description":"Pass when the response contains only the declared fields (uses the port-8093 API server, which echoes requests without adding fields)","httpRequest":{"url":"http://localhost:8093/api/users","method":"post","request":{"body":{"id":123,"name":"morpheus"}},"response":{"body":{"id":123,"name":"morpheus"}},"allowAdditionalFields":false}} */}
 {/* test end */}
 
 

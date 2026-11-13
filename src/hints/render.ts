@@ -1,3 +1,4 @@
+import { palette } from "../cliOutput.js";
 // Tiny markdown → ANSI renderer for hint bodies.
 //
 // Supported subset:
@@ -17,16 +18,11 @@
 // here because hint markdown needs them. Both palettes are
 // intentionally tiny; they don't share a definition.
 
-export const colors = {
-  red: "\x1b[31m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  cyan: "\x1b[36m",
-  reset: "\x1b[0m",
-  bold: "\x1b[1m",
-  italic: "\x1b[3m",
-  dim: "\x1b[2m",
-};
+// Hints print to stderr, so that's the stream that decides. Read on each use,
+// because --no-color and tests change the environment.
+export const colors = new Proxy({} as ReturnType<typeof palette>, {
+  get: (_target, name: string) => palette(process.stderr)[name as keyof ReturnType<typeof palette>],
+});
 
 export interface RenderOptions {
   /**

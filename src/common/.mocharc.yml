@@ -4,3 +4,10 @@
 # the 2000ms default, so allow more headroom. See the schema-bloat follow-up.
 timeout: 30000
 exit: true
+# test/schemasReferenced.test.js compiles the dereferenced schemas, each one huge
+# function. V8's Maglev JIT has no size cap and peaks at ~11 GB optimizing the hot
+# step_v3/spec_v3 ones, which OOM-kills the 16 GB CI runner. Without Maglev the
+# c8 run peaks under 2 GB. Shipped validators are precompiled from the
+# $ref'd schemas into small functions, so this only affects the test.
+node-option:
+  - no-maglev

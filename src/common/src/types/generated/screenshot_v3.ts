@@ -9,18 +9,18 @@
  */
 export type Screenshot = CaptureScreenshot | ScreenshotSimple | CaptureScreenshotDetailed;
 /**
- * If `true`, captures a screenshot. If `false`, doesn't capture a screenshot.
+ * If `true`, captures a screenshot to `<stepId>.png` in `outputDir`. If `false`, doesn't capture a screenshot.
  */
 export type CaptureScreenshot = boolean;
 /**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
+ * File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple = string;
-export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCropYet;
+export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCrop;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
-export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit" | "edge";
+export type SurfaceByBrowserEngine = "chrome" | "firefox" | "safari" | "webkit";
 /**
  * Which window to act on. Omit to use the active window.
  */
@@ -58,7 +58,7 @@ export type ByIndex2 = number;
  */
 export type ByName2 = string;
 /**
- * File path of the PNG file. Accepts absolute paths. If not specified, the file name is the ID of the step. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to a local run-specific folder instead of being uploaded back to the URL.
+ * File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple1 = string;
 /**
@@ -218,7 +218,7 @@ export type ExactlyOneAnnotationType = {
 
 export interface CaptureScreenshotFields {
   /**
-   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop` yet.
+   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop`.
    */
   surface?: SurfaceByBrowserEngine | BrowserSurface | AppSurface;
   path?: ScreenshotSimple1;
@@ -227,7 +227,7 @@ export interface CaptureScreenshotFields {
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of pixels between the new screenshot and the existing screenshot at `path`. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step fails. If a screenshot doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -244,9 +244,9 @@ export interface CaptureScreenshotFields {
 }
 export interface BrowserSurface {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -404,7 +404,7 @@ export interface ElementFindingFields {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }
@@ -459,7 +459,7 @@ export interface ElementFindingFields1 {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }
@@ -514,7 +514,7 @@ export interface ElementFindingFields2 {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }
@@ -569,7 +569,7 @@ export interface ElementFindingFields3 {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }
@@ -624,7 +624,7 @@ export interface ElementFindingFields4 {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }
@@ -679,7 +679,7 @@ export interface ElementFindingFields5 {
    */
   elementAria?: string;
   /**
-   * Max duration in milliseconds to wait for the element to exist.
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
    */
   timeout?: number;
 }
@@ -800,7 +800,7 @@ export interface AnnotationTransition {
  */
 export interface SourceIntegration {
   /**
-   * The type of integration. Currently supported: 'heretto'. Additional types may be added in the future.
+   * The type of integration. The only type is `heretto`.
    */
   type: "heretto";
   /**
@@ -820,6 +820,6 @@ export interface SourceIntegration {
    */
   contentPath?: string;
 }
-export interface AppCapturesDonTSupportCropYet {
+export interface AppCapturesDonTSupportCrop {
   [k: string]: unknown;
 }

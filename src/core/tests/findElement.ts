@@ -1,4 +1,5 @@
 import { validate } from "../../common/src/validate.js";
+import { invalidStepMessage } from "../utils.js";
 import { switchToSurface } from "./browserSurface.js";
 import {
   findAppElement,
@@ -19,6 +20,7 @@ import {
   findElementByShorthand,
   findElementByCriteria,
   setElementOutputs,
+  collectNearMatches,
 } from "./findStrategies.js";
 import { typeKeys } from "./typeKeys.js";
 import { moveTo } from "./moveTo.js";
@@ -59,8 +61,9 @@ async function finalizeFound({ result }: { result: any }) {
   return result;
 }
 
-// Find a single element
-async function findElement({ config, step, driver, click, appSession, processRegistry, surfaceTracker }: { config: any; step: any; driver: any; click?: any; appSession?: any; processRegistry?: Map<string, any>; surfaceTracker?: ActiveSurfaceTracker }) {
+// Find a single element. `nearMatches: false` skips the near-match collector
+// for a caller that doesn't report it, such as annotations (ADR 01194).
+async function findElement({ config, step, driver, click, appSession, processRegistry, surfaceTracker, nearMatches = true }: { config: any; step: any; driver: any; click?: any; appSession?: any; processRegistry?: Map<string, any>; surfaceTracker?: ActiveSurfaceTracker; nearMatches?: boolean }) {
   let result: any = {
     status: "PASS",
     description: "Found an element matching selector.",
@@ -71,7 +74,7 @@ async function findElement({ config, step, driver, click, appSession, processReg
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
   // Accept coerced and defaulted values
@@ -175,14 +178,11 @@ async function findElement({ config, step, driver, click, appSession, processReg
           " The moveTo/type sub-effects aren't supported on app surfaces; use a separate `type` step targeting the app surface.";
         return result;
       }
-      if (click || findSpec.click) {
-        const clickSpec = findSpec.click;
-        const button =
-          typeof clickSpec === "string" &&
-          ["left", "right", "middle"].includes(clickSpec)
-            ? clickSpec
-            : clickSpec?.button || "left";
-        const duration = findSpec.click?.duration;
+      // find.click is { button, duration } in the effective step (ADR 01175).
+      // A string find carries none, so a click step's click is a left click.
+      const clickSpec = findSpec.click || (click && { button: "left" });
+      if (clickSpec) {
+        const { button, duration } = clickSpec;
         const gestures =
           APP_GESTURES[appRef.entry!.platform ?? "windows"];
         if (duration && button !== "left") {
@@ -289,29 +289,12 @@ async function findElement({ config, step, driver, click, appSession, processReg
     } else {
       // No matching elements: expose found=false and still evaluate so the
       // existence assertion FAILs (don't early-return before the spec).
-      result.description = "No elements matched selector or text.";
+      result.description = `Couldn't find element \`${step.find}\`.`;
       result.outputs.found = false;
+      if (nearMatches) result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
       return await finalizeFound({ result });
     }
   }
-  // Apply default values
-  step.find = {
-    ...step.find,
-    selector: step.find.selector || "",
-    // ?? not ||, matching the app path above: an explicit `timeout: 0` is a
-    // valid schema value meaning "check once, now", and || would clobber it
-    // to the 5s default.
-    timeout: step.find.timeout ?? 5000,
-    elementText: step.find.elementText || "",
-    moveTo: step.find.moveTo || false,
-    click: step.find.click || false,
-    type: step.find.type || false,
-  };
-  // Normalize elementClass to array
-  if (step.find.elementClass && !Array.isArray(step.find.elementClass)) {
-    step.find.elementClass = [step.find.elementClass];
-  }
-
   // Find element (and match text and other criteria)
   let element: any;
 
@@ -333,19 +316,13 @@ async function findElement({ config, step, driver, click, appSession, processReg
   });
 
   if (!foundElement) {
-    result.description = error || "No elements matched criteria.";
+    result.description = error || "Couldn't find an element.";
     result.outputs.found = false;
+    if (nearMatches) result.outputs.nearMatches = await collectNearMatches({ driver, find: step.find });
     return await finalizeFound({ result });
   }
   element = foundElement;
   result.description += ` Found element by ${foundBy}.`;
-
-  // No matching elements
-  if (!element.elementId) {
-    result.description = "No elements matched selector and/or text.";
-    result.outputs.found = false;
-    return await finalizeFound({ result });
-  }
 
   // Set element in outputs
   result.outputs = await setElementOutputs({ element });
@@ -375,19 +352,10 @@ async function findElement({ config, step, driver, click, appSession, processReg
   // phase A5) reject — the bare form maps to the classic element-click
   // endpoint and works everywhere. Non-left buttons genuinely need the
   // actions path, so they keep the options form (desktop-only).
-  if (step.find.click || click) {
+  const clickSpec = step.find.click || (click && { button: "left" });
+  if (clickSpec) {
+    const { button, duration } = clickSpec;
     try {
-      // The sub-effect's string shorthand names the button ("right"), per the
-      // docs; other strings (element identifiers in click_v3's string form)
-      // and `true` mean a default left click.
-      const clickSpec = step.find.click;
-      const button =
-        typeof clickSpec === "string" &&
-        ["left", "right", "middle"].includes(clickSpec)
-          ? clickSpec
-          : clickSpec?.button || "left";
-      const duration =
-        typeof clickSpec === "object" ? clickSpec?.duration : undefined;
       if (duration) {
         // Long-press (phase A6): a W3C press-pause-release chain. Like
         // non-left buttons, this needs the actions path, so it's
@@ -405,10 +373,7 @@ async function findElement({ config, step, driver, click, appSession, processReg
       result.status = "FAIL";
       // Name the operation that actually failed so a long-press failure
       // doesn't masquerade as a plain click.
-      const failed =
-        typeof step.find.click === "object" && step.find.click?.duration
-          ? `long-press element (${step.find.click.duration}ms)`
-          : "click element";
+      const failed = duration ? `long-press element (${duration}ms)` : "click element";
       result.description += ` Couldn't ${failed}. Error: ${error.message}`;
       return result;
     }

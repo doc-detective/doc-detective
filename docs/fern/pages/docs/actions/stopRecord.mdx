@@ -16,7 +16,7 @@ When you target by name, Doc Detective stops that recording wherever it falls in
 
 The same untargeted and named forms stop recordings of every kind. Browser, desktop app window, and mobile device-screen recordings all live on the same stack. For device recordings, `stopRecord` is also the point where the video transfers from the device and saves. It converts to `.webm` or `.gif` when the target path calls for it.
 
->Note: To finalize and save a recording started with the `record` action, include a `stopRecord` step. An untargeted `stopRecord` skips recordings created by [`autoRecord`](record#automatic-recordings); Doc Detective finalizes those automatically at the end of the context.
+>Note: To finalize and save a recording started with the `record` action, include a `stopRecord` step. Doc Detective also records each context on its own by default ([`autoRecord`](record#automatic-recordings)). An untargeted `stopRecord` skips that automatic recording, which Doc Detective finalizes at the end of the context. If the `record` step was SKIPPED because the host can't record, its `stopRecord` is SKIPPED too.
 >
 > For comprehensive options, see the [`stopRecord`](/reference/schemas/stoprecord) reference.
 
@@ -43,7 +43,7 @@ With [`overwrite: "aboveVariation"`](record#refreshing-stale-recordings-automati
 
 With [`verify` guards](record#verifying-the-video-file-itself):
 
-- `$$resolutionMatch`: whether the video's dimensions match the expected resolution (±2 pixels). Present only when the `resolution` guard ran.
+- `$$resolutionMatches`: whether the video's dimensions match the expected resolution (±2 pixels). Present only when the `resolution` guard ran.
 - `$$allBlack`: whether black frames cover 95% or more of the video. Present only when the `notBlack` guard ran. A violated guard fails the step.
 
 When a span uses `checkpoints` or `"aboveVariation"`, its checkpoints still run when Doc Detective skips the recording. That happens in a headless run, or when the target already exists under `overwrite: "false"`. If a step fails during the span or the span captures no checkpoints, `stopRecord` returns SKIPPED with none of the outputs below. Otherwise, `stopRecord` compares against the committed baselines and writes nothing. Because it seeds no baselines, it omits `$$seededBaselines`. It reports the other checkpoint outputs above (`$$checkpoints`, `$$maxCheckpointVariation`, `$$checkpointErrors`) plus:
@@ -53,6 +53,10 @@ When a span uses `checkpoints` or `"aboveVariation"`, its checkpoints still run 
 A skipped `stopRecord` (no active recording, or a recording that never started) reports no outputs.
 
 ## Examples
+
+The docs tests run every example below except the `null` and `false` example.
+
+### Start recording and stop it
 
 This example starts recording, performs an action, and then stops the recording.
 
@@ -81,10 +85,39 @@ This example starts recording, performs an action, and then stops the recording.
 }
 ```
 
-{/* step {"stepId":"stoprecord-record","description":"Start recording, directed at a gitignored output folder (on this headless docs-test runner, with no virtual display, the record step SKIPS rather than fails)","record":"./.dd-output/session_video.mp4"} */}
+{/* step {"stepId":"stoprecord-record","description":"Start recording, directed at a gitignored output folder (this context names no browser, so it runs headless Chrome and records the tab with the browser engine)","record":"./.dd-output/session_video.mp4"} */}
 {/* step {"stepId":"stoprecord-goto","description":"Navigate to the site","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"stoprecord-stop","description":"Stop the recording","stopRecord":true} */}
 {/* test end */}
+
+### Stop with `null`, or skip the step with `false`
+
+`stopRecord: null` stops the most recent recording too, the same as `true`, and `stopRecord: false` is an explicit no-op that stops nothing and reports the step as skipped.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start recording.",
+          "record": "./output/session_video.mp4"
+        },
+        {
+          "description": "Stop the most recent recording (last in, first out).",
+          "stopRecord": null
+        },
+        {
+          "description": "Skip this step without stopping any recording.",
+          "stopRecord": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Stop a specific recording by name
 
 This example stops a specific recording by name while another recording is still running.
 
@@ -121,4 +154,40 @@ This example stops a specific recording by name while another recording is still
 {/* step {"stepId":"stoprecord-named-stop","description":"Stop the login clip by name","stopRecord":"stoprecord-login"} */}
 {/* test end */}
 
+### Stop by name using the object form
+
+The object form targets a recording by name too, and behaves the same as the string form.
+
+{/* test {"testId":"stoprecord-by-name-object","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Start the login clip.",
+          "record": {
+            "path": "./output/login.mp4",
+            "name": "login"
+          }
+        },
+        {
+          "description": "Navigate to the site.",
+          "goTo": "https://example.com"
+        },
+        {
+          "description": "Stop the login clip by name.",
+          "stopRecord": { "name": "login" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"stoprecord-object-record","description":"Start the login clip, directed at a gitignored output folder","record":{"path":"login.mp4","directory":"./.dd-output","name":"stoprecord-object-login"}} */}
+{/* step {"stepId":"stoprecord-object-goto","description":"Navigate to the site","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"stoprecord-object-stop","description":"Stop the login clip by name using the object form","stopRecord":{"name":"stoprecord-object-login"}} */}
+{/* test end */}
 

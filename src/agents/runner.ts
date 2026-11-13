@@ -1,5 +1,6 @@
 import type { AgentAdapter, InstallReport, LogLevel, Scope } from "./types.js";
 import { listAdapters } from "./registry.js";
+import { isInteractive } from "../cliOutput.js";
 import type { InstallAgentsArgv } from "./command.js";
 
 export interface RunnerDeps {
@@ -23,7 +24,7 @@ export async function runInstallAgents(
 ): Promise<InstallReport[]> {
   const adapters = deps.adapters ?? listAdapters();
   const logger = deps.logger ?? defaultLogger;
-  const isTTY = deps.isTTY ?? (() => Boolean(process.stdin.isTTY));
+  const isTTY = deps.isTTY ?? (() => isInteractive());
 
   const dryRun = argv["dry-run"] === true;
 
@@ -37,6 +38,13 @@ export async function runInstallAgents(
     if (!argv.scope) {
       throw new Error("--yes requires --scope project|global.");
     }
+  }
+
+  // Fail before detection, which can take seconds, when there's no way to ask.
+  if (!isTTY() && (!argv.agent || argv.agent.length === 0)) {
+    throw new Error(
+      "Couldn't prompt for agents: this terminal isn't interactive. Pass `--agent` with a comma-separated list, such as `--agent claude,copilot`."
+    );
   }
 
   // Resolve which agents to target.
@@ -68,7 +76,7 @@ export async function runInstallAgents(
     if (effective.degraded) {
       logger(
         `⚠ ${adapter.displayName} does not support ${scope} scope — installing as ${effective.scope}.`,
-        "warn"
+        "warning"
       );
     }
     logger(`\n→ ${adapter.displayName} (${adapter.id}) — scope: ${effective.scope}`, "info");
@@ -159,7 +167,7 @@ async function resolveTargetAgents(
 
   if (!ctx.isTTY) {
     throw new Error(
-      "Cannot prompt for agents in a non-TTY environment. Pass --agent explicitly (repeatable)."
+      "Couldn't prompt for agents: this terminal isn't interactive. Pass `--agent` with a comma-separated list, such as `--agent claude,copilot`."
     );
   }
   if (!ctx.prompts) {

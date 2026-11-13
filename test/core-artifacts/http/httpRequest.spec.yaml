@@ -32,9 +32,6 @@ tests:
       url: http://localhost:8092/api/$ID
       method: get
       timeout: 1000
-    savePath: response.json
-    maxVariation: 0
-    overwrite: aboveVariation
 - description: statusCodes accepts a single integer as a one-item list.
   steps:
   - description: A scalar statusCodes accepts the non-default 404.

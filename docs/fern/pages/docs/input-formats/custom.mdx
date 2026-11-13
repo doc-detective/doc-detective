@@ -16,12 +16,11 @@ To define a custom file type, add an entry to the `fileTypes` array in your conf
     {
       "name": "custom-format",
       "extensions": ["custom", "cst"],
-      "testStartStatementOpen": "## TEST START:",
-      "testStartStatementClose": "",
-      "testEndStatementOpen": "## TEST END",
-      "testEndStatementClose": "",
-      "stepStatementOpen": "## STEP:",
-      "stepStatementClose": "",
+      "inlineStatements": {
+        "testStart": ["## TEST START:(.*)"],
+        "testEnd": ["## TEST END"],
+        "step": ["## STEP:(.*)"]
+      },
       "markup": []
     }
   ]
@@ -30,24 +29,18 @@ To define a custom file type, add an entry to the `fileTypes` array in your conf
 
 ### Configuration properties
 
-**Required properties:**
+A file type needs `extensions`, `extends`, or both. A key Doc Detective doesn't recognize makes the config invalid.
 
-- `name`: A descriptive name for the file type
-- `extensions`: Array of file extensions to process with this configuration
-
-**Optional properties for inline tests:**
-
-- `testStartStatementOpen`: Pattern that starts a test declaration (for example, `"<!-- test "`)
-- `testStartStatementClose`: Pattern that ends a test declaration (for example, `" -->"`)
-- `testEndStatementOpen`: Pattern that marks the end of a test (for example, `"<!-- test end"`)
-- `testEndStatementClose`: Pattern that closes the test end marker (for example, `" -->"`)
-- `stepStatementOpen`: Pattern that starts a step declaration (for example, `"<!-- step "`)
-- `stepStatementClose`: Pattern that ends a step declaration (for example, `" -->"`)
-- `testIgnoreStatement`: Pattern for ignoring blocks
-
-**Optional properties for detected tests:**
-
-- `markup`: Array of markup pattern objects that define how to extract tests from content
+- `name`: A descriptive name for the file type.
+- `extensions`: The file extensions to process with this file type.
+- `extends`: A built-in file type to start from: `markdown`, `asciidoc`, `html`, or `dita`.
+- `inlineStatements`: Regular expressions that find [inline test statements](/docs/test-docs/inline). Each statement's first capture group, or else the whole match, is the statement's content.
+  - `testStart`: Starts a test.
+  - `testEnd`: Ends the current test.
+  - `ignoreStart` and `ignoreEnd`: Mark a section to skip.
+  - `step`: Adds a step to the current test.
+  - `in`: Reads statements from parsed nodes, such as comments, instead of raw text. See [Selectors](selectors).
+- `markup`: Definitions that detect steps from your content.
 
 ## Adding custom markup patterns
 
@@ -56,6 +49,8 @@ Markup patterns define how Doc Detective extracts tests from your documentation 
 - `name`: Descriptive name for the pattern
 - `regex`: Array of regular expressions to match content
 - `actions`: Array of actions to generate when pattern matches
+
+A `regex` pattern matches the file's raw text, including code samples. To match parsed structure instead, such as links, bold text, or code blocks, use a [selector](selectors).
 
 ### Example: Custom Markdown pattern
 
@@ -167,9 +162,9 @@ Add patterns for RST-style directives in Markdown:
       "extensions": ["md", "markdown", "mdx"],
       "markup": [
         {
-          "name": "rstDirective",
-          "regex": ["\\.\\. (\\w+)::\\s*([^\\n]+)"],
-          "actions": ["$1"]
+          "name": "noteDirective",
+          "regex": ["\\.\\. note::\\s*([^\\n]+)"],
+          "actions": ["find"]
         },
         {
           "name": "codeDirective",
@@ -243,13 +238,11 @@ Here's a complete example for a hypothetical custom documentation format:
     {
       "name": "custom-docs",
       "extensions": ["cdoc"],
-      "testStartStatementOpen": "TEST[",
-      "testStartStatementClose": "]",
-      "testEndStatementOpen": "END_TEST",
-      "testEndStatementClose": "",
-      "stepStatementOpen": "STEP[",
-      "stepStatementClose": "]",
-      "testIgnoreStatement": "IGNORE",
+      "inlineStatements": {
+        "testStart": ["TEST\\[(.*?)\\]"],
+        "testEnd": ["END_TEST"],
+        "step": ["STEP\\[(.*?)\\]"]
+      },
       "markup": [
         {
           "name": "navigate",
@@ -257,9 +250,14 @@ Here's a complete example for a hypothetical custom documentation format:
           "actions": ["goTo"]
         },
         {
-          "name": "interact",
-          "regex": ["@(click|type|find)\\s+\"([^\"]+)\""],
-          "actions": ["$1"]
+          "name": "click",
+          "regex": ["@click\\s+\"([^\"]+)\""],
+          "actions": ["click"]
+        },
+        {
+          "name": "type",
+          "regex": ["@type\\s+\"([^\"]+)\""],
+          "actions": ["type"]
         },
         {
           "name": "verify",
@@ -268,7 +266,7 @@ Here's a complete example for a hypothetical custom documentation format:
             {
               "find": {
                 "selector": "$1",
-                "matchText": "$2"
+                "elementText": "$2"
               }
             }
           ]

@@ -40,7 +40,10 @@ function captureConsole(sandbox) {
     out.push(args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" "));
   });
   sandbox.stub(console, "error").callsFake((...args) => {
-    errOut.push(args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" "));
+    const line = args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
+    errOut.push(line);
+    // Logs go to stderr now, and most of these tests read them through `log`.
+    out.push(line);
   });
   return {
     get log() {
@@ -132,14 +135,13 @@ describe("utils.ts coverage", function () {
     it("prints info messages at default level via console.log", function () {
       const cap = captureConsole(sandbox);
       log("hello");
-      assert.ok(cap.log.includes("hello"));
-      assert.equal(cap.error, "");
+      assert.ok(cap.error.includes("hello"));
+      assert.ok(!cap.logLines.includes("hello") || cap.errLines.includes("hello"));
     });
     it("routes error level to console.error", function () {
       const cap = captureConsole(sandbox);
       log("boom", "error");
       assert.ok(cap.error.includes("boom"));
-      assert.equal(cap.log, "");
     });
     it("suppresses messages below the configured logLevel", function () {
       const cap = captureConsole(sandbox);
@@ -223,10 +225,9 @@ describe("utils.ts coverage", function () {
         specs: [{ specId: "s1", result: "PASS", tests: [] }],
       };
       await reporters.terminalReporter({}, "out", results, {});
-      assert.ok(cap.log.includes("Results Summary"));
-      assert.ok(cap.log.includes("All items passed"));
-      assert.ok(cap.log.includes("Total: 2")); // tests total
-      assert.ok(cap.log.includes("Passed: 5")); // steps passed
+      assert.ok(cap.log.includes("Specs:"));
+      assert.ok(cap.log.includes("2 total")); // tests total
+      assert.ok(cap.log.includes("5 passed")); // steps passed
     });
 
     it("prints the empty-run warning when totalTests === 0 even with a summary", async function () {
@@ -243,7 +244,7 @@ describe("utils.ts coverage", function () {
       assert.ok(!cap.log.includes("All items passed"));
     });
 
-    it("prints 'All items were skipped' when every spec is skipped", async function () {
+    it("leaves an all-skipped run to the skip list and the verdict line", async function () {
       const cap = captureConsole(sandbox);
       const results = {
         summary: {
@@ -252,7 +253,7 @@ describe("utils.ts coverage", function () {
         },
       };
       await reporters.terminalReporter({}, "out", results, {});
-      assert.ok(cap.log.includes("All items were skipped"));
+      assert.ok(!cap.log.includes("All items were skipped"));
     });
 
     it("renders warnings and skipped counts for each level", async function () {
@@ -267,123 +268,206 @@ describe("utils.ts coverage", function () {
         specs: [{ specId: "s1", result: "PASS", tests: [] }],
       };
       await reporters.terminalReporter({}, "out", results, {});
-      assert.ok(cap.log.includes("Warnings: 1"));
-      assert.ok(cap.log.includes("Skipped: 1"));
+      assert.ok(cap.log.includes("1 warnings"));
+      assert.ok(cap.log.includes("1 skipped"));
     });
 
-    it("collects and prints failed + skipped specs/tests/contexts/steps", async function () {
-      const cap = captureConsole(sandbox);
-      const results = {
-        summary: {
-          specs: { pass: 0, fail: 1, warning: 0, skipped: 1 },
-          tests: { pass: 0, fail: 1, warning: 0, skipped: 1 },
-          contexts: { pass: 0, fail: 1, warning: 0, skipped: 1 },
-          steps: { pass: 0, fail: 1, warning: 0, skipped: 1 },
-        },
+    // The lists name the same items as every other reporter (ADR 01180).
+    describe("the lists", function () {
+      const counts = (pass, fail, warning, skipped) => ({ pass, fail, warning, skipped });
+      const summary = {
+        specs: counts(0, 1, 0, 1),
+        tests: counts(1, 1, 1, 1),
+        contexts: counts(1, 1, 1, 1),
+        steps: counts(1, 1, 1, 2),
+      };
+      const mixed = (extra = {}) => ({
+        summary,
         specs: [
           {
-            specId: "spec-fail",
+            specId: "install-guide",
             result: "FAIL",
             tests: [
               {
-                testId: "test-fail",
+                testId: "install",
                 result: "FAIL",
                 contexts: [
                   {
+                    contextId: "linux-chrome",
                     result: "FAIL",
-                    platform: "linux",
-                    browser: { name: "chrome" },
                     steps: [
                       {
+                        stepId: "click-save",
+                        description: "Click Save",
                         result: "FAIL",
-                        stepId: "step-fail",
-                        resultDescription: "exploded",
+                        resultDescription: "Couldn't find element `#save`.",
+                        resultHint: "Check the selector.",
                       },
+                      { stepId: "next", result: "SKIPPED", resultDescription: "Skipped: a prior step failed." },
+                      { stepId: "last", result: "SKIPPED", resultDescription: "Skipped: a prior step failed." },
+                    ],
+                  },
+                ],
+              },
+              {
+                testId: "verify",
+                result: "WARNING",
+                contexts: [
+                  {
+                    contextId: "linux-chrome",
+                    result: "WARNING",
+                    steps: [
+                      { stepId: "compare", description: "Compare the page", result: "WARNING", resultDescription: "It varied by 3%." },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            specId: "mac-guide",
+            result: "SKIPPED",
+            tests: [
+              {
+                testId: "setup",
+                description: "Set up a Mac",
+                result: "SKIPPED",
+                contexts: [{ contextId: "default", result: "SKIPPED", resultDescription: "Skipped: not on a Mac.", steps: [] }],
+              },
+            ],
+          },
+        ],
+        ...extra,
+      });
+
+      it("prints each list with its count, ID path, description, reason, hint, and fold count", async function () {
+        const cap = captureConsole(sandbox);
+        await reporters.terminalReporter({}, "out", mixed(), {});
+        const text = cap.log;
+        for (const line of [
+          "Failed (1):",
+          "1. install-guide › install › linux-chrome › click-save — Click Save",
+          "   Couldn't find element `#save`.",
+          "   Hint: Check the selector.",
+          "   2 more steps skipped after the failure.",
+          "Warnings (1):",
+          "1. install-guide › verify › linux-chrome › compare — Compare the page",
+          "   It varied by 3%.",
+          "Skipped (1):",
+          "1. mac-guide › setup › default — Set up a Mac",
+          "   Skipped: not on a Mac.",
+        ]) {
+          assert.ok(text.split("\n").includes(line), `expected the line ${line} in:\n${text}`);
+        }
+        for (const old of ["Failed Items", "Failed Specs", "Failed Tests", "Failed Contexts", "Failed Steps", "Skipped Specs", "Skipped Steps", "Error:"]) {
+          assert.ok(!text.includes(old), `${old} should be gone`);
+        }
+      });
+
+      it("lists skips and warnings with no failure", async function () {
+        const cap = captureConsole(sandbox);
+        const results = mixed();
+        results.specs[0].tests.shift();
+        await reporters.terminalReporter({}, "out", results, {});
+        assert.ok(cap.log.includes("Warnings (1):"));
+        assert.ok(cap.log.includes("Skipped (1):"));
+        assert.ok(!cap.log.includes("Failed ("));
+      });
+
+      it("prints no list when everything passed", async function () {
+        const cap = captureConsole(sandbox);
+        await reporters.terminalReporter({}, "out", { summary: { tests: counts(1, 0, 0, 0) }, specs: [] }, {});
+        assert.ok(!/(Failed|Warnings|Skipped) \(/.test(cap.log));
+      });
+
+      it("shows a failed automatic recording as the reason a context failed", async function () {
+        const cap = captureConsole(sandbox);
+        await reporters.terminalReporter(
+          {},
+          "out",
+          {
+            summary: { tests: counts(0, 1, 0, 0) },
+            specs: [
+              {
+                specId: "s",
+                tests: [
+                  {
+                    testId: "t",
+                    contexts: [
                       {
-                        result: "SKIPPED",
-                        stepId: "step-skip",
+                        contextId: "c",
+                        result: "FAIL",
+                        autoRecording: { result: "FAIL", resultDescription: "Couldn't stop recording." },
+                        steps: [{ stepId: "ok", result: "PASS" }],
                       },
                     ],
                   },
-                  {
-                    // nested-status shape: result.status === "SKIPPED"
-                    result: { status: "SKIPPED" },
-                    platform: "win32",
-                    browser: { name: "edge" },
-                    steps: [],
-                  },
                 ],
-              },
-              {
-                testId: "test-skip",
-                result: "SKIPPED",
-                contexts: [],
               },
             ],
           },
-          {
-            specId: "spec-skip",
-            result: "SKIPPED",
-            tests: [],
-          },
-        ],
-      };
-      await reporters.terminalReporter({}, "out", results, {});
-      const text = cap.log;
-      assert.ok(text.includes("Failed Items"));
-      assert.ok(text.includes("Failed Specs"));
-      assert.ok(text.includes("spec-fail"));
-      assert.ok(text.includes("Failed Tests"));
-      assert.ok(text.includes("test-fail"));
-      assert.ok(text.includes("Failed Contexts"));
-      assert.ok(text.includes("linux/chrome"));
-      assert.ok(text.includes("Failed Steps"));
-      assert.ok(text.includes("step-fail"));
-      assert.ok(text.includes("Error: exploded"));
-      assert.ok(text.includes("Skipped Specs"));
-      assert.ok(text.includes("spec-skip"));
-      assert.ok(text.includes("Skipped Tests"));
-      assert.ok(text.includes("test-skip"));
-      assert.ok(text.includes("Skipped Contexts"));
-      assert.ok(text.includes("win32/edge"));
-      assert.ok(text.includes("Skipped Steps"));
-      assert.ok(text.includes("step-skip"));
-    });
+          {}
+        );
+        assert.ok(cap.log.includes("1. s › t › c › autoRecording"));
+        assert.ok(cap.log.includes("   Couldn't stop recording."));
+      });
 
-    it("falls back to default ids/labels when specId/testId/platform/browser missing", async function () {
-      const cap = captureConsole(sandbox);
-      const results = {
-        summary: {
-          specs: { pass: 0, fail: 1, warning: 0, skipped: 0 },
-          tests: { pass: 0, fail: 1, warning: 0, skipped: 0 },
-          contexts: { pass: 0, fail: 1, warning: 0, skipped: 0 },
-          steps: { pass: 0, fail: 1, warning: 0, skipped: 0 },
-        },
-        specs: [
+      it("prints absolute Screenshot and Recording lines for files that exist", async function () {
+        const cap = captureConsole(sandbox);
+        const runDir = makeTmpDir();
+        fs.writeFileSync(path.join(runDir, "a.png"), "x");
+        fs.writeFileSync(path.join(runDir, "c.mp4"), "x");
+        const results = mixed({ runDir });
+        const context = results.specs[0].tests[0].contexts[0];
+        context.steps[0].autoScreenshotPath = "a.png";
+        context.autoRecording = { result: "PASS", recordingPath: "c.mp4" };
+        await reporters.terminalReporter({}, "out", results, {});
+        assert.ok(cap.log.includes(`   Screenshot: ${path.join(runDir, "a.png")}`));
+        assert.ok(cap.log.includes(`   Recording: ${path.join(runDir, "c.mp4")}`));
+      });
+
+      it("leaves out media lines for a file that isn't there", async function () {
+        const cap = captureConsole(sandbox);
+        const results = mixed({ runDir: makeTmpDir() });
+        results.specs[0].tests[0].contexts[0].steps[0].autoScreenshotPath = "gone.png";
+        await reporters.terminalReporter({}, "out", results, {});
+        assert.ok(!cap.log.includes("Screenshot:"));
+      });
+
+      it("prints the environment footer between two rules, and none without an environment", async function () {
+        const cap = captureConsole(sandbox);
+        const environment = { docDetectiveVersion: "5.0.0", nodeVersion: "24.15.0", platform: "linux", osRelease: "6.8", arch: "x64" };
+        await reporters.terminalReporter(
+          {},
+          "out",
+          mixed({ environment, startedAt: "2026-11-06T02:33:28.631Z", durationMs: 14200 }),
+          {}
+        );
+        const lines = cap.log.split("\n");
+        const rule = "===============================";
+        const footer = "Doc Detective 5.0.0 · Node.js 24.15.0 · linux 6.8 (x64) · Started 2026-11-06T02:33:28.631Z · Took 14.2 s";
+        assert.equal(lines[0], rule);
+        assert.equal(lines.at(-1), rule);
+        assert.equal(lines.at(-2), footer);
+        assert.equal(lines.at(-3), "");
+      });
+
+      it("falls back to position labels for missing IDs, and doesn't throw on partial counts", async function () {
+        const cap = captureConsole(sandbox);
+        await reporters.terminalReporter(
+          {},
+          "out",
           {
-            result: "FAIL",
-            tests: [
-              {
-                result: "FAIL",
-                contexts: [
-                  {
-                    // context.result.status === "FAIL" branch, no platform/browser
-                    result: { status: "FAIL" },
-                    steps: [{ result: "FAIL" }],
-                  },
-                ],
-              },
-            ],
+            summary: { tests: { fail: 1 } },
+            specs: [{ tests: [{ contexts: [{ result: "FAIL", steps: [{ result: "FAIL" }] }] }] }],
           },
-        ],
-      };
-      await reporters.terminalReporter({}, "out", results, {});
-      const text = cap.log;
-      assert.ok(text.includes("Spec 1")); // default spec id
-      assert.ok(text.includes("Test 1")); // default test id
-      assert.ok(text.includes("unknown/unknown")); // default platform/browser
-      assert.ok(text.includes("Step 1")); // default step id
-      assert.ok(text.includes("Unknown error")); // default error
+          {}
+        );
+        assert.ok(cap.log.includes("1. spec 1 › test 1 › context 1 › step 1"));
+        assert.ok(cap.log.includes("0 passed"));
+        assert.ok(!cap.log.includes("undefined"));
+        assert.ok(!cap.log.includes("NaN"));
+      });
     });
 
     it("prints the unknown-format message when there is no summary", async function () {
@@ -409,30 +493,47 @@ describe("utils.ts coverage", function () {
       assert.ok(path.basename(outPath).startsWith("testResults-"));
       const written = JSON.parse(fs.readFileSync(outPath, "utf8"));
       assert.deepEqual(written, results);
-      assert.ok(cap.log.includes("See detailed results at"));
+      assert.ok(cap.log.includes("Results: "));
     });
 
-    it("uses the coverageResults prefix for runCoverage", async function () {
-      captureConsole(sandbox);
-      const dir = makeTmpDir();
-      const outPath = await reporters.jsonReporter({}, dir, { x: 1 }, {
-        command: "runCoverage",
-      });
-      assert.ok(path.basename(outPath).startsWith("coverageResults-"));
-    });
 
-    it("honors an explicit .json output path and disambiguates collisions with a counter", async function () {
+    it("overwrites an explicit .json output path", async function () {
       captureConsole(sandbox);
       const dir = makeTmpDir();
       const file = path.join(dir, "results.json");
-      const first = await reporters.jsonReporter({}, file, { a: 1 }, {});
-      assert.equal(first, file);
-      // Second write to the same path should not overwrite — counter suffix.
-      const second = await reporters.jsonReporter({}, file, { a: 2 }, {});
-      assert.notEqual(second, file);
-      assert.ok(second.includes("-0.json"));
-      assert.ok(fs.existsSync(first));
-      assert.ok(fs.existsSync(second));
+      assert.equal(await reporters.jsonReporter({}, file, { a: 1 }, {}), file);
+      assert.equal(await reporters.jsonReporter({}, file, { a: 2 }, {}), file);
+      assert.deepEqual(fs.readdirSync(dir), ["results.json"]);
+      assert.deepEqual(JSON.parse(fs.readFileSync(file, "utf8")), { a: 2 });
+    });
+
+    it("announces the absolute path on stderr, and nothing on stdout", async function () {
+      const cwd = process.cwd();
+      const dir = makeTmpDir();
+      process.chdir(dir);
+      try {
+        const log = sandbox.stub(console, "log");
+        const error = sandbox.stub(console, "error");
+        const out = await reporters.jsonReporter({}, "named.json", { a: 1 }, {});
+        assert.equal(path.isAbsolute(out), true);
+        assert.deepEqual(error.firstCall.args, [`Results: ${out}`]);
+        assert.equal(log.called, false);
+      } finally {
+        process.chdir(cwd);
+      }
+    });
+
+    it("hides the announcement at -l warning", async function () {
+      const cap = captureConsole(sandbox);
+      await reporters.jsonReporter({ logLevel: "warning" }, makeTmpDir(), { a: 1 }, {});
+      assert.equal(cap.log, "");
+    });
+
+    it("writes beside a file output meant for another reporter", async function () {
+      captureConsole(sandbox);
+      const dir = makeTmpDir();
+      const out = await reporters.jsonReporter({}, path.join(dir, "report.html"), { runId: "r1" }, { command: "runTests" });
+      assert.equal(out, path.join(dir, "testResults-r1.json"));
     });
 
     it("returns null and logs an error when the write fails", async function () {
@@ -441,9 +542,9 @@ describe("utils.ts coverage", function () {
       // Only the write throws; existsSync stays real so the directory branch
       // (no .json extension) skips the collision-counter loop entirely.
       sandbox.stub(fs, "writeFileSync").throws(new Error("disk full"));
-      const out = await reporters.jsonReporter({}, dir, { a: 1 }, {});
+      const out = await reporters.jsonReporter({ logLevel: "error" }, dir, { a: 1 }, {});
       assert.equal(out, null);
-      assert.ok(cap.error.includes("Error writing results"));
+      assert.match(cap.error, /^Error: Couldn't write the results to .*doc-detective-results-.*\.json: disk full\.$/);
     });
 
     // 2.4(b): reuse the results JSON serialized once by outputResults instead
@@ -524,8 +625,11 @@ describe("utils.ts coverage", function () {
       // HTML companion archived beside the JSON.
       const htmlFile = outPath.replace(/\.json$/, ".html");
       assert.ok(fs.existsSync(htmlFile));
-      assert.ok(cap.log.includes("See per-run results at"));
-      assert.ok(cap.log.includes("See per-run HTML report at"));
+      // ADR 01180 DR9: the Markdown summary sits beside them too.
+      const mdFile = outPath.replace(/\.json$/, ".md");
+      assert.match(fs.readFileSync(mdFile, "utf8"), /^# Doc Detective results\n/);
+      // Absolute paths, with the report first.
+      assert.deepEqual(cap.log.split("\n"), [`Run report: ${htmlFile}`, `Run summary: ${mdFile}`, `Run results: ${outPath}`]);
     });
 
     it("uses the default doc-detective-results prefix when no command is given", async function () {
@@ -579,26 +683,40 @@ describe("utils.ts coverage", function () {
       sandbox.stub(fs, "writeFileSync").throws(new Error("nope"));
       const out = await reporters.runFolderReporter({}, dir, { specs: [] }, {});
       assert.equal(out, null);
-      assert.ok(cap.error.includes("Error writing results"));
+      assert.match(cap.error, /Couldn't write the run results to .*doc-detective-results\.json: nope\./);
+      assert.match(cap.error, /Couldn't write the run report to .*doc-detective-results\.html: nope\./);
     });
 
     it("still archives the JSON when the HTML companion write fails", async function () {
       const cap = captureConsole(sandbox);
       const dir = makeTmpDir();
       const real = fs.writeFileSync.bind(fs);
-      // First write (JSON) succeeds; second write (HTML) throws. The reporter's
-      // primary JSON contract must survive an HTML failure.
-      let n = 0;
+      // The reporter's primary JSON contract must survive an HTML failure.
       sandbox.stub(fs, "writeFileSync").callsFake((file, data) => {
-        n += 1;
-        if (n >= 2) throw new Error("html boom");
+        if (String(file).endsWith(".html")) throw new Error("html boom");
         return real(file, data);
       });
       const out = await reporters.runFolderReporter({}, dir, { specs: [] }, {});
       assert.ok(typeof out === "string");
       assert.ok(fs.existsSync(out));
-      assert.ok(cap.error.includes("Error writing per-run HTML report"));
-      assert.ok(cap.log.includes("See per-run results at"));
+      assert.match(cap.error, /Couldn't write the run report to .*: html boom\./);
+      assert.ok(cap.log.includes("Run results: "));
+    });
+
+    it("still archives the JSON when the Markdown summary write fails, and names the file", async function () {
+      const cap = captureConsole(sandbox);
+      const dir = makeTmpDir();
+      const real = fs.writeFileSync.bind(fs);
+      sandbox.stub(fs, "writeFileSync").callsFake((file, data) => {
+        if (String(file).endsWith(".md")) throw Object.assign(new Error("x"), { code: "EACCES" });
+        return real(file, data);
+      });
+      const out = await reporters.runFolderReporter({}, dir, { specs: [] }, { command: "runTests" });
+      assert.ok(fs.existsSync(out));
+      const mdFile = out.replace(/\.json$/, ".md");
+      assert.ok(path.isAbsolute(mdFile));
+      assert.ok(cap.error.includes(`Couldn't write the run summary to ${mdFile}: permission denied.`), cap.error);
+      assert.ok(!cap.log.includes("Run summary: "));
     });
 
     it("reuses a stamped runDir confined under the output's runs root", async function () {
@@ -618,7 +736,7 @@ describe("utils.ts coverage", function () {
       // Stamped path is honored, so runId/runDir are NOT rewritten.
       const written = JSON.parse(fs.readFileSync(out, "utf8"));
       assert.equal(written.runDir, stampedRunDir);
-      assert.ok(cap.log.includes("See per-run results at"));
+      assert.ok(cap.log.includes("Run results: "));
     });
   });
 
@@ -686,13 +804,17 @@ describe("utils.ts coverage", function () {
     it("logs an error for an unknown string reporter", async function () {
       const cap = captureConsole(sandbox);
       await outputResults({ reporters: ["doesNotExist"] }, "out", { x: 1 }, {});
-      assert.ok(cap.error.includes('Reporter "doesNotExist" not found'));
+      assert.ok(
+        cap.error.includes(
+          "Couldn't find reporter `doesNotExist`. Available reporters: terminal, json, html, runFolder, junit, markdown."
+        )
+      );
     });
 
     it("logs an error for an invalid (non-string, non-function) reporter", async function () {
       const cap = captureConsole(sandbox);
       await outputResults({ reporters: [42] }, "out", { x: 1 }, {});
-      assert.ok(cap.error.includes("Invalid reporter"));
+      assert.ok(cap.error.includes("Couldn't use reporter `42`: it isn't a name or a function."));
     });
 
     // 2.4(b): outputResults serializes the results tree ONCE and hands the
@@ -728,16 +850,21 @@ describe("utils.ts coverage", function () {
       assert.equal(out, null);
     });
 
-    it("exits(1) when the API config is missing required fields", async function () {
-      captureConsole(sandbox);
+    it("exits(2) when the API config is missing required fields", async function () {
+      const output = captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({ url: "http://x" });
       const exitStub = sandbox.stub(process, "exit").throws(new Error("EXIT"));
       await assert.rejects(getResolvedTestsFromEnv(), /EXIT/);
       assert.ok(exitStub.called);
-      assert.equal(exitStub.firstCall.args[0], 1);
+      assert.equal(exitStub.firstCall.args[0], 2);
+      // One line per missing key, in the schema-error format.
+      assert.match(
+        output.log,
+        /Invalid DOC_DETECTIVE_API:\nmissing required key 'accountId'\.\nmissing required key 'token'\.\nmissing required key 'contextIds'\./
+      );
     });
 
-    it("exits(1) and logs when DOC_DETECTIVE_API is malformed JSON", async function () {
+    it("exits(2) and logs when DOC_DETECTIVE_API is malformed JSON", async function () {
       captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = "{not json";
       const exitStub = sandbox.stub(process, "exit").throws(new Error("EXIT"));
@@ -745,8 +872,8 @@ describe("utils.ts coverage", function () {
       assert.ok(exitStub.called);
     });
 
-    it("exits(1) when the fetched resolvedTests fail schema validation", async function () {
-      captureConsole(sandbox);
+    it("exits(2) when the fetched resolvedTests fail schema validation", async function () {
+      const output = captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({
         accountId: "a",
         url: "http://api.test",
@@ -760,9 +887,12 @@ describe("utils.ts coverage", function () {
       assert.ok(exitStub.called);
       assert.ok(axios.get.calledOnce);
       assert.ok(axios.get.firstCall.args[0].endsWith("/resolved-tests"));
+      // The same formatter as config and spec errors, not AJV's raw string.
+      assert.match(output.log, /Invalid resolved tests from DOC_DETECTIVE_API:\nmissing required key 'specs'\./);
+      assert.doesNotMatch(output.log, /must have required property/);
     });
 
-    it("exits(1) when axios rejects (network error)", async function () {
+    it("exits(2) when axios rejects (network error)", async function () {
       captureConsole(sandbox);
       process.env.DOC_DETECTIVE_API = JSON.stringify({
         accountId: "a",
@@ -774,6 +904,25 @@ describe("utils.ts coverage", function () {
       const exitStub = sandbox.stub(process, "exit").throws(new Error("EXIT"));
       await assert.rejects(getResolvedTestsFromEnv(), /EXIT/);
       assert.ok(exitStub.called);
+    });
+
+    it("deep-merges DOC_DETECTIVE_CONFIG into the fetched config, as setConfig does", async function () {
+      captureConsole(sandbox);
+      process.env.DOC_DETECTIVE_API = JSON.stringify({
+        accountId: "a",
+        url: "http://api.test",
+        token: "tok",
+        contextIds: ["c1"],
+      });
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ telemetry: { send: false } });
+      sandbox.stub(axios, "get").resolves({
+        data: {
+          config: { telemetry: { send: true, userId: "x" } },
+          specs: [{ tests: [{ contexts: [{ steps: [{ wait: 5 }] }] }] }],
+        },
+      });
+      const out = await getResolvedTestsFromEnv();
+      assert.deepEqual(out.resolvedTests.config.telemetry, { send: false, userId: "x" });
     });
   });
 
@@ -801,7 +950,7 @@ describe("utils.ts coverage", function () {
           logLevel: "debug",
           allowUnsafe: true,
           dryRun: true,
-          reporters: ["json", "html"],
+          reporters: "json, html",
           test: "a, b ,",
           spec: "s1",
           hints: false,
@@ -809,7 +958,7 @@ describe("utils.ts coverage", function () {
           autoScreenshot: true,
           autoRecord: false,
           cacheDir: "mycache",
-          browserFallback: "OFF",
+          browserFallback: "off",
           concurrentRunners: "4",
         },
       });
@@ -823,47 +972,39 @@ describe("utils.ts coverage", function () {
       assert.equal(cfg.autoUpdate, false);
       assert.equal(cfg.autoScreenshot, true);
       assert.equal(cfg.autoRecord, false);
-      assert.equal(cfg.cacheDir, "mycache");
-      assert.equal(cfg.browserFallback, "off"); // normalized lower-case
+      assert.equal(cfg.cacheDir, path.resolve("mycache"));
+      assert.equal(cfg.browserFallback, "off");
       assert.equal(cfg.concurrentRunners, 4);
     });
 
-    it("accepts a single (non-array) reporters value", async function () {
+    it("accepts a single reporters value", async function () {
       const cfg = await setConfig({ args: { reporters: "terminal" } });
       assert.deepEqual(cfg.reporters, ["terminal"]);
     });
 
-    it("selects CPU-count mode for the bare/true concurrentRunners flag", async function () {
-      const cfgEmpty = await setConfig({ args: { concurrentRunners: "" } });
-      assert.equal(cfgEmpty.concurrentRunners, true);
+    it("selects CPU-count mode for auto and true concurrentRunners", async function () {
+      const cfgAuto = await setConfig({ args: { concurrentRunners: "auto" } });
+      assert.equal(cfgAuto.concurrentRunners, true);
       const cfgTrue = await setConfig({ args: { concurrentRunners: "true" } });
       assert.equal(cfgTrue.concurrentRunners, true);
     });
 
-    it("ignores an invalid browserFallback and keeps the default", async function () {
-      const cap = captureConsole(sandbox);
-      const cfg = await setConfig({ args: { browserFallback: "bogus" } });
-      assert.equal(cfg.browserFallback, "auto");
-      assert.ok(cap.log.includes("Ignoring invalid --browser-fallback"));
+    // ADR 01188: `auto` in a config file means `true` too.
+    it("reads concurrentRunners auto from config as true", async function () {
+      const previous = process.env.DOC_DETECTIVE_CONFIG;
+      process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ concurrentRunners: "auto" });
+      try {
+        const cfg = await setConfig({ args: {} });
+        assert.equal(cfg.concurrentRunners, true);
+      } finally {
+        if (previous === undefined) delete process.env.DOC_DETECTIVE_CONFIG;
+        else process.env.DOC_DETECTIVE_CONFIG = previous;
+      }
     });
 
-    it("overrides the config shell from --shell (normalized lower-case)", async function () {
-      const cfg = await setConfig({ args: { shell: "CMD" } });
+    it("overrides the config shell from --shell", async function () {
+      const cfg = await setConfig({ args: { shell: "cmd" } });
       assert.equal(cfg.shell, "cmd");
-    });
-
-    it("ignores an invalid --shell and keeps the default", async function () {
-      const cap = captureConsole(sandbox);
-      const cfg = await setConfig({ args: { shell: "zsh" } });
-      assert.equal(cfg.shell, "bash");
-      assert.ok(cap.log.includes("Ignoring invalid --shell"));
-    });
-
-    it("ignores an invalid concurrentRunners and keeps the default", async function () {
-      const cap = captureConsole(sandbox);
-      const cfg = await setConfig({ args: { concurrentRunners: "xyz" } });
-      assert.equal(cfg.concurrentRunners, 1);
-      assert.ok(cap.log.includes("Ignoring invalid --concurrent-runners"));
     });
 
     it("resolves a comma-separated input list to absolute paths, leaving URLs alone", async function () {
@@ -891,7 +1032,7 @@ describe("utils.ts coverage", function () {
 
     it("throws when DOC_DETECTIVE_CONFIG fails schema validation", async function () {
       process.env.DOC_DETECTIVE_CONFIG = JSON.stringify({ logLevel: 12345 });
-      await assert.rejects(setConfig({ args: {} }), /Invalid config from DOC_DETECTIVE_CONFIG/);
+      await assert.rejects(setConfig({ args: {} }), /Invalid config in DOC_DETECTIVE_CONFIG:\nlogLevel: must be one of/);
     });
 
     it("throws a clear error when the config file path cannot be read", async function () {

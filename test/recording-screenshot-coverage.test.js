@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import sinon from "sinon";
 
@@ -11,8 +12,13 @@ import {
   saveScreenshot,
 } from "../dist/core/tests/saveScreenshot.js";
 import { startRecording } from "../dist/core/tests/startRecording.js";
-import { stopRecording } from "../dist/core/tests/stopRecording.js";
-import { browserDownloadDir } from "../dist/core/tests/ffmpegRecorder.js";
+import { stopRecording, saveBrowserRecording } from "../dist/core/tests/stopRecording.js";
+import {
+  browserDownloadDir,
+  dominantFrameSize,
+  getFfmpegPath,
+} from "../dist/core/tests/ffmpegRecorder.js";
+import { useEffectiveStep, placeCapturePaths } from "../dist/core/tests.js";
 
 const require = createRequire(import.meta.url);
 
@@ -199,7 +205,7 @@ describeIfSharp("saveScreenshot: extra branches", function () {
       driver: fakeDriver(buf),
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("boolean screenshot:true derives a <stepId>.png path under cwd-relative dir", async function () {
@@ -274,9 +280,13 @@ describeIfSharp("saveScreenshot: extra branches", function () {
   it("screenshot.directory (no path) resolves <stepId>.png under that directory", async function () {
     const subdir = path.join(tmpDir, "shots");
     const buf = await makePngBuffer(16, 16);
+    // The runner names the file and places it in `directory` (ADR 01173).
+    const step = { stepId: "dirshot", screenshot: { directory: subdir } };
+    useEffectiveStep(step);
+    placeCapturePaths(step, config);
     const result = await saveScreenshot({
       config,
-      step: { stepId: "dirshot", screenshot: { directory: subdir } },
+      step,
       driver: fakeDriver(buf),
     });
     assert.equal(result.status, "PASS");
@@ -302,7 +312,7 @@ describeIfSharp("saveScreenshot: extra branches", function () {
     });
     // Same solid color at both sizes -> near-zero diff -> within variation.
     assert.equal(result.status, "PASS");
-    assert.equal(result.outputs.aspectRatioMatch, true);
+    assert.equal(result.outputs.aspectRatioMatches, true);
     assert.equal(typeof result.outputs.variation, "number");
   });
 
@@ -645,7 +655,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("record:false -> SKIPPED", async function () {
@@ -656,7 +666,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /record: false/);
+    assert.equal(result.description, "Skipped: `record` is `false`.");
   });
 
   it("existing target file + overwrite:false -> SKIPPED", async function () {
@@ -669,7 +679,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /File already exists/);
+    assert.match(result.description, /^Skipped: file already exists at `/);
   });
 
   // ADR 01079: an existing target skips the *video*, but checkpoints are a
@@ -688,7 +698,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /File already exists/);
+    assert.match(result.description, /^Skipped: file already exists at `/);
     assert.match(result.description, /checkpoint comparisons only/);
     assert.equal(result.recording?.type, "phantom");
     assert.equal(result.recording?.targetPath, target);
@@ -709,7 +719,7 @@ describe("startRecording: guards + browser engine", function () {
     // Must not hit the existing-file skip: aboveVariation always records, then
     // decides at stopRecord whether the capture replaces the target.
     assert.ok(
-      !/File already exists/.test(String(result.description)),
+      !/file already exists/.test(String(result.description)),
       `aboveVariation must not skip an existing target, got: ${result.description}`
     );
   });
@@ -724,7 +734,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /File already exists/);
+    assert.match(result.description, /^Skipped: file already exists at `/);
     assert.equal(result.recording, undefined);
   });
 
@@ -742,19 +752,7 @@ describe("startRecording: guards + browser engine", function () {
       driver,
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /already in use by an active recording/);
-  });
-
-  it("browser engine in headless mode -> SKIPPED", async function () {
-    const target = path.join(tmpDir, "h.mp4");
-    const result = await startRecording({
-      config,
-      context: { browser: { name: "chrome", headless: true } },
-      step: { stepId: "x", record: { path: target, engine: "browser" } },
-      driver: {},
-    });
-    assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /headless mode with the browser engine/);
+    assert.match(result.description, /^Skipped: recording target `.*` is already in use by an active recording\.$/);
   });
 
   it("browser engine on non-chrome -> SKIPPED", async function () {
@@ -766,19 +764,188 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /requires Chrome/);
+    assert.match(result.description, /^Skipped: the `browser` recording engine requires Chrome\./);
   });
 
-  it("ffmpeg engine headless without a virtual display -> SKIPPED", async function () {
-    const target = path.join(tmpDir, "ff-headless.mp4");
+  // A headless browser can't be screen-recorded; the SKIP names the browser
+  // and both fixes.
+  // A browser launches headless unless `headless` is false, so an omitted
+  // `headless` is headless too. Safari has no headless mode.
+  it("treats an omitted headless as headless, except for Safari", async function () {
+    const firefox = await startRecording({
+      config,
+      context: { browser: { name: "firefox" } },
+      step: { stepId: "x", record: { path: path.join(tmpDir, "omitted.mp4"), engine: "ffmpeg" } },
+      driver: {},
+    });
+    assert.equal(firefox.status, "SKIPPED");
+    assert.match(firefox.description, /a headless Firefox can't be screen-recorded/);
+    for (const name of ["safari", "webkit"]) {
+      const safari = await startRecording({
+        config,
+        context: { browser: { name } },
+        step: { stepId: "x", record: { path: path.join(tmpDir, `${name}.mp4`), engine: "ffmpeg" } },
+        driver: {},
+        deps: {
+          getFfmpegPath: async () => {
+            throw new Error("reached ffmpeg");
+          },
+        },
+      });
+      assert.match(String(safari.description), /reached ffmpeg/, name);
+    }
+  });
+
+  // Headless Chrome reaches this guard only through an explicit
+  // `engine: "ffmpeg"`, so its fix is the browser engine, not Chrome.
+  it("ffmpeg engine on a headless browser -> SKIPPED, naming the browser", async function () {
+    for (const [name, display, alternative] of [
+      ["firefox", "Firefox", "use Chrome, which records headless"],
+      ["chrome", "Chrome", "use the `browser` engine, which records headless Chrome"],
+    ]) {
+      const target = path.join(tmpDir, `headless-${name}.mp4`);
+      const result = await startRecording({
+        config,
+        context: { browser: { name, headless: true } },
+        step: { stepId: "x", record: { path: target, engine: "ffmpeg" } },
+        driver: {},
+      });
+      assert.equal(result.status, "SKIPPED", name);
+      assert.equal(
+        result.description,
+        `Skipped: a headless ${display} can't be screen-recorded. Set the context's \`headless\` to \`false\`, or ${alternative}.`
+      );
+    }
+  });
+
+  // ADR 01177, DA4: a failed preflight check SKIPs every recording it
+  // applies to, authored or automatic, with the fix named.
+  it("SKIPs a recording whose engine failed the preflight", async function () {
+    const target = path.join(tmpDir, "preflight.mp4");
     const result = await startRecording({
       config,
-      context: { browser: { name: "firefox", headless: true } },
+      context: {
+        browser: { name: "firefox", headless: false },
+        __recordingPreflight: {
+          ffmpeg: { ok: false, reason: "there's no display to capture", fix: "install Xvfb or set DISPLAY" },
+        },
+      },
       step: { stepId: "x", record: { path: target, engine: "ffmpeg" } },
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /without a virtual display/);
+    assert.equal(
+      result.description,
+      "Skipped: there's no display to capture. To record, install Xvfb or set DISPLAY, and rerun."
+    );
+  });
+
+  it("SKIPs an iOS device recording on a failed device check, but not an Android one", async function () {
+    const __recordingPreflight = { device: { ok: false, reason: "ffmpeg isn't available (x)", fix: "run y" } };
+    const ios = await startRecording({
+      config,
+      context: { platform: "ios", __recordingPreflight },
+      step: { stepId: "x", record: { path: path.join(tmpDir, "ios.mp4") } },
+      driver: undefined,
+    });
+    assert.equal(ios.status, "SKIPPED");
+    assert.equal(ios.description, "Skipped: ffmpeg isn't available (x). To record, run y, and rerun.");
+    const android = await startRecording({
+      config,
+      context: { platform: "android", __recordingPreflight },
+      step: { stepId: "x", record: { path: path.join(tmpDir, "android.mp4") } },
+      driver: undefined,
+    });
+    assert.equal(android.status, "PASS");
+    assert.match(android.description, /Device recording pending/);
+  });
+
+  it("records when only another engine failed the preflight", async function () {
+    const target = path.join(tmpDir, "preflight-other.mp4");
+    const result = await startRecording({
+      config,
+      context: {
+        browser: { name: "chrome", headless: true },
+        contextId: "ctx-pf",
+        __recordingPreflight: { ffmpeg: { ok: false, reason: "r", fix: "f" } },
+      },
+      step: { stepId: "x", record: { path: target } },
+      driver: browserDriver({ recorderStarted: true }),
+    });
+    assert.equal(result.status, "PASS");
+  });
+
+  // A recording autoRecord added on its own (unset) never fails a test: a
+  // start failure after a passing preflight is SKIPPED with the off switch.
+  it("turns a defaulted automatic recording's start failure into SKIPPED", async function () {
+    const target = path.join(tmpDir, "defaulted.mp4");
+    const step = {
+      stepId: "t~autorecord",
+      record: { path: target, engine: "ffmpeg", overwrite: "true" },
+      __autoRecord: true,
+      __autoRecordDefaulted: true,
+    };
+    const result = await startRecording({
+      config,
+      context: { browser: { name: "firefox", headless: false } },
+      step,
+      driver: {},
+      deps: {
+        getFfmpegPath: async () => {
+          throw new Error("no ffmpeg here");
+        },
+      },
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.match(result.description, /^Skipped: couldn't start the automatic recording: .*no ffmpeg here/);
+    assert.match(result.description, /\. Set `autoRecord: false` to turn it off\.$/);
+  });
+
+  // The handle remembers it was defaulted, so stopping it can't FAIL either.
+  it("marks a defaulted automatic recording's handle", async function () {
+    const result = await startRecording({
+      config,
+      context: { browser: { name: "chrome", headless: true }, contextId: "ctx-d" },
+      step: {
+        stepId: "t~autorecord",
+        record: { path: path.join(tmpDir, "defaulted-handle.mp4"), engine: "browser" },
+        __autoRecord: true,
+        __autoRecordDefaulted: true,
+      },
+      driver: browserDriver({ recorderStarted: true }),
+    });
+    assert.equal(result.status, "PASS");
+    assert.equal(result.recording.defaulted, true);
+  });
+
+  it("still FAILs a strict automatic recording's start failure", async function () {
+    const target = path.join(tmpDir, "strict.mp4");
+    const result = await startRecording({
+      config,
+      context: { browser: { name: "firefox", headless: false } },
+      step: { stepId: "t~autorecord", record: { path: target, engine: "ffmpeg" }, __autoRecord: true },
+      driver: {},
+      deps: {
+        getFfmpegPath: async () => {
+          throw new Error("no ffmpeg here");
+        },
+      },
+    });
+    assert.equal(result.status, "FAIL");
+  });
+
+  // A headless browser draws nothing on an Xvfb display, so an ffmpeg capture
+  // of it would be blank (ADR 01176).
+  it("ffmpeg engine on a headless browser with a virtual display -> SKIPPED", async function () {
+    const target = path.join(tmpDir, "ff-headless-xvfb.mp4");
+    const result = await startRecording({
+      config,
+      context: { browser: { name: "firefox", headless: true }, __display: ":99" },
+      step: { stepId: "x", record: { path: target, engine: "ffmpeg" } },
+      driver: {},
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.equal(result.description, "Skipped: a headless Firefox can't be screen-recorded. Set the context's `headless` to `false`, or use Chrome, which records headless.");
   });
 
   it("record:true boolean is coerced to a <stepId>.mp4 path (headless ffmpeg SKIP)", async function () {
@@ -791,7 +958,7 @@ describe("startRecording: guards + browser engine", function () {
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /without a virtual display/);
+    assert.match(result.description, /can't be screen-recorded/);
   });
 
   it("record string form is coerced to { path } (headless ffmpeg SKIP)", async function () {
@@ -804,23 +971,24 @@ describe("startRecording: guards + browser engine", function () {
     });
     assert.equal(result.status, "SKIPPED");
     // The relative path's parent (".") already exists, so no mkdir side effect.
-    assert.match(result.description, /without a virtual display/);
+    assert.match(result.description, /can't be screen-recorded/);
   });
 
-  it("record.directory resolves the default path under that directory (headless ffmpeg SKIP)", async function () {
+  it("creates the target's folder (headless ffmpeg SKIP)", async function () {
+    // The runner places `<stepId>.mp4` in `directory` before the handler runs
+    // (ADR 01173), so the handler gets the full path.
     const subdir = path.join(tmpDir, "nested", "vids");
     const result = await startRecording({
       config,
       context: { browser: { name: "firefox", headless: true } },
       step: {
         stepId: "dirrec",
-        record: { directory: subdir },
+        record: { path: path.join(subdir, "dirrec.mp4") },
       },
       driver: {},
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /without a virtual display/);
-    // The directory was created as a side effect of the path resolution + mkdir.
+    assert.match(result.description, /can't be screen-recorded/);
     assert.ok(fs.existsSync(subdir));
   });
 
@@ -829,10 +997,11 @@ describe("startRecording: guards + browser engine", function () {
   // (truthy elementId) so it skips the DOM/performActions work. Shaped like
   // webdriverio 10: no executeAsync, and `execute` runs an async function
   // through Execute Async Script, so only the recorder script is async.
-  function browserDriver({ recorderStarted = true } = {}) {
+  function browserDriver({ recorderStarted = true, viewport } = {}) {
     let title = "Original Title";
     return {
       state: {},
+      recorderArgs: undefined,
       async getTitle() {
         return title;
       },
@@ -845,8 +1014,14 @@ describe("startRecording: guards + browser engine", function () {
       async $() {
         return { elementId: "cursor-exists" };
       },
-      async execute(fn, arg) {
-        if (fn?.constructor?.name === "AsyncFunction") return recorderStarted;
+      async execute(fn, arg, ...rest) {
+        if (fn?.constructor?.name === "AsyncFunction") {
+          this.recorderArgs = [arg, ...rest];
+          return recorderStarted;
+        }
+        // startRecording's viewport probe, by its name. The build doesn't
+        // minify, so the arrow function keeps the name of its const.
+        if (fn?.name === "readViewport") return viewport;
         // document.title setter: (title) => (document.title = title)
         if (typeof fn === "function" && fn.length >= 1 && typeof arg === "string") {
           title = arg;
@@ -876,6 +1051,36 @@ describe("startRecording: guards + browser engine", function () {
     assert.equal(result.recording.tab, "recorder-handle");
     assert.equal(result.recording.targetPath, target);
     assert.ok(result.recording.downloadPath.endsWith(".webm"));
+  });
+
+  // Headless Chrome records its tab (ADR 01176): auto engine and explicit
+  // browser engine both start a MediaRecorder capture, with no display.
+  it("browser engine on headless chrome -> PASS with a MediaRecorder handle", async function () {
+    for (const record of [{}, { engine: "browser" }]) {
+      const target = path.join(tmpDir, `headless-${Object.keys(record).length}.mp4`);
+      const result = await startRecording({
+        config,
+        context: { browser: { name: "chrome", headless: true }, contextId: "ctx-h" },
+        step: { stepId: "hl", record: { path: target, ...record } },
+        driver: browserDriver({ recorderStarted: true }),
+      });
+      assert.equal(result.status, "PASS", JSON.stringify(record));
+      assert.equal(result.recording.type, "MediaRecorder");
+    }
+  });
+
+  // Tab capture defaults to 800x600; the recorder asks for the viewport size.
+  it("asks getDisplayMedia for the viewport size", async function () {
+    const target = path.join(tmpDir, "viewport.mp4");
+    const driver = browserDriver({ recorderStarted: true, viewport: { width: 1024, height: 640 } });
+    const result = await startRecording({
+      config,
+      context: { browser: { name: "chrome", headless: true }, contextId: "ctx-v" },
+      step: { stepId: "vp", record: { path: target } },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(driver.recorderArgs[0], { width: 1024, height: 640 });
   });
 
   it("browser engine removes a stale download from a prior crashed run", async function () {
@@ -935,9 +1140,9 @@ describe("startRecording: guards + browser engine", function () {
       step: { stepId: "fb", record: { path: target, engine: "browser" } },
       driver,
     });
-    // headless + no __display -> ffmpeg headless SKIPPED guard.
+    // headless -> ffmpeg headless SKIPPED guard.
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /without a virtual display/);
+    assert.match(result.description, /a headless Chrome can't be screen-recorded/);
   });
 });
 
@@ -961,7 +1166,7 @@ describe("stopRecording: guards + MediaRecorder", function () {
       driver: {},
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("stopRecord:false -> SKIPPED (explicit no-op)", async function () {
@@ -971,17 +1176,17 @@ describe("stopRecording: guards + MediaRecorder", function () {
       driver: { state: { recordings: [{ type: "ffmpeg" }] } },
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /disabled \(stopRecord: false\)/);
+    assert.equal(result.description, "Skipped: `stopRecord` is `false`.");
   });
 
-  it("no recordings at all -> SKIPPED 'isn't started'", async function () {
+  it("no recordings at all -> SKIPPED 'no recording is active'", async function () {
     const result = await stopRecording({
       config,
       step: { stopRecord: true },
       driver: { state: { recordings: [] } },
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /isn't started/);
+    assert.equal(result.description, "Skipped: no recording is active.");
   });
 
   it("named target not found -> SKIPPED with the target name", async function () {
@@ -991,7 +1196,7 @@ describe("stopRecording: guards + MediaRecorder", function () {
       driver: { state: { recordings: [{ type: "ffmpeg", name: "other" }] } },
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /No active recording named 'demo'/);
+    assert.equal(result.description, "Skipped: no active recording named `demo`.");
   });
 
   it("only a synthetic autoRecord recording present, untargeted stop -> SKIPPED (still running)", async function () {
@@ -1003,7 +1208,7 @@ describe("stopRecording: guards + MediaRecorder", function () {
       },
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /automatic \(autoRecord\) recording is still running/);
+    assert.match(result.description, /^Skipped: no user-stoppable recording is active\. An automatic \(`autoRecord`\) recording is still running/);
   });
 
   it("MediaRecorder whose recorder object is missing -> FAIL and drops the handle", async function () {
@@ -1029,27 +1234,316 @@ describe("stopRecording: guards + MediaRecorder", function () {
     assert.equal(recordings.length, 0);
   });
 
-  it("MediaRecorder download times out -> FAIL and drops the handle (fake timers)", async function () {
-    const clock = sinon.useFakeTimers();
-    try {
+  // A recording autoRecord added while unset never fails a test, at stop
+  // either (ADR 01177). An explicit one still FAILs (the test below).
+  it("a defaulted automatic recording that can't be saved -> SKIPPED with the off switch", async function () {
+    const recordings = [
+      {
+        type: "MediaRecorder",
+        tab: "rec-tab",
+        downloadPath: path.join(os.tmpdir(), `never-defaulted-${Date.now()}.webm`),
+        targetPath: path.join(os.tmpdir(), "out.mp4"),
+        synthetic: true,
+        defaulted: true,
+      },
+    ];
+    let calls = 0;
+    const driver = {
+      state: { recordings },
+      async switchToWindow() {},
+      async execute() {
+        return ++calls === 1 ? true : -1;
+      },
+      async getWindowHandle() {
+        return "content-tab";
+      },
+      async getWindowHandles() {
+        return ["rec-tab", "content-tab"];
+      },
+      async closeWindow() {},
+    };
+    const result = await stopRecording({
+      config,
+      step: { stopRecord: true, __stopAny: true },
+      driver,
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.equal(
+      result.description,
+      "Skipped: couldn't save the automatic recording: the browser didn't finish it within 20 seconds. Set `autoRecord: false` to turn it off."
+    );
+    assert.equal(recordings.length, 0);
+  });
+
+  it("MediaRecorder recording never finishes -> FAIL and drops the handle", async function () {
+    const recordings = [
+      {
+        type: "MediaRecorder",
+        tab: "rec-tab",
+        downloadPath: path.join(os.tmpdir(), `never-${Date.now()}.webm`),
+        targetPath: path.join(os.tmpdir(), "out.mp4"),
+      },
+    ];
+    const switchToWindow = sinon.spy();
+    let calls = 0;
+    const driver = {
+      state: { recordings },
+      switchToWindow,
+      async execute() {
+        // 1: the recorder exists. 2: the page never finished the recording.
+        return ++calls === 1 ? true : -1;
+      },
+      // stopRecording closes the recorder tab and restores focus (so later
+      // steps don't run in it), which needs these methods.
+      async getWindowHandle() {
+        return "content-tab";
+      },
+      async getWindowHandles() {
+        return ["rec-tab", "content-tab"];
+      },
+      async closeWindow() {},
+    };
+    const result = await stopRecording({ config, step: { stopRecord: true }, driver });
+    assert.equal(result.status, "FAIL");
+    assert.equal(
+      result.description,
+      "Couldn't save the recording: the browser didn't finish it within 20 seconds."
+    );
+    assert.equal(recordings.length, 0);
+    // Focus is restored to the content tab, not left in the recorder tab.
+    assert(switchToWindow.calledWith("content-tab"));
+  });
+});
+
+// Chrome's own download of the recording blob dropped files intermittently in
+// headless Chrome, so the recording comes back through WebDriver in base64
+// chunks instead (ADR 01176).
+describe("saveBrowserRecording", function () {
+  let tmpDir;
+  beforeEach(function () {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-save-rec-"));
+  });
+  afterEach(function () {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function pageDriver(bytes) {
+    const reads = [];
+    return {
+      reads,
+      async execute(fn, ...args) {
+        if (args.length === 1) return bytes ? bytes.length : -1;
+        const [start, end] = args;
+        reads.push([start, end]);
+        return bytes.subarray(start, end).toString("base64");
+      },
+    };
+  }
+
+  // saveBrowserRecording returns null once the file is saved, or the reason
+  // it isn't, and never leaves a partial file behind.
+  it("writes the page's recording to the file, chunk by chunk", async function () {
+    const bytes = Buffer.from(Array.from({ length: 1000 }, (_, i) => i % 256));
+    const driver = pageDriver(bytes);
+    const filePath = path.join(tmpDir, "nested", "rec.webm");
+    const failure = await saveBrowserRecording({ driver, filePath, chunkSize: 300 });
+    assert.equal(failure, null);
+    assert.deepEqual(fs.readFileSync(filePath), bytes);
+    assert.deepEqual(driver.reads, [[0, 300], [300, 600], [600, 900], [900, 1000]]);
+  });
+
+  it("says the browser didn't finish when the page has no recording", async function () {
+    const filePath = path.join(tmpDir, "none.webm");
+    const failure = await saveBrowserRecording({ driver: pageDriver(null), filePath });
+    assert.equal(failure, "Couldn't save the recording: the browser didn't finish it within 20 seconds.");
+    assert.equal(fs.existsSync(filePath), false);
+  });
+
+  it("says the recording is empty when the page recorded nothing", async function () {
+    const filePath = path.join(tmpDir, "empty.webm");
+    const failure = await saveBrowserRecording({ driver: pageDriver(Buffer.alloc(0)), filePath });
+    assert.equal(failure, "Couldn't save the recording: the browser recorded no video.");
+    assert.equal(fs.existsSync(filePath), false);
+  });
+
+  it("names the shortfall and removes the partial file when bytes go missing", async function () {
+    const bytes = Buffer.alloc(1000, 7);
+    const driver = pageDriver(bytes);
+    driver.execute = async (fn, ...args) => (args.length === 1 ? 1000 : bytes.subarray(0, 100).toString("base64"));
+    const filePath = path.join(tmpDir, "short.webm");
+    const failure = await saveBrowserRecording({ driver, filePath, chunkSize: 1000 });
+    assert.equal(failure, "Couldn't save the recording: the browser sent 100 of 1000 bytes.");
+    assert.equal(fs.existsSync(filePath), false);
+  });
+
+  it("names the cause and removes the partial file when the copy throws", async function () {
+    const bytes = Buffer.alloc(1000, 7);
+    let calls = 0;
+    const driver = {
+      async execute(fn, ...args) {
+        if (args.length === 1) return 1000;
+        if (++calls === 2) throw new Error("no such window");
+        return bytes.subarray(args[0], args[1]).toString("base64");
+      },
+    };
+    const filePath = path.join(tmpDir, "thrown.webm");
+    const failure = await saveBrowserRecording({ driver, filePath, chunkSize: 300 });
+    assert.equal(failure, "Couldn't save the recording: no such window.");
+    assert.equal(fs.existsSync(filePath), false);
+  });
+
+  it("says a chunk came back empty instead of writing it", async function () {
+    const driver = { execute: async (fn, ...args) => (args.length === 1 ? 1000 : undefined) };
+    const filePath = path.join(tmpDir, "nochunk.webm");
+    const failure = await saveBrowserRecording({ driver, filePath, chunkSize: 300 });
+    assert.equal(failure, "Couldn't save the recording: the browser sent no data for bytes 0 to 300.");
+    assert.equal(fs.existsSync(filePath), false);
+  });
+});
+
+// A copy that throws still closes the recorder tab and restores focus, so
+// later steps don't run in it (ADR 01176).
+describe("stopRecording: a browser recording copy that throws", function () {
+  it("FAILs naming the cause, closes the recorder tab, and drops the handle", async function () {
+    const recordings = [
+      {
+        type: "MediaRecorder",
+        tab: "rec-tab",
+        downloadPath: path.join(os.tmpdir(), `throw-${Date.now()}.webm`),
+        targetPath: path.join(os.tmpdir(), "out.mp4"),
+      },
+    ];
+    const switched = [];
+    let closed = 0;
+    let calls = 0;
+    const driver = {
+      state: { recordings },
+      async switchToWindow(handle) {
+        switched.push(handle);
+      },
+      async execute() {
+        calls++;
+        if (calls === 1) return true; // the recorder exists
+        throw new Error("chrome not reachable");
+      },
+      async getWindowHandle() {
+        return "content-tab";
+      },
+      async getWindowHandles() {
+        return ["rec-tab", "content-tab"];
+      },
+      async closeWindow() {
+        closed++;
+      },
+    };
+    const result = await stopRecording({ config: {}, step: { stopRecord: true }, driver });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, "Couldn't save the recording: chrome not reachable.");
+    assert.equal(closed, 1);
+    assert.equal(switched[switched.length - 1], "content-tab");
+    assert.equal(recordings.length, 0);
+  });
+});
+
+// A tab capture's first and last frames can come from the tab while it's in the
+// background, behind the recorder tab. On macOS Chrome sizes that hidden tab
+// differently, so a 1024x582 recording started with 940x640 frames, and the
+// transcode sized the whole video by its first frame. The video takes the size
+// that covers most of the recording instead.
+describe("browser recording frame size", function () {
+  const showinfo = (pts, size) =>
+    `[Parsed_showinfo_0 @ 0x1] n:   0 pts:      0 pts_time:${pts}  pos: 643 fmt:yuv420p sar:1/1 s:${size} i:P iskey:1 type:I\n`;
+
+  it("picks the size that covers the most time", function () {
+    const text = [
+      showinfo(0, "940x640"),
+      showinfo(0.1, "940x640"),
+      showinfo(0.3, "1024x582"),
+      showinfo(1, "1024x582"),
+      showinfo(3.3, "940x640"),
+      showinfo(3.5, "940x640"),
+    ].join("");
+    assert.deepEqual(dominantFrameSize(text), { width: 1024, height: 582 });
+  });
+
+  it("weighs a size by time, not by frame count", function () {
+    // A static page sends few frames once it's in front.
+    const text = [0, 0.03, 0.06, 0.09].map((t) => showinfo(t, "940x640")).join("") +
+      showinfo(0.12, "1024x582") + showinfo(3, "1024x582");
+    assert.deepEqual(dominantFrameSize(text), { width: 1024, height: 582 });
+  });
+
+  it("returns null when the size never changes, or there are no frames", function () {
+    assert.equal(dominantFrameSize(showinfo(0, "1024x582") + showinfo(1, "1024x582")), null);
+    assert.equal(dominantFrameSize(""), null);
+  });
+
+  describe("stopRecording (real ffmpeg)", function () {
+    this.timeout(60000);
+    let tmpDir;
+    let ffmpegPath;
+    before(async function () {
+      try {
+        ffmpegPath = await getFfmpegPath({ autoInstall: false });
+      } catch {
+        this.skip();
+      }
+    });
+    beforeEach(function () {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-frame-size-"));
+    });
+    afterEach(function () {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    const ffmpeg = (args) =>
+      new Promise((resolve, reject) => {
+        const child = spawn(ffmpegPath, ["-v", "error", "-y", ...args]);
+        let stderr = "";
+        child.stderr.on("data", (d) => (stderr += d));
+        child.on("close", (code) => (code === 0 ? resolve() : reject(new Error(stderr))));
+        child.on("error", reject);
+      });
+
+    // A VP8 WebM like the recorder's: 0.3 s at 940x640, 3 s at 1024x582, then
+    // 0.2 s at 940x640 again.
+    async function mixedWebm() {
+      const parts = [
+        ["940x640", 0.3],
+        ["1024x582", 3],
+        ["940x640", 0.2],
+      ];
+      const list = path.join(tmpDir, "list.txt");
+      const lines = [];
+      for (const [i, [size, seconds]] of parts.entries()) {
+        const part = path.join(tmpDir, `part-${i}.webm`);
+        await ffmpeg(["-f", "lavfi", "-i", `testsrc=size=${size}:rate=30`, "-t", String(seconds), "-c:v", "libvpx", "-b:v", "1M", part]);
+        lines.push(`file '${part.replace(/\\/g, "/")}'`);
+      }
+      fs.writeFileSync(list, lines.join("\n"));
+      const webm = path.join(tmpDir, "mixed.webm");
+      await ffmpeg(["-f", "concat", "-safe", "0", "-i", list, "-c", "copy", webm]);
+      return fs.readFileSync(webm);
+    }
+
+    it("sizes the video by its steady frames, not its first frame", async function () {
+      const bytes = await mixedWebm();
       const recordings = [
         {
           type: "MediaRecorder",
           tab: "rec-tab",
-          // A path that never appears on disk -> waitForStableFile times out.
-          downloadPath: path.join(os.tmpdir(), `never-${Date.now()}.webm`),
-          targetPath: path.join(os.tmpdir(), "out.mp4"),
+          downloadPath: path.join(tmpDir, "download.webm"),
+          targetPath: path.join(tmpDir, "out.mp4"),
         },
       ];
-      const switchToWindow = sinon.spy();
       const driver = {
         state: { recordings },
-        switchToWindow,
-        async execute() {
-          return true; // recorder exists; recorder.stop() is a no-op here.
+        async switchToWindow() {},
+        async execute(fn, ...args) {
+          if (args.length === 0) return true; // the recorder exists
+          if (args.length === 1) return bytes.length; // the page finished it
+          return bytes.subarray(args[0], args[1]).toString("base64");
         },
-        // On timeout, stopRecording now closes the recorder tab and restores
-        // focus (so later steps don't run in it), which needs these methods.
         async getWindowHandle() {
           return "content-tab";
         },
@@ -1058,18 +1552,10 @@ describe("stopRecording: guards + MediaRecorder", function () {
         },
         async closeWindow() {},
       };
-      const promise = stopRecording({ config, step: { stopRecord: true }, driver });
-      // waitForStableFile polls every 500ms for maxSeconds*2 (=120) iterations.
-      // Advance the fake clock past the full 60s window so it resolves false.
-      await clock.tickAsync(61_000);
-      const result = await promise;
-      assert.equal(result.status, "FAIL");
-      assert.match(result.description, /download timed out/);
-      assert.equal(recordings.length, 0);
-      // Focus is restored to the content tab, not left in the recorder tab.
-      assert(switchToWindow.calledWith("content-tab"));
-    } finally {
-      clock.restore();
-    }
+      const result = await stopRecording({ config: {}, step: { stopRecord: true }, driver });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(result.outputs.width, 1024);
+      assert.equal(result.outputs.height, 582);
+    });
   });
 });

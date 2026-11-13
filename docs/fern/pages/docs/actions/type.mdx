@@ -12,14 +12,18 @@ You can specify the keys to type in several ways:
 - **Array Shorthand:** Provide an array of strings. Each string in the array is typed sequentially. This allows mixing regular text with [special keys](#special-keys).
 - **Object Format:** Use an object for more control:
   - `keys`: (Required) A string or an array of strings representing the keys to type.
-  - `inputDelay`: (Optional) Delay in milliseconds between each key press. Useful for making recordings more legible. Defaults to `100`. Set it to `0` to type as fast as possible.
+  - `inputDelay`: (Optional) Delay in milliseconds between each key press. Useful for making recordings more legible. Defaults to `100`. Set it to `0` to type as fast as possible. A negative value makes the spec invalid.
   - `surface`: (Optional) The target to send the keystrokes to. Omit it to type into the active surface, which is the most recently opened, focused, or explicitly targeted one. That might be a browser's active element, an app window, or a background process's `stdin`. Set it to a browser reference such as `{ "browser": "chrome", "tab": "cart" }` or `{ "browser": "firefox", "name": "admin" }` to type in a specific browser or tab. Set it to a process name to send keystrokes to a background process. Set it to an app reference such as `{ "app": "notepad" }` to type into an element on a [native app surface](/docs/actions/startsurface). Specifying a surface switches the active surface for the steps that follow. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Type to a background process](#type-to-a-background-process), and [Type into an app surface](#type-into-an-app-surface).
   - `waitUntil`: (Optional) After sending the keys, wait until the surface is ready. This requires a `surface`, and the conditions depend on its kind. A process surface accepts `stdio` and `delayMs`. A browser surface accepts `networkIdleTime`, `domIdleTime`, and `find`. An app surface accepts `delayMs` and `find`. No condition applies by default. See [Type to a background process](#type-to-a-background-process) and [Type with readiness conditions](/docs/test-docs/multiple-tabs-and-windows#type-with-readiness-conditions).
-  - `timeout`: (Optional) Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
+  - `timeout`: (Optional) Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. Defaults to `5000`. `0` checks once.
+
+Results show the object form: `"type": "kittens"` appears as `{ "keys": ["kittens"], "inputDelay": 100, "timeout": 5000 }`.
 
 **Outputs:** when you target a specific element with a selector or element text, the action exposes `outputs.found`, a boolean indicating whether the element was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`. When no element criteria are set, `type` types into the active element and produces no `found` output.
 
 > For comprehensive options, see the [`type`](/reference/schemas/type) reference.
+
+For keys from an environment variable, such as `"keys": "$PASSWORD"`, Doc Detective types the real value, and logs and reports show `***PASSWORD***`. In a browser, the field then shows dots, so screenshots and recordings don't show the value. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
 
 ## Special keys
 
@@ -115,7 +119,7 @@ Common editing keys work on mobile app surfaces too. Android maps them to key co
 - With element criteria, `type` finds the element, focuses it, and types, the same as everywhere else.
 - **Android** also types without criteria, into whatever element has focus. That matches how browser typing works: `{ "type": { "keys": ["Hi Bob!", "$ENTER$"], "surface": { "app": "chat" } } }`.
 - **iOS** requires element criteria for text, because the platform has no reliable focused-element typing. Device keys alone are fine without criteria.
-- Windows/macOS app surfaces don't support `$KEY$` tokens yet (the vocabulary is mobile-only in this phase) and require element criteria.
+- Windows/macOS app surfaces don't support `$KEY$` tokens (the vocabulary is mobile-only) and require element criteria.
 
 ## Type to a background process
 
@@ -159,7 +163,7 @@ After sending the keys, use `waitUntil` to wait for the process before the step 
 
 `timeout` (default `5000` ms) caps how long Doc Detective waits for `waitUntil`. When you set a `stdio` condition, the step asserts that the output matched, so it fails if the expected output doesn't appear before `timeout` elapses. If you omit `waitUntil`, the step sends the keys and finishes without waiting.
 
-The step records the process `name`, the captured `stdout` and `stderr`, and whether the `stdio` condition matched in its `outputs`.
+The step records the process `name`, the captured `stdout` and `stderr`, and whether the `stdio` condition matched in its `outputs`. Read the match as `$$stdioMatches`.
 
 ## Type into an app surface
 
@@ -167,7 +171,7 @@ Set `surface` to an app reference, such as `{ "app": "notepad" }`, to type into 
 
 The rules differ per platform. See [Device keys (mobile app surfaces)](#device-keys-mobile-app-surfaces) above for the full set:
 
-- **Windows and macOS** require element criteria, and they reject the `$KEY$` tokens listed under [Special keys](#special-keys). That vocabulary is mobile-only in this phase.
+- **Windows and macOS** require element criteria, and they reject the `$KEY$` tokens listed under [Special keys](#special-keys). That vocabulary is mobile-only.
 - **Android** types text with or without criteria. Without them, it types into whatever element has focus.
 - **iOS** requires criteria for text, but device keys alone are fine without them.
 
@@ -178,6 +182,42 @@ One limit holds on every platform: `waitUntil` on an app surface accepts only `d
 App surfaces run on Windows, macOS, Android, and iOS. See [`startSurface`](/docs/actions/startsurface) for how to open one and gate the test to the platforms it supports.
 
 ## Examples
+
+The docs tests run the first two examples, the increased-delay example, and the REPL example. The other examples are illustration-only because the docs tests lack their setup. Each needs an app surface, a named browser tab, a running process, or a page with matching fields.
+
+### Type a string (string shorthand)
+
+Provide a string to type it into the active element. Focus the element first, usually with a preceding [`find`](find) or [`click`](click).
+
+{/* test {"testId":"type-string-shorthand","detectSteps":false} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Focus the search field.",
+          "find": {
+            "selector": "#search",
+            "click": true
+          }
+        },
+        {
+          "description": "Type a search query.",
+          "type": "American Shorthair kittens"
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"goto-type-string","description":"Open the type test page","goTo":"http://localhost:8092/type-echo.html"} */}
+{/* step {"stepId":"focus-input-string","description":"Focus the input","find":{"selector":"#type-input","click":true}} */}
+{/* step {"stepId":"type-string","description":"Type a string into the focused input","type":"Doc Detective"} */}
+{/* step {"stepId":"verify-type-string","description":"The input echoes its value only when text is actually typed","find":"Doc Detective"} */}
+{/* test end */}
 
 ### Perform a search (array shorthand)
 
@@ -398,4 +438,95 @@ This example types into a control on an app surface, naming the control with a n
 }
 ```
 
+### Type into a targeted element
+
+Name the element to type into with `selector`, `elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, or `elementAria`. These are the same element-finding fields as [`find`](find). Set several fields to require the element to match all of them. Omit them all to type into the active element. Element-finding fields aren't allowed with a process surface.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Type into the field with a given test ID.",
+          "type": {
+            "keys": "customer@example.com",
+            "elementTestId": "email-field"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Match the target element with a regular expression
+
+Wrap an element field's value in slashes to match it by regular expression instead of an exact value, the same as [`find`](find). This example targets the field whose accessible name matches a pattern, the accessible name your browser's DevTools accessibility panel reports for the element.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Type into the field whose accessible name matches a pattern.",
+          "type": {
+            "keys": "customer@example.com",
+            "elementAria": "/Email( address)?/"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Type into a specific browser tab
+
+Set `surface` to a browser reference to type into a tab other than the active one. Omit `waitUntil` to send the keys and finish without waiting for the surface to settle.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Type a note in the cart tab.",
+          "type": {
+            "keys": "Gift wrap, please",
+            "surface": { "browser": "chrome", "tab": "cart" }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Wait for a browser to settle after typing
+
+On a browser surface, `waitUntil` accepts `networkIdleTime`, `domIdleTime`, and `find`. These are the same conditions as [`goTo`](goto). Use it to hold the step until a search or autocomplete request settles. `waitUntil` requires a `surface`, and `timeout` caps the wait.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Type a query and wait for the results to render.",
+          "type": {
+            "keys": ["kittens", "$ENTER$"],
+            "surface": { "browser": "chrome", "tab": "cart" },
+            "waitUntil": {
+              "find": { "selector": ".results" }
+            },
+            "timeout": 10000
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 

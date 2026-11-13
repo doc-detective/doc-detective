@@ -4,7 +4,7 @@ sidebar-title: GitHub Action
 description: Add the Doc Detective GitHub Action to a workflow, gate pull requests on the results, and open PRs or issues automatically.
 ---
 
-The [Doc Detective GitHub Action](https://github.com/doc-detective/github-action) runs your tests inside a GitHub Actions workflow. It's the recommended way to run Doc Detective in CI. It installs Doc Detective for you, and it fails the job when tests fail if you set `exit_on_fail` to `true`. It can also open a pull request or file an issue when a run finds a problem. This guide covers adding the action to a workflow, failing the build on test failures, and wiring up the pull request and issue features.
+The [Doc Detective GitHub Action](https://github.com/doc-detective/github-action) runs your tests inside a GitHub Actions workflow. It's the recommended way to run Doc Detective in CI. It installs Doc Detective for you and fails the job when tests fail. It can also open a pull request or file an issue when a run finds a problem. This guide covers adding the action to a workflow, failing the build on test failures, and wiring up the pull request and issue features.
 
 For the full list of inputs and outputs, see the [action's README](https://github.com/doc-detective/github-action).
 
@@ -15,65 +15,85 @@ For the full list of inputs and outputs, see the [action's README](https://githu
 
 ## Step 1: Add the action to a workflow
 
-Create a workflow file in `.github/workflows/`. Check out the repository first so the action can read your tests, then add the Doc Detective step:
+Create a workflow file in `.github/workflows/`. Check out the repository first so the action can read your tests. Set up Node.js, then add the Doc Detective step:
 
 ```yaml title=".github/workflows/doc-detective.yml"
 name: doc-detective
 on: [pull_request]
 
 jobs:
-  runTests:
+  doc-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: doc-detective/github-action@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: doc-detective/github-action@v2
 ```
 
-This runs Doc Detective on every pull request. Pin to the major version (`@v1`) to pick up fixes automatically, or pin to a full version such as `@v1.4.1` for a fixed release.
+This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.15 or later, and GitHub-hosted runners default to an older version. On older Node.js, the action warns:
+
+```text
+Doc Detective 5 needs Node.js 24.15 or later, but this job runs <version>. Add `actions/setup-node` with `node-version: 24`.
+```
+
+Pin to the major version (`@v2`) to pick up fixes automatically, or pin to a full version such as `@v2.0.0` for a fixed release. Action `@v2` runs CLI 5, and `@v1` stays on CLI 4. If you're moving from `@v1`, see [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
 
 ## Step 2: Point the action at your tests
 
 By default, the action runs from the repository root and uses the config file Doc Detective discovers there. To override either one, set the corresponding input:
 
 ```yaml
-- uses: doc-detective/github-action@v1
+- uses: doc-detective/github-action@v2
   with:
-    version: latest
+    version: 5
     config: .doc-detective.json
     input: ./docs
 ```
 
 | Input | Default | Description |
 |---|---|---|
-| `version` | `latest` | Doc Detective version to run, as a version number or an npm tag such as `latest`. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
+| `version` | `5` | Doc Detective version to run, as a version number, a range such as `^5`, or an npm tag such as `latest`. Action `@v2` expects version 5 or later. Leave it empty (`""`) to run a locally resolvable build instead of installing from the registry. |
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
 | `android` | `auto` | Set up the Android emulator on Linux runners so `android`-platform tests can run. `auto` sets it up only when your specs use an `android` platform, `true` always sets it up, and `false` never does. No effect on macOS or Windows runners. See [Run Android tests on Linux](#run-android-tests-on-linux). |
-| `config` | None | Path to a configuration file. |
-| `input` | None | Path to an input file or directory. Overrides the `input` field in the config file. |
+| `config` | None | Path to a configuration file, relative to `working_directory`. |
+| `input` | None | Path to an input file or directory, relative to `working_directory`. Overrides the `input` field in the config file. |
 
 <Note>
-Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package.
+Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package. The action expects version 5's exit codes, so the local build must be version 5 or later.
 </Note>
 
 ## Step 3: Fail the build when tests fail
 
-By default, the action doesn't fail the job when tests fail. It reports the results and exits cleanly. To make a failing test fail the workflow and block the pull request, set `exit_on_fail` to `true`:
+By default, a failing test fails the job and blocks the pull request. To report failures without failing the job, for example while you triage an existing suite, set `exit_on_fail` to `false`:
 
 ```yaml
-- uses: doc-detective/github-action@v1
+- uses: doc-detective/github-action@v2
   with:
-    exit_on_fail: true
+    exit_on_fail: false
 ```
 
-<Note>
-The action's advantage is convenience. Instead of passing `--exit-on-fail` on every `doc-detective` CLI call, you set `exit_on_fail: true` once in your workflow YAML.
+The action follows the exit code from the CLI:
 
-By default, the standalone `doc-detective` CLI exits non-zero only when it crashes or your config is invalid, not because a test failed. A script that relies on its exit code therefore reports success even when documentation tests failed. `--exit-on-fail` enables the same gate for the standalone CLI. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for the CLI behavior in detail.
-</Note>
+| CLI exit code | Result |
+|---|---|
+| `0` | The job passes. |
+| `1` | At least one test failed. The job fails unless `exit_on_fail` is `false`. |
+| `2` | Nothing valid was tested, such as a mistyped `input`, an invalid config, or every test skipping. The job always fails. |
+| Any other code | The run didn't finish, for example `130` after an interrupt. The job always fails. |
+
+The job also fails when the CLI writes no results file, whatever `exit_on_fail` says. The action treats that as a run that never happened, not as a failing test. For example, a network error while `npx` installs Doc Detective exits `1` with no results.
+
+When the CLI does write results, the action sets the `results` output and runs the issue and pull request steps before it fails the job.
+
+`exit_on_fail` acts only on exit code `1`. If a test fails but the CLI exits `0`, the job passes and the action logs a warning. The CLI exits `0` on a failing test when your config sets `exitOnFail: false`, or when `version` runs a CLI older than 5. To stay on CLI 4, use `doc-detective/github-action@v1`.
+
+See [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for the exit codes in detail.
 
 ## Step 4: Open a pull request when files change
 
-Doc Detective sometimes updates files during a run, refreshing screenshots, recording new command output, or writing ["Last verified on" dates](/docs/test-docs/last-verified-on). A passing run updates those dates at most once a day. A scheduled workflow can open a pull request whenever a run falls on a new UTC day. The action can commit those changes to a new branch and open a pull request for review. To enable this, set `create_pr_on_change` to `true` and grant the job permission to write contents and pull requests:
+Doc Detective sometimes updates files during a run, refreshing screenshots, recording new command output, or writing ["Last verified on" dates](/docs/test-docs/last-verified-on). A passing run updates those dates at most once a day. A scheduled workflow can open a pull request whenever a run falls on a new UTC day. The action can commit those changes to a branch and open a pull request for review. To enable this, set `create_pr_on_change` to `true` and grant the job permission to write contents and pull requests:
 
 ```yaml
 name: doc-detective
@@ -82,19 +102,29 @@ on:
     - cron: '0 0 * * *'  # Run daily at midnight
 
 jobs:
-  runTests:
+  doc-tests:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: doc-detective/github-action@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: doc-detective/github-action@v2
         with:
           create_pr_on_change: true
+          pr_paths: docs/images
           pr_title: Doc Detective found changes
           pr_labels: doc-detective,for-review
 ```
+
+The action commits to one branch, `doc-detective-changes` by default, and force-pushes it on each run. If that branch already has an open pull request, the action updates it rather than opening another. The pull request targets `GITHUB_BASE_REF`, the base of the pull request that triggered the run. Otherwise it targets `GITHUB_REF_NAME`, the branch the run is on. Git commands run in `working_directory`.
+
+<Warning>
+By default, the action stages every changed file, including screenshots and recordings the run takes. They can show unreleased UI or customer data. Set `pr_paths` to limit what the pull request commits.
+</Warning>
 
 <Note>
 You must allow GitHub Actions to create pull requests for the repository. Go to **Settings** > **Actions** > **General** and select **Allow GitHub Actions to create and approve pull requests**.
@@ -102,8 +132,9 @@ You must allow GitHub Actions to create pull requests for the repository. Go to 
 
 | Input | Default | Description |
 |---|---|---|
-| `create_pr_on_change` | `false` | Open a pull request if any files change during the run. |
-| `pr_branch` | `doc-detective-{DATE}` | Branch name for the pull request. |
+| `create_pr_on_change` | `false` | Open or update a pull request if any files change during the run. |
+| `pr_paths` | None | Comma-separated paths to stage, relative to `working_directory`. When unset, the action stages every changed file. |
+| `pr_branch` | `doc-detective-changes` | Branch for the pull request. The action force-pushes it on each run. |
 | `pr_title` | `Doc Detective Changes` | Pull request title. |
 | `pr_body` | See README | Pull request body. `$RUN_URL` inserts the workflow run URL. |
 | `pr_labels` | `doc-detective` | Comma-separated labels. |
@@ -114,7 +145,7 @@ A created pull request means files changed, not that tests passed or failed. Rev
 
 ## Step 5: File an issue when tests fail
 
-When a run has failing tests, the action can open a GitHub issue to track the failure and mention an AI integration to investigate it. To enable this, set `create_issue_on_fail` to `true` and grant the job permission to write issues:
+When a run has failing tests, the action can open a GitHub issue to track the failure and mention an AI assistant to investigate it. To enable this, set `create_issue_on_fail` to `true` and grant the job permission to write issues:
 
 ```yaml
 name: doc-detective
@@ -123,44 +154,59 @@ on:
     branches: [main]
 
 jobs:
-  runTests:
+  doc-tests:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       issues: write
     steps:
       - uses: actions/checkout@v4
-      - uses: doc-detective/github-action@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: doc-detective/github-action@v2
         with:
           create_issue_on_fail: true
           issue_title: Doc Detective found documentation issues
           token: ${{ secrets.DOC_DETECTIVE_ISSUE_TOKEN }}
-          integrations: claude
+          issue_mentions: claude
 ```
 
 This workflow runs on pushes to `main`. By default, a fork's pull request gets a read-only `GITHUB_TOKEN` and no secrets, so the action can't open an issue for it. Keep pull request checks in a separate `pull_request` workflow without `create_issue_on_fail`.
 
 | Input | Default | Description |
 |---|---|---|
-| `create_issue_on_fail` | `false` | Open an issue if one or more tests fail. |
+| `create_issue_on_fail` | `false` | Open or update an issue if one or more tests fail. |
 | `issue_title` | `Doc Detective Failure` | Issue title. |
-| `issue_body` | See README | Issue body. `$RESULTS` inserts the results, `$RUN_URL` the workflow run URL, and `$PROMPT` the prompt text. |
+| `issue_body` | `A Doc Detective run ($RUN_URL) failed:`, a blank line, then `$SUMMARY` | Issue body. `$SUMMARY` inserts the run's summary, `$RESULTS` the results object, `$RUN_URL` the workflow run URL, and `$PROMPT` the `issue_prompt` text. `$RESULTS` adds a blank line, then the results object as a JSON code block. If the body would exceed GitHub's 65,536-character limit, the action cuts `$SUMMARY` and `$RESULTS` to fit and adds a link to the workflow run. |
 | `issue_labels` | `doc-detective` | Comma-separated labels. |
 | `issue_assignees` | None | Comma-separated usernames to assign. |
-| `integrations` | None | Comma-separated integrations to mention in the issue (see [Integrations](/docs/test-docs/integrations)). |
-| `prompt` | See README | Prompt text passed to integrations. |
+| `issue_mentions` | None | Comma-separated AI assistants to mention in the issue. See [AI issue mentions](/docs/ci/issue-mentions). |
+| `issue_prompt` | `Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes.` | Text that follows each mention. |
 | `token` | `${{ github.token }}` | Token the action creates issues and pull requests with. |
 
-The `integrations` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [Integrations](/docs/test-docs/integrations). For prompts that get useful analysis back, see [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).
+If an open issue has the same title and the first label in `issue_labels`, the action updates that issue. Otherwise it creates one. A daily schedule then keeps one issue current rather than opening one per run. In a `pull_request` workflow, every pull request shares that issue. To keep one issue per pull request, put the number in the title, such as `issue_title: "Doc Detective failures in PR #${{ github.event.pull_request.number }}"`. Quote the value, because YAML treats a space followed by `#` as the start of a comment and drops the rest of the title.
 
-The example sets `token` because the `claude` integration needs it. Claude Code answers from a workflow, and GitHub doesn't start workflows for an issue that the default `GITHUB_TOKEN` opens. That page shows how to create the token.
+`$SUMMARY` is the run folder's `testResults.md`, the run's Markdown summary. When the run wrote no run folder, or the run folder has no `testResults.md`, it reads `Doc Detective wrote no summary for this run. See the workflow run.`
+
+`$SUMMARY` and `$RESULTS` come from masked output, so environment variable values appear as `***NAME***`. GitHub masks secrets in logs but not in issue bodies, so this keeps them out of the issue. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
+
+GitHub limits an issue body to 65,536 characters. When the body would be longer, the action shortens `$SUMMARY` or `$RESULTS` to fit. Each shortened value ends with a note that links to the workflow run. A shortened `$SUMMARY` ends on a whole line. If `issue_body` and `issue_prompt` leave no room for results, the action logs an error and doesn't create the issue.
+
+The `issue_mentions` input mentions an AI assistant in the issue so it can investigate the failure and suggest a fix. Options include `claude`, `copilot`, `cursor`, and `promptless`. For the full list, see [AI issue mentions](/docs/ci/issue-mentions). For prompts that get useful analysis back, see [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).
+
+The example sets `token` because `claude` needs it. Claude Code answers from a workflow, and GitHub doesn't start workflows for an issue that the default `GITHUB_TOKEN` opens. That page shows how to create the token.
+
+<Note>
+GitHub Action `@v2` renames `integrations` to `issue_mentions` and `prompt` to `issue_prompt`. The old names still work, but the action logs a deprecation warning. Setting both an old and a new name fails the job before tests run.
+</Note>
 
 ## Step 6: Use the results in later steps
 
 The action exposes the run's results so later steps can act on them. Give the step an `id`, then read its outputs:
 
 ```yaml
-- uses: doc-detective/github-action@v1
+- uses: doc-detective/github-action@v2
   id: doc-detective
 - run: echo "Results: ${{ steps.doc-detective.outputs.results }}"
 ```
@@ -168,14 +214,38 @@ The action exposes the run's results so later steps can act on them. Give the st
 | Output | Description |
 |---|---|
 | `results` | JSON-formatted test results. |
-| `pull_request_url` | URL of the created pull request, when `create_pr_on_change` opens one. |
-| `issue_url` | URL of the created issue, when `create_issue_on_fail` opens one. |
+| `pull_request_url` | URL of the pull request, when `create_pr_on_change` opens or updates one. |
+| `issue_url` | URL of the issue, when `create_issue_on_fail` opens or updates one. |
+
+## Find reports and the run folder
+
+The action passes Doc Detective a temporary path with `--output`, and reads the results file from there to set the `results` output. Use that output rather than the file.
+
+Everything else lands under your config's `outputDir`, as it does on the command line. That's the run folder, `<outputDir>/.doc-detective/runs/<runId>/`, and files from reporters you turn on with `reporters`, such as `junit.xml`. `outputDir` defaults to the config file's folder, or `working_directory` with no config file. See [Choose your reporters](/docs/ci/reporters-and-artifacts#step-1-choose-your-reporters).
+
+The action adds `.doc-detective/`, `junit.xml`, `doc-detective-summary.md`, and `testResults-*` to `.git/info/exclude`. Git then ignores them, so `create_pr_on_change` doesn't commit the run's own reports. Screenshots and recordings aren't excluded. A `screenshot: true` image lands in `outputDir`, beside the reference image you committed, so each run compares against it. A changed image reaches the pull request. To keep images out of the pull request, set `pr_paths`.
+
+GitHub discards the checkout when the job ends. To keep the reports, upload them in a later step. This example assumes `outputDir` is the repository root. Leave out any path your config doesn't produce:
+
+```yaml
+- uses: doc-detective/github-action@v2
+- if: always()
+  uses: actions/upload-artifact@v4
+  with:
+    name: doc-detective-run
+    path: |
+      junit.xml
+      .doc-detective/runs/
+    include-hidden-files: true
+```
+
+`if: always()` uploads the files even when a failing test fails the job. `upload-artifact` treats files in a folder whose name starts with `.` as hidden and skips them by default, so set `include-hidden-files: true` to upload the run folder. Upload the run folder with `junit.xml`, because its [attachments](/docs/ci/reporters-and-artifacts#read-the-junit-report) are relative to that file.
 
 ## Tests are code
 
 Running Doc Detective on a repository runs that repository's tests, the same way `npm test` runs its test suite. Tests can run shell commands, run code, and send HTTP requests. That's true of inline tests in your docs and of standalone spec files alike. Anyone who can change your tests can change what your workflow runs.
 
-`bash`, `python`, and `javascript` code blocks that Doc Detective detects in Markdown are the exception. Nobody wrote them as tests, so they're marked `unsafe`, and a run skips them unless you allow unsafe steps. The official Docker image allows them by default. Detected HTTP request blocks aren't marked `unsafe`, so a run sends those requests. To turn detection off, set [`detectSteps`](/reference/schemas/config) to `false`.
+`bash`, `python`, `py`, `javascript`, and `js` code blocks that Doc Detective detects in Markdown are the exception. Nobody wrote them as tests, so they're marked `unsafe`, and a run skips them unless you allow unsafe steps. The official Docker image allows them by default. Detected HTTP request blocks aren't marked `unsafe`, so a run sends those requests. To turn detection off, set [`detectSteps`](/reference/schemas/config) to `false`.
 
 What protects your workflow is who can start a run that has your secrets:
 
@@ -184,17 +254,37 @@ What protects your workflow is who can start a run that has your secrets:
 
 ## Browser modes
 
-On Ubuntu runners, the action runs browsers headless. Chrome and Firefox contexts fall back to headless mode automatically.
+On Ubuntu runners, the action runs browsers headless. Chrome and Firefox contexts fall back to headless mode automatically when there's no display.
 
-Some tests need a display, such as recording video with the `ffmpeg` engine. Run those jobs on a macOS or Windows runner instead:
+Doc Detective records headless Chrome with the `browser` engine, so Chrome recordings work on Ubuntu. Headless Firefox can't record, because it needs the `ffmpeg` engine and a display. To record Firefox on Ubuntu, install Xvfb in a step before the action:
 
 ```yaml
 jobs:
-  runTests:
+  doc-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: sudo apt-get install -y xvfb
+      - uses: doc-detective/github-action@v2
+```
+
+Installing the package is all you do. When a run records Firefox, Doc Detective finds the `Xvfb` binary, starts its own display for the recording, and runs Firefox headed on it. Without Xvfb, Doc Detective skips Firefox `record` steps instead of failing them.
+
+You can also run the job on a macOS or Windows runner, which has a display:
+
+```yaml
+jobs:
+  doc-tests:
     runs-on: macos-latest  # or windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: doc-detective/github-action@v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: doc-detective/github-action@v2
 ```
 
 See [Docker and headless](/docs/ci/docker-and-headless) for how headless environments affect a run.
@@ -229,31 +319,32 @@ The emulator only accelerates on Linux, so this input has no effect on macOS or 
 
 ## Speed up iOS tests on macOS
 
-Tests against the `ios` platform run on macOS runners, where the first XCUITest session compiles the WebDriverAgent (WDA) with `xcodebuild`. On a cold, ephemeral runner that compile takes around 10 minutes and dominates the run. iOS tests still work without any extra setup, but the first session pays that cost. To skip it on later runs, have Doc Detective prebuild WDA once and persist it across runs.
+Tests against the `ios` platform run on macOS runners, where the first XCUITest session compiles WebDriverAgent with `xcodebuild`. On a cold, ephemeral runner, that compile takes around 10 minutes. To pay that cost once, persist Doc Detective's [cache directory](/reference/reference/cli/install#cache-directory) between runs, then run [`doc-detective install ios --yes`](/reference/reference/cli/install#install-ios) in your setup steps. It compiles WebDriverAgent once into the cache, keyed by your Xcode **and** XCUITest driver versions. Test sessions use the build automatically and read-only, which is safe to share across parallel jobs.
 
 ```yaml
 jobs:
-  runTests:
+  doc-tests:
     runs-on: macos-latest
     env:
       DOC_DETECTIVE_CACHE_DIR: ${{ github.workspace }}/.dd-cache
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - uses: actions/cache@v4
         with:
           path: ${{ env.DOC_DETECTIVE_CACHE_DIR }}  # Keeps the cache path in sync with DOC_DETECTIVE_CACHE_DIR
           key: dd-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             dd-cache-${{ runner.os }}-
-      - run: npx doc-detective@latest install ios --yes  # v4.28+; prebuilds WebDriverAgent into the cache
-      - uses: doc-detective/github-action@v1
+      - run: npx doc-detective install ios --yes
+      - uses: doc-detective/github-action@v2
 ```
 
-The [`doc-detective install ios --yes`](/reference/reference/cli/install#install-ios) step compiles WebDriverAgent once into Doc Detective's [cache directory](/reference/reference/cli/install#cache-directory), keyed by your Xcode and XCUITest driver versions. Test sessions then read those build products automatically and read-only, so they're safe to share across parallel jobs. Persisting `DOC_DETECTIVE_CACHE_DIR` with `actions/cache` carries the build between runs, so only the first run pays the cold compile. The `actions/cache` step's `path` reads the same `DOC_DETECTIVE_CACHE_DIR` value, so the two stay in sync if you change the directory.
+The `actions/cache` step's `path` reads the same `DOC_DETECTIVE_CACHE_DIR` value, so the two stay in sync if you change the directory.
 
 Use a rotating key (`github.run_id`) with `restore-keys` rather than a static key. Doc Detective already keys the build by Xcode and driver version inside the cache directory. The `actions/cache` key doesn't need those versions, because its only job is to keep the stored copy fresh. An exact cache hit never re-uploads, so a static key keeps serving the first build it saved. That build goes stale the first time your runner picks up a new Xcode or driver version. A run-scoped key always saves the latest build, and `restore-keys` restores the newest earlier entry.
-
-This recipe requires Doc Detective v4.28 or later in both the `install ios` step and the action. The step names `@latest` because a bare `npx doc-detective` uses a version the job already installed, which can be older. The action installs whatever its `version` input names, which defaults to `latest`. To pin both to the same release, name it in each place. For example, run `npx doc-detective@4.28.0 install ios --yes` and set the action's [`version` input](#step-2-point-the-action-at-your-tests) to `4.28.0`.
 
 ## Runtime caching
 
@@ -265,19 +356,22 @@ Point `DOC_DETECTIVE_CACHE_DIR` at a path under the workspace, then use GitHub's
 
 ```yaml
 jobs:
-  runTests:
+  doc-tests:
     runs-on: ubuntu-latest
     env:
       DOC_DETECTIVE_CACHE_DIR: ${{ github.workspace }}/.doc-detective-cache
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - uses: actions/cache@v4
         with:
           path: .doc-detective-cache
           key: doc-detective-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             doc-detective-${{ runner.os }}-
-      - uses: doc-detective/github-action@v1
+      - uses: doc-detective/github-action@v2
 ```
 
 Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs.
@@ -288,7 +382,7 @@ To control exactly when assets download, install them before the action runs:
 
 ```yaml
 jobs:
-  runTests:
+  doc-tests:
     runs-on: ubuntu-latest
     env:
       DOC_DETECTIVE_CACHE_DIR: ${{ github.workspace }}/.doc-detective-cache
@@ -296,7 +390,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
       - uses: actions/cache@v4
         with:
           path: .doc-detective-cache
@@ -305,7 +399,7 @@ jobs:
             doc-detective-${{ runner.os }}-
       - run: npm install -g doc-detective
       - run: doc-detective install all --yes
-      - uses: doc-detective/github-action@v1
+      - uses: doc-detective/github-action@v2
 ```
 
 Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every step, so the pre-install step and the action share the same cached directory.
@@ -315,17 +409,39 @@ Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every 
 Open a pull request that touches a documented command, screenshot, or API response, then confirm:
 
 - The `doc-detective` job runs and its log shows the terminal summary.
-- With `exit_on_fail: true`, a failing test fails the job and blocks the pull request.
-- With `create_pr_on_change: true`, a run that changes files opens a pull request.
-- With `create_issue_on_fail: true`, a run with failing tests opens an issue.
+- A failing test fails the job and blocks the pull request, unless you set `exit_on_fail: false`.
+- With `create_pr_on_change: true`, a run that changes files opens a pull request, or updates the open one.
+- With `create_issue_on_fail: true`, a run with failing tests opens an issue, or updates the open one.
 
 ## Troubleshooting
 
 ### The job passes even though a test failed
 
-**Cause:** `exit_on_fail` defaults to `false`, so the action reports failures without failing the job.
+**Cause:** One of these settings keeps the job green:
 
-**Solution:** Set `exit_on_fail` to `true` so failing tests fail the workflow. See [Step 3](#step-3-fail-the-build-when-tests-fail).
+- The step sets `exit_on_fail: false`.
+- The workflow still uses `@v1`, where `exit_on_fail` defaults to `false`.
+- Your config sets `exitOnFail: false`, or `version` runs a CLI older than 5. The CLI then exits `0` when a test fails, and the job log shows a warning.
+
+**Solution:** Use `@v2`, remove `exit_on_fail: false` from the step and `exitOnFail: false` from your config, and remove any `version` value below 5. See [Step 3](#step-3-fail-the-build-when-tests-fail).
+
+### Reports or the run folder aren't where you expect
+
+**Cause:** They land under your config's `outputDir`, which resolves against the config file's folder. The action writes only the results file to a temporary path.
+
+**Solution:** Check `outputDir` in your config, or read the `results` output. See [Find reports and the run folder](#find-reports-and-the-run-folder).
+
+### The pull request commits screenshots
+
+**Cause:** `create_pr_on_change` stages every changed file by default, including screenshots and recordings the run takes.
+
+**Solution:** Set `pr_paths` to the paths the pull request should commit. See [Step 4](#step-4-open-a-pull-request-when-files-change).
+
+### The job warns about the Node.js version
+
+**Cause:** Doc Detective 5 needs Node.js 24.15 or later, and the job runs an older version.
+
+**Solution:** Add `actions/setup-node` with `node-version: 24` before the action. See [Step 1](#step-1-add-the-action-to-a-workflow).
 
 ### The action can't create a pull request or issue
 

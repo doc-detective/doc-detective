@@ -1,0 +1,129 @@
+{
+  "specId": "screenshot-paths",
+  "description": "Where each screenshot path form lands, and that false skips (ADR 01173). A screenshot the runner names goes to outputDir. The checks read outputDir from config.groups.json, the config the fixture jobs run with, and resolve it against that file's folder. A path you write resolves against this spec file, or against `directory`. A spec loaded from a URL resolves its relative paths against outputDir. Each capture is followed by a check that reads its path from the step's outputs through process.env.",
+  "tests": [
+    {
+      "testId": "screenshot-paths-local",
+      "description": "true, {}, a path, a directory, a path in a directory, and false.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "stepId": "screenshot-paths-true",
+          "screenshot": true,
+          "variables": {
+            "SHOT_PATHS_TRUE": "$$screenshotPath"
+          }
+        },
+        {
+          "description": "screenshot: true writes <outputDir>/<stepId>.png.",
+          "runShell": {
+            "command": "node -e \"const p=require('path'),f=process.env.SHOT_PATHS_TRUE,out=p.resolve(require('./config.groups.json').outputDir);const ok=require('fs').existsSync(f)&&p.relative(out,f)==='screenshot-paths-true.png';if(!ok){console.error(f,'not in',out);process.exit(1)}\"",
+            "workingDirectory": ".."
+          }
+        },
+        {
+          "stepId": "screenshot-paths-empty",
+          "screenshot": {},
+          "variables": {
+            "SHOT_PATHS_EMPTY": "$$screenshotPath"
+          }
+        },
+        {
+          "description": "screenshot: {} writes <outputDir>/<stepId>.png.",
+          "runShell": {
+            "command": "node -e \"const p=require('path'),f=process.env.SHOT_PATHS_EMPTY,out=p.resolve(require('./config.groups.json').outputDir);const ok=require('fs').existsSync(f)&&p.relative(out,f)==='screenshot-paths-empty.png';if(!ok){console.error(f,'not in',out);process.exit(1)}\"",
+            "workingDirectory": ".."
+          }
+        },
+        {
+          "stepId": "screenshot-paths-string",
+          "screenshot": "screenshot-paths-string.png",
+          "variables": {
+            "SHOT_PATHS_STRING": "$$screenshotPath"
+          }
+        },
+        {
+          "description": "A path resolves against the spec file.",
+          "runShell": {
+            "command": "node -e \"const p=require('path'),f=process.env.SHOT_PATHS_STRING;const ok=require('fs').existsSync(f)&&p.relative(process.cwd(),f)==='screenshot-paths-string.png';if(!ok){console.error(f);process.exit(1)}\"",
+            "workingDirectory": "."
+          }
+        },
+        {
+          "stepId": "screenshot-paths-directory",
+          "screenshot": {
+            "directory": "screenshot-paths"
+          },
+          "variables": {
+            "SHOT_PATHS_DIRECTORY": "$$screenshotPath"
+          }
+        },
+        {
+          "description": "A directory with no path holds <stepId>.png.",
+          "runShell": {
+            "command": "node -e \"const p=require('path'),f=process.env.SHOT_PATHS_DIRECTORY;const ok=require('fs').existsSync(f)&&p.relative(process.cwd(),f)==='screenshot-paths-directory.png';if(!ok){console.error(f);process.exit(1)}\"",
+            "workingDirectory": "screenshot-paths"
+          }
+        },
+        {
+          "stepId": "screenshot-paths-both",
+          "screenshot": {
+            "path": "both.png",
+            "directory": "screenshot-paths"
+          },
+          "variables": {
+            "SHOT_PATHS_BOTH": "$$screenshotPath"
+          }
+        },
+        {
+          "description": "A path resolves against its directory.",
+          "runShell": {
+            "command": "node -e \"const p=require('path'),f=process.env.SHOT_PATHS_BOTH;const ok=require('fs').existsSync(f)&&p.relative(process.cwd(),f)==='both.png';if(!ok){console.error(f);process.exit(1)}\"",
+            "workingDirectory": "screenshot-paths"
+          }
+        },
+        {
+          "description": "screenshot: false skips the step.",
+          "stepId": "screenshot-paths-false",
+          "screenshot": false
+        },
+        {
+          "description": "No <outputDir>/<stepId>.png was written.",
+          "runShell": {
+            "command": "node -e \"const p=require('path'),out=p.resolve(require('./config.groups.json').outputDir);process.exit(require('fs').existsSync(p.join(out,'screenshot-paths-false.png')) ? 1 : 0)\"",
+            "workingDirectory": ".."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "screenshot-paths-remote",
+      "description": "A spec loaded from a URL writes its relative screenshot path under outputDir, not beside its temporary download. Runs a nested CLI against a spec served by the 8092 test server.",
+      "steps": [
+        {
+          "description": "Serve a spec with a relative screenshot path, and write a headless config for the nested run.",
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-screenshot-paths';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync('test/server/public/fixture-screenshot-paths-remote.spec.json',JSON.stringify({tests:[{steps:[{goTo:'http://localhost:8092'},{screenshot:'remote.png'}]}]}));fs.writeFileSync(d+'/config.json',JSON.stringify({logLevel:'error',telemetry:{send:false},runOn:[{platforms:['windows','mac','linux'],browsers:[{name:'firefox',headless:true}]}]}));\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js --config .tmp/fixture-screenshot-paths/config.json -i http://localhost:8092/fixture-screenshot-paths-remote.spec.json --output-dir .tmp/fixture-screenshot-paths/out",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        },
+        {
+          "description": "The capture is in outputDir. Removes the served spec.",
+          "runShell": {
+            "command": "node -e \"const fs=require('fs');fs.rmSync('test/server/public/fixture-screenshot-paths-remote.spec.json',{force:true});process.exit(fs.existsSync('.tmp/fixture-screenshot-paths/out/remote.png')?0:1)\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -10,92 +10,289 @@ For the full list of reporter and output options, see the [`config`](/reference/
 ## Before you begin
 
 - [Install Doc Detective](/docs/get-started/installation) and have a spec you can run.
-- Know your output directory. Reporters that write files use the `output` config option (or the `--output` flag); it defaults to the current working directory.
+- Know your output folder. Reporters that write files use the `outputDir` config option (or the `--output-dir` flag), which defaults to the current directory. The GitHub Action sets it to the runner's temporary directory instead. See [Find reports and the run folder](/docs/ci/github-action#find-reports-and-the-run-folder).
 
 ## Step 1: Choose your reporters
 
-Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`. By default, it runs `terminal`, `json`, and `runFolder`. To choose a different combination, set the `reporters` option.
+Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`. By default, it runs `terminal` and `runFolder`. To choose a different combination, set the `reporters` option.
+
+The run folder holds the screenshots and recordings Doc Detective takes by default. So the `runFolder` reporter runs whenever [`autoScreenshot`](/docs/test-docs/automatic-screenshots) or [`autoRecord`](/docs/test-docs/automatic-recording) is on, even if `reporters` leaves it out:
+
+| `reporters` | `autoScreenshot` and `autoRecord` | Reporters that run |
+|---|---|---|
+| (default) | (unset) | `terminal`, `runFolder` |
+| `["junit"]` | (unset) | `junit`, `runFolder` |
+| `["junit"]` | both `false` | `junit` |
+| `["terminal"]` | a test sets `autoRecord: true` | `terminal`, `runFolder` |
 
 | Reporter | Output |
 |---|---|
-| `terminal` | A colored pass/fail/warning/skipped summary printed to stdout. Writes no files. |
-| `json` | A flat JSON results file with the full step-by-step outcome. |
-| `html` | A self-contained HTML report you can open in a browser. |
-| `runFolder` | A per-run folder containing the results (JSON and HTML) alongside the screenshots and recordings the run captured. |
-| `junit` | A `junit.xml` report that CI platforms render in their test summary views. |
-| `markdown` | A `doc-detective-summary.md` run summary for a CI job summary or a merge request comment. |
+| `terminal` | A summary on stdout with the counts, every failure, warning, and skip, the run's environment, and a one-line verdict. Writes no files. |
+| `json` | A JSON results file, `testResults-<runId>.json`, with the full step-by-step outcome. |
+| `html` | A self-contained HTML report you can open in a browser, with the run's screenshots and recordings. It's the same page as the run folder's copy. |
+| `runFolder` | A per-run folder containing the results (JSON, HTML, and a Markdown summary) alongside the screenshots and recordings the run captured. |
+| `junit` | A `junit.xml` report that CI platforms render in their test summary views, with each failure's screenshot and recording attached. See [Read the JUnit report](#read-the-junit-report). |
+| `markdown` | A `doc-detective-summary.md` run summary for a CI job summary or a merge request comment. See [Read the Markdown summary](#read-the-markdown-summary). |
 
-The `junit` and `markdown` reporters write a fixed filename in the output directory and overwrite it on each run, so a CI artifact path stays stable. If `output` names a file, they write beside that file.
+Doc Detective doesn't look for tests in folders named `.doc-detective`. That keeps a run from testing the files an earlier run saved there.
 
-To choose reporters for every run, set them in your config file. This works on 4.x and on 5.0. For example, this config runs the `terminal`, `json`, and `html` reporters:
-
-```json title=".doc-detective.json"
-{
-  "reporters": ["terminal", "json", "html"]
-}
-```
-
-The `reporters` list replaces the defaults, so name every reporter you want. `runFolder` is one of the default reporters, but this example leaves it out. Without it, the run doesn't save a per-run folder of results, screenshots, and recordings. To keep that folder, add `runFolder` to the list.
-
-On the command line, several values after `--reporters`, like `--reporters terminal json html`, work on 4.x, but they print a warning. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) takes one comma-separated value, like `--reporters terminal,json,html`, which 4.x reports as an unknown reporter.
-
-On GitLab, add `junit` to the `reporters` list in your `.doc-detective.json` rather than creating a second config file:
-
-```json title=".doc-detective.json"
-{
-  "reporters": ["terminal", "json", "html", "junit"]
-}
-```
-
-Then point the test summary at the `junit.xml` file:
+On GitLab, point the test summary at the `junit.xml` file, and upload the run folder with it so the attachments resolve:
 
 ```yaml title=".gitlab-ci.yml"
 doc-tests:
   script:
-    # Reporters come from the reporters list in .doc-detective.json
-    - doc-detective --input ./docs --output ./reports
+    - doc-detective --input ./docs --reporters terminal,junit
   artifacts:
+    when: always
+    paths:
+      - .doc-detective/
     reports:
-      junit: reports/junit.xml
+      junit: junit.xml
 ```
 
-On GitHub Actions, add `markdown` to the `reporters` list in `.doc-detective.json`:
-
-```json title=".doc-detective.json"
-{
-  "reporters": ["terminal", "json", "html", "markdown"]
-}
-```
-
-If the same config also runs on GitLab, keep `junit` in the list:
-
-```json title=".doc-detective.json"
-{
-  "reporters": ["terminal", "json", "html", "junit", "markdown"]
-}
-```
-
-Then, in your GitHub Actions workflow, append the Markdown summary to the job summary:
+On GitHub Actions, append the Markdown summary to the job summary:
 
 ```yaml title=".github/workflows/docs.yml"
-# Reporters come from the reporters list in .doc-detective.json
-- run: doc-detective --input ./docs --output ./reports
+- run: doc-detective --input ./docs --reporters terminal,markdown --output-dir ./reports
 - if: always()
   run: cat reports/doc-detective-summary.md >> "$GITHUB_STEP_SUMMARY"
 ```
 
+Select reporters on the command line:
+
+```bash
+doc-detective --input api.spec.json --reporters terminal,html
+```
+
+Or set them in your config file so every run uses the same combination:
+
+```json title=".doc-detective.json"
+{
+  "reporters": ["terminal", "runFolder", "html"]
+}
+```
+
+To keep the defaults, leave `reporters` out of your config. An empty list, `"reporters": []`, runs no reporters you choose, so the run prints no summary. While `autoScreenshot` or `autoRecord` is on, the run folder still archives the results. Set both to `false` to write nothing.
+
+Each name must match one of the six built-in reporters exactly, in your config or in `--reporters`. Any other name, such as `"JSON"` or `"htm"`, stops the run with exit code `2` and an error that lists the allowed names. In a config file, the error looks like this:
+
+```text
+Error: Invalid config in .doc-detective.json:
+reporters[0]: must be one of terminal, json, html, runFolder, junit, markdown (got "htm").
+See https://docs.doc-detective.com/reference/schemas/config
+```
+
+### What every reporter lists
+
+The `terminal`, `markdown`, and `junit` reporters list the same results in the same order: failures, then warnings, then skips. Each item is the deepest result with a reason of its own, named by its ID path:
+
+| Item | ID path |
+|---|---|
+| A step that didn't pass | `<specId> › <testId> › <contextId> › <stepId>` |
+| A context's [automatic recording](/docs/test-docs/automatic-recording), when it didn't pass | `<specId> › <testId> › <contextId> › autoRecording` |
+| A context that didn't pass and has neither, such as one `runOn` skipped | `<specId> › <testId> › <contextId>` |
+
+Skipped steps that come after a failure in the same context don't get a line of their own, whatever their reason. Instead, the failure adds a line such as `3 more steps skipped after the failure`, with its count. To see why each of those steps skipped, open `testResults.json` or `testResults.html` in the run folder. See [Find each report](#find-each-report). A failed automatic recording can be the only reason a context failed, so it gets a line like a failed step.
+
+An item shows its reason and, when the files exist, the step's screenshot and the context's recording. Terminal paths are absolute. Markdown and JUnit paths are relative to the file they're in.
+
+Every reporter that prints a verdict counts tests:
+
+| Verdict | When | Text |
+|---|---|---|
+| Failed | At least one test failed. | `1 of 12 tests failed (2 with warnings, 3 skipped).` |
+| Skipped | Every test skipped. | `All 12 tests skipped.` |
+| Passed with warnings | No test failed, and at least one warned. | `9 of 12 tests passed (2 with warnings, 3 skipped).` |
+| Passed | No test failed or warned, and at least one passed. | `12 of 12 tests passed.` |
+| No tests ran | The run had no tests. | `No tests ran.` |
+
+### Read the JUnit report
+
+Each spec is a test suite, and each test in each context is a test case. The case's `classname` is the spec ID. Its `name` is `<testId> › <contextId> — <description>`:
+
+```xml title="junit.xml"
+<testsuites name="Doc Detective" tests="4" failures="1" errors="0" skipped="1" time="14.200">
+  <testsuite name="install-guide" tests="2" failures="1" errors="0" skipped="0" time="9.400" timestamp="2026-11-06T02:33:28.631Z">
+    <properties>
+      <property name="runId" value="2026-11-06T02-33-28-631Z"/>
+      <property name="docDetectiveVersion" value="5.0.0"/>
+      <property name="nodeVersion" value="24.15.0"/>
+      <property name="platform" value="linux"/>
+      <property name="arch" value="x64"/>
+      <property name="osRelease" value="6.8.0-1017-azure"/>
+    </properties>
+    <testcase classname="install-guide" name="install › linux-chrome — Install the CLI" time="6.100">
+      <failure message="Element not found within timeout">install-guide › install › linux-chrome › click-save — Click Save
+Element not found within timeout
+3 more steps skipped after the failure.</failure>
+      <system-out>[[ATTACHMENT|.doc-detective/runs/2026-11-06T02-33-28-631Z/specs/install-guide/tests/install/contexts/linux-chrome/screenshots/03-find-click-save.png]]
+[[ATTACHMENT|.doc-detective/runs/2026-11-06T02-33-28-631Z/specs/install-guide/tests/install/contexts/linux-chrome/recordings/linux-chrome.mp4]]</system-out>
+    </testcase>
+  </testsuite>
+</testsuites>
+```
+
+- **Attachments.** `[[ATTACHMENT|<path>]]` lines come first in `<system-out>`, on every case that isn't skipped. The screenshot of the first step that didn't pass comes first, then the context's recording. Paths are relative to the folder that holds `junit.xml`. Azure DevOps resolves them from there. GitLab resolves them from the project folder, so keep `junit.xml` at the project root and add `.doc-detective/` to `artifacts:paths`, as in the example above.
+- **Warnings.** JUnit has no warning state, so the case passes, and each warning is a `Warning:` line in `<system-err>`.
+- **Skips.** A skipped context is `<skipped message="<reason>"><reason></skipped>`. A skipped step in a case that ran is a `Skipped:` line in `<system-out>`.
+- **Properties.** Each suite has a `timestamp` and `<properties>` with the run ID and the [run's environment](#tell-environment-changes-from-product-changes). They include only the fields the report has.
+
+### Read the Markdown summary
+
+The `markdown` reporter leads with the verdict, the counts, and the run's environment. Failures follow in a table, and warnings and skips follow in collapsed sections:
+
+```md title="doc-detective-summary.md"
+# Doc Detective results
+
+**Failed** — 1 of 4 tests failed (1 with warnings, 1 skipped).
+
+| Level | Pass | Fail | Warning | Skipped | Total |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Specs | 1 | 1 | 0 | 1 | 3 |
+| Tests | 1 | 1 | 1 | 1 | 4 |
+| Contexts | 1 | 1 | 1 | 1 | 4 |
+| Steps | 3 | 1 | 1 | 4 | 9 |
+
+Doc Detective 5.0.0 · Node.js 24.15.0 · linux 6.8.0-1017-azure (x64) · Started 2026-11-06T02:33:28.631Z · Took 14.2 s
+
+## Failures
+
+| Location | Details |
+|---|---|
+| `install-guide › install › linux-chrome › click-save` Click Save | Element not found within timeout<br>Screenshot: `.doc-detective/runs/2026-11-06T02-33-28-631Z/specs/install-guide/tests/install/contexts/linux-chrome/screenshots/03-find-click-save.png`<br>Recording: `.doc-detective/runs/2026-11-06T02-33-28-631Z/specs/install-guide/tests/install/contexts/linux-chrome/recordings/linux-chrome.mp4`<br>3 more steps skipped after the failure. |
+
+<details><summary>Warnings (1)</summary>
+
+| Location | Details |
+|---|---|
+| `install-guide › verify › linux-chrome › compare-dashboard` Compare the dashboard | The page varied by 3%. |
+
+</details>
+
+<details><summary>Skipped (1)</summary>
+
+| Location | Details |
+|---|---|
+| `mac-guide › setup › default` Set up a Mac | Skipped: this system can't run a `mac` context. |
+
+</details>
+
+Run artifacts: `.doc-detective/runs/2026-11-06T02-33-28-631Z`
+```
+
+The default `runFolder` reporter writes this summary as `testResults.md` in the run folder, so you get one without adding the `markdown` reporter. The run prints the file's path after `Run summary:`. Paths inside `testResults.md` are relative to the run folder, not to the working folder as in the preceding example.
+
+Paths print as code rather than links, because a CI job summary can't serve your files. `Run artifacts` prints only when the run has a run folder.
+
+GitHub rejects a job summary over 1 MiB, so the summary limits its size. Each section stops at 100 rows, then says how many more there are. Each reason or name stops at 300 characters. A summary that's still too large drops its skips, then its warnings, before it touches its failures. It then ends with a note that says so.
+
+### Find each report
+
+Reporters that write a file name it on stderr, with its absolute path:
+
+| Reporter | File | Line on stderr |
+|---|---|---|
+| `json` | `<outputDir>/testResults-<runId>.json` | `Results: <path>` |
+| `runFolder` | `<outputDir>/.doc-detective/runs/<runId>/testResults.html`, `testResults.md`, and `testResults.json` | `Run report: <path>`, `Run summary: <path>`, and `Run results: <path>` |
+| `html` | `<outputDir>/testResults-<runId>.html` | `HTML report: <path>` |
+| `junit` | `<outputDir>/junit.xml` | `JUnit report: <path>` |
+| `markdown` | `<outputDir>/doc-detective-summary.md` | `Markdown summary: <path>` |
+
+These lines are info-level logs, so `-l warning` and quieter hide them. They never reach stdout, so `--json` stdout holds only JSON, whichever reporters run.
+
+`junit.xml` and `doc-detective-summary.md` have fixed names and are overwritten on each run, so a CI artifact path stays stable. The `json` and `html` names carry the run ID, so each run keeps its own file.
+
+`outputDir` normally names a folder. A path that ends in `.json`, `.html`, `.htm`, `.xml`, or `.md` counts as a file, and reports land beside it. If the `json` or `html` reporter matches that extension, it writes to that file, and it overwrites a file that's already there.
+
+If Doc Detective can't write a report, it prints an error and carries on. The exit code doesn't change:
+
+```text
+Error: Couldn't write the JUnit report to /readonly/reports/junit.xml: permission denied.
+```
+
+If the report itself can't be built, the line reads `Couldn't build the <report>: <cause>.` instead, and no file is written.
+
 ## Step 2: Read the terminal summary
 
-The `terminal` reporter prints a summary grouped by specs, tests, contexts, and steps, with counts for passed, failed, warnings, and skipped. When everything passes and at least one test ran, it prints a success banner. When no tests run, whether from an empty input or an active filter, it prints a warning instead. An empty run therefore never looks like a green run.
+The `terminal` reporter prints a summary on stdout. It groups the counts by specs, tests, contexts, and steps, lists every failure, warning, and skip, and shows the run's environment. Then it ends with a one-line verdict:
+
+```text
+===============================
+Specs:    3 total, 1 passed, 1 failed, 1 skipped
+Tests:    4 total, 1 passed, 1 failed, 1 warnings, 1 skipped
+Contexts: 4 total, 1 passed, 1 failed, 1 warnings, 1 skipped
+Steps:    9 total, 3 passed, 1 failed, 1 warnings, 4 skipped
+
+Failed (1):
+1. install-guide › install › linux-chrome › click-save — Click Save
+   Element not found within timeout
+   Screenshot: /home/me/docs/.doc-detective/runs/2026-11-06T02-33-28-631Z/specs/install-guide/tests/install/contexts/linux-chrome/screenshots/03-find-click-save.png
+   Recording: /home/me/docs/.doc-detective/runs/2026-11-06T02-33-28-631Z/specs/install-guide/tests/install/contexts/linux-chrome/recordings/linux-chrome.mp4
+   3 more steps skipped after the failure.
+
+Warnings (1):
+1. install-guide › verify › linux-chrome › compare-dashboard — Compare the dashboard
+   The page varied by 3%.
+
+Skipped (1):
+1. mac-guide › setup › default — Set up a Mac
+   Skipped: this system can't run a `mac` context.
+
+Doc Detective 5.0.0 · Node.js 24.15.0 · linux 6.8.0-1017-azure (x64) · Started 2026-11-06T02:33:28.631Z · Took 14.2 s
+===============================
+1 of 4 tests failed (1 with warnings, 1 skipped).
+```
+
+See [What every reporter lists](#what-every-reporter-lists) for what each line means. When an empty input or a filter means no tests run, the verdict is `No tests ran`, and the CLI exits `2`. An empty run therefore never looks like a green run.
+
+Logs, warnings, and progress go to stderr, so you can pipe stdout without filtering. These flags change what you see:
+
+| Flag | Effect |
+|---|---|
+| `-q`, `--quiet` | Show only errors and the one-line verdict. |
+| `-l silent` | Print nothing, including the summary. |
+| `-d`, `--debug` | Show debugging output, with level labels and timestamps. |
+| `--json` | Print the results as one JSON document on stdout. |
+| `--plain` | Print one tab-separated line per test context on stdout: result, spec ID, test ID, and platform and browser. |
+
+Only one mode can write stdout. `--plain` with `--json`, `--output -`, or `--dry-run` exits `2` with one line on stderr, such as ``Error: set `--json` or `--plain`, not both.`` The same goes for an `output` of `-` or a `dryRun` of `true` in config.
 
 ## Step 3: Find the JSON results
 
-The `json` reporter writes the full results to a file:
+Every default run saves its results to `.doc-detective/runs/<runId>/testResults.json`. For a path that stays the same between runs, pass `--output`:
 
-- If `output` ends in `.json`, Doc Detective writes to that path, adding a numeric suffix (`-0.json`, `-1.json`, …) to avoid overwriting an existing file.
-- Otherwise it writes `testResults-<timestamp>.json` in the output directory.
+```bash
+doc-detective --input ./docs --output results.json
+```
 
-The results file carries a `summary` object with the pass, fail, warning, and skipped counts. The per-spec, per-test, per-context, and per-step detail follows it. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse this file. See [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail).
+- `--output` (or the `output` config key) names the results file, and Doc Detective overwrites it on each run. `-` writes the results to stdout instead. A folder exits `2`, so use `--output-dir` for folders.
+- The flag beats the config key. So `--output -` writes only to stdout, even when config names a file.
+- With `--dry-run`, `--output` gets the test plan, which still prints on stdout.
+- The `json` reporter writes `testResults-<runId>.json` in `outputDir`, named after the run's folder. Use it when you want to keep a file per run. Leave it out when you pass `--output`, or you get both files.
+
+The results carry a `summary` object with the pass, fail, warning, and skipped counts. The per-spec, per-test, per-context, and per-step detail follows it. For an example of the results structure, see [Create your first test](/docs/get-started/create-your-first-test#outcome). To act on results programmatically, parse the file. See [Fail CI when tests fail](#step-6-fail-ci-when-tests-fail).
+
+### Rely on these fields
+
+These parts of the results are a stable contract for scripts. A change to any of them needs a new major version:
+
+- `summary.specs`, `summary.tests`, `summary.contexts`, and `summary.steps`, each with whole-number `pass`, `fail`, `warning`, and `skipped` counts. `summary.steps` counts steps only, and the automatic recording isn't a step.
+- `result` on every spec, test, context, and step, with the value `PASS`, `FAIL`, `WARNING`, or `SKIPPED`.
+- `resultCode` on every step and automatic recording whose `result` is `FAIL`, and only then. It says what kind of failure it was:
+  - `environment`: the network, the browser session, or the page load failed.
+  - `drift`: a browser `find` or `click` missed its element, or a `dragAndDrop` missed its source or target, but similar ones exist, so the page probably changed.
+  - `assertion`: anything else, such as a missing element with nothing close, or a wrong status code.
+- `resultHint` on a failed step or automatic recording, when Doc Detective has a suggested fix. A `drift` step's hint names the closest matches. See [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
+- `durationMs` on the run and on every spec, test, context, and step.
+- `autoRecording.result` on every context Doc Detective tried to record automatically, and `autoRecording.recordingPath`, relative to `runDir`, when it saved a video. See [Where the recording shows up](/docs/test-docs/automatic-recording#where-the-recording-shows-up).
+- `runId` and `runDir`, except when a filter matches nothing. That run has no run folder, and `specs` is empty.
+- The four `--plain` columns, in order. New columns only go at the end.
+
+Doc Detective can add new fields at any time, so ignore the ones you don't recognize. The [`report_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/report_v3.schema.json) defines the full shape. Every results file validates against it, including a run that skipped everything or found no tests. A skipped context has an empty `steps` list. A run with no tests still has `startedAt`, `environment`, and `durationMs`. The `--dry-run` plan validates against the [`resolvedTests_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/resolvedTests_v3.schema.json).
+
+### Steps show what ran
+
+Each step in the results is the effective step, the one Doc Detective ran. Shorthand appears in its full form, with every default filled. A step written as `{"goTo": "https://example.com"}` reports `goTo.url`, `goTo.timeout`, and the rest of the [goTo defaults](/reference/schemas/go-to-url-detailed). So read an action's fields from the object, such as `goTo.url` or `runShell.command`. A screenshot or recording reports its file's absolute `path`, so read `screenshot.path` or `record.path` to find the file. A `click` or `find` string stays a string, because a string already matches an element by any identifier. Step-level fields you didn't set, such as `variables`, stay out. The expanded form is only how results report a step, so your specs can keep the shorthand.
 
 ### Find slow specs with `durationMs`
 
@@ -131,19 +328,19 @@ The consequence: when `concurrentRunners` is greater than 1, the run's `duration
 To find the specs slowing your CI down, sort the specs by `durationMs`:
 
 ```bash
-jq '.specs | sort_by(-.durationMs) | .[:5] | .[] | {specId, durationMs}' testResults-*.json
+jq '.specs | sort_by(-.durationMs) | .[:5] | .[] | {specId, durationMs}' results.json
 ```
 
 Anything that runs more than once reports the **final attempt** in `durationMs`. That's the attempt the reported result describes. What that costs you depends on which kind of retry happened:
 
-- A step re-run by [`onFail` retry routing](/reference/schemas/routing) reports only its last attempt. The enclosing context's duration still covers every attempt and the waits between them, so the time isn't lost from the totals. It isn't separable, though. The difference between a context and the sum of its steps also includes ordinary setup and cleanup. Read it as an upper limit on what retrying cost, not a measurement of it. Use `attempts` to tell whether a step retried at all.
+- A step re-run by [`onFail` retry routing](/reference/schemas/step-routing) reports only its last attempt. The enclosing context's duration still covers every attempt and the waits between them, so the time isn't lost from the totals. It isn't separable, though. The difference between a context and the sum of its steps also includes ordinary setup and cleanup. Read it as an upper limit on what retrying cost, not a measurement of it. Use `attempts` to tell whether a step retried at all.
 - A context re-run by the [`retries`](/reference/schemas/config) policy reports only its last attempt. No context, test, or spec duration absorbs the earlier ones. The run-level `durationMs` is wall-clock, so it does include them. The `retries` count is your signal that it happened.
 
 A step that never ran reports `0`. That covers a step that was skipped, guarded off, or downstream of a failure.
 
 ### Tell environment changes from product changes
 
-When a test that passed yesterday fails today, check whether the environment changed before you debug the product. The results record what ran each run, and Doc Detective populates every field:
+When a test that passed yesterday fails today, check whether the environment changed before you debug the product. The results record what ran each run:
 
 ```json
 {
@@ -152,7 +349,7 @@ When a test that passed yesterday fails today, check whether the environment cha
   "environment": {
     "platform": "linux",
     "arch": "x64",
-    "docDetectiveVersion": "4.42.0",
+    "docDetectiveVersion": "5.0.0",
     "nodeVersion": "24.15.0",
     "osRelease": "6.8.0-1017-azure"
   },
@@ -166,7 +363,7 @@ When a test that passed yesterday fails today, check whether the environment cha
 }
 ```
 
-- `environment` describes the machine that ran the tests: the Doc Detective and Node.js versions, the platform, the processor architecture, and the OS release. It leaves out the working directory.
+- `environment` describes the machine that ran the tests: the Doc Detective and Node.js versions, the platform, the processor architecture, and the OS release. It leaves out the working directory. If Doc Detective can't read its own version, it leaves out `docDetectiveVersion`.
 - Each context that started a browser records the `browser.version` and the `driver` that drove it. A context without a browser has neither. Safari's driver reports no version.
 - `startedAt` is an ISO 8601 UTC timestamp with milliseconds. It's on the run, each context, and each step that ran. A node ends at `startedAt` plus `durationMs`. Specs and tests have no `startedAt`, because their durations are sums rather than spans.
 
@@ -196,21 +393,27 @@ Outcomes are `warmed` (Doc Detective performed the work), `skipped` (nothing to 
 
 ## Step 4: Find the HTML report
 
-The `html` reporter writes a self-contained HTML report you can open in a browser:
+The `html` reporter writes a self-contained HTML report you can open in a browser, as `testResults-<runId>.html` in `outputDir`. The default run folder also holds a copy, named `testResults.html`.
 
-- If `output` ends in `.html` or `.htm`, Doc Detective writes to that path, adding a numeric suffix (`-0.html`, `-1.html`, …) to avoid overwriting an existing file.
-- Otherwise it treats `output` as a directory and writes `testResults-<timestamp>.html` there (or `coverageResults-<timestamp>.html` for a coverage run).
+The report embeds the same results as the JSON file. A single file is therefore enough to share a run with someone who doesn't have Doc Detective installed. Its header shows the run's ID, start time, and duration. It also shows the Doc Detective and Node.js versions and the operating system.
 
-The report embeds the same results the `json` reporter produces. A single file is therefore enough to share a run with someone who doesn't have Doc Detective installed.
+The report also shows the run's automatic screenshots and recordings. Each step's automatic screenshot appears in its media strip, labeled **Automatic**, after any screenshot the step took itself. Each context's automatic recording plays at the top of its section, labeled **Automatic recording**. The media work in both copies, because each file links to them from where it sits. The two copies are otherwise the same page.
+
+The verdict at the top of the report [counts tests](#what-every-reporter-lists), and each context's label shows the browser and driver versions that ran it.
+
+<Note>
+The report embeds the results, not the media. Automatic screenshots and recordings load from the run folder, so keep the report beside the `.doc-detective/` folder when you move or share it. A report shared on its own shows the results without them.
+</Note>
 
 ## Step 5: Collect the run folder and artifacts
 
 The `runFolder` reporter archives each run into its own folder so you can attach it to a CI job or diff one run against another:
 
 ```
-<output>/.doc-detective/runs/<runId>/
+<outputDir>/.doc-detective/runs/<runId>/
 ├── testResults.json
 ├── testResults.html
+├── testResults.md
 └── specs/<specId>/
     └── tests/<testId>/
         └── contexts/<contextId>/
@@ -218,46 +421,52 @@ The `runFolder` reporter archives each run into its own folder so you can attach
             └── recordings/<contextId>.mp4
 ```
 
-The file names inside the folder are constant, because the run ID lives in the folder name. Two run folders therefore compare cleanly. Auto-captured screenshots and recordings land beside the results in the same folder. The whole folder becomes a single artifact to upload from CI for reviewers to inspect.
+The file names inside the folder are constant, because the run ID lives in the folder name. Two run folders therefore compare cleanly. By default, every run captures a screenshot after each UI step and a video of each context. They land beside the results in the same folder. When a `screenshot` step's `path` is a URL, its new screenshot goes in the context's `screenshots/` folder too. It's named `<stepId>_<timestamp>_` plus the URL's filename. That name has a timestamp in it, so it differs between runs. The whole folder becomes a single artifact to upload from CI for reviewers to inspect.
+
+Run folders add up: Doc Detective keeps every one and never deletes them. Keep them out of commits by adding `.doc-detective/` to `.gitignore`, or your `outputDir` if you set one. Clear old ones out when you no longer need them. To stop writing screenshots and recordings, set `autoScreenshot` and `autoRecord` to `false`.
+
+```bash
+echo ".doc-detective/" >> .gitignore
+```
 
 ## Step 6: Fail CI when tests fail
 
-This is the most common mistake when wiring Doc Detective into a pipeline, so read it carefully.
+The exit code from the CLI gates your build, so most pipelines need nothing extra:
 
-<Warning>
-By default, the standalone `doc-detective` CLI does **not** exit with a non-zero code when tests fail. It exits non-zero only when it crashes or your config is invalid. A pipeline that relies on the CLI's exit code therefore reports success even when documentation tests failed. Opt in with `--exit-on-fail` to change that.
+| Code | Meaning |
+|---|---|
+| `0` | No test failed, and at least one passed or warned. |
+| `1` | At least one test failed. |
+| `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, every test skipped, an invalid spec, a declined install, or a crash. |
+| `130`, `143` | The run was interrupted by SIGINT or SIGTERM. |
 
-Doc Detective 5.0 makes failing on test failures the default. Until then, a run with failed specs and no `exitOnFail` setting prints a warning about the change to stderr. To choose the behavior and silence the warning, set `exitOnFail` to `true` or `false`, or pass `--exit-on-fail` or `--no-exit-on-fail`. See [Prepare for Doc Detective 5.0](/docs/ci/upgrade-to-v5).
-</Warning>
+A `WARNING` result never fails a run. Neither does a `SKIPPED` result, unless every spec skipped, because then nothing was tested. If a suite only applies to one platform, run that job only on that platform.
 
-To gate your build, choose one of these approaches:
+If you want different behavior, you have two options:
 
-- **Set `--exit-on-fail` (least setup, works on any CI).** Pass the flag, or set `exitOnFail: true` in your config. The CLI then exits with code `1` whenever a spec fails, so the job fails like a broken unit test. `WARNING` results are non-fatal and never trigger a non-zero exit. It works the same everywhere, including GitLab CI, Jenkins, CircleCI, and a bare shell.
-
-```bash
-doc-detective --input ./docs --exit-on-fail
-```
-
-- **Use the GitHub Action.** Set its `exit_on_fail` input to `true` so the job fails when tests fail. See the [GitHub Action guide](/docs/ci/github-action).
-- **Parse the JSON results.** Read the `summary` object from the `json` reporter's output and fail the step yourself when any `fail` count is greater than zero. Useful when you want custom logic beyond a pass/fail gate.
+- **Report without failing.** Pass `--no-exit-on-fail`, or set `exitOnFail: false` in your config. Failed, empty, and all-skipped runs then exit `0`, and invalid specs are skipped with a warning. Usage errors, invalid config, and crashes still exit `2`. This suits triaging an existing suite before you turn on the gate.
+- **Apply your own logic.** Read the `summary` object from the results file and decide for yourself. This example tolerates up to two failing specs:
 
 ```bash
-doc-detective --input ./docs --reporters json --output results.json && \
-  node -e "process.exit(require('./results.json').summary.specs.fail > 0 ? 1 : 0)"
+doc-detective --input ./docs --no-exit-on-fail --output results.json && \
+  node -e "process.exit(require('./results.json').summary.specs.fail > 2 ? 1 : 0)"
 ```
 
 The `&&` runs the check only if Doc Detective itself exited cleanly. A crash or a broken config still fails the step, and the results parse never hides it.
+
+In a GitHub Actions workflow, the action applies these rules through its `exit_on_fail` input. See the [GitHub Action guide](/docs/ci/github-action#step-3-fail-the-build-when-tests-fail).
 
 ## Verify it works
 
 After a run, confirm that:
 
-- The terminal shows the summary you expect.
-- The `json` reporter wrote a results file at the path you configured.
-- If you enabled `runFolder`, a `.doc-detective/runs/<runId>/` folder exists with `testResults.json` and any captured screenshots or recordings.
+- The terminal shows the summary you expect, and stderr names each report file.
+- The results file exists at the path you passed to `--output`.
+- The `.doc-detective/runs/<runId>/` folder exists with `testResults.json` and any screenshots or recordings from the run.
 
 ## What's next
 
 - [Run Doc Detective in CI with the GitHub Action](/docs/ci/github-action).
 - [Run in Docker and headless](/docs/ci/docker-and-headless) for containerized pipelines.
+- [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5) if your pipeline reads results the version 4 way.
 - [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview) when the results aren't green.

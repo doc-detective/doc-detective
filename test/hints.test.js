@@ -26,6 +26,7 @@ import { SURFACE_SENSITIVE_STEP_KEYS } from "../dist/runtime/browserStepKeys.js"
 import { resolveAnnotationRects } from "../dist/core/annotations/geometry.js";
 import { maybeShowHint, pickByPriority, priorityWeight } from "../dist/hints/index.js";
 import { HINTS } from "../dist/hints/hints.js";
+import { maskString, registerEnvValues, resetMasking } from "../dist/core/masking.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -57,6 +58,17 @@ function rmTmpDir(dir) {
 }
 
 describe("hints/render", function () {
+  // These assert escape codes, which only print where color is on.
+  let savedForceColor;
+  before(function () {
+    savedForceColor = process.env.FORCE_COLOR;
+    process.env.FORCE_COLOR = "1";
+  });
+  after(function () {
+    if (savedForceColor === undefined) delete process.env.FORCE_COLOR;
+    else process.env.FORCE_COLOR = savedForceColor;
+  });
+
   describe("renderMarkdown", function () {
     it("renders **bold** with the SGR bold code and a reset", function () {
       const out = renderMarkdown("hello **world** end", { osc8: false });
@@ -592,6 +604,18 @@ describe("hints/context", function () {
         expect(data.producedRecordings).to.equal(true);
       });
     }
+    it("producedRecordings is true for a context's saved automatic recording", function () {
+      const data = walkResults({
+        specs: [{ tests: [{ contexts: [{ autoRecording: { result: "PASS", recordingPath: "c.mp4" }, steps: [] }] }] }],
+      });
+      expect(data.producedRecordings).to.equal(true);
+    });
+    it("producedRecordings is false for an automatic recording that saved no file", function () {
+      const data = walkResults({
+        specs: [{ tests: [{ contexts: [{ autoRecording: { result: "SKIPPED" }, steps: [] }] }] }],
+      });
+      expect(data.producedRecordings).to.equal(false);
+    });
     it("producedScreenshots is false when screenshot is explicitly disabled", function () {
       // `false` is the explicit opt-out form; treat it as non-producing.
       const data = walkResults({
@@ -600,8 +624,8 @@ describe("hints/context", function () {
       expect(data.producedScreenshots).to.equal(false);
     });
 
-    it("producedAutoScreenshots is true when a step carries an autoScreenshot path", function () {
-      // Auto screenshots land in the separate `autoScreenshot` result field
+    it("producedAutoScreenshots is true when a step carries an autoScreenshotPath", function () {
+      // Auto screenshots land in the separate `autoScreenshotPath` result field
       // (a relative path string), not `screenshot`.
       const data = walkResults({
         specs: [
@@ -609,7 +633,7 @@ describe("hints/context", function () {
             tests: [
               {
                 contexts: [
-                  { steps: [{ goTo: "x", autoScreenshot: "screenshots/a/01-goTo.png" }] },
+                  { steps: [{ goTo: "x", autoScreenshotPath: "screenshots/a/01-goTo.png" }] },
                 ],
               },
             ],
@@ -621,11 +645,13 @@ describe("hints/context", function () {
       expect(data.producedScreenshots).to.equal(false);
     });
 
-    it("producedAutoScreenshots is false for an empty autoScreenshot string", function () {
-      const data = walkResults({
-        specs: [{ tests: [{ contexts: [{ steps: [{ goTo: "x", autoScreenshot: "" }] }] }] }],
-      });
-      expect(data.producedAutoScreenshots).to.equal(false);
+    it("producedAutoScreenshots is false for an empty autoScreenshotPath or the old field name", function () {
+      for (const step of [{ autoScreenshotPath: "" }, { autoScreenshot: "screenshots/a/01-goTo.png" }]) {
+        const data = walkResults({
+          specs: [{ tests: [{ contexts: [{ steps: [{ goTo: "x", ...step }] }] }] }],
+        });
+        expect(data.producedAutoScreenshots).to.equal(false);
+      }
     });
 
     it("flags usedSelectorOnlyFinds when find uses selector with no stable sibling", function () {
@@ -1111,12 +1137,26 @@ describe("hints/context", function () {
       expect(gitignoreCovers("# dist\n!dist\n", "dist")).to.equal(false);
     });
 
-    it("returns false when output is the cwd or absent", function () {
+    it("returns false when output is the cwd or absent and nothing is ignored", function () {
       const root = makeTmpDir();
       try {
         expect(detectOutputDirGitignored(root, ".")).to.equal(false);
         expect(detectOutputDirGitignored(root, "")).to.equal(false);
         expect(detectOutputDirGitignored(root, undefined)).to.equal(false);
+      } finally {
+        rmTmpDir(root);
+      }
+    });
+
+    // ADR 01177: with outputDir ".", the run folders land in .doc-detective/,
+    // so that's what .gitignore has to cover.
+    it("checks .doc-detective/ when output is the cwd", function () {
+      const root = makeTmpDir();
+      try {
+        fs.writeFileSync(path.join(root, ".gitignore"), ".doc-detective/\n");
+        expect(detectOutputDirGitignored(root, ".")).to.equal(true);
+        expect(detectOutputDirGitignored(root, "./")).to.equal(true);
+        expect(detectOutputDirGitignored(root, root)).to.equal(true);
       } finally {
         rmTmpDir(root);
       }
@@ -1798,7 +1838,8 @@ function fakeCtx(partial = {}) {
     hasPackageJson: true,
     hasDocDetectiveNpmScript: true,
     outputDirGitignored: true,
-    nodeMajor: 22,
+    nodeMajor: 24,
+    maskedNonSecretNames: new Set(),
     hasRelativeUrls: false,
     hasCurlInRunShell: false,
     hasNodeOrPythonInRunShell: false,
@@ -1815,6 +1856,12 @@ function fakeCtx(partial = {}) {
     ranMobileContexts: false,
     ...partial,
   };
+}
+
+function markdownOf(hint) {
+  return typeof hint.markdown === "function"
+    ? hint.markdown(fakeCtx({ maskedNonSecretNames: new Set(["BASE_URL"]) }))
+    : hint.markdown;
 }
 
 function findHint(id) {
@@ -2101,7 +2148,8 @@ describe("hints/hints (registry)", function () {
         .and.match(/^[a-z][a-zA-Z0-9]*$/);
       expect(ids.has(h.id), `duplicate id: ${h.id}`).to.equal(false);
       ids.add(h.id);
-      expect(h.markdown).to.be.a("string").and.have.length.greaterThan(0);
+      // A function body renders from the run's context.
+      expect(markdownOf(h)).to.be.a("string").and.have.length.greaterThan(0);
       expect(h.when).to.be.a("function");
       if (h.priority !== undefined) expect(h.priority).to.be.a("number");
     }
@@ -2111,7 +2159,7 @@ describe("hints/hints (registry)", function () {
     // doc-detective.com redirects to the docs home and drops the path, so a
     // deep link there lands on the wrong page. Docs live on the docs. subdomain.
     for (const h of HINTS) {
-      for (const [, url] of h.markdown.matchAll(/\]\((https?:[^)]+)\)/g)) {
+      for (const [, url] of markdownOf(h).matchAll(/\]\((https?:[^)]+)\)/g)) {
         expect(new URL(url).host, `${h.id}: ${url}`).to.not.match(
           /^(www\.)?doc-detective\.com$/
         );
@@ -2212,17 +2260,28 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
-  it("gitignoreOutputDir: fires when output is set, non-cwd, and not ignored", function () {
+  it("gitignoreOutputDir: fires when the output isn't ignored, including .doc-detective/ for '.'", function () {
     const h = findHint("gitignoreOutputDir");
     expect(
-      h.when(fakeCtx({ config: { output: "out" }, outputDirGitignored: false }))
+      h.when(fakeCtx({ config: { outputDir: "out" }, outputDirGitignored: false }))
     ).to.equal(true);
     expect(
-      h.when(fakeCtx({ config: { output: "out" }, outputDirGitignored: true }))
+      h.when(fakeCtx({ config: { outputDir: "out" }, outputDirGitignored: true }))
     ).to.equal(false);
     expect(
-      h.when(fakeCtx({ config: { output: "." }, outputDirGitignored: false }))
+      h.when(fakeCtx({ config: { outputDir: "." }, outputDirGitignored: false }))
+    ).to.equal(true);
+    expect(
+      h.when(fakeCtx({ config: { outputDir: "." }, outputDirGitignored: true }))
     ).to.equal(false);
+    expect(h.markdown).to.include('echo ".doc-detective/" >> .gitignore');
+  });
+
+  // ADR 01177: screenshots and recordings are on by default, so there's no
+  // feature to discover.
+  it("drops the enableAutoScreenshot and enableAutoRecord hints", function () {
+    expect(HINTS.find((h) => h.id === "enableAutoScreenshot")).to.equal(undefined);
+    expect(HINTS.find((h) => h.id === "enableAutoRecord")).to.equal(undefined);
   });
 
   it("installAgents: fires when ANY present agent lacks the adapter (over-promote)", function () {
@@ -2279,6 +2338,9 @@ describe("hints/hints (registry)", function () {
     const h = findHint("enableDebugLog");
     expect(h.when(fakeCtx({ failedCount: 0 }))).to.equal(false);
     expect(h.when(fakeCtx({ failedCount: 3 }))).to.equal(true);
+    // ADR 01195: hints name the current flag, not the deprecated --logLevel.
+    expect(h.markdown).to.include("doc-detective --log-level debug");
+    expect(h.markdown).to.not.include("--logLevel");
   });
 
   it("useDebugFlag: fires only when run failed", function () {
@@ -2330,16 +2392,16 @@ describe("hints/hints (registry)", function () {
     expect(h.when(fakeCtx({ totalSpecs: 0, totalTests: 0 }))).to.equal(false);
   });
 
-  it("upgradeNodeVersion: fires when nodeMajor < 20 (and nonzero)", function () {
+  it("upgradeNodeVersion: fires when nodeMajor < 24 (and nonzero)", function () {
     const h = findHint("upgradeNodeVersion");
-    expect(h.when(fakeCtx({ nodeMajor: 18 }))).to.equal(true);
-    // Node 19 is in the < 20 range too — included as a regression
-    // anchor so the hint body's "19 or older" stays in sync with the
-    // predicate. If the predicate ever narrows to < 19, this test
+    expect(h.when(fakeCtx({ nodeMajor: 22 }))).to.equal(true);
+    // Node 23 is in the < 24 range too — included as a regression
+    // anchor so the hint body's "23 or older" stays in sync with the
+    // predicate. If the predicate ever narrows to < 23, this test
     // should be updated alongside the hint markdown.
-    expect(h.when(fakeCtx({ nodeMajor: 19 }))).to.equal(true);
-    expect(h.when(fakeCtx({ nodeMajor: 20 }))).to.equal(false);
-    expect(h.when(fakeCtx({ nodeMajor: 22 }))).to.equal(false);
+    expect(h.when(fakeCtx({ nodeMajor: 23 }))).to.equal(true);
+    expect(h.when(fakeCtx({ nodeMajor: 24 }))).to.equal(false);
+    expect(h.when(fakeCtx({ nodeMajor: 26 }))).to.equal(false);
     expect(h.when(fakeCtx({ nodeMajor: 0 }))).to.equal(false);
   });
 
@@ -2370,128 +2432,22 @@ describe("hints/hints (registry)", function () {
     ).to.equal(false);
   });
 
+  it("sponsorProject: fires once any tests ran", function () {
+    const h = findHint("sponsorProject");
+    expect(h.when(fakeCtx({ totalTests: 1, failedCount: 0 }))).to.equal(true);
+    expect(h.when(fakeCtx({ totalTests: 1, failedCount: 1 }))).to.equal(false);
+    expect(h.when(fakeCtx({ totalTests: 0 }))).to.equal(false);
+  });
+
   it("setOutputDir: fires when output is missing or '.' and specs ran", function () {
     const h = findHint("setOutputDir");
     expect(h.when(fakeCtx({ config: {}, totalSpecs: 1 }))).to.equal(true);
-    expect(h.when(fakeCtx({ config: { output: "." }, totalSpecs: 1 }))).to.equal(true);
-    expect(h.when(fakeCtx({ config: { output: "out" }, totalSpecs: 1 }))).to.equal(false);
+    expect(h.when(fakeCtx({ config: { outputDir: "." }, totalSpecs: 1 }))).to.equal(true);
+    expect(h.when(fakeCtx({ config: { outputDir: "out" }, totalSpecs: 1 }))).to.equal(false);
     expect(h.when(fakeCtx({ config: {}, totalSpecs: 0 }))).to.equal(false);
   });
 
   // ----- feature discovery (priority 40) -----
-
-  it("enableAutoScreenshot: fires for browser runs with no screenshots and autoScreenshot off", function () {
-    const h = findHint("enableAutoScreenshot");
-    expect(h.priority).to.equal(40);
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedScreenshots: false,
-          config: {},
-        })
-      )
-    ).to.equal(true);
-    // Negative: no browser contexts in the run.
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(),
-          producedScreenshots: false,
-          config: {},
-        })
-      )
-    ).to.equal(false);
-    // Negative: the run already produced screenshots.
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedScreenshots: true,
-          config: {},
-        })
-      )
-    ).to.equal(false);
-    // Negative: autoScreenshot is already enabled.
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedScreenshots: false,
-          config: { autoScreenshot: true },
-        })
-      )
-    ).to.equal(false);
-    // Negative: auto screenshots were produced (spec/test-level enable, where
-    // config.autoScreenshot is unset but images still landed this run).
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedScreenshots: false,
-          producedAutoScreenshots: true,
-          config: {},
-        })
-      )
-    ).to.equal(false);
-  });
-
-  it("enableAutoRecord: fires for browser runs with no recordings and autoRecord off", function () {
-    const h = findHint("enableAutoRecord");
-    expect(h.priority).to.equal(40);
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedRecordings: false,
-          config: {},
-        })
-      )
-    ).to.equal(true);
-    // Negative: no browser contexts and no app surfaces in the run.
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(),
-          producedRecordings: false,
-          config: {},
-        })
-      )
-    ).to.equal(false);
-    // Positive: an app-only run (startSurface, no browser) — autoRecord
-    // covers app and device contexts too (phase A7).
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(),
-          usedStepTypes: new Set(["startSurface", "find"]),
-          producedRecordings: false,
-          config: {},
-        })
-      )
-    ).to.equal(true);
-    // Negative: the run already produced a recording (incl. an autoRecord one,
-    // which lands as a real record step → producedRecordings true).
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedRecordings: true,
-          config: {},
-        })
-      )
-    ).to.equal(false);
-    // Negative: autoRecord is already enabled.
-    expect(
-      h.when(
-        fakeCtx({
-          usedBrowserContexts: new Set(["chrome"]),
-          producedRecordings: false,
-          config: { autoRecord: true },
-        })
-      )
-    ).to.equal(false);
-  });
 
   it("useAnnotateStepForRecordings: fires for recorders who aren't annotating yet", function () {
     const h = findHint("useAnnotateStepForRecordings");
@@ -2857,9 +2813,10 @@ describe("hints/hints (registry)", function () {
     expect(h.markdown).to.match(/headed/i);
   });
 
-  it("extractBeforeAnySharedSetup: fires on ≥5 specs without beforeAny regardless of step types", function () {
-    const h = findHint("extractBeforeAnySharedSetup");
-    // Predicate is `totalSpecs >= 5 && !config.beforeAny` — the
+  it("extractBeforeAllSharedSetup: fires on ≥5 specs without beforeAll regardless of step types", function () {
+    const h = findHint("extractBeforeAllSharedSetup");
+    expect(h.markdown).to.include('{ "beforeAll": "./setup.spec.json" }');
+    // Predicate is `totalSpecs >= 5 && !config.beforeAll` — the
     // earlier `usedStepTypes.has("loadVariables")` gate was dropped in
     // a manual edit because the setup-extraction advice applies
     // broadly, not just to env-driven suites.
@@ -2871,13 +2828,13 @@ describe("hints/hints (registry)", function () {
     expect(
       h.when(fakeCtx({ totalSpecs: 6, usedStepTypes: new Set() }))
     ).to.equal(true);
-    // Already has beforeAny => skip.
+    // Already has beforeAll => skip.
     expect(
       h.when(
         fakeCtx({
           totalSpecs: 6,
           usedStepTypes: new Set(["loadVariables"]),
-          config: { beforeAny: "./setup.spec.json" },
+          config: { beforeAll: "./setup.spec.json" },
         })
       )
     ).to.equal(false);
@@ -3029,25 +2986,25 @@ describe("hints CLI wiring", function () {
   //      resolves through the compiled dist/ tree (no broken type or
   //      ESM-extension issue).
   //   2. The --hints / --no-hints flag is actually registered on the
-  //      yargs builder used by the bin entry point (not just on a stale
+  //      command tree used by the bin entry point (not just on a stale
   //      copy in dist/).
-  //   3. yargs accepts --no-hints without erroring out.
+  //   3. the parser accepts --no-hints without erroring out.
   //
   // We don't run an actual test spec — that would slow this suite down a
   // lot for a marginal extra signal. The maybeShowHint logic is fully
   // exercised by the unit tests above.
   this.timeout(20000);
 
-  it("--help advertises the --hints flag", function () {
+  it("--help advertises the --no-hints flag", function () {
     const r = spawnSync(process.execPath, [CLI, "--help"], {
       encoding: "utf8",
     });
     expect(r.status, `stderr: ${r.stderr}`).to.equal(0);
-    expect(r.stdout).to.include("--hints");
+    expect(r.stdout).to.include("--no-hints");
   });
 
   it("accepts --no-hints without erroring (parses through to runTests)", function () {
-    // We just want to confirm yargs accepts the flag. Pass --version too so
+    // We just want to confirm the parser accepts the flag. Pass --version too so
     // we exit before doing any actual work.
     const r = spawnSync(process.execPath, [CLI, "--no-hints", "--version"], {
       encoding: "utf8",
@@ -3133,5 +3090,44 @@ describe("omitSurfaceForActiveApp hint", function () {
   it("stays quiet without the repeated-reference signal", function () {
     const hint = findHint("omitSurfaceForActiveApp");
     expect(hint.when(fakeCtx({ repeatedAppSurfaceRefs: false }))).to.equal(false);
+  });
+});
+
+// ADR 01178: a masked variable whose name doesn't look secret may not be one.
+describe("listPublicVariables hint", function () {
+  afterEach(() => resetMasking());
+
+  it("is registered at priority 30", function () {
+    expect(findHint("listPublicVariables").priority).to.equal(30);
+  });
+
+  it("fires when a masked name doesn't look secret", function () {
+    const hint = findHint("listPublicVariables");
+    expect(hint.when(fakeCtx({ maskedNonSecretNames: new Set(["BASE_URL"]) }))).to.equal(true);
+    expect(hint.when(fakeCtx({ maskedNonSecretNames: new Set() }))).to.equal(false);
+  });
+
+  it("names each variable and the line to add", function () {
+    const md = findHint("listPublicVariables").markdown(
+      fakeCtx({ maskedNonSecretNames: new Set(["BASE_URL", "APP_ENV"]) })
+    );
+    expect(md).to.include(
+      "`BASE_URL` and `APP_ENV` show as `***NAME***` in this run's output. If they aren't secret, list them in `publicVariables`:"
+    );
+    expect(md).to.include('"publicVariables": ["BASE_URL", "APP_ENV"]');
+    const one = findHint("listPublicVariables").markdown(fakeCtx({ maskedNonSecretNames: new Set(["BASE_URL"]) }));
+    expect(one).to.include("`BASE_URL` shows as `***NAME***` in this run's output. If it isn't secret, list it in `publicVariables`:");
+  });
+
+  it("collects masked names from the run, leaving out secret-looking ones", async function () {
+    registerEnvValues({ BASE_URL: "https://api.example.com", API_TOKEN: "tok-12345", UNUSED_VAR: "never-shown" });
+    maskString("https://api.example.com tok-12345");
+    const root = makeTmpDir();
+    try {
+      const ctx = await buildHintContext({ cwd: root, isTTY: true, adapters: [] });
+      expect([...ctx.maskedNonSecretNames]).to.deep.equal(["BASE_URL"]);
+    } finally {
+      rmTmpDir(root);
+    }
   });
 });

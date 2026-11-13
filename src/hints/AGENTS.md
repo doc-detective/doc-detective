@@ -72,6 +72,12 @@ Every hint is a `{ id, priority?, markdown, when }` object in
 unless you need a new context signal. See "Adding new context signals"
 below.
 
+`markdown` is usually a string. Make it a function `(ctx) => string`
+only when the hint names what the run did, as `listPublicVariables`
+names the masked variables. The registry tests render a function body
+through `markdownOf` in `test/hints.test.js`, so give it a context there
+that makes it non-empty.
+
 ---
 
 ## Id rules
@@ -118,7 +124,7 @@ weighted scheme replaces that.
 | **20**, current-run problems | Something failed *this run* or the env is misconfigured. Old Node, no tests resolved, brittle selectors, no recording on failure. |
 | **30**, output and reporting | Better artifacts. HTML reporter, JSON for CI artifacts, output dir. |
 | **40**, feature discovery | A first-class step type the user hasn't reached for yet. screenshot, checkLink, httpRequest, runCode. |
-| **50**, optimization and advanced | Power-user setup. concurrency hints, beforeAny/afterAll, origin, fileTypes, telemetry userId. |
+| **50**, optimization and advanced | Power-user setup. concurrency hints, beforeAll/afterAll, origin, fileTypes, telemetry userId. |
 
 Omit `priority` only if you genuinely mean priority 50 (the default).
 Better to be explicit.
