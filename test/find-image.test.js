@@ -206,6 +206,27 @@ describe("elementImage matching", function () {
       expect(cv.getBuildInformation).to.be.a("function");
     });
 
+    it("image-mat-cleanup: a failed allocation frees the surface already made", async function () {
+      const cv = await match.loadOpenCv();
+      const Mat = cv.Mat;
+      const made = [];
+      cv.Mat = function (rows, cols, type) {
+        if (type === cv.CV_8UC3) throw new Error("out of memory");
+        const mat = new Mat(rows, cols, type);
+        made.push(mat);
+        return mat;
+      };
+      try {
+        const svg = icon(GEAR, "#333333", 24);
+        const error = await once(await page({ items: [{ svg, x: 40, y: 40 }] }), { base64: b64(svg) }).catch((e) => e);
+        expect(error.message).to.equal("out of memory");
+        expect(made).to.have.length(1);
+        expect(made[0].isDeleted()).to.equal(true);
+      } finally {
+        cv.Mat = Mat;
+      }
+    });
+
     it("image-matcher-error: an error with no message says so, rather than printing the raw value", async function () {
       const svg = icon(GEAR, "#333333", 24);
       for (const thrown of [5, {}, new Error("")]) {

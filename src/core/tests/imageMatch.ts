@@ -630,16 +630,17 @@ async function matchImageOnce({
   const color = await flat.clone().raw().toBuffer({ resolveWithObject: true });
   const gray = await flat.clone().greyscale().raw().toBuffer();
   const { width, height } = color.info;
-  const grayMat = new cv.Mat(height, width, cv.CV_8UC1);
-  grayMat.data.set(gray);
-  const rgbMat = new cv.Mat(height, width, cv.CV_8UC3);
-  rgbMat.data.set(color.data);
-  const surface: Capture = { rgb: color.data, width, height, grayMat, rgbMat };
   const deviceRegions = regions
     ? regions.map((r) => ({ x: r.x * scale, y: r.y * scale, width: r.width * scale, height: r.height * scale }))
     : null;
 
+  let grayMat: any, rgbMat: any;
   try {
+    grayMat = new cv.Mat(height, width, cv.CV_8UC1);
+    grayMat.data.set(gray);
+    rgbMat = new cv.Mat(height, width, cv.CV_8UC3);
+    rgbMat.data.set(color.data);
+    const surface: Capture = { rgb: color.data, width, height, grayMat, rgbMat };
     let closest: Candidate | null = null;
     const seen: Candidate[] = [];
     let fits = false;
@@ -673,8 +674,8 @@ async function matchImageOnce({
       best: closest ? toCss(closest, scale) : null,
     };
   } finally {
-    grayMat.delete();
-    rgbMat.delete();
+    grayMat?.delete();
+    rgbMat?.delete();
   }
 }
 
