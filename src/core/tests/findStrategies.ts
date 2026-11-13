@@ -1,4 +1,5 @@
 import { diag } from "../../cliOutput.js";
+import { findByImage, isVisualMatch } from "./visualMatch.js";
 import { distance } from "../../cliHelp.js";
 
 export {
@@ -144,6 +145,7 @@ async function setElementOutputs({ element }: { element: any }) {
     displayed,
     displayedInViewport,
   });
+  if (isVisualMatch(element)) outputs.element.matchScore = element.matchScore;
 
   return outputs;
 }
@@ -551,9 +553,11 @@ async function findElementByCriteria({
   elementClass,
   elementAttribute,
   elementAria,
+  elementImage,
   timeout = 5000,
   driver,
   all = false,
+  cacheDir,
 }: {
   selector?: any;
   elementText?: any;
@@ -562,8 +566,11 @@ async function findElementByCriteria({
   elementClass?: any;
   elementAttribute?: any;
   elementAria?: any;
+  elementImage?: any;
   timeout?: number;
   driver: any;
+  // Where the image matcher's heavy deps live, when `elementImage` is set.
+  cacheDir?: string;
   // Collect EVERY matching element instead of stopping at the first. Used by
   // annotations' `all` option, where redacting only the first match would
   // leave the rest of the sensitive content visible. Callers that don't pass
@@ -579,13 +586,52 @@ async function findElementByCriteria({
     !elementTestId &&
     !elementClass &&
     !elementAttribute &&
-    !elementAria
+    !elementAria &&
+    !elementImage
   ) {
     return {
       element: null,
       foundBy: null,
       error: "Couldn't find an element: set `selector`, `elementText`, or another finding field.",
     };
+  }
+
+  // A picture is found on screen rather than in the DOM. Every other criterion
+  // still has to hold, so together they scope where the picture can match.
+  if (elementImage) {
+    const others = {
+      selector,
+      elementText,
+      elementId,
+      elementTestId,
+      elementClass,
+      elementAttribute,
+      elementAria,
+    };
+    const named = Object.entries(others)
+      .filter(([, value]) => value)
+      .map(([name]) => name);
+    const scope = named.length
+      ? async () => {
+          const found = await findElementByCriteria({ ...others, timeout: 0, driver, all: true });
+          const regions = [];
+          for (const element of found.elements ?? []) {
+            const region = await driver
+              .execute((el: any) => {
+                const bounds = el.getBoundingClientRect();
+                return { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height };
+              }, element)
+              // An element the page just replaced isn't there this look, as with DOM criteria.
+              .catch(() => null);
+            if (region) regions.push(region);
+          }
+          return regions;
+        }
+      : undefined;
+    const found = await findByImage({ elementImage, driver, timeout, all, scope, cacheDir });
+    return found.element
+      ? { element: found.element, elements: found.elements, foundBy: [...named, "elementImage"], error: null }
+      : { element: null, elements: [], foundBy: null, error: found.error };
   }
 
   const startTime = Date.now();

@@ -196,6 +196,7 @@ async function resolvePaths({
     "specPath",
     "descriptionPath",
     "workingDirectory",
+    "elementImage",
   ];
   // Spec objects that are configurable by the user and shouldn't be resolved:
   // httpRequest's `request` and `response`, and their v2 names.

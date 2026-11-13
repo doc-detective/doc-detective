@@ -1892,6 +1892,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "properties": {
@@ -1930,6 +1935,9 @@
                   ]
                 }
               },
+              "elementImage": {
+                "$ref": "elementImage_v3.schema.json#"
+              },
               "elementAria": {
                 "type": "string"
               }
@@ -1967,6 +1975,61 @@
         }
       },
       "$id": "waitUntil_v3.schema.json"
+    },
+    "elementImage_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "elementImage_v3.nodefaults.schema.json#/components/schemas/path"
+        },
+        {
+          "$ref": "elementImage_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "oneOf": [
+              {
+                "required": [
+                  "path"
+                ]
+              },
+              {
+                "required": [
+                  "base64"
+                ]
+              }
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "base64": {
+                "type": "string",
+                "minLength": 1
+              },
+              "threshold": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              }
+            }
+          }
+        }
+      },
+      "$id": "elementImage_v3.schema.json"
     },
     "wait_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2094,6 +2157,9 @@
                       ]
                     }
                   },
+                  "elementImage": {
+                    "$ref": "elementImage_v3.schema.json#"
+                  },
                   "elementAria": {
                     "type": "string"
                   }
@@ -2165,6 +2231,11 @@
                       {
                         "required": [
                           "elementAria"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementImage"
                         ]
                       }
                     ]
@@ -3307,6 +3378,11 @@
                             "required": [
                               "elementAria"
                             ]
+                          },
+                          {
+                            "required": [
+                              "elementImage"
+                            ]
                           }
                         ],
                         "properties": {
@@ -3344,6 +3420,9 @@
                                 "string"
                               ]
                             }
+                          },
+                          "elementImage": {
+                            "$ref": "elementImage_v3.schema.json#"
                           },
                           "elementAria": {
                             "type": "string"
@@ -4856,6 +4935,12 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "elementImage"
+                ]
               }
             ]
           },
@@ -4897,6 +4982,9 @@
                     "string"
                   ]
                 }
+              },
+              "elementImage": {
+                "$ref": "elementImage_v3.schema.json#"
               },
               "elementAria": {
                 "type": "string"
@@ -5364,6 +5452,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "properties": {
@@ -5401,6 +5494,9 @@
                     "string"
                   ]
                 }
+              },
+              "elementImage": {
+                "$ref": "elementImage_v3.schema.json#"
               },
               "elementAria": {
                 "type": "string"
@@ -5910,6 +6006,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "properties": {
@@ -5947,6 +6048,9 @@
                     "string"
                   ]
                 }
+              },
+              "elementImage": {
+                "$ref": "elementImage_v3.schema.json#"
               },
               "elementAria": {
                 "type": "string"
@@ -6472,6 +6576,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "additionalProperties": false,
@@ -6523,6 +6632,9 @@
                     "string"
                   ]
                 }
+              },
+              "elementImage": {
+                "$ref": "elementImage_v3.schema.json#"
               },
               "elementAria": {
                 "type": "string"
@@ -6731,6 +6843,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "properties": {
@@ -6793,6 +6910,9 @@
                     "string"
                   ]
                 }
+              },
+              "elementImage": {
+                "$ref": "elementImage_v3.schema.json#"
               },
               "elementAria": {
                 "type": "string"
@@ -10165,6 +10285,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "properties": {
@@ -10203,6 +10328,9 @@
                   ]
                 }
               },
+              "elementImage": {
+                "$ref": "elementImage_v3.nodefaults.schema.json#"
+              },
               "elementAria": {
                 "type": "string"
               }
@@ -10240,6 +10368,61 @@
         }
       },
       "$id": "waitUntil_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "elementImage_v3.nodefaults.schema.json#/components/schemas/path"
+        },
+        {
+          "$ref": "elementImage_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "oneOf": [
+              {
+                "required": [
+                  "path"
+                ]
+              },
+              {
+                "required": [
+                  "base64"
+                ]
+              }
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "base64": {
+                "type": "string",
+                "minLength": 1
+              },
+              "threshold": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 1
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$"
+              }
+            }
+          }
+        }
+      },
+      "$id": "elementImage_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -10364,6 +10547,9 @@
                       ]
                     }
                   },
+                  "elementImage": {
+                    "$ref": "elementImage_v3.nodefaults.schema.json#"
+                  },
                   "elementAria": {
                     "type": "string"
                   }
@@ -10435,6 +10621,11 @@
                       {
                         "required": [
                           "elementAria"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "elementImage"
                         ]
                       }
                     ]
@@ -11552,6 +11743,11 @@
                             "required": [
                               "elementAria"
                             ]
+                          },
+                          {
+                            "required": [
+                              "elementImage"
+                            ]
                           }
                         ],
                         "properties": {
@@ -11589,6 +11785,9 @@
                                 "string"
                               ]
                             }
+                          },
+                          "elementImage": {
+                            "$ref": "elementImage_v3.nodefaults.schema.json#"
                           },
                           "elementAria": {
                             "type": "string"
@@ -13081,6 +13280,12 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "type": "object",
+                "required": [
+                  "elementImage"
+                ]
               }
             ]
           },
@@ -13122,6 +13327,9 @@
                     "string"
                   ]
                 }
+              },
+              "elementImage": {
+                "$ref": "elementImage_v3.nodefaults.schema.json#"
               },
               "elementAria": {
                 "type": "string"
@@ -13583,6 +13791,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "properties": {
@@ -13620,6 +13833,9 @@
                     "string"
                   ]
                 }
+              },
+              "elementImage": {
+                "$ref": "elementImage_v3.nodefaults.schema.json#"
               },
               "elementAria": {
                 "type": "string"
@@ -14122,6 +14338,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "properties": {
@@ -14159,6 +14380,9 @@
                     "string"
                   ]
                 }
+              },
+              "elementImage": {
+                "$ref": "elementImage_v3.nodefaults.schema.json#"
               },
               "elementAria": {
                 "type": "string"
@@ -14660,6 +14884,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "additionalProperties": false,
@@ -14711,6 +14940,9 @@
                     "string"
                   ]
                 }
+              },
+              "elementImage": {
+                "$ref": "elementImage_v3.nodefaults.schema.json#"
               },
               "elementAria": {
                 "type": "string"
@@ -14914,6 +15146,11 @@
                 "required": [
                   "elementAria"
                 ]
+              },
+              {
+                "required": [
+                  "elementImage"
+                ]
               }
             ],
             "properties": {
@@ -14974,6 +15211,9 @@
                     "string"
                   ]
                 }
+              },
+              "elementImage": {
+                "$ref": "elementImage_v3.nodefaults.schema.json#"
               },
               "elementAria": {
                 "type": "string"

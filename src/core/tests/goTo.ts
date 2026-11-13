@@ -11,6 +11,7 @@ import {
 } from "../utils.js";
 import { findElement } from "./findElement.js";
 import { waitForNetworkIdle, waitForDOMStable } from "./browserWait.js";
+import { referenceLabel } from "./imageMatch.js";
 import {
   switchToSurface,
   syncHandles,
@@ -294,30 +295,12 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
 
               if (findResult.status === "PASS") {
                 waitResults.elementFound.passed = true;
-                const selectorMsg = step.goTo.waitUntil.find.selector
-                  ? `selector: "${step.goTo.waitUntil.find.selector}"`
-                  : "";
-                const textMsg = step.goTo.waitUntil.find.elementText
-                  ? `text: "${step.goTo.waitUntil.find.elementText}"`
-                  : "";
-                const combinedMsg = [selectorMsg, textMsg]
-                  .filter((m: any) => m)
-                  .join(", ");
-                waitResults.elementFound.message = `Element found (${combinedMsg})`;
+                waitResults.elementFound.message = `Element found (${describeFind(step.goTo.waitUntil.find)})`;
               } else {
                 throw new Error(findResult.description);
               }
             } catch (error: any) {
-              const selectorMsg = step.goTo.waitUntil.find.selector
-                ? `selector: "${step.goTo.waitUntil.find.selector}"`
-                : "";
-              const textMsg = step.goTo.waitUntil.find.elementText
-                ? `text: "${step.goTo.waitUntil.find.elementText}"`
-                : "";
-              const combinedMsg = [selectorMsg, textMsg]
-                .filter((m: any) => m)
-                .join(", ");
-              waitResults.elementFound.message = `Element not found (${combinedMsg})`;
+              waitResults.elementFound.message = `Element not found (${describeFind(step.goTo.waitUntil.find)}): ${error.message}`;
               throw error;
             }
           })()
@@ -472,4 +455,20 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
 
   // PASS
   return result;
+}
+
+function describeFind(find: any): string {
+  return [
+    find.selector && `selector: "${find.selector}"`,
+    find.elementText && `text: "${find.elementText}"`,
+    find.elementId && `id: "${find.elementId}"`,
+    find.elementTestId && `test ID: "${find.elementTestId}"`,
+    find.elementAria && `accessible name: "${find.elementAria}"`,
+    find.elementClass && `class: "${[].concat(find.elementClass).join(" ")}"`,
+    find.elementAttribute &&
+      `attributes: ${Object.entries(find.elementAttribute).map(([k, v]) => `${k}="${v}"`).join(" ")}`,
+    find.elementImage && `image: ${referenceLabel(find.elementImage)}`,
+  ]
+    .filter(Boolean)
+    .join(", ");
 }
