@@ -91,25 +91,6 @@ The docs tests run the two string shorthand examples and the object-format examp
 {/* step {"stepId":"verify-click-selector","description":"Confirm the selector click fired","find":"Selector click landed"} */}
 {/* test end */}
 
-### Click the active element
-
-Use the boolean form `click: true` to click the active element or the element at the current cursor position, without naming a target. This is useful right after a `find` with `moveTo` has positioned the cursor.
-
-```json
-{
-  "tests": [
-    {
-      "steps": [
-        {
-          "description": "Click wherever the cursor is.",
-          "click": true
-        }
-      ]
-    }
-  ]
-}
-```
-
 ### Click an element by text (object format)
 
 {/* test {"testId":"click-by-object","detectSteps":false} */}
