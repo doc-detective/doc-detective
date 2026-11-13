@@ -507,21 +507,22 @@ function scanSize(
   const { width: tw, height: th, rgba } = render;
   const n = tw * th;
   const isOneColor = reference.kind === "oneColor";
-  const template = new cv.Mat(th, tw, isOneColor ? cv.CV_8UC1 : cv.CV_8UC3);
-  const mask = reference.kind === "multiColor" ? new cv.Mat(th, tw, cv.CV_8UC1) : null;
-  for (let i = 0; i < n; i++) {
-    const q = i * 4;
-    if (isOneColor) {
-      template.data[i] = rgba[q + 3];
-    } else {
-      template.data[i * 3] = rgba[q];
-      template.data[i * 3 + 1] = rgba[q + 1];
-      template.data[i * 3 + 2] = rgba[q + 2];
-    }
-    if (mask) mask.data[i] = rgba[q + 3] >= render.maskAlpha ? 255 : 0;
-  }
-  const result = new cv.Mat();
+  let template: any, mask: any, result: any;
   try {
+    template = new cv.Mat(th, tw, isOneColor ? cv.CV_8UC1 : cv.CV_8UC3);
+    mask = reference.kind === "multiColor" ? new cv.Mat(th, tw, cv.CV_8UC1) : null;
+    for (let i = 0; i < n; i++) {
+      const q = i * 4;
+      if (isOneColor) {
+        template.data[i] = rgba[q + 3];
+      } else {
+        template.data[i * 3] = rgba[q];
+        template.data[i * 3 + 1] = rgba[q + 1];
+        template.data[i * 3 + 2] = rgba[q + 2];
+      }
+      if (mask) mask.data[i] = rgba[q + 3] >= render.maskAlpha ? 255 : 0;
+    }
+    result = new cv.Mat();
     // Resizing can blur a fine pattern into one color. That has no shape, and OpenCV
     // scores it 1 at every location. So compare each pixel with the first.
     const channels = isOneColor ? 1 : 3;
@@ -570,9 +571,9 @@ function scanSize(
     const closest = best ?? (top.shape === -2 ? null : scoreColor(capture, reference, render, top.x, top.y, top.shape));
     return { candidates, best, closest };
   } finally {
-    template.delete();
+    template?.delete();
     mask?.delete();
-    result.delete();
+    result?.delete();
   }
 }
 

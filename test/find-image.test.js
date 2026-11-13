@@ -227,6 +227,28 @@ describe("elementImage matching", function () {
       }
     });
 
+    it("image-mat-cleanup: a failed allocation at one size frees the reference and mask already made", async function () {
+      const cv = await match.loadOpenCv();
+      const Mat = cv.Mat;
+      const made = [];
+      cv.Mat = function (...args) {
+        if (args.length === 0) throw new Error("out of memory");
+        const mat = new Mat(...args);
+        made.push(mat);
+        return mat;
+      };
+      try {
+        const svg = check("#2ec27e", "#ffffff", 32);
+        const error = await once(await page({ items: [{ svg, x: 40, y: 40 }] }), { base64: b64(svg) }).catch((e) => e);
+        expect(error.message).to.equal("out of memory");
+        // The two surfaces, then this size's reference and mask.
+        expect(made).to.have.length(4);
+        expect(made.map((mat) => mat.isDeleted())).to.deep.equal([true, true, true, true]);
+      } finally {
+        cv.Mat = Mat;
+      }
+    });
+
     it("image-matcher-error: an error with no message says so, rather than printing the raw value", async function () {
       const svg = icon(GEAR, "#333333", 24);
       for (const thrown of [5, {}, new Error("")]) {
