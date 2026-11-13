@@ -646,6 +646,15 @@ describe("core/utils coverage", function () {
     it("leaves an undefined env var reference in place", function () {
       assert.equal(replaceEnvs("$DD_DOES_NOT_EXIST_123"), "$DD_DOES_NOT_EXIST_123");
     });
+    it("reads only real env vars, never process.env's inherited members", function () {
+      // process.env["__proto__"] is an object and process.env["constructor"] a
+      // function, so a lookup that isn't own-property-only hands a spec or
+      // config a prototype object it could then write through.
+      assert.equal(replaceEnvs("$__proto__"), "$__proto__");
+      const out = replaceEnvs({ a: "$__proto__", b: "x $constructor" });
+      assert.equal(out.a, "$__proto__");
+      assert.equal(out.b, "x $constructor");
+    });
     it("module-hoisted regex is safe across multiple matches and repeated calls (1.5)", function () {
       // The matcher is now a single module-scoped /g RegExp reused on every
       // string node. `String.prototype.match` with /g does not depend on or

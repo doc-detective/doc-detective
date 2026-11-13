@@ -2700,12 +2700,14 @@ function replaceEnvs(stringOrObject: any): any {
     if (!matches) return stringOrObject;
     // Iterate matches
     matches.forEach((match) => {
-      // Check if is declared variable
-      let value: any = process.env[match.substring(1)];
-      noteVariableReference(match.substring(1));
+      // Check if is declared variable. Own properties only: `$__proto__` or
+      // `$constructor` would otherwise read process.env's inherited members.
+      const name = match.substring(1);
+      let value: any = Object.hasOwn(process.env, name) ? process.env[name] : undefined;
+      noteVariableReference(name);
       if (value) {
         // A substituted value is masked in output (ADR 01178).
-        registerEnvValue(match.substring(1), value);
+        registerEnvValue(name, value);
         // If match is the entire string instead of just being a substring, try to convert value to object
         try {
           if (
