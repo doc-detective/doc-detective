@@ -195,10 +195,9 @@ async function runTestsHandler(args: any) {
   const stopProgress = logLevelEnabled("info", config)
     ? await showRunProgress(runProgress)
     : () => {};
-  const strictSpecs = config.exitOnFail !== false;
   const results = await (resolvedTests
-    ? runTests(config, { resolvedTests, updateJoin, strictSpecs })
-    : runTests(config, { updateJoin, strictSpecs })
+    ? runTests(config, { resolvedTests, updateJoin })
+    : runTests(config, { updateJoin })
   )
     .catch(debugConfigErrors)
     .finally(stopProgress);

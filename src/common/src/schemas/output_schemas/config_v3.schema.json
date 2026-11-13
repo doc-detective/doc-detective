@@ -3540,7 +3540,7 @@
       "default": true
     },
     "exitOnFail": {
-      "description": "If `true`, the CLI exits `1` when any spec's result is `FAIL`, and `2` when nothing valid was tested. If `false`, those outcomes exit `0`, and invalid specs are skipped with a warning. Usage errors, invalid config, and crashes always exit `2`. `WARNING` and `SKIPPED` results never fail a run.",
+      "description": "If `true`, the CLI exits `1` when any spec's result is `FAIL`, and `2` when nothing valid was tested. If `false`, those outcomes exit `0`. It also decides what an invalid spec does, in the CLI and in `runTests()`. If `true`, nothing runs. If `false`, the invalid spec is skipped with a warning, and the rest run. Usage errors, invalid config, and crashes always exit `2`. `WARNING` and `SKIPPED` results never fail a run.",
       "type": "boolean",
       "default": true
     },

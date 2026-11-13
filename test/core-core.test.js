@@ -2918,9 +2918,8 @@ describe("getRunner() function", function () {
     fs.writeFileSync(tempFilePath, JSON.stringify(t, null, 2));
     const config = { input: tempFilePath, logLevel: "silent" };
     try {
-      // The API skips an invalid spec; the CLI exits 2 (test/routing-scope.test.js).
-      const result = await runTests(config);
-      assert.ok(!result?.specs?.length, "the invalid spec must not run");
+      // The API rejects an invalid spec (ADR 01199); the CLI exits 2 (test/routing-scope.test.js).
+      await assert.rejects(runTests(config), /^Error: Invalid test specifications, so nothing ran:/);
     } finally {
       fs.unlinkSync(tempFilePath);
     }

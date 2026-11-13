@@ -298,9 +298,11 @@ describe("Advanced ordering under concurrentRunners", function () {
           },
         ],
       });
-      const result = await runTests({ input: [core], logLevel: "error" });
-      // runTests returns an empty report, not null, when nothing runs (ADR 01166).
-      assert.deepEqual(result.specs, []);
+      // runTests rejects an invalid spec, and nothing runs (ADR 01199).
+      await assert.rejects(
+        runTests({ input: [core], logLevel: "error" }),
+        /^Error: Invalid test specifications, so nothing ran:/
+      );
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
