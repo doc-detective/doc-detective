@@ -347,7 +347,7 @@ The `requires.files` setting skips the test on machines where the app isn't inst
 **The test is skipped instead of run**
 
 - **Cause:** Doc Detective skips an app test when it can't run it on this machine. That happens when the machine isn't running Windows, when the `requires.files` path doesn't exist, or when the automation driver couldn't download.
-- **Solution:** Read the skip reason in the summary or the results file. If the driver download failed, check your network connection. Then run the test again. A skipped test fails the run only when every test skipped, so check for skipped app tests when a run looks green but didn't open the app.
+- **Solution:** Read the skip reason in the summary or the results file. If the driver download failed, check your network connection. Then run the test again. A skipped test fails the run only when every test skipped. If a run looks green but didn't open the app, check for skipped app tests.
 
 **The app doesn't launch**
 
