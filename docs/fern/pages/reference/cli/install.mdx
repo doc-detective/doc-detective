@@ -54,12 +54,7 @@ Supported `--agent` ids: `claude`, `copilot`, `gemini`, `codex`, `qwen`, `openco
 
 The `--agent` and `--scope` options are specific to `install agents`. Using `--yes` non-interactively requires both.
 
-{/* TODO(ADR 01164): at Doc Detective 5 GA, AGENT_TOOLS_REF becomes `v2`. Drop the feat/v5-rc line then. */}
-
-Doc Detective 5 installs agent-tools 2.x, the release line that matches its CLI. Which agent-tools ref it reads depends on the release:
-
-- During the Doc Detective 5 release candidate, it reads the agent-tools `feat/v5-rc` branch.
-- At general availability, it reads the agent-tools `v2` tag.
+Doc Detective 5 installs agent-tools 2.x, the release line that matches its CLI. It reads the agent-tools `v2` tag, which moves to each 2.x release.
 
 Every agent installs from that ref, and every agent's up-to-date check reads it. Claude Code and Copilot CLI add agent-tools as a plugin marketplace pinned to that ref. When they update an existing install, they re-add the marketplace at that ref first.
 
@@ -67,7 +62,9 @@ Every agent installs from that ref, and every agent's up-to-date check reads it.
 
 A Gemini CLI or Qwen Code install made before Doc Detective 5 recorded no agent-tools ref. It keeps updating from the agent-tools default branch, and `install agents --force` doesn't change that.
 
-To pin it, uninstall the extension, then install it again with Doc Detective 5. Gemini CLI and Qwen Code extensions always install globally, so the commands use `--scope global`.
+An install made with a Doc Detective 5 release candidate recorded the agent-tools release-candidate branch. That branch no longer gets updates, so the install stays at the Doc Detective 5.0 content until you pin it to `v2`.
+
+To pin either one, uninstall the extension, then install it again with Doc Detective 5. Gemini CLI and Qwen Code extensions always install globally, so the commands use `--scope global`.
 
 For Gemini CLI:
 

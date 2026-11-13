@@ -10,10 +10,10 @@ describe("agent-tools ref pin (AGENT_TOOLS_REF)", function () {
   });
 
   // The only assertion on the ref's value; every other agent test reads the
-  // constant. During the CLI 5 release candidate the pin is agent-tools'
-  // feat/v5-rc branch; at CLI 5 GA it becomes the floating v2 tag.
-  it("is agent-tools' feat/v5-rc branch until CLI 5 GA", function () {
-    assert.equal(AGENT_TOOLS_REF, "feat/v5-rc");
+  // constant. CLI 5 pins agent-tools' floating v2 tag, which agent-tools'
+  // release moves to each 2.x release.
+  it("is agent-tools' v2 tag", function () {
+    assert.equal(AGENT_TOOLS_REF, "v2");
   });
 
   it("fetchAgentToolsZip defaults to the pinned ref", async function () {

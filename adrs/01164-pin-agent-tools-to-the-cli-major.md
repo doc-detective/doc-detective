@@ -85,6 +85,12 @@ A Gemini CLI or Qwen Code install made during the release candidate records `fea
 replays that ref, so `install agents` keeps it there. Deleting the branch at GA would break those installs.
 Freezing it keeps them working, but they get no updates until the user re-pins them to `v2`.
 
+#### Update 2026-11-12: GA pins `v2`
+
+agent-tools released 2.0.0 and created the `v2` tag. The CLI 5 GA change sets `AGENT_TOOLS_REF = "v2"`, and
+`test/agents-pinned-ref.test.js` asserts `"v2"`. The agent-tools docs pages and the Gemini CLI and Qwen Code re-pin
+steps now cover installs made with a release candidate. The steps above are done.
+
 ### Consequences
 
 - Good: CLI 5 release candidates install the CLI 5 skills today, with no agent-tools release.
