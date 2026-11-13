@@ -45,7 +45,7 @@ async function detectAndResolveFromConfig(config: any, { strictSpecs = false } =
   const detectedTests = await detectTests({ config });
   if (strictSpecs && config._invalidSpecs?.length) {
     throw new Error(
-      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs.join("\n")}\nFix them, or pass --no-exit-on-fail to skip them.`
+      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs.join("\n")}\nFix them, or skip them with \`--no-exit-on-fail\` or \`exitOnFail: false\`.`
     );
   }
   if (!detectedTests || detectedTests.length === 0) {

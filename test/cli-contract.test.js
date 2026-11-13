@@ -921,7 +921,7 @@ describe("CLI contract", function () {
           "Error: Invalid test specifications, so nothing ran:",
           "bp.spec.json",
           "tests[0].steps[0]: unknown key `breakpoint`.",
-          "Fix them, or pass --no-exit-on-fail to skip them.",
+          "Fix them, or skip them with `--no-exit-on-fail` or `exitOnFail: false`.",
           "",
         ].join("\n")
       );
@@ -1014,7 +1014,7 @@ describe("CLI contract", function () {
           "tests[0]: unknown key `stepz`. Did you mean `steps`?",
           'tests[0].steps[0].click.button: must be one of left, right, middle (got "middle-ish").',
           "tests[0].steps[1].runShell: unknown key `comand`. Did you mean `command`?",
-          "Fix them, or pass --no-exit-on-fail to skip them.",
+          "Fix them, or skip them with `--no-exit-on-fail` or `exitOnFail: false`.",
           "",
         ].join("\n")
       );
