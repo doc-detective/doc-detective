@@ -1,0 +1,21 @@
+= Inline tests
+
+// (test {"testId": "adoc-inline"})
+
+Run the first command.
+
+// (step {"runShell": "echo one"})
+
+// (test ignore start)
+// (step {"runShell": "echo ignored"})
+// (test ignore end)
+
+Then the second.
+
+// (step {"runShell": "echo two"})
+
+// (test end)
+
+// (test {"testId": "adoc-second"})
+// (step {"runShell": "echo three"})
+// (test end)

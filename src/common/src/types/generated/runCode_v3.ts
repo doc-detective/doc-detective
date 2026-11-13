@@ -11,9 +11,9 @@ export type RunCode = RunCodeDetailed;
 
 export interface RunCodeDetailed {
   /**
-   * Language of the code to run.
+   * Language of the code to run. `py` runs as `python`, and `js` runs as `javascript`.
    */
-  language: "python" | "bash" | "javascript";
+  language: "python" | "py" | "bash" | "javascript" | "js";
   /**
    * Code to run.
    */
@@ -23,7 +23,7 @@ export interface RunCodeDetailed {
    */
   args?: string[];
   /**
-   * Working directory for the command.
+   * Folder to run the code in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -39,11 +39,11 @@ export interface RunCodeDetailed {
    */
   path?: string;
   /**
-   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Folder that `path` is relative to. Doc Detective creates it if it doesn't exist. Omit to resolve `path` against the spec file, or against the current directory when `relativePathBase` is `cwd`.
    */
   directory?: string;
   /**
-   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -100,5 +100,4 @@ export interface RunCodeDetailed {
           rows?: number;
         };
   };
-  [k: string]: unknown;
 }

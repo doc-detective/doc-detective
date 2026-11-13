@@ -187,7 +187,7 @@ export class QwenCodeAdapter implements AgentAdapter {
     const installArg = `${GIT_SOURCE}:${EXTENSION_NAME}`;
     type Cmd = [string, ...string[]];
     // `extensions update` takes no `--ref`. It replays the ref recorded at
-    // install, so a pinned install stays on AGENT_TOOLS_REF (ADR 01181). Docs:
+    // install, so a pinned install stays on AGENT_TOOLS_REF (ADR 01164). Docs:
     // https://qwenlm.github.io/qwen-code-docs/en/developers/extensions/extension-releasing/
     // An install made before the pin recorded no ref and follows the default branch.
     const commands: Cmd[] = base.installed

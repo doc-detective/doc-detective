@@ -11,6 +11,7 @@ import {
   buildEffectiveConfig,
   fetchSpec,
   filterSecrets,
+  finalizeBodyFor,
   main,
   makeLogShipper,
   postFinalize,
@@ -218,7 +219,8 @@ describe("runner-entrypoint: buildEffectiveConfig", () => {
       { input: "docs/", output: "user-output", reporters: ["json"] },
       { type: "github", repo: "x/y", ref: "main" }
     );
-    assert.equal(cfg.output, "/workspace/output");
+    assert.equal(cfg.outputDir, "/workspace/output");
+    assert.equal(cfg.output, "/workspace/output/testResults.json");
     assert.equal(cfg.input, "docs/"); // user's input preserved for github sources
     assert.deepEqual(cfg.reporters, ["json"]);
   });
@@ -229,13 +231,13 @@ describe("runner-entrypoint: buildEffectiveConfig", () => {
       { type: "inline", specs: [] }
     );
     assert.equal(cfg.input, "/workspace/specs");
-    assert.equal(cfg.output, "/workspace/output");
+    assert.equal(cfg.outputDir, "/workspace/output");
   });
 
   it("returns a usable config when configSnapshot is missing/empty", () => {
     const cfg = buildEffectiveConfig(undefined, { type: "inline", specs: [] });
     assert.equal(cfg.input, "/workspace/specs");
-    assert.equal(cfg.output, "/workspace/output");
+    assert.equal(cfg.outputDir, "/workspace/output");
   });
 
   it("threads a custom workspaceDir through input/output so it stays in sync with provisionWorkspace", () => {
@@ -250,8 +252,70 @@ describe("runner-entrypoint: buildEffectiveConfig", () => {
       { type: "inline", specs: [] },
       "/var/dd/ws"
     );
-    assert.equal(cfg.output, "/var/dd/ws/output");
+    assert.equal(cfg.outputDir, "/var/dd/ws/output");
     assert.equal(cfg.input, "/var/dd/ws/specs");
+  });
+
+  it("forces exitOnFail: true so the exit code always carries the outcome", () => {
+    const cfg = buildEffectiveConfig({ exitOnFail: false }, { type: "inline", specs: [] });
+    assert.equal(cfg.exitOnFail, true);
+  });
+
+  it("turns autoScreenshot and autoRecord off when the config leaves them unset", () => {
+    // Hosted runs don't capture customer pages unless a spec or test asks
+    // (ADR 01196). Spec and test values still win in core's
+    // `test ?? spec ?? config` resolution.
+    const cfg = buildEffectiveConfig({}, { type: "inline", specs: [] });
+    assert.equal(cfg.autoScreenshot, false);
+    assert.equal(cfg.autoRecord, false);
+  });
+
+  it("turns autoScreenshot and autoRecord off over a repository config that sets them", () => {
+    const cfg = buildEffectiveConfig(
+      { autoScreenshot: true, autoRecord: true },
+      { type: "github", repo: "x/y", ref: "main" }
+    );
+    assert.equal(cfg.autoScreenshot, false);
+    assert.equal(cfg.autoRecord, false);
+  });
+});
+
+describe("runner-entrypoint: finalizeBodyFor", () => {
+  it("exit 0 → succeeded", () => {
+    assert.deepEqual(finalizeBodyFor(0, false), { status: "succeeded", exit_code: 0, summary: {} });
+  });
+
+  it("exit 1 → succeeded with tests_failed", () => {
+    assert.deepEqual(finalizeBodyFor(1, false), {
+      status: "succeeded", exit_code: 1, summary: { reason: "tests_failed" },
+    });
+  });
+
+  it("exit 2 → failed with nothing_tested", () => {
+    assert.deepEqual(finalizeBodyFor(2, false), {
+      status: "failed", exit_code: 2, summary: { reason: "nothing_tested" },
+    });
+  });
+
+  it("exit 130 → canceled with interrupted", () => {
+    assert.deepEqual(finalizeBodyFor(130, false), {
+      status: "canceled", exit_code: 130, summary: { reason: "interrupted" },
+    });
+  });
+
+  it("exit 143 or a forwarded SIGTERM → canceled with sigterm", () => {
+    assert.deepEqual(finalizeBodyFor(143, false), {
+      status: "canceled", exit_code: 143, summary: { reason: "sigterm" },
+    });
+    assert.deepEqual(finalizeBodyFor(0, true), {
+      status: "canceled", exit_code: 0, summary: { reason: "sigterm" },
+    });
+  });
+
+  it("any other code → failed with nonzero_exit", () => {
+    assert.deepEqual(finalizeBodyFor(7, false), {
+      status: "failed", exit_code: 7, summary: { reason: "nonzero_exit" },
+    });
   });
 });
 

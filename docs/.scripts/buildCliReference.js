@@ -1,41 +1,21 @@
 // Generates the CLI reference page at fern/pages/reference/cli.mdx from the
 // doc-detective CLI definitions. This page is GENERATED — do not edit it by
-// hand. To change it, update the CLI source (buildYargs() in src/utils.ts, the
-// command modules in src/lsp, src/debug, and src/runtime, and the command
-// registrations in src/cli.ts) or the config_v3 schema, then re-run
+// hand. To change it, update the CLI source (src/cliOptions.ts, the command
+// builders in src/cliProgram.ts, src/lsp, src/debug, and src/runtime) or the
+// config_v3 schema, then re-run `npm run compile` and
 // `npm run docs:build-cli-ref`.
 //
 // Sibling of docs/.scripts/buildSchemaReferencesV4.js (which generates the
-// reference/schemas/*.mdx pages). Like that script it is build-free: it reads
-// the TypeScript sources statically with the compiler API rather than
-// executing the compiled CLI, so it needs no `npm run build` and no heavy
-// runtime import graph. Flag/command metadata comes from the yargs `.option()`
-// and `.command()` descriptors; run-flag defaults come from the committed
-// config_v3 schema bundle (the same source of truth the schema generator uses),
-// because buildYargs() itself declares no `default:` values — the CLI overlays
-// flags onto the schema-validated config, so the schema is where the defaults
-// live.
+// reference/schemas/*.mdx pages). It reads the compiled commander tree from
+// dist/cliProgram.js, so the page can't drift from what the CLI accepts.
+// Run-flag defaults come from the committed config_v3 schema bundle (the same
+// source of truth the schema generator uses), because the CLI declares no flag
+// defaults: it overlays flags onto the schema-validated config.
 
 const fs = require("fs");
 const path = require("path");
-// Pinned TypeScript 6 alias, NOT the `typescript` the repo builds with.
-//
-// TypeScript 7 is the native port: `require("typescript")` resolves to
-// lib/version.cjs and exports only { version, versionMajorMinor }. The
-// syntactic compiler API this script relies on — createSourceFile,
-// forEachChild, the isX type guards — is gone from that entry point. What TS 7
-// offers instead lives under `typescript/unstable/*`: an ESM, project-oriented
-// API that spawns the native binary and has no drop-in for parsing one file
-// into a walkable AST.
-//
-// Rewriting this generator against an explicitly unstable API would risk
-// changing its output, and docs-cli-ref.yml compares the generated page
-// byte-for-byte. Pinning the parser instead keeps the output identical and
-// leaves the repo's own TypeScript free to move.
-const ts = require("typescript-compiler-api");
-
+const { pathToFileURL } = require("url");
 const repoRoot = path.resolve(__dirname, "../..");
-const srcDir = path.join(repoRoot, "src");
 const outputFile = path.resolve(
   __dirname,
   "../fern/pages/reference/cli.mdx"
@@ -99,177 +79,78 @@ function configKeyForFlag(flagName) {
 }
 
 // ---------------------------------------------------------------------------
-// Static AST extraction of yargs `.option()` and `.command()` descriptors.
+// Reading the commander tree.
 // ---------------------------------------------------------------------------
 
-function sourceFile(relPath) {
-  const abs = path.join(srcDir, relPath);
-  const text = fs.readFileSync(abs, "utf8");
-  return ts.createSourceFile(abs, text, ts.ScriptTarget.Latest, true);
+// Help text is short and points here, so the reference carries the detail.
+// A flag not listed uses its help text.
+const REFERENCE_DESCRIPTIONS = {
+  "config": "Path to a `config.json` or `config.yaml` file.",
+  "input": "Path to test specifications and documentation source files. May be paths to specific files or to directories to scan for files. `-` reads a spec or document from stdin. Give one comma-separated list, once. Repeating the flag is a usage error.",
+  "output": "Path of the JSON results file. It's overwritten on each run. `-` prints the results to stdout, the same as `--json`. Beats config `output`. With `--dry-run`, the file gets the test plan. A folder isn't valid here: use `--output-dir`.",
+  "plain": "Print one line per test context, with four tab-separated columns: result, spec ID, test ID, and platform and browser, such as `linux/chrome`.",
+  "output-dir": "Path of the folder that holds the run folder (`.doc-detective/runs/<runId>/`) and the html, junit, and markdown reports.",
+  "allow-unsafe": "Allow execution of potentially unsafe tests",
+  "dry-run": "Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps.",
+  "reporters": "Reporters to use for output. Built-in reporters: terminal, json, html, runFolder (archives results in <outputDir>/.doc-detective/runs/<runId>/, beside any screenshots from the run), junit (JUnit XML written as junit.xml in the output directory, or beside <output> when it names a file), markdown (a run summary written as doc-detective-summary.md in the output directory, or beside <output> when it names a file). Give one comma-separated list, once (e.g. --reporters terminal,html). Repeating the flag is a usage error.",
+  "test": "Run only tests whose testId matches the given regex (case-insensitive). Give one comma-separated list of patterns, once; a test passes if any pattern matches.",
+  "spec": "Run only specs whose specId matches the given regex (case-insensitive). Give one comma-separated list of patterns, once; a spec passes if any pattern matches.",
+  "hints": "After a test run, show one applicable post-run hint with code samples and links. Some hints intentionally fire on failures (e.g. enableDebugLog). Disable with --no-hints.",
+  "verification": "What to write back into source files after a run: `existing` (default) fills only the verified-by entries and badge tests a page declares, `true` also declares them on passing pages and inline tests, `false` writes nothing back. Overrides `verification.write`.",
+  "auto-screenshot": "On by default. Capture a screenshot after every step that drives a browser, native app, or device. Images are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under the nested resource tree specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/, named with each step's order, action, and ID, so the same step lands on the same relative path in every run's folder for run-over-run comparison. While it's on, the runFolder reporter runs even if --reporters leaves it out. Use --no-auto-screenshot to turn it off; it sets the config level, so a spec's or test's autoScreenshot: true still wins.",
+  "auto-record": "On by default. Record a video of every context that drives a browser, native app, or device, in addition to any explicit record steps: headless Chrome with the browser engine, headed browsers and desktop apps with the ffmpeg engine, and Android and iOS devices on the device. Headless Firefox runs headed so it can be recorded, when the host can capture the screen. Passing --auto-record makes it strict: a recording the host can't make is SKIPPED, and one that fails to start fails. Videos are saved in the per-run artifact folder (<output>/.doc-detective/runs/<runId>/) under specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/. While it's on, the runFolder reporter runs even if --reporters leaves it out. Use --no-auto-record to turn it off; it sets the config level, so a spec's or test's autoRecord: true still wins.",
+  "auto-update": "Check the npm registry on startup for a newer doc-detective and self-update before running. Use --no-auto-update (or set autoUpdate: false in config) to pin to the installed version.",
+  "cache-dir": "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Beats `DOC_DETECTIVE_CACHE_DIR` and config `cacheDir`. Defaults to `$XDG_CACHE_HOME/doc-detective` (`%LOCALAPPDATA%\\doc-detective` on Windows), or an existing `~/.doc-detective`.",
+  "concurrent-runners": "Number of test contexts to run concurrently (default 1). Pass a number (for example, --concurrent-runners 4), or `auto` (or `true`, as in config) to use the CPU core count (capped at 4). With more than 1 runner, log lines from different contexts interleave and cross-context variable dependencies are unsupported.",
+  "browser-fallback": "How to handle a context whose browser cannot start a driver session. auto (default): fall back to any other available browser (a fallback away from an explicitly requested browser reports WARNING). explicit: fall back only for auto-selected browsers; a broken explicitly-requested browser is skipped with a diagnostic reason. off: never fall back across browsers. Drivers are validated by execution, so a present-but-broken driver (e.g. a partially downloaded geckodriver) no longer silently skips coverage.",
+  "shell": "Default shell for runShell steps: bash (default), cmd, or powershell. cmd and powershell only work on Windows. Steps can override this value with their own `shell` field.",
+  "exit-on-fail": "Exit `1` when any spec's result is `FAIL`. [deprecated: now the default]",
+  "quiet": "Show only errors and a one-line verdict.",
+  "debug": "Show debugging output. Also DEBUG and DOC_DETECTIVE_DEBUG.",
+  "log-level": "Detail level of logging events. Accepted values: silent, error, warning, info (default), debug",
+  "logLevel": "Detail level of logging events. [deprecated: use --log-level]",
+  "json": "Print one JSON document to stdout.",
+  "no-color": "Turn off color. Also NO_COLOR.",
+  "no-env-file": "Don't load a `.env` file from the current directory. Variables already set in the shell always win over `.env`.",
+  "no-telemetry": "Don't send anonymous usage data for this run. `DO_NOT_TRACK` and `telemetry.send: false` do the same.",
+  "no-hints": "Don't show a post-run hint. Hints are on by default, and show one applicable tip with code samples and links after a run in an interactive shell.",
+  "no-auto-update": "Don't check the npm registry on startup for a newer 5.x and self-update before running. Self-update never crosses a major version, and never runs in CI.",
+  "no-exit-on-fail": "Exit `0` even when tests fail or nothing was tested, including when every spec skipped, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`."
+};
+
+// A commander Option in the shape the tables below render. Hidden options (the
+// `--no-` forms and alternate spellings) aren't documented as rows.
+function readOption(option) {
+  const name = option.long.replace(/^--/, "");
+  return {
+    name,
+    alias: option.short ? option.short.replace(/^-/, "") : undefined,
+    type: option.required || option.optional ? "string" : "boolean",
+    array: option.variadic,
+    description: REFERENCE_DESCRIPTIONS[name] ?? option.description,
+    default: option.defaultValue,
+  };
 }
 
-// Evaluate a node as a static literal. Returns undefined for anything that
-// isn't a plain literal (e.g. `require("../package.json").version`), which is
-// how we detect and skip non-static option fields.
-function literalValue(node, sf) {
-  if (!node) return undefined;
-  if (ts.isStringLiteralLike(node)) return node.text;
-  if (ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
-  if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
-  if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
-  if (ts.isNumericLiteral(node)) return Number(node.text);
-  if (ts.isArrayLiteralExpression(node)) {
-    return node.elements.map((el) => literalValue(el, sf));
-  }
-  return undefined;
+function readOptions(command, { except = new Set() } = {}) {
+  return command.options
+    .filter(
+      (option) =>
+        !option.hidden && option.long !== "--version" && !except.has(option.long)
+    )
+    .map(readOption);
 }
 
-function readObjectLiteral(objNode, sf) {
-  const obj = {};
-  for (const prop of objNode.properties) {
-    if (!ts.isPropertyAssignment(prop)) continue;
-    const key = prop.name.getText(sf).replace(/['"]/g, "");
-    obj[key] = literalValue(prop.initializer, sf);
-  }
-  return obj;
+// A command's help description, without the examples and line breaks that are
+// laid out for a terminal.
+function prose(description) {
+  return description.split(/\n\s*Examples:/)[0].replace(/\s*\n\s*/g, " ").trim();
 }
 
-// Collect every `.option(name, {...})` call within a node subtree, preserving
-// declaration order. yargs chains (`.option(a).option(b)`) parse so that the
-// outermost call — the last `.option()` written — is visited first, so we
-// reverse to recover source order.
-function collectOptions(rootNode, sf) {
-  const options = [];
-  function visit(node) {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.name.getText(sf) === "option" &&
-      node.arguments.length >= 2 &&
-      ts.isObjectLiteralExpression(node.arguments[1])
-    ) {
-      const name = literalValue(node.arguments[0], sf);
-      if (typeof name === "string") {
-        options.push({ name, ...readObjectLiteral(node.arguments[1], sf) });
-      }
-    }
-    ts.forEachChild(node, visit);
-  }
-  visit(rootNode);
-  return options.reverse();
-}
-
-// Find a top-level function declaration by name.
-function findFunction(sf, name) {
-  let found = null;
-  function visit(node) {
-    if (
-      ts.isFunctionDeclaration(node) &&
-      node.name &&
-      node.name.getText(sf) === name
-    ) {
-      found = node;
-    }
-    if (!found) ts.forEachChild(node, visit);
-  }
-  visit(sf);
+function subcommand(command, name) {
+  const found = command.commands.find((c) => c.name() === name);
+  if (!found) throw new Error(`${name} command not found in the CLI`);
   return found;
-}
-
-// Extract the value of a top-level `command`/`describe` property from an
-// exported CommandModule object literal (e.g. `export const lspCommand = {...}`).
-function extractCommandModule(sf, exportName) {
-  let result = null;
-  function visit(node) {
-    if (ts.isVariableDeclaration(node) && node.name.getText(sf) === exportName) {
-      let init = node.initializer;
-      // Unwrap `{...} as SomeType` if present.
-      while (init && ts.isAsExpression(init)) init = init.expression;
-      if (init && ts.isObjectLiteralExpression(init)) {
-        const obj = readObjectLiteral(init, sf);
-        result = {
-          command: obj.command,
-          describe: obj.describe,
-          options: collectOptions(init, sf),
-        };
-      }
-    }
-    if (!result) ts.forEachChild(node, visit);
-  }
-  visit(sf);
-  return result;
-}
-
-// Extract the run/global flags from buildYargs() in src/utils.ts.
-function extractRunFlags() {
-  const sf = sourceFile("utils.ts");
-  const fn = findFunction(sf, "buildYargs");
-  if (!fn) throw new Error("buildYargs() not found in src/utils.ts");
-  return collectOptions(fn, sf);
-}
-
-// Extract the `install` subcommand names in the order they are registered on
-// the group's builder (`.command(agentsSubcommand).command(runtimeSubcommand)…`
-// in installCommand's builder) — that registration order is the user-facing
-// order in `install --help`, which is what the summary should mirror. Names are
-// resolved from each `const <x>Subcommand = { command: "…" }` declaration. Used
-// only to summarize the group; the full option detail lives on the /install
-// page.
-function extractInstallSubcommands() {
-  const sf = sourceFile("runtime/installCommand.ts");
-
-  function commandWord(commandStr) {
-    // "runtime [packages..]" -> "runtime".
-    return String(commandStr).split(/\s+/)[0];
-  }
-
-  // 1. Map each `<x>Subcommand` declaration to its command word.
-  const declByVar = new Map();
-  function collectDecls(node) {
-    if (
-      ts.isVariableDeclaration(node) &&
-      node.name.getText(sf).endsWith("Subcommand") &&
-      node.initializer
-    ) {
-      let init = node.initializer;
-      while (init && ts.isAsExpression(init)) init = init.expression;
-      if (init && ts.isObjectLiteralExpression(init)) {
-        const obj = readObjectLiteral(init, sf);
-        if (obj.command) {
-          declByVar.set(node.name.getText(sf), commandWord(obj.command));
-        }
-      }
-    }
-    ts.forEachChild(node, collectDecls);
-  }
-  collectDecls(sf);
-
-  // 2. Walk the installCommand builder's `.command(<x>Subcommand)` chain in
-  //    registration (source) order. yargs chains parse outermost-first, so
-  //    reverse to recover the written order.
-  const registered = [];
-  function collectRegistrations(node) {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.name.getText(sf) === "command" &&
-      node.arguments.length >= 1
-    ) {
-      let arg = node.arguments[0];
-      while (arg && ts.isAsExpression(arg)) arg = arg.expression;
-      if (arg && ts.isIdentifier(arg)) {
-        const word = declByVar.get(arg.getText(sf));
-        if (word) registered.push(word);
-      }
-    }
-    ts.forEachChild(node, collectRegistrations);
-  }
-  collectRegistrations(sf);
-  registered.reverse();
-
-  // 3. Fall back to declaration order if the builder chain couldn't be read.
-  const names = registered.length > 0 ? registered : [...declByVar.values()];
-  return names.map((name) => ({ name }));
 }
 
 // ---------------------------------------------------------------------------
@@ -306,8 +187,8 @@ function descriptionCell(desc) {
     .trim();
 }
 
-// Render a flag's type for the Type column. yargs booleans/strings map
-// directly; an `array: true` string option renders as "string (array)".
+// Render a flag's type for the Type column. A variadic string option renders
+// as "string (array)".
 function typeCell(opt) {
   const base = opt.type || "string";
   return opt.array ? `${base} (array)` : base;
@@ -416,9 +297,9 @@ function buildPage(data) {
     "{/* Generated by docs/.scripts/buildCliReference.js. Do not edit by hand — a CI",
     "     drift check fails if this page and the source disagree. Flag and command",
     "     descriptions come from the CLI source (the `.option()` descriptions in",
-    "     src/utils.ts, src/lsp, src/debug, and src/runtime); run-flag defaults come",
+    "     src/cliOptions.ts, src/lsp, src/debug, and src/runtime); run-flag defaults come",
     "     from the config_v3 schema; the editorial prose lives in the generator itself.",
-    "     Change the relevant source, then run `npm run docs:build-cli-ref`. */}",
+    "     Change the relevant source, run `npm run compile`, then run `npm run docs:build-cli-ref`. */}",
     ""
   );
 
@@ -436,15 +317,17 @@ function buildPage(data) {
     "npx doc-detective [command] [options]",
     "```",
     "",
-    "A bare invocation with no command runs tests; the available commands are `install`, `lsp`, and `debug`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. The CLI is strict: unknown flags cause an error instead of being ignored.",
+    "A bare invocation with no command runs tests; the available commands are `run`, `install`, `lsp`, `debug`, and `help`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. For one command's usage, add `--help` after it or name it after `help`, including nested commands (for example, `npx doc-detective help install browsers`). The CLI is strict: unknown flags cause an error instead of being ignored.",
     ""
   );
 
-  // Run and global flags.
+  // Run flags.
   parts.push(
-    "## Run and global flags",
+    "## Run flags",
     "",
-    "These flags apply to the default run command. Each has a config-file equivalent; see [Configuration precedence](#configuration-precedence).",
+    "These flags apply when you run tests, with no command or with `run`. Each has a config-file equivalent; see [Configuration precedence](#configuration-precedence).",
+    "",
+    "The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, and `--no-input` work with every command except `lsp` and the hidden `runner` command. Other commands take only their own flags and the global flags, and reject anything else with an `unknown option` error. `lsp` speaks the language server protocol on stdout, so it takes only `--stdio`.",
     "",
     runFlagsTable(runFlags, configSchema),
     ""
@@ -454,14 +337,14 @@ function buildPage(data) {
     parts.push(
       "### Negating boolean flags",
       "",
-      "Every boolean run flag has a `--no-` negation form; the ones you'll typically reach for are: " +
+      "Boolean run flags can be negated with `--no-`, which overrides a config file. The ones you'll typically reach for are: " +
         serialJoin(negatable) +
-        ". (Other boolean flags, such as `--dry-run` and `--allow-unsafe`, can be negated the same way with `--no-dry-run` and `--no-allow-unsafe`.)",
+        ".",
       ""
     );
   }
 
-  // Editorial cross-links and caveats (not derivable from yargs metadata).
+  // Editorial cross-links and caveats (not derivable from CLI metadata).
   parts.push(
     "Notes on individual flags:",
     "",
@@ -469,6 +352,8 @@ function buildPage(data) {
     "- `--cache-dir`: see the [cache directory guidance](/reference/reference/cli/install#cache-directory).",
     "- `--shell`: [`runShell`](/docs/actions/runshell) documents its steps, and [shell selection](/docs/actions/runshell#shell-selection) covers how the default is chosen.",
     "- `--dry-run`: the resolved test plan is printed to stdout, so you can pipe it (for example, `npx doc-detective --dry-run | jq`).",
+    "- `--json`, `--plain`, and `--output -`: stdout holds only results, and everything else goes to stderr. Only one mode can write stdout, so `--plain` with `--json`, `--output -`, or `--dry-run` exits `2`.",
+    "- `--no-input`: also available as `DOC_DETECTIVE_NO_INPUT=1`.",
     "- `--auto-update`: skipped automatically when the `CI` environment variable is set, which GitHub Actions, GitLab CI, CircleCI, and most CI systems do—so CI pipelines usually don't need `--no-auto-update`. To pin the version deterministically everywhere (including runners that don't set `CI`), set `autoUpdate: false` in config or pass `--no-auto-update`.",
     "- `--test` and `--spec`: patterns match if they appear anywhere in the ID; anchor a pattern with `^` and `$` to require an exact `testId` or `specId` match. Each value is split on commas *before* the parts are compiled as regexes, so a pattern can't contain a literal comma (for example, `--test \"step{1,3}\"` is split into `step{1` and `3}`).",
     "",
@@ -487,10 +372,23 @@ function buildPage(data) {
   parts.push(
     "### Default (run tests)",
     "",
-    "With no command, `doc-detective` runs tests and takes no positional arguments; control its behavior with the flags in the [Run and global flags](#run-and-global-flags) section.",
+    "With no command, `doc-detective` runs tests and takes no positional arguments; control its behavior with the flags in the [Run flags](#run-flags) section. To pass file and folder paths as arguments, use [`run`](#run).",
     "",
     "```bash",
     "npx doc-detective --input ./docs",
+    "```",
+    ""
+  );
+
+  // run.
+  parts.push(
+    "### run",
+    "",
+    "Run tests as the bare command does, with file and folder paths as arguments. The paths are added to any `--input` values. A `-` argument reads a spec or document from stdin. `runTests` and `runtests` still work, but print a deprecation warning on stderr, which `--quiet`, `-l error`, and `-l silent` hide. Replace them with `run`.",
+    "",
+    "```bash",
+    "npx doc-detective run ./docs a.spec.json",
+    "cat a.spec.json | npx doc-detective run -",
     "```",
     ""
   );
@@ -502,8 +400,7 @@ function buildPage(data) {
   parts.push(
     "### lsp",
     "",
-    (lsp.describe ? escapeMdxBraces(lsp.describe) : "Start the Doc Detective language server.") +
-      " It also ships as a standalone command, `doc-detective-lsp`, which [Doc Detective 5.0](/docs/ci/upgrade-to-v5) removes.",
+    lsp.describe ? escapeMdxBraces(lsp.describe) : "Start the Doc Detective language server.",
     "",
     "This is distinct from `install agents`: the language server (`lsp`) exposes editor and AI-agent integrations over the LSP protocol, while `install agents` installs the Agent Skills and slash commands documented in the [agent tools overview](/ai/ai-agents/overview).",
     ""
@@ -525,6 +422,8 @@ function buildPage(data) {
     debug.describe
       ? escapeMdxBraces(debug.describe)
       : "Print diagnostic information about the runtime environment and exit without running tests.",
+    "",
+    "`debug` also accepts `--config`, `--input`, `--no-env-file`, and the global flags.",
     ""
   );
   if (debug.options.length > 0) {
@@ -541,15 +440,14 @@ function buildPage(data) {
   parts.push(
     "## Exit codes",
     "",
-    "<Note>",
-    "By default, the standalone `doc-detective` CLI exits `0` even when tests fail. It exits non-zero only on a crash or invalid configuration.",
+    "| Code | Meaning |",
+    "|------|---------|",
+    "| `0` | No spec failed, and at least one passed or warned |",
+    "| `1` | At least one spec failed |",
+    "| `2` | Nothing valid was tested, or the CLI couldn't proceed: a usage error, invalid config, no specs, every spec skipped, an invalid spec, a declined install, or a crash |",
+    "| `130`, `143` | Interrupted by `SIGINT` or `SIGTERM` |",
     "",
-    "To fail the build when a spec fails, pass `--exit-on-fail` (or set `exitOnFail: true` in your config). It's the easiest option to configure, and it works on any CI: the CLI exits `1` whenever a spec's result is FAIL. `WARNING` and `SKIPPED` results stay non-fatal. A run that matches no specs also exits `0`. For example, a mistyped `--test` or `--spec` filter matches nothing, so it can pass a gated build.",
-    "",
-    "You can also parse the results `summary` from the [reporter output](/docs/ci/reporters-and-artifacts) (the JSON reporter), or set the [GitHub Action](/docs/ci/github-action)'s `exit_on_fail` input. See [Fail CI when tests fail](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for examples.",
-    "</Note>",
-    "",
-    "The default `json` reporter writes a `testResults-<timestamp>.json` file into the `--output` directory (it prints the path as `See detailed results at …`); read that file's `summary` to decide whether the run passed. The `debug` command exits non-zero when it finds an invalid configuration. The specific non-zero value isn't a stable contract. Treat any non-zero exit as a failure rather than branching on the exact code. If you need to tell a test failure apart from a crash, parse the results `summary`.",
+    "`--no-exit-on-fail` and `exitOnFail: false` turn failed, empty, and all-skipped runs into `0`, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. A `WARNING` result never fails a run. Neither does a `SKIPPED` result, unless every spec skipped, which exits `2` without these options.",
     ""
   );
 
@@ -563,14 +461,57 @@ function buildPage(data) {
     "",
     "### Configuration precedence",
     "",
-    "Doc Detective merges configuration in this order:",
+    "Doc Detective layers configuration in one order. A higher layer wins. Where a layer merges deeply, objects merge key by key and arrays replace.",
     "",
-    "1. File config and the `DOC_DETECTIVE_CONFIG` environment variable (the environment value merges over the file).",
-    "2. Validation against the [`config_v3` schema](/reference/schemas/config).",
-    "3. CLI flag overrides.",
-    "4. Runtime: the runner and reporters read only the merged config.",
+    "| # | Layer (highest first) | Merge |",
+    "|---|---|---|",
+    "| 1 | Flags, such as `--cache-dir`, `-l`, `-q`, and `-d` | Replace |",
+    "| 2 | The shell's environment: `DOC_DETECTIVE_CONFIG`, then the single-purpose variables `DOC_DETECTIVE_CACHE_DIR` (`cacheDir`), `DOC_DETECTIVE_DEBUG` and `DEBUG` (`logLevel: debug`), `DO_NOT_TRACK` (`telemetry.send: false`), and `DOC_DETECTIVE_SKIP_AUTO_UPDATE` (`autoUpdate: false`), which win over it | Deep |",
+    "| 3 | A `.env` file in the current directory. It only fills variables the shell left unset. `--no-env-file` skips it | — |",
+    "| 4 | The project config: the file `--config` names, or else the first of `.doc-detective.json`, `.doc-detective.yaml`, and `.doc-detective.yml`. A config-level `loadVariables` file also only fills unset variables | Deep |",
+    "| 5 | Your user config, at `$XDG_CONFIG_HOME/doc-detective/config.json` (`%APPDATA%\\doc-detective\\config.json` on Windows) | Deep |",
+    "| 6 | Schema defaults | — |",
     "",
-    "CLI flags override the validated config; they don't bypass it, and every flag maps to a camelCase config key.",
+    "A `loadVariables` step still replaces variables that are already set, because a step sets them on purpose.",
+    "",
+    "A relative path resolves against the source that set it. That covers every path key, such as `input`, `output`, `outputDir`, `cacheDir`, `loadVariables`, `beforeAll`, `afterAll`, `apiKeyFile`, and `apiTokenFile`:",
+    "",
+    "| Source | A relative path resolves against |",
+    "|---|---|",
+    "| The project config | Its folder. With `relativePathBase: \"cwd\"`, or for a config loaded from a URL, the current directory |",
+    "| Your user config | Its folder, even with `relativePathBase: \"cwd\"` |",
+    "| `DOC_DETECTIVE_CONFIG` and `DOC_DETECTIVE` | The current directory |",
+    "| Flags and single-purpose variables | The current directory |",
+    "",
+    "A path no source sets, such as the default `input` and `outputDir` of `.`, resolves the way the project config's paths do, or against the current directory without one.",
+    "",
+    "Each config source is validated against the [`config_v3` schema](/reference/schemas/config) on its own, and an invalid one exits `2` with an error that names it. Flags override the validated config; they don't bypass it.",
+    "",
+    "`DOC_DETECTIVE` is a deprecated spelling of `DOC_DETECTIVE_CONFIG`. Its `config` object still applies, just below `DOC_DETECTIVE_CONFIG`, and Doc Detective warns until you move it. Its other keys, such as `container`, do nothing.",
+    "",
+    "## Environment variables",
+    "",
+    "Boolean variables are on for `1`, `true`, `yes`, or `on`, and off when unset, empty, or `0`, `false`, `no`, or `off`, in any case. Doc Detective ignores any other value, and warns once.",
+    "",
+    "| Variable | Values | Default | What it does |",
+    "|---|---|---|---|",
+    "| `DOC_DETECTIVE_CONFIG` | A JSON config object | Unset | Config, above the project config. See [Configuration precedence](#configuration-precedence). |",
+    "| `DOC_DETECTIVE_CACHE_DIR` | A path | `$XDG_CACHE_HOME/doc-detective`, `%LOCALAPPDATA%\\doc-detective` on Windows, or an existing `~/.doc-detective` | Where browsers and runtime dependencies are installed. Sets `cacheDir`. `--cache-dir` beats it. |",
+    "| `DOC_DETECTIVE_DEBUG` | Boolean | Off | Shows debugging output, like `-d`. |",
+    "| `DEBUG` | `1`, `true`, `*`, or a comma-separated list with `doc-detective` or `doc-detective:*` | Unset | Shows debugging output, like `-d`. A pattern for another package leaves it off. |",
+    "| `DOC_DETECTIVE_SKIP_AUTO_UPDATE` | Boolean | Off | Sets `autoUpdate: false`. `--auto-update` beats it. |",
+    "| `DO_NOT_TRACK` | Any value | Unset | Sets `telemetry.send: false`. |",
+    "| `DOC_DETECTIVE_NO_COLOR` | Boolean | Off | Turns off color, like `--no-color`. `NO_COLOR` and `FORCE_COLOR` keep their usual meaning. |",
+    "| `DOC_DETECTIVE_NO_INPUT` | Boolean | Off | Never prompts, like `--no-input`. |",
+    "| `DOC_DETECTIVE_ALLOW_LOCAL_URLS` | Boolean | Off | Lets a public screenshot reference image or OpenAPI description redirect or refer to a private or loopback address. Local URLs work without it. Setting it with `DOC_DETECTIVE_BLOCK_LOCAL_URLS` exits `2`. See [Refuse local URLs on shared runners](/docs/ci/docker-and-headless#refuse-local-urls-on-shared-runners). |",
+    "| `DOC_DETECTIVE_BLOCK_LOCAL_URLS` | Boolean | Off | Refuses every private and loopback address for screenshot reference images and OpenAPI `$ref`s, including direct ones. For shared runners. |",
+    "| `DOC_DETECTIVE_REUSE_APPIUM` | Boolean | Off | Keeps the Appium server running after a run, so the next run with the same setup skips its startup. |",
+    "| `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL` | Boolean | Off | Skips an Android context instead of installing the Android toolchain on first use. |",
+    "| `DOC_DETECTIVE_AUTOINSTALL` | Boolean | On | Off stops `npm install` from also installing browsers and runtime dependencies. |",
+    "| `DOC_DETECTIVE_SKIP_AGENT_PROMPT` | Boolean | Off | Stops `npm install` from asking to install agent tools. |",
+    "| `XDG_CONFIG_HOME`, `XDG_CACHE_HOME` | Paths | Platform defaults | Where the user config and the cache live. |",
+    "| `DOC_DETECTIVE` | `{\"config\": {...}}` | Unset | Deprecated: use `DOC_DETECTIVE_CONFIG`. |",
+    "| `DOC_DETECTIVE_RUNTIME_DEBUG` | Boolean | Off | Deprecated: use `DOC_DETECTIVE_DEBUG`. Setting both, with either one on, exits `2`. |",
     ""
   );
 
@@ -603,7 +544,7 @@ function buildPage(data) {
     "Run a filtered subset with specific reporters:",
     "",
     "```bash",
-    'npx doc-detective --input ./docs --test "smoke" --reporters terminal json',
+    'npx doc-detective --input ./docs --test "smoke" --reporters terminal,json',
     "```",
     "",
     "Start the language server:",
@@ -620,26 +561,32 @@ function buildPage(data) {
 // Main.
 // ---------------------------------------------------------------------------
 
-function main() {
+async function main() {
   const configSchema = loadConfigSchema();
 
-  const runFlags = extractRunFlags();
-
-  const lspSf = sourceFile("lsp/command.ts");
-  const lsp = extractCommandModule(lspSf, "lspCommand") || {
-    describe: null,
-    options: [],
-  };
-
-  const debugSf = sourceFile("debug/command.ts");
-  const debug = extractCommandModule(debugSf, "debugCommand") || {
-    describe: null,
-    options: [],
-  };
-
-  const installSubcommands = extractInstallSubcommands().filter(
-    (s) => s.name && s.name !== "install"
+  const { buildProgram } = await import(
+    pathToFileURL(path.join(repoRoot, "dist", "cliProgram.js")).href
   );
+  const program = buildProgram({ runTests: () => {} });
+  const runFlags = readOptions(program);
+  const runFlagNames = new Set(program.options.map((option) => option.long));
+
+  const lspCommand = subcommand(program, "lsp");
+  const lsp = {
+    describe: prose(lspCommand.description()),
+    options: readOptions(lspCommand),
+  };
+
+  // `debug` shares --config, --input, and the global flags with the run
+  // commands, which are documented once, above.
+  const debugCommand = subcommand(program, "debug");
+  const debug = {
+    describe: prose(debugCommand.description()),
+    options: readOptions(debugCommand, { except: runFlagNames }),
+  };
+
+  const installSubcommands = subcommand(program, "install")
+    .commands.map((command) => ({ name: command.name() }));
 
   const content =
     buildPage({
@@ -655,8 +602,11 @@ function main() {
   fs.writeFileSync(outputFile, content);
   console.log(
     `Generated CLI reference: ${path.relative(repoRoot, outputFile)} ` +
-      `(${runFlags.length} run/global flags, ${installSubcommands.length} install subcommands)`
+      `(${runFlags.length} run flags, ${installSubcommands.length} install subcommands)`
   );
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

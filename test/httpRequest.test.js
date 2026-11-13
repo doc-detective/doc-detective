@@ -3,6 +3,7 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import { httpRequest } from "../dist/core/tests/httpRequest.js";
 import { loadDescription } from "../dist/core/openapi.js";
+import { validate } from "../dist/common/src/validate.js";
 
 let server;
 let serverPort;
@@ -176,10 +177,15 @@ describe("httpRequest openApi string shorthand", function () {
     },
   ];
 
+  // Handlers get the effective step, where validate() has already expanded the
+  // string shorthand (ADR 01167).
   const run = (openApi) =>
     httpRequest({
       config: {},
-      step: { httpRequest: { openApi, statusCodes: [200], response: {} } },
+      step: validate({
+        schemaKey: "step_v3",
+        object: { httpRequest: { openApi, statusCodes: [200], response: {} } },
+      }).object,
       openApiDefinitions: definitions(),
     });
 

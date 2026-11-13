@@ -394,6 +394,8 @@ function makeLogShipper(apiBase, runId, token) {
  *   * `input`  → /workspace/specs (only for inline specs; for github
  *     sources we leave the user's `input` alone so their committed
  *     paths resolve from the cloned repo cwd)
+ *   * `exitOnFail` → true (the exit code carries the run's outcome)
+ *   * `autoScreenshot`, `autoRecord` → false (spec and test values still win)
  */
 function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_DIR) {
 	const effective = { ...(configSnapshot ?? {}) };
@@ -407,11 +409,45 @@ function buildEffectiveConfig(configSnapshot, source, workspaceDir = WORKSPACE_D
 	// to. main() resolves it once from DD_WORKSPACE_DIR and threads
 	// it through both functions so the CLI's view of the filesystem
 	// can't drift from where the runner actually wrote specs/output.
-	effective.output = path.posix.join(workspaceDir, OUTPUT_SUBDIR);
+	effective.outputDir = path.posix.join(workspaceDir, OUTPUT_SUBDIR);
+	// Also the results file, so a repository's own config can't write outside the
+	// workspace: this config overlays it.
+	effective.output = path.posix.join(workspaceDir, OUTPUT_SUBDIR, 'testResults.json');
 	if (source.type === 'inline') {
 		effective.input = path.posix.join(workspaceDir, SPECS_SUBDIR);
 	}
+	// The exit code is the run's outcome (finalizeBodyFor). `exitOnFail: false`
+	// would turn failed, empty, and all-skipped runs into 0 (ADR 01146).
+	effective.exitOnFail = true;
+	// Hosted runs don't capture customer pages unless a spec or test asks
+	// (ADR 01196). Core resolves `test ?? spec ?? config`, so those still win.
+	effective.autoScreenshot = false;
+	effective.autoRecord = false;
 	return effective;
+}
+
+/**
+ * Map the CLI's exit code (ADR 01146) to the finalize body. SIGTERM (143)
+ * signals cancel; the watchdog or cancel handler is the source of truth, but
+ * our best-effort POST helps the row land at `canceled` faster.
+ */
+function finalizeBodyFor(exitCode, canceledBySignal) {
+	if (canceledBySignal || exitCode === 143) {
+		return { status: 'canceled', exit_code: exitCode, summary: { reason: 'sigterm' } };
+	}
+	if (exitCode === 130) {
+		return { status: 'canceled', exit_code: 130, summary: { reason: 'interrupted' } };
+	}
+	if (exitCode === 0) return { status: 'succeeded', exit_code: 0, summary: {} };
+	// The run worked and a test failed. The platform shows a tests-failed outcome.
+	if (exitCode === 1) {
+		return { status: 'succeeded', exit_code: 1, summary: { reason: 'tests_failed' } };
+	}
+	// No specs, every spec skipped, or an invalid spec.
+	if (exitCode === 2) {
+		return { status: 'failed', exit_code: 2, summary: { reason: 'nothing_tested' } };
+	}
+	return { status: 'failed', exit_code: exitCode, summary: { reason: 'nonzero_exit' } };
 }
 
 /**
@@ -734,26 +770,7 @@ async function main() {
 	// deletes the run_token, so a late /logs POST after finalize 401s.
 	await shipper.flush();
 
-	// Map exit code → finalize status. SIGTERM (143) signals cancel;
-	// the watchdog or cancel handler is the source of truth, but our
-	// best-effort POST helps the row land at `canceled` faster.
-	let finalizeBody;
-	if (canceledBySignal || exitCode === 143) {
-		finalizeBody = {
-			status: 'canceled',
-			exit_code: exitCode,
-			summary: { reason: 'sigterm' }
-		};
-	} else if (exitCode === 0) {
-		finalizeBody = { status: 'succeeded', exit_code: 0, summary: {} };
-	} else {
-		finalizeBody = {
-			status: 'failed',
-			exit_code: exitCode,
-			summary: { reason: 'nonzero_exit' }
-		};
-	}
-	await postFinalize(apiBase, runId, token, finalizeBody);
+	await postFinalize(apiBase, runId, token, finalizeBodyFor(exitCode, canceledBySignal));
 	return exitCode;
 
 	} finally {
@@ -771,11 +788,9 @@ async function main() {
 // Module-import guard so the test file can `import` from this module
 // without triggering main().
 //
-// Both halves of this comparison matter. npm installs `bin` entries as
-// symlinks, so when the container runs `doc-detective-runner`,
-// process.argv[1] is /usr/local/bin/doc-detective-runner while
-// import.meta.url is the realpath under node_modules — hence realpathSync
-// before comparing. And a hand-built `file://${...}` template mangles
+// Hosted images run this through `doc-detective runner`, which calls main()
+// itself. This guard covers running the file directly. Both halves of the
+// comparison matter: argv[1] can be a symlink, so realpathSync before comparing. And a hand-built `file://${...}` template mangles
 // Windows paths and anything containing a space or `#`, so the conversion
 // goes through pathToFileURL. Getting either wrong makes this silently
 // false: main() never runs, nothing is logged, and the process exits 0
@@ -806,6 +821,7 @@ export {
 	buildEffectiveConfig,
 	fetchSpec,
 	filterSecrets,
+	finalizeBodyFor,
 	main,
 	makeLogShipper,
 	postFinalize,

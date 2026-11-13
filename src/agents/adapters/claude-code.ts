@@ -439,7 +439,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     type Cmd = [string, ...string[]];
     // A `bestEffort` step logs a warning when it fails instead of throwing.
     type Step = { argv: Cmd; bestEffort?: boolean };
-    // `owner/repo#ref` pins the marketplace to agent-tools' ref (ADR 01181).
+    // `owner/repo#ref` pins the marketplace to agent-tools' ref (ADR 01164).
     const addMarketplace: Cmd = [
       "claude",
       "plugin",
@@ -477,7 +477,7 @@ export class ClaudeCodeAdapter implements AgentAdapter {
     const warnSkipped = (detail: string) =>
       opts.logger(
         `Couldn't re-add the \`doc-detective\` marketplace at \`${AGENT_TOOLS_REF}\` (${detail}). Updating it as is.`,
-        "warn"
+        "warning"
       );
     for (const { argv: [cmd, ...args], bestEffort } of steps) {
       opts.logger(`Running: ${cmd} ${args.join(" ")}`, "debug");

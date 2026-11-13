@@ -369,6 +369,23 @@ describe("dragAndDrop action (coverage)", function () {
     };
   }
 
+  // The effective step fills the 1000 ms default and keeps an authored 0,
+  // which `duration || 1000` used to replace (ADR 01175).
+  for (const [duration, expected] of [[undefined, 1000], [0, 0], [250, 250]]) {
+    it(`drags with duration ${expected} when the step sets ${duration}`, async () => {
+      const durations = [];
+      const element = makeElement({ moving: true, dragImpl: async (_, options) => durations.push(options.duration) });
+      const driver = makeDriver({ candidates: [element] });
+      const result = await dragAndDropElement({
+        config,
+        step: { dragAndDrop: { source: { selector: "#a" }, target: { selector: "#b" }, duration } },
+        driver,
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.deepEqual(durations, [expected]);
+    });
+  }
+
   it("object source/target: WebDriver.io drag reports change → PASS via WDIO path", async () => {
     // Source location changes between initial and final reads → sourceChanged
     // true → WebDriver.io branch (no HTML5 fallback).
@@ -467,7 +484,7 @@ describe("dragAndDrop action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("target not found → targetFound FAIL, status FAIL, 'target' in description", async () => {
@@ -610,7 +627,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("env variable missing → FAIL", async () => {
@@ -657,7 +674,7 @@ describe("loadCookie action (coverage)", function () {
   it("file not found → FAIL", async () => {
     const driver = makeDriver();
     const result = await loadCookie({
-      config: { ...config, output: tmpDir },
+      config: { ...config, outputDir: tmpDir },
       step: { loadCookie: { name: "sid", path: "missing.txt" } },
       driver,
     });
@@ -702,7 +719,7 @@ describe("loadCookie action (coverage)", function () {
     const setCookies = sinon.spy(async () => {});
     const driver = makeDriver({ setCookiesImpl: setCookies });
     const result = await loadCookie({
-      config: { ...config, output: tmpDir },
+      config: { ...config, outputDir: tmpDir },
       step: { loadCookie: "sid.txt" },
       driver,
     });
@@ -1004,7 +1021,7 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("cookie not found → FAIL", async () => {
@@ -1150,7 +1167,7 @@ describe("saveCookie action (coverage)", function () {
       cookies: [{ name: "sid", value: "v", domain: "example.com" }],
     });
     const result = await saveCookie({
-      config: { ...config, output: tmpDir },
+      config: { ...config, outputDir: tmpDir },
       step: { saveCookie: "sid.txt" },
       driver,
     });

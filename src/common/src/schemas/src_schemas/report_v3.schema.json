@@ -8,7 +8,7 @@
   "properties": {
     "reportId": {
       "type": "string",
-      "description": "Unique identifier for the test specification."
+      "description": "Unique identifier for this report."
     },
     "runId": {
       "type": "string",
@@ -28,7 +28,7 @@
     },
     "runDir": {
       "type": "string",
-      "description": "Absolute path to the run's artifact folder (`<output>/.doc-detective/runs/<runId>/`), where the `runFolder` reporter archives results and `autoScreenshot` images are saved (nested under `specs/<specId>/tests/<testId>/contexts/<contextId>/`). Step-level `autoScreenshot` paths in the report are relative to this folder. System-populated.",
+      "description": "Absolute path to the run's artifact folder (`<outputDir>/.doc-detective/runs/<runId>/`), where the `runFolder` reporter archives results and automatic screenshots and recordings are saved (nested under `specs/<specId>/tests/<testId>/contexts/<contextId>/`). Each step's `autoScreenshotPath` in the report is relative to this folder. System-populated.",
       "readOnly": true
     },
     "durationMs": {
@@ -37,10 +37,25 @@
       "description": "Wall-clock duration of the run's execution phase in milliseconds, spanning the warm phase, every spec, and teardown. Excludes what happens before execution starts — test detection, resolution, and any just-in-time dependency install — so on a cold runner the process takes longer than this. Because contexts run concurrently, this can be LESS than the sum of the per-spec durations. Present only in test results. System-populated.",
       "readOnly": true
     },
+    "summary": {
+      "type": "object",
+      "description": "Counts of results at each level of the run. Doc Detective populates it. You never set it yourself.",
+      "readOnly": true,
+      "additionalProperties": false,
+      "required": ["specs", "tests", "contexts", "steps"],
+      "properties": {
+        "specs": { "$ref": "#/components/schemas/resultCounts" },
+        "tests": { "$ref": "#/components/schemas/resultCounts" },
+        "contexts": { "$ref": "#/components/schemas/resultCounts" },
+        "steps": {
+          "$ref": "#/components/schemas/resultCounts",
+          "description": "Counts of the steps in `contexts[].steps`. The automatic recording isn't a step and isn't counted."
+        }
+      }
+    },
     "specs": {
-      "description": "Test specifications that were performed.",
+      "description": "Test specifications that were performed. Empty when a filter matched nothing.",
       "type": "array",
-      "minItems": 1,
       "items": {
         "anyOf": [
           {
@@ -116,8 +131,25 @@
     }
   },
   "required": [
+    "summary",
     "specs"
   ],
+  "components": {
+    "schemas": {
+      "resultCounts": {
+        "type": "object",
+        "title": "Result counts",
+        "additionalProperties": false,
+        "required": ["pass", "fail", "warning", "skipped"],
+        "properties": {
+          "pass": { "type": "integer", "minimum": 0 },
+          "fail": { "type": "integer", "minimum": 0 },
+          "warning": { "type": "integer", "minimum": 0 },
+          "skipped": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  },
   "examples": [
     {
       "runId": "2026-11-06T02-33-28-631Z",
@@ -125,9 +157,15 @@
       "environment": {
         "platform": "linux",
         "arch": "x64",
-        "docDetectiveVersion": "4.42.0",
+        "docDetectiveVersion": "5.0.0",
         "nodeVersion": "24.15.0",
         "osRelease": "6.8.0-1017-azure"
+      },
+      "summary": {
+        "specs": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "tests": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "contexts": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "steps": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 }
       },
       "specs": [
         {
@@ -155,6 +193,12 @@
       }
     },
     {
+      "summary": {
+        "specs": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "tests": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "contexts": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "steps": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 }
+      },
       "specs": [
         {
           "$ref": "spec_v3.schema.json#/examples/1"
@@ -162,6 +206,12 @@
       ]
     },
     {
+      "summary": {
+        "specs": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "tests": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "contexts": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 },
+        "steps": { "pass": 1, "fail": 0, "warning": 0, "skipped": 0 }
+      },
       "specs": [
         {
           "$ref": "spec_v3.schema.json#/examples/2"

@@ -1,3 +1,4 @@
+const originalConsoleError = console.error;
 import { applyBadgeAnchoredTests, verifiedDate } from "../dist/core/utils.js";
 import { runTests } from "../dist/core/index.js";
 import fs from "node:fs";
@@ -161,11 +162,12 @@ describe("Badge-anchored test verification — write-back", function () {
       const f = write("a.md", "# Doc\n");
       const logs = [];
       const realLog = console.log;
-      console.log = (...a) => logs.push(a.join(" "));
+      console.error = console.log = (...a) => logs.push(a.join(" "));
       try {
         applyBadgeAnchoredTests({ config: { logLevel: "warning" }, results: report(f, { withLocation: false }) });
       } finally {
         console.log = realLog;
+        console.error = originalConsoleError;
       }
       expect(read(f)).to.equal("# Doc\n");
       expect(logs.join("\n")).to.match(/no location/i);
@@ -280,11 +282,12 @@ describe("Badge-anchored test verification — write-back", function () {
       const f = write("a.md", original);
       const logs = [];
       const realLog = console.log;
-      console.log = (...a) => logs.push(a.join(" "));
+      console.error = console.log = (...a) => logs.push(a.join(" "));
       try {
         run(f, { testId: generated }, { logLevel: "warning" });
       } finally {
         console.log = realLog;
+        console.error = originalConsoleError;
       }
       expect(read(f)).to.equal(original);
       expect(logs.join("\n")).to.contain(generated);
@@ -313,11 +316,12 @@ describe("Badge-anchored test verification — write-back", function () {
       const f = write("a.adoc", original);
       const logs = [];
       const realLog = console.log;
-      console.log = (...a) => logs.push(a.join(" "));
+      console.error = console.log = (...a) => logs.push(a.join(" "));
       try {
         run(f, { testId: "a(1)" }, { logLevel: "warning" });
       } finally {
         console.log = realLog;
+        console.error = originalConsoleError;
       }
       expect(read(f)).to.equal(original);
       expect(logs.join("\n")).to.match(/a\(1\).*\)/);
@@ -448,11 +452,12 @@ describe("Badge-anchored test verification — write-back", function () {
       fs.mkdirSync(dir);
       const logs = [];
       const realLog = console.log;
-      console.log = (...a) => logs.push(a.join(" "));
+      console.error = console.log = (...a) => logs.push(a.join(" "));
       try {
         applyBadgeAnchoredTests({ config: { logLevel: "warning" }, results: report(dir, { line: 1 }) });
       } finally {
         console.log = realLog;
+        console.error = originalConsoleError;
       }
       expect(logs.join("\n")).to.match(/failed to update badge-anchored tests/i);
     });

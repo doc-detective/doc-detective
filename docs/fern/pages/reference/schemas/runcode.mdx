@@ -8,7 +8,6 @@ description: "Reference for the `runCode` schema."
 
 ## Referenced In
 
-- [Markup definition](/reference/schemas/markup-definition)
 - [test](/reference/schemas/test)
 - [Resolved context](/reference/schemas/resolved-context)
 
@@ -24,7 +23,16 @@ runCode | object([Run code (detailed)](/reference/schemas/run-code-detailed)) | 
 {
   "runCode": {
     "language": "javascript",
-    "code": "console.log('Hello, ${process.env.USER}!');"
+    "code": "console.log(`Hello, ${require('os').userInfo().username}!`);"
+  }
+}
+```
+
+```json
+{
+  "runCode": {
+    "language": "py",
+    "code": "print('Hello from Python')"
   }
 }
 ```
@@ -33,12 +41,12 @@ runCode | object([Run code (detailed)](/reference/schemas/run-code-detailed)) | 
 {
   "runCode": {
     "language": "bash",
-    "code": "docker run hello-world",
+    "code": "echo \"Hello from Bash!\"",
     "timeout": 20000,
     "exitCodes": [
       0
     ],
-    "stdio": "Hello from Docker!"
+    "stdio": "Hello from Bash!"
   }
 }
 ```
@@ -47,7 +55,7 @@ runCode | object([Run code (detailed)](/reference/schemas/run-code-detailed)) | 
 {
   "runCode": {
     "language": "javascript",
-    "code": "return false",
+    "code": "process.exit(1);",
     "exitCodes": [
       1
     ]
@@ -59,8 +67,7 @@ runCode | object([Run code (detailed)](/reference/schemas/run-code-detailed)) | 
 {
   "runCode": {
     "language": "python",
-    "code": "print('Hello from Python')",
-    "workingDirectory": ".",
+    "code": "print('Hello from Python!')",
     "exitCodes": [
       0
     ],

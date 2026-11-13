@@ -1,16 +1,24 @@
 # Install packages and dependencies
-FROM node:22-slim AS runtime
+FROM node:24-slim AS runtime
 ARG PACKAGE_VERSION=latest
 
-# Set environment container to trigger container-based behaviors. The cache
-# dir is pinned to /opt/doc-detective so the pre-warm step at image build
-# time isn't lost to a per-boot /tmp wipe at runtime. Auto-update is off
-# because the image is the authoritative version-bump signal — image
-# releases bump doc-detective, not runtime self-update.
+# The cache dir is pinned to /opt/doc-detective so the pre-warm step at image
+# build time isn't lost to a per-boot /tmp wipe at runtime. Auto-update is off
+# because the image is the authoritative version-bump signal — image releases
+# bump doc-detective, not runtime self-update.
+#
+# The image's own defaults live in a user config, the lowest config layer, so
+# any project config, environment variable, or flag overrides them (ADR 01165).
+# XDG_CONFIG_HOME is pinned so the file is still found when a CI system moves
+# HOME, as GitHub `container:` jobs do. The only default: the container is the
+# sandbox, so steps marked unsafe run.
 ENV DEBIAN_FRONTEND=noninteractive \
-    DOC_DETECTIVE='{"container": "docdetective/docdetective:linux", "version": "'$PACKAGE_VERSION'"}' \
+    XDG_CONFIG_HOME=/etc/doc-detective-xdg \
     DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective \
     DOC_DETECTIVE_SKIP_AUTO_UPDATE=1
+
+RUN mkdir -p /etc/doc-detective-xdg/doc-detective \
+    && echo '{"allowUnsafeSteps": true}' > /etc/doc-detective-xdg/doc-detective/config.json
 
 LABEL authors="Doc Detective" \
     description="The official Docker image for Doc Detective. Keep your docs accurate with ease." \
@@ -30,7 +38,7 @@ RUN apt-get update \
     libatk1.0-0 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libglib2.0-0 \
     libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libpangocairo-1.0-0 libx11-6 libx11-xcb1 libxcb1 \
     libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 \
-    libxtst6 ffmpeg wget xdg-utils \
+    libxtst6 ffmpeg xvfb wget xdg-utils \
     default-jre \
     python3 python3-pip python3-venv \
     && update-ca-certificates \
@@ -46,8 +54,8 @@ RUN apt-get update \
 # predates the auto-install.
 #
 # Detect whether the installed CLI has the new `install <subcommand>`
-# surface by grepping for it in the root `--help` output. yargs always
-# exits 0 from `--help` regardless of whether a subcommand exists, so
+# surface by grepping for it in the root `--help` output. Older versions
+# exit 0 from `--help` regardless of whether a subcommand exists, so
 # `install --help` isn't a useful availability probe; matching the
 # command line in root help text IS reliable. Real `install all`
 # failures (transient npm errors, partial cache writes) then propagate
@@ -69,7 +77,7 @@ RUN if ls /tmp/local-package/*.tgz >/dev/null 2>&1; then \
     else \
       npm install -g doc-detective@$PACKAGE_VERSION; \
     fi \
-    && if doc-detective --help 2>&1 | grep -q "install <subcommand>"; then \
+    && if doc-detective --help 2>&1 | grep -qE "^[[:space:]]*(doc-detective(\.js)? )?install "; then \
          doc-detective install all --yes; \
        else \
          echo "[postinstall] doc-detective install all unavailable in $(doc-detective --version 2>/dev/null || echo 'unknown'); skipping cache pre-warm."; \
@@ -121,8 +129,7 @@ WORKDIR /app
 
 # Default entrypoint runs the doc-detective CLI directly so `docker run`
 # users get the existing behavior. The doc-detective.com platform
-# overrides this to `doc-detective-runner` (also installed by
-# `npm install -g doc-detective`, see package.json `bin`) via the Fly
+# overrides this to `doc-detective runner` via the Fly
 # Machine `init.entrypoint` field.
 ENTRYPOINT [ "npx", "doc-detective" ]
 

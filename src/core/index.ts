@@ -1,9 +1,18 @@
 import { setConfig, getAvailableApps } from "./config.js";
 import { detectTests } from "./detectTests.js";
 import { resolveTests } from "./resolveTests.js";
-import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests } from "./utils.js";
-import { runSpecs, runViaApi, getRunner, runNeedsAvailableApps } from "./tests.js";
+import { log, cleanTemp, applyVerifiedMarkers, applyBadgeAnchoredTests, deepMerge, replaceEnvs } from "./utils.js";
+import { beginRunMasking, looksSecret, maskDeep, maskedVariableNames, registerEnvValue, setPublicVariables } from "./masking.js";
 import {
+  runSpecs,
+  runViaApi,
+  emptyReport,
+  getRunner,
+  runNeedsAvailableApps,
+  installAutoScreenshotPackages,
+} from "./tests.js";
+import {
+  telemetryAllowed,
   telemetryNotice,
   prewarmTelemetry,
   abortTelemetryWarmup,
@@ -12,24 +21,9 @@ import {
   flushRunTelemetry as awaitTelemetryFlush,
 } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
-import {
-  captureWarnings,
-  clearVariablesUsed,
-  legacyEnv,
-  maskingWarnings,
-  specWarnings,
-  warnUpgrade,
-} from "../upgradeNotice.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
-const supportMessage = `
-##########################################################################
-# Thanks for using Doc Detective! If this project was helpful to you,    #
-# please consider starring the repo on GitHub or sponsoring the project: #
-# - GitHub Sponsors: https://github.com/sponsors/doc-detective           #
-# - Open Collective: https://opencollective.com/doc-detective            #
-##########################################################################`;
 
 /**
  * Detects and resolves tests based on the provided configuration.
@@ -45,8 +39,15 @@ async function detectAndResolveTests({ config, detectApps = true }: any) {
 }
 
 // detectTests -> resolveTests for a config setConfig already produced.
-async function detectAndResolveFromConfig(config: any) {
+async function detectAndResolveFromConfig(config: any, { strictSpecs = false } = {}) {
+  // Non-enumerable, so it stays out of serialized payloads.
+  Object.defineProperty(config, "_strictSpecs", { value: strictSpecs, enumerable: false, configurable: true });
   const detectedTests = await detectTests({ config });
+  if (strictSpecs && config._invalidSpecs?.length) {
+    throw new Error(
+      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs.join("\n")}\nFix them, or skip them with \`--no-exit-on-fail\` or \`exitOnFail: false\`.`
+    );
+  }
   if (!detectedTests || detectedTests.length === 0) {
     log(config, "warning", "No tests detected.");
     return null;
@@ -66,12 +67,13 @@ async function detectAndResolveFromConfig(config: any) {
   return resolvedTests;
 }
 
-// Run tests defined in specifications and documentation source files.
+// Run tests defined in specifications and documentation source files. Returns
+// the report, or the resolved test plan for a dry run. Prints nothing to stdout.
 async function runTests(config: any, options: any = {}) {
   let results: any;
   try {
     results = await runTestsAndReport(config, options);
-    return results;
+    return results ?? emptyReport();
   } finally {
     // Every path that returns results has sent telemetry, and that send owns
     // the warm-up. Any other exit (no tests found, a throw) sends nothing, and
@@ -82,17 +84,21 @@ async function runTests(config: any, options: any = {}) {
 }
 
 async function runTestsAndReport(config: any, options: any) {
-  clearVariablesUsed();
   let resolvedTests: any;
   let results: any;
+  // An earlier run's public list and hint names don't carry over (ADR 01178).
+  beginRunMasking();
 
   if (options.resolvedTests) {
+    // TODO(ADR 01168): validate DOC_DETECTIVE_API payloads against the schema; API runs are post-v5.
     resolvedTests = options.resolvedTests;
     // Caller-provided config wins over the embedded resolved-tests config
     // so CLI overrides like --dry-run / --logLevel are preserved when tests
     // come pre-resolved (DOC_DETECTIVE_API path). Without this merge, a
     // user running `--dry-run` against an orchestration-supplied resolved
-    // payload would silently execute tests.
+    // payload would silently execute tests. Objects merge and arrays
+    // replace, as in every config layer (ADR 01165), so an embedded nested
+    // key the caller doesn't set survives.
     //
     // Note: the `resolvedTests.config || {}` fallback is covered (see
     // test/cli-index-adapters-coverage.test.js — a resolvedTests payload
@@ -104,12 +110,9 @@ async function runTestsAndReport(config: any, options: any) {
     // adds — see the follow-up task spawned for that bug), so it isn't
     // exercised here. Left un-ignored since most of this line IS covered;
     // the residual branch is a known, tracked gap, not annotated dead code.
-    config = { ...(resolvedTests.config || {}), ...(config || {}) };
+    config = deepMerge(resolvedTests.config || {}, config || {});
     resolvedTests.config = config;
   }
-
-  // Read before a dry run forces silent; see the upgrade warnings below.
-  const callerLogLevel = config?.logLevel;
 
   // Dry-run requires clean stdout so the JSON dump can be piped through
   // `jq` / `JSON.parse`. Force silent log level (which gates info logs from
@@ -124,23 +127,21 @@ async function runTestsAndReport(config: any, options: any) {
 
   // Telemetry may contact PostHog only when both the caller's config and the
   // effective config allow it. The effective config is what setConfig makes of
-  // the caller's, including the DOC_DETECTIVE env override, so nothing starts
-  // until it's known (ADR 01132). Once it is, load the client and warm its
+  // the caller's, such as `$VAR` values it fills in, so nothing starts until
+  // it's known (ADR 01132). Once it is, load the client and warm its
   // connection while the run works, so the end-of-run send pays for neither.
   // A dry run skips the warm-up: it returns early, and a programmatic caller
   // may never call awaitTelemetryFlush to cancel one left in flight.
   let telemetryOn = false;
   const startTelemetry = (effectiveConfig: any) => {
-    telemetryOn =
-      config?.telemetry?.send !== false &&
-      effectiveConfig?.telemetry?.send !== false;
+    telemetryOn = telemetryAllowed(config) && telemetryAllowed(effectiveConfig);
     if (!telemetryOn) return;
     if (!config.dryRun) prewarmTelemetry(effectiveConfig);
     loadTelemetry();
   };
   // The config every run decision below reads. Pre-resolved tests skip
   // setConfig, so the merged config above is already effective; otherwise it's
-  // setConfig's output, which adds the DOC_DETECTIVE env override.
+  // setConfig's output.
   let effectiveConfig = config;
   // Whether the orchestration API runs this (tests execute remotely). Read from
   // the effective config, so an API key that only arrives through setConfig
@@ -157,24 +158,15 @@ async function runTestsAndReport(config: any, options: any) {
     effectiveConfig = await setConfig({ config, detectApps: false });
     startTelemetry(effectiveConfig);
     willRunViaApi = runsViaApi(effectiveConfig);
-    resolvedTests = await detectAndResolveFromConfig(effectiveConfig);
+    resolvedTests = await detectAndResolveFromConfig(effectiveConfig, {
+      // Invalid specs reject unless `exitOnFail: false` (ADR 01199).
+      strictSpecs: options.strictSpecs ?? effectiveConfig.exitOnFail !== false,
+    });
     if (!resolvedTests || resolvedTests.specs.length === 0) {
       // log() in src/core/utils.ts recognizes "warning", not "warn" —
       // see the matching note in the JIT pre-flight catch below.
       log(config, "warning", "Couldn't resolve any tests.");
       return null;
-    }
-    // Upgrade warnings print at the effective log level. A dry run forced
-    // silent before setConfig for stdout's sake, but these go to stderr, so
-    // there the level is the caller's unless the DOC_DETECTIVE override set one.
-    const upgradeLogLevel = config.dryRun
-      ? (legacyEnv(process.env).config?.logLevel ?? callerLogLevel)
-      : effectiveConfig.logLevel;
-    try {
-      warnUpgrade(specWarnings(resolvedTests), upgradeLogLevel);
-    } catch (error: any) {
-      // A warning must never fail a run.
-      log(effectiveConfig, "debug", `Couldn't check specs for Doc Detective 5.0 changes: ${error?.message || error}`);
     }
     // Browser detection, deferred from setConfig so a run whose contexts
     // can't use it skips it (ADR 01133). Any run that can still gets the same
@@ -189,6 +181,8 @@ async function runTestsAndReport(config: any, options: any) {
     }
   }
 
+  prepareMasking(resolvedTests, config);
+
   // Join the self-update check the CLI started concurrently with detection /
   // resolution (which execute no tests). If a newer version was found,
   // `options.updateJoin` re-execs the process here — BEFORE any test runs or
@@ -199,15 +193,23 @@ async function runTestsAndReport(config: any, options: any) {
     await options.updateJoin();
   }
 
+  // The CLI prints the plan. A library leaves stdout alone.
   if (config.dryRun) {
-    console.log(JSON.stringify(resolvedTests, null, 2));
     cleanTemp();
     if (telemetryOn) {
       await sendTelemetry(config, "runTests:dryRun", {
         specs: resolvedTests.specs.length,
       });
     }
-    return resolvedTests;
+    // The plan matches resolvedTests_v3 (ADR 01186), so the runner's own
+    // `_`-prefixed bookkeeping on the config and specs stays out of it. Users
+    // can't write such keys there: both objects reject unknown keys.
+    const publicKeys = (node: any) => Object.fromEntries(Object.entries(node ?? {}).filter(([key]) => !key.startsWith("_")));
+    return maskDeep({
+      ...resolvedTests,
+      config: publicKeys(resolvedTests.config),
+      specs: resolvedTests.specs.map(publicKeys),
+    });
   }
 
   // Just-in-time install: inspect the resolved specs to learn which heavy
@@ -218,8 +220,7 @@ async function runTestsAndReport(config: any, options: any) {
   // every loadHeavyDep() call below hits the warm-cache fast path.
   //
   // Browser installs are gated by `getAvailableApps()` — if the requested
-  // browser is already detectable (e.g., the legacy ./browser-snapshots/
-  // pre-warm is still in place), we skip the install entirely.
+  // browser is already detectable, we skip the install entirely.
   //
   // Skipped entirely for API-backed runs (willRunViaApi, above): the
   // orchestration API executes tests remotely, so installing browsers/runtime
@@ -231,17 +232,23 @@ async function runTestsAndReport(config: any, options: any) {
       "Skipping runtime pre-flight install — run is dispatched via Doc Detective Orchestration API."
     );
   } else try {
-    const { inferRuntimeNeeds } = await import("../runtime/inferRuntimeNeeds.js");
+    const { inferRuntimeNeeds, SCREENSHOT_PACKAGES } = await import("../runtime/inferRuntimeNeeds.js");
     const { ensureRuntimeInstalled } = await import("../runtime/loader.js");
+    // The config runSpecs reads, always set by now (the dryRun check above
+    // reads it). setConfig deep-clones the caller's config, so auto-capture
+    // settings come from here, and the auto-screenshot flag below lands here,
+    // never on the caller's object (ADR 01177).
+    const runConfig = resolvedTests.config;
     const needs = inferRuntimeNeeds(resolvedTests, {
       configShell: config.shell,
+      autoScreenshot: runConfig.autoScreenshot,
+      autoRecord: runConfig.autoRecord,
     });
     const ctx = { cacheDir: config.cacheDir };
     // Bridge the runtime modules' logger contract to core/utils.ts:log()
     // so config.logLevel filters npm install stdout/stderr (which the
     // runtime logs at "debug") and prevents flooded output during a
-    // routine `doc-detective` run. Map "warn" → "warning" since
-    // core/utils.ts uses the latter.
+    // routine `doc-detective` run. Both use the level "warning".
     // c8 ignore justification (preflightLogger through the matching `if
     // (needs.browsers.size > 0)` block below, per ADR 01017): the outer
     // shell above (willRunViaApi dispatch, the try/inferRuntimeNeeds setup)
@@ -267,16 +274,26 @@ async function runTestsAndReport(config: any, options: any) {
     // testing core/index.ts's orchestration, just re-asserting loader.ts's
     // contract.
     /* c8 ignore start */
-    const preflightLogger = (msg: string, level: string = "info") => {
-      const mapped = level === "warn" ? "warning" : level;
-      log(config, mapped, msg);
-    };
-    if (needs.npmPackages.size > 0) {
-      await ensureRuntimeInstalled([...needs.npmPackages], {
-        ctx,
-        deps: { logger: preflightLogger },
-      });
-    }
+    const preflightLogger = (msg: string, level: string = "info") => log(config, level, msg);
+    /* c8 ignore stop */
+    // `options.installRuntime` is a test seam for the npm install.
+    const install: (packages: string[]) => Promise<unknown> =
+      options.installRuntime ??
+      ((packages: string[]) =>
+        ensureRuntimeInstalled(packages, { ctx, deps: { logger: preflightLogger } }));
+    // Packages needed only by automatic screenshots install on their own, so
+    // a failure turns those off for the run instead of failing it (ADR 01177).
+    const autoShotPackages = needs.autoScreenshotOnly ? [...SCREENSHOT_PACKAGES] : [];
+    const corePackages = [...needs.npmPackages].filter(
+      (name) => !autoShotPackages.includes(name)
+    );
+    if (corePackages.length > 0) await install(corePackages);
+    await installAutoScreenshotPackages({
+      config: runConfig,
+      packages: autoShotPackages,
+      install,
+    });
+    /* c8 ignore start */
     if (needs.browsers.size > 0) {
       try {
         const { getAvailableApps, patchAppCache } = await import("./config.js");
@@ -399,15 +416,6 @@ async function runTestsAndReport(config: any, options: any) {
   } else {
     // Run test specs locally
     results = await runSpecs({ resolvedTests });
-    try {
-      warnUpgrade(
-        [...captureWarnings(resolvedTests, results), ...maskingWarnings(resolvedTests)],
-        effectiveConfig.logLevel
-      );
-    } catch (error: any) {
-      // A warning must never fail a run.
-      log(effectiveConfig, "debug", `Couldn't check the run for Doc Detective 5.0 changes: ${error?.message || error}`);
-    }
   }
   // The full results tree is a debug-only dump — the reporters (terminal
   // summary, json/runFolder files) already render results for the user, and at
@@ -422,8 +430,8 @@ async function runTestsAndReport(config: any, options: any) {
 
   // `verification.write` (ADR 01140): "existing" (the default) fills what pages
   // declare, true also declares it on passing pages and tests, false writes
-  // nothing back. Read from the effective config, so DOC_DETECTIVE overrides
-  // and the CLI's --verification reach it.
+  // nothing back. Read from the effective config, so the CLI's --verification
+  // reaches it.
   const write = effectiveConfig?.verification?.write ?? "existing";
 
   // Badge-anchored write-back — see ADR 01141. Runs before the verification
@@ -461,7 +469,32 @@ async function runTestsAndReport(config: any, options: any) {
 
   // Send telemetry
   if (telemetryOn) await sendTelemetry(config, "runTests", results);
-  log(config, "info", supportMessage);
 
-  return results;
+  // Every reporter, `-o`, `--json`, and the JS API return read this (ADR 01178).
+  return maskDeep(results);
+}
+
+// Masking's run-start pass (ADR 01178), once the run's specs are resolved and
+// before anything they hold prints: the run's public names, every
+// secret-looking variable, and every `$NAME` the specs will substitute.
+function prepareMasking(resolvedTests: any, config: any) {
+  const lists = [resolvedTests.config?.publicVariables, config.publicVariables];
+  for (const spec of resolvedTests.specs ?? []) {
+    lists.push(spec.publicVariables);
+    for (const test of spec.tests ?? []) lists.push(test.publicVariables);
+  }
+  setPublicVariables(lists.flatMap((list) => (Array.isArray(list) ? list : [])));
+  for (const [name, value] of Object.entries(process.env)) {
+    if (looksSecret(name)) registerEnvValue(name, value);
+  }
+  // replaceEnvs registers each value it substitutes. It rewrites in place, so
+  // it works on a deep clone: the specs must stay unsubstituted until each step
+  // runs. The clone is thrown away. JSON is enough: resolved specs are plain
+  // JSON, parsed from spec files and inline statements.
+  replaceEnvs(JSON.parse(JSON.stringify(resolvedTests.specs ?? [])));
+  const names = maskedVariableNames();
+  if (names.length > 0) {
+    const noun = names.length === 1 ? "value of 1 variable" : `values of ${names.length} variables`;
+    log(config, "debug", `Masking the ${noun}: ${names.join(", ")}.`);
+  }
 }

@@ -12,11 +12,11 @@ Recording works with concurrent test runners (`concurrentRunners` > 1). The `bro
 
 You can specify the recording action in several ways:
 
-- **Boolean Shorthand:** Set `record: true` to start recording with default settings (usually saved as `record_<timestamp>.mp4` in the output directory).
-- **String Shorthand:** Provide a file path directly as the value for the `record` key (for example, `record: "test_session.webm"`). This starts recording to the specified path. Supported extensions are `.mp4`, `.webm`, and `.gif`.
+- **Boolean Shorthand:** Set `record: true` to start recording with default settings, saved as `<stepId>.mp4` in `outputDir`. Set `record: false` to skip the step.
+- **String Shorthand:** Provide a file path directly as the value for the `record` key (for example, `record: "test_session.webm"`). This starts recording to the specified path. A relative path resolves against the spec file. Supported extensions are `.mp4`, `.webm`, and `.gif`, in any case, so `Demo.MP4` works.
 - **Object Format:** Use an object for more control over the output file:
-  - `path`: (Optional) The file path where the recording will be saved. Can include directories. If omitted, a default path is generated.
-  - `directory`: (Optional) The directory where the recording will be saved. If `path` includes a directory, this is ignored. Defaults to the configured output directory.
+  - `path`: (Optional) The file path where the recording will be saved. Can include directories. A relative path resolves against `directory` if set, else against the spec file. If omitted, the file is `<stepId>.mp4`, in `directory` if set, else in `outputDir`.
+  - `directory`: (Optional) The directory where the recording will be saved. A relative directory resolves against the spec file. With no spec file, such as a step passed to the JavaScript `getRunner()` API, it resolves against `outputDir`. If `path` or `directory` references an environment variable that isn't set, such as `$VIDEOS_DIR`, the step fails. The message names whichever of `path` or `directory` holds the variable. For example: ``Couldn't start the recording. `directory` (`$VIDEOS_DIR`) has a variable that isn't set.``
   - `overwrite`: (Optional) What to do when a file already exists at the target path. Defaults to `"false"`, which skips the recording. Set to the string `"true"` to overwrite the file. Set to `"aboveVariation"` to replace it only when checkpoints show the flow meaningfully changed. See [Refreshing stale recordings automatically](#refreshing-stale-recordings-automatically) for `"aboveVariation"`.
   - `name`: (Optional) An identifier for this recording. A later `stopRecord` step can target it by name to stop a specific recording when several overlap. See [Multiple overlapping recordings](#multiple-overlapping-recordings) below.
   - `engine`: (Optional) The recording engine to use. See [Recording engines](#recording-engines) below.
@@ -24,14 +24,20 @@ You can specify the recording action in several ways:
 
 **Stopping the Recording:** Include a `stopRecord` step to end a recording at a specific point in your test. Doc Detective automatically finalizes any remaining recordings at the end of the test run.
 
+**Where files go:** a path you write resolves against the spec file you wrote it in. A spec loaded from a URL (`--input https://…`) has no folder of its own, so its relative paths resolve against `outputDir`. A file Doc Detective names, such as `<stepId>.mp4`, goes in `outputDir`. `outputDir` defaults to `.`, which resolves against your config file's folder. With no config file, that's the current folder.
+
+## Secrets in recordings
+
+Doc Detective doesn't blur page text during a recording. A page that displays the value of a secret environment variable, such as an API key on a settings page, shows it in the video. End the recording before the test reaches that page. In a browser, a `type` step or the `type` option of a `find` step can type a secret into a field. The field then shows dots, so the typed value stays out of the video. Native app and device recordings don't hide typed values. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
+
 ## Recording engines
 
 Recording uses one of two engines, selected by the optional `engine` field in the object format:
 
-- **`browser`:** Records the Chrome viewport using the browser's screen-capture API. It captures only the current browser tab. It's safe to run with concurrency (when `concurrentRunners` is greater than 1), because each context records its own window. The `browser` engine requires a visible Chrome context and can't record in headless mode.
-- **`ffmpeg`:** Records the screen with FFmpeg, so it works for any application, not just Chrome. Doc Detective installs FFmpeg automatically, so you don't need to install it yourself.
+- **`browser`:** Records the Chrome viewport using the browser's screen-capture API. It captures only the current browser tab, and keeps recording when that tab navigates. It works in headed and headless Chrome, and needs no display. It's safe to run with concurrency (when `concurrentRunners` is greater than 1), because each context records its own tab. The video matches the viewport's width. While Chrome records a tab, it shows a sharing bar that makes the page a little shorter. So the video can be a little shorter than the viewport.
+- **`ffmpeg`:** Records the screen with FFmpeg, so it works for any application, not just Chrome. Doc Detective installs FFmpeg automatically, so you don't need to install it yourself. It needs a headed context, because a headless browser draws nothing on the screen.
 
-If you don't set `engine`, Doc Detective chooses one for you. It prefers the `browser` engine when a visible Chrome context is available (coercing an unspecified browser to headed Chrome), and falls back to `ffmpeg` otherwise.
+If you don't set `engine`, Doc Detective chooses one for you. It uses the `browser` engine for any Chrome context, headed or headless, and `ffmpeg` otherwise. A context that names no browser runs Chrome, headless, so it records with the `browser` engine.
 
 Set `engine` as a string to select an engine with its defaults (for example, `"engine": "ffmpeg"`), or as an object for more control:
 
@@ -41,11 +47,19 @@ Set `engine` as a string to select an engine with its defaults (for example, `"e
 
 On Android and iOS contexts, `engine` doesn't apply. Doc Detective records the device screen through the device itself. See [Recording on mobile devices](#recording-on-mobile-devices).
 
-**Recording concurrency** depends on the engine. The `browser` engine is always safe to run concurrently, because each context records its own window.
+**Recording concurrency** depends on the engine. The `browser` engine is always safe to run concurrently, because each context records its own tab.
 
 The `ffmpeg` engine captures the whole shared display. Two `ffmpeg` recordings would therefore overwrite each other's output, as would an `ffmpeg` recording running alongside another browser-driven test. To prevent this, Doc Detective serializes that recording with every other browser-based test so they take turns on the display. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel up to `concurrentRunners`. This behavior applies on every platform, including Linux. To run the recordings concurrently as well, use the `browser` engine instead.
 
-On Linux, the `ffmpeg` engine also needs Xvfb to record headless contexts, which have no physical display to capture. Install Xvfb to record in headless mode.
+Before any test, Doc Detective checks that the host can make the recordings the run plans, such as Screen Recording permission on macOS. When a check fails, a `record` step it covers is SKIPPED with the reason and the fix, not failed:
+
+```text
+Skipped: there's no display to capture. To record, install Xvfb or set DISPLAY, and rerun.
+```
+
+For every check, see [Before you record](/docs/test-docs/automatic-recording#before-you-record).
+
+Headless Firefox and Safari can't be recorded, so their `record` steps are SKIPPED. To record them, set `headless: false`. Firefox has one exception. While [`autoRecord`](/docs/test-docs/automatic-recording) is on, which is the default, Doc Detective runs headless Firefox headed when the host can record the screen. Its `record` steps then record too. On a Linux host with no display, Doc Detective runs a headed context on Xvfb, so install Xvfb to record there.
 
 ## Recording app surfaces
 
@@ -106,30 +120,21 @@ The `browser` engine can own only one recorder per context. So when two recordin
 
 ## Automatic recordings
 
-Enable the `autoRecord` option to record every driver-based test context from start to finish, covering browser, native app, and mobile contexts alike. It captures each context end-to-end without explicit `record` steps, which is useful for:
+By default, Doc Detective records every context that drives a browser, a native app, or a device, from start to finish, with no `record` steps. That's useful for:
 
 - Building a video archive of every run
 - Replaying exactly what happened when a test fails
 - Comparing behavior from one run to the next
 
-Enable it at the config, spec, or test level (test overrides spec, which overrides config):
+To turn it off, set `autoRecord` to `false` at the config, spec, or test level (test overrides spec, which overrides config), or pass `--no-auto-record`:
 
 ```json
 {
-  "autoRecord": true,
-  "output": "./test-results"
+  "autoRecord": false
 }
 ```
 
-Or use the CLI flag:
-
-```bash
-doc-detective --auto-record
-```
-
-Use `--no-auto-record` to override a config file that enables it.
-
-Automatic recordings wrap the whole context. Recording starts before the first step and stops after the last. Desktop contexts capture with the `ffmpeg` engine. In an app-only context the capture starts full-display, and the first app surface to open scopes it to that app's window. Android and iOS contexts record the device screen instead, starting as soon as the first app surface opens its device session. Doc Detective saves each video in the per-run artifact folder (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree. The same context therefore lands on the same relative path in every run's folder:
+Automatic recordings wrap the whole context. Recording starts before the first step and stops after the last. Headless Chrome records its tab with the `browser` engine, unless the context has its own `record` step. Headless Firefox runs headed so the `ffmpeg` engine can record it, when the host can capture the screen. Other desktop contexts capture with the `ffmpeg` engine. For what each context gets, what the host needs, and how `true` differs from leaving it unset, see [Record video automatically](/docs/test-docs/automatic-recording). In an app-only context the capture starts full-display, and the first app surface to open scopes it to that app's window. Android and iOS contexts record the device screen instead, starting as soon as the first app surface opens its device session. Doc Detective saves each video in the per-run artifact folder (`<outputDir>/.doc-detective/runs/<runId>/`) under the nested resource tree. The same context therefore lands on the same relative path in every run's folder:
 
 ```
 .doc-detective/runs/<runId>/
@@ -225,11 +230,11 @@ Unlike checkpoint drift (a WARNING), a violated guard **fails** the `stopRecord`
 - `resolution`: the video's dimensions, with a ±2 pixel tolerance (encoders round to even dimensions). `true` compares against the capture plan's expectation. That's the crop rectangle for `window` and `viewport` targets, and otherwise the capture frame size. The check is skipped when the engine reports no expectation. Pass `{ "width": …, "height": … }` to compare literal dimensions.
 - `notBlack`: fails when black frames cover 95% or more of the video, the symptom of a broken screen capture.
 
-The measured values land in the [`stopRecord` outputs](stoprecord) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatch` and `$$allBlack` when the matching guard ran).
+The measured values land in the [`stopRecord` outputs](stoprecord) (`$$duration`, `$$width`, `$$height`, plus `$$resolutionMatches` and `$$allBlack` when the matching guard ran).
 
 ### Detecting staleness without re-recording
 
-Doc Detective skips the capture in two situations. The first is a headless run, since recording needs a visible display. The second is a target file that already exists under the default `overwrite: "false"`. In both, a step with `checkpoints` (or `aboveVariation`, which implies them) still compares its checkpoints against the committed baselines and reports whether the recording has gone stale. The `stopRecord` step returns WARNING with `stale: true` in its outputs, and a post-run hint points you at the fix.
+Doc Detective skips the capture in two situations. The first is a headless run that the engine can't record, such as headless Firefox. The second is a target file that already exists under the default `overwrite: "false"`. In both, a step with `checkpoints` (or `aboveVariation`, which implies them) still compares its checkpoints against the committed baselines and reports whether the recording has gone stale. The `stopRecord` step returns WARNING with `stale: true` in its outputs, and a post-run hint points you at the fix.
 
 The fix depends on which skip you hit, and the `stopRecord` step's description names it:
 
@@ -248,7 +253,7 @@ The docs tests run the first three examples, the overlapping-recordings example,
 
 ### Basic recording (boolean shorthand)
 
-Starts recording to a default path like `output/record_1745032062266.mp4` and stops later.
+Starts recording to `<stepId>.mp4` in `outputDir` and stops later.
 
 {/* test {"testId":"record-boolean-shorthand","detectSteps":false} */}
 
@@ -275,7 +280,7 @@ Starts recording to a default path like `output/record_1745032062266.mp4` and st
 }
 ```
 
-{/* step {"stepId":"record-start-boolean","description":"Start recording, directed at a gitignored output folder instead of the default path (on this headless docs-test runner, with no virtual display, this step SKIPS rather than fails -- see PR notes)","record":{"path":"record_boolean.mp4","directory":"./.dd-output"}} */}
+{/* step {"stepId":"record-start-boolean","description":"Start recording, directed at a gitignored output folder instead of the default path (this context names no browser, so it runs headless Chrome and records the tab with the browser engine)","record":{"path":"record_boolean.mp4","directory":"./.dd-output"}} */}
 {/* step {"stepId":"record-action-boolean","description":"Perform some actions","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"record-stop-boolean","description":"Stop recording","stopRecord":true} */}
 {/* test end */}

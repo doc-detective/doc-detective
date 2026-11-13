@@ -4,7 +4,7 @@ sidebar-title: HTML
 description: Use Doc Detective with HTML files.
 ---
 
-HTML is the standard format for web pages. Doc Detective supports inline tests in HTML files using HTML comment syntax.
+HTML is the standard format for web pages. Doc Detective reads inline tests from HTML comments and detects steps from HTML tags.
 
 ## File extensions
 
@@ -25,7 +25,7 @@ HTML files use HTML comments for inline tests:
 
 **Test start:**
 ```html
-<!-- test { "testId": "my-test" } -->
+<!-- test { "testId": "my-test-start" } -->
 ```
 
 **Step:**
@@ -86,43 +86,22 @@ Here's a complete example of an HTML file with inline tests:
 
 ## Detected tests
 
-<Info>
+With step detection on, HTML files detect the steps listed in [What gets detected](overview#what-gets-detected), from HTML tags:
 
-HTML currently only supports inline test statements. Detected test patterns (automatic test generation from content) are not included in the default configuration.
+| Step | HTML that matches |
+|---|---|
+| `goTo` | `Go to <a href="https://example.com">the site</a>`, and the other navigation verbs |
+| `checkLink` | Any `<a href>` to an `http` or `https` URL |
+| `click` | `Click <strong>Search</strong>` or `Click <b>Search</b>`, and the other click verbs |
+| `find` | Any `<strong>` or `<b>` text |
+| `screenshot` | `<img src="results.png" class="screenshot">` |
+| `type` | `Type "kittens"` in prose |
+| `httpRequest` | A `<pre>` block tagged `language-http`, or with no language, that holds a request |
+| `runCode` | A `<pre>` block whose `<code>` has the class `language-bash`, `language-python`, `language-py`, `language-javascript`, or `language-js`. These steps are unsafe |
 
-</Info>
+Statements, tags, and text inside `<pre>`, `<code>`, `<script>`, and `<style>` aren't read. Prose is read as written in the source, so `Type &quot;kittens&quot;` doesn't match the `type` pattern. Write the quotes as `"`.
 
-To add detected test functionality to HTML files, you can define custom markup patterns in your configuration. See [custom inputs](custom) for examples.
-
-Example custom patterns for HTML:
-
-```json
-{
-  "fileTypes": [
-    {
-      "name": "html",
-      "extensions": ["html", "htm"],
-      "markup": [
-        {
-          "name": "checkHyperlink",
-          "regex": ["<a\\s+href=\"(https?:\\/\\/[^\"]+)\"[^>]*>"],
-          "actions": ["checkLink"]
-        },
-        {
-          "name": "clickOnscreenText",
-          "regex": ["\\b(?:[Cc]lick|[Tt]ap)\\b\\s+<(strong|b)>([^<]+)<\\/\\1>"],
-          "actions": [{ "click": "$2" }]
-        },
-        {
-          "name": "goToUrl",
-          "regex": ["\\b(?:[Gg]o\\s+to|[Nn]avigate\\s+to)\\b[^<]*<a\\s+href=\"(https?:\\/\\/[^\"]+)\""],
-          "actions": ["goTo"]
-        }
-      ]
-    }
-  ]
-}
-```
+For a generated site, point Doc Detective at your source files rather than the build output. Otherwise, every link and bold phrase on every page becomes a step. To change what's detected, see [Selectors](selectors) and [custom inputs](custom).
 
 ## JSON and YAML syntax
 
@@ -130,13 +109,13 @@ HTML inline tests support both JSON and YAML syntax:
 
 **JSON syntax:**
 ```html
-<!-- test { "testId": "my-test", "description": "Test description" } -->
+<!-- test { "testId": "my-json-test", "description": "Test description" } -->
 <!-- step { "goTo": "https://example.com" } -->
 ```
 
 **YAML syntax:**
 ```html
-<!-- test testId: my-test description: Test description -->
+<!-- test testId: my-yaml-test description: Test description -->
 <!-- step goTo: https://example.com -->
 ```
 
@@ -147,7 +126,7 @@ Both formats work identically. Choose the format that's most readable for your t
 - Keep test comments on a single line
 - Place test comments near the content they validate
 - Use descriptive test IDs to identify tests in results
-- Consider using custom markup patterns for automatic test detection
+- Combine inline tests with [detected tests](#detected-tests) so links, bold text, and code blocks become steps without extra comments
 - Validate your HTML to ensure comments don't break document structure
 
 ## Integration with HTML toolchains
@@ -166,6 +145,8 @@ Common HTML documentation tools that work with Doc Detective:
 If you use templating systems (like Handlebars, Jinja2, or EJS), you can include Doc Detective comments in your templates:
 
 **Handlebars example:**
+
+{/* test ignore start */}
 ```handlebars
 {{#if showTutorial}}
   <!-- test { "testId": "tutorial-test" } -->
@@ -175,6 +156,7 @@ If you use templating systems (like Handlebars, Jinja2, or EJS), you can include
   <!-- test end -->
 {{/if}}
 ```
+{/* test ignore end */}
 
 The test comments remain in the generated HTML and can be processed by Doc Detective.
 

@@ -7,6 +7,7 @@
 
 import { execFile, spawn, spawnSync } from "node:child_process";
 import treeKill from "tree-kill";
+import { maskString } from "../masking.js";
 import fs from "node:fs";
 import path from "node:path";
 import {
@@ -297,7 +298,7 @@ function planAndroidToolchain({
   if (!capable) {
     return {
       action: "skip",
-      reason: `Skipping context on 'android': this host can't run the Android emulator (no KVM/HVF/WHPX hardware acceleration detected, and no emulator is already running). Android tests run on hosts with virtualization enabled (e.g. a Linux CI runner with KVM).`,
+      reason: `Skipped: this host can't run the Android emulator (no KVM/HVF/WHPX hardware acceleration detected, and no emulator is already running). Android tests run on hosts with virtualization enabled, such as a Linux CI runner with KVM.`,
     };
   }
   const versions = requiredOsVersions.length ? requiredOsVersions : [undefined];
@@ -388,14 +389,14 @@ function planDeviceAcquisition(
     return {
       action: "skip",
       reason: desc.osVersion
-        ? `Skipping context: no installed Android ${desc.osVersion} (${abi}) google_apis system image to create the "${name}" device. Install one with \`doc-detective install android --os-version ${desc.osVersion}\`.`
-        : `Skipping context: no installed Android google_apis system image to create the "${name}" device. Install one with \`doc-detective install android\`.`,
+        ? `Skipped: no installed Android ${desc.osVersion} (${abi}) google_apis system image to create the "${name}" device. Install one with \`doc-detective install android --os-version ${desc.osVersion}\`.`
+        : `Skipped: no installed Android google_apis system image to create the "${name}" device. Install one with \`doc-detective install android\`.`,
     };
   }
   if (!javaPresent) {
     return {
       action: "skip",
-      reason: `Skipping context: creating the "${name}" AVD needs a Java runtime (JRE 17+) for avdmanager. Install one and rerun, or create the AVD ahead of time.`,
+      reason: `Skipped: creating the "${name}" AVD needs a Java runtime (JRE 17+) for avdmanager. Install one and rerun, or create the AVD ahead of time.`,
     };
   }
   const device =
@@ -893,7 +894,8 @@ async function bootEmulatorOnce(
   });
   let diag = "";
   const capture = (d: Buffer) => {
-    diag = (diag + d.toString()).slice(-1500);
+    // Masked before each cut, so no fragment of a secret is left (ADR 01178).
+    diag = maskString(diag + d.toString()).slice(-1500);
   };
   child.stdout?.on("data", capture);
   child.stderr?.on("data", capture);

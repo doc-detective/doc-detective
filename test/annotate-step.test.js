@@ -160,7 +160,7 @@ describe("annotate step", function () {
       driver: undefined,
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /No browser session/);
+    assert.match(result.description, /^Skipped: no browser session/);
   });
 
   it("FAILs an invalid annotate payload", async function () {
@@ -170,7 +170,7 @@ describe("annotate step", function () {
       driver: { state: {} },
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 
   it("FAILs when updating an annotation that isn't on screen", async function () {

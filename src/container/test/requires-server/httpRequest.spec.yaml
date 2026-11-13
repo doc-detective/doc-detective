@@ -32,6 +32,3 @@ tests:
       url: http://localhost:8092/api/$ID
       method: get
       timeout: 1000
-    savePath: response.json
-    maxVariation: 0
-    overwrite: aboveVariation

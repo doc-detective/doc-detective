@@ -9,12 +9,17 @@ import {
   calculateFractionalDifference,
   replaceEnvs,
   loadAxios,
+  parseHeaders,
+  appendQueryParams,
+  redactUrlForOutput,
+  invalidStepMessage,
 } from "../utils.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import { maskDeep } from "../masking.js";
 
 export { httpRequest };
 
@@ -23,15 +28,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   let openApiDefinition: any;
   let operation: any;
 
-  // Identify OpenAPI definition
+  // Identify OpenAPI definition. `step` is the effective step (ADR 01167), so
+  // `openApi` is an object.
   if (step.httpRequest.openApi) {
-    // Normalize the string shorthand (openApi: "operationId") to the object
-    // form so a bare operationId resolves like { operationId: "..." }. The
-    // schema permits the string branch, but the resolution below reads
-    // .operationId/.name/.descriptionPath off the value.
-    if (typeof step.httpRequest.openApi === "string") {
-      step.httpRequest.openApi = { operationId: step.httpRequest.openApi };
-    }
     if (step.httpRequest.openApi.descriptionPath) {
       // Load OpenAPI definition from step
       openApiDefinition = await loadDescription(
@@ -83,6 +82,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       result.description = `OpenAPI definition not found.`;
       return result;
     }
+    // The schema's default, applied after the merge so that an integration's
+    // own value wins (validate() leaves it unset; ADR 01174).
+    step.httpRequest.openApi.validateAgainstSchema ??= "both";
 
     operation = await getOperation(
       openApiDefinition,
@@ -103,14 +105,14 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     if (!step.httpRequest.url) step.httpRequest.url = operation.example.url;
     // Method
     step.httpRequest.method = operation.method;
-    // Headers
+    // Headers: the step's request headers override the OpenAPI ones by name.
     if (step.httpRequest.openApi.headers) {
       if (typeof step.httpRequest.request === "undefined")
         step.httpRequest.request = {};
 
       step.httpRequest.request.headers = {
-        ...step.httpRequest.openApi.headers,
-        ...(step.httpRequest.request.headers || {}),
+        ...parseHeaders(step.httpRequest.openApi.headers),
+        ...parseHeaders(step.httpRequest.request.headers),
       };
     }
 
@@ -129,7 +131,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       if (Object.keys(operation.example.request?.headers ?? {}).length > 0)
         step.httpRequest.request.headers = {
           ...operation.example.request.headers,
-          ...(step.httpRequest.request.headers || {}),
+          ...parseHeaders(step.httpRequest.request.headers),
         };
       if (Object.keys(operation.example.request?.body ?? {}).length > 0)
         step.httpRequest.request.body = {
@@ -169,6 +171,19 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     }
   }
 
+  // A path joins the config's origin, and its originParams, like goTo's.
+  if (step.httpRequest.url?.startsWith("/")) {
+    if (!config.origin) {
+      result.status = "FAIL";
+      result.description = `Couldn't send the request: \`${redactUrlForOutput(step.httpRequest.url)}\` is a path, and the config has no \`origin\`. Set \`origin\` in the config, or use an absolute URL.`;
+      return result;
+    }
+    // A loop, not /\/+$/, which backtracks quadratically on a run of slashes.
+    let origin = config.origin;
+    while (origin.endsWith("/")) origin = origin.slice(0, -1);
+    step.httpRequest.url = appendQueryParams(origin + step.httpRequest.url, config.originParams);
+  }
+
   // Make sure there's a protocol
   if (step.httpRequest.url && !step.httpRequest.url.includes("://"))
     step.httpRequest.url = "https://" + step.httpRequest.url;
@@ -181,68 +196,15 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step: the object form with its defaults filled (ADR 01167).
+  // `response.body` has no default, so an unset body skips the body check.
   step = isValidStep.object;
-  // Resolve to object
-  if (typeof step.httpRequest === "string") {
-    step.httpRequest = { url: step.httpRequest };
-  }
-  // Set default values
-  step.httpRequest = {
-    ...step.httpRequest,
-    method: step.httpRequest.method || "get",
-    // A scalar statusCodes is one accepted code (as in checkLink).
-    statusCodes: ([] as number[]).concat(step.httpRequest.statusCodes || [200, 201]),
-    request: step.httpRequest.request || {
-      params: {},
-      headers: {},
-      body: {},
-    },
-    // NOTE: `body` is deliberately NOT defaulted here (unlike `headers`/
-    // `required`). Defaulting it to `{}` used to make the body-match check
-    // below run unconditionally -- even when the step never asked for a body
-    // assertion -- and silently required the response to be a JSON object,
-    // failing any non-JSON (or empty) response. Leaving `body` genuinely
-    // `undefined` when unset lets the existing `typeof !== "undefined"` guard
-    // skip the check entirely, matching the documented "$$bodyMatches ...
-    // when response.body is set" contract. See ADR on this fix.
-    response: {
-      headers: {},
-      required: [],
-      ...(step.httpRequest.response || {}),
-    },
-    allowAdditionalFields:
-      typeof step.httpRequest.allowAdditionalFields !== "undefined"
-        ? step.httpRequest.allowAdditionalFields
-        : true,
-    overwrite: step.httpRequest.overwrite || "aboveVariation",
-    maxVariation: step.httpRequest.maxVariation || 0,
-    timeout: step.httpRequest.timeout || 60000,
-  };
 
   // Standardize step values
-  // request.headers from string to object
-  if (typeof step.httpRequest.request.headers === "string") {
-    // Example string: "Content-Type: application/json\nAuthorization: Bearer token"
-    const headers: any = {};
-    step.httpRequest.request.headers.split("\n").forEach((header: any) => {
-      // Split on the FIRST colon only. Values commonly contain colons (URLs,
-      // timestamps like "12:00:00 GMT", host:port), so splitting on every colon
-      // truncates the value at the second colon. A colon-less line has no
-      // key/value pair and is skipped (preserving prior behavior).
-      const idx = header.indexOf(":");
-      if (idx === -1) return;
-      const key = header.slice(0, idx).trim();
-      const value = header.slice(idx + 1).trim();
-      if (key && value) {
-        headers[key] = value;
-      }
-    });
-    step.httpRequest.request.headers = headers;
-  }
+  step.httpRequest.request.headers = parseHeaders(step.httpRequest.request.headers);
   // request.body is stringified JSON
   if (
     typeof step.httpRequest.request.body === "string" &&
@@ -590,13 +552,16 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     // Set filePath
     let filePath = step.httpRequest.path;
     log(config, "debug", `Saving output to file: ${filePath}`);
+    // The file holds the masked body, and a comparison is masked against
+    // masked (ADR 01178).
+    const saved = JSON.stringify(maskDeep(response.data), null, 2);
 
     // Check if file already exists
     if (!fs.existsSync(filePath)) {
       // Doesn't exist, save output to file
       await fs.promises.writeFile(
         filePath,
-        JSON.stringify(response.data, null, 2)
+        saved
       );
       descriptions.push(`Saved output to file.`);
     } else {
@@ -611,7 +576,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       // Calculate fractional diff between existing file content and command output content, not length
       const fractionalDiff = calculateFractionalDifference(
         existingFile,
-        JSON.stringify(response.data, null, 2)
+        saved
       );
       log(config, "debug", `Fractional difference: ${fractionalDiff}`);
 
@@ -630,7 +595,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
           // Overwrite file
           await fs.promises.writeFile(
             filePath,
-            JSON.stringify(response.data, null, 2)
+            saved
           );
           descriptions.push(`Saved response to file.`);
         }
@@ -644,7 +609,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       } else {
         if (step.httpRequest.overwrite == "true") {
           // Overwrite file
-          fs.writeFileSync(filePath, JSON.stringify(response.data, null, 2));
+          fs.writeFileSync(filePath, saved);
           descriptions.push(`Saved response to file.`);
         }
       }

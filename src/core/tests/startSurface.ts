@@ -10,6 +10,7 @@ import {
   resolveShellName,
   resolveShellExecutable,
   applyBrowserSize,
+  invalidStepMessage,
 } from "../utils.js";
 import {
   openSession,
@@ -67,11 +68,8 @@ function descriptorKind(d: any): Kind | null {
 
 function intendedName(d: any, kind: Kind): string {
   if (typeof d.name === "string" && d.name.trim()) return d.name.trim();
-  // Browser default name = the NORMALIZED engine (edge -> chrome), matching
-  // what openSession registers. Deriving it from the raw engine would make
-  // the duplicate-name pre-check miss a real collision (unnamed `edge` +
-  // unnamed `chrome` both register as "chrome") and would put a name in
-  // outputs.surfaces that doesn't match the registered surface.
+  // Browser default name = the lowercased engine, matching what openSession
+  // registers.
   if (kind === "browser") return normalizeEngine(String(d.browser).trim());
   if (kind === "app") return defaultAppSurfaceName(String(d.app).trim());
   // Process descriptors require `name` at the schema level; this fallback is
@@ -115,7 +113,7 @@ async function startSurfaceStep({
   if (!isValidStep.valid) {
     return {
       status: "FAIL",
-      description: `Invalid step definition: ${isValidStep.errors}`,
+      description: invalidStepMessage(step),
     };
   }
   step = isValidStep.object;
@@ -177,10 +175,6 @@ async function startSurfaceStep({
           "startSurface can't open a browser surface in this context (no browser session is available). This is a runner bug — a startSurface browser descriptor must mark the context browser-required.",
       };
     }
-    // Normalize the engine the same way context resolution does (edge is
-    // Chromium, so edge -> chrome): the caps builder and driver stack only
-    // know chrome/firefox/safari, so a schema-valid `edge` must open a chrome
-    // session rather than fail at launch.
     const engine = normalizeEngine(d.browser);
     // Opening sizes the session (`size`, else the context's size, else the
     // default). A `viewport` below re-sizes it and records the viewport as the

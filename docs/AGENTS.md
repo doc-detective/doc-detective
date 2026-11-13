@@ -34,12 +34,15 @@ This project uses Doc Detective to test its own documentation.
 - You can find a test example at `fern/pages/docs/get-started/sample.spec.json`.
 
 - **DO:** When you change documentation related to a feature, review the corresponding `.spec.json` file to see if the test needs to be updated.
+- **Example check.** [`test/doc-examples.test.js`](../test/doc-examples.test.js) runs in `npm test`. It validates every fenced `json` and `yaml` block in `fern/pages/**/*.mdx` and the READMEs that looks like a spec, test, step, or config against `doc-detective-common`. Fix an example that fails, don't skip it.
+  - To keep a deliberately incomplete or wrong example, add `invalid` to the fence's info string, and always pair it with a title: ```` ```json title="first-test.spec.json" invalid ````. Fern renders the text after the language as the block title, so a bare ```` ```json invalid ```` shows "invalid" as the title. With a `title` set, Fern hides `invalid` before or after it (checked with `fern docs dev`).
+  - The check skips fences nested inside a ```` ````markdown ```` sample. Fern renders those literally, so never mark them `invalid`: readers would see the marker.
 
 ### Test servers
 
 Two Doc Detective configs live at the docs root:
 
-- `.doc-detective.json` is used in CI ([`.github/workflows/test-docs.yml`](../.github/workflows/test-docs.yml)). The workflow runs the docs suite twice: on `ubuntu-latest`, and on `windows-latest` so the Windows-only tests (`runOn` platforms `windows`) run instead of being skipped. The Windows job fails if any Windows context is `SKIPPED`. Its `beforeAny` and `afterAll` start and stop only the static fixture server (`test/server/start.js`, port `8092`), which the inline tests on the action reference pages target.
+- `.doc-detective.json` is used in CI ([`.github/workflows/test-docs.yml`](../.github/workflows/test-docs.yml)). The workflow runs the docs suite twice: on `ubuntu-latest`, and on `windows-latest` so the Windows-only tests (`runOn` platforms `windows`) run instead of being skipped. The Windows job fails if any Windows context is `SKIPPED`. Its `beforeAll` and `afterAll` start and stop only the static fixture server (`test/server/start.js`, port `8092`), which the inline tests on the action reference pages target.
 - `.doc-detective.preview.json` is for local runs. It layers a second background process on top of the static server, starting the **Fern docs preview server** (`fern docs dev --legacy`, port `3000`). You can then write and run tests against the rendered docs site itself. Run with:
 
   ```bash
@@ -89,7 +92,7 @@ Fern preview comment, and `curl -s <preview>/sitemap.xml` is the authoritative r
 Deriving routes from `docs.yml` by hand produces false positives in both directions.
 
 **One page is generated: `pages/reference/cli.mdx`.** Fix a link in
-`.scripts/buildCliReference.js` and regenerate with `npm run docs:build-cli-ref`. Editing the
+`.scripts/buildCliReference.js` and regenerate with `npm run docs:build-cli-ref`, after a build. Editing the
 page directly looks like it worked, then the `cli-ref` gate regenerates it and fails on the
 diff.
 

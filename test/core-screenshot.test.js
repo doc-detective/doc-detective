@@ -3,6 +3,10 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import { runTests } from "../dist/core/index.js";
 
+// Screenshots and recordings are on by default (ADR 01177); these tests read
+// steps by position, so they turn them off.
+const NO_AUTO_CAPTURE = { autoScreenshot: false, autoRecord: false };
+
 describe("Screenshot sourceIntegration preservation", function () {
   this.timeout(300000); // 5 minutes per test
 
@@ -55,7 +59,7 @@ describe("Screenshot sourceIntegration preservation", function () {
     try {
       fs.writeFileSync(tempFilePath, JSON.stringify(testSpec, null, 2));
 
-      const result = await runTests({ input: tempFilePath, logLevel: "silent" });
+      const result = await runTests({ input: tempFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
 
       // Find the screenshot step
       const screenshotStep = result.specs[0].tests[0].contexts[0].steps[1];
@@ -129,14 +133,14 @@ describe("Screenshot sourceIntegration preservation", function () {
 
     try {
       fs.writeFileSync(initialFilePath, JSON.stringify(initialSpec, null, 2));
-      const initialResult = await runTests({ input: initialFilePath, logLevel: "silent" });
+      const initialResult = await runTests({ input: initialFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
       assert.ok(initialResult, "Initial screenshot run should produce a result");
       assert.ok(fs.existsSync(screenshotPath), "Initial screenshot file should have been created");
 
       // Now run with a different page to trigger variation warning
       fs.writeFileSync(variationFilePath, JSON.stringify(variationSpec, null, 2));
 
-      const result = await runTests({ input: variationFilePath, logLevel: "silent" });
+      const result = await runTests({ input: variationFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
 
       const screenshotStep = result.specs[0].tests[0].contexts[0].steps[1];
 
@@ -211,12 +215,12 @@ describe("Screenshot sourceIntegration preservation", function () {
 
     try {
       fs.writeFileSync(initialFilePath, JSON.stringify(initialSpec, null, 2));
-      await runTests({ input: initialFilePath, logLevel: "silent" });
+      await runTests({ input: initialFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
 
       // Now run with the same page (should be within variation)
       fs.writeFileSync(sameFilePath, JSON.stringify(samePageSpec, null, 2));
 
-      const result = await runTests({ input: sameFilePath, logLevel: "silent" });
+      const result = await runTests({ input: sameFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
 
       const screenshotStep = result.specs[0].tests[0].contexts[0].steps[1];
 
@@ -262,7 +266,7 @@ describe("Screenshot sourceIntegration preservation", function () {
     try {
       fs.writeFileSync(tempFilePath, JSON.stringify(testSpec, null, 2));
 
-      const result = await runTests({ input: tempFilePath, logLevel: "silent" });
+      const result = await runTests({ input: tempFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
 
       const screenshotStep = result.specs[0].tests[0].contexts[0].steps[1];
 
@@ -283,7 +287,11 @@ describe("Screenshot with URL `path` (remote reference)", function () {
   const publicDir = path.resolve("./test/server/public");
   const referenceFixture = path.join(publicDir, "url-reference-fixture.png");
   const notAPngFixture = path.join(publicDir, "not-a-real.png");
-  const runsDir = path.resolve("./doc-detective-runs");
+  // A URL reference's capture goes to its context's screenshots/ folder in
+  // the run folder (ADR 01173). runTests' default outputDir is cwd.
+  const runsDir = path.resolve(".doc-detective", "runs");
+  const inRunScreenshots = (file) =>
+    Boolean(file) && file.startsWith(runsDir + path.sep) && path.basename(path.dirname(file)) === "screenshots";
   const url = "http://localhost:8092/url-reference-fixture.png";
 
   let runsDirExistedBefore = false;
@@ -295,7 +303,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
   // needs no setting (ADR 01162).
   before(async function () {
     this.timeout(300000);
-    // Snapshot the current contents of doc-detective-runs so teardown only
+    // Snapshot the current contents of .doc-detective/runs so teardown only
     // removes run folders this suite created, not pre-existing artifacts or
     // folders created by unrelated tests or developer work.
     runsDirExistedBefore = fs.existsSync(runsDir);
@@ -318,7 +326,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
         ],
       })
     );
-    await runTests({ input: seedSpecPath, logLevel: "silent" });
+    await runTests({ input: seedSpecPath, logLevel: "silent", ...NO_AUTO_CAPTURE });
     assert.ok(fs.existsSync(seedShot), "seed screenshot must have been captured");
     fs.copyFileSync(seedShot, referenceFixture);
     // A fixture served under a .png URL but whose bytes are clearly not a PNG,
@@ -373,7 +381,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
     fs.writeFileSync(specPath, JSON.stringify(spec));
 
     try {
-      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const result = await runTests({ input: specPath, logLevel: "silent", ...NO_AUTO_CAPTURE });
       const step = result.specs[0].tests[0].contexts[0].steps[1];
 
       // The step may PASS (within tolerance) or WARNING (exceeded tolerance)
@@ -385,9 +393,8 @@ describe("Screenshot with URL `path` (remote reference)", function () {
       );
       assert.equal(step.outputs.referenceUrl, url);
       assert.ok(
-        step.outputs.screenshotPath &&
-          step.outputs.screenshotPath.includes("doc-detective-runs"),
-        `screenshotPath should live under doc-detective-runs/, got ${step.outputs.screenshotPath}`
+        inRunScreenshots(step.outputs.screenshotPath),
+        `screenshotPath should live in the run folder's screenshots/, got ${step.outputs.screenshotPath}`
       );
       assert.ok(
         fs.existsSync(step.outputs.screenshotPath),
@@ -442,7 +449,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
     };
     fs.writeFileSync(specPath, JSON.stringify(spec));
     try {
-      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const result = await runTests({ input: specPath, logLevel: "silent", ...NO_AUTO_CAPTURE });
       const step = result.specs[0].tests[0].contexts[0].steps[1];
       assert.ok(
         step.result === "PASS" || step.result === "WARNING",
@@ -481,7 +488,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
     };
     fs.writeFileSync(specPath, JSON.stringify(spec));
     try {
-      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const result = await runTests({ input: specPath, logLevel: "silent", ...NO_AUTO_CAPTURE });
       const step = result.specs[0].tests[0].contexts[0].steps[1];
       assert.equal(
         step.screenshot.overwrite,
@@ -516,7 +523,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
     fs.writeFileSync(specPath, JSON.stringify(spec));
 
     try {
-      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const result = await runTests({ input: specPath, logLevel: "silent", ...NO_AUTO_CAPTURE });
       const step = result.specs[0].tests[0].contexts[0].steps[1];
 
       // Strong assertions — without these, a regression that FAILs the step
@@ -528,9 +535,8 @@ describe("Screenshot with URL `path` (remote reference)", function () {
       );
       assert.equal(step.outputs.referenceUrl, url);
       assert.ok(
-        step.outputs.screenshotPath &&
-          step.outputs.screenshotPath.includes("doc-detective-runs"),
-        `screenshotPath should live under doc-detective-runs/, got ${step.outputs.screenshotPath}`
+        inRunScreenshots(step.outputs.screenshotPath),
+        `screenshotPath should live in the run folder's screenshots/, got ${step.outputs.screenshotPath}`
       );
 
       const bytesAfter = fs.readFileSync(referenceFixture);
@@ -569,7 +575,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
     };
     fs.writeFileSync(specPath, JSON.stringify(spec));
     try {
-      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const result = await runTests({ input: specPath, logLevel: "silent", ...NO_AUTO_CAPTURE });
       const step = result.specs[0].tests[0].contexts[0].steps[1];
       assert.ok(
         step.result === "PASS" || step.result === "WARNING",
@@ -606,7 +612,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
     };
     fs.writeFileSync(specPath, JSON.stringify(spec));
     try {
-      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const result = await runTests({ input: specPath, logLevel: "silent", ...NO_AUTO_CAPTURE });
       const step = result.specs[0].tests[0].contexts[0].steps[1];
       assert.equal(step.result, "FAIL");
       assert.match(
@@ -637,7 +643,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
     fs.writeFileSync(specPath, JSON.stringify(spec));
 
     try {
-      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const result = await runTests({ input: specPath, logLevel: "silent", ...NO_AUTO_CAPTURE });
       const step = result.specs[0].tests[0].contexts[0].steps[1];
       assert.equal(step.result, "FAIL");
       assert.match(step.resultDescription, /Couldn't decode PNG/);
@@ -672,7 +678,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
     fs.writeFileSync(specPath, JSON.stringify(spec));
 
     try {
-      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const result = await runTests({ input: specPath, logLevel: "silent", ...NO_AUTO_CAPTURE });
       const step = result.specs[0].tests[0].contexts[0].steps[1];
 
       if (step.result === "FAIL") {
@@ -711,7 +717,7 @@ describe("Screenshot with URL `path` (remote reference)", function () {
     fs.writeFileSync(specPath, JSON.stringify(spec));
 
     try {
-      const result = await runTests({ input: specPath, logLevel: "silent" });
+      const result = await runTests({ input: specPath, logLevel: "silent", ...NO_AUTO_CAPTURE });
       const step = result.specs[0].tests[0].contexts[0].steps[1];
       assert.equal(step.result, "FAIL");
       assert.match(step.resultDescription, /Couldn't fetch remote reference image/);

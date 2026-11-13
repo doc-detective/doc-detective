@@ -21,9 +21,12 @@ function specFixtures(dir) {
     .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")));
 }
 
-// uuid dynamic defaults differ run to run; compare them as a placeholder.
+// uuid dynamic defaults differ run to run; compare them as a placeholder. A
+// schemaPath differs between the $ref and inlined forms by design, and
+// ajv-errors nests the replaced error, schemaPath included, in its params.
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
-const normalize = (value) => JSON.parse(JSON.stringify(value).replace(UUID, "<uuid>"));
+const normalize = (value) =>
+  JSON.parse(JSON.stringify(value).replace(UUID, "<uuid>").replace(/"schemaPath":"[^"]*",/g, ""));
 
 function run(check, object) {
   const data = JSON.parse(JSON.stringify(object));
@@ -35,6 +38,14 @@ function run(check, object) {
 
 describe("schemasReferenced", function () {
   this.timeout(600000);
+
+  // A dereferenced schema compiles to one huge function (every $ref inlined).
+  // Once the corpus loop makes step_v3/spec_v3 hot, V8's Maglev JIT, which has
+  // no size cap, takes ~10 GB to optimize it, enough to OOM a CI runner.
+  // .mocharc.yml turns Maglev off; fail here, before the spike, if it's not.
+  before(function () {
+    expect(process.execArgv, "run under .mocharc.yml's node-option: no-maglev").to.include("--no-maglev");
+  });
 
   it("has the same schema keys as schemas.json", function () {
     expect(Object.keys(schemasReferenced.schemas).sort()).to.deep.equal(Object.keys(schemas).sort());

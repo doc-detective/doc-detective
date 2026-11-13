@@ -93,7 +93,7 @@ describe("closeSurface coverage: validation", function () {
       step: { closeSurface: [] },
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Invalid step definition/);
+    assert.match(result.description, /Couldn't run the step: its definition isn't valid\./);
   });
 });
 

@@ -1,0 +1,109 @@
+---
+title: AI issue mentions
+sidebar-title: AI issue mentions
+description: Have the GitHub Action mention AI assistants in the issue it opens or updates when tests fail, so they investigate the failures and suggest fixes.
+---
+
+When tests fail in CI, the [Doc Detective GitHub Action](/docs/ci/github-action) can open or update an issue with a summary of the run. It can also mention AI assistants in that issue, so they investigate the failures and suggest fixes.
+
+<Note>
+`issue_mentions` and `issue_prompt` are inputs of the GitHub Action. They're unrelated to the `integrations` key in your Doc Detective config, which connects to services such as Heretto. For that key, see [Integrations options](/reference/schemas/integrations-options).
+</Note>
+
+## Before you begin
+
+- A workflow that runs `doc-detective/github-action@v2` on Node.js 24.15 or later, which the example sets up with `actions/setup-node`. See [Run in CI with the GitHub Action](/docs/ci/github-action).
+- Each assistant you plan to mention, set up for the repository. See [Supported assistants](#supported-assistants).
+
+## Mention an assistant
+
+1. Set `create_issue_on_fail` to `true`, and give the job the `issues: write` permission.
+2. List the assistants in `issue_mentions`, separated by commas.
+
+```yaml title=".github/workflows/doc-detective.yml"
+name: doc-detective
+on:
+  push:
+    branches: [main]
+
+jobs:
+  doc-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: doc-detective/github-action@v2
+        with:
+          create_issue_on_fail: true
+          token: ${{ secrets.DOC_DETECTIVE_ISSUE_TOKEN }}
+          issue_mentions: claude,copilot
+```
+
+The workflow runs on pushes to `main`. By default, a fork's pull request gets a read-only `GITHUB_TOKEN` and no secrets, so the action can't open an issue for it. The `token` input matters for `claude`, which answers from a workflow. GitHub doesn't start workflows for an issue that the default `GITHUB_TOKEN` opens. To create the token, see [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).
+
+When a test fails, the action opens an issue, which by default holds the run's Markdown summary. If an open issue already has the same title and first label, the action updates that issue instead. See [File an issue when tests fail](/docs/ci/github-action#step-5-file-an-issue-when-tests-fail). The action adds a collapsible section to the issue body that mentions each assistant, followed by the `issue_prompt` text. For `copilot`, the action assigns the issue to Copilot instead of adding a text mention.
+
+## Customize the prompt
+
+`issue_prompt` sets the text that follows each mention. Write it to ask for the analysis you want:
+
+```yaml
+- uses: doc-detective/github-action@v2
+  with:
+    create_issue_on_fail: true
+    token: ${{ secrets.DOC_DETECTIVE_ISSUE_TOKEN }}
+    issue_mentions: claude
+    issue_prompt: Analyze these test failures and suggest specific fixes for the documentation.
+```
+
+To place the prompt somewhere else in the issue, put `$PROMPT` in `issue_body`. For prompt-writing patterns, see [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).
+
+## Inputs
+
+Both inputs take effect only when `create_issue_on_fail` is `true`.
+
+| Input | Default | Description |
+|---|---|---|
+| `issue_mentions` | None | Comma-separated assistants to mention in the issue. The action ignores unsupported values and logs a warning. |
+| `issue_prompt` | `Investigate potential causes of the failures reported in this Doc Detective test output and suggest fixes.` | Text that follows each mention. `$PROMPT` in `issue_body` inserts it. |
+
+### Renamed inputs
+
+GitHub Action `@v2` renames two inputs. The old names still work as deprecated aliases:
+
+| Old name | New name |
+|---|---|
+| `integrations` | `issue_mentions` |
+| `prompt` | `issue_prompt` |
+
+When a workflow sets an old name, the action logs a warning that names the new one. When a workflow sets both names, the job fails before tests run. Rename the inputs in your workflow to clear the warning.
+
+## Supported assistants
+
+| Value | What the action adds to the issue | Setup |
+|---|---|---|
+| `claude` | `@claude`, followed by the prompt. | Install the Claude GitHub app and the [Claude Code Action](https://github.com/anthropics/claude-code-action) workflow, and set the `token` input. |
+| `copilot` | Assigns the issue to Copilot. No mention. | Enable Copilot coding agent for the repository. |
+| `cursor` | `@cursor`, followed by the prompt. | Install the Cursor GitHub app. |
+| `dosu` | `@dosu`, followed by the prompt. | Install the Dosu app. |
+| `opencode` | The `/opencode` command, followed by the prompt. | Install OpenCode. |
+| `promptless` | `@promptless`, followed by the prompt. | Connect the repository to Promptless. |
+| `doc-sentinel` | The line `/cc @reem-sab`, without the prompt. | Configure Doc Sentinel. |
+
+## Verify it works
+
+Push a change that makes a test fail, then open the issue the action creates:
+
+- The collapsible section mentions each assistant you listed, followed by your prompt.
+- With `copilot` listed, Copilot is an assignee.
+- The job log shows no deprecation warning.
+
+## What's next
+
+- [Run in CI with the GitHub Action](/docs/ci/github-action) for every issue and pull request input.
+- [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures) to turn failure issues into suggested fixes.

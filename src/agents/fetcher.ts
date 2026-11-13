@@ -27,14 +27,13 @@ const REPO_SLUG = "doc-detective/agent-tools";
 const MAX_ZIP_BYTES = 50 * 1024 * 1024;
 
 /**
- * agent-tools ref that matches this CLI's major (ADR 01181). CLI 4.x pins
- * agent-tools' `v1` tag, which agent-tools' 1.x releases move forward.
+ * agent-tools ref that matches this CLI's major (ADR 01164): the floating `v2`
+ * tag, which agent-tools' release moves to each 2.x release. The next CLI
+ * major changes only this constant.
  */
-export const AGENT_TOOLS_REF = "v1";
+export const AGENT_TOOLS_REF = "v2";
 
-/**
- * Raw file URL in agent-tools at the pinned ref, AGENT_TOOLS_REF.
- */
+/** Raw file URL in agent-tools at the pinned ref, AGENT_TOOLS_REF. */
 export function agentToolsRawUrl(file: string): string {
   return `https://raw.githubusercontent.com/${REPO_SLUG}/${AGENT_TOOLS_REF}/${file}`;
 }

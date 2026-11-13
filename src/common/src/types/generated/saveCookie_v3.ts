@@ -9,16 +9,12 @@
  */
 export type SaveCookie = CookieName | SaveCookieDetailed;
 /**
- * Name of the specific cookie to save. Will be saved to a default file path or environment variable.
+ * A cookie file path ending in `.txt`, or a cookie name. `session.txt` saves the cookie named `session` to `session.txt` in `outputDir`. Any other value saves the cookie with that name to the environment variable of the same name.
  */
 export type CookieName = string;
 export type SaveCookieDetailed = {
   [k: string]: unknown;
 } & {
-  /**
-   * Optional self-describing schema URI for linters
-   */
-  $schema?: string;
   name: CookieName1;
   variable?: EnvironmentVariableName;
   path?: CookieFilePath;
@@ -31,15 +27,15 @@ export type SaveCookieDetailed = {
  */
 export type CookieName1 = string;
 /**
- * Environment variable name to store the cookie as JSON string.
+ * Environment variable name to store the cookie as JSON string. To read it later as `$NAME`, use only letters, digits, and underscores.
  */
 export type EnvironmentVariableName = string;
 /**
- * File path to save the cookie, relative to directory. Uses Netscape cookie format.
+ * File path to save the cookie, in Netscape cookie format. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.
  */
 export type CookieFilePath = string;
 /**
- * Directory to save the cookie file. If not specified, uses output directory.
+ * Directory to save the cookie file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.
  */
 export type DirectoryPath = string;
 /**

@@ -43,7 +43,7 @@ Doc Detective runs on Node.js and installs with npm, the package manager that co
 {/* The walkthrough follows the reader in a charmap-docs folder next to this page, which it removes at the end. A workingDirectory of "." is this page's folder (native-apps/), because paths resolve relative to the file that holds the test. It copies the samples from windows-tutorial/, which the page renders with <Code src>. They use a .txt extension so Doc Detective doesn't also run them in place. If you edit a sample, update the steps that depend on it: the step counts in windows-tutorial-run-spec (6) and windows-tutorial-run-howto (5), and the Select/Choose replacement in windows-tutorial-break-click and windows-tutorial-restore-click. */}
 {/* test {"testId":"windows-tutorial-install","detectSteps":false} */}
 
-1. Install [Node.js](https://nodejs.org/) v22.22.0 or later on the v22 line, or v24 or later.
+1. Install [Node.js](https://nodejs.org/) 24.15 or later.
 2. Open a new terminal window, so it picks up the updated `PATH`.
 3. Check that Node.js is installed:
 
@@ -53,7 +53,7 @@ Doc Detective runs on Node.js and installs with npm, the package manager that co
 
     {/* step {"stepId":"windows-tutorial-node-version","description":"Check that Node.js is installed.","runShell":{"command":"node --version","stdio":"/^v\\d+\\.\\d+\\.\\d+/"}} */}
 
-    The command prints the version number, such as `v24.1.0`.
+    The command prints the version number, such as `v24.15.0`. If it prints an earlier version, update Node.js before you continue.
 
 4. Install Doc Detective globally:
 
@@ -129,7 +129,7 @@ The steps between `startSurface` and `closeSurface` don't say which app to act o
     doc-detective --input charmap.spec.json
     ```
 
-    {/* step {"stepId":"windows-tutorial-run-spec","description":"Run the test and check that all six steps pass.","runShell":{"command":"doc-detective --input charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:[^\\n]*\\nTotal: 6\\r?\\n[^\\n]*Passed: 6/"}} */}
+    {/* step {"stepId":"windows-tutorial-run-spec","description":"Run the test and check that all six steps pass.","runShell":{"command":"doc-detective --input charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:\\s+6 total, 6 passed/"}} */}
     {/* step {"stepId":"windows-tutorial-check-screenshot","description":"Check that the run saved charmap.png next to the spec file.","runShell":{"command":"Test-Path charmap.png","shell":"powershell","workingDirectory":"charmap-docs","stdio":"True"}} */}
 
 2. Wait for the run to finish, and don't use the mouse or keyboard while it runs. Character Map opens, a character appears in the **Characters to copy** box followed by `AB`, and then the window closes.
@@ -139,68 +139,39 @@ The steps between `startSurface` and `closeSurface` don't say which app to act o
 When the run finishes, the terminal prints a results summary. Every step in a passing run counts as passed:
 
 ```text
-===== Doc Detective Results Summary =====
-
-Specs:
-Total: 1
-Passed: 1
-Failed: 0
-
-Tests:
-Total: 1
-Passed: 1
-Failed: 0
-
-Contexts:
-Total: 1
-Passed: 1
-Failed: 0
-
-Steps:
-Total: 6
-Passed: 6
-Failed: 0
+===============================
+Specs:    1 total, 1 passed, 0 failed
+Tests:    1 total, 1 passed, 0 failed
+Contexts: 1 total, 1 passed, 0 failed
+Steps:    6 total, 6 passed, 0 failed
+===============================
+1 of 1 test passed.
 ```
 
-The run also leaves new files in the folder, including:
+The run also leaves new files in the folder:
 
 - `charmap.png`: the screenshot of Character Map. Open it to check what the test saw.
-- `testResults-<timestamp>.json`: the full results, with a `PASS`, `FAIL`, `WARNING`, or `SKIPPED` result and a description for each step. The terminal prints this file's path after `See detailed results at`.
+- `.doc-detective/runs/<runId>/`: the run folder. It holds `testResults.json`, the full results with a `PASS`, `FAIL`, `WARNING`, or `SKIPPED` result and a description for each step. It also holds an HTML report, a Markdown summary, and the screenshots and recording Doc Detective captures automatically. The terminal prints the results file's path after `Run results:`.
 
-Doc Detective also archives a copy of the results, plus an HTML report, in a `.doc-detective` folder it creates alongside them. You can ignore it for this tutorial. To learn what each reporter writes, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+To learn what each reporter writes, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
-If Doc Detective can't run the test on your machine, for example because the machine isn't running Windows, it skips the test instead. The summary then counts the test as `Skipped` rather than `Passed`, reports no steps, and ends with a warning:
+If Doc Detective can't run the test on your machine, for example because the machine isn't running Windows, it skips the test instead. The summary then counts the test as skipped, reports no steps, and lists the reason:
 
 ```text
-===== Doc Detective Results Summary =====
+===============================
+Specs:    1 total, 0 passed, 0 failed, 1 skipped
+Tests:    1 total, 0 passed, 0 failed, 1 skipped
+Contexts: 1 total, 0 passed, 0 failed, 1 skipped
+Steps:    0 total, 0 passed, 0 failed
 
-Specs:
-Total: 1
-Passed: 0
-Failed: 0
-Skipped: 1
-
-Tests:
-Total: 1
-Passed: 0
-Failed: 0
-Skipped: 1
-
-Contexts:
-Total: 1
-Passed: 0
-Failed: 0
-Skipped: 1
-
-Steps:
-Total: 0
-Passed: 0
-Failed: 0
-
-⚠️  All items were skipped. No specs passed or failed. ⚠️
+Skipped (1):
+1. charmap.spec.json › charmap-copy-characters › windows
+   Skipped: this system can't run a `windows` context.
+===============================
+All 1 test skipped.
 ```
 
-A skipped test isn't a failure, so the run still exits with code `0`. But the test didn't check anything either, so a skipped run doesn't mean your doc is correct. To find out why Doc Detective skipped the test, read the reason in the results file. See [Troubleshooting](#troubleshooting).
+A run where every test skipped didn't check anything, so it exits with code `2`. A skipped test in a run where other tests ran doesn't fail the run. To find out why Doc Detective skipped a test, read the reason in the summary or the results file. See [Troubleshooting](#troubleshooting).
 
 ## See what a failure looks like
 
@@ -223,12 +194,10 @@ A test is useful because it fails when the app no longer matches the doc. To see
     doc-detective --input charmap.spec.json
     ```
 
-    {/* step {"stepId":"windows-tutorial-run-failing","description":"Run the test again and check that one step fails and the run still exits with code 0.","runShell":{"command":"doc-detective --input charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:[\\s\\S]*Failed: 1/"}} */}
-    {/* step {"stepId":"windows-tutorial-close-after-failing","description":"Close the Character Map window that windows-tutorial-run-failing left open, so the --exit-on-fail run starts its own.","runShell":{"command":"Stop-Process -Name charmap -ErrorAction Ignore; exit 0","shell":"powershell","workingDirectory":"."}} */}
-    {/* step {"stepId":"windows-tutorial-exit-on-fail","description":"Check that --exit-on-fail, described after this procedure, makes the failing run exit with a nonzero code.","runShell":{"command":"doc-detective --input charmap.spec.json --exit-on-fail","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"exitCodes":[1]}} */}
-    {/* step {"stepId":"windows-tutorial-close-leftover","description":"Close the Character Map window that the --exit-on-fail run left open, so the next steps start clean.","runShell":{"command":"Stop-Process -Name charmap -ErrorAction Ignore; exit 0","shell":"powershell","workingDirectory":"."}} */}
+    {/* step {"stepId":"windows-tutorial-run-failing","description":"Run the test again and check that one step fails and the run exits with code 1.","runShell":{"command":"doc-detective --input charmap.spec.json","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"exitCodes":[1],"stdio":"/Steps:\\s+6 total, 1 passed, 1 failed/"}} */}
+    {/* step {"stepId":"windows-tutorial-close-leftover","description":"Close the Character Map window that the failing run left open, so the next steps start clean.","runShell":{"command":"Stop-Process -Name charmap -ErrorAction Ignore; exit 0","shell":"powershell","workingDirectory":"."}} */}
 
-    The summary reports one failed step, and the steps after it as skipped. Under **Failed Items**, the terminal lists the step that failed. The results file describes why: Doc Detective couldn't find an element with the text `Choose`.
+    The summary reports one failed step, and the steps after it as skipped. Under **Failed**, the terminal lists the step that failed and why: Doc Detective couldn't find an element with the text `Choose`.
 
 3. Change `Choose` back to `Select` and save the file.
 
@@ -236,7 +205,7 @@ A test is useful because it fails when the app no longer matches the doc. To see
 
 This is what happens when a release renames a control that your docs mention. The failed step points you to the instruction that's now wrong.
 
-By default, `doc-detective` still exits with code `0` when a test fails. To make a failed test return a nonzero exit code, for example in a script or a CI job, add the `--exit-on-fail` flag. A skipped test doesn't count as a failure, so it never triggers a nonzero exit code.
+When a test fails, `doc-detective` exits with code `1`, so a script or a CI job that runs it fails too. To report failures without failing the run, add the `--no-exit-on-fail` flag.
 
 ## Put the test in your how-to
 
@@ -255,7 +224,7 @@ A separate spec file works, but a test that sits inside the how-to it checks is 
     doc-detective --input copy-characters.md
     ```
 
-    {/* step {"stepId":"windows-tutorial-run-howto","description":"Run the how-to and check that all five inline steps pass.","runShell":{"command":"doc-detective --input copy-characters.md","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:[^\\n]*\\nTotal: 5\\r?\\n[^\\n]*Passed: 5/"}} */}
+    {/* step {"stepId":"windows-tutorial-run-howto","description":"Run the how-to and check that all five inline steps pass.","runShell":{"command":"doc-detective --input copy-characters.md","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Steps:\\s+5 total, 5 passed/"}} */}
     {/* step {"stepId":"windows-tutorial-check-howto-screenshot","description":"Check that the run created images/charmap.png for the how-to's image link.","runShell":{"command":"Test-Path images/charmap.png","shell":"powershell","workingDirectory":"charmap-docs","stdio":"True"}} */}
 
 Doc Detective reads the `test` and `step` comments and runs them in order. The inline test follows the how-to's own steps, so it differs from the spec file in two ways. It clicks **Copy**, as step 3 tells the reader to, instead of only checking that the button exists. It also leaves out the `type` step, because the procedure doesn't ask the reader to type anything.
@@ -271,7 +240,7 @@ On later runs, Doc Detective compares each new screenshot with the existing file
 
 To run every test in a folder at once, pass the folder instead of a file, such as `doc-detective --input .`.
 
-{/* step {"stepId":"windows-tutorial-run-folder","description":"Run every test in the folder and check that both tests pass.","runShell":{"command":"doc-detective --input .","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Tests:[^\\n]*\\nTotal: 2\\r?\\n[^\\n]*Passed: 2/"}} */}
+{/* step {"stepId":"windows-tutorial-run-folder","description":"Run every test in the folder and check that both tests pass.","runShell":{"command":"doc-detective --input .","shell":"powershell","workingDirectory":"charmap-docs","timeout":600000,"stdio":"/Tests:\\s+2 total, 2 passed/"}} */}
 {/* step {"stepId":"windows-tutorial-remove-folder","description":"Remove the charmap-docs folder so later docs runs don't pick up its tests.","runShell":{"command":"Remove-Item -Recurse -Force charmap-docs","shell":"powershell","workingDirectory":"."}} */}
 {/* test end */}
 
@@ -378,7 +347,7 @@ The `requires.files` setting skips the test on machines where the app isn't inst
 **The test is skipped instead of run**
 
 - **Cause:** Doc Detective skips an app test when it can't run it on this machine. That happens when the machine isn't running Windows, when the `requires.files` path doesn't exist, or when the automation driver couldn't download.
-- **Solution:** Read the skip reason in the results file. If the driver download failed, check your network connection. Then run the test again. A skipped test doesn't fail the run, so check for skipped app tests when a run looks green but didn't open the app.
+- **Solution:** Read the skip reason in the summary or the results file. If the driver download failed, check your network connection. Then run the test again. A skipped test fails the run only when every test skipped. If a run looks green but didn't open the app, check for skipped app tests.
 
 **The app doesn't launch**
 

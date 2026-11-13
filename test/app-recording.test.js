@@ -288,7 +288,7 @@ describe("startRecording: app surfaces (desktop)", function () {
       appSession,
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /browser engine/);
+    assert.match(result.description, /^Skipped: the `browser` engine/);
   });
 
   it("records an app surface with an unscaled window crop rect (default window target)", async function () {
@@ -822,6 +822,24 @@ describe("stopRecording: device (appium) handles", function () {
     assert.equal(host.state.recordings.length, 0);
   });
 
+  it("reads the target's extension in any case (.MP4)", async function () {
+    const payload = Buffer.from("fake-device-video");
+    const target = path.join(tmpDir, "Demo.MP4");
+    const handle = {
+      type: "appium",
+      driver: { stopRecordingScreen: async () => payload.toString("base64") },
+      targetPath: target,
+    };
+    const result = await stopRecording({
+      config,
+      step: { stepId: "x", stopRecord: true },
+      driver: hostWith([handle]),
+    });
+    assert.equal(result.status, "PASS", result.description);
+    assert.deepEqual(fs.readFileSync(target), payload);
+    assert.equal(result.outputs.format, "mp4");
+  });
+
   it("reports probe-derived metadata outputs for a real mp4 target", async function () {
     const samplePath = path.join(tmpDir, "sample.mp4");
     await generateSampleMp4(samplePath);
@@ -945,7 +963,7 @@ describe("stopRecording: device (appium) handles", function () {
       driver: host,
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /never started/);
+    assert.match(result.description, /^Skipped: the device recording never started/);
     assert.equal(host.state.recordings.length, 0);
   });
 
@@ -954,7 +972,7 @@ describe("stopRecording: device (appium) handles", function () {
       type: "appium-pending",
       startError:
         "Couldn't start the pending device recording: 'ffmpeg' binary is not found in PATH.",
-      startSkip: true,
+      startSkip: "Skipped: couldn't start the pending device recording: 'ffmpeg' binary is not found in PATH.",
       targetPath: path.join(tmpDir, "out.mp4"),
     };
     const host = hostWith([handle]);
@@ -964,7 +982,8 @@ describe("stopRecording: device (appium) handles", function () {
       driver: host,
     });
     assert.equal(result.status, "SKIPPED");
-    assert.match(result.description, /ffmpeg/);
+    // The skip reason is worded where the start failed, and passes through as is.
+    assert.equal(result.description, handle.startSkip);
     assert.equal(host.state.recordings.length, 0);
   });
 

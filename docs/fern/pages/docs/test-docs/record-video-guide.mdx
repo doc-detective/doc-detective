@@ -10,7 +10,7 @@ Doc Detective can record a test as a video and pick the right capture engine for
 Make sure you have the following:
 
 - [Doc Detective installed](/docs/get-started/installation).
-- A visible display. Recording captures a headed context; headless caveats come later in this guide.
+- Chrome, for headless recording. Doc Detective records headless Chrome with no display. Other browsers need a visible display; caveats come later in this guide.
 - A directory where you can create a `.spec.json` file.
 
 The steps in this guide work the same in every authoring style. Write them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
@@ -19,7 +19,9 @@ Recordings are video only, with no audio track.
 
 ## Record and stop
 
-The `record` action starts a recording, and a later `stopRecord` step ends it. Like `screenshot`, `record` takes a boolean (`record: true`), a string path (`record: "flow.webm"`), or an object for more control. Supported formats are `.mp4`, `.webm`, and `.gif`.
+The `record` action starts a recording, and a later `stopRecord` step ends it. Like `screenshot`, `record` takes a boolean (`record: true`), a string path (`record: "flow.webm"`), or an object for more control. Supported formats are `.mp4`, `.webm`, and `.gif`, in any letter case, such as `Demo.MP4`.
+
+`record: true` saves `<stepId>.mp4` in [`outputDir`](/reference/schemas/config). `outputDir` defaults to your config file's folder, or to the current folder when you run without a config file. The [GitHub Action](/docs/ci/github-action#find-reports-and-the-run-folder) sets `outputDir` to the runner's temporary directory instead. Set the step's `stepId` to choose the filename. Without one, Doc Detective derives an ID from the test and the step, which stays the same until you change the step. A relative path, such as `record: "flow.webm"`, resolves against the spec file, or against the current folder when [`relativePathBase`](/reference/schemas/config) is `cwd`.
 
 Every recording ends at a `stopRecord` step; Doc Detective finalizes any recordings still open at the end of the run. `stopRecord` targets a recording in one of two ways:
 
@@ -44,7 +46,7 @@ A single context can run more than one recording at once, such as a full session
 }
 ```
 
-{/* step {"stepId":"record-guide-rs-start","description":"Start recording, directed at a gitignored output folder instead of the default path (on this headless docs-test runner, with no display, this step SKIPS rather than fails)","record":{"path":"guide_record.mp4","directory":"./.dd-output"}} */}
+{/* step {"stepId":"record-guide-rs-start","description":"Start recording, directed at a gitignored output folder instead of the default path (this context names no browser, so it runs headless Chrome and records the tab with the browser engine)","record":{"path":"guide_record.mp4","directory":"./.dd-output"}} */}
 {/* step {"stepId":"record-guide-rs-goto","description":"Walk through the flow on the local test server","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"record-guide-rs-stop","description":"Stop recording","stopRecord":true} */}
 {/* test end */}
@@ -55,10 +57,10 @@ For the full set of fields, see the [`record`](/docs/actions/record) and [`stopR
 
 ## Choose a recording engine
 
-Recording uses one of two engines. If you don't set `engine`, Doc Detective prefers the `browser` engine when a visible Chrome context is available, and falls back to `ffmpeg` otherwise.
+Recording uses one of two engines. If you don't set `engine`, Doc Detective uses the `browser` engine for any Chrome context, headed or headless, and `ffmpeg` otherwise. A context that names no browser runs headless Chrome, so it records with the `browser` engine.
 
-- **`browser`** records the Chrome viewport for the current tab only. It needs a visible Chrome context and can't record in headless mode. It's always safe to run concurrently, because each context records its own window.
-- **`ffmpeg`** records the whole screen, so it works for any application, not just Chrome. Doc Detective installs FFmpeg automatically.
+- **`browser`** records the Chrome viewport for the current tab only, and keeps recording across navigations. It works headless, with no display. It's always safe to run concurrently, because each context records its own tab.
+- **`ffmpeg`** records the whole screen, so it works for any application, not just Chrome. It needs a headed context. Doc Detective installs FFmpeg automatically.
 
 Set `engine` as a string to pick an engine with its defaults, or as an object to tune it:
 
@@ -87,14 +89,14 @@ Set `engine` as a string to pick an engine with its defaults, or as an object to
 {/* step {"stepId":"record-guide-engine-stop","description":"Stop recording","stopRecord":true} */}
 {/* test end */}
 
-Engine choice affects concurrency. The `browser` engine always runs in parallel. The `ffmpeg` engine captures the shared display, so Doc Detective serializes an `ffmpeg` recording with every other browser-driven test. They take turns on the display, and you don't need to set `concurrentRunners` to `1`. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel. On Linux, the `ffmpeg` engine needs Xvfb to record a headless context, which has no physical display to capture.
+Engine choice affects concurrency. The `browser` engine always runs in parallel. The `ffmpeg` engine captures the shared display, so Doc Detective serializes an `ffmpeg` recording with every other browser-driven test. They take turns on the display, and you don't need to set `concurrentRunners` to `1`. Jobs that don't drive a browser, such as `httpRequest` and `runShell` steps, keep running in parallel. On a Linux host with no display, the `ffmpeg` engine needs Xvfb, which gives a headed context a virtual display to capture.
 
 Recording a native app surface or a mobile device screen follows different rules. See [Recording app surfaces](/docs/actions/record#recording-app-surfaces) and [Recording on mobile devices](/docs/actions/record#recording-on-mobile-devices). For engine details, see [Recording engines](/docs/actions/record#recording-engines) and [Docker and headless](/docs/ci/docker-and-headless).
 
 ## Verify it works
 
 - A recording that saved reports `PASS`.
-- A headless machine with no visible display skips the `record` step and reports `SKIPPED`. See [Recording is skipped in CI](#recording-is-skipped-in-ci).
+- A headless context that the engine can't record, such as headless Firefox, skips the `record` step and reports `SKIPPED`. See [Recording is skipped in CI](#recording-is-skipped-in-ci).
 
 Videos land in the run's output directory and the per-run artifact tree. To see where they land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
@@ -102,9 +104,9 @@ Videos land in the run's output directory and the per-run artifact tree. To see 
 
 ### Recording is skipped in CI
 
-**Cause:** a headless CI run has no visible display to capture.
+**Cause:** the context is headless Firefox or Safari, or it uses the `ffmpeg` engine headless. Neither draws anything on a display to capture.
 
-**Solution:** run headed, or on Linux install Xvfb for the `ffmpeg` engine (see [Docker and headless](/docs/ci/docker-and-headless)). Even when the capture is skipped, a span with checkpoints still reports staleness against its committed baselines (see [Detect visual regressions with checkpoints](/docs/test-docs/video-visual-regression)).
+**Solution:** record in Chrome, which records headless with the `browser` engine. Otherwise run headed, and on a Linux host with no display install Xvfb (see [Docker and headless](/docs/ci/docker-and-headless)). Even when the capture is skipped, a span with checkpoints still reports staleness against its committed baselines (see [Detect visual regressions with checkpoints](/docs/test-docs/video-visual-regression)).
 
 ### Two concurrent recordings overlap on Windows or macOS
 

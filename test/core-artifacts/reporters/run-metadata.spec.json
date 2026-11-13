@@ -14,7 +14,7 @@
         },
         {
           "runShell": {
-            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-run-metadata/shell/inner.spec.json --output .tmp/fixture-run-metadata/shell/report.json",
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-run-metadata/shell/inner.spec.json --output-dir .tmp/fixture-run-metadata/shell/out -o .tmp/fixture-run-metadata/shell/report.json",
             "workingDirectory": "../../..",
             "exitCodes": [
               0
@@ -61,7 +61,7 @@
         },
         {
           "runShell": {
-            "command": "node ./bin/doc-detective.js runTests --input .tmp/fixture-run-metadata/browser/inner.spec.json --output .tmp/fixture-run-metadata/browser/report.json",
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-run-metadata/browser/inner.spec.json --output-dir .tmp/fixture-run-metadata/browser/out -o .tmp/fixture-run-metadata/browser/report.json",
             "workingDirectory": "../../..",
             "exitCodes": [
               0

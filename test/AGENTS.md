@@ -24,6 +24,12 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   `ss -ltnp 'sport = :8092'` or `lsof -iTCP:8092 -sTCP:LISTEN` on Linux and macOS. Then inspect the
   owning process's command line. It may be mocha from a sibling `.claude/worktrees/*` checkout, or a
   days-old orphan. Wait or kill only orphaned listeners, then rerun.
+- **Don't `spawnSync` a CLI run that browses a server in the mocha process.** The 8092 and 8093
+  servers live in mocha's own process, and `spawnSync` blocks its event loop. A spawned
+  `doc-detective` run that loads one of their pages never gets an answer, so the test hangs and holds
+  the ports for every other session. Spawn asynchronously, with a kill timer, and serve from your
+  own server on port `0`. The effective-step test in [cli-contract.test.js](cli-contract.test.js)
+  shows the pattern.
 - **Browserless worktrees fail the browser-dependent tests.** Consider a worktree with no Chrome,
   Firefox, or Appium installed, and no network to lazy-provision them. Browser-dependent tests fail
   with "Chrome browser is not available", or with step-count assertions (`0 !== 1`,
@@ -54,8 +60,8 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   `rec-perm-*.gif`, and scratch files under `test/core-artifacts/`. Scope-check and restore these
   (`git checkout -- image.png` and so on) before committing. Subagents are especially prone to
   leaving them behind.
-- **Running a fixture through the CLI pollutes `npm test`.** `doc-detective runTests` writes its
-  per-run reports to a `.doc-detective/` directory beside the input. Running a fixture from
+- **Running a fixture through the CLI pollutes `npm test`.** `doc-detective` writes its
+  per-run reports to a `.doc-detective/` directory in the current directory. Running a fixture from
   `test/core-artifacts/` leaves `test/core-artifacts/.doc-detective/`. Then
   [select-fixture-bundles.test.js](select-fixture-bundles.test.js) fails with `bundle dirs
   must match on-disk group dirs exactly`, where actual gains `'.doc-detective'`. It enumerates the
@@ -67,7 +73,7 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   Remove-Item -Recurse -Force test/core-artifacts/.doc-detective              # PowerShell
   ```
 
-  Two ways to avoid it: point `--output` somewhere under `.tmp/`, or clean up before the full
+  To avoid it, point `--output-dir` somewhere under `.tmp/`, or clean up before the full
   suite. Fixture artifacts themselves (`*.mp4`, `*.checkpoints/`) are gitignored and harmless to
   leave, but the run directory is not harmless.
 - **Nested `npm run` fails at deep worktree paths on Windows.** Each nested `npm run` adds
@@ -77,6 +83,19 @@ Repo-wide rules (TDD, fixtures, commit conventions) live in [../CLAUDE.md](../CL
   [package.json](../package.json) and [src/common/package.json](../src/common/package.json) with
   `node` directly instead, for example `node ./src/schemas/dereferenceSchemas.cjs` from
   `src/common/` and `node node_modules/typescript/bin/tsc` from the root.
+
+- **`--dry-run` prints no warnings.** A dry run forces the log level to `silent`, so stdout holds only
+  the test plan. A fixture that checks a warning has to run its steps instead. The detection fixtures
+  in [core-artifacts/detection/](core-artifacts/detection) use `runShell` steps, which need no browser.
+
+- **Results mask environment variable values** ([ADR 01178](../adrs/01178-mask-environment-variable-values-in-every-output-by-default.md)).
+  A run shows every value it substitutes or loads, and every secret-looking variable, as `***NAME***` in
+  its results and logs. A test that reads a substituted value back from the results sees
+  the mask. Read the real value from the runtime instead, such as a `variables` export or a file the
+  step wrote. Or list the variable in `publicVariables` on the spec. Steps compare real values, so
+  fixtures that assert through steps are unaffected. A spec that references `$HOME` masks every path
+  under it in the whole run's report. The registry is process-wide, so [hooks.js](hooks.js) resets it
+  before each test.
 
 ## Fixture concurrency & the resource-aware scheduler
 
@@ -98,8 +117,8 @@ in `src/core/utils.ts`) keeps it safe:
 
 ## Coverage ratchets
 
-- **Root coverage gates on the cross-platform union** of the full matrix (3 OS × node 22/24), not
-  a single OS. Each matrix cell uploads pruned raw V8 coverage; a `coverage-merge` job merges and
+- **Root coverage gates on the cross-platform union** of the full matrix, not a single OS. That matrix
+  is 3 OS on node 24, plus ubuntu on node 26. Each matrix cell uploads pruned raw V8 coverage; a `coverage-merge` job merges and
   reports (see `.github/workflows/test.yml`, `scripts/prune-coverage.cjs`,
   `scripts/merge-coverage.cjs`, `scripts/check-coverage-ratchet.cjs`).
   - `tsconfig.json` pins `newLine: "lf"`. Raw V8 coverage encodes character offsets into the
@@ -135,10 +154,10 @@ Known flake signatures and dispositions:
 | Windows legs: DLL-init crash `0xC0000142`, or a one-off goTo timeout | Transient runner issues | Rerun failed jobs after the run completes |
 | `npm test` dies with exit code 124 | Historically the runner-entrypoint self-kill watchdog leaked a timer into mocha (fixed in #368). Exit 124 here can be a literal `process.exit(124)`, so don't assume a GNU `timeout(1)` wrapper | Read the log tail for what actually exited |
 | TS2307 `Cannot find module 'webdriverio'` at compile | An optionalDependency install was silently skipped. Compile-time types must not reference optional packages through `typeof import(...)`. Local type stubs fixed this in #369, and `pngjs` is a latent twin | Fix the type coupling, don't chase npm |
-| `mobile-web-ios (macos)` (or another iOS leg) fails in a `wda-check` step with `Error: No elements matched selector or text` (log tail also shows `Terminate orphan process … (Simulator)`) | iOS-simulator/WebDriverAgent timing flake: the WebView content hadn't rendered when the `find` ran. Distinct from the session-timeout row above (the session started fine here). Sibling legs and reruns pass. **Not code** when the diff can't touch iOS/mobile-web rendering (e.g. an install-script or diagnostic-string change) | Confirm the change class can't affect iOS mobile-web, then `gh run rerun --job <jobId>` once the run completes |
+| `mobile-web-ios (macos)` (or another iOS leg) fails in a `wda-check` step with `Error: No elements matched selector or text` (``Couldn't find element `…`.`` since 5.0) (log tail also shows `Terminate orphan process … (Simulator)`) | iOS-simulator/WebDriverAgent timing flake: the WebView content hadn't rendered when the `find` ran. Distinct from the session-timeout row above (the session started fine here). Sibling legs and reruns pass. **Not code** when the diff can't touch iOS/mobile-web rendering (e.g. an install-script or diagnostic-string change) | Confirm the change class can't affect iOS mobile-web, then `gh run rerun --job <jobId>` once the run completes |
 | A bundled fixture leg (e.g. `general (ubuntu)`) fails on `guards/expression-embedded-failure` with `Error: Returned exit code 1. Expected one of [0]` | A transient shell or runner blip on a `runShell` or `runCode` step. The spec passes on adjacent commits and on rerun. The `guards/` group rides inside the `general` bundle, so the failing leg name doesn't name the spec. Read the log for the actual `specId`. **Not a regression** when the diff can't touch shell execution | Verify it passed on an adjacent commit, then rerun the failed job after the run completes |
 | `vale` job fails with `##[error]Vale and reviewdog exited with status code: 1` while the log shows `reviewdog: fail to get diff: GET https://api.github.com/repos/.../pulls/<n>: 503` | GitHub API outage collateral. reviewdog couldn't fetch the PR diff. Lint findings fail this job too, per [ADR 01101](../adrs/01101-vale-gates-the-whole-repo-and-fails-on-errors.md), so read the log before assuming infrastructure. Check [githubstatus.com](https://www.githubstatus.com/) | Wait for GitHub to recover, then `gh run rerun <runId> --failed`. Don't chase docs style. Run `vale --minAlertLevel=error` locally, from `docs/`, to confirm content is clean |
-| A `fixtures / general (windows-latest)` leg fails `sessions/start-surface-parallel` (`start-surface-parallel-mixed`) with `Element not found within timeout` on the `find` for `PAGE par1` against the parallel-opened `par-chrome` session | **Root-caused in [ADR 01088](../adrs/01088-goto-verifies-it-left-the-blank-document.md), tracked in [#696](https://github.com/doc-detective/doc-detective/issues/696).** A fresh Chromium session on `windows-latest` occasionally stays parked on `data:,`, its initial blank document ([ADR 01084](../adrs/01084-retry-unnavigated-context.md)). It's alive, not a crash page, simply never navigated. Every `goTo` wait condition passes trivially against that blank page. The navigation therefore reported success, and the failure surfaced later on a `find` that had nothing to find. 01084's retry probes the context's PRIMARY session only. `par-chrome` is a SECONDARY session from `startSurface`, so it was never covered. Two wrong diagnoses were burned first. A cold-session timeout was disproved, because a 30s find consumed the full 30s. A routing or activation bug was disproved by audit, then conclusively by the fixture's reordered firefox assertion PASSing | `goTo` now verifies it left `data:,`, re-issues once, and FAILs with a clear message otherwise. **If this signature reappears, the failing step should now be the `goTo`, not a later `find`.** If it is still a `find`, that is a NEW mode. Pull the `fixture-output-general-windows-latest` artifact and read which step failed first. Never reach for a bigger timeout here |
+| A `fixtures / general (windows-latest)` leg fails `sessions/start-surface-parallel` (`start-surface-parallel-mixed`) with `Element not found within timeout` (``Couldn't find an element within `timeout` …`` since 5.0) on the `find` for `PAGE par1` against the parallel-opened `par-chrome` session | **Root-caused in [ADR 01088](../adrs/01088-goto-verifies-it-left-the-blank-document.md), tracked in [#696](https://github.com/doc-detective/doc-detective/issues/696).** A fresh Chromium session on `windows-latest` occasionally stays parked on `data:,`, its initial blank document ([ADR 01084](../adrs/01084-retry-unnavigated-context.md)). It's alive, not a crash page, simply never navigated. Every `goTo` wait condition passes trivially against that blank page. The navigation therefore reported success, and the failure surfaced later on a `find` that had nothing to find. 01084's retry probes the context's PRIMARY session only. `par-chrome` is a SECONDARY session from `startSurface`, so it was never covered. Two wrong diagnoses were burned first. A cold-session timeout was disproved, because a 30s find consumed the full 30s. A routing or activation bug was disproved by audit, then conclusively by the fixture's reordered firefox assertion PASSing | `goTo` now verifies it left `data:,`, re-issues once, and FAILs with a clear message otherwise. **If this signature reappears, the failing step should now be the `goTo`, not a later `find`.** If it is still a `find`, that is a NEW mode. Pull the `fixture-output-general-windows-latest` artifact and read which step failed first. Never reach for a bigger timeout here |
 | `test / Test (windows-latest, node 24, shard 1)` fails a `getRunner()` title assertion because the title is empty. The assertion message ends with `(session at data:,)`, naming the blank document. Both `first runner should work` and `should work with custom config` hit it | **Root-caused in [ADR 01102](../adrs/01102-getrunner-verifies-it-left-the-blank-document.md).** This is the Chromium blank-document mode of [ADR 01088](../adrs/01088-goto-verifies-it-left-the-blank-document.md), at a call site 01088 never covered. `getRunner` hands out a raw WebdriverIO session, so `runner.url()` skipped `goTo`'s guard. The browser stayed on its unnavigated start page, whose title is empty. The suite's `this.retries(2)` could not heal it. Every attempt starts a fresh session that can park again. It reproduced on `main`, so it gated unrelated PRs. Measured at 4 of 48 suite runs, across 4 of 8 jobs, before the fix, and 0 of 48 after it. The probe reads `data:,` on about a fifth of fresh-session navigations, so most parkings never reached an assertion that would notice | `getRunner` now verifies the navigation left `data:,`, re-issues once, and throws otherwise. **If this reappears, the failure should name the navigation, not the title.** A message reporting `session at <a real URL>` is a DIFFERENT mode. Read the log for a `WebDriverError` instead. The `ECONNREFUSED when running "title"` seen from this block is session death, not this |
 | A Windows unit leg fails `Timeout of <n>ms exceeded` on a test that normally takes milliseconds. It's a different innocent test each time, and the log timestamps around it jump by 15–52s | **Runner-side process freeze, [ADR 01105](../adrs/01105-windows-ci-freeze-allowance-for-mocha-timeouts.md).** Hosted `windows-latest` runners have days when the whole process stops for tens of seconds. It clusters by date, not by code, and Defender is ruled out (real-time protection is already off on these runners). Every enforced timeout on Windows CI now carries a 60s allowance, so a freeze shows up as a slow PASS instead | If it still fails, compare the timestamp gap with the reported `<n>`, which already includes the allowance. A gap past that is a freeze longer than any seen so far: raise `DD_TEST_FREEZE_ALLOWANCE_MS` rather than editing the test. A gap that stays under it means the test really hung, so treat it as code |
 | An android leg fails fast (~6m vs its usual ~14m) with `Emulator "dd-*" exited (code 1) before finishing boot`, and the emulator's own stderr ends in `FATAL \| Not enough space to create userdata partition. Available: <n> MB … need 7372.80 MB` | Runner disk pressure, not code. The AVD needs ~7.4 GB, and hosted ubuntu runners land just under it. One observation showed 7183 MB available, about 97% of need. It therefore tips on runner-image variation while sibling PRs pass. The emulator buries the reason. Read the `description` of the failing step in the results JSON, not just the summary line | Rerun once the run completes. `gh run rerun <runId> --failed` is refused while it's still queued or in progress. If it survives reruns, free runner disk in the workflow rather than touching the fixture |

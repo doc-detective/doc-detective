@@ -1,0 +1,114 @@
+{
+  "specId": "cli-config-precedence",
+  "description": "One precedence order (ADR 01165), through the real CLI: flags, then the shell environment, then .env and the project config, then the user config. Each test runs one case of precedence.cjs, which sets up a folder under .tmp/fixture-precedence/, runs doc-detective with the environment the case names, and checks the exit code, stderr, and files. No browser or network.",
+  "tests": [
+    {
+      "testId": "dotenv-fills-unset",
+      "description": "The project .env fills a variable the shell left unset.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs dotenv-fills-unset",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "shell-beats-dotenv",
+      "description": "A variable set in the shell beats the project .env.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs shell-beats-dotenv",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "config-loadvariables-fills-unset",
+      "description": "A config-level loadVariables file fills a variable the shell left unset.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs config-loadvariables-fills-unset",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "shell-beats-config-loadvariables",
+      "description": "A variable set in the shell beats a config-level loadVariables file, which loads without a banner.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs shell-beats-config-loadvariables",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "legacy-env-below-flags",
+      "description": "The deprecated DOC_DETECTIVE variable still applies, warns, and loses to a flag.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs legacy-env-below-flags",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "legacy-env-below-doc-detective-config",
+      "description": "The deprecated DOC_DETECTIVE variable loses to DOC_DETECTIVE_CONFIG.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs legacy-env-below-doc-detective-config",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "legacy-container-allows-nothing",
+      "description": "DOC_DETECTIVE's container key no longer turns on unsafe steps, so the only step is skipped and the run exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs legacy-container-allows-nothing",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "cache-dir-flag-beats-env",
+      "description": "--cache-dir beats DOC_DETECTIVE_CACHE_DIR.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs cache-dir-flag-beats-env",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "config-output-beside-config",
+      "description": "A config file's relative output resolves against the config file.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs config-output-beside-config",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    }
+  ]
+}

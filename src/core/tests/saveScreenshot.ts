@@ -22,19 +22,22 @@ import { compositeAnnotations } from "../annotations/composite.js";
 import {
   log,
   fetchFile,
+  getRunOutputDir,
+  hasVariable,
   UrlGuardError,
-  getOrInitRunTimestamp,
   redactUrlForOutput,
   sanitizeFilesystemName,
   realizeViewport,
   viewportMismatchWarning,
   VIEWPORT_TOLERANCE_PX,
   type SizeTarget,
+  invalidStepMessage,
 } from "../utils.js";
 import path from "node:path";
 import fs from "node:fs";
 import { loadHeavyDep } from "../../runtime/loader.js";
 import { isRecordingActive } from "./ffmpegRecorder.js";
+import { blurSecretsForCapture } from "./hideSecrets.js";
 import {
   buildConditionContext,
   evaluateImplicitAssertions,
@@ -174,6 +177,17 @@ function referenceViewport({
   return wanted;
 }
 
+// A browser capture with every element that shows a secret blurred, and the
+// blur removed after (ADR 01178).
+async function takeBrowserScreenshot(driver: any): Promise<Buffer> {
+  const unblur = await blurSecretsForCapture(driver);
+  try {
+    return Buffer.from(await driver.takeScreenshot(), "base64");
+  } finally {
+    await unblur();
+  }
+}
+
 // Resize the window so the viewport matches the reference and capture again.
 // Returns null when no resize applies or the retake didn't match; the window is
 // already back by then, so later work sees the page the first capture showed.
@@ -238,7 +252,7 @@ async function retakeAtReferenceSize({
   let got: string;
   try {
     await realizeViewport(driver, wanted, config, label, "debug");
-    const buffer = Buffer.from(await driver.takeScreenshot(), "base64");
+    const buffer = await takeBrowserScreenshot(driver);
     const retaken = await sharp(buffer).metadata();
     if (
       retaken.width === reference.width &&
@@ -306,6 +320,7 @@ async function captureScreenshot({
   surfaceTracker,
   internal,
   annotationTheme,
+  screenshotsDir,
 }: {
   config: any;
   step: any;
@@ -319,6 +334,11 @@ async function captureScreenshot({
   // absent (direct callers, unit tests) we fall back to the config level so a
   // config-only theme still applies.
   annotationTheme?: any;
+  // Where a URL reference's capture goes: the context's `screenshots/` folder
+  // in the run folder, which the runner knows (ADR 01173). A function, so the
+  // run folder is only created when a capture needs it. Direct callers fall
+  // back to the run folder's own `screenshots/`.
+  screenshotsDir?: () => string;
 }, session: { restoreWindow?: () => Promise<void> }) {
   let result: any = {
     status: "PASS",
@@ -346,7 +366,7 @@ async function captureScreenshot({
   //   (2) element fits viewport   `$$outputs.fitsViewport == true`          (fail)    — only when `crop` is set
   //   (3) annotation targets found `$$outputs.annotationTargetsFound == true` (fail)   — only when `annotations` is set
   //   (4) annotations in bounds   `$$outputs.annotationsInBounds == true`   (warning) — only when `annotations` is set
-  //   (5) aspect ratios match     `$$outputs.aspectRatioMatch == true`      (fail)    — only when comparing against an existing/URL reference
+  //   (5) aspect ratios match     `$$outputs.aspectRatioMatches == true`    (fail)    — only when comparing against an existing/URL reference
   //   (6) variation <= max        `$$outputs.variation <= <max>`            (warning) — only when comparing against an existing/URL reference
   //
   // EXECUTION errors (NOT assertions) still return FAIL with NO assertion
@@ -370,6 +390,24 @@ async function captureScreenshot({
     result.status = status;
     return result;
   };
+
+  // Validate step payload
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
+  if (!isValidStep.valid) {
+    result.status = "FAIL";
+    result.description = invalidStepMessage(step);
+    return result;
+  }
+  // The effective step (ADR 01167): an object with its defaults filled, and a
+  // `path` (ADR 01173). `false` is the one other value, and it disables the
+  // step, before the image libraries load.
+  step = isValidStep.object;
+  if (step.screenshot === false) {
+    result.status = "SKIPPED";
+    result.description = "Skipped: `screenshot` is `false`.";
+    return result;
+  }
+
   // Lazy-load heavy deps once per saveScreenshot invocation; ensureRuntime
   // already materialized them ahead of step execution. The ctx threads
   // through so a user-overridden cacheDir resolves from the same location
@@ -391,16 +429,6 @@ async function captureScreenshot({
     return result;
   }
 
-  // Validate step payload
-  const isValidStep = validate({ schemaKey: "step_v3", object: step });
-  if (!isValidStep.valid) {
-    result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
-    return result;
-  }
-  // Accept coerced and defaulted values
-  step = isValidStep.object;
-
   // Multi-surface Phase 3/4 + native app surfaces (phase A1): focus the
   // session + window/tab to capture (a cross-session browser reference
   // resolves to that session's driver), or capture through the app session's
@@ -415,10 +443,7 @@ async function captureScreenshot({
   // explicit `surface` reference, or the context's active surface — then
   // capture through that surface's driver.
   const target = resolveTargetSurface({
-    surface:
-      typeof step.screenshot === "object" && step.screenshot !== null
-        ? step.screenshot.surface
-        : undefined,
+    surface: step.screenshot.surface,
     tracker: surfaceTracker,
     driver,
     appSession,
@@ -454,7 +479,7 @@ async function captureScreenshot({
       }
       appWindowTarget = resolvedWindow.target;
     }
-    if (typeof step.screenshot === "object" && step.screenshot?.crop) {
+    if (step.screenshot.crop) {
       result.status = "FAIL";
       result.description =
         "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
@@ -491,49 +516,29 @@ async function captureScreenshot({
     return result;
   }
 
-  // Convert boolean to string
-  if (typeof step.screenshot === "boolean") {
-    step.screenshot = { path: `${step.stepId}.png` };
-  }
-  // Convert string to object
-  if (typeof step.screenshot === "string") {
-    step.screenshot = { path: step.screenshot };
-  }
-  // Compute path if unset
-  if (typeof step.screenshot.path === "undefined") {
-    step.screenshot.path = `${step.stepId}.png`;
-    // If `directory` is set, prepend it to the path
-    if (step.screenshot.directory) {
-      step.screenshot.path = path.resolve(
-        step.screenshot.directory,
-        step.screenshot.path
-      );
-    }
-  }
-  // Set default values
-  step.screenshot = {
-    ...step.screenshot,
-    maxVariation: step.screenshot.maxVariation ?? 0.05,
-    overwrite: step.screenshot.overwrite ?? "aboveVariation",
-  };
-  // Set default values for crop
-  if (typeof step.screenshot.crop === "object") {
-    step.screenshot.crop = {
-      ...step.screenshot.crop,
-      selector: step.screenshot.crop.selector || "",
-      elementText: step.screenshot.crop.elementText || "",
-      padding: step.screenshot.crop.padding || 0,
-    };
-  }
-
   let filePath = step.screenshot.path;
   let existFilePath;
   let dir: string;
+  // The normalizer names a capture for its step, so only a step with no
+  // `stepId` (a getRunner() caller's) can arrive without a path.
+  if (filePath === undefined) {
+    result.status = "FAIL";
+    result.description = "Couldn't name the screenshot. Set `path`, or set the step's `stepId`.";
+    return result;
+  }
 
   // Detect URL paths. A URL `path` is treated as a read-only reference:
   // we download it to a temp file for comparison, and write the new capture
   // to a local run-specific folder (URLs can't be written back to).
   const isUrlPath = /^https?:\/\//i.test(filePath);
+  // Substitution already ran, so a `$VAR` left in the path or directory is a
+  // variable that isn't set. Writing to a folder named after it helps no one.
+  const unset = (isUrlPath ? ["directory"] : ["path", "directory"]).find((key) => hasVariable(step.screenshot[key]));
+  if (unset) {
+    result.status = "FAIL";
+    result.description = `Couldn't save the screenshot. \`${unset}\` (\`${step.screenshot[unset]}\`) has a variable that isn't set.`;
+    return result;
+  }
   const originalUrlPath = isUrlPath ? filePath : undefined;
   // Safe form for logs/descriptions/outputs: strips query + fragment so
   // presigned-URL signatures/tokens don't leak into the report.
@@ -571,11 +576,7 @@ async function captureScreenshot({
     // create. Shared helper so the rule stays consistent with fetchFile.
     const safeBase = sanitizeFilesystemName(rawBase, `${step.stepId}.png`);
 
-    dir = path.join(
-      process.cwd(),
-      "doc-detective-runs",
-      getOrInitRunTimestamp(config)
-    );
+    dir = screenshotsDir?.() ?? path.join(getRunOutputDir(config), "screenshots");
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
@@ -606,7 +607,7 @@ async function captureScreenshot({
     }
   } else {
     // Set path directory
-    dir = path.dirname(step.screenshot.path);
+    dir = path.dirname(filePath);
     // If `dir` doesn't exist, create it. Compare-only callers never write
     // the target path, so creating its directory mid-span would litter an
     // empty baseline folder that seeding (stopRecord) owns.
@@ -619,7 +620,7 @@ async function captureScreenshot({
       if (step.screenshot.overwrite == "false") {
         // File already exists
         result.status = "SKIPPED";
-        result.description = `File already exists: ${filePath}`;
+        result.description = `Skipped: file already exists at \`${filePath}\`. Set \`overwrite\` to \`true\` to replace it.`;
         // No verification specs were gathered (we short-circuit before capture
         // and comparison), but keep the `assertions` shape consistent with every
         // other return path — an empty array rather than undefined. The SKIPPED
@@ -659,6 +660,7 @@ async function captureScreenshot({
       config,
       step: findStep,
       driver,
+      nearMatches: false,
     });
     // (1) Crop element existence is a VERIFICATION ASSERTION. findElement FAILs
     // when no element matches, so `findResult.status === "FAIL"` (or a missing
@@ -779,8 +781,7 @@ async function captureScreenshot({
       await appWindowScreenshot(appEntry, appWindowTarget, appScratchPath);
       captureBuffer = fs.readFileSync(appScratchPath);
     } else {
-      const base64 = await captureDriver.takeScreenshot();
-      captureBuffer = Buffer.from(base64, "base64");
+      captureBuffer = await takeBrowserScreenshot(captureDriver);
     }
   } catch (error) {
     // Couldn't capture screenshot
@@ -816,14 +817,19 @@ async function captureScreenshot({
   // they differ, resize the window to the reference's viewport and capture
   // again rather than resampling. Not for crops (their size is the element's),
   // app windows, an unconditional local overwrite (nothing to compare), or
-  // recordings (the resize would show in the video).
+  // recordings (the resize would show in the video). The automatic recording a
+  // default run adds is an archive, so it doesn't cost that run the resize
+  // (ADR 01177).
+  const resizeShowsInVideo =
+    recordingActive &&
+    driver.state.recordings.some((recording: any) => !recording?.defaulted);
   if (
     !isAppCapture &&
     !step.screenshot.crop &&
     existFilePath &&
     !(step.screenshot.overwrite === "true" && !isUrlPath) &&
     !internal?.compareOnly &&
-    !recordingActive
+    !resizeShowsInVideo
   ) {
     const retake = await retakeAtReferenceSize({
       driver: captureDriver,
@@ -1139,17 +1145,17 @@ async function captureScreenshot({
       }
 
       // (3) Aspect ratios match is a VERIFICATION ASSERTION. Compute the boolean
-      // with the existing helper, expose it as `outputs.aspectRatioMatch`, and
+      // with the existing helper, expose it as `outputs.aspectRatioMatches`, and
       // push the spec. On mismatch we evaluate immediately and return (the
       // variation spec is never pushed — the diff can't be computed across
       // mismatched ratios), preserving the prior FAIL status exactly.
-      const aspectRatioMatch = aspectRatiosMatch(img1, img2);
-      result.outputs.aspectRatioMatch = aspectRatioMatch;
+      const aspectRatioMatches = aspectRatiosMatch(img1, img2);
+      result.outputs.aspectRatioMatches = aspectRatioMatches;
       specs.push({
-        statement: `$$outputs.aspectRatioMatch == true`,
+        statement: `$$outputs.aspectRatioMatches == true`,
         severity: "fail",
       });
-      if (!aspectRatioMatch) {
+      if (!aspectRatioMatches) {
         result.description = `Couldn't compare images. Images have different aspect ratios.`;
         return await evaluateApplicable();
       }

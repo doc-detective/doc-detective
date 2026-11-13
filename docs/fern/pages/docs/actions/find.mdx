@@ -33,10 +33,10 @@ Specify the target element directly with a string for basic text or selector loo
   - `elementClass`: (Optional) Class, or array of classes, the element must have. Each class supports exact match or a `/pattern/` regex. The element must have all specified classes.
   - `elementAttribute`: (Optional) Object of attribute key-value pairs the element must have. Values can be strings (supporting `/pattern/` regex), numbers, or booleans. Boolean `true` matches attribute presence, and `false` matches absence.
   - `elementAria`: (Optional) Computed accessible name of the element per the ARIA specification. Supports exact match or a `/pattern/` regex.
-  - `timeout`: (Optional) Maximum duration in milliseconds to wait for the element to exist (default: 5000).
+  - `timeout`: (Optional) Maximum duration in milliseconds to wait for the element to exist (default: 5000). `0` checks once.
   - `moveTo`: (Optional) Move the cursor to the element. An element that isn't visible is scrolled into view. Defaults to `false`. A bare `find` leaves the viewport and cursor where they're already sitting. Set this explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.
-  - `click`: (Optional) Click the element after finding it. Can be `true` (for a default left click), `false` (find without clicking), `"left"`, `"right"`, `"middle"`, or an object like `{ "button": "right" }` or `{ "duration": 800 }` (a long-press / press-and-hold, in milliseconds).
-  - `type`: (Optional) Type keys after finding the element. Requires the element to be made active first (for example, by using `click: true`). Accepts a string or an object like `{ "keys": "my text", "inputDelay": 100 }`. See [`type`](type) for details.
+  - `click`: (Optional) Click the element after finding it. Can be `true` (for a default left click), `false` (find without clicking), `"left"`, `"right"`, `"middle"`, or an object like `{ "button": "right" }` or `{ "duration": 800 }` (a long-press / press-and-hold, in milliseconds). Here a string names the mouse button, unlike the [`click`](/docs/actions/click) action, where it names the element. Any other string, such as `"click": "Submit"`, makes the spec invalid. So does an object with more than `button` and `duration`, because `find` itself holds the locators and `timeout`. Results show the click that ran as an object, such as `{ "button": "right" }`.
+  - `type`: (Optional) Type keys after finding the element. Requires the element to be made active first (for example, by using `click: true`). Accepts a string or an object like `{ "keys": "my text", "inputDelay": 100 }`. See [`type`](type) for details. `find` already locates the element, so `type` can't set its own `selector`, `elementText`, or other locator. One makes the spec invalid.
   - `surface`: (Optional) The browser session, window, or tab the element lives in, such as `{ "browser": "chrome", "tab": "cart" }` or a named browser `{ "browser": "firefox", "name": "admin" }`. It can also be the [native app surface](/docs/actions/startsurface) the element lives in, such as `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": { "title": "/Open/" } }`. Omit it to act on the active surface, the most recently opened, focused, or explicitly targeted one, whether a browser tab or an app window. Specifying a surface switches the active surface for the steps that follow. On an app surface, `elementText`, `elementId`, and `elementAria` map to native controls. `selector` there accepts a native locator, either XPath or a `~`-prefixed accessibility ID, instead of a CSS selector. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](#app-windows) below.
 
 ## How text matching works
@@ -76,6 +76,8 @@ On Windows, resolving a selector probes the app's candidate windows to read thei
 **Setting Variables:** to capture a found element's attributes into variables for later steps, use the step-level `variables` object. You can assign values based on the element using expressions like `$$element.text`.
 
 **Outputs:** the action also exposes `outputs.found`, a boolean indicating whether an element matching your criteria was located. To capture it for later steps, use the step-level `variables` object with the expression `$$found`.
+
+**Near matches:** when a browser `find` fails, `outputs.nearMatches` lists up to three visible elements closest to what you asked for, best first. Each entry has the element's `text` and `tag`, plus its `id`, `testId`, and `ariaLabel` when it has them. An empty list means nothing on the page was close. A `/regex/` target gets no near matches. When the list isn't empty, the step's `resultHint` names them, and its `resultCode` is `drift`. Otherwise, its `resultCode` is `assertion`. See [Read the result](/docs/troubleshoot/overview#step-1-read-the-result-and-find-the-failing-step).
 
 > For comprehensive options, see the [`find`](/reference/schemas/find) reference.
 
@@ -335,7 +337,7 @@ Combine `elementClass` with `elementAttribute` to pin down an element by how it'
 
 `elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, and `elementAria` all match a substring by regular expression when you wrap the value in slashes. This is handy for IDs or text that carry a variable part, such as a generated suffix.
 
-{/* test {"testId":"find-by-regex","detectSteps":false} */}
+{/* test {"testId":"find-by-regex-id","detectSteps":false} */}
 
 ```json
 {
@@ -354,8 +356,8 @@ Combine `elementClass` with `elementAttribute` to pin down an element by how it'
 }
 ```
 
-{/* step {"stepId":"goto-find-regex","description":"Open the enhanced elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
-{/* step {"stepId":"find-regex","description":"Find a button by an ID regular expression","find":{"elementId":"/^submit-.*-action$/"}} */}
+{/* step {"stepId":"goto-find-regex-id","description":"Open the enhanced elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"find-regex-id","description":"Find a button by an ID regular expression","find":{"elementId":"/^submit-.*-action$/"}} */}
 {/* test end */}
 
 ### Move the cursor to an element

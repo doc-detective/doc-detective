@@ -123,9 +123,9 @@ By default, Doc Detective scans the current directory for valid tests, but you c
 
 ## Outcome
 
-After running the test, you should see the results in your terminal, which Doc Detective saves to a new file named `testResults-UNIQUE_ID.json`:
+After running the test, you should see the results in your terminal. Doc Detective also saves them to `.doc-detective/runs/<runId>/testResults.json`:
 
-```json title="testResults-UNIQUE_ID.json"
+```json title="testResults.json"
 {
   "summary": {
     "specs": {
@@ -163,12 +163,12 @@ After running the test, you should see the results in your terminal, which Doc D
               "result": "PASS",
               "platform": "linux",
               "browser": {
-                "name": "firefox",
-                "version": "136.0a1"
+                "name": "chrome",
+                "version": "131.0.6778.85"
               },
               "driver": {
-                "name": "geckodriver",
-                "version": "0.36.0"
+                "name": "chromedriver",
+                "version": "131.0.6778.85"
               },
               "steps": [
                 {
@@ -176,7 +176,10 @@ After running the test, you should see the results in your terminal, which Doc D
                   "resultDescription": "Opened URL.",
                   "description": "Go to the specified URL",
                   "goTo": {
-                    "url": "https://example.com"
+                    "url": "https://example.com",
+                    "params": {},
+                    "timeout": 30000,
+                    "waitUntil": { "networkIdleTime": 500, "domIdleTime": 1000 }
                   },
                   "stepId": "b09d9c07-2fb0-4fc9-92a4-b4cabdb5c3cd"
                 },
@@ -198,7 +201,11 @@ After running the test, you should see the results in your terminal, which Doc D
                   "result": "PASS",
                   "resultDescription": "Saved screenshot.",
                   "description": "Capture a screenshot of the resulting page",
-                  "screenshot": "example.png",
+                  "screenshot": {
+                    "path": "/path/to/your/project/example.png",
+                    "maxVariation": 0.05,
+                    "overwrite": "aboveVariation"
+                  },
                   "stepId": "5698d891-e220-4e88-8b96-8c5eb8c1ce5f"
                 }
               ]
@@ -212,6 +219,8 @@ After running the test, you should see the results in your terminal, which Doc D
 ```
 
 This output confirms that all the test steps passed successfully, and the screenshot was saved to the specified path. The example leaves out some fields. The full file also records when the run started and the machine that ran it. See [Tell environment changes from product changes](/docs/ci/reporters-and-artifacts#tell-environment-changes-from-product-changes).
+
+Each step shows what Doc Detective ran, with defaults filled in. That's why `goTo` and `screenshot` appear as objects, even though you wrote them as strings. The `screenshot.path` value is the absolute path to the file on your machine. Your test file can keep the short form. For details, see [Steps show what ran](/docs/ci/reporters-and-artifacts#steps-show-what-ran).
 
 Additionally, you should see a new image file named `example.png` saved in your project folder. Open this file to view the captured screenshot of the page:
 

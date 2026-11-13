@@ -25,12 +25,7 @@ import {
 } from "../dist/lsp/diagnostics.js";
 import { buildModel } from "../dist/lsp/model.js";
 import { isJsonUri, isYamlUri } from "../dist/lsp/gate.js";
-import {
-  fileTypeForUri,
-  computeInlineDiagnostics,
-  collectMatchOffsets,
-  extractStatements,
-} from "../dist/lsp/inline.js";
+import { fileTypeForUri, computeInlineDiagnostics } from "../dist/lsp/inline.js";
 import {
   parseYamlTree,
   rangeForInstancePathYaml,
@@ -38,7 +33,7 @@ import {
   yamlSyntaxErrors,
 } from "../dist/lsp/yaml/positions.js";
 import { registerHandlers } from "../dist/lsp/server.js";
-import { lspCommand } from "../dist/lsp/command.js";
+import { buildLspCommand } from "../dist/lsp/command.js";
 import {
   buildRegistry,
   getRegistry,
@@ -61,7 +56,7 @@ import { schemas } from "../dist/common/src/schemas/index.js";
 /** Independently derive the action keys from step_v3.anyOf (for anti-drift). */
 function actionKeysFromSchema() {
   const keys = [];
-  for (const branch of schemas.step_v3.anyOf) {
+  for (const branch of schemas.step_v3.oneOf) {
     const parts = Array.isArray(branch.allOf) ? branch.allOf : [branch];
     const part = parts.find(
       (p) => Array.isArray(p.required) && p.required.length === 1 && p.required[0] !== "$schema",
@@ -81,7 +76,6 @@ function markerPos(text, marker = "§") {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CLI = path.resolve(__dirname, "..", "bin", "doc-detective.js");
-const LSP_BIN = path.resolve(__dirname, "..", "bin", "doc-detective-lsp.js");
 
 function doc(uri, text) {
   return TextDocument.create(uri, "doc-detective-spec", 1, text);
@@ -411,14 +405,14 @@ describe("lsp — registry helpers", function () {
     // Injected schema: branch has no `allOf` (actionPartOf falls back to
     // [branch]) and the action part has no `title` (title falls back to key).
     const reg = buildRegistry({
-      anyOf: [{ required: ["wait"], properties: { wait: { type: "number" } } }],
+      oneOf: [{ required: ["wait"], properties: { wait: { type: "number" } } }],
     });
     expect(reg.actions).to.have.length(1);
     expect(reg.actions[0].key).to.equal("wait");
     expect(reg.actions[0].title).to.equal("wait");
   });
 
-  it("buildRegistry tolerates a schema with no anyOf", function () {
+  it("buildRegistry tolerates a schema with no oneOf", function () {
     expect(buildRegistry({}).actions).to.deep.equal([]);
   });
 });
@@ -756,6 +750,35 @@ describe("lsp — inline tests (markup fileTypes)", function () {
     expect(d2).to.deep.equal([]);
   });
 
+  it("reads statements the way the runner does", function () {
+    const bad = '{"goTo":123}';
+    const text = [
+      `<!-- test ignore start -->`,
+      `<!-- test {"runOn":"notarray"} -->`,
+      `<!-- step ${bad} -->`,
+      `<!-- test end -->`,
+      `<!-- step ${bad} -->`,
+    ].join("\n");
+    // The runner opens a test inside an ignore block, and `test end` ends the block.
+    const d = md(text);
+    expect(d.map((x) => x.range.start.line)).to.deep.equal([1, 4]);
+  });
+
+  it("puts the diagnostic on the statement's payload", function () {
+    const text = 'Intro.\n<!-- step {"goTo":123} -->\n';
+    const [d] = md(text);
+    const lines = text.split("\n");
+    expect(lines[d.range.start.line].slice(d.range.start.character, d.range.end.character)).to.equal('{"goTo":123}');
+  });
+
+  it("reads statements from a custom fileType's containers, outside code", function () {
+    const fileType = { name: "docs", extensions: ["md"], inlineStatements: { in: ["comment"] } };
+    const text = '<!-- step {"goTo":123} -->\n\n```md\n<!-- step {"goTo":456} -->\n```\n';
+    const d = computeInlineDiagnostics(doc("file:///a/x.md", text), fileType);
+    expect(d).to.have.length(1);
+    expect(d[0].range.start.line).to.equal(0);
+  });
+
   it("works across asciidoc, html, and dita fileTypes", function () {
     const bad = '{"goTo":123}';
     expect(
@@ -804,12 +827,9 @@ describe("lsp — review hardening", function () {
   });
 
   it("inline: zero-width regex patterns terminate instead of hanging", function () {
-    // `x?` / `(x?)` match the empty string at every position; without the
-    // lastIndex nudge these would loop forever.
-    const offsets = collectMatchOffsets("abc", ["x?"]);
-    expect(offsets).to.deep.equal([0, 1, 2, 3]);
-    const stmts = extractStatements("abc", ["(x?)"], []);
-    expect(stmts).to.have.length(4);
+    // `x?` / `(x?)` match the empty string at every position.
+    const fileType = { inlineStatements: { testStart: ["x?"], step: ["(x?)"] } };
+    expect(computeInlineDiagnostics(doc("file:///a/x.md", "abc"), fileType)).to.deep.equal([]);
   });
 });
 
@@ -905,22 +925,16 @@ describe("lsp — server wiring", function () {
 
 describe("lsp — command module", function () {
   it("registers as the `lsp` subcommand", function () {
-    expect(lspCommand.command).to.equal("lsp");
-    expect(lspCommand.describe).to.be.a("string").with.length.greaterThan(0);
+    const command = buildLspCommand();
+    expect(command.name()).to.equal("lsp");
+    expect(command.description()).to.be.a("string").with.length.greaterThan(0);
   });
 
   it("declares a --stdio option defaulting to true", function () {
-    const recorded = {};
-    const fakeYargs = {
-      option(name, cfg) {
-        recorded[name] = cfg;
-        return fakeYargs;
-      },
-    };
-    lspCommand.builder(fakeYargs);
-    expect(recorded.stdio).to.be.an("object");
-    expect(recorded.stdio.default).to.equal(true);
-    expect(recorded.stdio.type).to.equal("boolean");
+    const stdio = buildLspCommand().options.find((o) => o.long === "--stdio");
+    expect(stdio).to.be.an("object");
+    expect(stdio.defaultValue).to.equal(true);
+    expect(stdio.isBoolean()).to.equal(true);
   });
 });
 
@@ -1036,7 +1050,7 @@ describe("lsp — protocol (spawned server end-to-end)", function () {
     drivesFlagshipDiagnostic(process.execPath, [CLI, "lsp", "--stdio"], done);
   });
 
-  it("starts the same server via the bare `doc-detective-lsp` bin", function (done) {
-    drivesFlagshipDiagnostic(process.execPath, [LSP_BIN], done);
+  it("starts the same server without --stdio", function (done) {
+    drivesFlagshipDiagnostic(process.execPath, [CLI, "lsp"], done);
   });
 });

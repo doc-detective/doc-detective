@@ -1,0 +1,58 @@
+{
+  "specId": "cli-report-contract",
+  "description": "ADR 01186: every report a run writes validates against report_v3, through the real CLI. A routing miss fails the step that routed instead of adding a step of its own, a skipped context's empty `steps` validates, and a run with no tests writes the full report shape. Node only, so it PASSes on every platform.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the specs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-report';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/routed.spec.json',JSON.stringify({tests:[{steps:[{stepId:'first',runShell:'echo hi',onPass:[{goToStep:'nope'}]},{stepId:'second',runShell:'echo hi'}]}]}));fs.writeFileSync(d+'/skipped.spec.json',JSON.stringify({tests:[{if:'$$platform == nonexistentos',steps:[{runShell:'echo hi'}]}]}));fs.writeFileSync(d+'/empty.md','# Nothing to test\\n');\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "reports-validate",
+      "description": "Runs a routed, a skipped, and an empty input, then validates each results file against report_v3.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-report/routed.spec.json -o .tmp/fixture-report/routed.json --output-dir .tmp/fixture-report/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              1
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-report/skipped.spec.json -o .tmp/fixture-report/skipped.json --output-dir .tmp/fixture-report/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-report/empty.md -o .tmp/fixture-report/empty.json --output-dir .tmp/fixture-report/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "description": "Every results file validates. The routed run's first step FAILs with the routing reason, and no extra step is reported.",
+          "runShell": {
+            "command": "node -e \"const fs=require('fs');const {validate}=require('./src/common/dist/index.cjs');const read=(n)=>JSON.parse(fs.readFileSync('.tmp/fixture-report/'+n+'.json','utf8'));const bad=[];for (const n of ['routed','skipped','empty']) {const r=validate({schemaKey:'report_v3',object:read(n),addDefaults:false});if(!r.valid) bad.push(n+': '+r.errors)}const steps=read('routed').specs[0].tests[0].contexts.find((c)=>c.result!=='SKIPPED').steps;if(steps.length!==2||steps[0].result!=='FAIL'||!/Couldn't route to step .nope.: no step has that .stepId.\\.$/.test(steps[0].resultDescription)) bad.push('routed steps: '+JSON.stringify(steps));if(bad.length){console.error(bad.join('\\n'));process.exit(1)}\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    }
+  ]
+}

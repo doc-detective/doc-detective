@@ -15,7 +15,7 @@ export type TypeKeysSimple = string | string[];
 export type TypeKeysDetailed = {
   keys: TypeKeysSimple1;
   /**
-   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces in this phase — the native driver types the value atomically.
+   * Delay in milliseconds between each key press during a recording, and between each keystroke sent to a process surface. Not applied on app surfaces, where the native driver types the value at once.
    */
   inputDelay?: number;
   surface?: Surface;
@@ -24,7 +24,7 @@ export type TypeKeysDetailed = {
    */
   waitUntil?: ProcessReadiness | BrowserReadiness | AppReadiness;
   /**
-   * Maximum time in milliseconds to wait for `waitUntil` after sending the keys.
+   * Maximum time in milliseconds to find the target element in a browser, and to wait for `waitUntil` after sending the keys. `0` checks once.
    */
   timeout?: number;
   /**
@@ -72,7 +72,7 @@ export type TypeKeysSimple1 = string | string[];
  */
 export type Surface = SurfaceByName | ProcessSurface | BrowserSurface | AppSurface;
 /**
- * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit|edge) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
+ * Name of the surface. A browser engine keyword (chrome|firefox|safari|webkit) targets that browser; any other string names a background process. To target a browser window or tab, use the object form ({ "browser": …, "window": …, "tab": … }) — a plain string is never a window/tab name.
  */
 export type SurfaceByName = string;
 /**
@@ -194,9 +194,9 @@ export interface ProcessSurface {
 }
 export interface BrowserSurface {
   /**
-   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't open yet — you can also open one explicitly with `startSurface`; other steps require it to already be open.
+   * Browser engine. Selects the browser surface with that engine (or the one named by `name`). A goTo step opens the browser if it isn't already open — you can also open one explicitly with `startSurface`; other steps require it to already be open.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Name of the browser surface. Defaults to the engine name (the context's default browser registers under its engine). Assign distinct names to drive multiple browsers at once, including several of the same engine.
    */
@@ -267,7 +267,7 @@ export interface ProcessReadiness {
    */
   stdio?: string;
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
 }
@@ -284,7 +284,7 @@ export interface BrowserReadiness {
 }
 export interface AppReadiness {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria1;

@@ -39,6 +39,12 @@ describe("check-adr-numbers", function () {
     assert.deepEqual(findCollisions(base, base), []);
   });
 
+  it("never suggests a number in the reserved backfill range 00001–00999", function () {
+    const backfilled = ["adrs/00145-merge-core.md"];
+    const [collision] = findCollisions(backfilled, [...backfilled, "adrs/00145-other.md"]);
+    assert.equal(collision.next, "01000");
+  });
+
   it("passes a renumbering rename", function () {
     const head = ["adrs/01000-gate.md", "adrs/01016-dup-a.md", "adrs/01017-dup-b.md"];
     assert.deepEqual(findCollisions(base, head), []);

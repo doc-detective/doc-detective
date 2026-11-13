@@ -21,34 +21,8 @@ import { listAdapters } from "../agents/registry.js";
 import { getWdaRoot, readProductsMarker } from "../runtime/wdaProducts.js";
 import type { AgentDetection, HintContext } from "./types.js";
 import { requireYaml } from "../core/lazyYaml.js";
-
-// Action keys recognized by the v3 `step` schema. Kept in sync with
-// `step_v3.schema.json`'s anyOf branches — extra entries here would
-// silently never match real results, so this list must mirror the
-// schema. Order doesn't matter; the consumer is `Set.has()`.
-const STEP_ACTION_KEYS = [
-  "annotate",
-  "checkLink",
-  "click",
-  "closeSurface",
-  "dragAndDrop",
-  "find",
-  "goTo",
-  "httpRequest",
-  "loadCookie",
-  "loadVariables",
-  "record",
-  "runBrowserScript",
-  "runCode",
-  "runShell",
-  "saveCookie",
-  "screenshot",
-  "startSurface",
-  "stopRecord",
-  "swipe",
-  "type",
-  "wait",
-] as const;
+import { stepActions } from "../common/src/stepActions.js";
+import { looksSecret, maskedHitNames } from "../core/masking.js";
 
 const STABLE_FIND_KEYS = [
   "elementText",
@@ -73,7 +47,7 @@ export interface BuildHintContextOptions {
   results?: any;
   /** Defaults to `process.cwd()`. Injectable for tests. */
   cwd?: string;
-  /** Defaults to `!!process.stdout.isTTY`. Injectable for tests. */
+  /** Defaults to `!!process.stderr.isTTY`. Injectable for tests. */
   isTTY?: boolean;
   /** Defaults to `os.platform()`. Injectable for tests. */
   platform?: NodeJS.Platform;
@@ -91,7 +65,7 @@ export async function buildHintContext(
 ): Promise<HintContext> {
   const cwd = options.cwd ?? process.cwd();
   const isTTY =
-    typeof options.isTTY === "boolean" ? options.isTTY : !!process.stdout.isTTY;
+    typeof options.isTTY === "boolean" ? options.isTTY : !!process.stderr.isTTY;
   const platform = options.platform ?? os.platform();
   const config = options.config ?? {};
 
@@ -117,7 +91,7 @@ export async function buildHintContext(
   const hasPackageJson = packageJsonPath !== null;
   const hasDocDetectiveNpmScript =
     hasPackageJson && hasDocDetectiveScriptInPackageJson(packageJsonPath);
-  const outputDirGitignored = detectOutputDirGitignored(cwd, config.output);
+  const outputDirGitignored = detectOutputDirGitignored(cwd, config.outputDir);
   const nodeMajor = parseNodeMajor(process.versions.node);
   const hasRstFiles = detectRstFiles(cwd);
 
@@ -165,6 +139,7 @@ export async function buildHintContext(
     // ffmpeg recordings on the shared display (other contexts still ran in
     // parallel). Defensive read — results may be partial/absent.
     recordingSerialized: options.results?.recordingSerialized === true,
+    maskedNonSecretNames: new Set(maskedHitNames().filter((name) => !looksSecret(name))),
     hasStaleRecordings: walkData.hasStaleRecordings,
     repeatedAppSurfaceRefs: walkData.repeatedAppSurfaceRefs,
   };
@@ -599,6 +574,10 @@ export function walkResults(results: any): WalkData {
           if (context?.viewportFloored === true) {
             data.viewportFloored = true;
           }
+          // The automatic recording isn't a step (ADR 01179).
+          if (context?.autoRecording?.recordingPath) {
+            data.producedRecordings = true;
+          }
           const steps = Array.isArray(context?.steps) ? context.steps : [];
           for (const step of steps) {
             inspectStep(step, data);
@@ -621,7 +600,7 @@ export function walkResults(results: any): WalkData {
 
 function inspectStep(step: any, data: WalkData): void {
   if (!step || typeof step !== "object") return;
-  for (const key of STEP_ACTION_KEYS) {
+  for (const key of stepActions) {
     if (step[key] !== undefined) data.usedStepTypes.add(key);
   }
 
@@ -721,9 +700,8 @@ function inspectStep(step: any, data: WalkData): void {
     }
   }
   // Auto screenshots land in a separate result field (a relative path string),
-  // not `step.screenshot`. Track it so the enableAutoScreenshot hint doesn't
-  // fire when spec/test-level autoScreenshot already produced images.
-  if (typeof step.autoScreenshot === "string" && step.autoScreenshot.length > 0) {
+  // not `step.screenshot`. Tracked separately from authored screenshots.
+  if (typeof step.autoScreenshotPath === "string" && step.autoScreenshotPath.length > 0) {
     data.producedAutoScreenshots = true;
   }
   if (step.record !== undefined) {
@@ -985,7 +963,6 @@ export function detectOutputDirGitignored(
 ): boolean {
   try {
     if (typeof outputDir !== "string" || outputDir.length === 0) return false;
-    if (outputDir === "." || outputDir === "./") return false;
     const found = readGitignore(cwd);
     if (found === null) return false;
     // `setConfig()` resolves `args.output` to an absolute path, so the
@@ -1003,6 +980,11 @@ export function detectOutputDirGitignored(
     // matcher (which expects gitignore-style patterns) works on
     // Windows-resolved absolute paths too.
     candidate = candidate.replace(/\\/g, "/");
+    // An output dir of `.` (the repo root) can't be ignored itself; its
+    // run folders land in `.doc-detective/`, so that's what has to be covered.
+    if (candidate === "" || candidate === "." || candidate === "./") {
+      candidate = ".doc-detective";
+    }
     return gitignoreCovers(found.text, candidate);
   } catch {
     return false;

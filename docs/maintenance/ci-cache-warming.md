@@ -67,5 +67,5 @@ existing entry for that OS until the next save.
 - **Cross-node-line restores are assumed ABI-safe.** The key carries a
   `node<major>` component, with a same-week any-node fallback restore-key. The
   heavy native deps are Node-API or prebuilt, chosen for exactly this. A
-  node22 cell topping up from a node24 entry is therefore safe today. Revisit if a
+  node26 cell topping up from a node24 entry is therefore safe today. Revisit if a
   heavy dep ever compiles per-ABI at install time.

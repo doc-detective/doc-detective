@@ -12,6 +12,7 @@ import os from "node:os";
 import sinon from "sinon";
 
 import { htmlReporter, buildHtml } from "../dist/reporters/htmlReporter.js";
+import { stepActions } from "../dist/common/src/index.js";
 
 function makeResults(overrides = {}) {
   return {
@@ -92,6 +93,12 @@ describe("reporters/htmlReporter — direct coverage", function () {
       assert.ok(html.includes("\\u003c/script\\u003e"));
     });
 
+    it("labels steps from common's stepActions, so annotate steps get their key", function () {
+      const html = buildHtml(makeResults());
+      const actions = JSON.parse(html.match(/var ACTIONS = (\[[^\]]*\]);/)[1]);
+      assert.deepEqual(actions, [...stepActions]);
+    });
+
     it("escapes U+2028 and U+2029 line separators", function () {
       const html = buildHtml(makeResults({ reportId: "line sep end" }));
       assert.ok(html.includes("\\u2028"));
@@ -133,8 +140,8 @@ describe("reporters/htmlReporter — direct coverage", function () {
 
     it("treats a non-.html path as a directory and generates a timestamped name", async function () {
       const result = await htmlReporter({}, tmpDir, makeResults());
-      // Structure, not exact timestamp: doc-detective-results-<digits>.html
-      assert.match(path.basename(result), /^doc-detective-results-\d+\.html$/);
+      // Structure, not exact timestamp: doc-detective-results-<ISO-style token>.html
+      assert.match(path.basename(result), /^doc-detective-results-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.html$/);
       assert.equal(path.dirname(result), path.resolve(tmpDir));
       assert.ok(fs.existsSync(result));
     });
@@ -143,43 +150,38 @@ describe("reporters/htmlReporter — direct coverage", function () {
       const result = await htmlReporter({}, tmpDir, makeResults(), {
         command: "runTests",
       });
-      assert.match(path.basename(result), /^testResults-\d+\.html$/);
+      assert.match(path.basename(result), /^testResults-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.html$/);
     });
 
-    it("uses coverageResults-* naming for the runCoverage command (line 19 branch)", async function () {
-      const result = await htmlReporter({}, tmpDir, makeResults(), {
-        command: "runCoverage",
-      });
-      assert.match(path.basename(result), /^coverageResults-\d+\.html$/);
+    it("uses the run's ID, so the name matches the run folder", async function () {
+      const results = { ...makeResults(), runId: "2026-11-05T01-02-03-004Z" };
+      const result = await htmlReporter({}, tmpDir, results, { command: "runTests" });
+      assert.equal(path.basename(result), "testResults-2026-11-05T01-02-03-004Z.html");
     });
+
 
     it("falls back to the default report type for an unknown command", async function () {
       const result = await htmlReporter({}, tmpDir, makeResults(), {
         command: "somethingElse",
       });
-      assert.match(path.basename(result), /^doc-detective-results-\d+\.html$/);
+      assert.match(path.basename(result), /^doc-detective-results-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.html$/);
     });
   });
 
-  describe("htmlReporter() — collision-avoiding counter naming", function () {
-    it("appends -0 when the target file already exists", async function () {
+  describe("htmlReporter() — an existing file", function () {
+    it("overwrites a path you name", async function () {
       const outputFile = path.join(tmpDir, "report.html");
       fs.writeFileSync(outputFile, "existing");
       const result = await htmlReporter({}, outputFile, makeResults());
-      assert.equal(path.basename(result), "report-0.html");
-      assert.ok(fs.existsSync(result));
+      assert.equal(result, path.resolve(outputFile));
+      assert.match(fs.readFileSync(result, "utf-8"), /^<!DOCTYPE html>/i);
+      assert.deepEqual(fs.readdirSync(tmpDir), ["report.html"]);
     });
 
-    it("increments the counter past existing -0/-1 files (lines 33-34)", async function () {
-      // Pre-create report.html, report-0.html, report-1.html so the while
-      // loop must advance the counter to 2 before finding a free slot.
-      const base = path.join(tmpDir, "report");
-      fs.writeFileSync(`${base}.html`, "x");
-      fs.writeFileSync(`${base}-0.html`, "x");
-      fs.writeFileSync(`${base}-1.html`, "x");
-      const result = await htmlReporter({}, `${base}.html`, makeResults());
-      assert.equal(path.basename(result), "report-2.html");
-      assert.ok(fs.existsSync(result));
+    it("writes beside a file output meant for another reporter", async function () {
+      const results = { ...makeResults(), runId: "r1" };
+      const result = await htmlReporter({}, path.join(tmpDir, "results.json"), results, { command: "runTests" });
+      assert.equal(result, path.join(path.resolve(tmpDir), "testResults-r1.html"));
     });
   });
 
@@ -206,9 +208,10 @@ describe("reporters/htmlReporter — direct coverage", function () {
         assert.ok(writeStub.called);
         assert.ok(errStub.called);
         // The error message references the target file and the underlying error.
-        const logged = errStub.getCall(0).args.join(" ");
-        assert.ok(logged.includes("Error writing HTML report"));
-        assert.ok(logged.includes("disk full"));
+        assert.equal(
+          errStub.getCall(0).args[0],
+          `Error: Couldn't write the HTML report to ${path.resolve(outputFile)}: disk full.`
+        );
       } finally {
         writeStub.restore();
         errStub.restore();
@@ -234,18 +237,44 @@ describe("reporters/htmlReporter — direct coverage", function () {
   });
 
   describe("htmlReporter() — success logging", function () {
-    it("logs the report location on success", async function () {
+    it("announces the absolute path on stderr, and nothing on stdout", async function () {
       const outputFile = path.join(tmpDir, "report.html");
       const logStub = sinon.stub(console, "log");
-      try {
-        const result = await htmlReporter({}, outputFile, makeResults());
-        assert.ok(logStub.called);
-        const logged = logStub.getCall(0).args.join(" ");
-        assert.ok(logged.includes("See HTML report at"));
-        assert.ok(logged.includes(result));
-      } finally {
-        logStub.restore();
-      }
+      const errStub = sinon.stub(console, "error");
+      const result = await htmlReporter({}, outputFile, makeResults());
+      assert.deepEqual(errStub.getCall(0).args, [`HTML report: ${result}`]);
+      assert.equal(logStub.called, false);
     });
+
+    it("stays quiet at -l warning", async function () {
+      const errStub = sinon.stub(console, "error");
+      await htmlReporter({ logLevel: "warning" }, path.join(tmpDir, "report.html"), makeResults());
+      assert.equal(errStub.called, false);
+    });
+  });
+});
+
+describe("json reporter file names", function () {
+  let dir;
+  beforeEach(function () {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-json-name-"));
+  });
+  afterEach(function () {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const write = async (results) => {
+    const { outputResults } = await import("../dist/utils.js");
+    await outputResults({ reporters: ["json"], logLevel: "silent" }, dir, results, { command: "runTests" });
+    return fs.readdirSync(dir);
+  };
+
+  it("uses the run's ID, so the name matches the run folder", async function () {
+    const files = await write({ summary: {}, specs: [], runId: "2026-11-05T01-02-03-004Z" });
+    assert.deepEqual(files, ["testResults-2026-11-05T01-02-03-004Z.json"]);
+  });
+
+  it("falls back to an ISO-style timestamp without a run ID", async function () {
+    const [file] = await write({ summary: {}, specs: [] });
+    assert.match(file, /^testResults-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z\.json$/);
   });
 });

@@ -5,6 +5,7 @@ import {
   calculateFractionalDifference,
   resolveShellName,
   resolveShellExecutable,
+  invalidStepMessage,
 } from "../utils.js";
 import { startBackgroundProcessSurface } from "./processSurface.js";
 import {
@@ -12,6 +13,7 @@ import {
   evaluateImplicitAssertions,
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
+import { maskString } from "../masking.js";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -50,25 +52,11 @@ async function runShell({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step: shorthand expanded and defaults filled (ADR 01167).
   step = isValidStep.object;
-  // Resolve to object
-  if (typeof step.runShell === "string") {
-    step.runShell = { command: step.runShell };
-  }
-  // Set default values
-  step.runShell = {
-    ...step.runShell,
-    exitCodes: step.runShell.exitCodes || [0],
-    args: step.runShell.args || [],
-    workingDirectory: step.runShell.workingDirectory || ".",
-    maxVariation: step.runShell.maxVariation || 0,
-    overwrite: step.runShell.overwrite || "aboveVariation",
-    timeout: step.runShell.timeout || 60000,
-  };
 
   // Resolve which shell runs the command: step `shell` > config `shell` >
   // `bash`. Resolution can fail — Windows-only shells off Windows, or Git
@@ -141,6 +129,11 @@ async function runShell({
     result.outputs.stdio.stdout = commandResult.stdout.replace(/\r$/, "");
     result.outputs.stdio.stderr = commandResult.stderr.replace(/\r$/, "");
     result.outputs.exitCode = commandResult.exitCode;
+    if (commandResult.spawnError) {
+      result.status = "FAIL";
+      result.description = `Couldn't start the command, so check that its shell and workingDirectory exist: ${commandResult.spawnError.message}`;
+      return result;
+    }
   } catch (error: any) {
     result.status = "FAIL";
     result.description = error.message;
@@ -181,30 +174,30 @@ async function runShell({
   // (b) stdio substring / regex match — APPLICABLE only when `stdio` is set.
   // The existing "expected found in stdout OR stderr" semantics (substring, or
   // regex when wrapped in /.../) are computed here and EXPOSED as a new boolean
-  // output, `result.outputs.stdioMatched`, so the spec is a simple equality
-  // (`$$outputs.stdioMatched == true`) — no OR operator needed, and users can
-  // reference `$$outputs.stdioMatched` in conditions / custom assertions.
+  // output, `result.outputs.stdioMatches`, so the spec is a simple equality
+  // (`$$outputs.stdioMatches == true`) — no OR operator needed, and users can
+  // reference `$$outputs.stdioMatches` in conditions / custom assertions.
   if (step.runShell.stdio) {
     const isRegex =
       step.runShell.stdio.startsWith("/") && step.runShell.stdio.endsWith("/");
-    let stdioMatched: boolean;
+    let stdioMatches: boolean;
     if (isRegex) {
       const regex = new RegExp(step.runShell.stdio.slice(1, -1));
-      stdioMatched =
+      stdioMatches =
         regex.test(result.outputs.stdio.stdout) ||
         regex.test(result.outputs.stdio.stderr);
     } else {
-      stdioMatched =
+      stdioMatches =
         result.outputs.stdio.stdout.includes(step.runShell.stdio) ||
         result.outputs.stdio.stderr.includes(step.runShell.stdio);
     }
-    result.outputs.stdioMatched = stdioMatched;
+    result.outputs.stdioMatches = stdioMatches;
     specs.push({
-      statement: `$$outputs.stdioMatched == true`,
+      statement: `$$outputs.stdioMatches == true`,
       severity: "fail",
     });
     descriptions.push(
-      stdioMatched
+      stdioMatches
         ? `Found expected output (${step.runShell.stdio}) in stdio.`
         : isRegex
         ? `Couldn't find expected output (${step.runShell.stdio}) in actual output (stdout or stderr).`
@@ -230,12 +223,15 @@ async function runShell({
     // Set filePath
     let filePath = step.runShell.path;
     log(config, "debug", `Saving stdio to file: ${filePath}`);
+    // The file holds masked output, and a comparison is masked against masked
+    // (ADR 01178). Routing still reads the real stdout from outputs.
+    const saved = maskString(result.outputs.stdio.stdout);
 
     // Check if file already exists
     if (!fs.existsSync(filePath)) {
       // Doesn't exist, save output to file. No prior content to compare against,
       // so there is NO variation assertion in this branch.
-      fs.writeFileSync(filePath, result.outputs.stdio.stdout);
+      fs.writeFileSync(filePath, saved);
     } else {
       if (step.runShell.overwrite == "false") {
         // File already exists
@@ -248,7 +244,7 @@ async function runShell({
       // Calculate fractional diff between existing file content and command output content, not length
       const fractionalDiff = calculateFractionalDifference(
         existingFile,
-        result.outputs.stdio.stdout
+        saved
       );
       log(config, "debug", `Fractional difference: ${fractionalDiff}`);
 
@@ -263,7 +259,7 @@ async function runShell({
       if (fractionalDiff > step.runShell.maxVariation) {
         if (step.runShell.overwrite == "aboveVariation") {
           // Overwrite file
-          fs.writeFileSync(filePath, result.outputs.stdio.stdout);
+          fs.writeFileSync(filePath, saved);
           descriptions.push(`Saved output to file.`);
         }
         descriptions.push(
@@ -276,7 +272,7 @@ async function runShell({
       } else {
         if (step.runShell.overwrite == "true") {
           // Overwrite file
-          fs.writeFileSync(filePath, result.outputs.stdio.stdout);
+          fs.writeFileSync(filePath, saved);
           descriptions.push(`Saved output to file.`);
         }
         descriptions.push(
@@ -289,7 +285,7 @@ async function runShell({
   }
 
   // Evaluate the applicable specs through the shared engine against the current
-  // step's outputs (including the derived `stdioMatched` / `variation`).
+  // step's outputs (including the derived `stdioMatches` / `variation`).
   const ctx = buildConditionContext({ outputs: result.outputs });
   const { assertions, status } = await evaluateImplicitAssertions(specs, ctx);
   result.assertions = assertions;

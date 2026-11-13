@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { findElement } from "../dist/core/tests/findElement.js";
 import { clickElement } from "../dist/core/tests/click.js";
+import { rankNearMatches, collectNearMatches } from "../dist/core/tests/findStrategies.js";
 
 const config = { logLevel: "silent" };
 
@@ -121,6 +122,7 @@ describe("findElement unified assertion model", function () {
     assert.equal(found.statement, "$$outputs.found == true");
     assert.equal(result.outputs.element, undefined);
     assert.equal(result.outputs.rawElement, undefined);
+    assert.equal(result.description, "Couldn't find an element within `timeout` (50 ms).");
   });
 
   it("not found (shorthand) → found==false, assertion FAIL, status FAIL", async () => {
@@ -133,6 +135,7 @@ describe("findElement unified assertion model", function () {
     assert.equal(result.status, "FAIL");
     assert.equal(result.outputs.found, false);
     assert.equal(findAssertion(result.assertions, "found").result, "FAIL");
+    assert.equal(result.description, "Couldn't find element `Nonexistent`.");
   });
 
   it("shorthand string + caller click request → click sub-effect runs", async () => {
@@ -220,12 +223,29 @@ describe("findElement unified assertion model", function () {
     assert.deepEqual(calls[0], [{ button: "right" }]);
   });
 
-  // A schema `default` is documentation, not behavior: find_v3's properties
-  // sit inside an `anyOf`, and Ajv skips defaults there, so nothing injects
-  // the value. The runtime carries its own default in the `step.find = {...}`
-  // normalization block, and the two drifted apart unnoticed — the schema and
-  // docs advertised `true` while every run behaved as `false`. These pin them
-  // together so the next divergence fails here instead of shipping.
+  // find.click is the button in the effective step (ADR 01175), and false
+  // clicks nothing. Coercion used to turn false into the string "false",
+  // which is truthy, so the find clicked anyway (ADR 01161).
+  for (const [click, expected] of [
+    [false, []],
+    [true, [[]]],
+    ["middle", [[{ button: "middle" }]]],
+  ]) {
+    it(`find.click: ${JSON.stringify(click)} clicks ${JSON.stringify(expected)}`, async () => {
+      const calls = [];
+      const element = makeElement({ clickImpl: async (...args) => calls.push(args) });
+      const driver = makeDriver({ candidates: [element] });
+      const result = await findElement({ config, step: { find: { selector: "button", click } }, driver });
+      assert.equal(result.status, "PASS", result.description);
+      assert.deepEqual(calls, expected);
+    });
+  }
+
+  // The schema's defaults are what runs: since ADR 01167, validate() fills
+  // them in the effective step, which findElement acts on. Before, find_v3's
+  // `moveTo` default advertised `true` while every run behaved as `false`.
+  // These pin them together so the next divergence fails here instead of
+  // shipping.
   it("moveTo's declared default is false", function () {
     assert.equal(FIND_V3.components.schemas.object.properties.moveTo.default, false);
   });
@@ -294,8 +314,9 @@ describe("findElement unified assertion model", function () {
   });
 });
 
-// ADR 01161: a top-level boolean `click` names no element. Coercion used to
-// turn it into the text "true" or "false" and click whatever matched.
+// ADR 01175: a boolean `click` names no element, so it's invalid. Coercion used
+// to turn it into the text "true" or "false" and click whatever matched. 4.x
+// (ADR 01161) failed it at run time; 5.0 fails it at validation.
 describe("click with a boolean value", function () {
   for (const value of [true, false]) {
     it(`click: ${value} fails with a hint to quote it, and clicks nothing`, async () => {
@@ -304,9 +325,11 @@ describe("click with a boolean value", function () {
       const driver = makeDriver({ candidates: [element], $impl: async () => element });
       const result = await clickElement({ config, step: { click: value }, driver });
       assert.equal(result.status, "FAIL");
-      assert.equal(
-        result.description,
-        `\`click\` needs an element, not ${value}. To click an element whose text is "${value}", quote it: "click": "${value}".`
+      assert.ok(
+        result.description.includes(
+          `must be string or object (got ${value}). To click an element whose text is "${value}", quote it: "click": "${value}"`
+        ),
+        result.description
       );
       assert.equal(clicks, 0);
     });
@@ -319,5 +342,70 @@ describe("click with a boolean value", function () {
     const result = await clickElement({ config, step: { click: "true" }, driver });
     assert.equal(result.status, "PASS", result.description);
     assert.equal(clicks, 1);
+  });
+});
+
+// ADR 01194: a failed browser find lists the closest elements on the page.
+describe("near matches", function () {
+  const page = [
+    { text: "Cancel", tag: "button" },
+    { text: "Saved", tag: "span" },
+    { text: "Save  changes", tag: "button", id: "save", testId: "save-btn" },
+    { text: "", tag: "button", ariaLabel: "Close dialog" },
+  ];
+
+  it("ranks whole-word matches first, then close spellings, and drops the rest", () => {
+    assert.deepEqual(rankNearMatches("Save", page), [
+      { text: "Save changes", tag: "button", id: "save", testId: "save-btn" },
+      { text: "Saved", tag: "span" },
+    ]);
+  });
+
+  it("matches an id, test ID, or accessible name, not only text", () => {
+    assert.deepEqual(rankNearMatches("save-btm", page), [
+      { text: "Save changes", tag: "button", id: "save", testId: "save-btn" },
+    ]);
+    assert.deepEqual(rankNearMatches("Close dialg", page), [
+      { tag: "button", ariaLabel: "Close dialog" },
+    ]);
+  });
+
+  it("returns at most three", () => {
+    const many = ["Save 1", "Save 2", "Save 3", "Save 4"].map((text) => ({ text, tag: "a" }));
+    assert.equal(rankNearMatches("Save", many).length, 3);
+  });
+
+  it("ignores short words that differ, and a regex target", () => {
+    assert.deepEqual(rankNearMatches("Go", [{ text: "No", tag: "p" }]), []);
+    assert.deepEqual(rankNearMatches("/Sav.*/", page), []);
+  });
+
+  it("collects from the page, and returns none when the driver can't run a script", async () => {
+    const driver = { execute: async () => page };
+    assert.equal((await collectNearMatches({ driver, find: "Save" })).length, 2);
+    assert.equal((await collectNearMatches({ driver, find: { elementText: "Save" } })).length, 2);
+    assert.equal((await collectNearMatches({ driver, find: { selector: "#sav" } }))[0].id, "save");
+    assert.deepEqual(await collectNearMatches({ driver: {}, find: "Save" }), []);
+    const throwing = { execute: async () => { throw new Error("no such window"); } };
+    assert.deepEqual(await collectNearMatches({ driver: throwing, find: "Save" }), []);
+  });
+
+  it("a failed criteria find exposes outputs.nearMatches", async () => {
+    const driver = { ...makeDriver({ candidates: [] }), execute: async () => page };
+    const result = await findElement({
+      config,
+      step: { find: { elementText: "Save", timeout: 0 } },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.deepEqual(result.outputs.nearMatches.map((m) => m.text), ["Save changes", "Saved"]);
+  });
+
+  it("a failed shorthand find exposes outputs.nearMatches, empty when nothing is close", async function () {
+    this.timeout(15000);
+    const driver = { ...makeDriver({ $impl: async () => ({}) }), execute: async () => page };
+    const result = await findElement({ config, step: { find: "Nothing like it" }, driver });
+    assert.equal(result.status, "FAIL");
+    assert.deepEqual(result.outputs.nearMatches, []);
   });
 });

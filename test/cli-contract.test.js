@@ -1,0 +1,1464 @@
+// The 5.0 CLI contract (ADR 01146), asserted through the real bin: exit code,
+// stdout, stderr, and escape sequences. Each later step of the rollout adds rows.
+import { spawn, spawnSync } from "node:child_process";
+import fs from "node:fs";
+import http from "node:http";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { expect } from "chai";
+import treeKill from "tree-kill";
+import { validate } from "../dist/common/src/index.js";
+import { outputResults } from "../dist/utils.js";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const CLI = path.join(ROOT, "bin", "doc-detective.js");
+const ESC = /\x1b/;
+
+describe("CLI contract", function () {
+  this.timeout(60000);
+  let cwd;
+
+  const writeSpec = (name, step) =>
+    fs.writeFileSync(
+      path.join(cwd, name),
+      JSON.stringify({ specId: name, tests: [{ testId: `${name}-t`, steps: [step] }] })
+    );
+
+  function childEnv(env = {}, unset = []) {
+    const baseEnv = { ...process.env };
+    for (const key of ["CI", "NO_COLOR", "FORCE_COLOR", "DEBUG", "DOC_DETECTIVE_DEBUG"]) delete baseEnv[key];
+    const fullEnv = {
+      ...baseEnv,
+      DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1",
+      DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false }),
+      ...env,
+    };
+    for (const key of unset) delete fullEnv[key];
+    return fullEnv;
+  }
+
+  function run(args, { env = {}, input, unset = [] } = {}) {
+    return spawnSync(process.execPath, [CLI, ...args], {
+      cwd,
+      encoding: "utf8",
+      input: input ?? "",
+      env: childEnv(env, unset),
+    });
+  }
+
+  beforeEach(function () {
+    cwd = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cli-contract-"));
+    writeSpec("pass.spec.json", { runShell: "echo hi" });
+    writeSpec("fail.spec.json", { runShell: "exit 3" });
+  });
+
+  afterEach(function () {
+    fs.rmSync(cwd, { recursive: true, force: true });
+  });
+
+  describe("command layout", function () {
+    it("runs tests on a bare invocation", function () {
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(r.stdout + r.stderr).to.match(/passed/i);
+    });
+
+    for (const command of ["run", "runTests", "runtests"]) {
+      it(`runs tests through \`${command}\``, function () {
+        const r = run([command, "-i", "pass.spec.json"]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(r.stdout + r.stderr).to.match(/passed/i);
+      });
+    }
+
+    it("takes positional inputs on `run`, combined with --input", function () {
+      const r = run(["run", "pass.spec.json", "-i", "fail.spec.json", "-n"]);
+      expect(r.status, r.stderr).to.equal(0);
+      const plan = JSON.parse(r.stdout);
+      expect(plan.config.input).to.have.lengthOf(2);
+    });
+
+    it("keeps bare words free for subcommands", function () {
+      const r = run(["pass.spec.json"]);
+      expect(r.status).to.not.equal(0);
+    });
+
+    it("rejects the removed install-agents alias", function () {
+      expect(run(["install-agents"]).status).to.not.equal(0);
+    });
+
+    it("ships one executable", function () {
+      const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+      expect(Object.keys(pkg.bin)).to.deep.equal(["doc-detective"]);
+    });
+
+    it("hides the runner subcommand from help, but keeps it callable", function () {
+      expect(run(["--help"]).stdout).to.not.match(/^\s+runner\s{2,}/m);
+      expect(run(["runner", "--help"]).status).to.equal(0);
+    });
+
+    it("keeps `-s` for --spec only", function () {
+      const r = run(["install", "agents", "-s", "global", "--agent", "claude", "--yes", "--dry-run"]);
+      expect(r.status).to.not.equal(0);
+      expect(r.stderr).to.include("unknown option '-s'");
+    });
+
+    it("accepts global flags before and after a subcommand", function () {
+      expect(run(["-q", "install", "status", "--cache-dir", "cc"]).status).to.equal(0);
+      expect(run(["install", "status", "-q", "--cache-dir", "cc"]).status).to.equal(0);
+    });
+
+    it("gives `install status` only the options it uses", function () {
+      expect(run(["install", "status", "--yes"]).status).to.not.equal(0);
+    });
+  });
+
+  describe("exit codes", function () {
+    const noFail = { exitOnFail: false, telemetry: { send: false }, autoUpdate: false };
+    const rows = [
+      { name: "all specs pass", args: ["-i", "pass.spec.json"], code: 0 },
+      { name: "a spec fails", args: ["-i", "fail.spec.json"], code: 1 },
+      { name: "a failing spec with --no-exit-on-fail", args: ["--no-exit-on-fail", "-i", "fail.spec.json"], code: 0 },
+      { name: "an empty run", args: ["-i", "empty.md"], code: 2 },
+      { name: "an empty run with --no-exit-on-fail", args: ["--no-exit-on-fail", "-i", "empty.md"], code: 0 },
+      { name: "a missing input path", args: ["-i", "does-not-exist.md"], code: 2 },
+      { name: "a filter matching nothing", args: ["-i", "pass.spec.json", "-t", "zzz"], code: 2 },
+      { name: "an invalid spec", args: ["-i", "invalid.spec.json"], code: 2 },
+      { name: "an invalid spec beside a valid one", args: ["run", "invalid.spec.json", "pass.spec.json"], code: 2 },
+      { name: "an invalid spec with --no-exit-on-fail", args: ["--no-exit-on-fail", "-i", "invalid.spec.json"], code: 0 },
+      { name: "an unknown flag", args: ["--nope"], code: 2 },
+      { name: "a bare word", args: ["nope"], code: 2 },
+      { name: "a missing flag value", args: ["-i"], code: 2 },
+      { name: "a missing config file", args: ["-c", "nope.json"], code: 2 },
+      { name: "an invalid --shell", args: ["--shell", "zsh", "-i", "pass.spec.json"], code: 2 },
+      { name: "an invalid --verification", args: ["--verification", "always", "-i", "pass.spec.json"], code: 2 },
+      { name: "an invalid --browser-fallback", args: ["--browser-fallback", "nope", "-i", "pass.spec.json"], code: 2 },
+      { name: "an invalid --log-level", args: ["-l", "loud", "-i", "pass.spec.json"], code: 2 },
+      { name: "an invalid --concurrent-runners", args: ["--concurrent-runners", "abc", "-i", "pass.spec.json"], code: 2 },
+      { name: "--concurrent-runners with no value", args: ["-i", "pass.spec.json", "--concurrent-runners"], code: 2 },
+      { name: "an unknown reporter", args: ["-r", "bogus", "-i", "pass.spec.json"], code: 2 },
+      { name: "a folder as --output", args: ["-o", ".", "-i", "pass.spec.json"], code: 2 },
+      { name: "an unknown install asset", args: ["install", "nope"], code: 2 },
+      { name: "an unknown runtime package", args: ["install", "runtime", "nope", "--dry-run", "--cache-dir", "cc"], code: 2 },
+      { name: "a refused android install", args: ["install", "android", "--cache-dir", "cc"], code: 2 },
+      { name: "help", args: ["--help"], code: 0 },
+      { name: "version", args: ["--version"], code: 0 },
+    ];
+    for (const { name, args, code } of rows) {
+      it(`${code} for ${name}`, function () {
+        fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+        fs.writeFileSync(
+          path.join(cwd, "invalid.spec.json"),
+          JSON.stringify({ tests: [{ steps: [{ nope: "x" }] }] })
+        );
+        const r = run(args);
+        expect(r.status, r.stdout + r.stderr).to.equal(code);
+      });
+    }
+
+    it("runs nothing when any spec is invalid", function () {
+      fs.writeFileSync(
+        path.join(cwd, "invalid.spec.json"),
+        JSON.stringify({ tests: [{ steps: [{ nope: "x" }] }] })
+      );
+      const marker = path.join(cwd, "ran.txt");
+      writeSpec("marks.spec.json", { runShell: "echo ran > ran.txt" });
+      const r = run(["run", "invalid.spec.json", "marks.spec.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("invalid.spec.json");
+      expect(fs.existsSync(marker)).to.equal(false);
+    });
+
+    it("doesn't count a JSON file without tests as an invalid spec", function () {
+      fs.writeFileSync(path.join(cwd, "package.json"), JSON.stringify({ name: "x" }));
+      const r = run(["run", "package.json", "pass.spec.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    // ADR 01186: an API failure is an error, not a report.
+    it("exits 2 when the Doc Detective API can't run the tests", function () {
+      fs.writeFileSync(path.join(cwd, "api.json"), JSON.stringify({ integrations: { docDetectiveApi: { apiKey: "k" } } }));
+      const r = run(["-c", "api.json", "-i", "pass.spec.json"], {
+        env: { DOC_DETECTIVE_API_URL: "http://127.0.0.1:1" },
+        unset: ["DOC_DETECTIVE_API"],
+      });
+      expect(r.status, r.stderr).to.equal(2);
+      expect(r.stderr).to.match(/Couldn't run tests through the Doc Detective API: couldn't reach it \(\w+\)\./);
+    });
+
+    it("exits 2 from an invalid config with --no-exit-on-fail too", function () {
+      fs.writeFileSync(path.join(cwd, "bad.json"), JSON.stringify({ logLevel: "loud" }));
+      const r = run(["--no-exit-on-fail", "-c", "bad.json"], { env: { DOC_DETECTIVE_CONFIG: JSON.stringify(noFail) } });
+      expect(r.status).to.equal(2);
+    });
+
+    it("still writes results when a spec fails", function () {
+      const r = run(["-i", "fail.spec.json", "-o", "results.json"]);
+      expect(r.status).to.equal(1);
+      const results = JSON.parse(fs.readFileSync(path.join(cwd, "results.json"), "utf8"));
+      expect(results.summary.specs.fail).to.equal(1);
+    });
+  });
+
+  describe("output paths", function () {
+    it("writes --output as the exact results file, overwriting it", function () {
+      fs.writeFileSync(path.join(cwd, "results.json"), "old");
+      expect(run(["-i", "pass.spec.json", "-o", "results.json"]).status).to.equal(0);
+      expect(JSON.parse(fs.readFileSync(path.join(cwd, "results.json"), "utf8")).summary.specs.pass).to.equal(1);
+      expect(fs.readdirSync(cwd).filter((f) => /^results-\d/.test(f))).to.deep.equal([]);
+    });
+
+    it("writes one results file with -r json -o", function () {
+      expect(run(["-i", "pass.spec.json", "-r", "json", "-o", "results.json"]).status).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "results.json"))).to.equal(true);
+      expect(fs.readdirSync(cwd).filter((f) => f.startsWith("testResults"))).to.deep.equal([]);
+    });
+
+    it("points a folder given to --output at --output-dir", function () {
+      const r = run(["-o", ".", "-i", "pass.spec.json"]);
+      expect(r.stderr).to.include("--output-dir");
+    });
+
+    it("writes run folders under --output-dir", function () {
+      expect(run(["-i", "pass.spec.json", "--output-dir", "artifacts"]).status).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "artifacts", ".doc-detective", "runs"))).to.equal(true);
+    });
+
+    it("leaves no results file in the current directory by default", function () {
+      expect(run(["-i", "pass.spec.json"]).status).to.equal(0);
+      expect(fs.readdirSync(cwd).filter((f) => f.startsWith("testResults"))).to.deep.equal([]);
+      expect(fs.existsSync(path.join(cwd, ".doc-detective", "runs"))).to.equal(true);
+    });
+
+    it("isn't broken by a stale null results file from 4.x", function () {
+      fs.writeFileSync(path.join(cwd, "testResults-1.json"), "null");
+      const r = run(["run", "."]);
+      expect(r.stderr).to.not.include("Object is required");
+    });
+  });
+
+  // Output modes compose or refuse (ADR 01191).
+  describe("output modes", function () {
+    const writeConfig = (config) => fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify(config));
+
+    for (const { name, args, config, line } of [
+      { name: "--json --plain", args: ["--json", "--plain"], line: "set `--json` or `--plain`, not both." },
+      { name: "-o - --plain", args: ["-o", "-", "--plain"], line: "set `--output -` or `--plain`, not both." },
+      {
+        name: 'config `output: "-"` with --plain',
+        args: ["--plain"],
+        config: { output: "-" },
+        line: "set `--output -` or `--plain`, not both.",
+      },
+      { name: "--dry-run --plain", args: ["--dry-run", "--plain"], line: "set `--dry-run` or `--plain`, not both." },
+      {
+        name: "config `dryRun` with --plain",
+        args: ["--plain"],
+        config: { dryRun: true },
+        line: "set `--dry-run` or `--plain`, not both.",
+      },
+    ]) {
+      it(`refuses ${name} with one line and exit 2`, function () {
+        if (config) writeConfig(config);
+        const r = run(["-i", "pass.spec.json", ...args]);
+        expect(r.status, r.stdout + r.stderr).to.equal(2);
+        expect(r.stderr).to.equal(`Error: ${line}\n`);
+        expect(r.stdout).to.equal("");
+      });
+    }
+
+    it("lets --no-dry-run --plain beat a config `dryRun`", function () {
+      writeConfig({ dryRun: true });
+      const r = run(["-i", "pass.spec.json", "--no-dry-run", "--plain"]);
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("writes the plan to --output on a dry run, and still prints it", function () {
+      const r = run(["-i", "pass.spec.json", "--dry-run", "-o", "plan.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      const printed = JSON.parse(r.stdout);
+      expect(printed.specs).to.have.lengthOf(1);
+      expect(JSON.parse(fs.readFileSync(path.join(cwd, "plan.json"), "utf8"))).to.deep.equal(printed);
+    });
+
+    it('prints results to stdout for config `output: "-"`, and writes no file', function () {
+      writeConfig({ output: "-" });
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
+      expect(fs.existsSync(path.join(cwd, "-"))).to.equal(false);
+    });
+
+    it("lets -o - beat a config results file", function () {
+      writeConfig({ output: "results.json" });
+      const r = run(["-i", "pass.spec.json", "-o", "-"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
+      expect(fs.existsSync(path.join(cwd, "results.json"))).to.equal(false);
+    });
+
+    it('lets -o <file> beat a config `output: "-"`', function () {
+      writeConfig({ output: "-" });
+      const r = run(["-i", "pass.spec.json", "-o", "results.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(r.stdout).to.match(/1 of 1 test passed/);
+      expect(fs.existsSync(path.join(cwd, "results.json"))).to.equal(true);
+    });
+  });
+
+  describe("stdin", function () {
+    it("reads a spec from `-i -`", function () {
+      const r = run(["-i", "-"], {
+        input: JSON.stringify({ tests: [{ steps: [{ runShell: "echo hi" }] }] }),
+      });
+      expect(r.status, r.stdout + r.stderr).to.equal(0);
+      expect(r.stdout).to.match(/passed/i);
+    });
+
+    it("reads a spec from `run -`", function () {
+      const r = run(["run", "-"], {
+        input: "tests:\n  - steps:\n      - runShell: echo hi\n",
+      });
+      expect(r.status, r.stdout + r.stderr).to.equal(0);
+    });
+
+    it("cleans up after reading stdin", function () {
+      run(["-i", "-"], { input: JSON.stringify({ tests: [{ steps: [{ runShell: "echo hi" }] }] }) });
+      const leftovers = fs.readdirSync(cwd).filter((f) => f.startsWith("stdin"));
+      expect(leftovers).to.deep.equal([]);
+    });
+  });
+
+  describe("streams", function () {
+    it("keeps logs off stdout", function () {
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.stdout).to.not.match(/Resolving test specs|Running test specs/);
+      expect(r.stderr).to.match(/Running test specs/);
+    });
+
+    it("drops level labels by default", function () {
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.stderr).to.not.match(/\((INFO|WARNING|DEBUG)\)/);
+      expect(run(["-i", "does-not-exist.md", "--no-exit-on-fail"]).stderr).to.match(/^Warning: /m);
+    });
+
+    it("restores labels and adds timestamps with -d", function () {
+      const r = run(["-d", "-i", "pass.spec.json"]);
+      expect(r.stderr).to.match(/\d{4}-\d{2}-\d{2}T\S+ \(INFO\)/);
+      expect(r.status).to.equal(0);
+    });
+
+    it("prints no sponsor banner", function () {
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.stdout + r.stderr).to.not.match(/Thanks for using|####/);
+    });
+
+    it("ends stdout with a one-line verdict", function () {
+      const pass = run(["-i", "pass.spec.json"]).stdout.trim().split("\n").pop();
+      expect(pass).to.match(/1 of 1 test passed/);
+      const fail = run(["-i", "fail.spec.json"]).stdout.trim().split("\n").pop();
+      expect(fail).to.match(/1 of 1 test failed/);
+    });
+
+    it("prints progress as plain lines when not on a terminal", function () {
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.stderr).to.match(/PASS pass\.spec\.json\/pass\.spec\.json-t/);
+      expect(r.stderr).to.not.match(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/);
+    });
+
+    it("announces report files with absolute paths on stderr", function () {
+      const r = run(["-i", "pass.spec.json"]);
+      const real = fs.realpathSync(cwd);
+      const lines = r.stderr.split(/\r?\n/);
+      expect(lines.some((l) => l.startsWith("Run report: ") && l.endsWith("testResults.html") && l.includes(real)), r.stderr).to.equal(true);
+      expect(lines.some((l) => l.startsWith("Run summary: ") && l.endsWith("testResults.md") && l.includes(real)), r.stderr).to.equal(true);
+      expect(lines.some((l) => l.startsWith("Run results: ") && l.endsWith("testResults.json") && l.includes(real)), r.stderr).to.equal(true);
+    });
+
+    it("prints only JSON on stdout with --json -r junit,markdown,html, and announces on stderr", function () {
+      const r = run(["-i", "pass.spec.json", "--json", "-r", "junit,markdown,html"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
+      for (const kind of ["JUnit report: ", "Markdown summary: ", "HTML report: "]) {
+        expect(r.stderr, kind).to.include(kind);
+      }
+    });
+
+    it("hides report announcements at -l warning and never says results at", function () {
+      const quiet = run(["-i", "pass.spec.json", "-l", "warning", "-r", "junit"]);
+      expect(quiet.stderr).to.not.include("JUnit report:");
+      expect(fs.existsSync(path.join(cwd, "junit.xml"))).to.equal(true);
+      const loud = run(["-i", "pass.spec.json", "-r", "junit,markdown,html,json,runFolder,terminal"]);
+      expect(loud.stdout + loud.stderr).to.not.include("results at ");
+    });
+
+    it("keeps the exit code when a report can't be written", function () {
+      fs.writeFileSync(path.join(cwd, "blocked"), "a file, not a folder");
+      const r = run(["-i", "pass.spec.json", "-r", "junit", "--output-dir", "blocked/reports", "--no-auto-screenshot", "--no-auto-record"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(r.stderr).to.match(/Couldn't write the JUnit report to .*junit\.xml: /);
+    });
+
+    for (const args of [["--json"], ["-o", "-"]]) {
+      it(`prints only one JSON document on stdout with ${args.join(" ")}`, function () {
+        const r = run(["-i", "pass.spec.json", ...args]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(JSON.parse(r.stdout).summary.specs.pass).to.equal(1);
+      });
+    }
+
+    it("keeps the exit code with --json", function () {
+      const r = run(["-i", "fail.spec.json", "--json"]);
+      expect(r.status).to.equal(1);
+      expect(JSON.parse(r.stdout).summary.specs.fail).to.equal(1);
+    });
+
+    for (const level of ["silent", "error", "warning", "info", "debug"]) {
+      it(`keeps --dry-run stdout parseable at -l ${level}`, function () {
+        const r = run(["-i", "pass.spec.json", "-n", "-l", level]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(JSON.parse(r.stdout).specs).to.be.an("array");
+      });
+    }
+
+    // ADR 01186: every report a run can write validates, including the
+    // skipped, routed, and empty ones.
+    const otherPlatform = { win32: "linux", darwin: "windows", linux: "mac" }[process.platform] ?? "mac";
+    const reportCases = {
+      "skipped.spec.json": {
+        specId: "skipped",
+        tests: [{ testId: "skipped-t", runOn: [{ platforms: [otherPlatform] }], steps: [{ runShell: "echo hi" }] }],
+      },
+      "routed.spec.json": {
+        specId: "routed",
+        tests: [
+          {
+            testId: "routed-t",
+            steps: [
+              { stepId: "first", runShell: "echo hi", onPass: [{ goToStep: "nope" }] },
+              { stepId: "second", runShell: "echo hi" },
+            ],
+          },
+        ],
+      },
+    };
+    for (const [name, file, args, status] of [
+      ["a passing run", "pass.spec.json", [], 0],
+      ["a failing run", "fail.spec.json", [], 1],
+      ["a run whose filter matches nothing", "pass.spec.json", ["-t", "no-such-test"], 2],
+      ["a run that skipped everything", "skipped.spec.json", [], 2],
+      ["a run whose routing named a missing step", "routed.spec.json", [], 1],
+      ["a run with no tests", "empty.md", [], 2],
+    ]) {
+      it(`matches report_v3 for ${name}`, function () {
+        for (const [specFile, spec] of Object.entries(reportCases)) {
+          fs.writeFileSync(path.join(cwd, specFile), JSON.stringify(spec));
+        }
+        fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+        const r = run(["-i", file, "--json", ...args]);
+        expect(r.status, r.stderr).to.equal(status);
+        const report = JSON.parse(r.stdout);
+        const result = validate({ schemaKey: "report_v3", object: report, addDefaults: false });
+        expect(result.valid, result.errors).to.equal(true);
+      });
+    }
+
+    it("reports a routing miss on the step that routed, not on a step of its own", function () {
+      fs.writeFileSync(path.join(cwd, "routed.spec.json"), JSON.stringify(reportCases["routed.spec.json"]));
+      const r = run(["-i", "routed.spec.json", "--json"]);
+      const report = JSON.parse(r.stdout);
+      const [first, second] = report.specs[0].tests[0].contexts[0].steps;
+      expect(report.specs[0].tests[0].contexts[0].steps).to.have.lengthOf(2);
+      expect(first.result).to.equal("FAIL");
+      expect(first.resultDescription).to.match(/Couldn't route to step `nope`: no step has that `stepId`\.$/);
+      expect(second.result).to.equal("SKIPPED");
+      expect(report.summary.steps).to.deep.equal({ pass: 0, fail: 1, warning: 0, skipped: 1 });
+    });
+
+    it("writes the same report shape for every run with no tests", function () {
+      fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+      for (const args of [["-i", "empty.md"], ["-i", "pass.spec.json", "-t", "no-such-test"]]) {
+        const report = JSON.parse(run([...args, "--json"]).stdout);
+        expect(Object.keys(report)).to.include.members(["summary", "startedAt", "environment", "durationMs", "specs"]);
+        expect(report.specs).to.deep.equal([]);
+      }
+    });
+
+    it("matches resolvedTests_v3 for a --dry-run plan", function () {
+      const r = run(["-i", "pass.spec.json", "-n"]);
+      expect(r.status, r.stderr).to.equal(0);
+      const result = validate({ schemaKey: "resolvedTests_v3", object: JSON.parse(r.stdout), addDefaults: false });
+      expect(result.valid, result.errors).to.equal(true);
+    });
+
+    // ADR 01167: the report echoes the effective step, not the authored shorthand.
+    // The page server lives in this process, so the CLI runs asynchronously
+    // (spawnSync would block the server it browses) and is killed if it stalls.
+    // ADR 01173: a screenshot the runner names is reported at its place in outputDir.
+    it("reports the effective goTo, httpRequest, and screenshot steps", async function () {
+      this.timeout(180000);
+      const server = http.createServer((req, res) => res.end("<html><body>ok</body></html>"));
+      await new Promise((resolve) => server.listen(0, resolve));
+      const url = `http://localhost:${server.address().port}`;
+      try {
+        fs.writeFileSync(
+          path.join(cwd, "effective.spec.json"),
+          JSON.stringify({
+            specId: "effective",
+            // The URL is substituted, so it'd be masked (ADR 01178); this test reads it back.
+            publicVariables: ["DD_CONTRACT_URL"],
+            tests: [
+              {
+                testId: "effective-t",
+                runOn: [{ browsers: [{ name: "chrome", headless: true }] }],
+                steps: [
+                  { goTo: url },
+                  { httpRequest: url },
+                  { goTo: "$DD_CONTRACT_URL" },
+                  { stepId: "shot", screenshot: true },
+                ],
+              },
+            ],
+          })
+        );
+        // Auto capture off, so the steps are the four written here (ADR 01177).
+        const child = spawn(process.execPath, [CLI, "-i", "effective.spec.json", "--json", "--output-dir", "out", "--no-auto-screenshot", "--no-auto-record"], {
+          cwd,
+          env: childEnv({ DD_CONTRACT_URL: url }),
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        let stdout = "";
+        let stderr = "";
+        child.stdout.on("data", (chunk) => (stdout += chunk));
+        child.stderr.on("data", (chunk) => (stderr += chunk));
+        const stall = setTimeout(() => treeKill(child.pid), 150000);
+        const status = await new Promise((resolve) => child.on("close", resolve));
+        clearTimeout(stall);
+        expect(status, stderr).to.equal(0);
+        // ADR 01186: a browser run's report validates too.
+        const validated = validate({ schemaKey: "report_v3", object: JSON.parse(stdout), addDefaults: false });
+        expect(validated.valid, validated.errors).to.equal(true);
+        const [goTo, httpRequest, wholeVariable, shot] = JSON.parse(stdout).specs[0].tests[0].contexts[0].steps;
+        expect(goTo.goTo).to.include({ url, timeout: 30000 });
+        expect(httpRequest.httpRequest).to.deep.include({ method: "get", statusCodes: [200, 201], timeout: 60000 });
+        // A whole-variable action is normalized after substitution.
+        expect(wholeVariable.goTo).to.include({ url, timeout: 30000 });
+        // Compare real paths: temp folders can be symlinks (macOS) or short names (Windows).
+        expect(shot.screenshot.overwrite).to.equal("aboveVariation");
+        expect(path.isAbsolute(shot.screenshot.path), shot.screenshot.path).to.equal(true);
+        expect(fs.realpathSync(shot.screenshot.path)).to.equal(fs.realpathSync(path.join(cwd, "out", "shot.png")));
+      } finally {
+        server.close();
+      }
+    });
+
+    it("names the platform and browser in the fourth --plain column", async function () {
+      const counts = { pass: 1, fail: 0, warning: 0, skipped: 0 };
+      const lines = [];
+      const original = console.log;
+      console.log = (line) => lines.push(String(line));
+      try {
+        await outputResults({ reporters: ["plainReporter"], logLevel: "silent" }, cwd, {
+          summary: { specs: counts, tests: counts, contexts: counts, steps: counts },
+          specs: [
+            {
+              specId: "s",
+              tests: [
+                {
+                  testId: "t",
+                  contexts: [
+                    { result: "PASS", platform: "linux", browser: { name: "firefox" } },
+                  ],
+                },
+              ],
+            },
+          ],
+        });
+      } finally {
+        console.log = original;
+      }
+      expect(lines).to.include("PASS\ts\tt\tlinux/firefox");
+    });
+
+    it("prints nothing with --plain when a filter matches nothing", function () {
+      const r = run(["-i", "pass.spec.json", "-t", "no-such-test", "--plain"]);
+      expect(r.status).to.equal(2);
+      expect(r.stdout).to.equal("");
+    });
+
+    it("prints one tab-separated line per test context with --plain", function () {
+      const r = run(["-i", "pass.spec.json", "--plain"]);
+      expect(r.status, r.stderr).to.equal(0);
+      const lines = r.stdout.trim().split("\n");
+      expect(lines).to.have.lengthOf(1);
+      const columns = lines[0].split("\t");
+      expect(columns.slice(0, 3)).to.deep.equal(["PASS", "pass.spec.json", "pass.spec.json-t"]);
+      // A context with no browser reports the platform alone.
+      expect(columns[3]).to.match(/^(windows|mac|linux)$/);
+    });
+
+    it("prints only a verdict with -q", function () {
+      const r = run(["-i", "pass.spec.json", "-q"]);
+      expect(r.status).to.equal(0);
+      expect(r.stdout.trim().split("\n")).to.have.lengthOf(1);
+      expect(r.stdout).to.match(/passed/);
+      expect(r.stderr.trim()).to.equal("");
+    });
+
+    it("prints nothing with -l silent", function () {
+      const r = run(["-i", "pass.spec.json", "-l", "silent"]);
+      expect(r.status).to.equal(0);
+      expect(r.stdout + r.stderr).to.equal("");
+    });
+
+    it("prints JSON from `debug --json`", function () {
+      const r = run(["debug", "--json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout)).to.be.an("object");
+    });
+
+    it("prints JSON from `install status --json`", function () {
+      const r = run(["install", "status", "--json", "--cache-dir", "cc"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout)).to.be.an("array");
+    });
+
+    it("prints one JSON document from `install all --dry-run --json`", function () {
+      const r = run(["install", "all", "--dry-run", "--json", "--cache-dir", "cc"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout)).to.be.an("array");
+    });
+
+    it("prints one JSON document from `install agents --dry-run --json`", function () {
+      const r = run(["install", "agents", "--agent", "claude", "--scope", "project", "--yes", "--dry-run", "--json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout)).to.be.an("array");
+    });
+  });
+
+  describe("color", function () {
+    const failing = ["-i", "fail.spec.json"];
+    it("is off when piped", function () {
+      const r = run(failing);
+      expect(r.stdout).to.not.match(ESC);
+      expect(r.stderr).to.not.match(ESC);
+    });
+    it("is forced on by FORCE_COLOR", function () {
+      expect(run(failing, { env: { FORCE_COLOR: "1" } }).stdout).to.match(ESC);
+    });
+    it("is forced on by --color", function () {
+      expect(run([...failing, "--color"]).stdout).to.match(ESC);
+    });
+    it("is forced off by --no-color, even with FORCE_COLOR", function () {
+      expect(run([...failing, "--no-color"], { env: { FORCE_COLOR: "1" } }).stdout).to.not.match(ESC);
+    });
+    it("is forced off by DOC_DETECTIVE_NO_COLOR, even with FORCE_COLOR", function () {
+      const r = run(failing, { env: { FORCE_COLOR: "1", DOC_DETECTIVE_NO_COLOR: "1" } });
+      expect(r.stdout).to.not.match(ESC);
+    });
+  });
+
+  describe("debug scopes", function () {
+    const rows = [
+      { env: { DOC_DETECTIVE_DEBUG: "1" }, on: true },
+      { env: { DOC_DETECTIVE_DEBUG: "true" }, on: true },
+      { env: { DOC_DETECTIVE_DEBUG: "0" }, on: false },
+      { env: { DEBUG: "1" }, on: true },
+      { env: { DEBUG: "*" }, on: true },
+      { env: { DEBUG: "doc-detective" }, on: true },
+      { env: { DEBUG: "express:*,doc-detective*" }, on: true },
+      { env: { DEBUG: "express:*" }, on: false },
+    ];
+    for (const { env, on } of rows) {
+      it(`${JSON.stringify(env)} ${on ? "turns on" : "leaves off"} debug output, and still runs tests`, function () {
+        const r = run(["-i", "pass.spec.json", "-o", "results.json"], { env });
+        expect(r.status, r.stderr).to.equal(0);
+        expect(/\(DEBUG\)/.test(r.stderr)).to.equal(on);
+        expect(fs.existsSync(path.join(cwd, "results.json"))).to.equal(true);
+      });
+    }
+
+    it("lets a flag beat the environment", function () {
+      const r = run(["-i", "pass.spec.json", "-l", "info"], { env: { DEBUG: "1" } });
+      expect(r.stderr).to.not.match(/\(DEBUG\)/);
+    });
+  });
+
+  describe("help", function () {
+    const commands = [
+      [],
+      ["run"],
+      ["help"],
+      ["install"],
+      ["install", "all"],
+      ["install", "browsers"],
+      ["install", "runtime"],
+      ["install", "bash"],
+      ["install", "android"],
+      ["install", "ios"],
+      ["install", "agents"],
+      ["install", "status"],
+      ["debug"],
+      ["lsp"],
+    ];
+    for (const path of commands) {
+      const name = ["doc-detective", ...path].join(" ");
+      it(`${name} leads with examples, and links to docs`, function () {
+        const r = run([...path, "--help"]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(r.stdout).to.include(`Usage: ${name}`);
+        expect(r.stdout).to.include("Examples:");
+        expect(r.stdout.indexOf("Examples:")).to.be.lessThan(r.stdout.indexOf("Options:") === -1 ? Infinity : r.stdout.indexOf("Options:"));
+        expect(r.stdout).to.include("https://docs.doc-detective.com/reference/cli");
+        expect(r.stdout).to.include("Global options:");
+      });
+    }
+
+    it("keeps each subcommand's help focused", function () {
+      for (const path of [["debug"], ["lsp"], ["install", "status"], ["install", "agents"]]) {
+        const help = run([...path, "--help"]).stdout;
+        expect(help, path.join(" ")).to.not.include("--reporters");
+        expect(help.length, path.join(" ")).to.be.lessThan(2500);
+      }
+    });
+
+    it("lists the support path in top-level help", function () {
+      expect(run(["--help"]).stdout).to.include("github.com/doc-detective/doc-detective/issues");
+    });
+
+    it("explains exit codes for runs", function () {
+      const help = run(["--help"]).stdout;
+      expect(help).to.include("Exit codes:");
+      expect(help).to.include("0  No test failed, and at least one passed or warned\n");
+    });
+
+    it("lists every asset under install", function () {
+      const help = run(["install", "--help"]).stdout;
+      for (const asset of ["all", "browsers", "runtime", "bash", "android", "ios", "agents", "status"]) {
+        expect(help).to.match(new RegExp(`^\\s+${asset}\\b`, "m"));
+      }
+    });
+
+    it("wraps help at 80 columns, apart from the longest terms", function () {
+      for (const line of run(["--help"]).stdout.split("\n")) {
+        expect(line.length, line).to.be.at.most(90);
+      }
+    });
+  });
+
+  describe("errors", function () {
+    it("suggests the nearest command for a typo", function () {
+      const r = run(["instal"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("unknown command 'instal'");
+      expect(r.stderr).to.include("Did you mean install?");
+    });
+
+    it("points a bare path at `run`", function () {
+      const r = run(["docs/guide.md"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("doc-detective run docs/guide.md");
+    });
+
+    it("suggests the nearest flag for a typo", function () {
+      expect(run(["--inptu", "x"]).stderr).to.include("Did you mean --input?");
+    });
+
+    it("ends usage errors with a pointer to --help", function () {
+      expect(run(["--nope"]).stderr).to.include("--help");
+    });
+
+    it("names the choices for `install` with no asset", function () {
+      const r = run(["install"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.match(/Specify an asset: .*browsers/);
+    });
+
+    it("summarizes an unknown action, without a wall of schema errors", function () {
+      fs.writeFileSync(
+        path.join(cwd, "invalid.spec.json"),
+        JSON.stringify({ tests: [{ steps: [{ goToo: "https://example.com" }] }] })
+      );
+      const r = run(["-i", "invalid.spec.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("goToo");
+      expect(r.stderr).to.include("Did you mean `goTo`?");
+      expect(r.stderr).to.not.include("must have required property");
+      expect(r.stderr).to.not.include('"object"');
+      expect(r.stderr.length).to.be.lessThan(600);
+    });
+
+    it("says why a spec is invalid during a dry run", function () {
+      fs.writeFileSync(
+        path.join(cwd, "invalid.spec.json"),
+        JSON.stringify({ tests: [{ steps: [{ goToo: "x" }] }] })
+      );
+      const r = run(["-n", "-i", "invalid.spec.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("invalid.spec.json");
+      expect(r.stderr).to.include("unknown action `goToo`");
+      expect(r.stdout).to.equal("");
+    });
+
+    it("names an invalid spec only once", function () {
+      fs.writeFileSync(
+        path.join(cwd, "invalid.spec.json"),
+        JSON.stringify({ tests: [{ steps: [{ goToo: "x" }] }] })
+      );
+      const count = run(["-i", "invalid.spec.json"]).stderr.split("unknown action").length - 1;
+      expect(count).to.equal(1);
+    });
+
+    it("explains a malformed DOC_DETECTIVE_META, without a stack trace", function () {
+      const r = run(["--version"], { env: { DOC_DETECTIVE_META: "{nope" } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("DOC_DETECTIVE_META");
+      expect(r.stderr).to.not.match(/^\s+at /m);
+    });
+
+    it("treats an empty DOC_DETECTIVE_META as unset", function () {
+      expect(run(["--version"], { env: { DOC_DETECTIVE_META: "" } }).status).to.equal(0);
+    });
+
+    it("explains a dry run that finds no tests", function () {
+      fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+      const r = run(["-n", "-i", "empty.md"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("No tests found");
+      expect(r.stdout).to.equal("");
+    });
+
+    it("keeps the raw schema errors for -d", function () {
+      fs.writeFileSync(
+        path.join(cwd, "invalid.spec.json"),
+        JSON.stringify({ tests: [{ steps: [{ goToo: "x" }] }] })
+      );
+      expect(run(["-d", "-i", "invalid.spec.json"]).stderr).to.include("must have required property");
+    });
+
+    describe("a spec that's invalid only after its before steps merge", function () {
+      // A contexts-only test gets its steps from `before`, and an empty
+      // `before` leaves it none, so the check after the merge fails.
+      const RAW = /errorObjects|instancePath/;
+      const SUMMARY = "tests[0].steps: must NOT have fewer than 1 items.";
+      beforeEach(function () {
+        fs.writeFileSync(path.join(cwd, "empty-setup.json"), JSON.stringify({ tests: [{ steps: [] }] }));
+        fs.writeFileSync(
+          path.join(cwd, "merged.spec.json"),
+          JSON.stringify({
+            tests: [{ before: "empty-setup.json", contexts: [{ steps: [{ runShell: "echo hi" }] }] }],
+          })
+        );
+      });
+
+      it("prints the summary, not the raw schema errors, in a strict run", function () {
+        const r = run(["-i", "merged.spec.json"]);
+        expect(r.status).to.equal(2);
+        expect(r.stderr).to.include(SUMMARY);
+        expect(r.stderr).to.not.match(RAW);
+      });
+
+      it("prints the summary with the skip warning, not the raw errors, with --no-exit-on-fail", function () {
+        const r = run(["-i", "merged.spec.json", "--no-exit-on-fail"]);
+        expect(r.stderr).to.match(/isn't a valid test specification\. Skipping\.\ntests\[0\]\.steps: must NOT have fewer than 1 items\./);
+        expect(r.stderr).to.not.match(RAW);
+      });
+
+      it("keeps the raw schema errors for -d", function () {
+        expect(run(["-d", "-i", "merged.spec.json", "--no-exit-on-fail"]).stderr).to.match(RAW);
+      });
+    });
+
+    it("explains a config file that won't parse, once", function () {
+      fs.writeFileSync(path.join(cwd, "bad.json"), "{ not json");
+      const r = run(["-c", "bad.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("bad.json");
+      expect(r.stderr).to.not.include("must be object");
+    });
+
+    it("summarizes an invalid config file, once, with a link to its reference", function () {
+      fs.writeFileSync(
+        path.join(cwd, "bad.json"),
+        JSON.stringify({ logLevl: "info", concurrentRunners: "lots", shell: "zsh" })
+      );
+      const r = run(["-c", "bad.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid config in bad.json:",
+          "unknown key `logLevl`. Did you mean `logLevel`?",
+          'concurrentRunners: must be auto (got "lots").',
+          'shell: must be one of bash, cmd, powershell (got "zsh").',
+          "See https://docs.doc-detective.com/reference/schemas/config",
+          "",
+        ].join("\n")
+      );
+    });
+
+    // ADR 01187: a key that did nothing is now an unknown key.
+    it("rejects config `crawl` as an unknown key", function () {
+      fs.writeFileSync(path.join(cwd, "bad.json"), JSON.stringify({ crawl: true }));
+      const r = run(["-c", "bad.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid config in bad.json:",
+          "unknown key `crawl`.",
+          "See https://docs.doc-detective.com/reference/schemas/config",
+          "",
+        ].join("\n")
+      );
+    });
+
+    it("rejects step `breakpoint` as an unknown key", function () {
+      writeSpec("bp.spec.json", { runShell: "echo hi", breakpoint: true });
+      const r = run(["-i", "bp.spec.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid test specifications, so nothing ran:",
+          "bp.spec.json",
+          "tests[0].steps[0]: unknown key `breakpoint`.",
+          "Fix them, or skip them with `--no-exit-on-fail` or `exitOnFail: false`.",
+          "",
+        ].join("\n")
+      );
+    });
+
+    it("keeps the raw schema errors of a config for -d", function () {
+      fs.writeFileSync(path.join(cwd, "bad.json"), JSON.stringify({ logLevl: "info" }));
+      const r = run(["-d", "-c", "bad.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("Invalid config in bad.json:");
+      expect(r.stderr).to.match(/ \(DEBUG\) CLI:CONFIG ERRORS: must NOT have additional properties/);
+      expect(r.stderr).to.not.match(/^ /m);
+    });
+
+    it("names DOC_DETECTIVE_CONFIG when it's the invalid config", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_CONFIG: JSON.stringify({ logLevl: 1 }) } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid config in DOC_DETECTIVE_CONFIG:",
+          "unknown key `logLevl`. Did you mean `logLevel`?",
+          "See https://docs.doc-detective.com/reference/schemas/config",
+          "",
+        ].join("\n")
+      );
+    });
+
+    it("names DOC_DETECTIVE when its config object is invalid", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE: JSON.stringify({ config: { logLevl: 1 } }) } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include(
+        [
+          "Error: Invalid config in DOC_DETECTIVE:",
+          "unknown key `logLevl`. Did you mean `logLevel`?",
+          "See https://docs.doc-detective.com/reference/schemas/config",
+        ].join("\n")
+      );
+    });
+
+    it("names the user config when it's the invalid config", function () {
+      const home = path.join(cwd, "xdg");
+      fs.mkdirSync(path.join(home, "doc-detective"), { recursive: true });
+      const file = path.join(home, "doc-detective", "config.json");
+      fs.writeFileSync(file, JSON.stringify({ shell: "zsh" }));
+      const r = run(["-i", "pass.spec.json"], { env: { XDG_CONFIG_HOME: home, APPDATA: home } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include(`Error: Invalid config in user config ${file}:\nshell: must be one of`);
+    });
+
+    it("merges a v2 project config as v3, beside a user config", function () {
+      // The Docker image ships a user config, so a v2 project config meets one
+      // there. Merging its raw v2 keys made the combined config invalid.
+      const home = path.join(cwd, "xdg-v2");
+      fs.mkdirSync(path.join(home, "doc-detective"), { recursive: true });
+      fs.writeFileSync(path.join(home, "doc-detective", "config.json"), JSON.stringify({ allowUnsafeSteps: true }));
+      fs.writeFileSync(
+        path.join(cwd, "v2.json"),
+        JSON.stringify({ envVariables: "", input: ".", runTests: { detectSteps: false }, telemetry: { send: false } })
+      );
+      const r = run(["-c", "v2.json", "-i", "pass.spec.json"], { env: { XDG_CONFIG_HOME: home, APPDATA: home } });
+      expect(r.stderr).to.not.include("Invalid config");
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("prints a config error once, even when the runner finds it", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE: JSON.stringify({ config: { shell: "zsh" } }) } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr.split("Invalid config").length - 1).to.equal(1);
+      expect(r.stderr).to.include('shell: must be one of bash, cmd, powershell (got "zsh").');
+    });
+
+    it("summarizes invalid specs with nested suggestions and allowed values", function () {
+      fs.writeFileSync(
+        path.join(cwd, "enum.spec.json"),
+        JSON.stringify({
+          tests: [
+            {
+              stepz: [],
+              steps: [{ click: { selector: "#go", button: "middle-ish" } }, { runShell: { comand: "echo hi" } }],
+            },
+          ],
+        })
+      );
+      const r = run(["-i", "enum.spec.json"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid test specifications, so nothing ran:",
+          "enum.spec.json",
+          "tests[0]: unknown key `stepz`. Did you mean `steps`?",
+          'tests[0].steps[0].click.button: must be one of left, right, middle (got "middle-ish").',
+          "tests[0].steps[1].runShell: unknown key `comand`. Did you mean `command`?",
+          "Fix them, or skip them with `--no-exit-on-fail` or `exitOnFail: false`.",
+          "",
+        ].join("\n")
+      );
+    });
+
+    it("points an empty bare run at --help", function () {
+      fs.rmSync(path.join(cwd, "pass.spec.json"));
+      fs.rmSync(path.join(cwd, "fail.spec.json"));
+      const r = run([]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.match(/--help/);
+    });
+
+    it("hasn't a stack trace for expected errors", function () {
+      expect(run(["-c", "nope.json"]).stderr).to.not.match(/^\s+at /m);
+    });
+  });
+
+  // ADR 01166: a list option takes one comma-separated value, given once.
+  describe("lists", function () {
+    const usage = (r, line) => {
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(`${line}\n(add --help for usage)\n`);
+    };
+
+    it("takes a positional input after -r", function () {
+      const r = run(["run", "-r", "json", "pass.spec.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("takes reporters as one comma-separated list", function () {
+      const r = run(["-i", "pass.spec.json", "-r", "terminal,junit,markdown", "--output-dir", "reports"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "reports", "junit.xml"))).to.equal(true);
+      expect(fs.existsSync(path.join(cwd, "reports", "doc-detective-summary.md"))).to.equal(true);
+    });
+
+    it("takes everything at once", function () {
+      fs.mkdirSync(path.join(cwd, "docs"));
+      fs.mkdirSync(path.join(cwd, "api"));
+      writeSpec(path.join("docs", "login.spec.json"), { runShell: "echo hi" });
+      writeSpec(path.join("api", "auth.spec.json"), { runShell: "echo hi" });
+      const r = run([
+        "run", "docs/", "api/", "-i", "pass.spec.json", "-t", "login,smoke", "-s", "auth,login",
+        "-r", "terminal,junit", "-o", "out.json", "--output-dir", "reports", "--concurrent-runners", "true",
+      ]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "out.json"))).to.equal(true);
+      expect(fs.existsSync(path.join(cwd, "reports", "junit.xml"))).to.equal(true);
+    });
+
+    it("names the reporters it allows", function () {
+      usage(
+        run(["-r", "foo"]),
+        "error: option '-r, --reporters <names>' argument 'foo' is invalid. Allowed choices are terminal, json, html, runFolder, junit, markdown."
+      );
+    });
+
+    it("names the one bad reporter in a list", function () {
+      usage(
+        run(["-r", "terminal, bogus,json"]),
+        "error: option '-r, --reporters <names>' argument 'bogus' is invalid. Allowed choices are terminal, json, html, runFolder, junit, markdown."
+      );
+    });
+
+    it("rejects a repeated -r, and shows the comma form", function () {
+      usage(
+        run(["-r", "json", "-r", "html"]),
+        "error: option '-r, --reporters <names>' argument 'html' is invalid. Give it once, as a comma-separated list: json,html."
+      );
+    });
+
+    it("rejects a repeated -r after a list with only the repeat error", function () {
+      usage(
+        run(["-r", "terminal,json", "-r", "html"]),
+        "error: option '-r, --reporters <names>' argument 'html' is invalid. Give it once, as a comma-separated list: terminal,json,html."
+      );
+    });
+
+    it("rejects a repeated -i, and shows the comma form", function () {
+      usage(
+        run(["-i", "a", "-i", "b"]),
+        "error: option '-i, --input <paths>' argument 'b' is invalid. Give it once, as a comma-separated list: a,b."
+      );
+    });
+
+    it("explains the old space-separated reporters", function () {
+      usage(
+        run(["-r", "terminal", "html"]),
+        "error: unknown command 'html'. To use several reporters, give one comma-separated list: -r terminal,html"
+      );
+    });
+
+    it("still points a path after -r at `run`", function () {
+      usage(run(["-r", "terminal", "docs/"]), "error: unknown command 'docs/'. To test a path, use: doc-detective run docs/");
+    });
+
+    it("rejects an invalid reporter in config, in the shared error format", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_CONFIG: JSON.stringify({ reporters: ["htm"] }) } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        [
+          "Error: Invalid config in DOC_DETECTIVE_CONFIG:",
+          'reporters[0]: must be one of terminal, json, html, runFolder, junit, markdown (got "htm").',
+          "See https://docs.doc-detective.com/reference/schemas/config",
+          "",
+        ].join("\n")
+      );
+    });
+
+    it("writes an empty report to --output when it finds no tests", function () {
+      fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+      const r = run(["-i", "empty.md", "-o", "out.json"]);
+      expect(r.status).to.equal(2);
+      expect(JSON.parse(fs.readFileSync(path.join(cwd, "out.json"), "utf8")).specs).to.deep.equal([]);
+    });
+
+    for (const mode of [["--json"], ["--plain"], ["-o", "-"]]) {
+      // With auto capture on, the run folder runs whatever `reporters` says
+      // (ADR 01177), so turn it off to see the reporter gate alone.
+      it(`leaves no run folder for ${mode.join(" ")} -r terminal with auto capture off`, function () {
+        const r = run(["-i", "pass.spec.json", ...mode, "-r", "terminal", "--no-auto-screenshot", "--no-auto-record"]);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(fs.existsSync(path.join(cwd, ".doc-detective"))).to.equal(false);
+      });
+    }
+
+    it("takes --agent as one comma-separated list", function () {
+      const r = run(["install", "agents", "--agent", "claude,copilot", "--scope", "project", "--yes", "--dry-run", "--json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(new Set(JSON.parse(r.stdout).map((report) => report.adapterId))).to.deep.equal(new Set(["claude", "copilot"]));
+    });
+
+    it("rejects a repeated --agent", function () {
+      const r = run(["install", "agents", "--agent", "claude", "--agent", "copilot", "--scope", "project", "--yes"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("Give it once, as a comma-separated list: claude,copilot.");
+    });
+  });
+
+  describe("interactivity", function () {
+    it("accepts --no-input, without treating it as a missing --input", function () {
+      const r = run(["--no-input", "-i", "pass.spec.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("never prompts with --no-input, and names the flag to pass", function () {
+      const r = run(["install", "agents", "--no-input"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("--agent");
+    });
+
+    it("fails quickly when it can't prompt for agents", function () {
+      const started = Date.now();
+      run(["install", "agents"]);
+      expect(Date.now() - started).to.be.lessThan(2500);
+    });
+  });
+
+  describe("configuration and environment", function () {
+    const checkEnv = 'node -e "process.exit(process.env.GREETING===\'hi\'?0:7)"';
+
+    it("loads .env from the current directory", function () {
+      fs.writeFileSync(path.join(cwd, ".env"), "GREETING=hi\n");
+      writeSpec("env.spec.json", { runShell: checkEnv });
+      expect(run(["-i", "env.spec.json"]).status).to.equal(0);
+    });
+
+    it("lets the shell beat .env", function () {
+      fs.writeFileSync(path.join(cwd, ".env"), "GREETING=hi\n");
+      writeSpec("env.spec.json", { runShell: checkEnv });
+      expect(run(["-i", "env.spec.json"], { env: { GREETING: "shell" } }).status).to.equal(1);
+    });
+
+    it("skips .env with --no-env-file", function () {
+      fs.writeFileSync(path.join(cwd, ".env"), "GREETING=hi\n");
+      writeSpec("env.spec.json", { runShell: checkEnv });
+      expect(run(["-i", "env.spec.json", "--no-env-file"]).status).to.equal(1);
+    });
+
+    it("runs fine with no .env", function () {
+      expect(run(["-i", "pass.spec.json"]).status).to.equal(0);
+    });
+
+    it("lets a config-level loadVariables fill unset variables only, quietly", function () {
+      fs.writeFileSync(path.join(cwd, "vars.env"), "GREETING=hi\n");
+      fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ loadVariables: "vars.env" }));
+      writeSpec("env.spec.json", { runShell: checkEnv });
+      const filled = run(["-i", "env.spec.json"]);
+      expect(filled.status, filled.stderr).to.equal(0);
+      const shell = run(["-q", "-i", "env.spec.json"], { env: { GREETING: "shell" } });
+      expect(shell.status).to.equal(1);
+      expect(shell.stderr).to.not.include("injected env");
+    });
+
+    it("applies the deprecated DOC_DETECTIVE below flags, and warns", function () {
+      const r = run(["-i", "pass.spec.json", "-l", "info"], {
+        env: { DOC_DETECTIVE: JSON.stringify({ config: { logLevel: "silent" } }) },
+      });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(r.stderr).to.match(/Running test specs/);
+      expect(r.stderr).to.include(
+        'Warning: `DOC_DETECTIVE` is deprecated. Move its "config" object to `DOC_DETECTIVE_CONFIG`.'
+      );
+    });
+
+    it("no longer allows unsafe steps for DOC_DETECTIVE's `container`", function () {
+      writeSpec("unsafe.spec.json", { runShell: "echo hi", unsafe: true });
+      const env = { DOC_DETECTIVE: JSON.stringify({ container: "docdetective/docdetective:linux" }) };
+      expect(run(["-i", "unsafe.spec.json"], { env }).status).to.equal(2);
+      expect(run(["-i", "unsafe.spec.json", "--allow-unsafe"], { env }).status).to.equal(0);
+    });
+
+    it("lets --cache-dir beat DOC_DETECTIVE_CACHE_DIR", function () {
+      const r = run(["install", "status", "--json", "--cache-dir", "flag-cache"], {
+        env: { DOC_DETECTIVE_CACHE_DIR: path.join(cwd, "env-cache") },
+      });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "flag-cache"))).to.equal(true);
+      expect(fs.existsSync(path.join(cwd, "env-cache"))).to.equal(false);
+    });
+
+    it("installs into the discovered project config's cacheDir", function () {
+      fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ cacheDir: "config-cache" }));
+      const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: "" } });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "config-cache"))).to.equal(true);
+    });
+
+    for (const args of [
+      ["install", "status", "--json", "--config", "sub/x.json"],
+      ["--config", "sub/x.json", "install", "status", "--json"],
+    ]) {
+      it(`installs into a --config file's cacheDir, relative to the file: ${args.join(" ")}`, function () {
+        fs.mkdirSync(path.join(cwd, "sub"));
+        fs.writeFileSync(path.join(cwd, "sub", "x.json"), JSON.stringify({ cacheDir: "c" }));
+        const r = run(args, { env: { DOC_DETECTIVE_CACHE_DIR: "" } });
+        expect(r.status, r.stderr).to.equal(0);
+        expect(fs.existsSync(path.join(cwd, "sub", "c"))).to.equal(true);
+      });
+    }
+
+    it("lets install read the project .env, as a run does", function () {
+      fs.writeFileSync(path.join(cwd, ".env"), "DOC_DETECTIVE_CACHE_DIR=dotenv-cache\n");
+      const r = run(["install", "status", "--json"], { unset: ["DOC_DETECTIVE_CACHE_DIR"] });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(fs.existsSync(path.join(cwd, "dotenv-cache"))).to.equal(true);
+    });
+
+    it("doesn't fail install on a credential file it never reads", function () {
+      fs.writeFileSync(
+        path.join(cwd, ".doc-detective.json"),
+        JSON.stringify({ integrations: { docDetectiveApi: { apiKeyFile: "missing.key" } } })
+      );
+      const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: path.join(cwd, "cache") } });
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("keeps the run's cache out of a step's environment", function () {
+      writeSpec("cache-env.spec.json", { runShell: 'node -e "process.exit(process.env.DOC_DETECTIVE_CACHE_DIR ? 7 : 0)"' });
+      const r = run(["-i", "cache-env.spec.json", "--cache-dir", "flag-cache"], { env: { DOC_DETECTIVE_CACHE_DIR: "" } });
+      expect(r.status, r.stderr).to.equal(0);
+    });
+
+    it("rejects both names of the debug variable", function () {
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_DEBUG: "0", DOC_DETECTIVE_RUNTIME_DEBUG: "1" } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.equal(
+        "Error: set `DOC_DETECTIVE_DEBUG` or `DOC_DETECTIVE_RUNTIME_DEBUG`, not both. `DOC_DETECTIVE_RUNTIME_DEBUG` is on.\n"
+      );
+    });
+
+    it("keeps an env warning raised at startup, before setConfig", function () {
+      // applyColorFlags reads DOC_DETECTIVE_NO_COLOR before any config exists.
+      const r = run(["-i", "pass.spec.json"], { env: { DOC_DETECTIVE_NO_COLOR: "maybe" } });
+      expect(r.stdout + r.stderr).to.include('Ignoring `DOC_DETECTIVE_NO_COLOR`="maybe".');
+    });
+
+    it("exits 2 from install on an invalid project config", function () {
+      fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ logLevl: "info" }));
+      const r = run(["install", "status", "--json"], { env: { DOC_DETECTIVE_CACHE_DIR: path.join(cwd, "cache") } });
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("unknown key `logLevl`. Did you mean `logLevel`?");
+    });
+
+    describe("precedence", function () {
+      let home;
+      const configDir = () => path.join(home, "doc-detective");
+      beforeEach(function () {
+        home = path.join(cwd, "xdg");
+        fs.mkdirSync(configDir(), { recursive: true });
+        fs.writeFileSync(path.join(configDir(), "config.json"), JSON.stringify({ logLevel: "error" }));
+      });
+      const noise = (args, env) =>
+        run(["-i", "pass.spec.json", ...args], {
+          env: { XDG_CONFIG_HOME: home, APPDATA: home, DOC_DETECTIVE_CONFIG: "", ...env },
+        }).stderr;
+
+      it("applies user config", function () {
+        expect(noise([])).to.not.match(/Running test specs/);
+      });
+      it("lets project config beat user config", function () {
+        fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ logLevel: "info" }));
+        expect(noise([])).to.match(/Running test specs/);
+      });
+      it("lets the environment beat project config", function () {
+        fs.writeFileSync(path.join(cwd, ".doc-detective.json"), JSON.stringify({ logLevel: "info" }));
+        expect(noise([], { DOC_DETECTIVE_CONFIG: JSON.stringify({ logLevel: "error" }) })).to.not.match(/Running test specs/);
+      });
+      it("lets flags beat the environment", function () {
+        expect(noise(["-l", "info"], { DOC_DETECTIVE_CONFIG: JSON.stringify({ logLevel: "error" }) })).to.match(/Running test specs/);
+      });
+    });
+  });
+
+  // ADR 01178: environment variable values are masked in every output.
+  describe("masking", function () {
+    const SECRET = "mask-me-73519";
+    const DOTENV = "dotenv-only-84620";
+    const config = (extra = {}) => ({
+      DOC_DETECTIVE_CONFIG: JSON.stringify({ telemetry: { send: false }, autoUpdate: false, ...extra }),
+    });
+    beforeEach(function () {
+      fs.writeFileSync(path.join(cwd, ".env"), `DD_DOTENV_VALUE=${DOTENV}\n`);
+      writeSpec("mask.spec.json", {
+        runShell: 'echo $DD_MASK_VALUE && node -e "console.log(process.env.DD_DOTENV_VALUE)"',
+      });
+    });
+
+    it("keeps values out of -o, --json, and stderr at -l debug", function () {
+      const out = path.join(cwd, "results.json");
+      const debug = run(["-i", "mask.spec.json", "-l", "debug", "-o", out], { env: { DD_MASK_VALUE: SECRET } });
+      expect(debug.status, debug.stderr).to.equal(0);
+      const json = run(["-i", "mask.spec.json", "--json"], { env: { DD_MASK_VALUE: SECRET } });
+      expect(json.status, json.stderr).to.equal(0);
+      for (const text of [debug.stdout, debug.stderr, fs.readFileSync(out, "utf8"), json.stdout, json.stderr]) {
+        expect(text).to.not.include(SECRET);
+        expect(text).to.not.include(DOTENV);
+      }
+      expect(json.stdout).to.include("***DD_MASK_VALUE***").and.include("***DD_DOTENV_VALUE***");
+      expect(debug.stderr).to.match(/Masking the values of \d+ variables: [^\n]*DD_DOTENV_VALUE[^\n]*DD_MASK_VALUE/);
+    });
+
+    it("keeps values out of the dry-run plan", function () {
+      // The plan isn't substituted, so a value can only reach it written out.
+      writeSpec("plan.spec.json", { runShell: `echo ${DOTENV}` });
+      const result = run(["-i", "plan.spec.json", "--dry-run"]);
+      expect(result.status, result.stderr).to.equal(0);
+      expect(result.stdout).to.not.include(DOTENV);
+      expect(result.stdout).to.include("echo ***DD_DOTENV_VALUE***");
+    });
+
+    it("shows a variable publicVariables lists", function () {
+      const result = run(["-i", "mask.spec.json", "--json"], {
+        env: { DD_MASK_VALUE: SECRET, ...config({ publicVariables: ["DD_MASK_*"] }) },
+      });
+      expect(result.status, result.stderr).to.equal(0);
+      expect(result.stdout).to.include(SECRET).and.not.include(DOTENV);
+    });
+
+    it("exits 0 on an all-passing run when a secret's value is `pass`", function () {
+      fs.writeFileSync(path.join(cwd, ".env"), "DB_PASSWORD=pass\nNODE_ENV=test\n");
+      const result = run(["-i", "pass.spec.json", "--json"]);
+      expect(result.status, result.stderr).to.equal(0);
+      const report = JSON.parse(result.stdout);
+      expect(report.summary.specs.pass).to.equal(1);
+      // Keys stay; values that hold `pass` are masked.
+      expect(report.specs[0].tests[0]).to.have.property("testId", "***DB_PASSWORD***.spec.json-t");
+    });
+
+    it("rejects publicVariables that isn't a list", function () {
+      const result = run(["-i", "mask.spec.json"], { env: config({ publicVariables: "BASE_URL" }) });
+      expect(result.status).to.equal(2);
+      expect(result.stderr).to.include(
+        'Error: Invalid config in DOC_DETECTIVE_CONFIG:\npublicVariables: must be array (got "BASE_URL").'
+      );
+    });
+  });
+
+  describe("deprecated arguments", function () {
+    // ADR 01195: the same wording as every other renamed key.
+    const deprecated = [
+      { args: ["runTests", "-i", "pass.spec.json"], warning: "Warning: `runTests` is deprecated. Rename it to `run`." },
+      { args: ["runtests", "-i", "pass.spec.json"], warning: "Warning: `runtests` is deprecated. Rename it to `run`." },
+      {
+        args: ["--logLevel", "info", "-i", "pass.spec.json"],
+        warning: "Warning: `--logLevel` is deprecated. Rename it to `--log-level`.",
+      },
+      {
+        args: ["-e", "-i", "pass.spec.json"],
+        warning: "Warning: `--exit-on-fail` is deprecated. It's now the default, so remove it.",
+      },
+      {
+        args: ["--exit-on-fail", "-i", "pass.spec.json"],
+        warning: "Warning: `--exit-on-fail` is deprecated. It's now the default, so remove it.",
+      },
+    ];
+    for (const { args, warning } of deprecated) {
+      it(`\`${args[0]}\` still works, and warns on stderr`, function () {
+        const r = run(args);
+        expect(r.status, r.stderr).to.equal(0);
+        expect(r.stderr.split(/\r?\n/)).to.include(warning);
+        expect(r.stdout).to.not.match(/deprecated/i);
+      });
+    }
+
+    it("hides the warning with -l silent", function () {
+      const r = run(["runTests", "-l", "silent", "-i", "pass.spec.json"]);
+      expect(r.stderr).to.not.match(/deprecated/i);
+    });
+
+    it("doesn't warn for --no-exit-on-fail, which isn't deprecated", function () {
+      const r = run(["--no-exit-on-fail", "-i", "pass.spec.json"]);
+      expect(r.stderr).to.not.match(/deprecated/i);
+    });
+
+    it("hides the warning with -q", function () {
+      const r = run(["runTests", "-q", "-i", "pass.spec.json"]);
+      expect(r.stderr).to.not.match(/deprecated/i);
+    });
+
+    it("labels each one in help", function () {
+      const help = run(["--help"]).stdout.replace(/\s+/g, " ");
+      for (const label of ["runTests", "runtests", "--logLevel", "--exit-on-fail"]) {
+        expect(help).to.match(new RegExp(`${label}.*?\\[deprecated`));
+      }
+    });
+  });
+
+  describe("commands printed in the final book drafts", function () {
+    it("`--version` prints a bare version on stdout", function () {
+      const r = run(["--version"]);
+      expect(r.status).to.equal(0);
+      expect(r.stdout.trim()).to.match(/^\d+\.\d+\.\d+/);
+    });
+
+    it("`--input <path>` runs that path", function () {
+      const r = run(["--input", "pass.spec.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(r.stdout + r.stderr).to.match(/passed/i);
+    });
+  });
+
+  it("is free of escape sequences when piped", function () {
+    expect(run(["--help"]).stdout).to.not.match(ESC);
+  });
+});

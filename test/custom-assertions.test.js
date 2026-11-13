@@ -11,7 +11,7 @@ import {
 // without touching the 8 implicit call sites.
 describe("routing: evaluateImplicitAssertions (generalized)", function () {
   const ctx = buildConditionContext({
-    outputs: { exitCode: 0, stdioMatched: true },
+    outputs: { exitCode: 0, stdioMatches: true },
   });
 
   it("defaults: source 'implicit', no short-circuit (unchanged)", async function () {
@@ -33,7 +33,7 @@ describe("routing: evaluateImplicitAssertions (generalized)", function () {
   it("startFailed=true forces every spec to SKIPPED (no evaluation)", async function () {
     const specs = [
       { statement: "$$outputs.exitCode == 0", severity: "fail" },
-      { statement: "$$outputs.stdioMatched == true", severity: "fail" },
+      { statement: "$$outputs.stdioMatches == true", severity: "fail" },
     ];
     const { assertions, status } = await evaluateImplicitAssertions(specs, ctx, {
       source: "custom",
@@ -179,7 +179,7 @@ describe("routing: evaluateCustomAssertions", function () {
     // stay SKIPPED, and the action stays SKIPPED.
     const passing = {
       status: "SKIPPED",
-      description: "Wait skipped.",
+      description: "Skipped: `wait` is `false`.",
       outputs: { x: 1 },
     };
     await evaluateCustomAssertions({
@@ -193,7 +193,7 @@ describe("routing: evaluateCustomAssertions", function () {
 
     const failing = {
       status: "SKIPPED",
-      description: "Wait skipped.",
+      description: "Skipped: `wait` is `false`.",
       outputs: { x: 1 },
     };
     await evaluateCustomAssertions({
@@ -221,7 +221,7 @@ describe("routing: evaluateCustomAssertions", function () {
     assert.equal(custom[0].result, "FAIL");
   });
 
-  it("array-of-objects assertions form is IGNORED (report shape, not user input)", async function () {
+  it("array-of-objects assertions form FAILS, because it can't run (ADR 01151)", async function () {
     const actionResult = {
       status: "PASS",
       outputs: { exitCode: 0 },
@@ -231,12 +231,22 @@ describe("routing: evaluateCustomAssertions", function () {
       step: { assertions: [{ statement: "$$outputs.exitCode == 1" }] },
       actionResult,
     });
-    // unchanged: no custom records added, status still PASS
-    assert.equal(actionResult.status, "PASS");
+    assert.equal(actionResult.status, "FAIL");
+    assert.match(actionResult.description, /assertions must be strings/);
     assert.equal(
       actionResult.assertions.filter((a) => a.source === "custom").length,
       0
     );
+  });
+
+  it("keeps an earlier failure's message for array-of-objects assertions", async function () {
+    const actionResult = { status: "FAIL", description: "Returned exit code 3.", outputs: {} };
+    await evaluateCustomAssertions({
+      step: { assertions: [{ statement: "$$outputs.exitCode == 1" }] },
+      actionResult,
+    });
+    assert.equal(actionResult.status, "FAIL");
+    assert.equal(actionResult.description, "Returned exit code 3.");
   });
 
   it("no assertions field -> byte-identical (no-op)", async function () {

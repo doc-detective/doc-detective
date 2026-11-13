@@ -6,6 +6,7 @@ APIs
 ARIA
 args
 batchMatches
+beforeAll
 beforeAny
 Betaux
 boolean

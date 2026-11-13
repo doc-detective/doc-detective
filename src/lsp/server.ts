@@ -97,10 +97,8 @@ export function registerHandlers(
  * subcommand.
  */
 export function startServer(): void {
-  // Explicit stdio streams so the server works no matter how it's launched —
-  // the `doc-detective lsp` subcommand OR the bare `doc-detective-lsp` bin.
-  // (createConnection(ProposedFeatures.all) alone sniffs argv for `--stdio`,
-  // which the bare bin doesn't pass.)
+  // Explicit stdio streams so the server works with or without `--stdio`.
+  // (createConnection(ProposedFeatures.all) alone sniffs argv for that flag.)
   const connection: Connection = createConnection(
     ProposedFeatures.all,
     new StreamMessageReader(process.stdin),

@@ -6,8 +6,11 @@ import {
   detectTests,
   parseTests,
   generateSpecId,
+  skipInvalidSpec,
 } from "../dist/core/detectTests.js";
 import { setConfig } from "../dist/core/config.js";
+import { validate } from "../dist/common/src/index.js";
+import { captureConsoleError } from "./capture-errors.js";
 
 // Exercises currently-uncovered paths in src/core/detectTests.ts:
 // qualifyFiles (dir recursion, dedup, missing input, glob), isValidSourceFile
@@ -49,13 +52,39 @@ describe("detectTests coverage", function () {
     });
   }
 
+  describe("default Markdown detection", function () {
+    it("turns typing instructions into type steps, whatever the verb's case", async function () {
+      const doc = write(
+        "typing.md",
+        [
+          'Type "kittens" into the box.',
+          "",
+          'Then type "puppies" into the box.',
+          "",
+          'Enter "bunnies" in the box.',
+          "",
+          'Press "Enter".',
+          "",
+        ].join("\n")
+      );
+      const config = await makeConfig({ input: [doc], detectSteps: true });
+      const specs = await detectTests({ config });
+      const typed = specs
+        .flatMap((spec) => spec.tests)
+        .flatMap((test) => test.steps)
+        .filter((step) => step.type)
+        .map((step) => step.type.keys ?? step.type);
+      assert.deepEqual(typed, ["kittens", "puppies", "bunnies", "Enter"]);
+    });
+  });
+
   describe("qualifyFiles", function () {
     it("returns [] and warns when no input sources are specified", async function () {
       // Build a valid config first, then blank out input so the
-      // sequence-empty short-circuit (no beforeAny/input/afterAll) runs.
+      // sequence-empty short-circuit (no beforeAll/input/afterAll) runs.
       const config = await makeConfig({ input: ["./README.md"] });
       config.input = [];
-      config.beforeAny = [];
+      config.beforeAll = [];
       config.afterAll = [];
       const specs = await detectTests({ config });
       assert.deepEqual(specs, []);
@@ -73,6 +102,21 @@ describe("detectTests coverage", function () {
       write("keep.json", specJSON("https://a.com"));
       write("node_modules/pkg.json", specJSON("https://b.com"));
       const config = await makeConfig({ input: [tmpDir] });
+      const specs = await detectTests({ config });
+      assert.equal(specs.length, 1);
+    });
+
+    it("skips .doc-detective folders during directory recursion, so a run doesn't test an earlier run's artifacts", async function () {
+      write("keep.json", specJSON("https://a.com"));
+      write(".doc-detective/runs/r1/old.json", specJSON("https://b.com"));
+      const config = await makeConfig({ input: [tmpDir] });
+      const specs = await detectTests({ config });
+      assert.equal(specs.length, 1);
+    });
+
+    it("still reads a .doc-detective folder passed as the input itself", async function () {
+      write(".doc-detective/runs/r1/old.json", specJSON("https://b.com"));
+      const config = await makeConfig({ input: [path.join(tmpDir, ".doc-detective")] });
       const specs = await detectTests({ config });
       assert.equal(specs.length, 1);
     });
@@ -121,18 +165,18 @@ describe("detectTests coverage", function () {
       assert.equal(specs.length, 1);
     });
 
-    it("stamps the beforeAny / main / afterAll phase onto detected specs", async function () {
+    it("stamps the beforeAll / main / afterAll phase onto detected specs", async function () {
       const before = write("before.md", "# B\n\n<!-- step {\"goTo\": \"https://b.com\"} -->\n");
       const main = write("main.json", specJSON("https://m.com"));
       const after = write("after.md", "# A\n\n<!-- step {\"goTo\": \"https://a.com\"} -->\n");
       const config = await makeConfig({
         input: [main],
-        beforeAny: [before],
+        beforeAll: [before],
         afterAll: [after],
       });
       const specs = await detectTests({ config });
       const phases = specs.map((s) => s._phase).sort();
-      assert.deepEqual(phases, ["afterAll", "beforeAny", "main"]);
+      assert.deepEqual(phases, ["afterAll", "beforeAll", "main"]);
     });
   });
 
@@ -289,13 +333,11 @@ describe("detectTests coverage", function () {
     it("skips a file when its runShell template produces an invalid step", async function () {
       // An empty runShell object (no `command`) builds a step that fails
       // test_v3 validation, so the file is skipped (warning) and no spec emits.
+      // The config schema rejects it, so set it after setConfig, as a caller
+      // of parseTests could.
       const script = write("bad.task", "echo task");
-      const config = await makeConfig({
-        input: [script],
-        fileTypes: [
-          { name: "task", extensions: ["task"], runShell: {} },
-        ],
-      });
+      const config = await makeConfig({ input: [script] });
+      config.fileTypes = [{ name: "task", extensions: ["task"], runShell: {} }];
       const specs = await parseTests({ config, files: [script] });
       assert.deepEqual(specs, []);
     });
@@ -410,5 +452,40 @@ describe("detectTests coverage", function () {
       const inside = path.join(process.cwd(), "stable", "x.json");
       assert.equal(generateSpecId(inside), generateSpecId(inside));
     });
+  });
+});
+
+// Every spec that fails its schema check after detection (a before/after
+// merge, inline statements, a runShell file type) is skipped the same way.
+describe("skipInvalidSpec", function () {
+  const RAW = /errorObjects|instancePath/;
+  const invalid = () => {
+    const object = { tests: [] };
+    return { object, validation: validate({ schemaKey: "spec_v3", object, addDefaults: false, structuredErrors: true }) };
+  };
+  const MESSAGE = "Tests from doc.md don't create a valid test specification. Skipping.";
+
+  it("warns with the formatted lines, not the raw errors, outside a strict run", async function () {
+    const config = { logLevel: "info" };
+    const { object, validation } = invalid();
+    const { lines } = await captureConsoleError(() => skipInvalidSpec(config, "doc.md", MESSAGE, validation, object));
+    const output = lines.join("\n");
+    assert.match(output, /Skipping\.\ntests: must NOT have fewer than 1 items\./);
+    assert.doesNotMatch(output, RAW);
+    assert.equal(config._invalidSpecs.length, 1);
+  });
+
+  it("leaves the reason to a strict run's error", async function () {
+    const config = { logLevel: "info", _strictSpecs: true };
+    const { object, validation } = invalid();
+    const { lines } = await captureConsoleError(() => skipInvalidSpec(config, "doc.md", MESSAGE, validation, object));
+    assert.deepEqual(lines, []);
+    assert.match(config._invalidSpecs[0], /tests: must NOT have fewer than 1 items\./);
+  });
+
+  it("logs the raw errors at debug", async function () {
+    const { object, validation } = invalid();
+    const { lines } = await captureConsoleError(() => skipInvalidSpec({ logLevel: "debug" }, "doc.md", MESSAGE, validation, object));
+    assert.match(lines.join("\n"), RAW);
   });
 });

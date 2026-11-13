@@ -1,3 +1,4 @@
+const originalConsoleError = console.error;
 // ADR 01136: detectTests' full detected-spec dump is debug output, like its
 // "SPECS:" header and the resolved/results dumps. At the default info level it
 // flooded stdout (~750 KB for this repo's docs).
@@ -23,10 +24,11 @@ describe("detectTests detected-spec dump log level", function () {
     );
     captured = [];
     originalLog = console.log;
-    console.log = (...args) => captured.push(args.join(" "));
+    console.error = console.log = (...args) => captured.push(args.join(" "));
   });
   afterEach(function () {
     console.log = originalLog;
+    console.error = originalConsoleError;
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -45,7 +47,7 @@ describe("detectTests detected-spec dump log level", function () {
 
   it("still prints them, under the SPECS: header, at debug level", async function () {
     const out = await detectAt("debug");
-    assert.ok(out.includes("(DEBUG) SPECS:"));
+    assert.match(out, /\(DEBUG\) SPECS:/);
     assert.ok(out.includes(MARKER), "the detected-spec dump must remain at debug");
   });
 });

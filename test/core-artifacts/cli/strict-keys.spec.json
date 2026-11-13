@@ -1,0 +1,146 @@
+{
+  "specId": "cli-strict-keys",
+  "description": "Unknown keys make a spec invalid (ADR 01150), through the real CLI: exit 2, and --no-exit-on-fail skips the spec.",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the specs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-strict';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/unknown-step-key.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',asertions:[]}]}]}));fs.writeFileSync(d+'/unknown-spec-key.spec.json',JSON.stringify({runon:[],tests:[{steps:[{runShell:'echo hi'}]}]}));fs.writeFileSync(d+'/unknown-action-key.spec.json',JSON.stringify({tests:[{steps:[{runCode:{language:'python',code:'print(1)',typo:1}}]}]}));fs.writeFileSync(d+'/step-autoscreenshot.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',autoScreenshot:false}]}]}));fs.writeFileSync(d+'/breakpoint.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi',breakpoint:true}]}]}));fs.writeFileSync(d+'/cookie-schema.spec.json',JSON.stringify({tests:[{steps:[{saveCookie:{name:'c',path:'c.txt',['\\x24schema']:'x'}}]}]}));fs.writeFileSync(d+'/app-working-directory.spec.json',JSON.stringify({tests:[{steps:[{startSurface:{app:'com.apple.TextEdit',workingDirectory:'.'}}]}]}));fs.writeFileSync(d+'/crawl.json',JSON.stringify({crawl:true}));\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "unknown-keys-exit-2",
+      "description": "An unknown key on a spec, on a step, or in an action exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-step-key.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-spec-key.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-action-key.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "step-autoscreenshot-exit-2",
+      "description": "`autoScreenshot` on a step is an unknown key, so the spec exits 2 (ADR 01184). Set it on the test, spec, or config instead.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/step-autoscreenshot.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0].steps[0]: unknown key"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "noop-keys-exit-2",
+      "description": "ADR 01187: keys that used to validate but did nothing are unknown keys, so each exits 2: step `breakpoint`, `$schema` inside `saveCookie`, `workingDirectory` on a `startSurface` app, and config `crawl`.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/breakpoint.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0].steps[0]: unknown key `breakpoint`."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/cookie-schema.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "/saveCookie: unknown key `.schema`\\./"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/app-working-directory.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "tests[0].steps[0].startSurface: "
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -c .tmp/fixture-strict/crawl.json -i .tmp/fixture-strict/unknown-step-key.spec.json --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "unknown key `crawl`."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "no-exit-on-fail-skips",
+      "description": "--no-exit-on-fail warns and skips the invalid spec.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-step-key.spec.json --no-exit-on-fail --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-spec-key.spec.json --no-exit-on-fail --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-strict/unknown-action-key.spec.json --no-exit-on-fail --output-dir .tmp/fixture-strict/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

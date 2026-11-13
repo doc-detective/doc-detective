@@ -1,11 +1,5 @@
 {
-  "id": "Test wait action with browser driver",
-  "contexts": [
-    {
-      "app": { "name": "firefox", "options": { "headless": true } },
-      "platforms": ["windows", "mac", "linux"]
-    }
-  ],
+  "specId": "Test wait action with browser driver",
   "tests": [
     {
       "testId": "wait-with-driver-milliseconds",

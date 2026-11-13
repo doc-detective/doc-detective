@@ -77,9 +77,9 @@ export async function maybeShowHint(
     // skip rule lives in the contextOverride-driven test below.
     //
     // Falsy check (not strict `=== false`) because Node leaves
-    // `process.stdout.isTTY` as `undefined` when stdout is piped or
+    // `process.stderr.isTTY` as `undefined` when stderr is piped or
     // redirected — the most common non-TTY case in CI.
-    if (!options.contextOverride && !process.stdout.isTTY) return;
+    if (!options.contextOverride && !process.stderr.isTTY) return;
 
     const ctx =
       options.contextOverride ??
@@ -93,7 +93,7 @@ export async function maybeShowHint(
         if (hint.when(ctx)) eligible.push(hint);
       } catch (err) {
         // A bad predicate must not poison the rest of the registry.
-        // Logged at debug — visible to `--logLevel debug` users who
+        // Logged at debug — visible to `--log-level debug` users who
         // reach this point precisely so they can diagnose issues.
         log(
           `hints: predicate for "${hint.id}" threw: ${(err as Error)?.message ?? err}`,
@@ -117,13 +117,15 @@ export async function maybeShowHint(
     // terminal lines including the leading blank. Multi-line hint
     // bodies still get the rest of their content emitted as a second
     // print call to preserve the renderer's line shape.
-    const rendered = renderMarkdown(chosen.markdown);
+    const rendered = renderMarkdown(
+      typeof chosen.markdown === "function" ? chosen.markdown(ctx) : chosen.markdown
+    );
     const newlineIdx = rendered.indexOf("\n");
     const firstLine =
       newlineIdx === -1 ? rendered : rendered.slice(0, newlineIdx);
     const restLines = newlineIdx === -1 ? "" : rendered.slice(newlineIdx + 1);
 
-    const print = options.print ?? ((line: string) => console.log(line));
+    const print = options.print ?? ((line: string) => console.error(line));
     print("");
     print(`${colors.dim}💡 Hint:${colors.reset} ${firstLine}`);
     if (restLines.length > 0) print(restLines);

@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "specification",
   "type": "object",
+  "additionalProperties": false,
   "dynamicDefaults": {
     "specId": "uuid"
   },
@@ -27,6 +28,9 @@
       "type": "string",
       "description": "Path to the content that the specification is associated with."
     },
+    "publicVariables": {
+      "$ref": "test_v3.schema.json#/properties/publicVariables"
+    },
     "if": {
       "$ref": "routing_v3.schema.json#/components/schemas/condition"
     },
@@ -36,20 +40,28 @@
     "openApi": {
       "$ref": "test_v3.schema.json#/properties/openApi"
     },
-    "publicVariables": {
-      "$ref": "test_v3.schema.json#/properties/publicVariables"
-    },
     "autoScreenshot": {
       "type": "boolean",
-      "description": "If `true`, captures a screenshot after every step in this spec's tests that runs in a browser. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level."
+      "description": "Defaults to `true`. If not `false`, captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`, in this spec's tests. Overrides the config-level `autoScreenshot`; individual tests can override this value with their own `autoScreenshot`. When unset, defers to the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out."
     },
     "autoRecord": {
       "type": "boolean",
-      "description": "If `true`, records a video of every browser context in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level."
+      "description": "Defaults to `true`. If not `false`, records a video of every context that drives a browser, native app, or device in this spec's tests. Overrides the config-level `autoRecord`; individual tests can override this value with their own `autoRecord`. When unset, defers to the config level. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out."
     },
     "annotationDefaults": {
       "description": "Default visual theme for annotations in this spec's tests. Overrides the config-level `annotationDefaults`; individual tests can override this value with their own `annotationDefaults`. When unset, defers to the config level.",
       "$ref": "annotationDefaults_v3.schema.json#"
+    },
+    "result": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "WARNING", "SKIPPED"],
+      "description": "Outcome of this spec. Doc Detective populates it. You never set it yourself.",
+      "readOnly": true
+    },
+    "resultDescription": {
+      "type": "string",
+      "description": "Why this spec had its outcome. Doc Detective populates it. You never set it yourself.",
+      "readOnly": true
     },
     "durationMs": {
       "type": "integer",

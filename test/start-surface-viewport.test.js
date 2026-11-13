@@ -1,3 +1,4 @@
+const originalConsoleError = console.error;
 // Bug #2 (the silent viewport floor): a browser/OS minimum window size can
 // clamp a small requested viewport with no error, and the step still PASSes.
 // startSurface now reads the viewport back after resizing, warns when it was
@@ -65,15 +66,16 @@ function contextDriverOpening(openDriver) {
 async function captureWarnings(fn) {
   const original = console.log;
   const lines = [];
-  console.log = (...args) => {
+  console.error = console.log = (...args) => {
     lines.push(args.join(" "));
   };
   try {
     await fn();
   } finally {
     console.log = original;
+    console.error = originalConsoleError;
   }
-  return lines.filter((l) => l.startsWith("(WARNING)"));
+  return lines.filter((l) => l.startsWith("Warning: "));
 }
 
 const config = { logLevel: "warning" };

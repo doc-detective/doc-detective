@@ -9,13 +9,13 @@
  */
 export type HttpRequest = HTTPRequestSimple | HTTPRequestDetailed;
 /**
- * URL for the HTTP request.
+ * Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
  */
 export type HTTPRequestSimple = string;
 export type HTTPRequestDetailed = {
   [k: string]: unknown;
 } & {
-  url?: HTTPRequestSimple1;
+  url?: TargetURL;
   openApi?: (string & OperationID) | (OpenApi & OpenAPIDefinitionHttpRequest);
   /**
    * Accepted status codes. If the specified URL returns a code other than what is specified here, the action fails. A single integer is treated as a one-item list.
@@ -26,7 +26,7 @@ export type HTTPRequestDetailed = {
    */
   method?: "get" | "put" | "post" | "patch" | "delete";
   /**
-   * Timeout for the HTTP request, in milliseconds.
+   * Maximum time in milliseconds to wait for the response. If exceeded, the step fails. At least 1.
    */
   timeout?: number;
   request?: Request;
@@ -36,15 +36,15 @@ export type HTTPRequestDetailed = {
    */
   allowAdditionalFields?: boolean;
   /**
-   * File path to save the command's output, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings.
+   * File path to save the response body, relative to `directory`. Specify a file extension that matches the expected response type, such as `.json` for JSON content or `.txt` for strings.
    */
   path?: string;
   /**
-   * Directory to save the command's output. If the directory doesn't exist, creates the directory. If not specified, the directory is your media directory.
+   * Directory to save the response in. If the directory doesn't exist, creates the directory. A relative `directory`, or a relative `path` without one, resolves against the spec file's folder.
    */
   directory?: string;
   /**
-   * Allowed variation in percentage of text different between the current output and previously saved output. If the difference between the current output and the previous output is greater than `maxVariation`, the step fails. If output doesn't exist at `path`, this value is ignored.
+   * Allowed variation as a fraction (0 to 1) of text different between the current output and previously saved output. For example, 0.1 means 10%. If the difference between the current output and the previous output is greater than `maxVariation`, the step returns a warning. If output doesn't exist at `path`, this value is ignored.
    */
   maxVariation?: number;
   /**
@@ -54,9 +54,9 @@ export type HTTPRequestDetailed = {
   overwrite?: "true" | "false" | "aboveVariation";
 };
 /**
- * URL for the HTTP request.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
  */
-export type HTTPRequestSimple1 = string;
+export type TargetURL = string;
 /**
  * OpenAPI description and configuration.
  */
@@ -85,15 +85,15 @@ export type OpenApi = {
    */
   validateAgainstSchema?: "request" | "response" | "both" | "none";
   /**
-   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code.
+   * If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code.
    */
   mockResponse?: boolean;
   /**
-   * Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified.
+   * Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes.
    */
   statusCode?: number;
   /**
-   * Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.
+   * Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.
    */
   useExample?: "request" | "response" | "both" | "none";
   /**
@@ -103,10 +103,15 @@ export type OpenApi = {
   headers?: OpenAPIRequestHeaders;
 };
 /**
- * Headers to include in the HTTP request, as return-separated values. For example, `Content-Type: application/json
- * Authorization: Bearer token`.
+ * Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name.
  */
+export type OpenAPIRequestHeaders = RequestHeadersObject | RequestHeadersString;
 export type RequestHeadersString = string;
+/**
+ * Headers to include in the HTTP request: an object with string values, or a string with one `Name: value` header per line. With `openApi`, these override the OpenAPI `headers` with the same name.
+ */
+export type RequestHeaders = RequestHeadersObject1 | RequestHeadersString1;
+export type RequestHeadersString1 = string;
 /**
  * JSON array to include as the body of the HTTP request.
  */
@@ -136,31 +141,22 @@ export interface OperationID {
 export interface OpenAPIDefinition {
   [k: string]: unknown;
 }
-/**
- * Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value.
- */
-export interface OpenAPIRequestHeaders {
+export interface RequestHeadersObject {
   [k: string]: string;
 }
 export interface OpenAPIDefinitionHttpRequest {
   [k: string]: unknown;
 }
 export interface Request {
-  /**
-   * Headers to include in the HTTP request.
-   */
-  headers?: RequestHeadersObject | RequestHeadersString;
+  headers?: RequestHeaders;
   parameters?: RequestParameters;
   /**
    * The body of the HTTP request.
    */
   body?: RequestBodyObject | RequestBodyArray | RequestBodyString;
 }
-/**
- * Headers to include in the HTTP request, in key/value format.
- */
-export interface RequestHeadersObject {
-  [k: string]: unknown;
+export interface RequestHeadersObject1 {
+  [k: string]: string;
 }
 /**
  * URL parameters to include in the HTTP request, in key/value format.
@@ -177,7 +173,7 @@ export interface RequestBodyObject {
 export interface Response {
   headers?: ResponseHeaders;
   /**
-   * JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails.
+   * JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.
    */
   body?: ResponseBodyObject | ResponseBodyArray | ResponseBodyString;
   /**
@@ -186,7 +182,7 @@ export interface Response {
   required?: string[];
 }
 /**
- * Headers expected in the response, in key/value format. If one or more `responseHeaders` entries aren't present in the response, the step fails.
+ * Headers expected in the response, in key/value format. If one or more `response.headers` entries aren't present in the response, the step fails.
  */
 export interface ResponseHeaders {
   [k: string]: unknown;

@@ -1,19 +1,2 @@
-import {
-  runTests,
-  getRunner,
-  detectTests,
-  detectAndResolveTests,
-  resolveTests,
-  readFile,
-  resolvePaths,
-} from "./core/index.js";
-
-export {
-  runTests,
-  getRunner,
-  detectTests,
-  detectAndResolveTests,
-  resolveTests,
-  readFile,
-  resolvePaths,
-};
+// The public API (ADR 01152). Adding an export here is a commitment.
+export { runTests, getRunner } from "./core/index.js";

@@ -7,6 +7,12 @@
   "dynamicDefaults": {
     "configId": "uuid"
   },
+  "not": {
+    "required": ["beforeAll", "beforeAny"]
+  },
+  "errorMessage": {
+    "not": "set `beforeAll` or `beforeAny`, not both."
+  },
   "properties": {
     "$schema": {
       "description": "JSON Schema URL for editor support. Doc Detective ignores it.",
@@ -32,20 +38,23 @@
       ]
     },
     "output": {
-      "description": "Path of the directory in which to store the output of Doc Detective commands. If a file path is specified, Doc Detective attempts to honor the file name specified, but file path behavior is controlled by the configured reporters.",
+      "description": "Path of the JSON results file. It's overwritten on each run. A folder isn't valid here: use `outputDir`.",
+      "type": "string"
+    },
+    "outputDir": {
+      "description": "Path of the folder that holds the run folder and the html, junit, and markdown reports.",
       "type": "string",
       "default": "."
     },
     "reporters": {
-      "description": "Reporters to use when emitting test results. Built-in reporters: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<output>/.doc-detective/runs/<runId>/testResults.json` (or `coverageResults.json` for coverage runs), beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. You can also reference custom reporters registered via `registerReporter()` by name.",
+      "description": "Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), and `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.",
       "type": "array",
       "items": {
         "type": "string",
-        "minLength": 1
+        "enum": ["terminal", "json", "html", "runFolder", "junit", "markdown"]
       },
       "default": [
         "terminal",
-        "json",
         "runFolder"
       ]
     },
@@ -68,7 +77,7 @@
       }
     },
     "recursive": {
-      "description": "If `true` searches `input`, `setup`, and `cleanup` paths recursively for test specifications and source files.",
+      "description": "If `true`, searches the `input`, `beforeAll`, and `afterAll` folders recursively for test specifications and source files.",
       "type": "boolean",
       "default": true
     },
@@ -99,8 +108,27 @@
       },
       "default": {}
     },
-    "beforeAny": {
+    "beforeAll": {
       "description": "Path(s) to test specifications to perform before those specified by `input`. Useful for setting up testing environments.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "beforeAny": {
+      "description": "Deprecated: use `beforeAll`.",
+      "deprecated": true,
       "anyOf": [
         {
           "type": "string"
@@ -143,11 +171,6 @@
     "allowUnsafeSteps": {
       "type": "boolean",
       "description": "Whether or not to run potentially unsafe steps, such as those that might modify files or system state."
-    },
-    "crawl": {
-      "description": "If `true`, crawls sitemap.xml files specified by URL to find additional files to test.",
-      "type": "boolean",
-      "default": false
     },
     "processDitaMaps": {
       "description": "If `true`, processes DITA maps and includes generated files as inputs.",
@@ -198,6 +221,7 @@
                 "$comment": "Custom mode: Extend predefined templates or write whole new ones.",
                 "title": "File type (custom)",
                 "type": "object",
+                "additionalProperties": false,
                 "anyOf": [
                   {
                     "required": [
@@ -216,12 +240,13 @@
                     "type": "string"
                   },
                   "extends": {
-                    "description": "Base template to extend.",
+                    "description": "Base template to extend. A file whose extension no parser handles is parsed as this format.",
                     "type": "string",
                     "enum": [
                       "markdown",
                       "asciidoc",
-                      "html"
+                      "html",
+                      "dita"
                     ]
                   },
                   "extensions": {
@@ -238,7 +263,6 @@
                   "markup": {
                     "description": "Markup definitions for the file type.",
                     "type": "array",
-                    "minItems": 1,
                     "items": {
                       "$ref": "#/components/schemas/markupDefinition"
                     }
@@ -249,10 +273,15 @@
                 "title": "File type (executable)",
                 "$comment": "Executable mode: Convert executable inputs directly into tests.",
                 "type": "object",
+                "additionalProperties": false,
                 "required": [
                   "extensions"
                 ],
                 "properties": {
+                  "name": {
+                    "description": "Name of the file type.",
+                    "type": "string"
+                  },
                   "extensions": {
                     "description": "File extensions to use with type.",
                     "anyOf": [
@@ -289,6 +318,10 @@
           "description": "Configuration for Doc Detective Orchestration API integration.",
           "additionalProperties": false,
           "properties": {
+            "apiKeyFile": {
+              "type": "string",
+              "description": "Path to a file holding the API key, used in place of `apiKey`. This keeps the key out of config files and the environment."
+            },
             "apiKey": {
               "type": "string",
               "description": "API key for authenticating with the Doc Detective Orchestration API."
@@ -305,10 +338,17 @@
             "required": [
               "name",
               "organizationId",
-              "username",
-              "apiToken"
+              "username"
+            ],
+            "anyOf": [
+              { "required": ["apiToken"] },
+              { "required": ["apiTokenFile"] }
             ],
             "properties": {
+              "apiTokenFile": {
+                "type": "string",
+                "description": "Path to a file holding the API token, used in place of `apiToken`. This keeps the token out of config files and the environment."
+              },
               "name": {
                 "type": "string",
                 "description": "Unique identifier for this Heretto integration. Used in logs and results."
@@ -336,24 +376,6 @@
                 "type": "string",
                 "description": "Local path where Heretto content was downloaded. Set automatically during processing.",
                 "readOnly": true
-              },
-              "fileMapping": {
-                "type": "object",
-                "description": "Mapping of local file paths to Heretto file metadata. Set automatically during content loading.",
-                "readOnly": true,
-                "additionalProperties": {
-                  "type": "object",
-                  "properties": {
-                    "fileId": {
-                      "type": "string",
-                      "description": "The UUID of the file in Heretto."
-                    },
-                    "filePath": {
-                      "type": "string",
-                      "description": "The path of the file in Heretto."
-                    }
-                  }
-                }
               },
               "uploadOnChange": {
                 "type": "boolean",
@@ -463,16 +485,24 @@
       "title": "Verification options"
     },
     "concurrentRunners": {
-      "type": [
-        "integer",
-        "boolean"
+      "$comment": "The first branch keeps its type array, so Ajv's coerceTypes never turns `true` into `1` or `1` into `true`, and still turns a quoted `\"4\"` into `4` (ADR 01188).",
+      "anyOf": [
+        {
+          "type": [
+            "integer",
+            "boolean"
+          ],
+          "minimum": 1,
+          "not": {
+            "const": false
+          }
+        },
+        {
+          "const": "auto"
+        }
       ],
       "default": 1,
-      "minimum": 1,
-      "description": "Number of concurrent test runners. Set to true to use CPU core count (capped at 4).",
-      "not": {
-        "const": false
-      }
+      "description": "Number of concurrent test runners. `true` or `\"auto\"` uses one runner per CPU core, up to 4. Equivalent to `--concurrent-runners` on the CLI."
     },
     "environment": {
       "$ref": "#/components/schemas/environment"
@@ -498,7 +528,7 @@
       "default": false
     },
     "autoScreenshot": {
-      "description": "If `true`, captures a screenshot after every browser-driven step that does not already define an explicit `screenshot`. Defaults to `false`. Steps with an explicit `screenshot` are skipped for auto-capture since they already produce an image. Doc Detective saves images in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` on the CLI.",
+      "description": "Defaults to `true`. Captures a screenshot after every step that drives a browser, native app, or device, headless included, unless the step defines its own `screenshot`. Doc Detective saves images in the per-run artifact directory (`<outputDir>/.doc-detective/runs/<runId>/`) under the nested resource tree, with each image named by the step's order, action, and ID (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/01-goTo-s4f2a91c.png`), so the same step lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoScreenshot` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-screenshot` and `--no-auto-screenshot` on the CLI.",
       "type": "boolean"
     },
     "annotationDefaults": {
@@ -506,7 +536,7 @@
       "$ref": "annotationDefaults_v3.schema.json#"
     },
     "autoRecord": {
-      "description": "If `true`, records a video of every test context that runs in a browser, in addition to any explicit `record` steps. Defaults to `false`. The recording wraps the whole context (it starts before the first step and stops after the last) and always uses the `ffmpeg` engine. Videos are saved in the per-run artifact directory (`<output>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` on the CLI.",
+      "description": "Defaults to `true`. Records a video of every context that drives a browser, native app, or device: headless Chrome with the `browser` engine, which captures its tab; headed browsers and desktop apps with the `ffmpeg` engine; and Android and iOS devices on the device. Headless Firefox runs headed so it can be recorded, when the host can capture the screen. The recording wraps the whole context, alongside any explicit `record` steps; in headless Chrome, an explicit `record` step replaces it. Left unset, a context the host can't record isn't recorded, and a recording that can't start is SKIPPED. `true` is strict: a recording the host can't make is SKIPPED, and one that fails to start fails. Videos are saved in the per-run artifact directory (`<outputDir>/.doc-detective/runs/<runId>/`) under the nested resource tree (for example, `specs/<specId>/tests/<testId>/contexts/<contextId>/recordings/<contextId>.mp4`), so the same context lands on the same relative path in every run's folder for run-over-run comparison. While this is on, the `runFolder` reporter runs even if `reporters` leaves it out. Set `false` to turn it off. Specs and tests can override this value with their own `autoRecord` fields (test level wins over spec level, which wins over config level). Equivalent to `--auto-record` and `--no-auto-record` on the CLI.",
       "type": "boolean"
     },
     "autoUpdate": {
@@ -515,8 +545,9 @@
       "default": true
     },
     "exitOnFail": {
-      "description": "If `true`, the CLI exits with a non-zero code (`1`) when any spec's result is `FAIL`, so a documentation-testing job fails the build the way a broken unit test would. Defaults to `false`, which preserves the CLI's historical behavior of exiting `0` on test failures (it exits non-zero only on a crash or invalid config) \u2014 the exit-on-fail decision has historically lived in CI wrappers like the Doc Detective GitHub Action. `WARNING` results are non-fatal and never trigger a non-zero exit. Equivalent to `--exit-on-fail` on the CLI.",
-      "type": "boolean"
+      "description": "If `true`, the CLI exits `1` when any spec's result is `FAIL`, and `2` when nothing valid was tested. If `false`, those outcomes exit `0`. It also decides what an invalid spec does, in the CLI and in `runTests()`. If `true`, nothing runs. If `false`, the invalid spec is skipped with a warning, and the rest run. Usage errors, invalid config, and crashes always exit `2`. `WARNING` and `SKIPPED` results never fail a run.",
+      "type": "boolean",
+      "default": true
     },
     "shell": {
       "description": "Default shell for `runShell` steps (and `runCode`'s shell-based execution). `runShell` steps can override this value with their own `shell` field. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.",
@@ -529,7 +560,7 @@
       "default": "bash"
     },
     "cacheDir": {
-      "description": "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `~/.doc-detective/` (the user's home directory). Override here, with the `DOC_DETECTIVE_CACHE_DIR` env var, or with `--cache-dir` on the CLI to share one cache across users or place it on another volume.",
+      "description": "Directory for lazy-installed runtime assets (heavy npm packages, browser binaries, ffmpeg). Defaults to `$XDG_CACHE_HOME/doc-detective` (`%LOCALAPPDATA%\\doc-detective` on Windows), or `~/.cache/doc-detective`. An existing `~/.doc-detective` keeps being used. A relative path resolves against the config file. `DOC_DETECTIVE_CACHE_DIR` and `--cache-dir` override it, in that order.",
       "type": "string",
       "minLength": 1,
       "pattern": "\\S"
@@ -545,7 +576,7 @@
       "default": "auto"
     },
     "retries": {
-      "description": "How many times to re-run a whole test context on a fresh session when the session it was running against turns out to be unusable — an early step (like `goTo`) passes, then a later step fails because the session or page is gone. After any failing context, an active probe checks the session and retries only when it finds one of three unambiguous signs: the session is dead (WebDriver `ECONNREFUSED` / `invalid session id`), it is alive but sitting on a browser crash or error page (`chrome-error:`, `about:neterror`), or it is alive but never left its initial blank document, meaning the context never actually got started. A page a test could legitimately be on is never treated as a retry signal, so a real assertion failure (the session is alive, the page loaded, the element genuinely isn't there) always fails and is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. Capped at `10` to prevent a runaway retry storm from a misconfiguration.",
+      "description": "How many times to re-run a whole test context on a fresh session when the session it was running against turns out to be unusable — an early step (like `goTo`) passes, then a later step fails because the session or page is gone. After any failing context, an active probe checks the session and retries only when it finds one of three unambiguous signs: the session is dead (WebDriver `ECONNREFUSED` / `invalid session id`), it is alive but sitting on a browser crash or error page (`chrome-error:`, `about:neterror`), or it is alive but never left its initial blank document, meaning the context never actually got started. A page a test could legitimately be on is never treated as a retry signal, so a real assertion failure (the session is alive, the page loaded, the element genuinely isn't there) always fails and is never retried. Defaults to `1`; set to `0` to disable and keep the exact single-attempt behavior. Contexts can override this with their own `retries` field. This is distinct from a step's `retry` route, which re-runs a single step on the *same* session — `retries` re-runs the *whole context* on a *new* session. That route's `retry.limit` sets its count, and the step's `attempts` result field reports how many times it ran. Capped at `10` to prevent a runaway retry storm from a misconfiguration.",
       "type": "integer",
       "minimum": 0,
       "maximum": 10,
@@ -605,24 +636,105 @@
           "osRelease": {
             "description": "The operating system release, as Node.js's `os.release()` reports it, for example `6.8.0-1017-azure` on Linux or `10.0.26200` on Windows.",
             "type": "string"
+          },
+          "apps": {
+            "description": "The browsers and drivers Doc Detective found on the host. Empty in a resolved test plan from `--dry-run`, and when no context needs a browser.",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
           }
         },
         "title": "Environment details"
       },
       "markupDefinition": {
         "type": "object",
+        "description": "Detects steps from a file. Use `regex` to match the file's raw text, one selector kind to match parsed nodes, or a kind with `regex` to match inside the selected nodes.",
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "required": [
+              "regex"
+            ],
+            "properties": {
+              "comment": false,
+              "codeBlock": false,
+              "link": false,
+              "image": false,
+              "strong": false,
+              "emphasis": false,
+              "text": false,
+              "element": false,
+              "captures": false
+            }
+          },
+          {
+            "$ref": "#/components/schemas/oneSelectorKind"
+          }
+        ],
+        "if": {
+          "required": [
+            "captures"
+          ],
+          "properties": {
+            "captures": {
+              "type": "array",
+              "contains": {
+                "type": "string",
+                "pattern": "^match\\."
+              }
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "regex"
+          ]
+        },
         "properties": {
           "name": {
             "description": "Name of the markup definition",
             "type": "string"
           },
           "regex": {
-            "description": "Regular expressions to match the markup type.",
+            "description": "Regular expressions to match. Alone, they run on the file's raw text. With a selector kind, they run on each selected node's main text, and each occurrence is a match. A node's main text is its `content`, else its `text`, else its `alt`.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/stringOrArray"
               }
             ]
+          },
+          "comment": {
+            "$ref": "#/components/schemas/selectorComment"
+          },
+          "codeBlock": {
+            "$ref": "#/components/schemas/selectorCodeBlock"
+          },
+          "link": {
+            "$ref": "#/components/schemas/selectorLink"
+          },
+          "image": {
+            "$ref": "#/components/schemas/selectorImage"
+          },
+          "strong": {
+            "$ref": "#/components/schemas/selectorStrong"
+          },
+          "emphasis": {
+            "$ref": "#/components/schemas/selectorEmphasis"
+          },
+          "text": {
+            "$ref": "#/components/schemas/selectorText"
+          },
+          "element": {
+            "$ref": "#/components/schemas/selectorElement"
+          },
+          "captures": {
+            "description": "Fields of each match to use as `$1`, `$2`, and so on, in order. Without it, a selector definition uses its `regex` groups, else the node's main text. A `match.<n>` field needs `regex` on the same definition.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "$ref": "#/components/schemas/captureField"
+            }
           },
           "batchMatches": {
             "description": "If `true`, all matches are combined into a single string.",
@@ -630,7 +742,7 @@
             "default": false
           },
           "actions": {
-            "description": "Actions to perform when the markup type is detected.",
+            "description": "Actions to perform when the markup type is detected. An action name uses `$1` as its value. An object is a step template: `$1`, `$2`, and so on are replaced, and the result is checked as a step when it's detected. A step that isn't valid is skipped with a warning.",
             "anyOf": [
               {
                 "$ref": "#/components/schemas/markupActionString"
@@ -643,7 +755,7 @@
                       "$ref": "#/components/schemas/markupActionString"
                     },
                     {
-                      "$ref": "step_v3.schema.json#"
+                      "type": "object"
                     }
                   ]
                 }
@@ -651,7 +763,53 @@
             ]
           }
         },
-        "title": "Markup definition"
+        "title": "Markup definition",
+        "examples": [
+          {
+            "name": "runBash",
+            "codeBlock": "bash",
+            "actions": [
+              {
+                "runShell": "$1"
+              }
+            ]
+          },
+          {
+            "name": "goToLink",
+            "link": {
+              "url": "^https?://",
+              "precededBy": "\\b[Gg]o to\\s+$"
+            },
+            "captures": [
+              "url"
+            ],
+            "actions": [
+              "goTo"
+            ]
+          },
+          {
+            "name": "version",
+            "text": {},
+            "regex": "\\bv(\\d+\\.\\d+)\\b",
+            "actions": [
+              "find"
+            ]
+          },
+          {
+            "name": "apiCall",
+            "regex": [
+              "API:\\s*(GET|POST)\\s+`([^`]+)`"
+            ],
+            "actions": [
+              {
+                "httpRequest": {
+                  "method": "$1",
+                  "url": "$2"
+                }
+              }
+            ]
+          }
+        ]
       },
       "markupActionString": {
         "type": "string",
@@ -677,7 +835,26 @@
       "inlineStatements": {
         "description": "Statements to include tests and steps inside the content of the file, such as within Markdown.",
         "type": "object",
+        "additionalProperties": false,
         "properties": {
+          "in": {
+            "description": "Nodes to read as statements. Each node's text must start with `test`, `test start`, `test end`, `test ignore start`, `test ignore end`, or `step`. `\"comment\"` reads every comment.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "comment"
+                  ]
+                },
+                {
+                  "$ref": "#/components/schemas/statementContainer"
+                }
+              ]
+            }
+          },
           "testStart": {
             "description": "Regular expressions that indicate the start of a test. If capture groups are used, the first capture group is used for the statement. If no capture groups are used, the entire match is used for the statement.",
             "anyOf": [
@@ -721,6 +898,296 @@
         },
         "title": "Inline statement definition"
       },
+      "statementContainer": {
+        "description": "Nodes of one selector kind to read as statements.",
+        "type": "object",
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/oneSelectorKind"
+          }
+        ],
+        "properties": {
+          "comment": {
+            "$ref": "#/components/schemas/selectorComment"
+          },
+          "codeBlock": {
+            "$ref": "#/components/schemas/selectorCodeBlock"
+          },
+          "link": {
+            "$ref": "#/components/schemas/selectorLink"
+          },
+          "image": {
+            "$ref": "#/components/schemas/selectorImage"
+          },
+          "strong": {
+            "$ref": "#/components/schemas/selectorStrong"
+          },
+          "emphasis": {
+            "$ref": "#/components/schemas/selectorEmphasis"
+          },
+          "text": {
+            "$ref": "#/components/schemas/selectorText"
+          },
+          "element": {
+            "$ref": "#/components/schemas/selectorElement"
+          },
+          "value": {
+            "description": "Field that holds the statement text. Defaults to the node's main text.",
+            "$ref": "#/components/schemas/captureField"
+          },
+          "regex": {
+            "description": "Regular expressions to run on the statement text. The first group of the first match becomes the statement, else the whole match. A node that doesn't match isn't a statement.",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/selectorPattern"
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/components/schemas/selectorPattern"
+                }
+              }
+            ]
+          }
+        },
+        "title": "Statement container",
+        "examples": [
+          {
+            "comment": {
+              "excludes": "draft"
+            },
+            "regex": "^dd:\\s*(.*)$"
+          },
+          {
+            "element": {
+              "tag": [
+                "meta"
+              ],
+              "attributes": {
+                "name": "^doc-detective$"
+              }
+            },
+            "value": "attributes.content"
+          }
+        ]
+      },
+      "oneSelectorKind": {
+        "oneOf": [
+          {
+            "required": ["comment"],
+            "properties": { "codeBlock": false, "link": false, "image": false, "strong": false, "emphasis": false, "text": false, "element": false }
+          },
+          {
+            "required": ["codeBlock"],
+            "properties": { "comment": false, "link": false, "image": false, "strong": false, "emphasis": false, "text": false, "element": false }
+          },
+          {
+            "required": ["link"],
+            "properties": { "comment": false, "codeBlock": false, "image": false, "strong": false, "emphasis": false, "text": false, "element": false }
+          },
+          {
+            "required": ["image"],
+            "properties": { "comment": false, "codeBlock": false, "link": false, "strong": false, "emphasis": false, "text": false, "element": false }
+          },
+          {
+            "required": ["strong"],
+            "properties": { "comment": false, "codeBlock": false, "link": false, "image": false, "emphasis": false, "text": false, "element": false }
+          },
+          {
+            "required": ["emphasis"],
+            "properties": { "comment": false, "codeBlock": false, "link": false, "image": false, "strong": false, "text": false, "element": false }
+          },
+          {
+            "required": ["text"],
+            "properties": { "comment": false, "codeBlock": false, "link": false, "image": false, "strong": false, "emphasis": false, "element": false }
+          },
+          {
+            "required": ["element"],
+            "properties": { "comment": false, "codeBlock": false, "link": false, "image": false, "strong": false, "emphasis": false, "text": false }
+          }
+        ]
+      },
+      "selectorPattern": {
+        "description": "A regular expression, run without flags.",
+        "type": "string",
+        "format": "regex",
+        "maxLength": 1500
+      },
+      "captureField": {
+        "description": "A field of a match: `content`, `text`, `language`, `meta`, `url`, `title`, `src`, `alt`, `tag`, `attributes.<name>`, `match.<n>` for a group of the definition's `regex`, or `precededBy.<n>` for a group of `precededBy`. A field the node doesn't have is an empty string. A `regex` group that didn't take part leaves out the action field that uses it.",
+        "type": "string",
+        "pattern": "^(content|text|language|meta|url|title|src|alt|tag|attributes\\.\\S+|match\\.\\d+|precededBy\\.\\d+)$"
+      },
+      "selectorExcludes": {
+        "description": "The node's main text must not match this pattern.",
+        "$ref": "#/components/schemas/selectorPattern"
+      },
+      "selectorPrecededBy": {
+        "description": "The source between the start of the enclosing block and the node must match this pattern. Anchor it with `$` to match the text right before the node. Its groups are available as `precededBy.<n>` captures.",
+        "$ref": "#/components/schemas/selectorPattern"
+      },
+      "selectorAttributes": {
+        "description": "Attributes the node must have, by name. A pattern must match the attribute's value, and `true` only requires the attribute.",
+        "type": "object",
+        "additionalProperties": {
+          "$comment": "`true` comes first and has no `type`, so validating with type coercion can't turn it into the pattern \"true\".",
+          "anyOf": [
+            {
+              "const": true
+            },
+            {
+              "$ref": "#/components/schemas/selectorPattern"
+            }
+          ]
+        }
+      },
+      "selectorList": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "string"
+        }
+      },
+      "selectorComment": {
+        "description": "Selects comments.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorText": {
+        "description": "Selects runs of prose, outside code, links, and formatting.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorCodeBlock": {
+        "description": "Selects code blocks. A string selects one language.",
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "language": {
+                "description": "Languages to select, matched exactly. `\"\"` selects code blocks with no language.",
+                "$ref": "#/components/schemas/selectorList"
+              },
+              "metaExcludes": {
+                "description": "The text after the language must not match this pattern.",
+                "$ref": "#/components/schemas/selectorPattern"
+              },
+              "excludes": {
+                "$ref": "#/components/schemas/selectorExcludes"
+              }
+            }
+          }
+        ]
+      },
+      "selectorLink": {
+        "description": "Selects links.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "description": "The link's destination must match this pattern.",
+            "$ref": "#/components/schemas/selectorPattern"
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/selectorAttributes"
+          },
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorImage": {
+        "description": "Selects images.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "src": {
+            "description": "The image's source must match this pattern.",
+            "$ref": "#/components/schemas/selectorPattern"
+          },
+          "attributes": {
+            "$ref": "#/components/schemas/selectorAttributes"
+          },
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorStrong": {
+        "description": "Selects bold text.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorEmphasis": {
+        "description": "Selects italic text.",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "precededBy": {
+            "$ref": "#/components/schemas/selectorPrecededBy"
+          },
+          "excludes": {
+            "$ref": "#/components/schemas/selectorExcludes"
+          }
+        }
+      },
+      "selectorElement": {
+        "description": "Selects elements, such as HTML tags, XML elements, and JSX components. A string selects one tag.",
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "tag": {
+                "description": "Tag names to select, matched exactly.",
+                "$ref": "#/components/schemas/selectorList"
+              },
+              "attributes": {
+                "$ref": "#/components/schemas/selectorAttributes"
+              },
+              "precededBy": {
+                "$ref": "#/components/schemas/selectorPrecededBy"
+              },
+              "excludes": {
+                "$ref": "#/components/schemas/selectorExcludes"
+              }
+            }
+          }
+        ]
+      },
       "stringOrArray": {
         "anyOf": [
           {
@@ -749,7 +1216,7 @@
     },
     {
       "input": ".",
-      "output": ".",
+      "outputDir": ".",
       "recursive": true,
       "loadVariables": ".env",
       "fileTypes": [
@@ -852,9 +1319,6 @@
       }
     },
     {
-      "crawl": true
-    },
-    {
       "processDitaMaps": true
     },
     {
@@ -880,7 +1344,7 @@
     },
     {
       "autoScreenshot": true,
-      "output": "./test-results"
+      "outputDir": "./test-results"
     },
     {
       "input": ".",

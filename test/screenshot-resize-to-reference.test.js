@@ -1,3 +1,4 @@
+const originalConsoleError = console.error;
 // #769 / ADR 01144: when a capture and its reference differ in size because the
 // environment rendered the browser differently, saveScreenshot resizes the
 // window to the reference's viewport, captures again, and restores the window.
@@ -13,6 +14,7 @@ import {
   referenceViewport,
 } from "../dist/core/tests/saveScreenshot.js";
 import { applyBrowserSize, DEFAULT_VIEWPORT } from "../dist/core/utils.js";
+import { registerEnvValue, resetMasking } from "../dist/core/masking.js";
 
 const require = createRequire(import.meta.url);
 const sharpMod = require("sharp");
@@ -72,11 +74,12 @@ function browserDriver({
 async function captureLog(level, fn) {
   const original = console.log;
   const lines = [];
-  console.log = (...args) => lines.push(args.join(" "));
+  console.error = console.log = (...args) => lines.push(args.join(" "));
   try {
-    return { value: await fn(), lines: lines.filter((l) => l.startsWith(`(${level})`)) };
+    return { value: await fn(), lines: lines.filter((l) => l.startsWith(`${level[0]}${level.slice(1).toLowerCase()}: `)) };
   } finally {
     console.log = original;
+    console.error = originalConsoleError;
   }
 }
 
@@ -341,6 +344,28 @@ describe("saveScreenshot resizes to the reference (#769)", function () {
     assert.deepEqual(driver.calls.at(-1), [1224, 900], "window restored");
   });
 
+  // ADR 01178: the retake at the reference's size blurs secrets too.
+  it("blurs secrets on the retake as well as the first capture", async function () {
+    registerEnvValue("DD_PASSWORD", "hunter-2222");
+    try {
+      const file = await reference(1000, 700);
+      const driver = browserDriver({ sizeTarget: defaultTarget });
+      const ran = [];
+      const execute = driver.execute;
+      driver.execute = async function (fn, ...args) {
+        ran.push(fn.name);
+        return execute.call(this, fn, ...args);
+      };
+      const result = await saveScreenshot({ config, step: { stepId: "resize-blur", screenshot: file }, driver });
+      assert.equal(result.status, "PASS");
+      assert.ok(result.outputs.resizedToReference, "retook at the reference's size");
+      assert.equal(ran.filter((name) => name === "collectCaptureCandidates").length, 2);
+      assert.equal(ran.filter((name) => name === "blurCandidates").length, 2);
+    } finally {
+      resetMasking();
+    }
+  });
+
   it("grows past the current window for a larger reference", async function () {
     const file = await reference(2400, 1700);
     const driver = browserDriver({ sizeTarget: defaultTarget });
@@ -457,6 +482,32 @@ describe("saveScreenshot resizes to the reference (#769)", function () {
     });
     assert.deepEqual(driver.calls, []);
     assert.equal(result.outputs.resizedToReference, undefined);
+  });
+
+  // The automatic recording a default run adds (ADR 01177) is an archive, so
+  // it doesn't cost the default run the resize; an authored one beside it still
+  // does.
+  it("resizes while only a defaulted automatic recording is running", async function () {
+    const file = await reference(1000, 700);
+    const driver = browserDriver({ sizeTarget: defaultTarget });
+    driver.state.recordings = [{ synthetic: true, defaulted: true }];
+    const result = await saveScreenshot({
+      config,
+      step: { stepId: "autorec", screenshot: file },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(result.outputs.resizedToReference.to, { width: 1000, height: 700 });
+
+    const authored = browserDriver({ sizeTarget: defaultTarget });
+    authored.state.recordings = [{ synthetic: true, defaulted: true }, {}];
+    const blocked = await saveScreenshot({
+      config,
+      step: { stepId: "autorec2", screenshot: { path: file, maxVariation: 1 } },
+      driver: authored,
+    });
+    assert.deepEqual(authored.calls, []);
+    assert.equal(blocked.outputs.resizedToReference, undefined);
   });
 
   it("doesn't resize a recording checkpoint (it would show in the video)", async function () {

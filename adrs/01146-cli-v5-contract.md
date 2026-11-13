@@ -138,7 +138,9 @@ runtime, so the CLI reference generator no longer parses source code.
 
 - `test/cli-contract.test.js` spawns the real CLI and asserts exit code, stdout, stderr, and escape
   sequences for each row of this contract. It also checks golden help text and the book commands.
-- Every registered command must pass `--help`, reject foreign flags, and honor `--json`.
+- Every registered command must pass `--help`, reject foreign flags, and honor `--json`. `lsp` and
+  `runner` take no global flags, so they reject `--json` (amended by
+  [ADR 01193](01193-json-says-whats-true.md)).
 - Rerunning the clig review leaves only the departures above and the items deferred to 5.x.
 
 ## Pros and Cons of the Options
