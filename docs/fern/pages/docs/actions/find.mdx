@@ -337,7 +337,7 @@ Combine `elementClass` with `elementAttribute` to pin down an element by how it'
 
 `elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, and `elementAria` all match a substring by regular expression when you wrap the value in slashes. This is handy for IDs or text that carry a variable part, such as a generated suffix.
 
-{/* test {"testId":"find-by-regex","detectSteps":false} */}
+{/* test {"testId":"find-by-regex-id","detectSteps":false} */}
 
 ```json
 {
@@ -356,8 +356,8 @@ Combine `elementClass` with `elementAttribute` to pin down an element by how it'
 }
 ```
 
-{/* step {"stepId":"goto-find-regex","description":"Open the enhanced elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
-{/* step {"stepId":"find-regex","description":"Find a button by an ID regular expression","find":{"elementId":"/^submit-.*-action$/"}} */}
+{/* step {"stepId":"goto-find-regex-id","description":"Open the enhanced elements test page","goTo":"http://localhost:8092/enhanced-elements.html"} */}
+{/* step {"stepId":"find-regex-id","description":"Find a button by an ID regular expression","find":{"elementId":"/^submit-.*-action$/"}} */}
 {/* test end */}
 
 ### Move the cursor to an element
