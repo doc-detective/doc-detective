@@ -17,8 +17,8 @@ more specs invalid, such as one with an unknown key.
 
 The JavaScript API didn't follow. `runTests(config)` had strict mode behind an internal `strictSpecs` option that only
 the CLI passed. So `require("doc-detective").runTests({ input: "bad.spec.json" })` logged a warning, skipped the spec,
-and resolved with an all-zero summary. A caller that checks only for a rejection or a failed test saw success, and a
-typo that turned off a check went unnoticed, which is what ADR 01150 set out to stop.
+and resolved with an all-zero summary. A caller that checks only for a rejection or a failed test saw success. A typo
+that turned off a check went unnoticed, which is what ADR 01150 set out to stop.
 
 Should `runTests()` reject invalid specs by default?
 
@@ -56,7 +56,7 @@ starts behaves as before, because the CLI already passed the same value.
 ### Confirmation
 
 [test/api-contract.test.js](../test/api-contract.test.js) asserts that `runTests()` rejects with the message above for
-a spec with an unknown step key, and that `exitOnFail: false` skips that spec and runs the valid one.
+a spec with an unknown step key. It also asserts that `exitOnFail: false` skips that spec and runs the valid one.
 [test/cli-contract.test.js](../test/cli-contract.test.js) keeps covering the CLI's exit `2` and stderr.
 
 ## Pros and Cons of the Options
