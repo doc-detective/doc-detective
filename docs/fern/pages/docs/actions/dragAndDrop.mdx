@@ -153,7 +153,7 @@ A string `source` or `target` matches a substring by regular expression when you
         {
           "description": "Drag the first widget matching a text pattern.",
           "dragAndDrop": {
-            "source": "/Widget Item.*/",
+            "source": "/Widget Item [0-9]/",
             "target": "Drop Zone 1"
           }
         }
@@ -164,7 +164,7 @@ A string `source` or `target` matches a substring by regular expression when you
 ```
 
 {/* step {"stepId":"goto-dragdrop-regex","description":"Open the drag and drop test page","goTo":"http://localhost:8092/drag-drop-test.html"} */}
-{/* step {"stepId":"dragdrop-regex","description":"Drag the first widget whose text matches the pattern","dragAndDrop":{"source":"/Widget Item.*/","target":"Drop Zone 1"}} */}
+{/* step {"stepId":"dragdrop-regex","description":"Drag the first widget whose text matches the pattern","dragAndDrop":{"source":"/Widget Item [0-9]/","target":"Drop Zone 1"}} */}
 {/* test end */}
 
 ### Target elements by class, attribute, or other criteria
