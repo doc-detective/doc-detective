@@ -49,7 +49,7 @@ function createServer(options = {}) {
   // browser sends back, so saveCookie/loadCookie specs need no external server.
   app.get("/cookies/set/:name/:value", (req, res) => {
     res.cookie(req.params.name, req.params.value, { path: "/" });
-    res.type("text").send(`Set ${req.params.name}.`);
+    res.type("text").send("Cookie set.");
   });
   app.get("/cookies", (req, res) => {
     res.type("text").send(req.headers.cookie || "");
