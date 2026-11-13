@@ -23,17 +23,11 @@ Run the `debug` subcommand to collect diagnostic information about your environm
 doc-detective debug
 ```
 
-Or use the environment variable (useful in CI):
+To see debug logs from a real test run instead, pass `-d`, or set `DOC_DETECTIVE_DEBUG=true` in CI. Both run your tests with debug output on stderr. `DEBUG` also turns it on when it's `1`, `true`, `*`, or a pattern matching `doc-detective`.
 
 ```bash
 DOC_DETECTIVE_DEBUG=true doc-detective
 ```
-
-<Note>
-
-Setting `DOC_DETECTIVE_DEBUG=true` causes Doc Detective to print the diagnostic dump and exit. Tests do not run. Unset it before a normal run.
-
-</Note>
 
 The diagnostic dump reports:
 
@@ -78,12 +72,26 @@ Review the output before sharing. Secrets are redacted by name (like `TOKEN`, `S
 
 ## Diagnose configuration errors
 
-If your configuration file has validation errors, the dump still runs and shows what went wrong:
+An invalid config stops the run with exit code `2`. The error names where the config came from: the file, `DOC_DETECTIVE_CONFIG`, or your user config. It then gives one line per problem, as `<key path>: <problem>`, and links to the [configuration reference](/reference/schemas/config):
+
+```
+Error: Invalid config in .doc-detective.json:
+unknown key `logLevl`. Did you mean `logLevel`?
+concurrentRunners: must be auto (got "lots").
+shell: must be one of bash, cmd, powershell (got "zsh").
+See https://docs.doc-detective.com/reference/schemas/config
+```
+
+A line with no key path is about the top level of the config. Nested keys use dots and `[n]` indexes, such as `integrations.heretto[0]`. Invalid test specifications use the same line format. Only the first five problems are listed, followed by `and N more`.
+
+If your configuration file has validation errors, the dump still runs and shows the same error:
 
 ```
 -- Config -----------------------------------------------------------
   === CONFIG INVALID ===
-  Invalid value at path: runOn[0].browsers[0] - must be a string or object
+  Invalid config in .doc-detective.json:
+  runOn[0].browsers[0]: must be one of chrome, firefox, safari, webkit (got 123).
+  See https://docs.doc-detective.com/reference/schemas/config
 
   Best-effort raw config (validation failed):
   {
@@ -122,7 +130,7 @@ When a driver can't start a session, Doc Detective falls back to another availab
 - `SKIPPED` when no browser can start a session. The diagnostic names the requested browser and points to the likely cause:
 
 ```
-Skipping context: could not start a browser session for 'firefox' on 'windows', and no other available browser could start either. A present-but-broken driver (for example a partially downloaded geckodriver) can cause this; reinstall the driver or its browser.
+Skipped: couldn't start a browser session for `firefox` on `windows`, and no other available browser could start either. A present-but-broken driver, such as a partially downloaded geckodriver, can cause this. Reinstall the driver or its browser.
 ```
 
 Reinstall the browsers and their drivers to replace the broken driver:
@@ -191,7 +199,7 @@ Set the missing variable before running tests:
 export API_KEY=your-key-here
 ```
 
-Or add it to your `.env` file and reference it with `loadVariables` in your config.
+Or add it to a `.env` file in the current directory, which Doc Detective loads automatically. A variable already set in your shell wins over `.env`. For a file elsewhere, reference it with `loadVariables` in your config.
 
 ### Cache directory isn't writable
 
@@ -210,6 +218,8 @@ Point Doc Detective at a writable cache location with the `DOC_DETECTIVE_CACHE_D
 ```bash
 export DOC_DETECTIVE_CACHE_DIR=~/.doc-detective-cache
 ```
+
+The variable overrides a `cacheDir` in your config file. A `--cache-dir` flag overrides the variable, so if the reported path doesn't change, check your command for that flag.
 
 ### Stale or outdated install
 

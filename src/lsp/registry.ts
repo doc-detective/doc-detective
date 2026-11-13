@@ -119,7 +119,7 @@ export function extractEnum(schema: any): Array<string | number | boolean> | und
 }
 
 /**
- * The `allOf` element of a `step_v3` anyOf branch that carries the action: the
+ * The `allOf` element of a `step_v3` oneOf branch that carries the action: the
  * one whose `required` names exactly the action key (never `$schema`).
  */
 function actionPartOf(branch: any): any {
@@ -139,9 +139,9 @@ function actionPartOf(branch: any): any {
  */
 export function buildRegistry(step: any = (schemas as any)["step_v3"]): Registry {
   const actions: ActionInfo[] = [];
-  for (const branch of step.anyOf || []) {
+  for (const branch of step.oneOf || []) {
     const part = actionPartOf(branch);
-    /* c8 ignore next - every step_v3 anyOf branch has an action part; defensive */
+    /* c8 ignore next - every step_v3 oneOf branch has an action part; defensive */
     if (!part) continue;
     const key = part.required[0];
     const propSchema = part.properties?.[key];

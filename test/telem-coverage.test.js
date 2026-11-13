@@ -51,6 +51,12 @@ describe("telem coverage: sendTelemetry", function () {
     assert.equal(captureStub.called, false);
   });
 
+  it("still sends a runTests event when the results have no summary", function () {
+    sendTelemetry({ ...config }, "runTests", {});
+    assert.equal(captureStub.calledOnce, true);
+    assert.equal(captureStub.firstCall.args[0].event, "runTests");
+  });
+
   it("assembles + flattens a runTests summary and captures the event", function () {
     const results = {
       summary: {

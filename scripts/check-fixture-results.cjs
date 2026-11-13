@@ -2,7 +2,7 @@
 // Gate a CI fixture job on the result of a doc-detective run.
 //
 // The doc-detective CLI intentionally exits 0 even when specs FAIL — the
-// exit-on-fail decision historically lived in the GitHub Action layer, not the
+// exit-on-fail decision for these jobs lives here, with exitOnFail: false in the
 // runner. The per-feature fixture jobs (.github/workflows/fixtures.yml) run the
 // locally-built CLI directly with `--output <file>`, then invoke this script to
 // turn a FAILed spec into a non-zero exit so the job (and the PR gate) fails.

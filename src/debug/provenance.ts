@@ -10,7 +10,7 @@
 
 export interface CliOverride {
   // The CLI flag spelling (without leading dashes) as declared in
-  // buildYargs — e.g. "dry-run", "cache-dir", "logLevel".
+  // addRunOptions — e.g. "dry-run", "cache-dir", "logLevel".
   flag: string;
   // The config key it overrides after validation.
   configKey: string;
@@ -50,20 +50,20 @@ function commaListPresent(value: unknown): boolean {
   );
 }
 
-// Replicates setConfig's --concurrent-runners guard: the bare flag ("") and
-// "true" select CPU-count mode, otherwise the value must parse to a positive
-// integer; anything else (e.g. "abc", "0") logs a warning and does NOT
-// override, so it must not be reported.
+// Replicates setConfig's --concurrent-runners guard: the bare flag (""),
+// "true", and "auto" select CPU-count mode, otherwise the value must parse to
+// a positive integer; anything else (e.g. "abc", "0") logs a warning and does
+// NOT override, so it must not be reported.
 function concurrentRunnersPresent(value: unknown): boolean {
   if (typeof value !== "string") return false;
-  if (value === "" || value.toLowerCase() === "true") return true;
+  if (value === "" || value.toLowerCase() === "true" || value === "auto") return true;
   const count = Number(value);
   return Number.isInteger(count) && count >= 1;
 }
 
-// The CLI overrides setConfig() applies. `flag` is the declared yargs option
-// name (what the user types); `argKey` is the camelCased property yargs
-// exposes on argv; `configKey` is where it lands after validation. The
+// The CLI overrides setConfig() applies. `flag` is the declared option
+// name (what the user types); `argKey` is the camelCased property the
+// parser exposes; `configKey` is where it lands after validation. The
 // `present` guard mirrors the exact check in the corresponding setConfig
 // override block so this report can't claim an override setConfig skipped.
 //
@@ -82,6 +82,7 @@ const OVERRIDE_SPECS: Array<{
 }> = [
   { flag: "input", argKey: "input", configKey: "input", present: (a) => Boolean(a.input) },
   { flag: "output", argKey: "output", configKey: "output", present: (a) => Boolean(a.output) },
+  { flag: "output-dir", argKey: "outputDir", configKey: "outputDir", present: (a) => Boolean(a.outputDir) },
   { flag: "logLevel", argKey: "logLevel", configKey: "logLevel", present: (a) => Boolean(a.logLevel) },
   {
     flag: "allow-unsafe",

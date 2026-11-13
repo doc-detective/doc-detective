@@ -56,7 +56,7 @@ type SurfaceTarget =
   | { kind: "process"; name: string; entry?: any }
   | { kind: "error"; message: string };
 
-const ENGINE_KEYWORDS = new Set(["chrome", "firefox", "safari", "webkit", "edge"]);
+const ENGINE_KEYWORDS = new Set(["chrome", "firefox", "safari", "webkit"]);
 
 const NO_ACTIVE_SURFACE_MESSAGE =
   "No active surface to act on. Open one first with a startSurface step (or a goTo step for a browser), or target a surface explicitly with `surface`.";

@@ -14,19 +14,37 @@ Doc Detective includes built-in support for:
 - [**AsciiDoc**](asciidoc): Lightweight markup language popular in technical writing
 - [**HTML**](html): Standard web format with HTML comment syntax
 
-Each format has its own comment patterns for inline tests and markup patterns for detected tests.
+Every format detects the same steps, written in its own syntax.
 
 ## How input formats work
 
 Input formats are defined in your [configuration file](/reference/schemas/config) using the `fileTypes` array. Each file type definition includes:
 
-- **name**: A descriptive name for the file type
-- **extensions**: File extensions that should be processed with this configuration
-- **testStartStatementOpen/Close**: Patterns for declaring test start comments
-- **testEndStatementOpen/Close**: Patterns for declaring test end comments
-- **testIgnoreStatement**: Patterns for ignoring test detection in specific areas
-- **stepStatementOpen/Close**: Patterns for declaring individual test steps
-- **markup**: Regex patterns for detecting tests from documentation content
+- **name**: A descriptive name for the file type.
+- **extensions**: File extensions that should be processed with this configuration.
+- **inlineStatements**: Where [inline test statements](/docs/test-docs/inline) live. The built-ins read them from comments.
+- **markup**: Definitions that detect steps from your content.
+
+Doc Detective parses each file, so it knows a link from a code sample. It doesn't read statements or bold text inside code blocks, inline code, or other code. A sample that shows a Doc Detective test stays a sample. To detect steps your own way, see [Selectors](selectors).
+
+## What gets detected
+
+With [step detection](/docs/test-docs/detected) on, each built-in detects these steps:
+
+| Step | Detected from |
+|---|---|
+| `goTo` | A link to an `http` or `https` URL, right after "Go to", "Open", "Navigate to", "Visit", "Access", "Proceed to", "Launch", or "Browse to" |
+| `checkLink` | Every link to an `http` or `https` URL |
+| `click` | Bold text right after "Click", "Tap", "Left-click", "Choose", "Select", or "Check" |
+| `find` | All bold text |
+| `type` | Quoted text after "Type", "Enter", or "Press" in prose, as in `Type "kittens"` |
+| `screenshot` | An image with the `screenshot` class. The image's source is the file to save |
+| `httpRequest` | A code block tagged `http`, or with no language, that holds a request such as `GET https://example.com` |
+| `runCode` | A code block tagged `bash`, `python`, `py`, `javascript`, or `js`, unless `testIgnore` follows the language. These steps are unsafe, so they run only with `allowUnsafeSteps` |
+
+DITA also clicks, finds, and types into `<uicontrol>` elements, finds `<wintitle>` elements, and checks `<link>` elements. See [DITA](dita).
+
+Each format writes links, bold text, images, and code blocks its own way. The [Selectors](selectors#kinds) page lists the syntax each format uses.
 
 ## Default configurations
 

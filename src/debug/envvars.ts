@@ -92,8 +92,8 @@ export function detectContainer(): ContainerInfo {
   return { inContainer: signals.length > 0, signals };
 }
 
-// Default file-type → extension map, mirroring core's `defaultFileTypes`
-// (src/core/config.ts). Used to scope the referenced-env-var scan to the
+// Default file-type → extension map, mirroring `defaultFileTypes`
+// (src/common/src/fileTypes.ts). Used to scope the referenced-env-var scan to the
 // files doc-detective actually parses, instead of every file in the tree
 // (where the `$VAR` grep matched shell/code/CI syntax — see the dump's
 // noise before this was added).

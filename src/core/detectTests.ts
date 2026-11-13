@@ -11,7 +11,8 @@ import crypto from "node:crypto";
 import { validate } from "../common/src/validate.js";
 import { getLineNumber, getLineStarts, contentHash } from "../common/src/textUtils.js";
 import { readFile, resolvePaths } from "./files.js";
-import { log, fetchFile, spawnCommand, runConcurrent } from "./utils.js";
+import { log, fetchFile, spawnCommand, runConcurrent, summarizeSchemaErrors, shortJson } from "./utils.js";
+import { diag, displayPath } from "../cliOutput.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
 
@@ -30,7 +31,7 @@ function loadParseContent() {
 // detection order and results are unchanged regardless of this value.
 const DETECTION_PARSE_CONCURRENCY = 8;
 
-export { detectTests, parseTests, generateSpecId };
+export { detectTests, parseTests, generateSpecId, skipInvalidSpec };
 
 /**
  * Detects tests from files based on config.
@@ -106,6 +107,28 @@ function buildAllowedExtensions(config: any): Set<string> {
   return allowed;
 }
 
+function isSpecFileName(source: string): boolean {
+  return /\.spec\.(json|ya?ml)$/i.test(source);
+}
+
+// Non-enumerable, so it stays out of serialized payloads (like _qualifiedFiles).
+function noteInvalidSpec(config: any, source: string, reason = "It isn't valid JSON or YAML.") {
+  if (!config._invalidSpecs) {
+    Object.defineProperty(config, "_invalidSpecs", { value: [], enumerable: false });
+  }
+  config._invalidSpecs.push(`${displayPath(source)}\n${reason}`);
+}
+
+// Skip a spec that failed its schema check, and say why once: a strict run's
+// error carries the formatted lines, so only a non-strict run's warning does.
+// The raw errors stay at debug.
+function skipInvalidSpec(config: any, file: string, message: string, validation: any, object: any, schemaKey = "spec_v3") {
+  const summary = summarizeSchemaErrors(validation.errorObjects, object, schemaKey);
+  noteInvalidSpec(config, file, summary);
+  log(config, "debug", validation);
+  if (!config._strictSpecs) log(config, "warning", `${message}\n${summary}`);
+}
+
 async function isValidSourceFile({ config, files, source, allowedExtensions }: { config: any; files: Set<string>; source: string; allowedExtensions: Set<string> }) {
   log(config, "debug", `validation: ${source}`);
   const allowed = allowedExtensions;
@@ -137,7 +160,9 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
       // which the object guard below then rejects.
       content = rawContent;
     }
-    if (typeof content !== "object") {
+    // Null is what an empty 4.x run left behind as its results file.
+    if (typeof content !== "object" || content === null) {
+      if (isSpecFileName(source)) noteInvalidSpec(config, source);
       log(
         config,
         "debug",
@@ -149,14 +174,23 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
       schemaKey: "spec_v3",
       object: content,
       addDefaults: false,
+      structuredErrors: true,
     });
     if (!validation.valid) {
-      log(config, "warning", validation);
-      log(
-        config,
-        "warning",
-        `${source} isn't a valid test specification. Skipping.`
-      );
+      // A JSON or YAML file with no `tests` key and a plain name is just another
+      // data file, such as package.json, so it isn't reported as a broken spec.
+      const looksLikeSpec = Array.isArray(content) ? false : "tests" in content || isSpecFileName(source);
+      const summary = summarizeSchemaErrors(validation.errorObjects, content);
+      if (looksLikeSpec) noteInvalidSpec(config, source, summary);
+      log(config, "debug", validation);
+      // In a strict run, the error that stops the run carries this instead.
+      if (!config._strictSpecs) {
+        log(
+          config,
+          looksLikeSpec ? "warning" : "debug",
+          `${source} isn't a valid test specification. Skipping.\n${summary}`
+        );
+      }
       return false;
     }
     for (const test of content.tests) {
@@ -170,9 +204,10 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
         if (!fs.existsSync(beforePath)) {
           log(
             config,
-            "debug",
+            "warning",
             `${beforePath} is specified to run before a test but isn't a valid file. Skipping ${source}.`
           );
+          noteInvalidSpec(config, source, `before: ${test.before} doesn't exist.`);
           return false;
         }
       }
@@ -186,9 +221,10 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
         if (!fs.existsSync(afterPath)) {
           log(
             config,
-            "debug",
+            "warning",
             `${afterPath} is specified to run after a test but isn't a valid file. Skipping ${source}.`
           );
+          noteInvalidSpec(config, source, `after: ${test.after} doesn't exist.`);
           return false;
         }
       }
@@ -271,7 +307,7 @@ async function qualifyFiles({ config }: { config: any }) {
   let files: string[] = [];
   // Same members as `files`, for the dedup check in isValidSourceFile.
   const seen = new Set<string>();
-  // Each sequence entry carries its phase so config-level beforeAny / afterAll
+  // Each sequence entry carries its phase so config-level beforeAll / afterAll
   // can be gated as execution barriers later (see runSpecs Phase 2). ditamap /
   // heretto splices inherit the triggering entry's phase. The per-file phase is
   // recorded in phaseByFile (keyed by resolved path, first-write-wins to match
@@ -295,6 +331,10 @@ async function qualifyFiles({ config }: { config: any }) {
   const parsedFileCache: Map<string, { rawContent: string; content: any }> =
     new Map();
   config._parsedFileCache = parsedFileCache;
+  // Specs downloaded from a URL, for parseTests (ADR 01173). Non-enumerable,
+  // like `_qualifiedFiles`, so local paths stay out of serialized config.
+  const remoteFiles = new Set<string>();
+  Object.defineProperty(config, "_remoteFiles", { value: remoteFiles, configurable: true, writable: true });
 
   const toEntries = (value: any, phase: string) =>
     (value == null ? [] : [].concat(value)).map((source: string) => ({
@@ -302,7 +342,7 @@ async function qualifyFiles({ config }: { config: any }) {
       phase,
     }));
 
-  sequence = sequence.concat(toEntries(config.beforeAny, "beforeAny"));
+  sequence = sequence.concat(toEntries(config.beforeAll, "beforeAll"));
   sequence = sequence.concat(toEntries(config.input, "main"));
   sequence = sequence.concat(toEntries(config.afterAll, "afterAll"));
 
@@ -403,10 +443,10 @@ async function qualifyFiles({ config }: { config: any }) {
         log(config, "warning", fetch.message);
         continue;
       }
-      // Success means a remote file was downloaded — a network fetch, not
-      // reproducible offline (the hermetic tests exercise the error arm above).
-      /* c8 ignore next */
+      // Success means a remote file was downloaded. parseTests resolves its
+      // relative paths against outputDir, not the temporary download's folder.
       source = fetch.path;
+      remoteFiles.add(path.resolve(source));
     }
     // Check if source is a file or directory. One statSync, reused for both
     // predicates (the value is the same for a given path — no reason to pay two
@@ -461,6 +501,8 @@ async function qualifyFiles({ config }: { config: any }) {
         for (const object of objects) {
           const content = path.resolve(dir + "/" + object);
           if (content.includes("node_modules")) continue;
+          // Doc Detective's own artifacts (run folders, summaries) aren't docs to test.
+          if (object === ".doc-detective") continue;
           // One statSync, reused for both predicates (same value per path).
           // statSync (not the Dirent from readdirSync withFileTypes) is kept
           // deliberately so symlink following is unchanged from before.
@@ -525,6 +567,13 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
   const parseOneFile = async (file: string): Promise<any | null> => {
     log(config, "debug", `file: ${file}`);
     const extension = path.extname(file).slice(1);
+    // A spec loaded from a URL has no folder of its own: its download is
+    // temporary. So its relative paths resolve against outputDir (ADR 01173).
+    // The trailing separator tells resolvePaths it's a folder, even one that
+    // doesn't exist yet and has a dot in its name.
+    const pathBase = config._remoteFiles?.has(path.resolve(file))
+      ? path.resolve(config.outputDir ?? ".") + path.sep
+      : file;
     let content: any = "";
     let rawContent: string | undefined;
 
@@ -546,7 +595,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             content = requireYaml().parse(rawContent);
           }
         } catch (err: any) {
-          console.warn(`Failed to read/parse ${file}: ${err.message}`);
+          diag(`Failed to read/parse ${file}: ${err.message}`);
           content = await readFile({ fileURLOrPath: file });
         }
       }
@@ -571,19 +620,25 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       //   keeps the same ID across runs and machines.
       if (!content.specId) content.specId = generateSpecId(file);
       if (!content.contentPath) content.contentPath = file;
-      // Internal phase marker (beforeAny / main / afterAll) so runSpecs can gate
+      // Internal phase marker (beforeAll / main / afterAll) so runSpecs can gate
       // execution as barriers. Stripped before reporting; never in public schema.
-      // Captured here and re-stamped after the validate / resolvePaths transforms
-      // below (either of which could drop an unknown key), so a future schema
-      // tightening can't silently turn the barriers into a no-op.
+      // Captured here and stamped after the validate / resolvePaths transforms
+      // below, because spec_v3 rejects unknown keys.
       const specPhase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
-      content._phase = specPhase;
       if (Array.isArray(content.tests)) {
-        const usedTestIds = new Set(
-          content.tests
-            .map((test: any) => test?.testId)
-            .filter((id: any) => id)
+        const authoredTestIds = content.tests
+          .map((test: any) => test?.testId)
+          .filter((id: any) => id);
+        const usedTestIds = new Set(authoredTestIds);
+        const duplicateTestId = authoredTestIds.find(
+          (id: any, index: number) => authoredTestIds.indexOf(id) !== index
         );
+        if (duplicateTestId) {
+          const reason = `duplicate test ID '${duplicateTestId}'.`;
+          log(config, "warning", `${file} has a ${reason} Skipping.`);
+          noteInvalidSpec(config, file, reason);
+          return null;
+        }
         for (const test of content.tests) {
           if (!test || typeof test !== "object" || test.testId) continue;
           // v2-shaped tests (`id`, `setup`/`cleanup`, action-keyed steps) are
@@ -652,7 +707,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       content = await resolvePaths({
         config: config,
         object: content,
-        filePath: file,
+        filePath: pathBase,
         // Detection only ever resolves specs; passing the known objectType skips
         // resolvePaths' config_v3-then-spec_v3 discovery probe (item 3.1).
         objectType: "spec",
@@ -677,11 +732,17 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         if (test.before) {
           const setup: any = await readFile({ fileURLOrPath: test.before });
           if (setup?.tests?.[0]?.steps) {
-            // Tag before-steps with a marker that survives validation cloning.
-            // Scrub any forged _fromAfter from these authored steps first.
+            // Tag before-steps with a non-enumerable marker, which spec_v3
+            // doesn't see. Scrub any forged _fromAfter from these authored
+            // steps first.
             for (const step of setup.tests[0].steps) {
               if (step && typeof step === "object") delete step._fromAfter;
-              step._fromBefore = true;
+              Object.defineProperty(step, "_fromBefore", {
+                value: true,
+                enumerable: false,
+                writable: true,
+                configurable: true,
+              });
             }
             test.steps = setup.tests[0].steps.concat(test.steps);
           }
@@ -711,40 +772,56 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       }
       // Validate each step
       for (const test of content.tests) {
-        test.steps = test.steps.filter((step: any) => {
-          // Exclude internal routing markers from the validated clone so a
-          // future strict (additionalProperties:false) step schema can't drop
-          // tagged setup/cleanup steps. The markers stay on the real `step`.
+        test.steps = test.steps.flatMap((step: any) => {
+          // The spread leaves out the non-enumerable routing markers.
           const stepForValidation = { ...step };
-          delete stepForValidation._fromBefore;
-          delete stepForValidation._fromAfter;
           const validation = validate({
             schemaKey: `step_v3`,
             object: stepForValidation,
             addDefaults: false,
+            structuredErrors: true,
           });
           if (!validation.valid) {
             log(
               config,
               "warning",
-              `Step ${step} isn't a valid step. Skipping.`
+              `Step ${shortJson(step)} isn't a valid step. Skipping.`
             );
-            return false;
+            noteInvalidSpec(
+              config,
+              file,
+              `Step ${shortJson(stepForValidation)}: ${summarizeSchemaErrors(validation.errorObjects, stepForValidation, "step_v3")}`
+            );
+            return [];
           }
-          return true;
+          // A v2 step from a before or after file has to be upgraded, or spec_v3
+          // rejects the merged test. The test's own steps stay as written, so a
+          // whole v2 spec still upgrades as one through validate() below.
+          const marker = ["_fromBefore", "_fromAfter"].find((name) => step[name]);
+          if (!marker) return [step];
+          const validStep = validation.object;
+          Object.defineProperty(validStep, marker, {
+            value: true,
+            enumerable: false,
+            writable: true,
+            configurable: true,
+          });
+          return [validStep];
         });
       }
       const validation = validate({
         schemaKey: "spec_v3",
         object: content,
         addDefaults: false,
+        structuredErrors: true,
       });
       if (!validation.valid) {
-        log(config, "warning", validation);
-        log(
+        skipInvalidSpec(
           config,
-          "warning",
-          `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`
+          file,
+          `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`,
+          validation,
+          content
         );
         return null;
       }
@@ -752,7 +829,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       content = await resolvePaths({
         config: config,
         object: content,
-        filePath: file,
+        filePath: pathBase,
         // Detection only ever resolves specs; passing the known objectType skips
         // resolvePaths' config_v3-then-spec_v3 discovery probe (item 3.1).
         objectType: "spec",
@@ -802,7 +879,6 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       let spec: any = {
         specId: id,
         contentPath: file,
-        _phase: config._phaseByFile?.get(path.resolve(file)) ?? "main",
         tests: [],
       };
       const fileType = config.fileTypes.find((fileType: any) =>
@@ -827,13 +903,10 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           schemaKey: "test_v3",
           object: test,
           addDefaults: false,
+          structuredErrors: true,
         });
         if (!validation.valid) {
-          log(
-            config,
-            "warning",
-            `Failed to convert ${file} to a runShell step: ${validation.errors}. Skipping.`
-          );
+          skipInvalidSpec(config, file, `Couldn't convert ${file} to a runShell step. Skipping.`, validation, test, "test_v3");
           return null;
         }
 
@@ -849,18 +922,15 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           schemaKey: "spec_v3",
           object: spec,
           addDefaults: false,
+          structuredErrors: true,
         });
         if (!specValidation.valid) {
-          log(
-            config,
-            "warning",
-            `Tests from ${file} don't create a valid test specification. Skipping.`
-          );
+          skipInvalidSpec(config, file, `Tests from ${file} don't create a valid test specification. Skipping.`, specValidation, spec);
         } else {
           spec = await resolvePaths({
             config: config,
             object: spec,
-            filePath: file,
+            filePath: pathBase,
             // Detection only resolves specs — skip the discovery probe (3.1).
             objectType: "spec",
           });
@@ -882,6 +952,14 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         fileType: fileType,
         filePath: file,
         testIdBase: id,
+        onInvalid: (reason: string, details?: { schemaKey: string; object: any; errorObjects?: any[] }) => {
+          const summary = details && summarizeSchemaErrors(details.errorObjects, details.object, details.schemaKey);
+          // `reason` stands in when there's nothing to summarize: a drop with no
+          // schema behind it (a duplicate test ID), or a caller that passes no
+          // errorObjects. It's AJV's raw text, so the object isn't prepended.
+          // shortJson: a step can be long, and the summary is what helps.
+          noteInvalidSpec(config, file, summary ? `${shortJson(details?.object)}: ${summary}` : reason);
+        },
       });
       spec.tests.push(...tests);
 
@@ -895,23 +973,23 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         schemaKey: "spec_v3",
         object: spec,
         addDefaults: false,
+        structuredErrors: true,
       });
       if (!validation.valid) {
-        log(
-          config,
-          "warning",
-          `Tests from ${file} don't create a valid test specification. Skipping.`
-        );
+        const message = `Tests from ${file} don't create a valid test specification. Skipping.`;
+        // A document with no tests in it is just a document: no reason to give.
+        if (spec.tests.length === 0) log(config, "warning", message);
+        else skipInvalidSpec(config, file, message, validation, spec);
       } else {
         spec = await resolvePaths({
           config: config,
           object: spec,
-          filePath: file,
+          filePath: pathBase,
           // Detection only resolves specs — skip the discovery probe (3.1).
           objectType: "spec",
         });
         // Re-stamp the phase: resolvePaths isn't guaranteed to preserve unknown
-        // keys, so a text/markdown file referenced by beforeAny/afterAll would
+        // keys, so a text/markdown file referenced by beforeAll/afterAll would
         // otherwise silently fall back to "main". Mirrors the JSON/YAML branch.
         spec._phase = config._phaseByFile?.get(path.resolve(file)) ?? "main";
         return spec;

@@ -27,25 +27,25 @@ describe("CLI install commands", function () {
   it("`--help` lists the install command group", function () {
     const r = runCli(["--help"]);
     expect(r.status).to.equal(0);
-    expect(r.stdout).to.include("install <subcommand>");
+    expect(r.stdout).to.match(/^\s*install\b/m);
   });
 
   it("`install --help` lists all subcommands (agents, runtime, browsers, android, ios, status, all)", function () {
     const r = runCli(["install", "--help"]);
     expect(r.status).to.equal(0);
-    expect(r.stdout).to.match(/install agents/);
-    expect(r.stdout).to.match(/install runtime/);
-    expect(r.stdout).to.match(/install browsers/);
-    expect(r.stdout).to.match(/install android/);
-    expect(r.stdout).to.match(/install ios/);
-    expect(r.stdout).to.match(/install status/);
-    expect(r.stdout).to.match(/install all/);
+    expect(r.stdout).to.match(/^\s*agents\b/m);
+    expect(r.stdout).to.match(/^\s*runtime\b/m);
+    expect(r.stdout).to.match(/^\s*browsers\b/m);
+    expect(r.stdout).to.match(/^\s*android\b/m);
+    expect(r.stdout).to.match(/^\s*ios\b/m);
+    expect(r.stdout).to.match(/^\s*status\b/m);
+    expect(r.stdout).to.match(/^\s*all\b/m);
   });
 
   it("`install ios --dry-run` previews checks without requiring macOS", function () {
     const r = runCli(["install", "ios", "--dry-run"]);
     expect(r.status).to.equal(0);
-    expect(r.stderr + r.stdout).to.not.include("Unknown argument");
+    expect(r.stderr + r.stdout).to.not.include("unknown option");
     expect(r.stdout).to.match(/ios-toolchain|simctl|XCUITest/i);
     // The WDA prebuild (docs/design/ios-wda-prebuild.md) is part of the
     // preview: dry-run must disclose that a real run would build/verify WDA.
@@ -66,7 +66,7 @@ describe("CLI install commands", function () {
         DOC_DETECTIVE_CACHE_DIR: path.join(tmpHome, "cache"),
       });
       expect(r.status).to.equal(0);
-      expect(r.stderr + r.stdout).to.not.include("Unknown argument");
+      expect(r.stderr + r.stdout).to.not.include("unknown option");
       expect(r.stdout).to.match(/pixel/);
       expect(fs.existsSync(snap)).to.equal(false);
       // A pure reset: no install plan, no --yes gate, no download.
@@ -96,6 +96,53 @@ describe("CLI install commands", function () {
     }
   });
 
+  // `--json` says what happened, one report per AVD (ADR 01193).
+  for (const [args, action] of [
+    [[], "reset"],
+    [["--dry-run"], "dry-run"],
+  ]) {
+    it(`\`install android --reset-snapshot ${[...args, "--json"].join(" ")}\` prints a ${action} report per AVD`, function () {
+      const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cli-reset-json-"));
+      try {
+        const avdHome = path.join(tmpHome, ".android", "avd");
+        fs.mkdirSync(path.join(avdHome, "pixel.avd", "snapshots", "doc-detective-clean"), { recursive: true });
+        fs.writeFileSync(path.join(avdHome, "pixel.ini"), "target=android-36\n");
+        const r = runCli(["install", "android", "--reset-snapshot", ...args, "--json"], {
+          HOME: tmpHome,
+          USERPROFILE: tmpHome,
+          DOC_DETECTIVE_CACHE_DIR: path.join(tmpHome, "cache"),
+        });
+        expect(r.status, r.stderr).to.equal(0);
+        expect(JSON.parse(r.stdout)).to.deep.equal([{ kind: "tool", assetId: "pixel", action }]);
+      } finally {
+        fs.rmSync(tmpHome, { recursive: true, force: true });
+      }
+    });
+  }
+
+  it("`install android --reset-snapshot --json` prints [] with nothing to reset", function () {
+    const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cli-reset-none-"));
+    try {
+      const r = runCli(["install", "android", "--reset-snapshot", "--json"], {
+        HOME: tmpHome,
+        USERPROFILE: tmpHome,
+        DOC_DETECTIVE_CACHE_DIR: path.join(tmpHome, "cache"),
+      });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout)).to.deep.equal([]);
+    } finally {
+      fs.rmSync(tmpHome, { recursive: true, force: true });
+    }
+  });
+
+  it("reports a snapshot it couldn't reset as failed, with the cause in notes", async function () {
+    const { snapshotResetReports } = await import("../dist/runtime/installCommand.js");
+    expect(snapshotResetReports({ reset: ["a"], failed: [{ name: "b", error: "EBUSY" }] }, false)).to.deep.equal([
+      { kind: "tool", assetId: "a", action: "reset" },
+      { kind: "tool", assetId: "b", action: "failed", notes: ["EBUSY"] },
+    ]);
+  });
+
   it("`install android --dry-run` previews a plan without java/network (native app phase A3)", function () {
     // Dry-run is a pure preview: it must never require java, hit the network,
     // or spawn sdkmanager. It runs on every host regardless of SDK presence —
@@ -103,7 +150,7 @@ describe("CLI install commands", function () {
     // Either way it exits cleanly and is never an unknown-command error.
     const r = runCli(["install", "android", "--dry-run"]);
     expect(r.status).to.equal(0);
-    expect(r.stderr + r.stdout).to.not.include("Unknown argument");
+    expect(r.stderr + r.stdout).to.not.include("unknown option");
     expect(r.stdout).to.match(
       /Android install plan|accept Android SDK licenses|create AVD|bootstrap Android/
     );
@@ -112,20 +159,17 @@ describe("CLI install commands", function () {
   it("`install` with no subcommand prints a clear error and exits non-zero", function () {
     const r = runCli(["install"]);
     expect(r.status).to.not.equal(0);
-    // Either yargs' default ("Not enough non-option arguments") or our
-    // custom demandCommand message ("Specify a subcommand") is acceptable —
-    // both surface the same failure to the user.
-    expect(r.stderr + r.stdout).to.match(/Specify a subcommand|Not enough non-option arguments/);
+    expect(r.stderr + r.stdout).to.match(/Specify an asset/);
   });
 
-  it("`install-agents` (hidden alias) still parses and runs", function () {
+  it("`install agents` parses and runs", function () {
     // We don't actually run agent install — invoke with --dry-run and use
     // --agent claude --scope project to bypass interactive picker / detect.
-    const r = runCli(["install-agents", "--dry-run", "--agent", "claude", "--scope", "project"]);
+    const r = runCli(["install", "agents", "--dry-run", "--agent", "claude", "--scope", "project"]);
     // We don't assert success/exit code — adapters may or may not detect a
     // real Claude binary on this machine. Just assert the command isn't an
     // unknown-subcommand error.
-    expect(r.stderr + r.stdout).to.not.include("Unknown argument");
+    expect(r.stderr + r.stdout).to.not.include("unknown option");
     expect(r.stderr + r.stdout).to.not.include("not enough non-option arguments");
   });
 

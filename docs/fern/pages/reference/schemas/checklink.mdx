@@ -8,7 +8,6 @@ description: "Reference for the `checkLink` schema."
 
 ## Referenced In
 
-- [Markup definition](/reference/schemas/markup-definition)
 - [test](/reference/schemas/test)
 - [Resolved context](/reference/schemas/resolved-context)
 
@@ -29,6 +28,21 @@ checkLink | one of:<br/>- string<br/>- object([Check link (detailed)](/reference
 ```json
 {
   "checkLink": "/search"
+}
+```
+
+```json
+{
+  "checkLink": "$BASE_URL/docs"
+}
+```
+
+```json
+{
+  "checkLink": {
+    "url": "https://www.example.com",
+    "headers": "X-Api-Key: abc123\nAuthorization: Bearer token"
+  }
 }
 ```
 

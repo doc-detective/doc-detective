@@ -24,6 +24,23 @@
           }
         }
       ]
+    },
+    {
+      "testId": "type-timeout-bounds-the-search",
+      "description": "ADR 01188: `type.timeout` bounds finding the target element, and `0` checks once. The page is loaded, so one check finds the field and the step PASSes.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "stepId": "type-timeout-zero",
+          "type": {
+            "elementTestId": "username-field",
+            "keys": "testuser",
+            "timeout": 0
+          }
+        }
+      ]
     }
   ]
 }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import yargs from "yargs/yargs";
+import { Command } from "commander";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
@@ -61,12 +61,12 @@ describe("agents registry", function () {
 });
 
 describe("install-agents subcommand arg parsing", function () {
-  let installAgentsCommand;
+  let buildInstallAgentsCommand;
   let capturedArgv;
   let handlerCalled;
 
   before(async function () {
-    ({ installAgentsCommand } = await import("../dist/agents/command.js"));
+    ({ buildInstallAgentsCommand } = await import("../dist/agents/command.js"));
   });
 
   beforeEach(function () {
@@ -76,58 +76,48 @@ describe("install-agents subcommand arg parsing", function () {
 
   function parse(args) {
     // Replace handler with a capturing spy so we never actually run install logic.
-    const spyCommand = {
-      ...installAgentsCommand,
-      handler: (argv) => {
-        handlerCalled = true;
-        capturedArgv = argv;
-      },
-    };
-    return yargs([])
-      .command(spyCommand)
-      .strict()
-      .fail((msg, err) => {
-        // Surface yargs failures as thrown errors for assertion.
-        throw err || new Error(msg);
-      })
-      .parseAsync(args);
+    const silent = { writeErr: () => {}, writeOut: () => {} };
+    const spyCommand = buildInstallAgentsCommand((argv) => {
+      handlerCalled = true;
+      capturedArgv = argv;
+    })
+      .exitOverride()
+      .configureOutput(silent);
+    const program = new Command().exitOverride().configureOutput(silent);
+    program.addCommand(spyCommand);
+    return program.parseAsync(args, { from: "user" });
   }
 
-  it("exposes a yargs CommandModule with the 'install-agents' command", function () {
-    assert.equal(installAgentsCommand.command, "install-agents");
-    assert.equal(typeof installAgentsCommand.handler, "function");
-    assert.equal(typeof installAgentsCommand.builder, "function");
-  });
-
   it("parses --agent, --scope, --yes correctly", async function () {
-    await parse(["install-agents", "--agent", "claude", "--scope", "project", "--yes"]);
+    await parse(["agents", "--agent", "claude", "--scope", "project", "--yes"]);
     assert.equal(handlerCalled, true);
     assert.deepEqual(capturedArgv.agent, ["claude"]);
     assert.equal(capturedArgv.scope, "project");
     assert.equal(capturedArgv.yes, true);
   });
 
-  it("allows repeated --agent flags", async function () {
-    await parse([
-      "install-agents",
-      "--agent", "claude",
-      "--agent", "opencode",
-      "--scope", "global",
-      "--yes",
-    ]);
+  it("takes --agent as one comma-separated list", async function () {
+    await parse(["agents", "--agent", "claude, opencode", "--scope", "global", "--yes"]);
     assert.deepEqual(capturedArgv.agent, ["claude", "opencode"]);
     assert.equal(capturedArgv.scope, "global");
   });
 
+  it("rejects a repeated --agent, and names the comma form", async function () {
+    await assert.rejects(
+      async () => parse(["agents", "--agent", "claude", "--agent", "opencode", "--scope", "global", "--yes"]),
+      /Give it once, as a comma-separated list: claude,opencode\./
+    );
+  });
+
   it("accepts --force and --dry-run as booleans", async function () {
-    await parse(["install-agents", "--force", "--dry-run"]);
+    await parse(["agents", "--force", "--dry-run"]);
     assert.equal(capturedArgv.force, true);
     assert.equal(capturedArgv["dry-run"], true);
   });
 
   it("rejects invalid --scope values", async function () {
     await assert.rejects(
-      async () => parse(["install-agents", "--scope", "bogus", "--yes", "--agent", "claude"]),
+      async () => parse(["agents", "--scope", "bogus", "--yes", "--agent", "claude"]),
       /scope/i
     );
   });
@@ -915,7 +905,10 @@ describe("runInstallAgents() orchestration", function () {
         { scope: "project", force: false, yes: false, "dry-run": false },
         { adapters: [cc], isTTY: () => false }
       ),
-      /tty|--agent/i
+      {
+        message:
+          "Couldn't prompt for agents: this terminal isn't interactive. Pass `--agent` with a comma-separated list, such as `--agent claude,copilot`.",
+      }
     );
   });
 
@@ -1342,7 +1335,7 @@ describe("install-agents end-to-end (compiled CLI, settings-file fallback)", fun
         USERPROFILE: workDir,
       };
 
-      const child = childSpawn(process.execPath, [cliPath, "install-agents", ...extraArgs], {
+      const child = childSpawn(process.execPath, [cliPath, "install", "agents", ...extraArgs], {
         cwd: workDir,
         env,
         stdio: ["ignore", "pipe", "pipe"],

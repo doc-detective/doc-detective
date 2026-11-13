@@ -383,15 +383,15 @@ function planCreate(
     return {
       action: "skip",
       reason: desc.osVersion
-        ? `Skipping context on 'ios': no installed iOS ${desc.osVersion} simulator runtime to create the "${name}" simulator. Install one via Xcode → Settings → Components (or \`xcodebuild -downloadPlatform iOS\`).`
-        : `Skipping context on 'ios': no installed iOS simulator runtime is available. Open Xcode once (or run \`xcodebuild -downloadPlatform iOS\`) to install a simulator runtime, then rerun.`,
+        ? `Skipped: no installed iOS ${desc.osVersion} simulator runtime to create the "${name}" simulator. Install one via Xcode → Settings → Components (or \`xcodebuild -downloadPlatform iOS\`).`
+        : `Skipped: no installed iOS simulator runtime is available. Open Xcode once (or run \`xcodebuild -downloadPlatform iOS\`) to install a simulator runtime, then rerun.`,
     };
   }
   const deviceType = newestDeviceType(deviceTypes, family);
   if (!deviceType) {
     return {
       action: "skip",
-      reason: `Skipping context on 'ios': no ${family} simulator device type is available to create the "${name}" simulator. Install the iOS platform components in Xcode and rerun.`,
+      reason: `Skipped: no ${family} simulator device type is available to create the "${name}" simulator. Install the iOS platform components in Xcode and rerun.`,
     };
   }
   return {

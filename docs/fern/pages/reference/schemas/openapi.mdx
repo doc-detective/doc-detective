@@ -10,8 +10,8 @@ OpenAPI description and configuration.
 
 ## Referenced In
 
-- [HTTP request (detailed)](/reference/schemas/http-request-detailed)
 - [Integrations options](/reference/schemas/integrations-options)
+- [HTTP request (detailed)](/reference/schemas/http-request-detailed)
 - [specification](/reference/schemas/specification)
 - [test](/reference/schemas/test)
 - [Resolved context](/reference/schemas/resolved-context)
@@ -26,11 +26,11 @@ definition | object | ReadOnly. OpenAPI definition object loaded from the `descr
 operationId | string | Optional. ID of the operation to use for the request. | —
 server | string | Optional. Server to use for example requests. Only valid if `useExample` is `request` or `both`. If not specified but an example is used for the request, uses the first server defined in the OpenAPI description. | —
 validateAgainstSchema | string | Optional. Validates the request and/or response against the schema in the OpenAPI description. If the request or response doesn't match the schema, the step fails.<br/><br/>Accepted values: `request`, `response`, `both`, `none` | `both`
-mockResponse | boolean | Optional. If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for creating tests when an API isn't fully implemented yet. If `statusCode` isn't specified, uses the first defined response code. | —
-statusCode | integer | Optional. Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. `statusCodes` overrides this value when specified. | —
-useExample | string | Optional. Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. `requestData`, `requestParams`, and `requestHeaders` override portions of request examples when specified. `responseData` overrides portions of response examples when specified.<br/><br/>Accepted values: `request`, `response`, `both`, `none` | `none`
+mockResponse | boolean | Optional. If `true`, doesn't make the HTTP request, but instead uses the response example or schema from the OpenAPI description as the response data. Useful for writing tests before the API is built. If `statusCode` isn't specified, uses the first defined response code. | —
+statusCode | integer | Optional. Response code to use for validation, examples, and status code checking. If the response code doesn't match, the step fails. An httpRequest's `statusCodes` adds more accepted codes. | —
+useExample | string | Optional. Uses the example from the OpenAPI description as the request and response data. If the request or response has multiple examples, specify `exampleKey`. If `statusCode` isn't specified, uses the first defined response code. An httpRequest's `request.body`, `request.parameters`, and `request.headers` override portions of request examples when specified. Its `response.body` and `response.headers` override portions of response examples when specified.<br/><br/>Accepted values: `request`, `response`, `both`, `none` | `none`
 exampleKey | string | Optional. Key of the example to use from the `examples` property in the OpenAPI description. If an `examples` key isn't specified or isn't available for a given parameter or object, the `example` property value is used. | `""`
-headers | object | Optional. Request headers to add to requests. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. | —
+headers | one of:<br/>- object<br/>- string | Optional. Request headers to add to requests: an object with string values, or a string with one `Name: value` header per line. For example, to set `Authorization` headers for all requests from the specified OpenAPI document. If specified in both a config and a step, the step value overrides the config value. An httpRequest's `request.headers` override these headers by name. | —
 
 ## Examples
 
@@ -44,6 +44,14 @@ headers | object | Optional. Request headers to add to requests. For example, to
 {
   "name": "Reqres",
   "operationId": "getUserById"
+}
+```
+
+```json
+{
+  "name": "Reqres",
+  "operationId": "getUserById",
+  "headers": "Authorization: Bearer $TOKEN\nX-Request-Source: docs"
 }
 ```
 

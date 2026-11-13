@@ -4,7 +4,7 @@ import { runCode } from "../dist/core/tests/runCode.js";
 const config = { logLevel: "silent" };
 
 // Unified model: implicit assertions carry a $$ runtime-expression statement
-// (e.g. "$$outputs.exitCode oneOf [0]", "$$outputs.stdioMatched == true"), so
+// (e.g. "$$outputs.exitCode oneOf [0]", "$$outputs.stdioMatches == true"), so
 // match on a substring of the statement rather than a prose prefix.
 function findAssertion(assertions, token) {
   return (assertions || []).find((a) => a.statement.includes(token));

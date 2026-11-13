@@ -1,3 +1,4 @@
+const originalConsoleError = console.error;
 // Unit-coverage tests for src/core/utils.ts (imported from the compiled
 // dist/core/utils.js). These exercise the pure / cleanly-mockable helpers:
 // URL/SSRF guards, filesystem-name sanitizers, filter compilation, log-level
@@ -14,7 +15,6 @@ import dnsPromises from "node:dns/promises";
 import {
   log,
   logLevelEnabled,
-  outputResults,
   replaceEnvs,
   timestamp,
   inContainer,
@@ -42,7 +42,77 @@ import {
   shouldFailRun,
   findFreePort,
   evaluateContextRequirements,
+  classifyStepFailure,
+  invalidStepMessage,
 } from "../dist/core/utils.js";
+
+// ADR 01195: one message for every action whose step doesn't validate.
+describe("invalidStepMessage", function () {
+  it("names the problem the way spec validation does", function () {
+    assert.equal(
+      invalidStepMessage({ goTo: { url: "https://example.com", timeout: -1 } }),
+      "Couldn't run the step: its definition isn't valid. goTo.timeout: must be >= 1."
+    );
+  });
+
+  it("names a missing action", function () {
+    assert.equal(
+      invalidStepMessage({ description: "no action" }),
+      "Couldn't run the step: its definition isn't valid. No action, such as checkLink, click, find."
+    );
+  });
+});
+
+// ADR 01194: every FAIL step gets a resultCode, and near matches become a hint.
+describe("classifyStepFailure", function () {
+  it("adds nothing to a step that didn't fail", function () {
+    for (const result of ["PASS", "WARNING", "SKIPPED"]) {
+      assert.deepEqual(classifyStepFailure({ result, outputs: { nearMatches: [{ text: "Save" }] } }), {});
+    }
+  });
+
+  it("calls a failure with near matches drift, and names them in the hint", function () {
+    assert.deepEqual(
+      classifyStepFailure({
+        result: "FAIL",
+        resultDescription: "Element not found within timeout",
+        outputs: { nearMatches: [{ text: "Save changes", tag: "button" }, { tag: "button", ariaLabel: "Saved" }] },
+      }),
+      { resultCode: "drift", resultHint: "Closest matches: `Save changes`, `Saved`." }
+    );
+    assert.deepEqual(
+      classifyStepFailure({ result: "FAIL", outputs: { nearMatches: [{ tag: "div", id: "save" }] } }),
+      { resultCode: "drift", resultHint: "Closest match: `save`." }
+    );
+  });
+
+  it("names a near match by its tag when that's all it has", function () {
+    assert.deepEqual(
+      classifyStepFailure({ result: "FAIL", outputs: { nearMatches: [{ tag: "button" }] } }),
+      { resultCode: "drift", resultHint: "Closest match: `button`." }
+    );
+  });
+
+  it("calls network, session, and blank-page failures environment", function () {
+    for (const resultDescription of [
+      "getaddrinfo ENOTFOUND docs.example.invalid",
+      "net::ERR_CONNECTION_REFUSED at http://localhost:3000",
+      "connect ECONNREFUSED 127.0.0.1:4723",
+      "invalid session id",
+      "The browser never left its initial blank document (data:,): navigation didn't take.",
+    ]) {
+      assert.deepEqual(classifyStepFailure({ result: "FAIL", resultDescription }), { resultCode: "environment" }, resultDescription);
+    }
+  });
+
+  it("calls anything else assertion, including a find with no near matches", function () {
+    assert.deepEqual(
+      classifyStepFailure({ result: "FAIL", resultDescription: "No elements matched selector or text.", outputs: { nearMatches: [] } }),
+      { resultCode: "assertion" }
+    );
+    assert.deepEqual(classifyStepFailure({ result: "FAIL" }), { resultCode: "assertion" });
+  });
+});
 
 describe("core/utils coverage", function () {
   let sandbox;
@@ -389,7 +459,7 @@ describe("core/utils coverage", function () {
     beforeEach(function () {
       sandbox = sinon.createSandbox();
       logged = [];
-      sandbox.stub(console, "log").callsFake((m) => logged.push(m));
+      sandbox.stub(console, "error").callsFake((m) => logged.push(m));
     });
     afterEach(function () {
       sandbox.restore();
@@ -400,27 +470,26 @@ describe("core/utils coverage", function () {
       await log({ logLevel: "error" }, "error", "boom");
       await log({ logLevel: "error" }, "info", "quiet");
       assert.equal(logged.length, 1);
-      assert.equal(logged[0], "(ERROR) boom");
+      assert.equal(logged[0], "Error: boom");
     });
     it("warning level logs error + warning, not info", async function () {
       await log({ logLevel: "warning" }, "warning", "w");
       await log({ logLevel: "warning" }, "error", "e");
       await log({ logLevel: "warning" }, "info", "i");
-      assert.deepEqual(logged, ["(WARNING) w", "(ERROR) e"]);
+      assert.deepEqual(logged, ["Warning: w", "Error: e"]);
     });
     it("info level logs error/warning/info, not debug", async function () {
       await log({ logLevel: "info" }, "info", "i");
       await log({ logLevel: "info" }, "debug", "d");
-      assert.deepEqual(logged, ["(INFO) i"]);
+      assert.deepEqual(logged, ["i"]);
     });
     it("debug level logs everything including debug", async function () {
       await log({ logLevel: "debug" }, "debug", "d");
-      assert.deepEqual(logged, ["(DEBUG) d"]);
+      assert.match(logged[0], /^\S+ \(DEBUG\) d$/);
     });
     it("logs objects as pretty JSON on a second line", async function () {
       await log({ logLevel: "info" }, "info", { a: 1 });
-      assert.equal(logged[0], "(INFO)");
-      assert.equal(logged[1], JSON.stringify({ a: 1 }, null, 2));
+      assert.equal(logged[0], JSON.stringify({ a: 1 }, null, 2));
     });
     it("2-arg form log(message, level) defaults an undefined logLevel to info and emits", async function () {
       // config defaults to {} so logLevel is undefined → treated as "info" (parity
@@ -429,7 +498,7 @@ describe("core/utils coverage", function () {
       await log("just a message", "info");
       await log("an error", "error");
       await log("a warning", "warning");
-      assert.deepEqual(logged, ["(INFO) just a message", "(ERROR) an error", "(WARNING) a warning"]);
+      assert.deepEqual(logged, ["just a message", "Error: an error", "Warning: a warning"]);
     });
     it("2-arg form still suppresses debug under the info default", async function () {
       // The info default surfaces error/warning/info but NOT debug — matching the
@@ -450,7 +519,7 @@ describe("core/utils coverage", function () {
     beforeEach(function () {
       sandbox = sinon.createSandbox();
       logged = [];
-      sandbox.stub(console, "log").callsFake((m) => logged.push(m));
+      sandbox.stub(console, "error").callsFake((m) => logged.push(m));
     });
     afterEach(function () {
       sandbox.restore();
@@ -507,32 +576,7 @@ describe("core/utils coverage", function () {
       assert.equal(logged.length, 0);
       const dbgCfg = { logLevel: "debug" };
       if (logLevelEnabled(dbgCfg, "debug")) await log(dbgCfg, "debug", "X");
-      assert.deepEqual(logged, ["(DEBUG) X"]);
-    });
-  });
-
-  describe("outputResults", function () {
-    let tmpDir;
-    beforeEach(function () {
-      sandbox = sinon.createSandbox();
-      sandbox.stub(console, "log");
-      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-utils-out-"));
-    });
-    afterEach(function () {
-      sandbox.restore();
-      sandbox = undefined;
-      try {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      } catch {}
-    });
-    it("writes pretty-printed JSON results to the given path", async function () {
-      const outPath = path.join(tmpDir, "results.json");
-      const results = { summary: { passed: 2 }, nested: [1, 2, 3] };
-      await outputResults(outPath, results, { logLevel: "info" });
-      const written = JSON.parse(fs.readFileSync(outPath, "utf8"));
-      assert.deepEqual(written, results);
-      // pretty-printed (2-space indent → contains newlines)
-      assert.ok(fs.readFileSync(outPath, "utf8").includes("\n  "));
+      assert.match(logged[0], /^\S+ \(DEBUG\) X$/);
     });
   });
 
@@ -601,6 +645,15 @@ describe("core/utils coverage", function () {
     });
     it("leaves an undefined env var reference in place", function () {
       assert.equal(replaceEnvs("$DD_DOES_NOT_EXIST_123"), "$DD_DOES_NOT_EXIST_123");
+    });
+    it("reads only real env vars, never process.env's inherited members", function () {
+      // process.env["__proto__"] is an object and process.env["constructor"] a
+      // function, so a lookup that isn't own-property-only hands a spec or
+      // config a prototype object it could then write through.
+      assert.equal(replaceEnvs("$__proto__"), "$__proto__");
+      const out = replaceEnvs({ a: "$__proto__", b: "x $constructor" });
+      assert.equal(out.a, "$__proto__");
+      assert.equal(out.b, "x $constructor");
     });
     it("module-hoisted regex is safe across multiple matches and repeated calls (1.5)", function () {
       // The matcher is now a single module-scoped /g RegExp reused on every
@@ -1311,7 +1364,7 @@ describe("core/utils coverage", function () {
       guardBlankDocumentNavigation(runner, {});
       const written = [];
       const originalLog = console.log;
-      console.log = (...args) => written.push(args.join(" "));
+      console.error = console.log = (...args) => written.push(args.join(" "));
       try {
         await assert.rejects(
           () => runner.url("https://admin:hunter2@localhost:8092/index.html"),
@@ -1326,6 +1379,7 @@ describe("core/utils coverage", function () {
         );
       } finally {
         console.log = originalLog;
+        console.error = originalConsoleError;
       }
       const warning = written.join("\n");
       assert.match(warning, /still on its initial blank document/);

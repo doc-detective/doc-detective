@@ -1,0 +1,130 @@
+{
+  "specId": "cli-auto-capture-defaults",
+  "description": "Screenshots and recordings by default (ADR 01177), through the real CLI. Each test runs one case of auto-capture.cjs, which runs doc-detective in .tmp/fac/<case>/ with no auto-capture keys unless the case sets them, then checks the results file and the run folder. The browser cases browse the 8092 test server.",
+  "tests": [
+    {
+      "testId": "headless-chrome",
+      "description": "Headless Chrome with no keys: every UI step has an automatic screenshot, and the first authored image is 01-…. The context's autoRecording passed with its MP4 under runDir, the report has no ~autorecord step or marker, and summary.steps counts only the authored steps.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs headless-chrome",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "headless-firefox",
+      "description": "Headless Firefox with no keys: every UI step has an automatic screenshot. It's recorded, headed, only where the host can capture the screen; otherwise it stays headless with no recording.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs headless-firefox",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "html-media",
+      "description": "Both HTML copies, the run folder's and the html reporter's in outputDir, resolve every automatic screenshot and the context's MP4.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs html-media",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "strict-start-fails",
+      "description": "autoRecord true where the start fails: the context is FAIL, its autoRecording is FAIL with the reason, and the authored steps are SKIPPED.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs strict-start-fails",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "strict-no-display",
+      "description": "autoRecord true on headless Firefox where the preflight can't capture: the context passes, and its autoRecording is SKIPPED with the fix text. It hides DISPLAY and Xvfb from the nested run, so it runs on Linux and is SKIPPED elsewhere.",
+      "runOn": [
+        {
+          "platforms": [
+            "linux"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs strict-no-display",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "spec-false",
+      "description": "Spec-level autoScreenshot and autoRecord false: no screenshots and no recording.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs spec-false",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "test-false-under-spec-true",
+      "description": "A test-level autoScreenshot false beats the spec's true.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs test-false-under-spec-true",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "junit-run-folder",
+      "description": "-r junit leaves out runFolder, but the run folder still holds testResults.json.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs junit-run-folder",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "junit-both-false",
+      "description": "-r junit with both keys false writes no run folder.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs junit-both-false",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    }
+  ]
+}

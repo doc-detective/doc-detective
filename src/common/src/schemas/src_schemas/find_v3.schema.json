@@ -116,20 +116,25 @@
           },
           "timeout": {
             "type": "integer",
-            "description": "Max duration in milliseconds to wait for the element to exist.",
+            "minimum": 0,
+            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
             "default": 5000
           },
           "moveTo": {
             "description": "Move the cursor to the element. If the element isn't visible, it's scrolled into view. Off by default — set it explicitly when a step should scroll, or when a recording needs the cursor to travel to the element.",
             "type": "boolean",
             "default": false,
-            "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does."
+            "$comment": "`false`, matching find_v2 and the runtime. This read `true` from the common-repo merge (#175) until the correction, but never took effect: these properties sit inside the root `anyOf`, and Ajv skips `default` there, so nothing ever injected it — findElement's own `step.find.moveTo || false` normalization was always the real default. The docs advertised `true` for the same reason. Corrected toward `false` rather than making the runtime scroll, because moving the viewport under every existing bare `find` would shift screenshot content and could break committed maxVariation baselines. test/findElement.test.js pins this value against what a bare find actually does. Since ADR 01175, validate() fills this default in the effective step."
           },
           "click": {
-            "description": "Click the element.",
+            "description": "Click the element after finding it. `true` left-clicks, `false` finds without clicking, and a button name (`left`, `right`, or `middle`) clicks with that button. The object form sets the `button` and a press `duration`. Unlike the `click` action, a string here names the button, not the element.",
             "anyOf": [
               {
-                "$ref": "click_v3.schema.json#"
+                "type": "boolean",
+                "$comment": "Boolean first (ADR 01161). Safe as a plain `type`: the next branch is an enum, so it never wanted \"true\" or \"false\", and a $VAR that resolves to \"true\" still means true."
+              },
+              {
+                "$ref": "click_v3.schema.json#/components/schemas/button"
               },
               {
                 "type": "object",
@@ -141,6 +146,7 @@
                     "$ref": "click_v3.schema.json#/components/schemas/duration"
                   }
                 },
+                "additionalProperties": false,
                 "title": "Find element and click"
               }
             ]
@@ -152,18 +158,81 @@
                 "$ref": "type_v3.schema.json#"
               },
               {
+                "$comment": "find already locates the element, so a locator here would be ignored (ADR 01175). One guard per key, so the message names it. `type: object` keeps the keys shorthand valid: `required` passes any string or array.",
                 "not": {
                   "type": "object",
                   "required": [
-                    "selector",
-                    "elementText",
-                    "elementId",
-                    "elementTestId",
-                    "elementClass",
-                    "elementAttribute",
+                    "selector"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `selector` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "elementText"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementText` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "elementId"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementId` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "elementTestId"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementTestId` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "elementClass"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementClass` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "elementAttribute"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementAttribute` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
                     "elementAria"
-                  ],
-                  "title": "Find element and type"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementAria` (`find` already locates the element)"
                 }
               }
             ]

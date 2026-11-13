@@ -232,9 +232,6 @@ navigation:
               - page: Generate requests from OpenAPI
                 path: pages/docs/test-code/generate-tests-from-openapi.mdx
                 slug: generate-tests-from-openapi
-              - page: Integrations
-                path: pages/docs/get-started/integrations.mdx
-                slug: integrations
           - section: Formats & surfaces
             skip-slug: true
             contents:
@@ -259,6 +256,9 @@ navigation:
                   - page: Custom
                     path: pages/docs/input-formats/custom.mdx
                     slug: custom
+                  - page: Selectors
+                    path: pages/docs/input-formats/selectors.mdx
+                    slug: selectors
               - page: Test across platforms & browsers
                 path: pages/docs/config/contexts.mdx
                 slug: platforms-and-browsers
@@ -275,6 +275,9 @@ navigation:
           - page: GitHub Action
             path: pages/docs/ci/github-action.mdx
             slug: github-action
+          - page: AI issue mentions
+            path: pages/docs/ci/issue-mentions.mdx
+            slug: issue-mentions
           - page: Set up your test environment
             path: pages/tutorials/set-up-your-test-environment.mdx
             slug: set-up-environment
@@ -284,7 +287,10 @@ navigation:
           - page: Docker & headless
             path: pages/docs/ci/docker-and-headless.mdx
             slug: docker-and-headless
-          - page: Prepare for 5.0
+          - page: Secrets in output
+            path: pages/docs/ci/secrets.mdx
+            slug: secrets
+          - page: Upgrade to v5
             path: pages/docs/ci/upgrade-to-v5.mdx
             slug: upgrade-to-v5
 
@@ -459,7 +465,7 @@ redirects:
   - source: /docs/test-code/http-and-api
     destination: /docs/test-docs/http-and-api
   - source: /docs/test-code/integrations
-    destination: /docs/test-docs/integrations
+    destination: /docs/ci/issue-mentions
   # Input formats → Test your docs (explicit; Fern redirects match literal paths)
   - source: /docs/input-formats/overview
     destination: /docs/test-docs/input-formats/overview
@@ -482,7 +488,11 @@ redirects:
   - source: /docs/get-started/ci
     destination: /docs/ci/github-action
   - source: /docs/get-started/integrations
-    destination: /docs/test-docs/integrations
+    destination: /docs/ci/issue-mentions
+  # The Action's AI @mention page moved from "Test your docs" to CI (Action v2
+  # renamed its `integrations` input to `issue_mentions`)
+  - source: /docs/test-docs/integrations
+    destination: /docs/ci/issue-mentions
   - source: /docs/get-started/self-healing
     destination: /ai/ai-agents/hand-off-failures
   # The page was retitled from "Self-healing" to say what it does.
@@ -563,6 +573,8 @@ redirects:
     destination: /ai/ai-agents/overview
   - source: /docs/contribute/docs/testing
     destination: /contribute/contribute/testing
+  - source: /reference/cli
+    destination: /reference/reference/cli
   - source: /reference/cli/install
     destination: /reference/reference/cli/install
   # Action slugs are now lowercase, so a :slug pattern can't map these

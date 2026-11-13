@@ -35,7 +35,7 @@ export const HINTS: Hint[] = [
       "{",
       "  \"$schema\": \"https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/src/schemas/src_schemas/config_v3.schema.json\",",
       "  \"input\": \"docs\",",
-      "  \"output\": \"doc-detective-output\",",
+      "  \"outputDir\": \"doc-detective-output\",",
       "  \"reporters\": [\"terminal\", \"json\", \"html\"]",
       "}",
       "```",
@@ -55,7 +55,7 @@ export const HINTS: Hint[] = [
       "On GitHub? Add the JSON reporter so CI can upload structured results as a workflow artifact:",
       "",
       "```bash",
-      "doc-detective --reporters terminal json",
+      "doc-detective --reporters terminal,json",
       "```",
     ].join("\n"),
     when: (ctx) => {
@@ -92,62 +92,16 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // enableAutoRecord (feature discovery)
-  // ------------------------------------------------------------------
-  {
-    id: "enableAutoRecord",
-    priority: 40,
-    markdown: [
-      "Want a video of every run? Enable `--auto-record` to record each driver-based context end-to-end — browser and desktop app contexts capture the screen with the ffmpeg engine; Android/iOS contexts record the device screen.",
-      "",
-      "Videos are archived per run under `.doc-detective/runs/<runId>/` alongside test results, so you can replay exactly what happened.",
-      "",
-      "```bash",
-      "doc-detective --auto-record",
-      "```",
-    ].join("\n"),
-    // Browser contexts or app surfaces (startSurface) — autoRecord covers
-    // desktop app and mobile device contexts too (phase A7).
-    when: (ctx) =>
-      (ctx.usedBrowserContexts.size > 0 ||
-        ctx.usedStepTypes.has("startSurface")) &&
-      !ctx.producedRecordings &&
-      !ctx.config?.autoRecord,
-  },
-
-  // ------------------------------------------------------------------
-  // enableAutoScreenshot (feature discovery)
-  // ------------------------------------------------------------------
-  {
-    id: "enableAutoScreenshot",
-    priority: 40,
-    markdown: [
-      "Want a visual record of every run? Enable `--auto-screenshot` to capture an image after each browser step.",
-      "",
-      "Screenshots are archived per run under `.doc-detective/runs/<runId>/` alongside test results. Diff two run folders to spot UI changes over time.",
-      "",
-      "```bash",
-      "doc-detective --auto-screenshot",
-      "```",
-    ].join("\n"),
-    when: (ctx) =>
-      ctx.usedBrowserContexts.size > 0 &&
-      !ctx.producedScreenshots &&
-      !ctx.producedAutoScreenshots &&
-      !ctx.config?.autoScreenshot,
-  },
-
-  // ------------------------------------------------------------------
   // enableDebugLog (current-run problem) — shipped in v1
   // ------------------------------------------------------------------
   {
     id: "enableDebugLog",
     priority: 20,
     markdown: [
-      "Tests failed. Re-run with `--logLevel debug` for a full trace of every step:",
+      "Tests failed. Re-run with `--log-level debug` for a full trace of every step:",
       "",
       "```bash",
-      "doc-detective --logLevel debug",
+      "doc-detective --log-level debug",
       "```",
     ].join("\n"),
     when: (ctx) => ctx.failedCount > 0,
@@ -193,21 +147,21 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
-  // extractBeforeAnySharedSetup (advanced)
+  // extractBeforeAllSharedSetup (advanced)
   // ------------------------------------------------------------------
   {
-    id: "extractBeforeAnySharedSetup",
+    id: "extractBeforeAllSharedSetup",
     priority: 20,
     markdown: [
-      "Repeating the same setup across specs? Move it into a `beforeAny` spec — it runs once before the rest of the input:",
+      "Repeating the same setup across specs? Move it into a `beforeAll` spec — it runs once before the rest of the input:",
       "",
       "```json",
-      "{ \"beforeAny\": \"./setup.spec.json\" }",
+      "{ \"beforeAll\": \"./setup.spec.json\" }",
       "```",
     ].join("\n"),
     when: (ctx) =>
       ctx.totalSpecs >= 5 &&
-      !ctx.config?.beforeAny,
+      !ctx.config?.beforeAll,
   },
 
   // ------------------------------------------------------------------
@@ -216,22 +170,17 @@ export const HINTS: Hint[] = [
   {
     id: "gitignoreOutputDir",
     priority: 20,
+    // Screenshots and recordings land in a run folder by default (ADR
+    // 01177), so with the default `outputDir` of `.` that's `.doc-detective/`.
     markdown: [
-      "Add your Doc Detective output directory to `.gitignore` so artifacts stay out of commits. Append your configured `output` (for example: `doc-detective-output/`) on its own line:",
+      "Keep Doc Detective's screenshots, recordings, and results out of commits. Add the `outputDir` you set to `.gitignore`. With the default `outputDir` (`.`), add `.doc-detective/`:",
       "",
       "```bash",
-      "echo \"doc-detective-output/\" >> .gitignore",
+      "echo \".doc-detective/\" >> .gitignore",
       "```",
     ].join("\n"),
-    when: (ctx) => {
-      const output = ctx.config?.output;
-      return (
-        !ctx.outputDirGitignored &&
-        typeof output === "string" &&
-        output !== "." &&
-        output !== "./"
-      );
-    },
+    when: (ctx) =>
+      !ctx.outputDirGitignored && typeof ctx.config?.outputDir === "string",
   },
 
   // ------------------------------------------------------------------
@@ -284,6 +233,31 @@ export const HINTS: Hint[] = [
       "More: [GitHub Action](https://docs.doc-detective.com/docs/ci/github-action)",
     ].join("\n"),
     when: (ctx) => ctx.isGitHubRepo && !ctx.hasDocDetectiveWorkflow,
+  },
+
+  // ------------------------------------------------------------------
+  // listPublicVariables (output & reporting): ADR 01178
+  // ------------------------------------------------------------------
+  {
+    id: "listPublicVariables",
+    priority: 30,
+    markdown: (ctx) => {
+      const names = [...ctx.maskedNonSecretNames];
+      const quoted = names.map((name) => `\`${name}\``);
+      const list =
+        quoted.length <= 2 ? quoted.join(" and ") : `${quoted.slice(0, -1).join(", ")}, and ${quoted[quoted.length - 1]}`;
+      const [verb, pronoun] = names.length === 1 ? ["shows", "it isn't secret, list it"] : ["show", "they aren't secret, list them"];
+      return [
+        `${list} ${verb} as \`***NAME***\` in this run's output. If ${pronoun} in \`publicVariables\`:`,
+        "",
+        "```json",
+        `"publicVariables": [${names.map((name) => JSON.stringify(name)).join(", ")}]`,
+        "```",
+        "",
+        "More: [Keep secrets out of logs, reports, and captures](https://docs.doc-detective.com/docs/ci/secrets)",
+      ].join("\n");
+    },
+    when: (ctx) => ctx.maskedNonSecretNames.size > 0,
   },
 
   // ------------------------------------------------------------------
@@ -442,14 +416,14 @@ export const HINTS: Hint[] = [
     id: "setOutputDir",
     priority: 20,
     markdown: [
-      "Result artifacts are landing next to your source files. Set `output` in `.doc-detective.json` so they go somewhere predictable:",
+      "Result artifacts are landing next to your source files. Set `outputDir` in `.doc-detective.json` so they go somewhere predictable:",
       "",
       "```json",
-      "{ \"output\": \"doc-detective-output\" }",
+      "{ \"outputDir\": \"doc-detective-output\" }",
       "```",
     ].join("\n"),
     when: (ctx) => {
-      const output = ctx.config?.output;
+      const output = ctx.config?.outputDir;
       return (
         (!output || output === "." || output === "./") &&
         ctx.totalSpecs > 0
@@ -482,6 +456,22 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // sponsorProject (community)
+  // ------------------------------------------------------------------
+  {
+    id: "sponsorProject",
+    priority: 50,
+    markdown: [
+      "Is Doc Detective helping? Star the repo on GitHub, or sponsor the project:",
+      "",
+      "- [GitHub Sponsors](https://github.com/sponsors/doc-detective)",
+      "- [Open Collective](https://opencollective.com/doc-detective)",
+    ].join("\n"),
+    // Not while someone is looking at a failure.
+    when: (ctx) => ctx.totalTests > 0 && ctx.failedCount === 0,
+  },
+
+  // ------------------------------------------------------------------
   // tryHtmlReporter (output & reporting) — shipped in v1
   // ------------------------------------------------------------------
   {
@@ -491,7 +481,7 @@ export const HINTS: Hint[] = [
       "Generate a shareable HTML report alongside the terminal summary:",
       "",
       "```bash",
-      "doc-detective --reporters terminal json html",
+      "doc-detective --reporters terminal,json,html",
       "```",
     ].join("\n"),
     when: (ctx) => {
@@ -507,11 +497,12 @@ export const HINTS: Hint[] = [
     id: "upgradeNodeVersion",
     priority: 20,
     markdown: [
-      "You're on Node 19 or older. Doc Detective targets Node 20+ — older runtimes hit obscure bugs in the browser stack and the schema parser. Upgrade and retry:",
+      "You're on Node 23 or older. Doc Detective needs Node 24.15 or later — older runtimes hit obscure bugs in the browser stack and the schema parser. Upgrade and retry:",
       "",
       "More: [Node.js release schedule](https://nodejs.org/en/about/previous-releases)",
     ].join("\n"),
-    when: (ctx) => ctx.nodeMajor > 0 && ctx.nodeMajor < 20,
+    // Major version only, so 24.0 to 24.14 rely on npm's EBADENGINE warning.
+    when: (ctx) => ctx.nodeMajor > 0 && ctx.nodeMajor < 24,
   },
 
   // ------------------------------------------------------------------

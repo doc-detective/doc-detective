@@ -1,10 +1,12 @@
 {
   "input": ".",
-  "output": ".",
+  "outputDir": ".",
+  "exitOnFail": false,
   "recursive": true,
   "logLevel": "debug",
   "relativePathBase": "file",
   "detectSteps": false,
+  "autoRecord": false,
   "runOn": [
     {
       "platforms": ["mac", "linux"],

@@ -372,10 +372,13 @@ async function resolveAnnotationRects({
       }
       elements = found.elements;
     } else {
+      // Annotations report only their own message, so skip the near-match
+      // collector (ADR 01194).
       const findResult = await findElement({
         config,
         step: { find: criteriaFromTarget(target) },
         driver,
+        nearMatches: false,
       });
       const element = findResult.outputs?.rawElement;
       if (findResult.status === "FAIL" || !element) {

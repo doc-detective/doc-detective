@@ -49,8 +49,8 @@ Doc Detective docs document a real CLI, schema set, and runner. Every flag, acti
 key, and exit behavior must therefore match the code, never the writer's assumption. Reference pages
 name their **source of truth** in `information-architecture.md`. Cross-read it before writing:
 
-- **Flags and commands:** `buildYargs()` in [`src/utils.ts`](../../src/utils.ts) and
-  [`src/cli.ts`](../../src/cli.ts).
+- **Flags and commands:** `addRunOptions()` in [`src/cliOptions.ts`](../../src/cliOptions.ts) and
+  the command tree in [`src/cliProgram.ts`](../../src/cliProgram.ts).
 - **Config keys:** [`config_v3.schema.json`](../../src/common/src/schemas/src_schemas/config_v3.schema.json)
   and [`src/core/config.ts`](../../src/core/config.ts).
 - **Actions / step fields:** the per-action schemas under

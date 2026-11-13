@@ -116,7 +116,8 @@ export interface ShimPackageJson {
   version?: string;
 }
 
-let cachedRoot: string | undefined;
+// undefined: not walked yet. null: walked, and not inside the package.
+let cachedRoot: string | null | undefined;
 let cachedPkg: ShimPackageJson | null = null;
 
 /**
@@ -127,22 +128,26 @@ let cachedPkg: ShimPackageJson | null = null;
  * user's package.json. Undefined only when run outside the package.
  */
 export function packageRoot(): string | undefined {
-  for (let dir = __dirname; !cachedRoot; dir = path.dirname(dir)) {
-    try {
-      const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
-      if (pkg.name === "doc-detective") {
-        cachedRoot = dir;
-        cachedPkg = pkg;
-      }
-    } catch {}
-    if (path.dirname(dir) === dir) break;
+  if (cachedRoot === undefined) {
+    cachedRoot = null;
+    for (let dir = __dirname; !cachedRoot; dir = path.dirname(dir)) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
+        if (pkg.name === "doc-detective") {
+          cachedRoot = dir;
+          cachedPkg = pkg;
+        }
+      } catch {}
+      if (path.dirname(dir) === dir) break;
+    }
   }
-  return cachedRoot;
+  return cachedRoot ?? undefined;
 }
 
 /** doc-detective's own version, from the package.json packageRoot() found. */
 export function ownVersion(): string | undefined {
-  return packageRoot() && cachedPkg!.version;
+  packageRoot();
+  return cachedPkg?.version;
 }
 
 export function readShimPackageJson(): ShimPackageJson {

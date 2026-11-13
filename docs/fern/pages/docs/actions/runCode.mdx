@@ -13,20 +13,20 @@ The `runCode` action executes a code snippet in a specified language (like JavaS
 You must specify the `runCode` action using an object format with the following properties:
 
 - **Object Format:**
-  - `language`: (Required) The programming language of the code snippet (`javascript`, `python`, `bash`).
+  - `language`: (Required) The programming language of the code snippet: `javascript` or `js`, `python` or `py`, or `bash`. `js` and `py` run the same as `javascript` and `python`.
 
     > Note: `bash` works on every platform, Windows included. Doc Detective uses Git Bash there. Without Git for Windows installed, it downloads a portable copy into its cache the first time a test needs one. See [Shell selection](/docs/actions/runshell#shell-selection).
 
   - `code`: (Required) The code snippet to execute as a string.
-  - `workingDirectory`: (Optional) The directory in which to run the code.
-  - `timeout`: (Optional) Maximum duration in milliseconds to wait for the code execution to complete.
+  - `workingDirectory`: (Optional) The folder to run the code in. Omit it to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When [`relativePathBase`](/reference/schemas/config) is `cwd`, it resolves against the current directory instead.
+  - `timeout`: (Optional) Maximum duration in milliseconds, `1` or more, to wait for the code execution to complete (default: `60000`).
   - `exitCodes`: (Optional) An array of acceptable exit codes. If the code execution's exit code is not in this list, the step fails (default: `[0]`).
   - `stdio`: (Optional) A string or regular expression to validate against the code's combined stdout and stderr. If the output doesn't match, the step fails. Regex must start and end with `/` (for example, `/^hello world.*/`).
   - `background`: (Optional) An object that starts the code as a long-running background process. The step returns as soon as the process is ready, instead of waiting for it to exit. Including this object enables background mode. Omit it for a normal blocking run. See [Background processes](#background-processes).
     - `name`: (Required) A unique identifier for the background process within the run. Reference it from a [`closeSurface`](/docs/actions/closesurface) step to stop the process, or from a [`type`](/docs/actions/type) step to send it keystrokes.
     - `waitUntil`: (Optional) The conditions that must be met before the process is considered ready. See [Wait conditions](#wait-conditions).
     - `tty`: (Optional) Run the process under a pseudo-terminal (PTY) instead of a pipe so full-screen terminal UIs render and accept keystrokes. `true` uses a terminal 120 columns by 30 rows. An object such as `{"cols": 80, "rows": 24}` sets the size. Defaults to `false`. See [Full-screen terminal UIs](#full-screen-terminal-uis).
-  - *Output Saving:* You can also save the code's output using `path`, `directory`, `maxVariation`, and `overwrite` properties. See the [`runCode`](/reference/schemas/runcode) reference for details.
+  - *Output Saving:* You can also save the code's output using `path`, `directory`, `maxVariation`, and `overwrite` properties. The saved file shows environment variable values as `***NAME***`. See [Saved files](/docs/ci/secrets#saved-files) and the [`runCode`](/reference/schemas/runcode) reference.
 
 **Output Regression Testing:** Set both `path` and `maxVariation`, with a reference file present at that `path`. The action then compares the new code output to the reference file's content. A difference within `maxVariation` passes the step. A difference beyond the threshold returns WARNING, and behavior then depends on the `overwrite` setting:
 
@@ -36,7 +36,9 @@ You must specify the `runCode` action using an object format with the following 
 
 This allows tests to continue while flagging output changes that exceed your acceptable variation threshold.
 
-**Setting Variables:** To capture output into variables for later steps, use the step-level `variables` object. You can assign values based on the code's output using expressions like `$$stdio.stdout`, `$$stdio.stderr`, or `$$exitCode`. When you set `stdio`, the action also exposes `$$stdioMatched`, a boolean indicating whether the expected output was found in stdout or stderr. When you save output with `path` and a reference file already exists, the action exposes `$$variation`, the fractional difference between the new output and the reference file.
+**Setting Variables:** To capture output into variables for later steps, use the step-level `variables` object. You can assign values based on the code's output using expressions like `$$stdio.stdout`, `$$stdio.stderr`, or `$$exitCode`. When you set `stdio`, the action also exposes `$$stdioMatches`, a boolean indicating whether the expected output was found in stdout or stderr. When you save output with `path` and a reference file already exists, the action exposes `$$variation`, the fractional difference between the new output and the reference file.
+
+**Secrets in output:** Logs and reports show environment variable values in the code and its output as `***NAME***`. The `stdio` check and `variables` expressions still use the real values, so write expected output with the real value. Code inherits the whole environment, so it can print a variable that no step substitutes. Doc Detective masks that variable when a `.env` or [`loadVariables`](/docs/actions/loadvariables) file sets it. It also masks a variable whose name contains a word such as `TOKEN`, `SECRET`, or `PASSWORD`. The name rule applies only to variables present when the run started, such as CI secrets, and to variables a step set with `variables`. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
 
 > For comprehensive options, see the [`runCode`](/reference/schemas/runcode) reference.
 
@@ -73,7 +75,7 @@ By default, a background process runs behind a pipe. That works for line-oriente
 
 In PTY mode, the process's stdout and stderr merge into a single stream that both `waitUntil.stdio` here and a `type` step's `waitUntil.stdio` search. PTY output also includes raw ANSI escape sequences, such as colors and cursor movement. Match against text that renders without interleaved control codes, or use a regular expression that tolerates them. `tty` defaults to `false`, which keeps the standard pipe behavior.
 
-With `tty` set to `true`, the terminal is 120 columns wide and 30 rows tall. To pick the size, set `tty` to an object with `cols` and `rows`, such as `{"cols": 80, "rows": 24}`. Each is an integer from 1 to 1000. A missing value keeps its default, so `{}` behaves like `true`. See [Full-screen terminal UIs](/docs/actions/runshell#full-screen-terminal-uis) in `runShell` for why the width matters.
+With `tty` set to `true`, the terminal is 120 columns wide and 30 rows tall. To pick the size, set `tty` to an object with `cols` and `rows`, such as `{"cols": 80, "rows": 24}`. Each is an integer from 1 to 1000. A missing value keeps its default, so `{}` behaves like `true`. Results show the size that ran, so `true` appears as `{"cols": 120, "rows": 30}`. See [Full-screen terminal UIs](/docs/actions/runshell#full-screen-terminal-uis) in `runShell` for why the width matters.
 
 ## Examples
 

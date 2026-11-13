@@ -4,6 +4,7 @@
 // on app and browser surfaces; a process has no screen to swipe. Pure
 // execution: no implicit assertions, like goTo.
 import { validate } from "../../common/src/validate.js";
+import { invalidStepMessage } from "../utils.js";
 import { switchToSurface } from "./browserSurface.js";
 import { ensureAppForeground } from "./appSurface.js";
 import {
@@ -20,42 +21,9 @@ import {
   directionToPoints,
   performMovement,
   getBrowserViewportRect,
-  DEFAULT_SWIPE_DISTANCE,
-  DEFAULT_SWIPE_DURATION,
 } from "./movement.js";
 
 export { swipeSurface };
-
-// Normalize the three schema forms into one gesture shape. The directional
-// forms keep `direction`/`distance` (adapters with a native directional
-// gesture use them as-is); point-to-point carries `from`/`to`.
-function normalizeSwipe(swipe: any): {
-  direction?: string;
-  distance?: number;
-  from?: { x: number; y: number };
-  to?: { x: number; y: number };
-  duration: number;
-} {
-  if (typeof swipe === "string") {
-    return {
-      direction: swipe,
-      distance: DEFAULT_SWIPE_DISTANCE,
-      duration: DEFAULT_SWIPE_DURATION,
-    };
-  }
-  if (swipe.from && swipe.to) {
-    return {
-      from: swipe.from,
-      to: swipe.to,
-      duration: swipe.duration ?? DEFAULT_SWIPE_DURATION,
-    };
-  }
-  return {
-    direction: swipe.direction,
-    distance: swipe.distance ?? DEFAULT_SWIPE_DISTANCE,
-    duration: swipe.duration ?? DEFAULT_SWIPE_DURATION,
-  };
-}
 
 async function swipeSurface({
   config,
@@ -83,14 +51,15 @@ async function swipeSurface({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
+  // The effective step (ADR 01167) is the gesture: a directional swipe has
+  // `direction`, `distance`, and `duration` (adapters with a native directional
+  // gesture use them as-is); a point-to-point swipe has `from`, `to`, and
+  // `duration`.
   step = isValidStep.object;
-
-  const surface =
-    typeof step.swipe === "object" ? step.swipe.surface : undefined;
-  const gesture = normalizeSwipe(step.swipe);
+  const { surface, ...gesture } = step.swipe;
   result.outputs = {
     ...(gesture.direction !== undefined && { direction: gesture.direction }),
     ...(gesture.distance !== undefined && { distance: gesture.distance }),

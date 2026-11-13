@@ -1,7 +1,9 @@
 import os from "node:os";
 import fs from "node:fs";
 import { validate } from "../common/src/validate.js";
-import { log, spawnCommand, loadEnvs, replaceEnvs } from "./utils.js";
+import { defaultFileTypes } from "../common/src/fileTypes.js";
+import { log, spawnCommand, loadEnvs, replaceEnvs, configErrorMessage, allSchemas } from "./utils.js";
+import { clearPendingEnvWarnings, setEnvWarningSink } from "../envFlag.js";
 import path from "node:path";
 import { spawn as spawnChild } from "node:child_process";
 import { loadHeavyDep, resolveHeavyDepPath } from "../runtime/loader.js";
@@ -11,7 +13,36 @@ import { verifyDriverBinary, geckodriverBinaryInCache } from "../runtime/browser
 import { setAppiumHome } from "./appium.js";
 import { loadDescription } from "./openapi.js";
 
-export { setConfig, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild };
+export { setConfig, renameDeprecatedConfigKeys, getAvailableApps, getBrowserDiagnostics, getEnvironment, resolveConcurrentRunners, clearAppCache, patchAppCache, verifyAppDrivers, detectInstalledBrowserDrivers, selectInstalledBuild, fileTypeObject };
+
+// Rename deprecated config keys in place, in each config source before they're
+// merged, so a later source wins whichever name either one uses (ADR 01169).
+// Setting both names in one source is an error. Calls `warn` at most once for
+// all the sources. Callers should capture that message and log it after they
+// merge the sources, so the merged `logLevel` applies.
+function renameDeprecatedConfigKeys(
+  sources: (Record<string, any> | null | undefined)[],
+  warn: (message: string) => void
+) {
+  let renamed = false;
+  for (const config of sources) {
+    // null means absent, so drop it: left in, it would meet another source's
+    // beforeAll in the merge and read as both set.
+    if (config?.beforeAny === null) delete config.beforeAny;
+    if (config?.beforeAny === undefined) continue;
+    // The same goes for beforeAll: only a non-null value conflicts.
+    if (config.beforeAll != null) {
+      // The schema's own message; config-coverage's "ends the both-set error"
+      // test keeps the two aligned. No fallback on purpose: if the schema moves
+      // the message, that test should fail, so no stale text ever ships.
+      throw new Error(`Invalid config. beforeAll: ${allSchemas().config_v3.errorMessage.not}`);
+    }
+    config.beforeAll = config.beforeAny;
+    delete config.beforeAny;
+    renamed = true;
+  }
+  if (renamed) warn("`beforeAny` is deprecated. Rename it to `beforeAll`.");
+}
 
 /**
  * A candidate browser app plus the driver binary that must be functional for
@@ -70,317 +101,11 @@ async function verifyAppDrivers(
   return out;
 }
 
-/**
- * Deep merge two objects, with override properties taking precedence
- * @param {Object} target - The target object to merge into
- * @param {Object} override - The override object containing properties to merge
- * @returns {Object} A new object with merged properties
- */
-function deepMerge(target: any, override: any): any {
-  const result = { ...target };
-
-  for (const key in override) {
-    if (override.hasOwnProperty(key)) {
-      if (
-        override[key] != null &&
-        typeof override[key] === "object" &&
-        !Array.isArray(override[key])
-      ) {
-        if (
-          result[key] != null &&
-          typeof result[key] === "object" &&
-          !Array.isArray(result[key])
-        ) {
-          result[key] = deepMerge(result[key], override[key]);
-        } else {
-          result[key] = deepMerge({}, override[key]);
-        }
-      } else {
-        result[key] = override[key];
-      }
-    }
-  }
-
-  return result;
-}
-
 // Map of Node-detected platforms to common-term equivalents
 const platformMap: any = {
   darwin: "mac",
   linux: "linux",
   win32: "windows",
-};
-
-// List of default file type definitions
-let defaultFileTypes: any = {
-  asciidoc_1_0: {
-    name: "asciidoc",
-    extensions: ["adoc", "asciidoc", "asc"],
-    inlineStatements: {
-      testStart: ["\\/\\/\\s+\\(\\s*test\\s+([\\s\\S]*?)\\s*\\)"],
-      testEnd: ["\\/\\/\\s+\\(\\s*test end\\s*\\)"],
-      ignoreStart: ["\\/\\/\\s+\\(\\s*test ignore start\\s*\\)"],
-      ignoreEnd: ["\\/\\/\\s+\\(\\s*test ignore end\\s*\\)"],
-      step: ["\\/\\/\\s+\\(\\s*step\\s+([\\s\\S]*?)\\s*\\)"],
-    },
-    markup: [],
-  },
-  dita_1_0: {
-    name: "dita",
-    extensions: ["dita", "ditamap", "xml"],
-    inlineStatements: {
-      testStart: [
-        "<\\?doc-detective\\s+test([\\s\\S]*?)\\?>",
-        "<!--\\s*test([\\s\\S]+?)-->",
-        "<data\\s+[^>]*?name=[\"']doc-detective[\"'][^>]*?value='test\\s+([^']+?)'[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-        '<data\\s+[^>]*?name=["\']doc-detective["\'][^>]*?value="test\\s+([^"]+?)"[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
-        "<data\\s+[^>]*?value='test\\s+([^']+?)'[^>]*?name=[\"']doc-detective[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-        '<data\\s+[^>]*?value="test\\s+([^"]+?)"[^>]*?name=["\']doc-detective["\'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
-      ],
-      testEnd: [
-        "<\\?doc-detective\\s+test\\s+end\\s*\\?>",
-        "<!--\\s*test end([\\s\\S]+?)-->",
-        "<data\\s+[^>]*?name=[\"']doc-detective[\"'][^>]*?value=[\"']test end[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-        "<data\\s+[^>]*?value=[\"']test end[\"'][^>]*?name=[\"']doc-detective[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-      ],
-      ignoreStart: [
-        "<\\?doc-detective\\s+test\\s+ignore\\s+start\\s*\\?>",
-        "<!--\\s*test ignore\\s+start\\s*-->",
-      ],
-      ignoreEnd: [
-        "<\\?doc-detective\\s+test\\s+ignore\\s+end\\s*\\?>",
-        "<!--\\s*test ignore\\s+end\\s*-->",
-      ],
-      step: [
-        "<\\?doc-detective\\s+step\\s+([\\s\\S]*?)\\s*\\?>",
-        "<!--\\s*step([\\s\\S]+?)-->",
-        '<data\\s+name="step"\\s*>([\\s\\S]*?)<\\/data>',
-        "<data\\s+[^>]*?name=[\"']doc-detective[\"'][^>]*?value='step\\s+([^']+?)'[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-        '<data\\s+[^>]*?name=["\']doc-detective["\'][^>]*?value="step\\s+([^"]+?)"[^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
-        "<data\\s+[^>]*?value='step\\s+([^']+?)'[^>]*?name=[\"']doc-detective[\"'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)",
-        '<data\\s+[^>]*?value="step\\s+([^"]+?)"[^>]*?name=["\']doc-detective["\'][^>]*?(?:\\/\\s*>|>\\s*<\\/data>)',
-      ],
-    },
-    markup: [
-      {
-        name: "clickUiControl",
-        regex: [
-          "(?:[Cc]lick|[Tt]ap|[Ss]elect|[Pp]ress|[Cc]hoose)\\s+(?:the\\s+)?<uicontrol>([^<]+)<\\/uicontrol>",
-        ],
-        actions: ["click"],
-      },
-      {
-        name: "typeIntoUiControl",
-        regex: [
-          "(?:[Tt]ype|[Ee]nter|[Ii]nput)\\s+<userinput>([^<]+)<\\/userinput>\\s+(?:in|into)(?:\\s+the)?\\s+<uicontrol>([^<]+)<\\/uicontrol>",
-        ],
-        actions: [
-          {
-            type: {
-              keys: "$1",
-              selector: "$2",
-            },
-          },
-        ],
-      },
-      {
-        name: "navigateToXref",
-        regex: [
-          '(?:[Nn]avigate\\s+to|[Oo]pen|[Gg]o\\s+to|[Vv]isit|[Bb]rowse\\s+to)\\s+<xref\\s+[^>]*href="(https?:\\/\\/[^"]+)"[^>]*>',
-        ],
-        actions: ["goTo"],
-      },
-      {
-        name: "findUiControl",
-        regex: ["<uicontrol>([^<]+)<\\/uicontrol>"],
-        actions: ["find"],
-      },
-      {
-        name: "verifyWindowTitle",
-        regex: ["<wintitle>([^<]+)<\\/wintitle>"],
-        actions: ["find"],
-      },
-      {
-        name: "checkExternalXref",
-        regex: [
-          '<xref\\s+[^>]*scope="external"[^>]*href="(https?:\\/\\/[^"]+)"[^>]*>',
-          '<xref\\s+[^>]*href="(https?:\\/\\/[^"]+)"[^>]*scope="external"[^>]*>',
-        ],
-        actions: ["checkLink"],
-      },
-      {
-        name: "checkHyperlink",
-        regex: ['<xref\\s+href="(https?:\\/\\/[^"]+)"[^>]*>'],
-        actions: ["checkLink"],
-      },
-      {
-        name: "checkLinkElement",
-        regex: ['<link\\s+href="(https?:\\/\\/[^"]+)"[^>]*>'],
-        actions: ["checkLink"],
-      },
-      {
-        name: "clickOnscreenText",
-        regex: [
-          "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+<b>((?:(?!<\\/b>).)+)<\\/b>",
-        ],
-        actions: ["click"],
-      },
-      {
-        name: "findOnscreenText",
-        regex: ["<b>((?:(?!<\\/b>).)+)<\\/b>"],
-        actions: ["find"],
-      },
-      {
-        name: "goToUrl",
-        regex: [
-          '\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+<xref\\s+href="(https?:\\/\\/[^"]+)"[^>]*>',
-        ],
-        actions: ["goTo"],
-      },
-      {
-        name: "typeText",
-        regex: ['\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+"([^"]+)"'],
-        actions: ["type"],
-      },
-    ],
-  },
-  html_1_0: {
-    name: "html",
-    extensions: ["html", "htm"],
-    inlineStatements: {
-      testStart: ["<!--\\s*test\\s+?([\\s\\S]*?)\\s*-->"],
-      testEnd: ["<!--\\s*test end\\s*([\\s\\S]*?)\\s*-->"],
-      ignoreStart: ["<!--\\s*test ignore start\\s*-->"],
-      ignoreEnd: ["<!--\\s*test ignore end\\s*-->"],
-      step: ["<!--\\s*step\\s+?([\\s\\S]*?)\\s*-->"],
-    },
-    markup: [],
-  },
-  markdown_1_0: {
-    name: "markdown",
-    extensions: ["md", "markdown", "mdx"],
-    inlineStatements: {
-      testStart: [
-        "{\\/\\*\\s*test\\s+?([\\s\\S]*?)\\s*\\*\\/}",
-        "<!--\\s*test\\s*([\\s\\S]*?)\\s*-->",
-        "\\[comment\\]:\\s+#\\s+\\(test\\s*(.*?)\\s*\\)",
-        "\\[comment\\]:\\s+#\\s+\\(test start\\s*(.*?)\\s*\\)",
-        "\\[comment\\]:\\s+#\\s+'test\\s*(.*?)\\s*'",
-        "\\[comment\\]:\\s+#\\s+'test start\\s*(.*?)\\s*'",
-        '\\[comment\\]:\\s+#\\s+"test\\s*((?:[^"\\\\]|\\\\.)*)\\s*"',
-        '\\[comment\\]:\\s+#\\s+"test start\\s*((?:[^"\\\\]|\\\\.)*)\\s*"',
-      ],
-      testEnd: [
-        "{\\/\\*\\s*test end\\s*\\*\\/}",
-        "<!--\\s*test end\\s*([\\s\\S]*?)\\s*-->",
-        "\\[comment\\]:\\s+#\\s+\\(test end\\)",
-        "\\[comment\\]:\\s+#\\s+'test end'",
-        '\\[comment\\]:\\s+#\\s+"test end"',
-      ],
-      ignoreStart: [
-        "{\\/\\*\\s*test ignore start\\s*\\*\\/}",
-        "<!--\\s*test ignore start\\s*-->",
-        "\\[comment\\]:\\s+#\\s+\\(test ignore start\\)",
-        "\\[comment\\]:\\s+#\\s+'test ignore start'",
-        '\\[comment\\]:\\s+#\\s+"test ignore start"',
-      ],
-      ignoreEnd: [
-        "{\\/\\*\\s*test ignore end\\s*\\*\\/}",
-        "<!--\\s*test ignore end\\s*-->",
-        "\\[comment\\]:\\s+#\\s+\\(test ignore end\\)",
-        "\\[comment\\]:\\s+#\\s+'test ignore end'",
-        '\\[comment\\]:\\s+#\\s+"test ignore end"',
-      ],
-      step: [
-        "{\\/\\*\\s*step\\s+?([\\s\\S]*?)\\s*\\*\\/}",
-        "<!--\\s*step\\s*([\\s\\S]*?)\\s*-->",
-        "\\[comment\\]:\\s+#\\s+\\(step\\s*(.*?)\\s*\\)",
-        "\\[comment\\]:\\s+#\\s+'step\\s*(.*?)\\s*'",
-        '\\[comment\\]:\\s+#\\s+"step\\s*((?:[^"\\\\]|\\\\.)*)\\s*"',
-      ],
-    },
-    markup: [
-      {
-        name: "checkHyperlink",
-        regex: [
-          '(?<!\\!)\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+"[^"]*")?\\s*\\)',
-        ],
-        actions: ["checkLink"],
-      },
-      {
-        name: "clickOnscreenText",
-        regex: [
-          "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+\\*\\*((?:(?!\\*\\*).)+)\\*\\*",
-        ],
-        actions: ["click"],
-      },
-      {
-        name: "findOnscreenText",
-        regex: ["\\*\\*((?:(?!\\*\\*).)+)\\*\\*"],
-        actions: ["find"],
-      },
-      {
-        name: "goToUrl",
-        regex: [
-          '\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+"[^"]*")?\\s*\\)',
-        ],
-        actions: ["goTo"],
-      },
-      {
-        name: "screenshotImage",
-        regex: [
-          '!\\[[^\\]]*\\]\\(\\s*([^\\s)]+)(?:\\s+"[^"]*")?\\s*\\)\\s*\\{(?=[^}]*\\.screenshot)[^}]*\\}',
-        ],
-        actions: ["screenshot"],
-      },
-      {
-        name: "typeText",
-        regex: ['\\b(?:press|enter|type)\\b\\s+"([^"]+)"'],
-        actions: ["type"],
-      },
-      {
-        name: "httpRequestFormat",
-        regex: [
-          "```(?:http)?\\r?\\n([A-Z]+)\\s+([^\\s]+)(?:\\s+HTTP\\/[\\d.]+)?\\r?\\n((?:[^\\s]+:\\s+[^\\s]+\\r?\\n)*)?(?:\\s+([\\s\\S]*?)\\r?\\n+)?```",
-        ],
-        actions: [
-          {
-            httpRequest: {
-              method: "$1",
-              url: "$2",
-              request: {
-                headers: "$3",
-                body: "$4",
-              },
-            },
-          },
-        ],
-      },
-      {
-        name: "runCode",
-        regex: [
-          "```(bash|python|py|javascript|js)(?![^\\r\\n]*testIgnore)[^\\r\\n]*\\r?\\n([\\s\\S]*?)\\r?\\n```",
-        ],
-        actions: [
-          {
-            unsafe: true,
-            runCode: {
-              language: "$1",
-              code: "$2",
-            },
-          },
-        ],
-      },
-    ],
-  },
-};
-// Set keyword versions
-defaultFileTypes = {
-  ...defaultFileTypes,
-  markdown: defaultFileTypes.markdown_1_0,
-  asciidoc: defaultFileTypes.asciidoc_1_0,
-  html: defaultFileTypes.html_1_0,
-  dita: defaultFileTypes.dita_1_0,
 };
 
 /**
@@ -392,67 +117,59 @@ defaultFileTypes = {
  * @returns {Promise<Object>} The processed and validated configuration object
  * @throws Will exit process with code 1 if configuration is invalid
  */
-async function setConfig({ config, detectApps = true }: any) {
-  // Set environment variables from file
-  if (config.loadVariables) await loadEnvs(config.loadVariables);
-
-  // Load environment variables for `config`
-  config = replaceEnvs(config);
-
-  // Apply config overrides from DOC_DETECTIVE environment variable
-  if (process.env.DOC_DETECTIVE) {
-    try {
-      const docDetectiveEnv = JSON.parse(process.env.DOC_DETECTIVE);
-      if (
-        docDetectiveEnv.config &&
-        typeof docDetectiveEnv.config === "object"
-      ) {
-        config = deepMerge(config, docDetectiveEnv.config);
-      }
-    } catch (error: any) {
-      log(
-        config,
-        "warning",
-        `Invalid JSON in DOC_DETECTIVE environment variable: ${error.message}. Ignoring config overrides.`
-      );
-    }
+// A fileType entry as an object: a built-in name becomes a copy of its
+// definition, and an object passes through. The schema already limits names;
+// this throws a named error if the schema and the table ever drift apart.
+function fileTypeObject(fileType: any) {
+  if (typeof fileType === "object") return fileType;
+  if (!defaultFileTypes[fileType]) {
+    throw new Error(`Unknown fileType "${fileType}". Use one of: ${Object.keys(defaultFileTypes).join(", ")}.`);
   }
+  return structuredClone(defaultFileTypes[fileType]);
+}
 
-  // Validate inbound `config`.
-  const validityCheck = validate({ schemaKey: "config_v3", object: config });
+async function setConfig({ config, detectApps = true }: any) {
+  // An earlier run that failed before it had a sink left its warnings queued.
+  clearPendingEnvWarnings();
+
+  // Set environment variables from file
+  if (config.loadVariables) await loadEnvs(config.loadVariables, { override: false });
+
+  // Load environment variables for `config`. replaceEnvs rewrites in place, so
+  // work on a copy: the caller's object stays unchanged across runs. JSON, not
+  // structuredClone, to match the clone validate() applies just below.
+  config = replaceEnvs(JSON.parse(JSON.stringify(config)));
+
+  // Rename deprecated keys. The runner reads only the config it's given (ADR
+  // 01152), so that's the one source. The callback only captures the warning,
+  // and the rename rejects both names; config_v3's `not: {required}` is the
+  // backstop for callers that skip the rename.
+  let deprecation: string | undefined;
+  renameDeprecatedConfigKeys([config], (message) => (deprecation = message));
+  if (deprecation) log(config, "warning", deprecation);
+
+  // Validate inbound `config`. Thrown, not logged: the caller prints it once.
+  const validityCheck = validate({ schemaKey: "config_v3", object: config, structuredErrors: true });
   if (!validityCheck.valid) {
-    // TODO: Improve error message reporting.
-    log(
-      config,
-      "error",
-      `Invalid config object: ${validityCheck.errors}. Exiting.`
-    );
-    throw new Error(`Invalid config object: ${validityCheck.errors}. Exiting.`);
+    throw new Error(configErrorMessage("", validityCheck.errorObjects, config), { cause: validityCheck.errors });
   }
   config = validityCheck.object;
+  // Environment warnings print at this config's level, for JS API callers too.
+  const logged = config;
+  setEnvWarningSink((message) => log(logged, "warning", message));
 
-  // Replace fileType strings with objects
-  config.fileTypes = config.fileTypes.map((fileType: any) => {
-    if (typeof fileType === "object") return fileType;
-    const fileTypeObject = defaultFileTypes[fileType];
-    if (typeof fileTypeObject !== "undefined") return fileTypeObject;
-    log(
-      config,
-      "error",
-      `Invalid config. "${fileType}" isn't a valid fileType value.`
-    );
-    throw new Error(
-      `Invalid config. "${fileType}" isn't a valid fileType value.`
-    );
-  });
+  // Replace fileType strings with objects. The schema limits the strings to the
+  // built-in names. Copy the default: the normalizing below mutates entries in
+  // place, and common's table is shared by every run.
+  config.fileTypes = config.fileTypes.map(fileTypeObject);
 
   // Standardize value formats
   if (typeof config.input === "string") config.input = [config.input];
-  if (typeof config.beforeAny === "string") {
-    if (config.beforeAny === "") {
-      config.beforeAny = [];
+  if (typeof config.beforeAll === "string") {
+    if (config.beforeAll === "") {
+      config.beforeAll = [];
     } else {
-      config.beforeAny = [config.beforeAny];
+      config.beforeAll = [config.beforeAll];
     }
   }
   if (typeof config.afterAll === "string") {
@@ -461,9 +178,6 @@ async function setConfig({ config, detectApps = true }: any) {
     } else {
       config.afterAll = [config.afterAll];
     }
-  }
-  if (typeof config.fileTypes === "string") {
-    config.fileTypes = [config.fileTypes];
   }
   config.fileTypes = config.fileTypes.map((fileType: any) => {
     if (fileType.inlineStatements) {
@@ -491,22 +205,9 @@ async function setConfig({ config, detectApps = true }: any) {
       });
     }
     if (fileType.extends) {
-      // If fileType extends another, merge the properties
+      // If fileType extends another, merge the properties. The schema limits
+      // `extends` to the built-in names, so the lookup always finds one.
       const extendedFileTypeRaw = defaultFileTypes[fileType.extends];
-      if (!extendedFileTypeRaw) {
-        log(
-          config,
-          "error",
-          'Invalid config. fileType.extends references unknown fileType definition: "' +
-            fileType.extends +
-            '".'
-        );
-        throw new Error(
-          'Invalid config. fileType.extends references unknown fileType definition: "' +
-            fileType.extends +
-            '".'
-        );
-      }
       const extendedFileType = JSON.parse(JSON.stringify(extendedFileTypeRaw));
       if (extendedFileType) {
         if (!fileType.name) {
@@ -527,6 +228,7 @@ async function setConfig({ config, detectApps = true }: any) {
             fileType.inlineStatements = {};
           }
           const keys = [
+            "in",
             "testStart",
             "testEnd",
             "ignoreStart",
@@ -538,6 +240,8 @@ async function setConfig({ config, detectApps = true }: any) {
               extendedFileType?.inlineStatements?.[key] ||
               fileType?.inlineStatements?.[key]
             ) {
+              // Set drops repeated strings. A repeated `in` object stays, and
+              // collection drops the duplicate statements it finds.
               fileType.inlineStatements[key] = [
                 ...new Set([
                   ...(extendedFileType?.inlineStatements?.[key] || []),
@@ -602,7 +306,7 @@ async function setConfig({ config, detectApps = true }: any) {
  * @returns {number} The resolved concurrent runners value (integer >= 1)
  */
 function resolveConcurrentRunners(config: any) {
-  if (config.concurrentRunners === true) {
+  if (config.concurrentRunners === true || config.concurrentRunners === "auto") {
     // Cap at 4 for the boolean convenience option; floor at 1 in case
     // os.cpus() reports 0 (some restricted containers) so the pool is never
     // sized to 0.
@@ -658,8 +362,10 @@ function getEnvironment() {
   environment.arch = os.arch();
   // Detect system platform
   environment.platform = platformMap[process.platform];
-  // Versions that fingerprint a run in its report (ADR 01163).
-  environment.docDetectiveVersion = ownVersion();
+  // Versions that fingerprint a run in its report (ADR 01163). An unknown own
+  // version leaves the optional field out rather than present but undefined.
+  const version = ownVersion();
+  if (version) environment.docDetectiveVersion = version;
   environment.nodeVersion = process.versions.node;
   environment.osRelease = os.release();
   return environment;
@@ -679,8 +385,7 @@ const cachedAppsByDir: Map<string, any[]> = new Map();
 
 function cacheKeyFor(config: any): string {
   // Reuse `getBrowsersDir` so the key respects every override the rest
-  // of the runtime honors (env var > config.cacheDir > tmpdir, with the
-  // legacy `./browser-snapshots/` fallback).
+  // of the runtime honors (env var > config.cacheDir > default cache).
   return getBrowsersDir({ cacheDir: config?.cacheDir });
 }
 
@@ -920,11 +625,9 @@ function selectInstalledBuild<T extends ScannedBuild>(
 }
 
 async function getAvailableApps({ config }: any) {
-  // Resolve the browsers cache dir *before* chdir-ing. `getBrowsersDir`'s
-  // legacy-snapshot fallback probes `path.resolve('browser-snapshots')`
-  // relative to the current CWD, so it has to run against the user's
-  // original CWD to honor a project-local `./browser-snapshots/` directory.
-  // Reusing the same resolved absolute path for both the cache key and the
+  // Resolve the browsers cache dir *before* chdir-ing, so a relative cacheDir
+  // resolves against the user's original CWD. Reusing the same resolved path
+  // for both the cache key and the
   // `getInstalledBrowsers` call below keeps `cachedAppsByDir` consistent
   // with the directory actually scanned.
   const browsersDir = getBrowsersDir({ cacheDir: config?.cacheDir });

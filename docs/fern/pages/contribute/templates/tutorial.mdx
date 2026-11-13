@@ -238,7 +238,7 @@ A test that:
 
 ## What you'll need
 
-- Node.js 20 or later installed
+- Node.js 24.15 or later installed
 - A text editor
 - 10 minutes
 
@@ -345,7 +345,7 @@ Add a `find` action to verify the page title exists:
         {
           "find": {
             "selector": "h1",
-            "matchText": "Doc Detective"
+            "elementText": "Doc Detective"
           }
         }
       ]
@@ -361,7 +361,7 @@ This finds an `h1` element and verifies it contains "Doc Detective".
 Run the test using npx:
 
 ```bash
-npx doc-detective runTests --input first-test.spec.json
+npx doc-detective --input first-test.spec.json
 ```
 
 You should see output like:
@@ -413,7 +413,7 @@ To fix,
 
 Doc Detective needs a browser to run tests. Make sure:
 
-- You have Chrome, Firefox, or Edge installed
+- You have Chrome or Firefox installed, or Safari on macOS
 - The browser is up to date
 - No other process is using the browser
 

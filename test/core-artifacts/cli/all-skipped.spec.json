@@ -1,0 +1,57 @@
+{
+  "specId": "cli-all-skipped",
+  "description": "A run where every spec skips tested nothing, so it exits 2 (ADR 01146).",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the specs the other tests run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-all-skipped';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true});fs.writeFileSync(d+'/all-skipped.spec.json',JSON.stringify({if:'false',tests:[{steps:[{runShell:'echo hi'}]}]}));fs.writeFileSync(d+'/ran.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo hi'}]}]}));\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "all-skipped",
+      "description": "Every spec skipping exits 2, and --no-exit-on-fail relaxes it.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-all-skipped/all-skipped.spec.json --output-dir .tmp/fixture-all-skipped/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ]
+          }
+        },
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-all-skipped/all-skipped.spec.json --no-exit-on-fail --output-dir .tmp/fixture-all-skipped/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "some-skipped",
+      "description": "A skip beside a passing spec still exits 0.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js -i .tmp/fixture-all-skipped --output-dir .tmp/fixture-all-skipped/out",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

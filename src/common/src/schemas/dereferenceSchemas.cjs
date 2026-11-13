@@ -164,8 +164,8 @@ async function dereferenceSchemas() {
   //   if (err) throw err;
   // });
 
-  // `compile` cleans dist/, so scripts/generateValidators.js writes the
-  // published v3 schemas there instead.
+  // The per-schema dist/schemas/*_v3.schema.json files are written after tsc by
+  // scripts/generateValidators.js, because `compile` cleans dist/ first.
 }
 
 /**

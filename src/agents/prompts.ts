@@ -1,3 +1,4 @@
+import { isInteractive } from "../cliOutput.js";
 import { checkbox, select, confirm } from "@inquirer/prompts";
 import type { AgentAdapter, Scope } from "./types.js";
 
@@ -51,8 +52,8 @@ export async function confirmForce(modifiedFiles: string[]): Promise<boolean> {
 
 /**
  * Factory to hand into {@link runInstallAgents} as its `prompts` dep. The
- * `install-agents` command already imports this module lazily (dynamic
- * `import("./prompts.js")` from the yargs handler) so other subcommands
+ * `install agents` command already imports this module lazily (dynamic
+ * `import("./prompts.js")` from the command's action) so other subcommands
  * don't pay the inquirer load cost.
  */
 export function createPrompts() {
@@ -60,7 +61,7 @@ export function createPrompts() {
 }
 
 function assertTTY(): void {
-  if (!process.stdin.isTTY) {
+  if (!isInteractive()) {
     throw new Error(
       "No TTY detected; run interactively or pass --agent and --scope with --yes."
     );

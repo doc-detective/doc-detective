@@ -25,7 +25,7 @@ import {
   checkForUpdate,
   selfUpdate,
 } from "../dist/runtime/selfUpdate.js";
-import { installCommand } from "../dist/runtime/installCommand.js";
+import { installSubcommands } from "../dist/runtime/installCommand.js";
 import {
   resolveHeavyDepPath,
   resolveHeavyDepVersion,
@@ -87,28 +87,6 @@ function makeFakeSpawner({ exitCode = 0, emitError } = {}) {
   return fn;
 }
 
-// Pull the nested subcommand modules out of installCommand's builder so their
-// handlers can be invoked directly with a synthetic argv.
-function extractInstallSubcommands() {
-  const subs = {};
-  const fakeYargs = {
-    command(mod) {
-      if (mod && mod.command) subs[String(mod.command).split(" ")[0]] = mod;
-      return this;
-    },
-    option() {
-      return this;
-    },
-    positional() {
-      return this;
-    },
-    demandCommand() {
-      return this;
-    },
-  };
-  installCommand.builder(fakeYargs);
-  return subs;
-}
 
 describe("runtime helpers extra coverage", function () {
   let sandbox;
@@ -189,7 +167,7 @@ describe("runtime helpers extra coverage", function () {
         deps: {
           browsersModule,
           logger: (msg, level) => {
-            if (level === "warn") warnings.push(msg);
+            if (level === "warning") warnings.push(msg);
           },
         },
       });
@@ -559,7 +537,7 @@ describe("runtime helpers extra coverage", function () {
           logger: (msg, level) => /npm i doc-detective@5/.test(msg) && levels.push(level),
           http: { get: async () => ({ data: { "dist-tags": { latest: "5.0.0" } } }) },
         });
-        expect(levels).to.deep.equal(["warn"]);
+        expect(levels).to.deep.equal(["warning"]);
       });
 
       it("newer major with a newer maintenance tag: updates through the tag", async function () {
@@ -761,14 +739,8 @@ describe("runtime helpers extra coverage", function () {
       fs.rmSync(tmpRoot, { recursive: true, force: true });
     });
 
-    it("the top-level install handler is a no-op (defensive fallthrough)", function () {
-      // demandCommand normally prevents reaching this, but it exists as a
-      // defensive branch; invoking it must not throw.
-      expect(() => installCommand.handler({})).to.not.throw();
-    });
-
-    it("runtime subcommand rejects an unknown package name with a helpful error and sets exitCode=1", async function () {
-      const subs = extractInstallSubcommands();
+    it("runtime subcommand rejects an unknown package name with a helpful error and sets exitCode=2", async function () {
+      const subs = installSubcommands;
       const errors = [];
       const origExitCode = process.exitCode;
       // Capture console.error since the CLI logger writes there for errors.
@@ -782,7 +754,7 @@ describe("runtime helpers extra coverage", function () {
           cacheDir: tmpRoot,
         });
         expect(errors.some((m) => /Unknown runtime package/.test(m))).to.equal(true);
-        expect(process.exitCode).to.equal(1);
+        expect(process.exitCode).to.equal(2);
       } finally {
         errStub.restore();
         process.exitCode = origExitCode;
@@ -790,7 +762,7 @@ describe("runtime helpers extra coverage", function () {
     });
 
     it("runtime subcommand (dry-run, known package) prints a report", async function () {
-      const subs = extractInstallSubcommands();
+      const subs = installSubcommands;
       const logs = [];
       const logStub = sandbox.stub(console, "log").callsFake((m) => logs.push(String(m)));
       try {
@@ -807,7 +779,7 @@ describe("runtime helpers extra coverage", function () {
     });
 
     it("all subcommand (dry-run) runs both installRuntime and installBrowsers and prints both headers", async function () {
-      const subs = extractInstallSubcommands();
+      const subs = installSubcommands;
       const logs = [];
       const logStub = sandbox.stub(console, "log").callsFake((m) => logs.push(String(m)));
       try {
@@ -825,7 +797,7 @@ describe("runtime helpers extra coverage", function () {
     });
 
     it("status subcommand prints installed/expected rows", async function () {
-      const subs = extractInstallSubcommands();
+      const subs = installSubcommands;
       const logs = [];
       const logStub = sandbox.stub(console, "log").callsFake((m) => logs.push(String(m)));
       try {
@@ -858,7 +830,7 @@ describe("runtime helpers extra coverage", function () {
         },
         { cacheDir: tmpRoot }
       );
-      const subs = extractInstallSubcommands();
+      const subs = installSubcommands;
       const logs = [];
       const logStub = sandbox.stub(console, "log").callsFake((m) => logs.push(String(m)));
       try {
@@ -874,7 +846,7 @@ describe("runtime helpers extra coverage", function () {
     it("silent/quiet logging level suppresses info but keeps errors (verbose keeps everything)", async function () {
       // Exercise pickLogLevel + makeLogger via the runtime handler in --silent
       // mode: an unknown package still emits its error even when info is off.
-      const subs = extractInstallSubcommands();
+      const subs = installSubcommands;
       const errors = [];
       const logs = [];
       const errStub = sandbox.stub(console, "error").callsFake((m) => errors.push(String(m)));
@@ -883,7 +855,7 @@ describe("runtime helpers extra coverage", function () {
       try {
         await subs.runtime.handler({
           packages: ["nope-not-real"],
-          silent: true,
+          quiet: true,
           "cache-dir": tmpRoot,
           cacheDir: tmpRoot,
         });

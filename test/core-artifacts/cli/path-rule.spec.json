@@ -1,0 +1,90 @@
+{
+  "specId": "cli-path-rule",
+  "description": "One path rule (ADR 01192), through the real CLI: a relative path resolves against the source that set it. Each test runs one case of precedence.cjs, which sets up a folder under .tmp/fixture-precedence/, runs doc-detective there, and checks the exit code. A wrong base finds no file, so the inner run exits 2. No browser or network.",
+  "tests": [
+    {
+      "testId": "project-config-input-beside-config",
+      "description": "A relative input in the project config resolves against its folder.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs project-config-input-beside-config",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "project-config-cwd-base-input",
+      "description": "With relativePathBase: cwd, the project config's relative input resolves against the working directory.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs project-config-cwd-base-input",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "user-config-input-beside-user-config",
+      "description": "A relative input in the user config resolves against the user config's folder, not the project config's.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs user-config-input-beside-user-config",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "env-config-input-against-cwd",
+      "description": "A relative input in DOC_DETECTIVE_CONFIG resolves against the working directory, not the project config's folder.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs env-config-input-against-cwd",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "legacy-env-input-against-cwd",
+      "description": "A relative input in the deprecated DOC_DETECTIVE resolves against the working directory.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs legacy-env-input-against-cwd",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "flag-input-against-cwd",
+      "description": "A relative --input resolves against the working directory.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs flag-input-against-cwd",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "config-token-file-beside-config",
+      "description": "A relative apiTokenFile in a config file resolves against its folder, not the working directory.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/precedence.cjs config-token-file-beside-config",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    }
+  ]
+}

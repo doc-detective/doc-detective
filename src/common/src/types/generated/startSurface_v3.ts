@@ -5,7 +5,7 @@
  */
 
 /**
- * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap. See docs/design/multi-surface-targeting.md and docs/design/native-app-surfaces.md.
+ * Open (provision) one or more surfaces and register them by name so later steps can target them with `surface`. Three kinds: a native APP (Windows/macOS desktop by executable path, `.app` path, bundle ID, or UWP AppUserModelID; Android/iOS apps on managed emulators/simulators — macOS desktop additionally requires the Accessibility permission for the process that runs Doc Detective), a BROWSER session (opens blank and ready on the context's automation server; navigate it with a `goTo` step), or a background PROCESS (equivalent to `runShell` with `background` — both forms stay valid). An ARRAY of descriptors opens them all concurrently — the step completes when every one is ready, and device boots overlap.
  */
 export type StartSurface = AppDescriptor | BrowserDescriptor | ProcessDescriptor | ParallelSurfaces;
 export type DeviceByName = string;
@@ -128,10 +128,6 @@ export interface AppDescriptor {
    */
   args?: string[];
   /**
-   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
-   */
-  workingDirectory?: string;
-  /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */
   env?: {
@@ -186,36 +182,22 @@ export interface DeviceDescriptor {
    * Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable.
    */
   headless?: boolean;
-  /**
-   * Initial orientation. Reserved; validated now, not yet implemented.
-   */
-  orientation?: "portrait" | "landscape";
-  /**
-   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
-   */
-  udid?: string;
-  /**
-   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
-   */
-  provider?: {
-    [k: string]: unknown;
-  };
 }
 /**
  * Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.
  */
 export interface AppReadiness {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria;
 }
 export interface BrowserDescriptor {
   /**
-   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Surface-registry name later steps use in `surface`. Default: the engine name. Must be unique across all open surfaces — the context's default browser already owns its engine name, so name a second same-engine session explicitly. An engine keyword may only name a session of that engine.
    */
@@ -273,7 +255,7 @@ export interface ProcessDescriptor {
    */
   args?: string[];
   /**
-   * Working directory for the process.
+   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**
@@ -331,10 +313,6 @@ export interface AppDescriptor1 {
    */
   args?: string[];
   /**
-   * Working directory for the launched app. Not honored by the current desktop app drivers, so a non-default value fails with guidance: on Windows the NovaWindows driver ignores it (the app inherits the driver's own working directory), and on macOS the driver launches apps through LaunchServices, which offers no working-directory control. Launch the app via runShell if the cwd matters. Reserved for when a driver gains support. Default: the run's working directory.
-   */
-  workingDirectory?: string;
-  /**
    * Extra environment variables for the launched app (desktop apps). Supported on macOS; not supported by the Windows driver, where any value fails with guidance (set variables in the shell that launches Doc Detective instead).
    */
   env?: {
@@ -389,36 +367,22 @@ export interface DeviceDescriptor1 {
    * Run the Android emulator without a window. No-op on iOS (simulators boot without the Simulator UI on CI) and ignored where not applicable.
    */
   headless?: boolean;
-  /**
-   * Initial orientation. Reserved; validated now, not yet implemented.
-   */
-  orientation?: "portrait" | "landscape";
-  /**
-   * Pin a specific device/emulator instance by UDID. Reserved; validated now, not yet implemented.
-   */
-  udid?: string;
-  /**
-   * Cloud device farm configuration, keyed by provider. Reserved; validated now, not yet implemented.
-   */
-  provider?: {
-    [k: string]: unknown;
-  };
 }
 /**
  * Startup readiness: a fixed delay and/or an element that must exist before the surface is considered open. No condition applies by default.
  */
 export interface AppReadiness1 {
   /**
-   * Fixed delay (ms).
+   * Wait at least this many milliseconds.
    */
   delayMs?: number;
   find?: ElementCriteria1;
 }
 export interface BrowserDescriptor1 {
   /**
-   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. No cross-engine fallback — the one exception is `edge`, which is Chromium and opens on the same Chrome/chromedriver stack (it registers under the `chrome` engine, and defaults its surface name to `chrome` when you don't set one).
+   * Browser engine to open. The session opens on the context's automation server with a blank page and registers as a surface; use a goTo step (with `surface`) to navigate it. There's no cross-engine fallback.
    */
-  browser: "chrome" | "firefox" | "safari" | "webkit" | "edge";
+  browser: "chrome" | "firefox" | "safari" | "webkit";
   /**
    * Surface-registry name later steps use in `surface`. Default: the engine name. Must be unique across all open surfaces — the context's default browser already owns its engine name, so name a second same-engine session explicitly. An engine keyword may only name a session of that engine.
    */
@@ -476,7 +440,7 @@ export interface ProcessDescriptor1 {
    */
   args?: string[];
   /**
-   * Working directory for the process.
+   * Folder to run the process in. Omit to run in the folder you ran Doc Detective from. A relative path resolves against the spec file, so `.` is the spec's folder. When `relativePathBase` is `cwd`, it resolves against the current directory instead.
    */
   workingDirectory?: string;
   /**

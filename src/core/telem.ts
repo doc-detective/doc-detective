@@ -1,6 +1,6 @@
 import os from "node:os";
 import { PostHog } from "posthog-node";
-import { telemetryNotice, POSTHOG_HOST, telemetryFetch } from "./telemLite.js";
+import { telemetryAllowed, telemetryNotice, POSTHOG_HOST, telemetryFetch } from "./telemLite.js";
 import { ownVersion } from "../runtime/heavyDeps.js";
 
 const platformMap: Record<string, string> = {
@@ -35,12 +35,12 @@ let pendingTelemetryFlush: Promise<void> | null = null;
 // Send telemetry data to PostHog
 function sendTelemetry(config: any, command: string, results: any) {
   // Exit early if telemetry is disabled
-  if (config?.telemetry?.send === false) return;
+  if (!telemetryAllowed(config)) return;
 
   // Assemble telemetry data
   const telemetryData: any =
     process.env["DOC_DETECTIVE_META"] !== undefined
-      ? JSON.parse(process.env["DOC_DETECTIVE_META"])
+      ? JSON.parse(process.env["DOC_DETECTIVE_META"] || "{}")
       : {};
   telemetryData.distribution = telemetryData.distribution || "doc-detective";
   telemetryData.dist_interface = telemetryData.dist_interface || "package";
@@ -62,7 +62,8 @@ function sendTelemetry(config: any, command: string, results: any) {
   // parse results to assemble flat list of properties for runTests actions
   if (command === "runTests") {
     // Get summary data
-    Object.entries(results.summary).forEach(([parentKey, value]: [string, any]) => {
+    // Telemetry never fails a run, so results without a summary send none.
+    Object.entries(results?.summary ?? {}).forEach(([parentKey, value]: [string, any]) => {
       if (typeof value === "object") {
         Object.entries(value).forEach(([key, value]: [string, any]) => {
           if (typeof value === "object") {

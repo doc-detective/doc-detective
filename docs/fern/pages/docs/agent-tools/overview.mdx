@@ -34,18 +34,14 @@ npx doc-detective install agents
 
 It detects every supported agent on your machine, prompts you to choose which to configure, and invokes each agent's native install mechanism. Re-run any time to update to the latest version.
 
-<Note>
 
-The older `doc-detective install-agents` form still works as a hidden alias on 4.x and warns when used. [Doc Detective 5.0](/docs/ci/upgrade-to-v5) removes it.
-
-</Note>
 To target a specific agent non-interactively:
 
 ```bash
 npx doc-detective install agents --agent claude --scope project --yes
 ```
 
-Supported `--agent` ids: `claude`, `copilot`, `gemini`, `codex`, `qwen`, `opencode`.
+Supported `--agent` ids: `claude`, `copilot`, `gemini`, `codex`, `qwen`, `opencode`. To configure several, give one comma-separated list, such as `--agent claude,copilot`.
 
 Head to the per-agent guide below if you prefer the native install flow or need to troubleshoot.
 

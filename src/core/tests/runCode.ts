@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { spawnCommand, log, resolveShellExecutable } from "../utils.js";
+import { spawnCommand, log, resolveShellExecutable, invalidStepMessage } from "../utils.js";
 import { runShell } from "./runShell.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -81,7 +81,7 @@ function createTempScript(code: string, language: string) {
     case "bash":
       extension = ".sh";
       break;
-    // The runCode_v3 schema restricts `language` to python/bash/javascript, all
+    // The runCode_v3 schema restricts `language` to python/py/bash/javascript/js, all
     // handled above, so this default is unreachable through validated input
     // (ADR 01017).
     /* c8 ignore next 2 */
@@ -124,21 +124,11 @@ async function runCode({
   const isValidStep = validate({ schemaKey: "step_v3", object: step });
   if (!isValidStep.valid) {
     result.status = "FAIL";
-    result.description = `Invalid step definition: ${isValidStep.errors}`;
+    result.description = invalidStepMessage(step);
     return result;
   }
-  // Accept coerced and defaulted values
+  // The effective step: defaults filled (ADR 01167).
   step = isValidStep.object;
-  // Set default values
-  step.runCode = {
-    ...step.runCode,
-    exitCodes: step.runCode.exitCodes || [0],
-    args: step.runCode.args || [],
-    workingDirectory: step.runCode.workingDirectory || ".",
-    maxVariation: step.runCode.maxVariation || 0,
-    overwrite: step.runCode.overwrite || "aboveVariation",
-    timeout: step.runCode.timeout || 60000,
-  };
 
   // Create temporary script file
   let scriptPath;

@@ -27,19 +27,21 @@ Markdown files support multiple comment styles for inline tests:
 
 **HTML comments**:
 ```markdown
-<!-- test { "testId": "my-test" } -->
+<!-- test { "testId": "my-test-2" } -->
 <!-- step { "goTo": "https://example.com" } -->
 <!-- test end -->
 ```
 
 **Markdown link comments**:
 ```markdown
-[comment]: # (test { "testId": "my-test" })
+[comment]: # (test { "testId": "my-test-3" })
 [comment]: # (step { "goTo": "https://example.com" })
 [comment]: # (test end)
 ```
 
-All three styles work identically. Choose the style that fits your documentation workflow.
+All three styles work identically. Choose the style that fits your documentation workflow. MDX doesn't support HTML comments, so use the JSX-style or link style in `.mdx` files.
+
+Doc Detective reads statements from comments only. A statement inside a code block or inline code is part of the sample, not a test.
 
 ## Best practices
 
@@ -51,59 +53,109 @@ All three styles work identically. Choose the style that fits your documentation
 
 ## Detected test patterns
 
-Doc Detective includes default markup patterns for Markdown files that automatically detect tests from your documentation content.
+With step detection on, Markdown files detect the steps listed in [What gets detected](overview#what-gets-detected). The definitions match parsed Markdown, so text inside code blocks and inline code never becomes a step. Links, images, and bold text written as HTML, such as `<a href>` and `<strong>`, count too, as do lowercase JSX tags in MDX.
 
-### Default Markdown patterns
+### Default Markdown definitions
+
+The built-in definitions are [selectors](selectors):
 
 ```json
 {
   "fileTypes": [
     {
       "name": "markdown",
-      "extensions": ["md", "markdown", "mdx"],
+      "extensions": [
+        "md",
+        "markdown",
+        "mdx"
+      ],
+      "inlineStatements": {
+        "in": [
+          "comment"
+        ]
+      },
       "markup": [
         {
-          "name": "checkHyperlink",
-          "regex": [
-            "(?<!\\!)\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)"
+          "name": "goToUrl",
+          "link": {
+            "url": "^https?://",
+            "precededBy": "\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch|[Bb]rowse\\s+to)\\b\\s+$"
+          },
+          "captures": [
+            "url"
           ],
-          "actions": ["checkLink"]
+          "actions": [
+            "goTo"
+          ]
+        },
+        {
+          "name": "checkHyperlink",
+          "link": {
+            "url": "^https?://"
+          },
+          "captures": [
+            "url"
+          ],
+          "actions": [
+            "checkLink"
+          ]
         },
         {
           "name": "clickOnscreenText",
-          "regex": [
-            "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+\\*\\*((?:(?!\\*\\*).)+)\\*\\*"
+          "strong": {
+            "precededBy": "\\b(?:[Cc]lick|[Tt]ap|[Ll]eft-click|[Cc]hoose|[Ss]elect|[Cc]heck)\\b\\s+$"
+          },
+          "captures": [
+            "text"
           ],
-          "actions": ["click"]
+          "actions": [
+            "click"
+          ]
         },
         {
           "name": "findOnscreenText",
-          "regex": ["\\*\\*((?:(?!\\*\\*).)+)\\*\\*"],
-          "actions": ["find"]
-        },
-        {
-          "name": "goToUrl",
-          "regex": [
-            "\\b(?:[Gg]o\\s+to|[Oo]pen|[Nn]avigate\\s+to|[Vv]isit|[Aa]ccess|[Pp]roceed\\s+to|[Ll]aunch)\\b\\s+\\[[^\\]]+\\]\\(\\s*(https?:\\/\\/[^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)"
+          "strong": {},
+          "captures": [
+            "text"
           ],
-          "actions": ["goTo"]
+          "actions": [
+            "find"
+          ]
         },
         {
           "name": "screenshotImage",
-          "regex": [
-            "!\\[[^\\]]*\\]\\(\\s*([^\\s)]+)(?:\\s+\"[^\"]*\")?\\s*\\)\\s*\\{(?=[^}]*\\.screenshot)[^}]*\\}"
+          "image": {
+            "attributes": {
+              "class": "(^|\\s)screenshot"
+            }
+          },
+          "captures": [
+            "src"
           ],
-          "actions": ["screenshot"]
+          "actions": [
+            "screenshot"
+          ]
         },
         {
           "name": "typeText",
-          "regex": ["\\b(?:press|enter|type)\\b\\s+\"([^\"]+)\""],
-          "actions": ["type"]
+          "text": {},
+          "regex": [
+            "\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+\"([^\"]+)\""
+          ],
+          "actions": [
+            "type"
+          ]
         },
         {
           "name": "httpRequestFormat",
+          "codeBlock": {
+            "language": [
+              "http",
+              ""
+            ]
+          },
           "regex": [
-            "```(?:http)?\\r?\\n([A-Z]+)\\s+([^\\s]+)(?:\\s+HTTP\\/[\\d.]+)?\\r?\\n((?:[^\\s]+:\\s+[^\\s]+\\r?\\n)*)?(?:\\s+([\\s\\S]*?)\\r?\\n+)?```"
+            "^([A-Z]+)[ \\t]+(\\S+)(?:[ \\t]+HTTP\\/[\\d.]+)?[ \\t]*(?:\\r?\\n((?:\\S+:[ \\t]+[^\\r\\n]+(?:\\r?\\n|$))+))?(?:\\s+([\\s\\S]+?))?\\s*$"
           ],
           "actions": [
             {
@@ -120,8 +172,19 @@ Doc Detective includes default markup patterns for Markdown files that automatic
         },
         {
           "name": "runCode",
-          "regex": [
-            "```(bash|python|py|javascript|js)(?![^\\r\\n]*testIgnore)[^\\r\\n]*\\r?\\n([\\s\\S]*?)\\r?\\n```"
+          "codeBlock": {
+            "language": [
+              "bash",
+              "python",
+              "py",
+              "javascript",
+              "js"
+            ],
+            "metaExcludes": "testIgnore"
+          },
+          "captures": [
+            "language",
+            "content"
           ],
           "actions": [
             {
@@ -141,81 +204,31 @@ Doc Detective includes default markup patterns for Markdown files that automatic
 
 ### Pattern descriptions
 
-#### checkHyperlink
+| Definition | Markdown that matches | Step |
+|---|---|---|
+| `goToUrl` | `Go to [Acme](https://acme.com)`, and the other navigation verbs | `goTo` |
+| `checkHyperlink` | Any link to an `http` or `https` URL, such as `[docs](https://docs.example.com)` | `checkLink` |
+| `clickOnscreenText` | `Click **Search**`, `Select __Save__`, and the other click verbs | `click` |
+| `findOnscreenText` | Any bold text | `find` |
+| `screenshotImage` | `![Results](results.png){.screenshot}` | `screenshot` |
+| `typeText` | `Type "kittens"`, `Enter "admin"`, or `Press "Enter"` in prose | `type` |
+| `httpRequestFormat` | A code block tagged `http`, or with no language, that holds a request | `httpRequest` |
+| `runCode` | A code block tagged `bash`, `python`, `py`, `javascript`, or `js` | `runCode`, marked unsafe |
 
-Detects standard Markdown links (excluding images) and checks that they return a valid HTTP status code.
+A bold phrase is its rendered text, so `` **`Save`** `` finds `Save`. A screenshot's attribute list can sit right after the image, as in `{.screenshot}` or `{: .screenshot}`.
 
-- **Pattern**: `[link text](https://example.com)`
-- **Action**: Performs a GET request to verify the link is accessible
+An HTTP request block holds the method and URL on its first line, then any headers, then a blank line and the body. A header's value runs to the end of its line, spaces included:
 
-#### clickOnscreenText
+````markdown
+```http
+POST https://api.example.com/users HTTP/1.1
+Content-Type: application/json; charset=utf-8
 
-Detects action verbs followed by bold text and clicks on that element.
+{"name": "test"}
+```
+````
 
-- **Pattern**: `Click **Button Name**`, `Tap **Menu Item**`, `Select **Option**`
-- **Action**: Clicks on the specified element using its text content
-- **Recognized verbs**: click, tap, left-click, choose, select, check
-
-#### findOnscreenText
-
-Detects any bold text and verifies it exists on the page.
-
-- **Pattern**: `**Any Bold Text**`
-- **Action**: Searches for the text on the current page
-
-#### goToUrl
-
-Detects navigation instructions with links and opens the URL.
-
-- **Pattern**: `Go to [Page Name](https://example.com)`, `Navigate to [Site](https://example.com)`
-- **Action**: Opens the specified URL in the browser
-- **Recognized verbs**: go to, open, navigate to, visit, access, proceed to, launch
-
-#### screenshotImage
-
-Detects images with a `.screenshot` class or attribute and takes a screenshot.
-
-- **Pattern**: `![Alt text](image.png){.screenshot}`
-- **Action**: Saves a screenshot to the specified path
-
-#### typeText
-
-Detects typing instructions with quoted text and types the content.
-
-- **Pattern**: `Type "Hello World"`, `Enter "username"`, `Press "Submit"`
-- **Action**: Types the specified text into the active element
-- **Recognized verbs**: press, enter, type
-
-#### httpRequestFormat
-
-Detects HTTP request code blocks and executes the request.
-
-- **Pattern**: HTTP request in code blocks with method, URL, headers, and body
-- **Example**:
-  ````markdown
-  ```http
-  GET https://api.example.com/users HTTP/1.1
-  Authorization: Bearer token123
-  Content-Type: application/json
-
-  {"query": "test"}
-  ```
-  ````
-- **Action**: Executes the HTTP request with the specified parameters
-
-#### runCode
-
-Detects code blocks in supported languages and executes the code.
-
-- **Pattern**: Code blocks with `bash`, `python`, or `javascript` language tags. Blocks tagged `py` or `js` match the pattern, but `runCode` doesn't accept those names, so detection skips them with a warning.
-- **Example**:
-  ````markdown
-  ```bash
-  npm install doc-detective
-  ```
-  ````
-- **Action**: Executes the code in the specified language (marked as unsafe)
-- **Note**: Add `testIgnore` to the code block info string to skip execution (for example, ` ```bash testIgnore`)
+To keep a code block from running, add `testIgnore` after its language, as in ` ```bash testIgnore `.
 
 ## Example with detected tests
 
@@ -240,26 +253,20 @@ Check out our [documentation](https://docs.example.com) for more information.
   "tests": [
     {
       "steps": [
-        {
-          "goTo": "https://console.acme.com"
-        },
-        {
-          "click": "Search"
-        },
-        {
-          "type": "American Shorthair kittens"
-        },
-        {
-          "checkLink": "https://docs.example.com"
-        },
-        {
-          "screenshot": "search-results.png"
-        }
+        { "goTo": "https://console.acme.com" },
+        { "checkLink": "https://console.acme.com" },
+        { "click": "Search" },
+        { "find": "Search" },
+        { "type": "American Shorthair kittens" },
+        { "checkLink": "https://docs.example.com" },
+        { "screenshot": "search-results.png" }
       ]
     }
   ]
 }
 ```
+
+Each link gets a `checkLink` step, including the one after "Go to", and each bold phrase gets a `find` step, including the one after "Click".
 
 ## Combining inline and detected tests
 

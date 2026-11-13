@@ -167,7 +167,7 @@ import { schemas } from "../dist/index.js";
         expect(result.object.autoScreenshot).to.equal(true);
       });
 
-      it("should leave autoScreenshot unset when omitted", function () {
+      it("should leave autoScreenshot unset, so the runner can treat unset as on", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
@@ -309,18 +309,18 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.include("location");
       });
 
-      it("should accept a relative forward-slash step autoScreenshot path", function () {
+      it("should accept a relative forward-slash step autoScreenshotPath", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             goTo: { url: "https://example.com" },
-            autoScreenshot: "screenshots/spec/test/ctx/01-goTo-sabc.png",
+            autoScreenshotPath: "screenshots/spec/test/ctx/01-goTo-sabc.png",
           },
         });
         expect(result.valid, result.errors).to.be.true;
       });
 
-      it("should reject step autoScreenshot paths that are empty, absolute, or backslashed", function () {
+      it("should reject step autoScreenshotPath values that are empty, absolute, or backslashed", function () {
         for (const bad of [
           "",
           "/abs/shot.png",
@@ -329,10 +329,24 @@ import { schemas } from "../dist/index.js";
         ]) {
           const result = validate({
             schemaKey: "step_v3",
-            object: { goTo: { url: "https://example.com" }, autoScreenshot: bad },
+            object: { goTo: { url: "https://example.com" }, autoScreenshotPath: bad },
           });
           expect(result.valid, `expected invalid: ${JSON.stringify(bad)}`).to.be
             .false;
+        }
+      });
+
+      // ADR 01184: a step's `autoScreenshot` was the report's path field, so
+      // `false` on a step validated (coerced to "false") but never stopped the
+      // capture. The key is now unknown on a step.
+      it("should reject autoScreenshot on a step, in either its old path or boolean form", function () {
+        for (const value of [false, true, "screenshots/a.png"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { goTo: { url: "https://example.com" }, autoScreenshot: value },
+          });
+          expect(result.valid, `expected invalid: ${JSON.stringify(value)}`).to.be.false;
+          expect(result.errors).to.include('"additionalProperty":"autoScreenshot"');
         }
       });
 
@@ -519,6 +533,19 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
       });
 
+      it("should accept a recording extension in any case", function () {
+        for (const record of ["Demo.MP4", "demo.WebM", "demo.Gif", { path: "Demo.MP4" }]) {
+          const result = validate({ schemaKey: "step_v3", object: { record } });
+          expect(result.valid, `${JSON.stringify(record)} -> ${result.errors}`).to.be.true;
+        }
+      });
+
+      it("should reject a recording extension it can't write", function () {
+        for (const record of ["demo.mov", { path: "demo.MOV" }]) {
+          expect(validate({ schemaKey: "step_v3", object: { record } }).valid, JSON.stringify(record)).to.be.false;
+        }
+      });
+
       it("should validate a record step with verify guards", function () {
         for (const verify of [
           {},
@@ -622,7 +649,7 @@ import { schemas } from "../dist/index.js";
         expect(result.object.autoRecord).to.equal(true);
       });
 
-      it("should leave autoRecord unset when omitted", function () {
+      it("should leave autoRecord unset, so the runner can treat unset as on", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
@@ -719,8 +746,9 @@ import { schemas } from "../dist/index.js";
         }
       });
 
-      it("should validate config_v3 concurrentRunners as a positive integer or true", function () {
-        for (const concurrentRunners of [1, 4, true]) {
+      it("should validate config_v3 concurrentRunners as a positive integer, true, or auto", function () {
+        // ADR 01188: `auto` means what `true` does, as on the CLI.
+        for (const concurrentRunners of [1, 4, true, "auto"]) {
           const result = validate({
             schemaKey: "config_v3",
             object: { input: ".", concurrentRunners },
@@ -732,8 +760,8 @@ import { schemas } from "../dist/index.js";
         }
       });
 
-      it("should reject config_v3 concurrentRunners of 0, false, or a fraction", function () {
-        for (const concurrentRunners of [0, false, 1.5]) {
+      it("should reject config_v3 concurrentRunners of 0, false, a fraction, or another string", function () {
+        for (const concurrentRunners of [0, false, 1.5, "lots", "AUTO"]) {
           const result = validate({
             schemaKey: "config_v3",
             object: { input: ".", concurrentRunners },
@@ -858,6 +886,23 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.include("autoUpdate");
       });
 
+      it("should validate a config_v3 object with outputDir set", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { outputDir: "artifacts" },
+        });
+        expect(result.valid, result.errors).to.equal(true);
+        expect(result.object.outputDir).to.equal("artifacts");
+      });
+
+      it("should reject a config_v3 object whose outputDir is not a string", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: { outputDir: {} },
+        });
+        expect(result.valid).to.equal(false);
+      });
+
       it("should validate a config_v3 object with exitOnFail set", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -869,14 +914,14 @@ import { schemas } from "../dist/index.js";
         expect(result.object.exitOnFail).to.equal(true);
       });
 
-      it("should leave exitOnFail unset when omitted", function () {
+      it("should default exitOnFail to true when omitted", function () {
         const result = validate({
           schemaKey: "config_v3",
           object: {},
         });
 
         expect(result.valid).to.be.true;
-        expect(result.object.exitOnFail).to.equal(undefined);
+        expect(result.object.exitOnFail).to.equal(true);
       });
 
       it("should reject a config_v3 object whose exitOnFail is not a boolean", function () {
@@ -888,35 +933,6 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors).to.include("exitOnFail");
-      });
-
-      it("should accept publicVariables on config_v3, spec_v3, and test_v3", function () {
-        const steps = [{ goTo: { url: "https://example.com" } }];
-        const cases = [
-          { schemaKey: "config_v3", object: { publicVariables: ["BASE_URL", "DD_*"] } },
-          { schemaKey: "test_v3", object: { publicVariables: ["*"], steps } },
-          { schemaKey: "spec_v3", object: { publicVariables: [], tests: [{ publicVariables: ["A"], steps }] } },
-        ];
-        for (const { schemaKey, object } of cases) {
-          const result = validate({ schemaKey, object: structuredClone(object) });
-          expect(result.valid, `${schemaKey}: ${result.errors}`).to.be.true;
-          expect(result.object.publicVariables).to.deep.equal(object.publicVariables);
-        }
-      });
-
-      it("should reject a publicVariables that isn't an array of names", function () {
-        const steps = [{ goTo: { url: "https://example.com" } }];
-        for (const bad of ["BASE_URL", [""], ["  "]]) {
-          for (const [schemaKey, object] of [
-            ["config_v3", { publicVariables: bad }],
-            ["test_v3", { publicVariables: bad, steps }],
-            ["spec_v3", { publicVariables: bad, tests: [{ steps }] }],
-          ]) {
-            const result = validate({ schemaKey, object });
-            expect(result.valid, `${schemaKey}: ${JSON.stringify(bad)}`).to.be.false;
-            expect(result.errors).to.include("publicVariables");
-          }
-        }
       });
 
       it("should validate a config_v3 object with retries set (including 0)", function () {
@@ -1061,6 +1077,30 @@ import { schemas } from "../dist/index.js";
       });
     });
 
+    describe("runCode language", function () {
+      for (const language of ["python", "py", "bash", "javascript", "js"]) {
+        it(`accepts ${language}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { runCode: { language, code: "x" } },
+          });
+          expect(result.valid, result.errors).to.be.true;
+          // Kept as written, so reports show what the author wrote.
+          expect(result.object.runCode.language).to.equal(language);
+        });
+      }
+
+      for (const language of ["node", "Python", "ruby"]) {
+        it(`rejects ${language}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { runCode: { language, code: "x" } },
+          });
+          expect(result.valid).to.be.false;
+        });
+      }
+    });
+
     describe("runBrowserScript step", function () {
       it("should validate the simple string form", function () {
         const result = validate({
@@ -1070,7 +1110,8 @@ import { schemas } from "../dist/index.js";
 
         expect(result.valid).to.be.true;
         expect(result.errors).to.equal("");
-        expect(result.object.runBrowserScript).to.equal(
+        // The effective step expands the shorthand (ADR 01167).
+        expect(result.object.runBrowserScript.script).to.equal(
           "return document.title;"
         );
       });
@@ -1213,7 +1254,8 @@ import { schemas } from "../dist/index.js";
 
         expect(result.valid).to.be.true;
         expect(result.errors).to.equal("");
-        expect(result.object.swipe).to.equal("left");
+        // The effective step expands the shorthand (ADR 01175).
+        expect(result.object.swipe).to.deep.equal({ direction: "left", distance: 0.5, duration: 500 });
       });
 
       it("should validate the directional object form with distance, duration, and an app surface", function () {
@@ -1443,6 +1485,123 @@ import { schemas } from "../dist/index.js";
           expect(validPath(path), `expected invalid: ${path}`).to.be.false;
         }
       });
+    });
+
+    // ADR 01174: one URL pattern and one request-header shape.
+    describe("URLs, request headers, and status codes", function () {
+      const step = (object) => validate({ schemaKey: "step_v3", object });
+
+      it("accepts the same three URL forms on goTo, checkLink, and httpRequest", function () {
+        for (const url of ["https://example.com", "http://localhost:8092/x", "/docs", "$BASE", "$BASE/x"]) {
+          for (const object of [
+            { goTo: url },
+            { goTo: { url } },
+            { checkLink: url },
+            { checkLink: { url } },
+            { httpRequest: url },
+            { httpRequest: { url } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+        }
+      });
+
+      it("rejects a URL that only contains a variable, or a protocol-relative one", function () {
+        for (const url of ["foo $X", "example.com", "docs/x", "ftp://example.com", "//example.com"]) {
+          for (const object of [{ goTo: url }, { checkLink: { url } }, { httpRequest: url }, { httpRequest: { url } }]) {
+            const result = step(object);
+            expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)"');
+          }
+        }
+      });
+
+      it("accepts request headers as an object of strings or as lines of text", function () {
+        for (const headers of [{ "X-Key": "abc" }, "X-Key: abc\nAuthorization: Bearer x"]) {
+          for (const object of [
+            { checkLink: { url: "https://x.com", headers } },
+            { httpRequest: { url: "https://x.com", request: { headers } } },
+            { httpRequest: { openApi: { operationId: "getUsers", headers } } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+          const openApi = validate({ schemaKey: "openApi_v3", object: { descriptionPath: "x.yaml", headers } });
+          expect(openApi.valid, openApi.errors).to.be.true;
+        }
+      });
+
+      it("rejects a request header whose value is an object", function () {
+        for (const object of [
+          { checkLink: { url: "https://x.com", headers: { a: {} } } },
+          { httpRequest: { url: "https://x.com", request: { headers: { a: {} } } } },
+          { httpRequest: { openApi: { operationId: "getUsers", headers: { a: {} } } } },
+        ]) {
+          expect(step(object).valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+        }
+      });
+
+      // ADR 01171: a timeout is at least 1 ms, because 0 meant "no limit" to one
+      // action and "time out at once" to another.
+      it("rejects a goTo or httpRequest timeout below 1 ms", function () {
+        for (const timeout of [0, -1]) {
+          for (const object of [
+            { goTo: { url: "https://x.com", timeout } },
+            { httpRequest: { url: "https://x.com", timeout } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
+            expect(result.errors).to.include("must be >= 1");
+          }
+        }
+        expect(step({ goTo: { url: "https://x.com", timeout: 1 } }).valid).to.be.true;
+        expect(step({ httpRequest: { url: "https://x.com", timeout: 1 } }).valid).to.be.true;
+      });
+
+      it("accepts a single status code or a list on checkLink and httpRequest", function () {
+        for (const statusCodes of [200, [200, 404], "200"]) {
+          for (const object of [
+            { checkLink: { url: "https://x.com", statusCodes } },
+            { httpRequest: { url: "https://x.com", statusCodes } },
+          ]) {
+            const result = step(object);
+            expect(result.valid, `expected valid: ${JSON.stringify(object)}: ${result.errors}`).to.be.true;
+          }
+        }
+      });
+    });
+
+    // ADR 01174: every cookie string the schema accepts expands to a valid
+    // { name, path } or { name, variable }.
+    describe("cookie string shorthand", function () {
+      for (const action of ["saveCookie", "loadCookie"]) {
+        it(`${action} accepts cookie names and .txt paths`, function () {
+          for (const value of ["session", "__Secure-next-auth.session-token", "1P_JAR", "session.txt", "./dir/a.b.txt", "..txt"]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected valid: ${value}: ${result.errors}`).to.be.true;
+          }
+        });
+
+        it(`${action} rejects an empty path or directory`, function () {
+          for (const value of [
+            { name: "s", path: "" },
+            { name: "s", path: "  " },
+            { name: "s", path: "c.txt", directory: "" },
+            { name: "s", path: "c.txt", directory: " " },
+          ]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected invalid: ${JSON.stringify(value)}`).to.be.false;
+          }
+        });
+
+        it(`${action} rejects a string with no valid object form`, function () {
+          for (const value of ["dir/session", ".txt", "dir/.txt", "session/"]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected invalid: ${value}`).to.be.false;
+          }
+        });
+      }
     });
 
     describe("annotations", function () {
@@ -1862,6 +2021,21 @@ import { schemas } from "../dist/index.js";
       });
     });
 
+    // ADR 01166: config `reporters` takes the six public names, exactly.
+    describe("config reporters", function () {
+      const reporters = (list) => validate({ schemaKey: "config_v3", object: { reporters: list } }).valid;
+
+      it("accepts each public reporter name", function () {
+        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown"])).to.be.true;
+      });
+
+      it("rejects other spellings and internal reporters", function () {
+        expect(reporters(["JSON"])).to.be.false;
+        expect(reporters(["plainReporter"])).to.be.false;
+        expect(reporters(["htm"])).to.be.false;
+      });
+    });
+
     describe("structuredErrors option", function () {
       it("omits errorObjects by default", function () {
         const result = validate({
@@ -2011,7 +2185,8 @@ import { schemas } from "../dist/index.js";
 
         expect(result.valid).to.be.true;
         expect(result.object.type).to.be.an("object");
-        expect(result.object.type.keys).to.equal("Hello");
+        // The effective step lists the keys (ADR 01175).
+        expect(result.object.type.keys).to.deep.equal(["Hello"]);
         expect(result.object.type.inputDelay).to.equal(100);
       });
     });
@@ -2164,6 +2339,139 @@ import { schemas } from "../dist/index.js";
       });
     });
 
+    const counts = { pass: 1, fail: 0, warning: 0, skipped: 0 };
+    const summary = { specs: counts, tests: counts, contexts: counts, steps: counts };
+
+    describe("report_v3 summary", function () {
+      const specs = [{ tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }] }];
+
+      it("should require a summary", function () {
+        const result = validate({ schemaKey: "report_v3", object: { specs } });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("summary");
+      });
+
+      it("should accept the empty specs of a run that matched nothing", function () {
+        const zero = { pass: 0, fail: 0, warning: 0, skipped: 0 };
+        const object = {
+          summary: { specs: zero, tests: zero, contexts: zero, steps: zero },
+          durationMs: 0,
+          specs: [],
+        };
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      for (const [name, broken] of [
+        ["a missing level", { specs: counts, tests: counts, contexts: counts }],
+        ["a missing count", { ...summary, steps: { pass: 1, fail: 0, warning: 0 } }],
+        ["a negative count", { ...summary, steps: { ...counts, pass: -1 } }],
+        ["a fractional count", { ...summary, steps: { ...counts, pass: 0.5 } }],
+        ["an unknown count", { ...summary, steps: { ...counts, flaky: 1 } }],
+      ]) {
+        it(`should reject ${name}`, function () {
+          const result = validate({ schemaKey: "report_v3", object: { summary: broken, specs } });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("summary");
+        });
+      }
+
+      it("should declare result fields on every node, with known values only", function () {
+        const node = { result: "PASS", resultDescription: "ok" };
+        const object = {
+          summary,
+          specs: [
+            {
+              ...node,
+              tests: [
+                {
+                  ...node,
+                  contexts: [
+                    {
+                      ...node,
+                      steps: [{ ...node, goTo: { url: "https://example.com" } }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        };
+        const valid = validate({ schemaKey: "report_v3", object });
+        expect(valid.valid, valid.errors).to.be.true;
+
+        const broken = structuredClone(object);
+        broken.specs[0].tests[0].result = "BROKEN";
+        const invalid = validate({ schemaKey: "report_v3", object: broken });
+        expect(invalid.valid).to.be.false;
+        expect(invalid.errors).to.include("result");
+
+        const brokenStep = structuredClone(object);
+        brokenStep.specs[0].tests[0].contexts[0].steps[0].result = "BROKEN";
+        const invalidStep = validate({ schemaKey: "report_v3", object: brokenStep });
+        expect(invalidStep.valid).to.be.false;
+        expect(invalidStep.errors).to.include("result");
+      });
+
+      describe("a context's autoRecording", function () {
+        const zero = { pass: 0, fail: 0, warning: 0, skipped: 0 };
+        const reportWith = (autoRecording) => ({
+          summary: { specs: zero, tests: zero, contexts: zero, steps: zero },
+          specs: [
+            {
+              tests: [
+                {
+                  contexts: [{ result: "PASS", autoRecording, steps: [{ goTo: { url: "https://example.com" } }] }],
+                },
+              ],
+            },
+          ],
+        });
+        const validates = (autoRecording) =>
+          validate({ schemaKey: "report_v3", object: reportWith(autoRecording), addDefaults: false });
+
+        it("should accept a saved recording and its metadata", function () {
+          const result = validates({
+            result: "PASS",
+            recordingPath: "specs/s/tests/t/contexts/c/recordings/c.mp4",
+            startedAt: "2026-11-06T02:33:29.010Z",
+            format: "mp4",
+            duration: 8.1,
+            width: 1280,
+            height: 720,
+            fps: 30,
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept a recording that has only a result and its reason", function () {
+          const result = validates({ result: "SKIPPED", resultDescription: "Skipped: no display." });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        it("should accept a failed recording's resultCode and resultHint (ADR 01194)", function () {
+          const result = validates({
+            result: "FAIL",
+            resultDescription: "invalid session id",
+            resultCode: "environment",
+            resultHint: "Rerun the context.",
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        for (const [name, broken] of [
+          ["an unknown key", { result: "PASS", engine: "ffmpeg" }],
+          ["no result", { recordingPath: "c.mp4" }],
+          ["an unknown result", { result: "BROKEN" }],
+          ["an unknown resultCode", { result: "FAIL", resultCode: "network" }],
+        ]) {
+          it(`should reject ${name}`, function () {
+            expect(validates(broken).valid).to.be.false;
+          });
+        }
+      });
+    });
+
     describe("report_v3 warm block", function () {
       const minimalSpecs = [
         { tests: [{ steps: [{ goTo: { url: "https://example.com" } }] }] },
@@ -2179,6 +2487,7 @@ import { schemas } from "../dist/index.js";
         const result = validate({
           schemaKey: "report_v3",
           object: {
+            summary,
             specs: minimalSpecs,
             warm: {
               durationMs: 1234,
@@ -2203,7 +2512,7 @@ import { schemas } from "../dist/index.js";
       it("should validate a report_v3 object without a warm block (back-compat)", function () {
         const result = validate({
           schemaKey: "report_v3",
-          object: { specs: minimalSpecs },
+          object: { summary, specs: minimalSpecs },
         });
         expect(result.valid, result.errors).to.be.true;
         expect(result.object.warm).to.equal(undefined);
@@ -2213,6 +2522,7 @@ import { schemas } from "../dist/index.js";
         const result = validate({
           schemaKey: "report_v3",
           object: {
+            summary,
             specs: minimalSpecs,
             warm: {
               durationMs: 1,
@@ -2229,6 +2539,7 @@ import { schemas } from "../dist/index.js";
         const result = validate({
           schemaKey: "report_v3",
           object: {
+            summary,
             specs: minimalSpecs,
             warm: {
               durationMs: 1,
@@ -2244,6 +2555,7 @@ import { schemas } from "../dist/index.js";
         const result = validate({
           schemaKey: "report_v3",
           object: {
+            summary,
             specs: minimalSpecs,
             warm: {
               durationMs: 1,
@@ -2259,6 +2571,7 @@ import { schemas } from "../dist/index.js";
         const result = validate({
           schemaKey: "report_v3",
           object: {
+            summary,
             specs: minimalSpecs,
             warm: { durationMs: 1, tasks: [], extra: true },
           },
@@ -2283,6 +2596,7 @@ import { schemas } from "../dist/index.js";
       // A fully timed report: `durationMs` on the run, spec, test, resolved
       // context, and step nodes. System-populated output, never authored.
       const timedReport = {
+        summary,
         durationMs: 5000,
         specs: [
           {
@@ -2325,7 +2639,7 @@ import { schemas } from "../dist/index.js";
       it("should validate a report_v3 object without durationMs (back-compat)", function () {
         const result = validate({
           schemaKey: "report_v3",
-          object: { specs: minimalSpecs },
+          object: { summary, specs: minimalSpecs },
         });
         expect(result.valid, result.errors).to.be.true;
         expect(result.object.durationMs).to.equal(undefined);
@@ -2379,28 +2693,101 @@ import { schemas } from "../dist/index.js";
       });
     });
 
-    // Ajv runs with coerceTypes, so a union's earlier branch can rewrite a
-    // value meant for a later one (`false` → "false", `true` → 1). Each case
-    // is [authored step, path to the value, expected validated value]. ADR 01161.
-    describe("authored scalar types survive coercion", function () {
+    // ADR 01175: version 5 tightens the browser actions.
+    describe("browser action bounds", function () {
+      const check = (object) => validate({ schemaKey: "step_v3", object });
+
+      for (const value of [true, false]) {
+        it(`rejects click: ${value} and says how to click that text`, function () {
+          const result = validate({ schemaKey: "step_v3", object: { click: value }, structuredErrors: true });
+          expect(result.valid).to.be.false;
+          expect(result.errorObjects.filter((error) => error.instancePath === "/click").map((error) => error.message)).to.deep.equal([
+            `must be string or object (got ${value}). To click an element whose text is "${value}", quote it: "click": "${value}"`,
+          ]);
+        });
+      }
+
+      it('keeps click: "true" as the text of the element to click', function () {
+        const result = check({ click: "true" });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.click).to.equal("true");
+      });
+
+      for (const click of [true, false, "left", "right", "middle", { button: "right" }, { duration: 800 }]) {
+        it(`accepts find.click: ${JSON.stringify(click)}`, function () {
+          const result = check({ find: { selector: "#a", click } });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      // Version 4 took the whole click_v3 object here. Now the object only says
+      // how to click, and a whole variable can't stand in for it.
+      for (const click of [{ selector: "#b" }, { button: "right", timeout: 100 }, "$BTN"]) {
+        it(`rejects find.click: ${JSON.stringify(click)}`, function () {
+          expect(check({ find: { selector: "#a", click } }).valid).to.be.false;
+        });
+      }
+
+      it("rejects a find.click string that isn't a button", function () {
+        const result = check({ find: { selector: "#a", click: "Submit" } });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include('/find/click must be equal to one of the allowed values ({"allowedValues":["left","right","middle"]})');
+      });
+
+      for (const locator of ["selector", "elementText", "elementId", "elementTestId", "elementClass", "elementAttribute", "elementAria"]) {
+        it(`rejects find.type with its own ${locator}, and names it`, function () {
+          const value = locator === "elementAttribute" ? { a: "b" } : "x";
+          const object = { find: { selector: "#a", type: { keys: "x", [locator]: value } } };
+          const result = validate({ schemaKey: "step_v3", object, structuredErrors: true });
+          expect(result.valid).to.be.false;
+          expect(result.errorObjects.filter((error) => error.instancePath === "/find/type").map((error) => error.message)).to.deep.equal([
+            `must not set \`${locator}\` (\`find\` already locates the element)`,
+          ]);
+        });
+      }
+
+      it("accepts find.type without a locator", function () {
+        expect(check({ find: { selector: "#a", type: { keys: "x" } } }).valid).to.be.true;
+      });
+
+      for (const [name, step] of [
+        ["click.timeout", { click: { selector: "#a", timeout: -1 } }],
+        ["find.timeout", { find: { selector: "#a", timeout: -1 } }],
+        ["type.inputDelay", { type: { keys: "a", inputDelay: -10 } }],
+        ["dragAndDrop.source.timeout", { dragAndDrop: { source: { selector: "#a", timeout: -1 }, target: "b" } }],
+        ["annotate target timeout", { annotate: { add: [{ outline: { selector: "#a", timeout: -1 } }] } }],
+      ]) {
+        it(`rejects a negative ${name}`, function () {
+          const result = check(step);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("must be >= 0");
+        });
+      }
+
+      // Ajv runs with coerceTypes, and in a union the first branch with a `type`
+      // rewrites values meant for later ones (ADR 01161).
       const attr = (value) => ({ "data-x": value });
-      const cases = [
+      // Each case is [authored step, path to the value, expected validated value].
+      // #816's rows for `click: true`/`false` moved to the rejections above, and a
+      // clicking find.click is its button in the effective step (ADR 01175).
+      for (const [step, keys, expected] of [
         [{ find: { selector: "#a", click: false } }, ["find", "click"], false],
-        [{ find: { selector: "#a", click: true } }, ["find", "click"], true],
-        [{ find: { selector: "#a", click: "right" } }, ["find", "click"], "right"],
-        [{ click: false }, ["click"], false],
-        [{ click: true }, ["click"], true],
+        [{ find: { selector: "#a", click: true } }, ["find", "click"], { button: "left" }],
+        [{ find: { selector: "#a", click: "right" } }, ["find", "click"], { button: "right" }],
         [{ click: "true" }, ["click"], "true"],
         [{ click: "false" }, ["click"], "false"],
-        [{ wait: true }, ["wait"], true],
+        // A true that survives coercion becomes the effective step's 5000. A
+        // true coerced to 1 would stay 1.
+        [{ wait: true }, ["wait"], 5000],
         [{ wait: false }, ["wait"], false],
         [{ wait: 1 }, ["wait"], 1],
         [{ wait: 0 }, ["wait"], 0],
         [{ wait: "5000" }, ["wait"], 5000],
-        [{ wait: "true" }, ["wait"], true],
+        [{ wait: "true" }, ["wait"], 5000],
         [{ wait: "$WAIT" }, ["wait"], "$WAIT"],
         [{ record: false }, ["record"], false],
-        [{ record: "true" }, ["record"], true],
+        // "true" becomes `true`, which the effective step expands to its named file (ADR 01173).
+        [{ stepId: "s", record: "true" }, ["record", "path"], "s.mp4"],
         [{ screenshot: false }, ["screenshot"], false],
         [{ find: { elementAttribute: { disabled: false } } }, ["find", "elementAttribute", "disabled"], false],
         [{ find: { elementAttribute: attr(true) } }, ["find", "elementAttribute", "data-x"], true],
@@ -2408,15 +2795,15 @@ import { schemas } from "../dist/index.js";
         [{ find: { elementAttribute: attr(5) } }, ["find", "elementAttribute", "data-x"], 5],
         [{ find: { elementAttribute: attr("5") } }, ["find", "elementAttribute", "data-x"], "5"],
         [{ click: { elementAttribute: attr(false) } }, ["click", "elementAttribute", "data-x"], false],
+        [{ type: { keys: "a", elementAttribute: attr(true) } }, ["type", "elementAttribute", "data-x"], true],
+        [{ dragAndDrop: { source: { elementAttribute: attr("true") }, target: "b" } }, ["dragAndDrop", "source", "elementAttribute", "data-x"], "true"],
         [{ annotate: { add: [{ outline: { elementAttribute: attr(true) } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], true],
         [{ annotate: { add: [{ outline: { elementAttribute: attr("true") } }] } }, ["annotate", "add", 0, "outline", "elementAttribute", "data-x"], "true"],
-      ];
-      for (const [step, keys, expected] of cases) {
+      ]) {
         it(`keeps ${JSON.stringify(step)} as ${JSON.stringify(expected)}`, function () {
-          const result = validate({ schemaKey: "step_v3", object: step });
+          const result = check(step);
           expect(result.valid, result.errors).to.be.true;
-          const actual = keys.reduce((value, key) => value[key], result.object);
-          expect(actual).to.equal(expected);
+          expect(keys.reduce((value, key) => value[key], result.object)).to.deep.equal(expected);
         });
       }
     });
@@ -2434,6 +2821,12 @@ import { schemas } from "../dist/index.js";
           nodeVersion: "24.15.0",
           osRelease: "6.8.0-1017-azure",
         },
+        summary: Object.fromEntries(
+          ["specs", "tests", "contexts", "steps"].map((level) => [
+            level,
+            { pass: 1, fail: 0, warning: 0, skipped: 0 },
+          ])
+        ),
         specs: [
           {
             tests: [
@@ -2860,6 +3253,27 @@ import { schemas } from "../dist/index.js";
     });
 
     describe("config_v3 transformations", function () {
+      it("should keep a v2 .json output as the results file", function () {
+        const result = transformToSchemaKey({
+          currentSchema: "config_v2",
+          targetSchema: "config_v3",
+          object: { input: ".", output: "./results.json", logLevel: "info" },
+        });
+        expect(result.output).to.equal("./results.json");
+        // The schema's default.
+        expect(result.outputDir).to.equal(".");
+      });
+
+      it("should leave output unset without a v2 output", function () {
+        const result = transformToSchemaKey({
+          currentSchema: "config_v2",
+          targetSchema: "config_v3",
+          object: { input: ".", logLevel: "info" },
+        });
+        expect(result.output).to.equal(undefined);
+        expect(result.outputDir).to.equal(".");
+      });
+
       it("should transform config_v2 to config_v3", function () {
         const result = transformToSchemaKey({
           currentSchema: "config_v2",
@@ -2880,10 +3294,11 @@ import { schemas } from "../dist/index.js";
 
         expect(result.loadVariables).to.equal("./env.json");
         expect(result.input).to.equal("./docs");
-        expect(result.output).to.equal("./results");
+        expect(result.outputDir).to.equal("./results");
         expect(result.recursive).to.equal(true);
         expect(result.detectSteps).to.equal(true);
-        expect(result.beforeAny).to.equal("./setup.js");
+        expect(result.beforeAll).to.equal("./setup.js");
+        expect(result).to.not.have.property("beforeAny");
         expect(result.afterAll).to.equal("./cleanup.js");
       });
 
@@ -2899,7 +3314,7 @@ import { schemas } from "../dist/index.js";
         });
 
         expect(result.input).to.equal("./docs");
-        expect(result.output).to.equal("./results");
+        expect(result.outputDir).to.equal("./results");
         expect(result.recursive).to.equal(true);
       });
 
@@ -3598,15 +4013,120 @@ import { schemas } from "../dist/index.js";
       });
     });
 
+    // ADR 01169: beforeAll replaces beforeAny, which stays as a deprecated alias.
+    describe("beforeAll", function () {
+      for (const value of ["setup.spec.json", ["a.spec.json", "b.spec.json"]]) {
+        it(`accepts beforeAll: ${JSON.stringify(value)}`, function () {
+          const result = validate({ schemaKey: "config_v3", object: { beforeAll: value }, addDefaults: false });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      it("rejects a beforeAll that isn't a string or an array of strings", function () {
+        const result = validate({ schemaKey: "config_v3", object: { beforeAll: { path: "a.spec.json" } }, addDefaults: false });
+        expect(result.valid).to.be.false;
+      });
+
+      it("keeps beforeAny as a deprecated alias", function () {
+        const result = validate({ schemaKey: "config_v3", object: { beforeAny: "setup.spec.json" }, addDefaults: false });
+        expect(result.valid, result.errors).to.be.true;
+        const property = schemas.config_v3.properties.beforeAny;
+        expect(property.deprecated).to.equal(true);
+        expect(property.description).to.equal("Deprecated: use `beforeAll`.");
+      });
+
+      it("rejects a config that sets both beforeAll and beforeAny", function () {
+        for (const addDefaults of [true, false]) {
+          const result = validate({
+            schemaKey: "config_v3",
+            object: { beforeAll: "a.spec.json", beforeAny: "b.spec.json" },
+            addDefaults,
+          });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("set `beforeAll` or `beforeAny`, not both.");
+        }
+      });
+    });
+
+    // ADR 01168: each scope accepts only the routing actions the runner performs there.
+    describe("routing scopes", function () {
+      const step = (handler) => ({ goTo: { url: "https://example.com" }, onFail: [handler] });
+      const test = (handler) => ({ steps: [{ runShell: "echo hi" }], onFail: [handler] });
+      const check = (schemaKey, object) => validate({ schemaKey, object, addDefaults: false });
+
+      for (const handler of [{ continue: true }, { stop: "test" }, { retry: { limit: 1 } }, { goToStep: "s" }]) {
+        it(`accepts ${JSON.stringify(handler)} on a step`, function () {
+          const result = check("step_v3", step(handler));
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      // retry re-runs a step whose own action returned SKIPPED.
+      for (const handler of [{ continue: true }, { stop: "test" }, { retry: { limit: 1 } }, { goToStep: "s" }]) {
+        it(`accepts ${JSON.stringify(handler)} in a step's onSkip`, function () {
+          const result = check("step_v3", { goTo: { url: "https://example.com" }, onSkip: [handler] });
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      for (const handler of [{ continue: true }, { stop: "test" }, { stop: "spec" }, { goToTest: "t" }]) {
+        it(`accepts ${JSON.stringify(handler)} on a test`, function () {
+          const result = check("test_v3", test(handler));
+          expect(result.valid, result.errors).to.be.true;
+        });
+      }
+
+      it("accepts stop: spec in a test's onPass", function () {
+        const result = check("test_v3", { steps: [{ runShell: "echo hi" }], onPass: [{ stop: "spec" }] });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      for (const value of ["spec", "run"]) {
+        it(`rejects stop: ${value} on a step`, function () {
+          const result = check("step_v3", step({ stop: value }));
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.match(/\/onFail\/0\/stop must be equal to one of the allowed values/);
+          expect(result.errors).to.include('"allowedValues":["test"]');
+        });
+      }
+
+      it("rejects goToTest on a step as an unknown key", function () {
+        const result = check("step_v3", step({ goToTest: "t" }));
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include('"additionalProperty":"goToTest"');
+      });
+
+      it("rejects stop: run on a test", function () {
+        const result = check("test_v3", test({ stop: "run" }));
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.match(/\/onFail\/0\/stop must be equal to one of the allowed values/);
+        expect(result.errors).to.include('"allowedValues":["test","spec"]');
+      });
+
+      for (const [key, value] of [["retry", { limit: 1 }], ["goToStep", "s"]]) {
+        it(`rejects ${key} on a test as an unknown key`, function () {
+          const result = check("test_v3", test({ [key]: value }));
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include(`"additionalProperty":"${key}"`);
+        });
+      }
+
+      it("names the full path when a spec's step stops the run", function () {
+        const result = check("spec_v3", { tests: [{ steps: [step({ stop: "run" })] }] });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("/tests/0/steps/0/onFail/0/stop");
+      });
+    });
+
     describe("dynamic routing (Phase 1 schema foundation)", function () {
       // Positive cases — must validate.
-      it("validates a step with onFail conditional goToTest + unconditional stop", function () {
+      it("validates a step with onFail conditional goToStep + unconditional stop", function () {
         const result = validate({
           schemaKey: "step_v3",
           object: {
             goTo: { url: "https://example.com" },
             onFail: [
-              { if: "$$platform == windows", goToTest: "x" },
+              { if: "$$platform == windows", goToStep: "x" },
               { stop: "test" },
             ],
           },
@@ -3765,9 +4285,9 @@ import { schemas } from "../dist/index.js";
 
       it("rejects goToTest whitespace-only string", function () {
         const result = validate({
-          schemaKey: "step_v3",
+          schemaKey: "test_v3",
           object: {
-            goTo: { url: "https://example.com" },
+            steps: [{ goTo: { url: "https://example.com" } }],
             onFail: [{ goToTest: "   " }],
           },
         });
@@ -3853,7 +4373,7 @@ import { schemas } from "../dist/index.js";
 
       it("accepts a step result carrying the system-populated attempts field", function () {
         // `attempts` is a result-only, documented step field (like
-        // `autoScreenshot`). The top-level step schema is permissive (anyOf,
+        // `autoScreenshotPath`). The top-level step schema is permissive (anyOf,
         // no top-level additionalProperties), so this asserts the field is
         // accepted on a result object — its purpose is schema documentation +
         // generated types, not a runtime constraint.
@@ -4055,57 +4575,27 @@ import { schemas } from "../dist/index.js";
         expect(result.valid, result.errors).to.be.true;
       });
 
-      it("validates a full assertion record", function () {
-        const result = validate({
-          schemaKey: "assertion_v3",
-          object: {
-            statement: "exitCode in [0]",
-            source: "implicit",
-            result: "PASS",
-            expected: [0],
-            actual: 0,
-            description: "Returned exit code 0.",
-          },
+      // ADR 01184: the runner never wrote these, so the record doesn't declare them.
+      for (const [key, value] of [
+        ["expected", [0]],
+        ["actual", 0],
+        ["description", "Returned exit code 0."],
+      ]) {
+        it(`rejects an assertion record with ${key}`, function () {
+          const result = validate({
+            schemaKey: "assertion_v3",
+            object: { statement: "exitCode in [0]", source: "implicit", result: "PASS", [key]: value },
+          });
+          expect(result.valid).to.be.false;
         });
-        expect(result.valid, result.errors).to.be.true;
-      });
+      }
 
-      it("validates an assertion record with array expected and number actual", function () {
-        const result = validate({
-          schemaKey: "assertion_v3",
-          object: {
-            statement: "exitCode in [0]",
-            source: "implicit",
-            result: "PASS",
-            expected: [0],
-            actual: 0,
-          },
-        });
-        expect(result.valid, result.errors).to.be.true;
-      });
-
-      it("validates an assertion record with string expected and boolean actual (permissive)", function () {
+      it("rejects an assertion record missing required result", function () {
         const result = validate({
           schemaKey: "assertion_v3",
           object: {
             statement: "value matches",
             source: "custom",
-            result: "PASS",
-            expected: "x",
-            actual: true,
-          },
-        });
-        expect(result.valid, result.errors).to.be.true;
-      });
-
-      it("rejects an assertion record with permissive expected/actual but missing required result", function () {
-        const result = validate({
-          schemaKey: "assertion_v3",
-          object: {
-            statement: "value matches",
-            source: "custom",
-            expected: "x",
-            actual: true,
           },
         });
         expect(result.valid).to.be.false;
@@ -4169,9 +4659,6 @@ import { schemas } from "../dist/index.js";
                 statement: "exitCode in [0]",
                 source: "implicit",
                 result: "PASS",
-                expected: [0],
-                actual: 0,
-                description: "Returned exit code 0.",
               },
             ],
           },
@@ -4373,6 +4860,7 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.be.a("string");
       });
 
+      // The effective step fills the 120x30 size around what's authored (ADR 01167).
       for (const tty of [{}, { cols: 80 }, { cols: 80, rows: 24 }, { cols: 1000, rows: 1 }]) {
         it(`should validate a background runShell with tty ${JSON.stringify(tty)}`, function () {
           const result = validate({
@@ -4382,7 +4870,7 @@ import { schemas } from "../dist/index.js";
             },
           });
           expect(result.valid, result.errors).to.be.true;
-          expect(result.object.runShell.background.tty).to.deep.equal(tty);
+          expect(result.object.runShell.background.tty).to.deep.equal({ cols: 120, rows: 30, ...tty });
         });
       }
 
@@ -4998,7 +5486,6 @@ import { schemas } from "../dist/index.js";
               app: "/Applications/Calculator.app",
               name: "calc",
               args: ["--reset"],
-              workingDirectory: "./sandbox",
               env: { LOG_LEVEL: "debug" },
               driverOptions: { "appium:newCommandTimeout": 300 },
               waitUntil: { delayMs: 500, find: { elementText: "Ready" } },
@@ -5031,7 +5518,7 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.equal("");
       });
 
-      it("should validate a device string reference and the reserved device fields", function () {
+      it("should validate a device string reference", function () {
         const byRef = validate({
           schemaKey: "step_v3",
           object: {
@@ -5039,25 +5526,25 @@ import { schemas } from "../dist/index.js";
           },
         });
         expect(byRef.valid).to.be.true;
-
-        const reserved = validate({
-          schemaKey: "step_v3",
-          object: {
-            startSurface: {
-              app: "com.example.myapp",
-              device: {
-                platform: "ios",
-                name: "iPhone 15",
-                orientation: "landscape",
-                udid: "00008110-001234567890ABCD",
-                provider: { browserstack: { app: "bs://abc123" } },
-              },
-            },
-          },
-        });
-        expect(reserved.valid).to.be.true;
-        expect(reserved.errors).to.equal("");
       });
+
+      // The unimplemented orientation, udid, and provider fields are gone (5.0).
+      for (const [key, value] of [
+        ["orientation", "landscape"],
+        ["udid", "00008110-001234567890ABCD"],
+        ["provider", { browserstack: { app: "bs://abc123" } }],
+      ]) {
+        it(`should reject the removed device field ${key}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: {
+              startSurface: { app: "com.example.myapp", device: { platform: "ios", name: "iPhone 15", [key]: value } },
+            },
+          });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include(`"additionalProperty":"${key}"`);
+        });
+      }
 
       it("should reject a startSurface without app", function () {
         const result = validate({
@@ -5906,6 +6393,77 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.be.a("string");
       });
     });
+
+    // ADR 01171: durations can't be negative. ADR 01172: no browser aliases.
+    describe("process and surface tightening (5.0)", function () {
+      const step = (object) => validate({ schemaKey: "step_v3", object });
+
+      // Durations and delays start at 0, which means "don't wait".
+      for (const [name, object] of [
+        ["a negative wait", { wait: -5 }],
+        ["a negative waitUntil.delayMs", { runShell: { command: "x", background: { name: "a", waitUntil: { delayMs: -1 } } } }],
+      ]) {
+        it(`rejects ${name}`, function () {
+          const result = step(object);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("must be >= 0");
+        });
+      }
+
+      it("accepts a wait and a delayMs of 0", function () {
+        expect(step({ wait: 0 }).valid).to.be.true;
+        expect(step({ runShell: { command: "x", background: { name: "a", waitUntil: { delayMs: 0 } } } }).valid).to.be.true;
+      });
+
+      // Timeouts start at 1: 0 meant "at once" in some actions and "no limit" in others.
+      for (const timeout of [0, -1]) {
+        for (const [name, object] of [
+          ["runShell", { runShell: { command: "echo", timeout } }],
+          ["runCode", { runCode: { language: "js", code: "1", timeout } }],
+          ["a startSurface process", { startSurface: { process: "x", name: "p", timeout } }],
+          ["a startSurface app", { startSurface: { app: "notepad", timeout } }],
+        ]) {
+          it(`rejects a ${name} timeout of ${timeout}`, function () {
+            const result = step(object);
+            expect(result.valid).to.be.false;
+            expect(result.errors).to.include("must be >= 1");
+          });
+        }
+      }
+
+      for (const [name, object] of [
+        ["runShell", { runShell: { command: "echo", timeout: 1 } }],
+        ["runCode", { runCode: { language: "js", code: "1", timeout: 1 } }],
+        ["a startSurface process", { startSurface: { process: "x", name: "p", timeout: 1 } }],
+        ["a startSurface app", { startSurface: { app: "notepad", timeout: 1 } }],
+      ]) {
+        it(`accepts a ${name} timeout of 1`, function () {
+          expect(step(object).valid).to.be.true;
+        });
+      }
+
+      it("keeps wait: true and wait: 1 as authored when not normalizing", function () {
+        expect(validate({ schemaKey: "step_v3", object: { wait: true }, addDefaults: false }).object.wait).to.equal(true);
+        expect(validate({ schemaKey: "step_v3", object: { wait: 1 }, addDefaults: false }).object.wait).to.equal(1);
+      });
+
+      for (const [name, object] of [
+        ["a startSurface browser", { startSurface: { browser: "edge" } }],
+        ["a startSurface browser in an array", { startSurface: [{ browser: "edge", name: "corp" }] }],
+        ["a browser surface object", { click: { selector: "#a", surface: { browser: "edge" } } }],
+        ["a browser-only surface keyword", { runBrowserScript: { script: "1", surface: "edge" } }],
+      ]) {
+        it(`rejects edge as ${name}`, function () {
+          const result = step(object);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include('"allowedValues":["chrome","firefox","safari","webkit"]');
+        });
+      }
+
+      it("treats a bare 'edge' surface as a process name", function () {
+        expect(step({ closeSurface: "edge" }).valid).to.be.true;
+      });
+    });
   });
 
   describe("httpRequest statusCodes shapes", function () {
@@ -6002,6 +6560,34 @@ import { schemas } from "../dist/index.js";
       it(`${schemaKey} rejects a non-string $schema`, function () {
         const result = validate({ schemaKey, object: { ...object, $schema: {} } });
         expect(result.valid).to.be.false;
+      });
+    }
+  });
+
+  // ADR 01178: environment variables whose values output shows, on the config,
+  // a spec, or a test. A string[] of names, `*` as a wildcard.
+  describe("publicVariables", function () {
+    const shapes = {
+      config_v3: (publicVariables) => ({ publicVariables }),
+      spec_v3: (publicVariables) => ({ publicVariables, tests: [{ steps: [{ runShell: "echo hi" }] }] }),
+      test_v3: (publicVariables) => ({ publicVariables, steps: [{ runShell: "echo hi" }] }),
+    };
+    for (const [schemaKey, wrap] of Object.entries(shapes)) {
+      it(`${schemaKey} accepts a list of names and patterns`, function () {
+        const result = validate({ schemaKey, object: wrap(["BASE_URL", "DOCS_*", "*"]) });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.publicVariables).to.deep.equal(["BASE_URL", "DOCS_*", "*"]);
+      });
+
+      it(`${schemaKey} rejects a bare string`, function () {
+        const result = validate({ schemaKey, object: wrap("BASE_URL") });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("publicVariables");
+      });
+
+      it(`${schemaKey} rejects an empty or whitespace-only name`, function () {
+        expect(validate({ schemaKey, object: wrap([""]) }).valid).to.be.false;
+        expect(validate({ schemaKey, object: wrap([" \t"]) }).valid).to.be.false;
       });
     }
   });
