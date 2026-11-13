@@ -339,18 +339,11 @@ jobs:
       # $RUNNER_TEMP/doc-detective-output.json. We gate on that file ourselves
       # (rather than exit_on_fail) so an empty / mis-pointed run also fails.
       - name: Run ${{ matrix.bundle.name }} fixtures
-        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        uses: doc-detective/github-action@d4754e923691878e777b1266ccb65260bc559bdc # v2.0.0
         # The general matrix only asserts the SKIP paths. Disable the android
         # lazy-install here so no general leg ever triggers a multi-GB SDK
         # download, and turn OFF the action's KVM setup (`android: false`) — the
-        # real install/boot coverage lives in the KVM jobs below. `ios: 'false'`
-        # turns off the action's WDA build cache: the managed prebuild above
-        # (install ios + dd-cache) owns WDA now, keyed by driver AND Xcode
-        # version — leaving `ios: auto` on would set the derived-data env var,
-        # which overrides the managed products and double-builds WDA on cold
-        # weeks (and its driver-blind key is the ADR 01033 stale-cache mode).
-        # Retiring the action-side cache entirely is tracked in
-        # doc-detective/github-action.
+        # real install/boot coverage lives in the KVM jobs below.
         env:
           DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: ${{ matrix.bundle.android && '1' || '' }}
         with:
@@ -359,7 +352,7 @@ jobs:
           config: test/core-artifacts/config.groups.json
           input: ${{ matrix.bundle.input }}
           android: 'false'
-          ios: 'false'
+          exit_on_fail: false
 
       # Turn any FAILed spec — or a zero-spec (mis-pointed) run — into a failed
       # job. PASS and SKIPPED both pass the gate. Two legs additionally require
@@ -698,23 +691,25 @@ jobs:
       - name: Run apps-android via the action (auto-KVM + lazy bootstrap)
         id: android-action
         continue-on-error: true
-        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        uses: doc-detective/github-action@d4754e923691878e777b1266ccb65260bc559bdc # v2.0.0
         with:
           version: ''
           working_directory: .
           config: test/core-artifacts/config.groups.json
           input: test/core-artifacts/apps-android
           android: auto
+          exit_on_fail: false
 
       - name: Retry apps-android via the action
         if: steps.android-action.outcome == 'failure'
-        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        uses: doc-detective/github-action@d4754e923691878e777b1266ccb65260bc559bdc # v2.0.0
         with:
           version: ''
           working_directory: .
           config: test/core-artifacts/config.groups.json
           input: test/core-artifacts/apps-android
           android: auto
+          exit_on_fail: false
 
       # Require a PASS: KVM enabled + lazy bootstrap + boot + run must all work,
       # or this is an all-SKIP that fails the gate.

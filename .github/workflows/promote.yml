@@ -126,7 +126,7 @@ jobs:
       - name: Run github-action
         # Pinned to a commit, because tags move. v1 refuses CLI 5, so 5.x
         # releases need the v2 action.
-        uses: doc-detective/github-action@1a2716b5169a1c31e44b99ccaa3d2847c0e37b9e # v2.0.0-rc.1
+        uses: doc-detective/github-action@d4754e923691878e777b1266ccb65260bc559bdc # v2.0.0
         with:
           version: ${{ steps.resolve.outputs.action_version }}
           config: ./test/artifacts/config.json
