@@ -60,26 +60,22 @@ Use these if `npx doc-detective install agents` isn't an option for your workflo
 
 ### Install with `npx skills`
 
-{/* TODO(ADR 01164): at Doc Detective 5 GA, AGENT_TOOLS_REF becomes `v2`. Change feat/v5-rc on this page to v2 then. */}
-
 The [`skills`](https://github.com/vercel-labs/skills) package from Vercel provides a quick way to install skills for multiple AI tools:
 
 ```bash
-npx skills add doc-detective/agent-tools#feat/v5-rc
+npx skills add doc-detective/agent-tools#v2
 ```
 
 Follow the prompts. The CLI auto-detects which AI tools you have installed and places the skills in the appropriate directories.
 
-The `#feat/v5-rc` suffix pins the same agent-tools ref that `install agents` uses.
+The `#v2` suffix pins the same agent-tools ref that `install agents` uses.
 
 ### Manual installation
-
-{/* TODO(ADR 01164): at Doc Detective 5 GA, AGENT_TOOLS_REF becomes `v2`. Change feat/v5-rc on this page to v2 then. */}
 
 Clone agent-tools at the ref that `install agents` uses, and copy the skills to your agent's configuration directory:
 
 ```bash
-git clone --branch feat/v5-rc https://github.com/doc-detective/agent-tools.git
+git clone --branch v2 https://github.com/doc-detective/agent-tools.git
 cp -r agent-tools/skills .{agent-dir}/skills
 ```
 

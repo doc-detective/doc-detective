@@ -245,6 +245,33 @@ describe("formats", function () {
     });
   });
 
+  describe("Markdown attribute lists", function () {
+    it("reads a link's or image's trailing attribute list, up to the first closing brace", function () {
+      const md = '[a](b){.x #y k="v"} [c](d){title="y{z"} ![i](s){width=3}\n[e](f){a}{b} [g](h) {.no}';
+      const nodes = pick(parseMarkdown(md), "link").concat(pick(parseMarkdown(md), "image"));
+      expect(nodes.map((n) => [n.startIndex, n.endIndex, n.attributes])).to.deep.equal([
+        [0, 19, { class: "x", id: "y", k: "v" }],
+        [20, 39, { title: "y{z" }],
+        [57, 66, { a: true }],
+        [70, 76, undefined],
+        [40, 56, { width: "3" }],
+      ]);
+    });
+
+    it("scans many unclosed attribute lists in linear time", function () {
+      // Each `{` used to rescan to the end of the content for a `}`.
+      const time = (content) => {
+        const started = performance.now();
+        const nodes = parseMarkdown(content);
+        return [performance.now() - started, nodes];
+      };
+      const [plain] = time("[a](b) ".repeat(30000));
+      const [braced, nodes] = time("[a](b){".repeat(30000));
+      expect(pick(nodes, "link").filter((n) => n.attributes)).to.deep.equal([]);
+      expect(braced).to.be.below(plain * 3 + 200);
+    });
+  });
+
   describe("HTML inside Markdown", function () {
     it("reads inline HTML tags as their kinds, and keeps Markdown's prose", function () {
       const md = 'Go to <a href="https://x.com">the site</a> and press <kbd>Enter</kbd>. <code>Type "x"</code>\n';

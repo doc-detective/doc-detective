@@ -365,7 +365,7 @@ describe("reportCrash", function () {
     const output = lines.join("\n");
     expect(output).to.include("boom");
     expect(output).to.include("github.com/doc-detective/doc-detective/issues/new");
-    expect(output).to.include("doc-detective%20debug".replace("%20", "%20"));
+    expect(output).to.include("doc-detective%20debug");
     const logs = fs.readdirSync(path.join(dir, ".doc-detective"));
     expect(logs).to.have.lengthOf(1);
     expect(fs.readFileSync(path.join(dir, ".doc-detective", logs[0]), "utf8")).to.include("Error: boom");

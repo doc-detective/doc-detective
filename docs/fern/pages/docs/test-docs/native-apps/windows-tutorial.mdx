@@ -43,7 +43,7 @@ Doc Detective runs on Node.js and installs with npm, the package manager that co
 {/* The walkthrough follows the reader in a charmap-docs folder next to this page, which it removes at the end. A workingDirectory of "." is this page's folder (native-apps/), because paths resolve relative to the file that holds the test. It copies the samples from windows-tutorial/, which the page renders with <Code src>. They use a .txt extension so Doc Detective doesn't also run them in place. If you edit a sample, update the steps that depend on it: the step counts in windows-tutorial-run-spec (6) and windows-tutorial-run-howto (5), and the Select/Choose replacement in windows-tutorial-break-click and windows-tutorial-restore-click. */}
 {/* test {"testId":"windows-tutorial-install","detectSteps":false} */}
 
-1. Install [Node.js](https://nodejs.org/) v22.22.0 or later on the v22 line, or v24 or later.
+1. Install [Node.js](https://nodejs.org/) 24.15 or later.
 2. Open a new terminal window, so it picks up the updated `PATH`.
 3. Check that Node.js is installed:
 
@@ -53,7 +53,7 @@ Doc Detective runs on Node.js and installs with npm, the package manager that co
 
     {/* step {"stepId":"windows-tutorial-node-version","description":"Check that Node.js is installed.","runShell":{"command":"node --version","stdio":"/^v\\d+\\.\\d+\\.\\d+/"}} */}
 
-    The command prints the version number, such as `v24.1.0`.
+    The command prints the version number, such as `v24.15.0`. If it prints an earlier version, update Node.js before you continue.
 
 4. Install Doc Detective globally:
 

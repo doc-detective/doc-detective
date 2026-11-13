@@ -27,21 +27,13 @@ const REPO_SLUG = "doc-detective/agent-tools";
 const MAX_ZIP_BYTES = 50 * 1024 * 1024;
 
 /**
- * agent-tools ref that matches this CLI's major (ADR 01164). While CLI 5 is a
- * release candidate this is agent-tools' `feat/v5-rc` branch. At CLI 5 GA it
- * becomes the floating `v2` tag, which agent-tools' release moves forward.
- * Raw and codeload URLs both take a slash-containing branch name as-is.
- *
- * TODO(ADR 01164): at CLI 5 GA, set this to "v2" once agent-tools' `v2` tag
- * exists. The ADR's "General availability: `v2`" steps and Confirmation section
- * list every file that changes with it.
+ * agent-tools ref that matches this CLI's major (ADR 01164): the floating `v2`
+ * tag, which agent-tools' release moves to each 2.x release. The next CLI
+ * major changes only this constant.
  */
-export const AGENT_TOOLS_REF = "feat/v5-rc";
+export const AGENT_TOOLS_REF = "v2";
 
-/**
- * Raw file URL in agent-tools at the pinned ref, AGENT_TOOLS_REF. The URL
- * changes with that constant at CLI 5 GA; see its TODO above.
- */
+/** Raw file URL in agent-tools at the pinned ref, AGENT_TOOLS_REF. */
 export function agentToolsRawUrl(file: string): string {
   return `https://raw.githubusercontent.com/${REPO_SLUG}/${AGENT_TOOLS_REF}/${file}`;
 }

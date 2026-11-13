@@ -137,6 +137,21 @@ describe("httpRequest coverage (stubbed axios)", function () {
       assert.equal(lastRequestConfig.url, "http://api.example.com/users?k=v");
     });
 
+    it("trims an origin's trailing slashes in linear time", async function () {
+      stubResponse({ status: 200, data: { ok: true } });
+      // A long run of slashes that isn't at the end used to backtrack
+      // quadratically in the trailing-slash regex.
+      const origin = "http://api.example.com/" + "/".repeat(100000) + "v1";
+      const started = Date.now();
+      const result = await httpRequest({
+        config: { ...config, origin: origin + "///" },
+        step: { httpRequest: { url: "/users", method: "get", statusCodes: [200] } },
+      });
+      assert.ok(Date.now() - started < 1000, `took ${Date.now() - started} ms`);
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(lastRequestConfig.url, origin + "/users");
+    });
+
     it("FAILs a path when the config has no origin", async function () {
       stubResponse({ status: 200, data: { ok: true } });
       const result = await httpRequest({
