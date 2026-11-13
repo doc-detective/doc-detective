@@ -1,3 +1,21 @@
+# [5.0.0-v5-rc.19](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.18...v5.0.0-v5-rc.19) (2026-11-13)
+
+
+* feat(api)!: reject invalid specs from runTests() by default ([85f1e0c](https://github.com/doc-detective/doc-detective/commit/85f1e0c881fe389a82c00fe27c666779924e1d3e))
+
+
+### Bug Fixes
+
+* **api:** name exitOnFail in the invalid-specs error ([3c34d3e](https://github.com/doc-detective/doc-detective/commit/3c34d3e39a725983471be15f3a708efad01ed582))
+
+
+### BREAKING CHANGES
+
+* `runTests()` rejects invalid specs instead of skipping
+them with a warning. Set `exitOnFail: false` to skip them, as in 4.x.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
 # [5.0.0-v5-rc.18](https://github.com/doc-detective/doc-detective/compare/v5.0.0-v5-rc.17...v5.0.0-v5-rc.18) (2026-11-11)
 
 
