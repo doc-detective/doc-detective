@@ -99,17 +99,25 @@ export function parseMarkdown(content: string, mdx = false): Node[] {
     }
   };
 
+  // The first `}` at or after `closeFrom`, or -1 for none. Nodes arrive in
+  // document order, so one cached search serves every attribute list up to that
+  // brace. A search per node rescans to the end, quadratic on many unclosed `{`.
+  let closeFrom = Infinity;
+  let close = -1;
+
   /** Extends a link or image over a trailing attribute list. */
   const withAttributes = (node: Omit<Node, "before">) => {
-    // Sticky, so it matches only at the node's end. One per call, so no lastIndex is shared.
-    const attributeList = /\{([^}]*)\}/y;
-    attributeList.lastIndex = node.endIndex;
-    const m = attributeList.exec(content);
-    const attributes = m && parseAttributeList(m[1]);
+    const open = node.endIndex;
+    if (content[open] !== "{") return node;
+    if (open < closeFrom || (close !== -1 && open > close)) {
+      closeFrom = open;
+      close = content.indexOf("}", open);
+    }
+    const attributes = close !== -1 && parseAttributeList(content.slice(open + 1, close));
     if (attributes) {
-      taken.push([node.endIndex, node.endIndex + m![0].length]);
+      taken.push([open, close + 1]);
       node.attributes = attributes;
-      node.endIndex += m![0].length;
+      node.endIndex = close + 1;
     }
     return node;
   };
