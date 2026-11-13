@@ -12,9 +12,10 @@ The GitHub Action can automatically create GitHub issues when tests fail. Set `c
 
 ### Basic issue configuration
 
-- `create_issue_on_fail`: Creates a GitHub issue when any test fails.
+- `create_issue_on_fail`: Creates a GitHub issue when any test fails. If an open issue has the same `issue_title` and the first label in `issue_labels`, the action updates that issue instead.
 - `issue_title`: Title of the created issue. Default: `"Doc Detective Failure"`.
-- `issue_body`: Body of the issue. Supports these variables:
+- `issue_body`: Body of the issue. Default: `A Doc Detective run ($RUN_URL) failed:`, a blank line, then `$SUMMARY`. Supports these variables:
+  - `$SUMMARY`: Markdown summary of the run, from the run folder's `testResults.md`. See [Find reports and the run folder](/docs/ci/github-action#find-reports-and-the-run-folder).
   - `$RUN_URL`: URL of the workflow run that created the issue.
   - `$RESULTS`: Test results as a JSON code block.
   - `$PROMPT`: The prompt text (see below).
