@@ -178,7 +178,10 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       result.description = `Couldn't send the request: \`${redactUrlForOutput(step.httpRequest.url)}\` is a path, and the config has no \`origin\`. Set \`origin\` in the config, or use an absolute URL.`;
       return result;
     }
-    step.httpRequest.url = appendQueryParams(config.origin.replace(/\/+$/, "") + step.httpRequest.url, config.originParams);
+    // A loop, not /\/+$/, which backtracks quadratically on a run of slashes.
+    let origin = config.origin;
+    while (origin.endsWith("/")) origin = origin.slice(0, -1);
+    step.httpRequest.url = appendQueryParams(origin + step.httpRequest.url, config.originParams);
   }
 
   // Make sure there's a protocol
