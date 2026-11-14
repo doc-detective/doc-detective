@@ -311,7 +311,7 @@ async function mountAnnotations({
  * Where the layer's blurs sit right now, in CSS pixels, and how strong each is.
  *
  * A screenshot burns these into its capture, because Firefox leaves
- * `backdrop-filter` out of WebDriver screenshots (ADR 01201). They're read from
+ * `backdrop-filter` out of WebDriver screenshots (ADR 01202). They're read from
  * the page rather than rebuilt from state, so a tracked blur is read where it
  * has moved to.
  */

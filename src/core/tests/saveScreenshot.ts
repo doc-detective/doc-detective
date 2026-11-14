@@ -195,7 +195,7 @@ async function takeBrowserScreenshot(driver: any, sharp: any): Promise<Buffer> {
 
 // The annotate layer draws its blurs with CSS `backdrop-filter`, which Firefox
 // leaves out of WebDriver screenshots, so blur the same regions in the capture
-// (ADR 01201). Chrome's capture already shows them, so there they're blurred
+// (ADR 01202). Chrome's capture already shows them, so there they're blurred
 // twice: stronger, never weaker. Hiding the layer's blurs for the capture would
 // avoid that, but a running recording would catch the page unblurred. Fails
 // closed, like the secret blur: no capture beats an unredacted one.
