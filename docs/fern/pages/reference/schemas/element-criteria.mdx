@@ -23,6 +23,7 @@ elementId | string | Optional. ID attribute of the element to find. Supports exa
 elementTestId | string | Optional. data-testid attribute of the element to find. Supports exact match or regex pattern using /pattern/ syntax. | —
 elementClass | one of:<br/>- string<br/>- array of string | Optional. Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. | —
 elementAttribute | object | Optional. Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence. | —
+elementImage | one of:<br/>- string<br/>- object([Image (detailed)](/reference/schemas/image-detailed)) | Optional. A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them. | —
 elementAria | string | Optional. Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax. | —
 
 ## Examples
@@ -35,6 +36,7 @@ elementAria | string | Optional. Computed accessible name of the element per ARI
   "elementTestId": "example",
   "elementClass": "example",
   "elementAttribute": {},
+  "elementImage": "example",
   "elementAria": "example"
 }
 ```

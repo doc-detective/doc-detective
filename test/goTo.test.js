@@ -771,6 +771,37 @@ describe("goTo wait logic: network/DOM monitors + find (live execute)", function
     assert.match(result.description, /Element found \(selector: "#ready"\)/);
   });
 
+  it("a waitUntil.find that misses names every criterion it looked for", async function () {
+    installBrowserStub({ ready: "complete" });
+    const driver = makeLiveDriver();
+    const result = await goTo({
+      config: {},
+      step: {
+        goTo: {
+          url: "https://example.com",
+          timeout: 150,
+          waitUntil: {
+            networkIdleTime: 0,
+            domIdleTime: 0,
+            find: {
+              elementId: "ready",
+              elementTestId: "go",
+              elementAria: "Go",
+              elementClass: ["primary", "large"],
+              elementAttribute: { role: "button" },
+            },
+          },
+        },
+      },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.match(
+      result.description,
+      /Element not found \(id: "ready", test ID: "go", accessible name: "Go", class: "primary large", attributes: role="button"\)/
+    );
+  });
+
   it("DOM poll loop: an unexpected (non-timeout) execute failure hits the catch cleanup with the monitor still present", async function () {
     // Distinct from the "poll loop times out" test above: there, the timeout
     // branch (inside the try) does its own cleanup-then-throw, so by the
