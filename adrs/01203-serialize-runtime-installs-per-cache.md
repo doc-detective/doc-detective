@@ -9,8 +9,8 @@ decision-makers: Doc Detective maintainers
 ## Context and Problem Statement
 
 Heavy dependencies install just-in-time into `<cacheDir>/runtime` with `npm install --prefix`.
-Two Doc Detective processes, or two runs in one process, that need an install at the same time ran
-two `npm install`s into the same prefix with no coordination. Each npm reifies its own ideal tree and
+Two runs could need an install at the same time, in two processes or in one. Each ran its own
+`npm install` into the same prefix with no coordination. Each npm reifies its own ideal tree and
 removes what the other just extracted. Afterward Appium wouldn't start (`Cannot find module
 'validate-npm-package-license'`) ([#896](https://github.com/doc-detective/doc-detective/issues/896)).
 Exact runtime pins make reinstalls happen on every runtime bump, so the race gets more likely.
@@ -42,8 +42,8 @@ cap, and then fails with:
 Couldn't install <packages>: another Doc Detective process is still installing into <runtimeDir>. Wait for it to finish, then run again.
 ```
 
-The lock is a heartbeat lease, so a crashed holder's lock is taken over once its heartbeat goes stale
-(5 minutes) or, on the same host, as soon as its pid is dead.
+The lock is a heartbeat lease. A crashed holder's lock is taken over once its heartbeat goes stale
+(5 minutes). On the same host, it's taken over as soon as the holder's pid is dead.
 
 ### Consequences
 
@@ -54,8 +54,8 @@ The lock is a heartbeat lease, so a crashed holder's lock is taken over once its
 
 ### Confirmation
 
-`test/runtime-loader.test.js`, "concurrent installs into one cache": two installs in one process never
-overlap; two child processes serialize, and the waiting process stays alive until its turn; a waiter
+`test/runtime-loader.test.js`, "concurrent installs into one cache". Two installs in one process never
+overlap. Two child processes serialize, and the waiting process stays alive until its turn. A waiter
 skips a package the holder installed.
 
 ## Pros and Cons of the Options

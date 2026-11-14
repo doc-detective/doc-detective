@@ -28,8 +28,8 @@ The defenses (keep all of them intact when touching install paths):
   timeout fires first. Single-package JIT installs keep the loader's 5-minute default. (ADR 01035)
 - `ensureRuntimeInstalled` holds `<runtime>/install.lock` ([lock.ts](lock.ts)) around every npm
   spawn, so two installs into one cache never reify at once (ADR 01203). Any new path that spawns
-  npm into the runtime must go through it. Its wait uses a ref'd timer: the lock's default sleep is
-  unref'd, and a process with nothing else pending would exit mid-wait.
+  npm into the runtime must go through it. Its wait uses a ref'd timer. The lock's default sleep is
+  unref'd, so a process with nothing else pending would exit mid-wait.
 - `ensurePtyBackendOnDisk` (`src/core/ptyWatchdog.ts`) fs-verifies the resolved node-pty entry
   before spawn and force-reinstalls if files vanished.
 
