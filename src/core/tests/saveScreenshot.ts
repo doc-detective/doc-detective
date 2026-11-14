@@ -15,10 +15,12 @@ import { resolveTheme, resolveAnnotation } from "../annotations/model.js";
 import { annotationsToSvg } from "../annotations/svg.js";
 import {
   computeScale,
+  toCanvasRect,
   appWindowOrigin,
   resolveAnnotationRects,
 } from "../annotations/geometry.js";
 import { compositeAnnotations } from "../annotations/composite.js";
+import { readBlurRegions } from "../annotations/domAdapter.js";
 import {
   log,
   fetchFile,
@@ -179,14 +181,45 @@ function referenceViewport({
 }
 
 // A browser capture with every element that shows a secret blurred, and the
-// blur removed after (ADR 01178).
-async function takeBrowserScreenshot(driver: any): Promise<Buffer> {
+// blur removed after (ADR 01178), and the live annotate blurs burned in.
+async function takeBrowserScreenshot(driver: any, sharp: any): Promise<Buffer> {
   const unblur = await blurSecretsForCapture(driver);
+  let buffer: Buffer;
   try {
-    return Buffer.from(await driver.takeScreenshot(), "base64");
+    buffer = Buffer.from(await driver.takeScreenshot(), "base64");
   } finally {
     await unblur();
   }
+  return await burnInLiveBlurs(driver, sharp, buffer);
+}
+
+// The annotate layer draws its blurs with CSS `backdrop-filter`, which Firefox
+// leaves out of WebDriver screenshots, so blur the same regions in the capture
+// (ADR 01201). Chrome's capture already shows them, so there they're blurred
+// twice: stronger, never weaker. Hiding the layer's blurs for the capture would
+// avoid that, but a running recording would catch the page unblurred. Fails
+// closed, like the secret blur: no capture beats an unredacted one.
+async function burnInLiveBlurs(driver: any, sharp: any, buffer: Buffer): Promise<Buffer> {
+  if (!(driver?.state?.annotations?.length > 0)) return buffer;
+  let page: any;
+  try {
+    page = await readBlurRegions(driver);
+  } catch (error: any) {
+    throw new Error(`Couldn't read the live annotation blurs before the screenshot: ${error?.message ?? error}`);
+  }
+  const regions: any[] = Array.isArray(page?.regions) ? page.regions : [];
+  if (regions.length === 0) return buffer;
+  const meta = await sharp(buffer).metadata();
+  const scale = computeScale(meta.width, page.viewportWidth);
+  const { blurRegions } = annotationsToSvg(
+    regions.map((region) => ({
+      type: "blur",
+      rect: toCanvasRect(region, scale),
+      style: { intensity: region.intensity * scale },
+    })) as any,
+    { width: meta.width, height: meta.height }
+  );
+  return await compositeAnnotations({ sharp, buffer, svg: "", blurRegions });
 }
 
 // Resize the window so the viewport matches the reference and capture again.
@@ -253,7 +286,7 @@ async function retakeAtReferenceSize({
   let got: string;
   try {
     await realizeViewport(driver, wanted, config, label, "debug");
-    const buffer = await takeBrowserScreenshot(driver);
+    const buffer = await takeBrowserScreenshot(driver, sharp);
     const retaken = await sharp(buffer).metadata();
     if (
       retaken.width === reference.width &&
@@ -786,7 +819,7 @@ async function captureScreenshot({
       await appWindowScreenshot(appEntry, appWindowTarget, appScratchPath);
       captureBuffer = fs.readFileSync(appScratchPath);
     } else {
-      captureBuffer = await takeBrowserScreenshot(captureDriver);
+      captureBuffer = await takeBrowserScreenshot(captureDriver, sharp);
     }
   } catch (error) {
     // Couldn't capture screenshot

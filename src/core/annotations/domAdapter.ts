@@ -33,6 +33,7 @@ export {
   mountAnnotations,
   clearLayer,
   layerScript,
+  readBlurRegions,
 };
 
 /**
@@ -236,7 +237,8 @@ function blurRegionsToHtml(regions: any[]): string {
     .map((region) => {
       const id = String(region.id ?? "").replace(/"/g, "");
       return (
-        `<div class="dd-blur" data-dd-blur="${id}" style="` +
+        `<div class="dd-blur" data-dd-blur="${id}" ` +
+        `data-dd-intensity="${region.intensity}" style="` +
         `left:${region.rect.x}px;top:${region.rect.y}px;` +
         `width:${region.rect.width}px;height:${region.rect.height}px;` +
         `backdrop-filter:blur(${region.intensity}px);` +
@@ -303,6 +305,40 @@ async function mountAnnotations({
       tracked,
     }
   );
+}
+
+/**
+ * Where the layer's blurs sit right now, in CSS pixels, and how strong each is.
+ *
+ * A screenshot burns these into its capture, because Firefox leaves
+ * `backdrop-filter` out of WebDriver screenshots (ADR 01201). They're read from
+ * the page rather than rebuilt from state, so a tracked blur is read where it
+ * has moved to.
+ */
+async function readBlurRegions(driver: any): Promise<{
+  viewportWidth: number;
+  regions: { x: number; y: number; width: number; height: number; intensity: number }[];
+}> {
+  return await driver.execute((tag: string) => {
+    const layer: any = document.querySelector(tag);
+    const blurs: any[] =
+      layer && layer.shadowRoot
+        ? Array.from(layer.shadowRoot.querySelectorAll(".dd-blur"))
+        : [];
+    return {
+      viewportWidth: window.innerWidth,
+      regions: blurs.map((blur) => {
+        const rect = blur.getBoundingClientRect();
+        return {
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height,
+          intensity: Number(blur.getAttribute("data-dd-intensity")),
+        };
+      }),
+    };
+  }, LAYER_TAG);
 }
 
 /** Remove the layer entirely, stopping its tracking loop and any pending

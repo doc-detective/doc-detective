@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annotate blur</title>
+    <style>
+        /* A box of 2px black-and-white stripes: the sharpest content there is,
+           so a blur over it shows plainly in the captured pixels. Sized in
+           viewport percentages so a test finds it in a capture at any pixel
+           ratio without asking the page. */
+        html, body { margin: 0; background: #fff; }
+        #secret {
+            position: fixed;
+            left: 10%;
+            top: 10%;
+            width: 40%;
+            height: 40%;
+            background: repeating-linear-gradient(90deg, #000 0 2px, #fff 2px 4px);
+        }
+    </style>
+</head>
+<body>
+    <div id="secret" aria-label="Stand-in for a secret"></div>
+</body>
+</html>
