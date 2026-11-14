@@ -501,8 +501,8 @@ In order:
 **Rollback:** Fix forward with 5.0.x first. If 5.0 is unusable, follow "Roll back a major release" in
 [release-operations.md](../maintenance/release-operations.md#roll-back-a-major-release).
 
-**4.x support:** Security fixes only, as `fix:` commits on `4.x`, through the date from open decision 5.
-When support ends, run `npm deprecate` on 4.x so installs say so.
+**4.x support:** No promise (open decision 5). A fix can still ship as a `fix:` commit on `4.x`, but
+nothing tells users to expect one.
 
 ### Final 4.x update
 
@@ -527,11 +527,9 @@ Print this after the reporters finish, next to `maybeShowHint` (`src/cli.ts:267`
 also means it works in CI, where the update check doesn't run (`src/cli.ts:188`).
 
 ```text
-Doc Detective 5 is available. 4.x now gets security fixes only, through <end-of-support date>.
+Doc Detective 5 is available.
 
-What changes: a failed test now fails the run with exit code 1, logs move to stderr, and --output
-is now a results file, and Node 24.15 or later is required. The guide lists every change.
-To keep today's exit codes while you triage, use --no-exit-on-fail, or exit_on_fail: false in the Action.
+What changes: a failed test fails the run with exit code 1, logs go to stderr, `--output` names a results file, and Node.js 24.15 or later is required. The guide lists every change. To keep today's exit codes while you triage, use `--no-exit-on-fail`, or `exit_on_fail: false` in the GitHub Action.
 
 Upgrade:
   npm            npm i doc-detective@5
@@ -541,7 +539,7 @@ Upgrade:
 Guide: https://docs.doc-detective.com/docs/ci/upgrade-to-v5
 ```
 
-Fill in the date from open decision 5 before drafting this release's PR.
+It names no end-of-support date, per open decision 5 ([ADR 01200](../../adrs/01200-final-4x-update-points-to-doc-detective-5.md)).
 
 When `GITHUB_ACTIONS` is `true`, also print `::notice title=Doc Detective 5 is available::`, followed by
 the first line and the guide link. The runner reads workflow commands from stdout, so it appears on the
@@ -713,7 +711,6 @@ answer. Add fixtures where the gate can express them, and a hint where the featu
    sets that override, so a mistyped `input` reports `failed` there.
 3. **Badge rule.** Proposed: `goTo` and `checkLink` alone don't qualify under `write: true`.
 4. **Issue reuse in Action v2.** Proposed: on by default.
-5. **4.x end of support.** Proposed: six months after GA. The notice states the date, so
-   it has to be settled before the final 4.x update's PR is drafted. It doesn't block GA.
+5. **4.x end of support.** Settled: no promise. The notice names no date and no support window.
 6. **What coverage measures.** Proposed in [coverage.md](coverage.md): separate counts by kind, led by
    procedure steps, with no model or combined score. Item 5.3 and verified answers both depend on it.
