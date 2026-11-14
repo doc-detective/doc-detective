@@ -54,7 +54,8 @@ page, rather than rebuilding rects from state, gets a tracked blur where it has 
 A tracked blur follows its element, so it can move while the screenshot is taken. It only moves on an animation
 frame. So from just before the capture until the read after it, the page notes where each blur is drawn on every
 frame (`watchBlurRegions`). Each blur then covers the box spanning every place it was drawn, including one it left
-before the read. Over-blurring is the safe side of a redaction.
+before the read. Over-blurring is the safe side of a redaction. Where blurs overlap, the last one composited shows,
+so they go weakest first. A widened weak blur can't replace a stronger one.
 
 The rects and intensities scale by the capture's width over the viewport's, as `screenshot.annotations` rects do.
 They go through the same generator and compositor the screenshot's own annotations use (`annotationsToSvg`,

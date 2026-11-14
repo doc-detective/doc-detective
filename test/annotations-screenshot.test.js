@@ -498,6 +498,29 @@ describe("live annotate blurs in a screenshot", function () {
     assert.ok(beside > 120, `the region beside the blur reads ${beside.toFixed(2)}, so the blur spread past its rect`);
   });
 
+  it("keeps the stronger blur where a weaker one overlaps it", async function () {
+    // A weak blur listed after a strong one, and spread over it, as a tracked
+    // blur that moved during the capture is.
+    const capture = await makeStripedPng(400, 300);
+    const driver = liveBlurDriver(capture, {
+      innerWidth: 400,
+      regions: [
+        { x: 150, y: 50, width: 100, height: 100, intensity: 14 },
+        { x: 0, y: 50, width: 400, height: 100, intensity: 1 },
+      ],
+    });
+    const file = path.join(dir, "overlap.png");
+    const result = await saveScreenshot({
+      config: {},
+      step: { stepId: "live4", screenshot: { path: file, overwrite: "true" } },
+      driver,
+    });
+
+    assert.equal(result.status, "PASS", result.description);
+    const overlap = await sharpness(file, { x0: 170, y0: 70, x1: 230, y1: 130 });
+    assert.ok(overlap < 5, `the overlap reads ${overlap.toFixed(2)}, so the weaker blur replaced the stronger one`);
+  });
+
   it("reads every place a tracked blur was drawn since the watch, even one it left", async function () {
     // Runs the real page code against a stand-in page. The blur is drawn at
     // x 50–150, moves to x 250–350 for one frame, and is back before the read,

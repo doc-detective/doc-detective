@@ -212,7 +212,10 @@ async function liveBlurs(driver: any, call: (driver: any) => Promise<any>): Prom
 // avoid that, but a running recording would catch the page unblurred. Fails
 // closed, like the secret blur: no capture beats an unredacted one.
 async function burnInLiveBlurs(sharp: any, buffer: Buffer, page: any): Promise<Buffer> {
-  const regions: any[] = Array.isArray(page?.regions) ? page.regions : [];
+  // Weakest first: where blurs overlap, the last one composited is what shows.
+  const regions: any[] = Array.isArray(page?.regions)
+    ? [...page.regions].sort((a, b) => a.intensity - b.intensity)
+    : [];
   if (regions.length === 0) return buffer;
   const meta = await sharp(buffer).metadata();
   const scale = computeScale(meta.width, page.viewportWidth);
