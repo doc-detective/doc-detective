@@ -820,7 +820,7 @@ describe("elementImage matching", function () {
       driver.execute = async (fn, ...args) => {
         if (!String(fn).includes("getBoundingClientRect")) return execute(fn, ...args);
         if (++reads === 1) throw new Error("stale element reference");
-        return { x: 20, y: 30, width: 80, height: 80 };
+        return [{ x: 20, y: 30, width: 80, height: 80 }];
       };
       const found = await findElementByCriteria({ selector: "#box", elementImage: { base64: b64(svg) }, driver, timeout: 3000 });
       expect(found.error).to.equal(null);
@@ -842,7 +842,7 @@ describe("elementImage matching", function () {
         most = Math.max(most, ++reading);
         await new Promise((resolve) => setTimeout(resolve, 1));
         reading--;
-        return { x: 20, y: 30, width: 80, height: 80 };
+        return [{ x: 20, y: 30, width: 80, height: 80 }];
       };
       const found = await findElementByCriteria({ selector: "#box", elementImage: { base64: b64(svg) }, driver, timeout: 0 });
       expect(found.error).to.equal(null);
@@ -893,6 +893,17 @@ describe("elementImage matching", function () {
       expect(found.error).to.match(/no element meets the other criteria\.$/);
     });
 
+    it("image-combined: the gap between an element and a descendant outside it isn't in scope", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 150, y: 100 }, { svg, x: 300, y: 200 }] });
+      const driver = boxes(fakeDriver(shot, { dom: { x: 20, y: 40, width: 40, height: 40 } }), { x: 20, y: 40, width: 40, height: 40 }, [
+        { x: 280, y: 180, width: 80, height: 80 },
+      ]);
+      const found = await findElementByCriteria({ selector: "#menu", elementImage: { base64: b64(svg) }, driver, timeout: 0 });
+      expect(found.error).to.equal(null);
+      expect(await found.element.getLocation()).to.deep.equal({ x: 300, y: 200 });
+    });
+
     it("image-combined: an element with no size of its own spans only what it contains", async function () {
       const svg = icon(GEAR, "#333333", 24);
       const shot = await page({ items: [{ svg, x: 40, y: 50 }, { svg, x: 300, y: 200 }] });
@@ -913,7 +924,7 @@ describe("elementImage matching", function () {
       driver.execute = async (fn, ...args) => {
         if (!String(fn).includes("getBoundingClientRect")) return execute(fn, ...args);
         if (++reads === 1) throw new Error("stale element reference");
-        return { x: 20, y: 30, width: 80, height: 80 };
+        return [{ x: 20, y: 30, width: 80, height: 80 }];
       };
       const found = await findElementByCriteria({ selector: "#box", elementImage: { base64: b64(svg) }, driver, timeout: 0 });
       expect(found.error).to.equal(null);

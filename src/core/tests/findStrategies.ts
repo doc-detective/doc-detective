@@ -616,24 +616,23 @@ async function findElementByCriteria({
           const found = await findElementByCriteria({ ...others, timeout: 0, driver, all: true });
           const regions = [];
           for (const element of found.elements ?? []) {
-            const region = await driver
+            const boxes = await driver
               .execute((el: any) => {
                 // An inline element's box is its line of text, which a taller icon inside it overflows.
+                // So each descendant outside the boxes so far adds its own, leaving the gaps out.
                 // A box with no size, such as a hidden or `display: contents` element's, holds nothing.
-                let [left, top, right, bottom] = [Infinity, Infinity, -Infinity, -Infinity];
+                const kept: any[] = [];
                 for (const node of [el, ...el.querySelectorAll("*")]) {
                   const r = node.getBoundingClientRect();
                   if (!r.width || !r.height) continue;
-                  left = Math.min(left, r.left);
-                  top = Math.min(top, r.top);
-                  right = Math.max(right, r.right);
-                  bottom = Math.max(bottom, r.bottom);
+                  if (kept.some((k) => r.left >= k.left && r.top >= k.top && r.right <= k.right && r.bottom <= k.bottom)) continue;
+                  kept.push(r);
                 }
-                return left < right ? { x: left, y: top, width: right - left, height: bottom - top } : null;
+                return kept.map((r) => ({ x: r.left, y: r.top, width: r.width, height: r.height }));
               }, element)
               // An element the page just replaced isn't there this look, as with DOM criteria.
-              .catch(() => null);
-            if (region) regions.push(region);
+              .catch(() => []);
+            regions.push(...boxes);
           }
           return regions;
         }
