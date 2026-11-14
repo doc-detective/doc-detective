@@ -226,8 +226,8 @@ passes. If that job fails, the version is published to `staging-<version>` (and 
 ## Failed `success` step
 
 After a release publishes, `@semantic-release/github`'s `success` step looks up every commit's
-pull requests, to post a "released in" comment on each. A large release, like the first v5 one
-with 1,126 commits, makes GitHub's GraphQL API answer some of those parallel lookups with a 504.
+pull requests, to post a "released in" comment on each. On a large release, GitHub's GraphQL API
+can answer some of those parallel lookups with a 504. The first v5 release had 1,126 commits.
 The step then fails with `Cannot destructure property 'repository'` (#949).
 
 - **Effect:** the `release` job fails, but the packages, tag, and GitHub release are already out.
