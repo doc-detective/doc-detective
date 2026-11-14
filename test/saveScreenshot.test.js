@@ -307,7 +307,7 @@ describeIfSharp("saveScreenshot unified assertions", function () {
     assert.equal(result.outputs.variation, undefined);
   });
 
-  // Issue #719 / ADR 01209: a near-miss size at the same scale compares the
+  // Issue #719 / ADR 01205: a near-miss size at the same scale compares the
   // common top-left region; resampling smeared every row into false drift.
   it("same-scale size mismatch compares the common region, not a resample", async function () {
     const target = path.join(tmpDir, "shot.png");

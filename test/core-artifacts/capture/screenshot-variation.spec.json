@@ -85,7 +85,7 @@
     },
     {
       "testId": "variation-near-miss-size",
-      "description": "ADR 01203 / #719: the compare crop is 1px taller than the reference at the same scale, so the comparison crops to the common region instead of resampling, and the unchanged page measures no drift.",
+      "description": "ADR 01205 / #719: the compare crop is 1px taller than the reference at the same scale, so the comparison crops to the common region instead of resampling, and the unchanged page measures no drift.",
       "steps": [
         {
           "goTo": "http://localhost:8092"

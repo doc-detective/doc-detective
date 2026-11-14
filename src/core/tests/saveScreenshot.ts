@@ -1214,7 +1214,7 @@ async function captureScreenshot({
         return await evaluateApplicable();
       }
 
-      // Bring the images to a common size (ADR 01203). At the same scale (each
+      // Bring the images to a common size (ADR 01205). At the same scale (each
       // side within 5%, such as a viewport a pixel shorter) compare the common
       // top-left region: resampling would smear every row into false drift.
       // A larger uniform scale is a devicePixelRatio difference, so resample.

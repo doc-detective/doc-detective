@@ -17,9 +17,9 @@ Resampling rewrites every row. Two images whose shared region is byte-for-byte i
 of 0.05, so the step returned WARNING and, under `overwrite: "aboveVariation"`, replaced the committed reference
 ([#719](https://github.com/doc-detective/doc-detective/issues/719)).
 
-Near-miss sizes are common. A cropped element's size can shift by a pixel, and a viewport can differ by a few pixels
-when the resize to the reference ([ADR 01144](01144-resize-to-reference-and-default-browser-size.md)) doesn't apply,
-such as for crops, recordings, or a browser that can't reach the size.
+Near-miss sizes are common. A cropped element's size can shift by a pixel. A viewport can differ by a few pixels when
+the resize to the reference ([ADR 01144](01144-resize-to-reference-and-default-browser-size.md)) doesn't apply. That
+covers crops, recordings, and a browser that can't reach the size.
 
 The resample does serve one case: a reference taken at a different `devicePixelRatio`. Then both dimensions differ by
 the same factor, and the content is the same picture at another scale. ADR 01144 leaves that case to the resample on
@@ -46,8 +46,8 @@ How should two differently sized images be compared so unchanged content reports
 
 Chosen option: **A**.
 
-After the aspect-ratio gate, the comparison treats the images as the same scale when each dimension of the smaller is
-at least 95% of the larger. It then copies the top-left `min(width)×min(height)` rows of each image and compares those.
+After the aspect-ratio gate, the comparison checks the scale. The images share a scale when each dimension of the
+smaller is at least 95% of the larger. It then copies the top-left `min(width)×min(height)` rows of each image and compares those.
 Otherwise the difference is a uniform scale (the aspect gate already holds), so both images resample to the smaller
 size as before. The 5% bound matches the aspect gate's tolerance and sits below the smallest common display scale step
 (110%, a 0.91 ratio).
