@@ -883,6 +883,110 @@ describe("runtime/loader", function () {
     });
   });
 
+  // #896: two installs into one cache ran two `npm install`s at once and left
+  // Appium unable to start. Installs into one cache dir serialize through the
+  // runtime lock, and a waiter re-checks what's still missing once it gets in.
+  describe("concurrent installs into one cache", function () {
+    // A spawner whose child stays alive for `ms`, materializes the package it
+    // was asked for, and tracks how many npm children ran at once.
+    function makeSlowSpawner(ms) {
+      const state = { active: 0, maxActive: 0, calls: 0 };
+      const spawner = (cmd, args) => {
+        state.calls += 1;
+        state.active += 1;
+        state.maxActive = Math.max(state.maxActive, state.active);
+        const prefix = args[args.indexOf("--prefix") + 1];
+        const child = new EventEmitter();
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        setTimeout(() => {
+          for (const spec of args.filter((a) => /^[a-z@].*@\d/.test(a))) {
+            const name = spec.slice(0, spec.lastIndexOf("@"));
+            const version = spec.slice(spec.lastIndexOf("@") + 1).replace(/^[^\d]*/, "");
+            const dir = path.join(prefix, "node_modules", name);
+            fs.mkdirSync(dir, { recursive: true });
+            fs.writeFileSync(
+              path.join(dir, "package.json"),
+              JSON.stringify({ name, version, main: "index.js" })
+            );
+            fs.writeFileSync(path.join(dir, "index.js"), "");
+          }
+          state.active -= 1;
+          child.emit("close", 0);
+        }, ms);
+        return child;
+      };
+      spawner.state = state;
+      return spawner;
+    }
+
+    it("never runs two npm installs into the same runtime at once", async function () {
+      this.timeout(20000);
+      const spawner = makeSlowSpawner(300);
+      const opts = { deps: { spawn: spawner, logger: () => {} }, force: true };
+      await Promise.all([
+        ensureRuntimeInstalled(["pngjs"], opts),
+        ensureRuntimeInstalled(["pixelmatch"], opts),
+      ]);
+      expect(spawner.state.calls).to.equal(2);
+      expect(spawner.state.maxActive).to.equal(1);
+      expect(fs.existsSync(path.join(getRuntimeDir({}), "install.lock"))).to.equal(false);
+    });
+
+    it("serializes installs across processes, and a waiting process stays alive until its turn", async function () {
+      this.timeout(30000);
+      const { execFile } = await import("node:child_process");
+      const loaderUrl = new URL("../dist/runtime/loader.js", import.meta.url).href;
+      const log = path.join(tmpRoot, "spans.log");
+      // Each child installs through a fake npm that holds for 400ms and logs
+      // its start/end, so overlapping spans would show in the log. Nothing
+      // else keeps the child's event loop alive while it waits for the lock.
+      const script = `
+        import { ensureRuntimeInstalled } from ${JSON.stringify(loaderUrl)};
+        import { EventEmitter } from "node:events";
+        import fs from "node:fs";
+        const spawn = () => {
+          const child = new EventEmitter();
+          child.stdout = new EventEmitter();
+          child.stderr = new EventEmitter();
+          fs.appendFileSync(process.env.SPANS, "start " + Date.now() + "\\n");
+          setTimeout(() => {
+            fs.appendFileSync(process.env.SPANS, "end " + Date.now() + "\\n");
+            child.emit("close", 0);
+          }, 400);
+          return child;
+        };
+        await ensureRuntimeInstalled(["pngjs"], { force: true, deps: { spawn, logger: () => {} } });
+        console.log("installed");
+      `;
+      const run = () =>
+        new Promise((resolve, reject) =>
+          execFile(
+            process.execPath,
+            ["--input-type=module", "-e", script],
+            { env: { ...process.env, SPANS: log } },
+            (err, stdout) => (err ? reject(err) : resolve(stdout))
+          )
+        );
+      const outs = await Promise.all([run(), run()]);
+      expect(outs.map((o) => o.trim())).to.deep.equal(["installed", "installed"]);
+      const events = fs.readFileSync(log, "utf8").trim().split("\n").map((l) => l.split(" ")[0]);
+      expect(events).to.deep.equal(["start", "end", "start", "end"]);
+    });
+
+    it("skips the install a waiter no longer needs once the lock frees", async function () {
+      this.timeout(20000);
+      const spawner = makeSlowSpawner(300);
+      const opts = { deps: { spawn: spawner, logger: () => {} } };
+      await Promise.all([
+        ensureRuntimeInstalled(["appium"], opts),
+        ensureRuntimeInstalled(["appium"], opts),
+      ]);
+      expect(spawner.state.calls).to.equal(1);
+      expect(resolveHeavyDepSource("appium")).to.equal("cache");
+    });
+  });
+
   // ADR 01135: the runner starts heavy imports while Appium boots, so the
   // import cost overlaps the idle readiness wait instead of following it.
   describe("prefetchHeavyDep", function () {

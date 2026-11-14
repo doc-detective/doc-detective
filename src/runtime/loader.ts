@@ -19,6 +19,7 @@ import {
   writeInstalledRecord,
   type CacheDirContext,
 } from "./cacheDir.js";
+import { acquireLock } from "./lock.js";
 
 export type LogLevel = "info" | "warning" | "error" | "debug";
 export type Logger = (msg: string, level?: LogLevel) => void;
@@ -474,21 +475,39 @@ export async function ensureRuntimeInstalled(
   packages: string[],
   options: EnsureRuntimeInstalledOptions = {}
 ): Promise<void> {
-  const {
-    ctx = {},
-    deps = {},
-    force = false,
-    installTimeoutMs = DEFAULT_INSTALL_TIMEOUT_MS,
-  } = options;
-  const logger = deps.logger ?? defaultLogger;
-  const spawner = deps.spawn ?? (nodeSpawn as SpawnFn);
   if (packages.length === 0) return;
-
+  const { ctx = {}, force = false } = options;
   // Pull in optional peer companions (e.g. proxy-agent for
   // @puppeteer/browsers@3) that npm won't auto-install but the dep needs for
   // full functionality. Done here so both the JIT path (loadHeavyDep) and the
   // bulk path (installRuntime / `install all`) get them.
   packages = withPeerCompanions(packages);
+  if (packagesToInstall(packages, ctx, force).length === 0) return;
+
+  // Two `npm install`s into one prefix corrupt it (#896): each reifies its own
+  // ideal tree and removes what the other just extracted. Installs into one
+  // runtime dir therefore serialize through the cross-process lock, in this
+  // process too. A waiter re-checks what's missing once it holds the lock, so
+  // two runs that need the same package install it once.
+  const runtimeDir = getRuntimeDir(ctx);
+  const lock = await acquireLock({
+    dir: path.join(runtimeDir, "install.lock"),
+    pollMs: 250,
+    // The lock's default sleep is unref'd. A process with nothing else to do
+    // (`doc-detective install`) would exit mid-wait, so keep this one ref'd.
+    deps: { sleep: (ms) => new Promise<void>((r) => setTimeout(r, ms)) },
+  });
+  if (!lock) {
+    throw new Error(
+      `Couldn't install ${packages.join(", ")}: another Doc Detective process is still installing into ${runtimeDir}. Wait for it to finish, then run again.`
+    );
+  }
+  try {
+    await installUnderLock(packages, options);
+  } finally {
+    lock.release();
+  }
+}
 
   // Decide what actually needs `npm install`. The skip cases — when
   // not forced — are:
@@ -503,7 +522,12 @@ export async function ensureRuntimeInstalled(
   //      stale version; we re-install in that case so an upgraded shim
   //      doesn't run against an outdated cache (the bug Copilot
   //      flagged for persistent DOC_DETECTIVE_CACHE_DIR setups).
-  const toInstall = force
+function packagesToInstall(
+  packages: string[],
+  ctx: CacheDirContext,
+  force: boolean
+): string[] {
+  return force
     ? [...packages]
     : packages.filter((name) => {
         if (tryResolveFromShim(name)) return false;
@@ -520,6 +544,21 @@ export async function ensureRuntimeInstalled(
           return true;
         }
       });
+}
+
+async function installUnderLock(
+  packages: string[],
+  options: EnsureRuntimeInstalledOptions
+): Promise<void> {
+  const {
+    ctx = {},
+    deps = {},
+    force = false,
+    installTimeoutMs = DEFAULT_INSTALL_TIMEOUT_MS,
+  } = options;
+  const logger = deps.logger ?? defaultLogger;
+  const spawner = deps.spawn ?? (nodeSpawn as SpawnFn);
+  const toInstall = packagesToInstall(packages, ctx, force);
   if (toInstall.length === 0) return;
 
   const specs = toInstall.map(
