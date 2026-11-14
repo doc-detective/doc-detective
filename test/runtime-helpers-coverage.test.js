@@ -1059,8 +1059,10 @@ describe("runtime helpers extra coverage", function () {
         child.stderr = new EventEmitter();
         child.kill = () => {
           killed = true;
+          // A killed child exits; the install settles on its close.
+          setImmediate(() => child.emit("close", null));
         };
-        // deliberately never emit close/error
+        // never emits close/error on its own
         return child;
       };
       let threw = false;

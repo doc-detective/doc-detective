@@ -46,7 +46,7 @@ A cache hit counts only while no install holds the lock. Otherwise the run waits
 checks again, because a package npm has only partly extracted already resolves.
 
 When an install times out, the lock stays held until the npm child exits. After 5 seconds the child
-gets `SIGKILL`, and the install gives up. A child that outlives `SIGKILL` is stuck in the kernel, not
+gets `SIGKILL`. If it still hasn't exited 5 seconds later, the install gives up. A child that outlives `SIGKILL` is stuck in the kernel, not
 writing the cache, and an unbounded wait would freeze the run.
 
 The lock is a heartbeat lease. A crashed holder's lock is taken over once its heartbeat goes stale

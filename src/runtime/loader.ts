@@ -745,7 +745,9 @@ async function installUnderLock(
           } catch {
             // best-effort
           }
-          finish(rejectTimedOut);
+          // Give SIGKILL the same grace to land; `close` settles sooner.
+          graceTimer = setTimeout(() => finish(rejectTimedOut), KILL_GRACE_MS);
+          if (typeof graceTimer.unref === "function") graceTimer.unref();
         }, KILL_GRACE_MS);
         if (typeof graceTimer.unref === "function") graceTimer.unref();
       }, installTimeoutMs);
