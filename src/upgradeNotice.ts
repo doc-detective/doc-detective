@@ -40,6 +40,37 @@ export function warnUpgrade(messages: string[], logLevel?: string): void {
   }
 }
 
+// The final 4.x update exists to say this (ADR 01200), so it prints after every
+// run, in CI and the Action too, with no registry check: this release only
+// exists once 5.0 does. It makes no promise about 4.x support.
+export const V5_NOTICE = `Doc Detective 5 is available.
+
+What changes: a failed test fails the run with exit code 1, logs go to stderr, \`--output\` names a results file, and Node.js 24.15 or later is required. The guide lists every change. To keep today's exit codes while you triage, use \`--no-exit-on-fail\`, or \`exit_on_fail: false\` in the GitHub Action.
+
+Upgrade:
+  npm            npm i doc-detective@5
+  GitHub Action  change doc-detective/github-action@v1 to @v2
+  Docker         use docdetective/docdetective:latest
+
+Guide: ${UPGRADE_GUIDE_URL}
+`;
+
+let v5NoticeShown = false;
+
+export function showV5Notice(logLevel?: string): void {
+  if (logLevel === "silent" || v5NoticeShown) return;
+  v5NoticeShown = true;
+  console.error(`\n${V5_NOTICE}`);
+  // The runner reads workflow commands from stdout, so this reaches the run
+  // page at any Action version. The Action reads results from its --output
+  // file, so the extra line can't break it.
+  if (process.env.GITHUB_ACTIONS === "true") {
+    console.log(
+      `::notice title=Doc Detective 5 is available::Doc Detective 5 is available. Upgrade guide: ${UPGRADE_GUIDE_URL}`
+    );
+  }
+}
+
 export function warnRemovedBin(bin: keyof typeof REMOVED_BINS): void {
   warnUpgrade([`\`${bin}\` is removed in Doc Detective 5.0. ${REMOVED_BINS[bin]}`]);
 }

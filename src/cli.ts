@@ -14,7 +14,7 @@ import {
 } from "./utils.js";
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
-import { commandWarnings, runResultWarnings, warnUpgrade } from "./upgradeNotice.js";
+import { commandWarnings, runResultWarnings, showV5Notice, warnUpgrade } from "./upgradeNotice.js";
 import { installCommand } from "./runtime/installCommand.js";
 import { lspCommand } from "./lsp/command.js";
 import { printDebug, defaultDebugDir } from "./debug/index.js";
@@ -294,6 +294,7 @@ async function runTestsHandler(args: any) {
     runResultWarnings(config.exitOnFail, shouldFailRun(results), results),
     config.logLevel
   );
+  showV5Notice(config.logLevel);
 
   // Opt-in gate: exit 1 on spec failures. Non-obvious WHY — the CLI otherwise
   // exits 0 even on FAIL (the fail-the-build call has historically lived in CI

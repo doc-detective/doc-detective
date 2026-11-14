@@ -17,6 +17,7 @@ import {
   outputWarnings,
   runResultWarnings,
   specWarnings,
+  V5_NOTICE,
 } from "../dist/upgradeNotice.js";
 
 before(async function () {
@@ -31,12 +32,18 @@ const ACTION_META = JSON.stringify({ dist_interface: "github-actions" });
 function run(script, args, { env = {}, cwd = os.tmpdir(), timeout = 60000, unset = [], nodeArgs = [] } = {}) {
   const { DOC_DETECTIVE, DOC_DETECTIVE_CONFIG, DOC_DETECTIVE_API, DOC_DETECTIVE_META, ...hostEnv } = process.env;
   for (const key of unset) delete hostEnv[key];
-  return spawnSync(process.execPath, [...nodeArgs, path.resolve(script), ...args], {
-    env: { ...hostEnv, DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1", CI: "1", ...env },
+  const r = spawnSync(process.execPath, [...nodeArgs, path.resolve(script), ...args], {
+    // GITHUB_ACTIONS is cleared so CI runs of this suite match local ones.
+    env: { ...hostEnv, DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1", CI: "1", GITHUB_ACTIONS: "", ...env },
     encoding: "utf8",
     cwd,
     timeout,
   });
+  // Every run ends with the Doc Detective 5 notice, which links the guide too.
+  // The warning rows below assert on what's left, and `rawStderr` keeps it.
+  r.rawStderr = r.stderr;
+  if (typeof r.stderr === "string") r.stderr = r.stderr.split(`\n${V5_NOTICE}`).join("");
+  return r;
 }
 const runCli = (args, opts) => run("bin/doc-detective.js", args, opts);
 
@@ -99,6 +106,53 @@ describe("upgrade warnings", function () {
       });
       expect(r.status).to.equal(0);
       expect(r.stderr).to.not.include(URL);
+    });
+  });
+
+  describe("Doc Detective 5 notice", function () {
+    it("prints once on stderr after a passing run, and exits 0", function () {
+      const r = runCli(["--input", spec("p.spec.json", PASSING_SPEC), "--output", out()]);
+      expect(r.status).to.equal(0);
+      expect(r.rawStderr.split(V5_NOTICE)).to.have.length(2);
+      expect(r.stdout).to.not.include("Doc Detective 5 is available");
+    });
+
+    it("names the upgrade for each install and links the guide", function () {
+      expect(V5_NOTICE).to.match(/^Doc Detective 5 is available\./);
+      expect(V5_NOTICE).to.include("npm i doc-detective@5").and.include("@v2").and.include(URL);
+      expect(V5_NOTICE).to.include("docdetective/docdetective:latest").and.include("`--no-exit-on-fail`");
+      expect(V5_NOTICE).to.not.match(/security|support/i);
+    });
+
+    it("prints in the Action's legacy path, so @v1 runs see it", function () {
+      const r = runCli(["--input", spec("p.spec.json", PASSING_SPEC), "--output", out()], {
+        env: { DOC_DETECTIVE_META: ACTION_META },
+      });
+      expect(r.rawStderr).to.include(V5_NOTICE);
+    });
+
+    it("prints after a failed run too, as the last thing on stderr", function () {
+      const r = runCli(["--input", spec("f.spec.json", FAILING_SPEC), "--output", out()]);
+      expect(r.rawStderr.trimEnd().endsWith(V5_NOTICE.trimEnd())).to.equal(true);
+      expect(r.stderr).to.include("exit 1");
+    });
+
+    it("adds a workflow-command notice on stdout in GitHub Actions, for the run page", function () {
+      const r = runCli(["--input", spec("p.spec.json", PASSING_SPEC), "--output", out()], {
+        env: { GITHUB_ACTIONS: "true" },
+      });
+      expect(r.stdout).to.include(
+        `::notice title=Doc Detective 5 is available::Doc Detective 5 is available. Upgrade guide: ${URL}\n`
+      );
+      expect(r.stdout.match(/::notice/g)).to.have.length(1);
+    });
+
+    it("stays quiet at logLevel silent", function () {
+      const r = runCli(["--input", spec("p.spec.json", PASSING_SPEC), "--output", out(), "--logLevel", "silent"], {
+        env: { GITHUB_ACTIONS: "true" },
+      });
+      expect(r.rawStderr).to.not.include("Doc Detective 5 is available");
+      expect(r.stdout).to.not.include("::notice");
     });
   });
 
