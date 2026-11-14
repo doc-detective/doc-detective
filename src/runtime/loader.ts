@@ -267,8 +267,11 @@ export async function loadHeavyDep<T = unknown>(
     resolved = tryResolveFromCache(name, ctx);
     // A cache hit while another install holds the lock may be a package npm
     // has only partly extracted: wait for that install, then resolve again.
-    if (resolved && autoInstall && fs.existsSync(path.join(getRuntimeDir(ctx), "install.lock"))) {
-      await ensureRuntimeInstalled([name], { ctx, deps });
+    // Waiting installs nothing, so autoInstall: false waits too.
+    const runtimeDir = resolved ? getRuntimeDir(ctx) : "";
+    if (resolved && fs.existsSync(installLockDir(runtimeDir))) {
+      const lock = await acquireInstallLock(runtimeDir);
+      lock?.release();
       resolved = tryResolveFromCache(name, ctx);
     }
   }
@@ -472,6 +475,19 @@ function readInstalledVersionFromCache(
   }
 }
 
+const installLockDir = (runtimeDir: string) => path.join(runtimeDir, "install.lock");
+
+// Null when another install still holds the lock after the lock's 10-minute wait.
+function acquireInstallLock(runtimeDir: string) {
+  return acquireLock({
+    dir: installLockDir(runtimeDir),
+    pollMs: 250,
+    // The lock's default sleep is unref'd. A process with nothing else to do
+    // (`doc-detective install`) would exit mid-wait, so keep this one ref'd.
+    deps: { sleep: (ms) => new Promise<void>((r) => setTimeout(r, ms)) },
+  });
+}
+
 /**
  * Install one or more heavy npm packages into <cacheDir>/runtime. Uses
  * `npm install --prefix <runtimeDir> --no-save --no-audit --no-fund <pkg>@<v>`
@@ -493,7 +509,7 @@ export async function ensureRuntimeInstalled(
   // bulk path (installRuntime / `install all`) get them.
   packages = withPeerCompanions(packages);
   const runtimeDir = getRuntimeDir(ctx);
-  const lockDir = path.join(runtimeDir, "install.lock");
+  const lockDir = installLockDir(runtimeDir);
   // A package npm has only partly extracted already resolves, so trust a
   // cache hit only while no install holds the lock.
   if (packagesToInstall(packages, ctx, force).length === 0 && !fs.existsSync(lockDir)) return;
@@ -503,13 +519,7 @@ export async function ensureRuntimeInstalled(
   // runtime dir therefore serialize through the cross-process lock, in this
   // process too. A waiter re-checks what's missing once it holds the lock, so
   // two runs that need the same package install it once.
-  const lock = await acquireLock({
-    dir: lockDir,
-    pollMs: 250,
-    // The lock's default sleep is unref'd. A process with nothing else to do
-    // (`doc-detective install`) would exit mid-wait, so keep this one ref'd.
-    deps: { sleep: (ms) => new Promise<void>((r) => setTimeout(r, ms)) },
-  });
+  const lock = await acquireInstallLock(runtimeDir);
   if (!lock) {
     throw new Error(
       `Couldn't install ${packages.join(", ")}: another Doc Detective process is still installing into ${runtimeDir}. Wait for it to finish, then run again.`
