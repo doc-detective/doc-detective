@@ -289,12 +289,12 @@ async function runTestsHandler(args: any) {
     // Wrapped in its own try/catch internally — never throws.
     await maybeShowHint(config, results);
   }
-  showV5Notice(config.logLevel);
 
   warnUpgrade(
     runResultWarnings(config.exitOnFail, shouldFailRun(results), results),
     config.logLevel
   );
+  showV5Notice(config.logLevel);
 
   // Opt-in gate: exit 1 on spec failures. Non-obvious WHY — the CLI otherwise
   // exits 0 even on FAIL (the fail-the-build call has historically lived in CI

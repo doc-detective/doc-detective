@@ -42,7 +42,7 @@ function run(script, args, { env = {}, cwd = os.tmpdir(), timeout = 60000, unset
   // Every run ends with the Doc Detective 5 notice, which links the guide too.
   // The warning rows below assert on what's left, and `rawStderr` keeps it.
   r.rawStderr = r.stderr;
-  if (typeof r.stderr === "string") r.stderr = r.stderr.split(V5_NOTICE).join("");
+  if (typeof r.stderr === "string") r.stderr = r.stderr.split(`\n${V5_NOTICE}`).join("");
   return r;
 }
 const runCli = (args, opts) => run("bin/doc-detective.js", args, opts);
@@ -131,9 +131,10 @@ describe("upgrade warnings", function () {
       expect(r.rawStderr).to.include(V5_NOTICE);
     });
 
-    it("prints after a failed run too", function () {
+    it("prints after a failed run too, as the last thing on stderr", function () {
       const r = runCli(["--input", spec("f.spec.json", FAILING_SPEC), "--output", out()]);
-      expect(r.rawStderr).to.include(V5_NOTICE);
+      expect(r.rawStderr.trimEnd().endsWith(V5_NOTICE.trimEnd())).to.equal(true);
+      expect(r.stderr).to.include("exit 1");
     });
 
     it("adds a workflow-command notice on stdout in GitHub Actions, for the run page", function () {

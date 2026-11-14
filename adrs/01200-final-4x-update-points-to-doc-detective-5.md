@@ -29,7 +29,7 @@ move?
 ## Decision Outcome
 
 Chosen option: "Print a notice after every run", because it's the only option that reaches CI and
-Action `@v1` runs, and it needs no registry check, since this release only exists once 5.0 does.
+Action `@v1` runs. It needs no registry check, since this release only exists once 5.0 does.
 
 The notice prints once, on stderr, after the reporters and the hint, on every run except at
 `logLevel: silent`. It also prints in the Action's legacy path, which the ADR 01147 warnings skip. It
@@ -37,7 +37,7 @@ names what changes, how to keep 4.x exit codes while triaging, the upgrade for n
 Docker, and the upgrade guide. It says nothing about how long 4.x gets fixes.
 
 When `GITHUB_ACTIONS` is `true`, the run also prints one `::notice` workflow command on stdout, with
-the first line and the guide link, so the notice shows on the run page at any Action version. The
+the first line and the guide link. The notice then shows on the run page at any Action version. The
 Action reads results from its `--output` file, so the extra stdout line can't break it.
 
 The release ships from the `4.x` branch as a `fix:` to the `release-4.x` dist-tag, so `@latest`
