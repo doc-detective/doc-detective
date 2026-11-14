@@ -1008,6 +1008,26 @@ describe("runtime/loader", function () {
       expect(spawner.state.calls).to.equal(1);
     });
 
+    it("loadHeavyDep waits for an install in progress before importing a cache hit", async function () {
+      this.timeout(20000);
+      const spawner = makeSlowSpawner(0);
+      await ensureRuntimeInstalled(["appium"], { deps: { spawn: spawner, logger: () => {} } });
+      const lockDir = path.join(getRuntimeDir({}), "install.lock");
+      fs.mkdirSync(lockDir);
+      fs.writeFileSync(
+        path.join(lockDir, "owner.json"),
+        JSON.stringify({ pid: process.pid, hostname: os.hostname(), acquiredAt: Date.now(), heartbeatAt: Date.now() })
+      );
+      let released = false;
+      setTimeout(() => {
+        released = true;
+        fs.rmSync(lockDir, { recursive: true, force: true });
+      }, 500);
+      await loadHeavyDep("appium", { deps: { spawn: spawner, logger: () => {} } });
+      expect(released, "imported while another install held the lock").to.equal(true);
+      expect(spawner.state.calls).to.equal(1);
+    });
+
     it("keeps the lock until a timed-out npm child has exited", async function () {
       this.timeout(20000);
       const events = [];

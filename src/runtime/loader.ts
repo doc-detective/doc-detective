@@ -263,7 +263,15 @@ export async function loadHeavyDep<T = unknown>(
   const { autoInstall = true, ctx = {}, deps = {} } = options;
 
   let resolved = tryResolveFromShim(name);
-  if (!resolved) resolved = tryResolveFromCache(name, ctx);
+  if (!resolved) {
+    resolved = tryResolveFromCache(name, ctx);
+    // A cache hit while another install holds the lock may be a package npm
+    // has only partly extracted: wait for that install, then resolve again.
+    if (resolved && autoInstall && fs.existsSync(path.join(getRuntimeDir(ctx), "install.lock"))) {
+      await ensureRuntimeInstalled([name], { ctx, deps });
+      resolved = tryResolveFromCache(name, ctx);
+    }
+  }
 
   if (!resolved) {
     if (!autoInstall) {
