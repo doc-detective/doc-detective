@@ -1,3 +1,12 @@
+## [4.43.1](https://github.com/doc-detective/doc-detective/compare/v4.43.0...v4.43.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* **cli:** point 4.x users to Doc Detective 5 ([ba18362](https://github.com/doc-detective/doc-detective/commit/ba183625a0013b49f00e2f822df41979dbca72ea))
+* **cli:** print the Doc Detective 5 notice last ([7a00d3d](https://github.com/doc-detective/doc-detective/commit/7a00d3d2b229fbeeb70c1ecf4a6b50c187228080))
+* **cli:** show the Doc Detective 5 notice on GitHub Actions run pages ([ede4cb2](https://github.com/doc-detective/doc-detective/commit/ede4cb204854b405ba358e042c74fefcd7a7f10f))
+
 # [4.43.0](https://github.com/doc-detective/doc-detective/compare/v4.42.1...v4.43.0) (2026-11-09)
 
 
