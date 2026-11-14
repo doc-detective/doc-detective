@@ -269,7 +269,7 @@ jobs:
 
       - name: Upload digest
         if: github.event_name != 'pull_request' && (env.IMAGE_VERSION != 'latest' || inputs.publish_latest_tags)
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: linux-digest-${{ matrix.arch }}
           path: /tmp/digests/${{ matrix.arch }}.digest
