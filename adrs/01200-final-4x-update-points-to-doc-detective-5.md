@@ -36,6 +36,10 @@ The notice prints once, on stderr, after the reporters and the hint, on every ru
 names what changes, how to keep 4.x exit codes while triaging, the upgrade for npm, the Action, and
 Docker, and the upgrade guide. It says nothing about how long 4.x gets fixes.
 
+When `GITHUB_ACTIONS` is `true`, the run also prints one `::notice` workflow command on stdout, with
+the first line and the guide link, so the notice shows on the run page at any Action version. The
+Action reads results from its `--output` file, so the extra stdout line can't break it.
+
 The release ships from the `4.x` branch as a `fix:` to the `release-4.x` dist-tag, so `@latest`
 stays on 5.x and `doc-detective@4` resolves to it.
 
@@ -49,7 +53,7 @@ stays on 5.x and `doc-detective@4` resolves to it.
 ### Confirmation
 
 `test/upgrade-warnings.test.js` covers the notice after passing and failing runs, in the Action's
-legacy path, and its absence at `silent`. After release, `npm view doc-detective@4 version` returns
+legacy path, the `::notice` line in GitHub Actions, and its absence at `silent`. After release, `npm view doc-detective@4 version` returns
 the new patch and `npm view doc-detective dist-tags.latest` is still 5.x.
 
 ## Pros and Cons of the Options

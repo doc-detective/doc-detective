@@ -61,6 +61,14 @@ export function showV5Notice(logLevel?: string): void {
   if (logLevel === "silent" || v5NoticeShown) return;
   v5NoticeShown = true;
   console.error(`\n${V5_NOTICE}`);
+  // The runner reads workflow commands from stdout, so this reaches the run
+  // page at any Action version. The Action reads results from its --output
+  // file, so the extra line can't break it.
+  if (process.env.GITHUB_ACTIONS === "true") {
+    console.log(
+      `::notice title=Doc Detective 5 is available::Doc Detective 5 is available. Upgrade guide: ${UPGRADE_GUIDE_URL}`
+    );
+  }
 }
 
 export function warnRemovedBin(bin: keyof typeof REMOVED_BINS): void {

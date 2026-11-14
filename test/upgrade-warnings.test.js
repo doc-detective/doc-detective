@@ -33,7 +33,8 @@ function run(script, args, { env = {}, cwd = os.tmpdir(), timeout = 60000, unset
   const { DOC_DETECTIVE, DOC_DETECTIVE_CONFIG, DOC_DETECTIVE_API, DOC_DETECTIVE_META, ...hostEnv } = process.env;
   for (const key of unset) delete hostEnv[key];
   const r = spawnSync(process.execPath, [...nodeArgs, path.resolve(script), ...args], {
-    env: { ...hostEnv, DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1", CI: "1", ...env },
+    // GITHUB_ACTIONS is cleared so CI runs of this suite match local ones.
+    env: { ...hostEnv, DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1", CI: "1", GITHUB_ACTIONS: "", ...env },
     encoding: "utf8",
     cwd,
     timeout,
@@ -135,9 +136,22 @@ describe("upgrade warnings", function () {
       expect(r.rawStderr).to.include(V5_NOTICE);
     });
 
+    it("adds a workflow-command notice on stdout in GitHub Actions, for the run page", function () {
+      const r = runCli(["--input", spec("p.spec.json", PASSING_SPEC), "--output", out()], {
+        env: { GITHUB_ACTIONS: "true" },
+      });
+      expect(r.stdout).to.include(
+        `::notice title=Doc Detective 5 is available::Doc Detective 5 is available. Upgrade guide: ${URL}\n`
+      );
+      expect(r.stdout.match(/::notice/g)).to.have.length(1);
+    });
+
     it("stays quiet at logLevel silent", function () {
-      const r = runCli(["--input", spec("p.spec.json", PASSING_SPEC), "--output", out(), "--logLevel", "silent"]);
+      const r = runCli(["--input", spec("p.spec.json", PASSING_SPEC), "--output", out(), "--logLevel", "silent"], {
+        env: { GITHUB_ACTIONS: "true" },
+      });
       expect(r.rawStderr).to.not.include("Doc Detective 5 is available");
+      expect(r.stdout).to.not.include("::notice");
     });
   });
 
