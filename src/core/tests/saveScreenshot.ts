@@ -774,21 +774,21 @@ async function captureScreenshot({
       return await evaluateApplicable();
     }
 
-    // Scroll element into view at top-left with padding. A match on screen is
-    // already in view, and scrolling would move it away from its rect.
+    // Scroll the element to the center of the viewport. At the top edge a
+    // fixed or sticky header covers it, and the crop shows the header (#145).
+    // The padded rect fits the viewport (checked above), so centered it's
+    // fully in view. A match on screen is already in view, and scrolling would
+    // move it away from its rect.
+    // ponytail: a fixed header taller than half the viewport can still cover
+    // a centered element; detect occlusion with elementFromPoint if that bites.
     if (!isVisualMatch(element)) {
-      await driver.execute(
-        (el: any, pad: any) => {
-          el.scrollIntoView({
-            block: "start",
-            inline: "start",
-            behavior: "instant",
-          });
-          window.scrollBy(-pad.left, -pad.top);
-        },
-        element,
-        padding
-      );
+      await driver.execute((el: any) => {
+        el.scrollIntoView({
+          block: "center",
+          inline: "center",
+          behavior: "instant",
+        });
+      }, element);
 
       // Wait for scroll to complete
       await driver.pause(RENDER_SETTLE_MS);
