@@ -66,15 +66,15 @@ docs/design/visual-element-matching.md:
         commit-sha: 24a32427f695226065564abd2c691897a0afbe68
     - id: image-sweep-best
       claim:
-        integrity: sha256-66e721511bddc89f05fc92b5ebdc92564f5526f17451ab9bf8c668671bdb2491
+        integrity: sha256-d9c87f1460a4cfbb76066e730573209ed723f5088e18b873703e73e5ae6630dd
       source:
         file: src/core/tests/imageMatch.ts
         lines: 656-667
-        integrity: sha256-a1ff8f12dad58711e7d5628230feaf9fc78678469233b78cf923061d62251d99
-        commit-sha: 7556f4aff617739effc5d7a257f773dc41bb3680
+        integrity: sha256-12b901841e8dc0f9142aeaba0fafb7f72fbdb57d2c4c76747062fb5421c35ed3
+        commit-sha: aa75661261d75f0045b56e73a66465c2f218eb76
     - id: image-sweep-best-proof
       claim:
-        integrity: sha256-66e721511bddc89f05fc92b5ebdc92564f5526f17451ab9bf8c668671bdb2491
+        integrity: sha256-d9c87f1460a4cfbb76066e730573209ed723f5088e18b873703e73e5ae6630dd
       source:
         file: test/find-image.test.js
         lines: 580-589
@@ -114,7 +114,7 @@ docs/design/visual-element-matching.md:
         commit-sha: 33bd2f2e2707e348f39f081e23613b42e7055e67
     - id: image-first-match
       claim:
-        integrity: sha256-66e721511bddc89f05fc92b5ebdc92564f5526f17451ab9bf8c668671bdb2491
+        integrity: sha256-d9c87f1460a4cfbb76066e730573209ed723f5088e18b873703e73e5ae6630dd
       source:
         file: src/core/tests/imageMatch.ts
         lines: 665-673
@@ -122,7 +122,7 @@ docs/design/visual-element-matching.md:
         commit-sha: 24a32427f695226065564abd2c691897a0afbe68
     - id: image-first-match-proof
       claim:
-        integrity: sha256-66e721511bddc89f05fc92b5ebdc92564f5526f17451ab9bf8c668671bdb2491
+        integrity: sha256-d9c87f1460a4cfbb76066e730573209ed723f5088e18b873703e73e5ae6630dd
       source:
         file: test/find-image.test.js
         lines: 717-722
@@ -130,7 +130,7 @@ docs/design/visual-element-matching.md:
         commit-sha: 24a32427f695226065564abd2c691897a0afbe68
     - id: image-first-match-tie-proof
       claim:
-        integrity: sha256-66e721511bddc89f05fc92b5ebdc92564f5526f17451ab9bf8c668671bdb2491
+        integrity: sha256-d9c87f1460a4cfbb76066e730573209ed723f5088e18b873703e73e5ae6630dd
       source:
         file: test/find-image.test.js
         lines: 724-734

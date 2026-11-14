@@ -113,8 +113,8 @@ An SVG is rendered fresh at each size, so thin strokes stay sharp. A PNG is resi
 {/* cite image-opaque-exact image-opaque-exact-proof */}
 **A reference with no transparency,** such as a crop from a screenshot, matches its colors and its background. An icon cropped from a white page won't match the same icon on a dark toolbar, or in a different color.
 
-{/* cite image-rescale image-rescale-proof image-rescale-limit-proof */}
-Doc Detective also tries it at the sizes it would have on screens with a different display scale. A crop of a graphic or a solid icon therefore works from a high-density screen on a standard one, and the other way round. A crop with thin lines or text can miss, especially on a screen with a higher density than the one it came from.
+{/* cite image-rescale image-rescale-proof image-rescale-limit-proof image-rescale-scales image-rescale-scales-proof */}
+Doc Detective also tries it at the sizes it would have on screens at 100%, 125%, 150%, 175%, 200%, 225%, 250%, or 300% display scale. A crop of a graphic or a solid icon therefore works from a high-density screen on a standard one, and the other way round. A crop with thin lines or text can miss, especially on a screen with a higher density than the one it came from.
 
 ### Match an icon set's files
 
@@ -166,7 +166,7 @@ In Firefox, a drag by image can report success without dropping an element that 
 [`screenshot`](/docs/actions/screenshot) `crop` with `elementImage` crops to the match plus any `padding`. It doesn't scroll first, because the match is already on screen.
 
 {/* cite image-crop-scrolls image-crop-scrolls-proof */}
-A `crop` with a `selector` scrolls the page, so a later `find` by image might not see what was on screen before it.
+A `crop` without `elementImage` scrolls its element into view, so a later `find` by image might not see what was on screen before it.
 
 {/* cite image-annotation-target image-annotation-target-proof image-annotation-target-limit-proof */}
 An [annotation](/docs/test-docs/annotate-screenshots) `target` with `elementImage` marks the first match. To mark every copy instead, such as to blur a logo everywhere it appears, add `all: true` to the annotation. When you're hiding something sensitive, check the result. A copy in another color or at an unusual size can stay visible while the step passes.
@@ -185,8 +185,8 @@ When you combine `elementImage` with other criteria, the match has to lie inside
 
 Doc Detective takes a screenshot of the surface and scores the reference at every location, for shape and for color. The lower of the two is the location's score, so a perfect shape in the wrong color still scores low. A score of 1 means a perfect match.
 
-{/* cite image-default-threshold image-default-threshold-proof */}
-A location counts as a match when its score reaches `threshold`, which defaults to 0.9 and accepts values above 0, up to 1.
+{/* cite image-default-threshold image-default-threshold-proof image-default-threshold-cap image-default-threshold-one-proof */}
+A location counts as a match when its score reaches `threshold`, which defaults to 0.9 and accepts values above 0, up to 1. Even at 1, a difference of a pixel or two can match, because an exact copy can score a hair under 1.
 
 {/* cite image-on-screen-only image-on-screen-only-proof */}
 Matching sees only what's on screen, and it doesn't scroll. Scroll to the target first if it might be off screen.
@@ -237,7 +237,7 @@ An icon with a basic shape can also match text with the same shape and color. A 
 ## When a match fails
 
 {/* cite image-miss-message image-miss-message-proof */}
-A failed step tells you how close the closest match came, where it was, and whether its shape or its color fell short. When only the color was wrong, it usually names both colors.
+A failed step names the place whose shape came closest, with its score, and says whether its shape or its color fell short. When only the color was wrong, it usually names both colors. When no part of the page could be compared, such as inside a `selector` smaller than the image, it says that instead.
 
 A low shape score usually means that the reference has text rendered by another browser. It can also mean that a cropped reference's background changed, or that a multi-color file's colors changed. A low color score usually means that the page's color changed, or that a file drawn in `currentColor` needs `color`.
 

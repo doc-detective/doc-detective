@@ -274,8 +274,8 @@ removes every `unhandledRejection` listener on each call.
     author checking a state raises `threshold` on that step, and one matching a simple glyph scopes the search with other
     criteria. See [Deferred](#deferred) for an automatic check.
 12. **An opaque reference is also tried at the sizes other display scales would give.** After its own size, it's tried at
-    `s/c` times that size. Here `s` is the surface's display scale, and `c` is 1, 1.25, 1.5, and 2 in turn. A score of 0.98
-    ends the search, so a reference that passes below that at its own size still tries the others. Icons score 0.92–1.00 this
+    `s/c` times that size. Here `s` is the surface's display scale, and `c` is 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, and 3 in turn. A score
+    of 0.98 that reaches `threshold` ends the search, so a reference that passes below that at its own size still tries the others. Icons score 0.92–1.00 this
     way. Of 34 opaque references tried with the target masked out, only two smooth gradient badges falsely passed at 0.8, both
     at half size.
 13. **Cross-browser buttons with text aren't solved.** They score 0.50–0.73, and a different button scores up to 0.77, so no
@@ -328,7 +328,6 @@ removes every `unhandledRejection` listener on each call.
 |---|---|
 | "near-perfect match" | A score of 0.98 or higher. |
 | "sizes from 12 to 64 pixels tall" | A one-color file's own size, then every whole size. A multi-color file's own size, then 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 40, 48, and 64. |
-| "screens with a different display scale" | Captures at 1×, 1.25×, 1.5×, and 2×. |
 | "stands out mainly by color rather than lightness" | Shape is compared in grayscale, so a small grayscale difference scores low. Shape scores: `#ff0000` on `#7f7f7f` 0.41, `#2a9d8f` on `#e76f51` 0.76, `#00ff00` on `#ff00ff` 0.88. Red on `#00ff00` still matches at 0.96. |
 | "colors have to be close" | Hue within about 44 RGB levels at the default threshold, counting all three channels together. Lightness has an allowance that grows with the icon's contrast against its background. |
 | "Red doesn't match orange" | `#e01b24` against `#ff7800`. |
@@ -365,7 +364,7 @@ so they install during preflight rather than in the middle of a step.
 A location's score is the lower of its shape score and its color score, for every kind of reference.
 
 <!-- cite image-sweep-best image-sweep-best-proof image-first-match image-first-match-proof image-first-match-tie-proof -->
-Each place is judged at the size of a transparent file whose shape fits it best. The highest score picks the size. Among that size's places within 0.01 of the highest score, the topmost wins, then the leftmost. A size that scores 0.98 or higher ends the search.
+Each place is judged at the size of a transparent file whose shape fits it best. The highest score picks the size. Among that size's places within 0.01 of the highest score, the topmost wins, then the leftmost. A size that scores 0.98 or higher, and reaches `threshold`, ends the search.
 
 <!-- cite image-device-pixels image-device-pixels-proof -->
 On a surface with a display scale above 1, a transparent file matches at its CSS size times the scale. The capture stays at device resolution.
