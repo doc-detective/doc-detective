@@ -849,6 +849,38 @@ describe("elementImage matching", function () {
       expect(most).to.equal(1);
     });
 
+    // Runs the page's own region code against a stand-in element.
+    const boxes = (driver, own, children = []) => {
+      const execute = driver.execute;
+      const rect = ({ x = 0, y = 0, width = 0, height = 0 }) => ({ left: x, top: y, right: x + width, bottom: y + height, width, height });
+      driver.execute = async (fn, ...args) =>
+        String(fn).includes("getBoundingClientRect")
+          ? fn({
+              getBoundingClientRect: () => rect(own),
+              querySelectorAll: () => children.map((child) => ({ getBoundingClientRect: () => rect(child) })),
+            })
+          : execute(fn, ...args);
+      return driver;
+    };
+
+    it("image-combined: an element with no size on screen leaves nothing to search", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 40, y: 50 }] });
+      const driver = boxes(fakeDriver(shot, { dom: { x: 0, y: 0, width: 0, height: 0 } }), {});
+      const found = await findElementByCriteria({ selector: "#hidden", elementImage: { base64: b64(svg) }, driver, timeout: 0 });
+      expect(found.element).to.equal(null);
+      expect(found.error).to.match(/no element meets the other criteria\.$/);
+    });
+
+    it("image-combined: an element with no size of its own spans only what it contains", async function () {
+      const svg = icon(GEAR, "#333333", 24);
+      const shot = await page({ items: [{ svg, x: 40, y: 50 }, { svg, x: 300, y: 200 }] });
+      const driver = boxes(fakeDriver(shot, { dom: { x: 0, y: 0, width: 0, height: 0 } }), {}, [{ x: 280, y: 180, width: 80, height: 80 }]);
+      const found = await findElementByCriteria({ selector: "#contents", elementImage: { base64: b64(svg) }, driver, timeout: 0 });
+      expect(found.error).to.equal(null);
+      expect(await found.element.getLocation()).to.deep.equal({ x: 300, y: 200 });
+    });
+
     it("image-combined: one replaced element doesn't discard the others, even with timeout 0", async function () {
       const svg = icon(GEAR, "#333333", 24);
       const shot = await page({ items: [{ svg, x: 40, y: 50 }] });
