@@ -22,6 +22,8 @@
 // Declared before the export so the two module constants precede their first
 // textual use (the export list is a binding, not an evaluation, so this is
 // cosmetic — but it keeps CodeQL's declared-before-use check quiet).
+import { isVisualMatch } from "../tests/visualMatch.js";
+
 const LAYER_TAG = "dd-annotation-layer";
 const TARGET_ATTRIBUTE = "data-dd-annotate-target";
 
@@ -280,7 +282,9 @@ async function mountAnnotations({
       type: item.transition?.enter ?? "fade",
       durationMs: item.transition?.durationMs ?? 250,
     };
-    if (item.track) tracked.push({ id, rect: item.rect });
+    // Only a tagged element is followed. Anything else would follow whichever
+    // element an older annotation with this id left tagged.
+    if (item.track && item.element && !isVisualMatch(item.element)) tracked.push({ id, rect: item.rect });
   }
 
   await driver.execute(

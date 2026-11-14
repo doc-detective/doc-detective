@@ -1441,6 +1441,21 @@ describe("elementImage matching", function () {
       expect(mounted.svg).to.include('stroke="#ff0000"');
     });
 
+    it("image-annotation-target: a tracked match isn't moved by an element an older annotation tagged", async function () {
+      const { renderLayer } = await import("../dist/core/tests/annotate.js");
+      const svg = icon(GEAR, "#333333", 24);
+      const driver = fakeDriver(await page({ items: [{ svg, x: 40, y: 50 }] }));
+      const execute = driver.execute;
+      let mounted;
+      driver.execute = async (fn, ...args) => {
+        if (args[2]?.svg !== undefined) return void (mounted = args[2]);
+        return execute(fn, ...args);
+      };
+      const entries = [{ id: "mark", spec: { outline: { elementImage: { base64: b64(svg) } }, track: true } }];
+      expect((await renderLayer({ config: {}, driver, entries })).errors).to.deep.equal([]);
+      expect(mounted.tracked).to.deep.equal([]);
+    });
+
     it("image-annotation-target: all marks every copy, at every size", async function () {
       const capture = await page({
         items: [
