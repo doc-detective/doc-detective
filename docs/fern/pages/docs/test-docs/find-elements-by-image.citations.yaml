@@ -277,9 +277,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-ff93e29c513b58ae9494ac18e02a2b59ad0152bdc9fec6bac16966e76675f0ac
       source:
         file: src/core/tests/findStrategies.ts
-        lines: 614-639
-        integrity: sha256-7478b45118ba9d51edf9e83d0644f4c2b43234523ba5c27ec6629fe1ba14b184
-        commit-sha: 24a32427f695226065564abd2c691897a0afbe68
+        lines: 614-640
+        integrity: sha256-967006f196812e86d5752897fb58e4b8c5dcca5b7b703f07be4ab62f90e05ef8
+        commit-sha: 705f3831473140df71cc7f4b3f4f991dab9493d2
     - id: image-combined-proof
       claim:
         integrity: sha256-ff93e29c513b58ae9494ac18e02a2b59ad0152bdc9fec6bac16966e76675f0ac
