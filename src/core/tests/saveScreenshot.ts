@@ -205,7 +205,7 @@ async function burnInLiveBlurs(driver: any, sharp: any, buffer: Buffer): Promise
   try {
     page = await readBlurRegions(driver);
   } catch (error: any) {
-    throw new Error(`Couldn't read the live annotation blurs before the screenshot: ${error?.message ?? error}`);
+    throw new Error(`Couldn't read where the live \`blur\` annotations are on the page. ${error?.message ?? error}`);
   }
   const regions: any[] = Array.isArray(page?.regions) ? page.regions : [];
   if (regions.length === 0) return buffer;

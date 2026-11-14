@@ -509,7 +509,7 @@ describe("live annotate blurs in a screenshot", function () {
     });
 
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Couldn't read the live annotation blurs/);
+    assert.match(result.description, /Couldn't read where the live `blur` annotations are on the page\. \S/);
     assert.equal(fs.existsSync(file), false);
   });
 });

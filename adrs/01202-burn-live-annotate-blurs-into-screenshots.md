@@ -13,12 +13,12 @@ in a `dd-annotation-layer` element. An SVG can only blur what's inside it, so th
 positioned div with CSS `backdrop-filter`. A `screenshot` taken while that blur is up is supposed to show it. That's
 how a test keeps a redaction up across a whole flow.
 
-Firefox leaves `backdrop-filter` out of WebDriver screenshots. Measured on Windows against a box of 2px
-black-and-white stripes, blurred with `annotate` at the default intensity: the mean contrast between horizontal
-neighbors inside the box (0 is flat, about 127 is the stripes) was 127.14 before and after the blur in headless
-Firefox, and 84.84 before and after in headed Firefox. Chrome read 0.50 headless and 0.00 headed. A probe in the
-same Firefox session confirmed `CSS.supports('backdrop-filter', …)`, a mounted `.dd-blur` with `blur(14px)` at the
-right rect, and that the same layer's SVG outline did appear in the capture. Only the blur was missing. A Firefox
+Firefox leaves `backdrop-filter` out of WebDriver screenshots. It was measured on Windows against a box of 2px
+black-and-white stripes, blurred with `annotate` at the default intensity. The measure is the mean contrast between
+horizontal neighbors inside the box: 0 is flat, and about 127 is the stripes. Headless Firefox read 127.14 before and
+after the blur, and headed Firefox read 84.84 before and after. Chrome read 0.50 headless and 0.00 headed. A probe in
+the same Firefox session found `CSS.supports('backdrop-filter', …)` true and a `.dd-blur` with `blur(14px)` mounted
+at the right rect. The same layer's SVG outline did appear in the capture. Only the blur was missing. A Firefox
 screenshot therefore showed what the blur should hide, so the redaction leaked.
 
 How does a screenshot taken under a live blur come out blurred in every browser?
@@ -58,7 +58,7 @@ They go through the same generator and compositor the screenshot's own annotatio
 capture, before any `crop` and before the screenshot's own `annotations`.
 
 If the page won't report its blurs, the capture throws, and the step fails with
-``Couldn't save screenshot. Error: Couldn't read the live annotation blurs before the screenshot: <cause>``.
+``Couldn't save screenshot. Error: Couldn't read where the live `blur` annotations are on the page. <cause>``.
 
 ### Consequences
 
@@ -68,12 +68,12 @@ If the page won't report its blurs, the capture throws, and the step fails with
   change can't reopen it.
 - Good: with no live annotation up, the step does no extra work and its output stays byte-identical.
 - Bad: Chrome's capture already shows the blur, so Chrome blurs those regions twice. Measured, that moves each pixel
-  in the region by at most 2 of 255 grey levels, a mean of 0.53 headless and 0.21 headed. Nobody can see it, but
-  `maxVariation` comparisons use a zero pixel threshold, so a Chrome reference taken under a live blur before this
-  change differs across the blurred region once. Retake it, or let `overwrite: "aboveVariation"` replace it.
+  in the region by at most 2 of 255 grey levels. The mean shift was 0.53 headless and 0.21 headed. Nobody can see
+  it, but `maxVariation` comparisons use a zero pixel threshold. So a Chrome reference taken under a live blur
+  before this change differs across the blurred region once. Retake it, or let `overwrite: "aboveVariation"` replace it.
 - Bad: a screenshot under a live blur costs one more page round trip and a `sharp` composite.
-- Neutral: an annotate state that names a blur the page isn't showing, for example after a failed re-mount on
-  navigation, isn't caught here. The page is the record of what's displayed, in every browser alike.
+- Neutral: this doesn't catch an annotate state that names a blur the page isn't showing. That can happen after a
+  failed re-mount on navigation. The page is the record of what's displayed, in every browser alike.
 
 ### Confirmation
 
