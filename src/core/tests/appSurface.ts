@@ -1042,7 +1042,8 @@ function buildAppLocator(
   },
   platform?: string
 ): { strategy: string; value: string } | { error: string } {
-  if (typeof criteria.selector === "string") {
+  // An image can't be matched here, and a native selector beside it mustn't hide that.
+  if (typeof criteria.selector === "string" && criteria.elementImage === undefined) {
     const kind = classifyNativeSelector(criteria.selector);
     if (kind === "xpath") return { strategy: "xpath", value: criteria.selector };
     if (kind === "accessibilityId")
