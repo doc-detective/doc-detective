@@ -14,7 +14,7 @@ import {
 } from "./utils.js";
 import { installAgentsCommand } from "./agents/command.js";
 import { maybeShowHint } from "./hints/index.js";
-import { commandWarnings, runResultWarnings, warnUpgrade } from "./upgradeNotice.js";
+import { commandWarnings, runResultWarnings, showV5Notice, warnUpgrade } from "./upgradeNotice.js";
 import { installCommand } from "./runtime/installCommand.js";
 import { lspCommand } from "./lsp/command.js";
 import { printDebug, defaultDebugDir } from "./debug/index.js";
@@ -289,6 +289,7 @@ async function runTestsHandler(args: any) {
     // Wrapped in its own try/catch internally — never throws.
     await maybeShowHint(config, results);
   }
+  showV5Notice(config.logLevel);
 
   warnUpgrade(
     runResultWarnings(config.exitOnFail, shouldFailRun(results), results),
