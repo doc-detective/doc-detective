@@ -444,22 +444,14 @@ async function sharpness(file, { x0, y0, x1, y1 }) {
 // A page with a live `annotate` blur up. The layer draws blurs with CSS
 // `backdrop-filter`, which Firefox leaves out of WebDriver screenshots, so the
 // capture comes back unblurred, the way Firefox returns it.
-// `movedTo` is where a tracked blur reports itself once the capture is taken.
-function liveBlurDriver(buffer, { innerWidth, regions, fail = false, movedTo }) {
+function liveBlurDriver(buffer, { innerWidth, regions, fail = false }) {
   const driver = fakeDriver(buffer, { innerWidth });
   const execute = driver.execute;
-  const takeScreenshot = driver.takeScreenshot;
-  let taken = false;
-  driver.takeScreenshot = async (...args) => {
-    const shot = await takeScreenshot.apply(driver, args);
-    taken = true;
-    return shot;
-  };
   driver.state = { annotations: [{ id: "redact", spec: { blur: "#secret" } }] };
   driver.execute = async (fn, ...args) => {
     if (String(fn).includes("dd-blur")) {
       if (fail) throw new Error("no such window");
-      return { viewportWidth: innerWidth, regions: taken && movedTo ? movedTo : regions };
+      return { viewportWidth: innerWidth, regions };
     }
     return execute(fn, ...args);
   };
@@ -506,27 +498,38 @@ describe("live annotate blurs in a screenshot", function () {
     assert.ok(beside > 120, `the region beside the blur reads ${beside.toFixed(2)}, so the blur spread past its rect`);
   });
 
-  it("blurs where a tracked blur was during the capture, even after it moves", async function () {
-    // The capture shows the blur at x 50–150, and by the next read it has
-    // tracked its element to x 250–350.
-    const capture = await makeStripedPng(400, 300);
-    const driver = liveBlurDriver(capture, {
-      innerWidth: 400,
-      regions: [{ x: 50, y: 50, width: 100, height: 100, intensity: 14 }],
-      movedTo: [{ x: 250, y: 50, width: 100, height: 100, intensity: 14 }],
+  it("reads every place a tracked blur was drawn since the watch, even one it left", async function () {
+    // Runs the real page code against a stand-in page. The blur is drawn at
+    // x 50–150, moves to x 250–350 for one frame, and is back before the read,
+    // so a screenshot in that frame shows it at x 250–350.
+    const { watchBlurRegions, readBlurRegions } = await import("../dist/core/annotations/domAdapter.js");
+    let left = 50;
+    const blur = {
+      getBoundingClientRect: () => ({ left, top: 50, right: left + 100, bottom: 150 }),
+      getAttribute: () => "14",
+    };
+    const layer = { isConnected: true, shadowRoot: { querySelectorAll: () => [blur] } };
+    const frames = [];
+    const saved = ["document", "window", "requestAnimationFrame", "cancelAnimationFrame"].map((key) => [key, global[key]]);
+    Object.assign(global, {
+      document: { querySelector: () => layer },
+      window: { innerWidth: 400 },
+      requestAnimationFrame: (fn) => frames.push(fn),
+      cancelAnimationFrame: () => frames.splice(0),
     });
-    const file = path.join(dir, "moved.png");
-    const result = await saveScreenshot({
-      config: {},
-      step: { stepId: "live3", screenshot: { path: file, overwrite: "true" } },
-      driver,
-    });
-
-    assert.equal(result.status, "PASS", result.description);
-    const where = await sharpness(file, { x0: 60, y0: 60, x1: 140, y1: 140 });
-    const below = await sharpness(file, { x0: 60, y0: 200, x1: 340, y1: 290 });
-    assert.ok(where < 5, `where the blur was during the capture reads ${where.toFixed(2)}, so it wasn't blurred`);
-    assert.ok(below > 120, `the stripes below the blurs read ${below.toFixed(2)}, so the blur spread past its rects`);
+    const driver = { execute: async (fn, ...args) => fn(...args) };
+    try {
+      await watchBlurRegions(driver);
+      left = 250;
+      frames.shift()();
+      left = 50;
+      frames.shift()();
+      const page = await readBlurRegions(driver);
+      assert.deepEqual(page.regions, [{ x: 50, y: 50, width: 300, height: 100, intensity: 14 }]);
+      assert.equal(frames.length, 0, "the read must stop the watch");
+    } finally {
+      for (const [key, value] of saved) global[key] = value;
+    }
   });
 
   it("FAILs rather than save the capture unblurred when the page won't report its blurs", async function () {

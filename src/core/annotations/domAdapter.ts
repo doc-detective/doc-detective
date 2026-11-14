@@ -33,6 +33,7 @@ export {
   mountAnnotations,
   clearLayer,
   layerScript,
+  watchBlurRegions,
   readBlurRegions,
 };
 
@@ -308,7 +309,41 @@ async function mountAnnotations({
 }
 
 /**
- * Where the layer's blurs sit right now, in CSS pixels, and how strong each is.
+ * Start noting every place each of the layer's blurs is drawn, on every frame,
+ * until `readBlurRegions`. A tracked blur only moves on an animation frame, so
+ * whichever frame a screenshot captures is one of the frames noted (ADR 01202).
+ */
+async function watchBlurRegions(driver: any): Promise<void> {
+  await driver.execute((tag: string) => {
+    const layer: any = document.querySelector(tag);
+    if (!layer || !layer.shadowRoot) return;
+    cancelAnimationFrame(layer.__ddWatch);
+    const seen: any[] = [];
+    // ponytail: a capture that throws leaves this noting until the next read or
+    // until the layer goes; one rect read per blur per frame.
+    const note = () => {
+      if (!layer.isConnected) return;
+      Array.from(layer.shadowRoot.querySelectorAll(".dd-blur")).forEach((blur: any, i: number) => {
+        const r = blur.getBoundingClientRect();
+        const s = seen[i] || r;
+        seen[i] = {
+          left: Math.min(s.left, r.left),
+          top: Math.min(s.top, r.top),
+          right: Math.max(s.right, r.right),
+          bottom: Math.max(s.bottom, r.bottom),
+        };
+      });
+      layer.__ddWatch = requestAnimationFrame(note);
+    };
+    layer.__ddSeen = seen;
+    layer.__ddNote = note;
+    note();
+  }, LAYER_TAG);
+}
+
+/**
+ * Where the layer's blurs are, in CSS pixels, and how strong each is. After
+ * `watchBlurRegions`, each one covers every place it was drawn since.
  *
  * A screenshot burns these into its capture, because Firefox leaves
  * `backdrop-filter` out of WebDriver screenshots (ADR 01202). They're read from
@@ -325,15 +360,22 @@ async function readBlurRegions(driver: any): Promise<{
       layer && layer.shadowRoot
         ? Array.from(layer.shadowRoot.querySelectorAll(".dd-blur"))
         : [];
+    let seen: any[] = [];
+    if (layer && layer.__ddNote) {
+      layer.__ddNote();
+      cancelAnimationFrame(layer.__ddWatch);
+      seen = layer.__ddSeen;
+      layer.__ddNote = layer.__ddSeen = undefined;
+    }
     return {
       viewportWidth: window.innerWidth,
-      regions: blurs.map((blur) => {
-        const rect = blur.getBoundingClientRect();
+      regions: blurs.map((blur, i) => {
+        const rect = seen[i] || blur.getBoundingClientRect();
         return {
           x: rect.left,
           y: rect.top,
-          width: rect.width,
-          height: rect.height,
+          width: rect.right - rect.left,
+          height: rect.bottom - rect.top,
           intensity: Number(blur.getAttribute("data-dd-intensity")),
         };
       }),
