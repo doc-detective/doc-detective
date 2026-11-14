@@ -2734,7 +2734,7 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.include('/find/click must be equal to one of the allowed values ({"allowedValues":["left","right","middle"]})');
       });
 
-      for (const locator of ["selector", "elementText", "elementId", "elementTestId", "elementClass", "elementAttribute", "elementAria"]) {
+      for (const locator of ["selector", "elementText", "elementId", "elementTestId", "elementClass", "elementAttribute", "elementAria", "elementImage"]) {
         it(`rejects find.type with its own ${locator}, and names it`, function () {
           const value = locator === "elementAttribute" ? { a: "b" } : "x";
           const object = { find: { selector: "#a", type: { keys: "x", [locator]: value } } };

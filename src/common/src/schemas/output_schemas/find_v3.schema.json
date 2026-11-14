@@ -5054,6 +5054,17 @@
               "errorMessage": {
                 "not": "must not set `elementAria` (`find` already locates the element)"
               }
+            },
+            {
+              "not": {
+                "type": "object",
+                "required": [
+                  "elementImage"
+                ]
+              },
+              "errorMessage": {
+                "not": "must not set `elementImage` (`find` already locates the element)"
+              }
             }
           ]
         }
@@ -10112,6 +10123,17 @@
                 },
                 "errorMessage": {
                   "not": "must not set `elementAria` (`find` already locates the element)"
+                }
+              },
+              {
+                "not": {
+                  "type": "object",
+                  "required": [
+                    "elementImage"
+                  ]
+                },
+                "errorMessage": {
+                  "not": "must not set `elementImage` (`find` already locates the element)"
                 }
               }
             ]
