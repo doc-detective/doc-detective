@@ -618,8 +618,17 @@ async function findElementByCriteria({
           for (const element of found.elements ?? []) {
             const region = await driver
               .execute((el: any) => {
-                const bounds = el.getBoundingClientRect();
-                return { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height };
+                // An inline element's box is its line of text, which a taller icon inside it overflows.
+                let { left, top, right, bottom } = el.getBoundingClientRect();
+                for (const child of el.querySelectorAll("*")) {
+                  const r = child.getBoundingClientRect();
+                  if (!r.width || !r.height) continue;
+                  left = Math.min(left, r.left);
+                  top = Math.min(top, r.top);
+                  right = Math.max(right, r.right);
+                  bottom = Math.max(bottom, r.bottom);
+                }
+                return { x: left, y: top, width: right - left, height: bottom - top };
               }, element)
               // An element the page just replaced isn't there this look, as with DOM criteria.
               .catch(() => null);

@@ -30,7 +30,12 @@ type StoredAnnotation = {
   id: string;
   spec: any;
   expiresAt?: number;
+  // Where an image target was found, and on which page. Looked for again while
+  // this layer is up, it would be under its own blur or highlight.
+  placed?: { url: string; items: any[] };
 };
+
+const namesImage = (spec: any) => JSON.stringify(spec).includes('"elementImage":');
 
 /**
  * Fold an annotate payload into the current annotation list.
@@ -176,14 +181,23 @@ async function renderLayer({
   // CSS pixel space, so the browser applies devicePixelRatio itself. The
   // generator is unit-agnostic — it only needs rects and a canvas in the same
   // space — which is what lets one implementation serve both media.
-  const { placed, errors } = await resolveAnnotationRects({
+  const url = typeof driver.getUrl === "function" ? await driver.getUrl() : undefined;
+  const reused = entries.map(({ placed }) => (placed && url !== undefined && placed.url === url ? placed.items : null));
+  const { placed: found, errors } = await resolveAnnotationRects({
     config,
-    annotations: resolved as any,
+    annotations: resolved.filter((_, i) => !reused[i]) as any,
     driver,
     canvas: viewport,
     scale: 1,
   });
   if (errors.length > 0) return { errors };
+  // Copies, because the render ids below are assigned in place.
+  const placed = entries.flatMap((entry, i) => {
+    if (reused[i]) return reused[i].map((item) => ({ ...item }));
+    const items = (found as any[]).filter((item) => item.__ddId === entry.id);
+    if (url !== undefined && namesImage(entry.spec)) entry.placed = { url, items: items.map((item) => ({ ...item })) };
+    return items;
+  });
 
   // Give every placed annotation a UNIQUE render id.
   //

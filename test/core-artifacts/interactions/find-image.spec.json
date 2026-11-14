@@ -215,6 +215,14 @@
           }
         },
         {
+          "stepId": "find-image-inside-inline-link",
+          "find": {
+            "selector": "#inline-link",
+            "elementImage": "../../server/public/find-image-check.svg",
+            "timeout": 2000
+          }
+        },
+        {
           "stepId": "find-image-larger-than-file",
           "find": {
             "selector": "#large-save",
@@ -445,6 +453,41 @@
                   "elementImage": "../../server/public/find-image-check.svg"
                 }
               }
+            ]
+          }
+        },
+        {
+          "stepId": "find-image-live-blur",
+          "annotate": {
+            "add": [
+              {
+                "id": "hide-save",
+                "blur": {
+                  "elementImage": "../../server/public/find-image-save.svg"
+                },
+                "all": true
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "find-image-live-annotation-after-blur",
+          "description": "Adding to the layer keeps the blurred copies, though the blur now hides them from a fresh look.",
+          "annotate": {
+            "add": [
+              {
+                "outline": {
+                  "selector": "#log"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "stepId": "find-image-live-clear-after-blur",
+          "annotate": {
+            "clear": [
+              "hide-save"
             ]
           }
         }
