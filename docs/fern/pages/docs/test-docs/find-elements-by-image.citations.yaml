@@ -245,9 +245,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-65bc90644dd40c46fa4c6ab088e5b3d9e16eae913c291e1e45e07e33fa1a66a2
       source:
         file: src/core/tests/saveScreenshot.ts
-        lines: 932-933
+        lines: 916-917
         integrity: sha256-58bb261717d372d3ecaba14fcdf3d8fad690cbd2b5ab7399ea20f5ba637dfcac
-        commit-sha: e5d7a65b1a48070d62a65a01f341069938b0ce46
+        commit-sha: e28a0f238889bca9c27e490d36607b4d26d1e44f
     - id: image-crop-proof
       claim:
         integrity: sha256-65bc90644dd40c46fa4c6ab088e5b3d9e16eae913c291e1e45e07e33fa1a66a2
@@ -565,9 +565,9 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         integrity: sha256-1bfc99775e2e40ba80b8354615ae0eb6d3026ed7f090352b9bc80f092195e875
       source:
         file: src/core/tests/saveScreenshot.ts
-        lines: 784-794
+        lines: 768-778
         integrity: sha256-07fdc78840103decc569b3c714641715771476495dc54bb3b1059ddf531d9311
-        commit-sha: e5d7a65b1a48070d62a65a01f341069938b0ce46
+        commit-sha: e28a0f238889bca9c27e490d36607b4d26d1e44f
     - id: image-crop-scrolls-proof
       claim:
         integrity: sha256-1bfc99775e2e40ba80b8354615ae0eb6d3026ed7f090352b9bc80f092195e875
