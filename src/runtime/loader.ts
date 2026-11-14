@@ -344,6 +344,8 @@ export interface EnsureRuntimeInstalledOptions {
 }
 
 const DEFAULT_INSTALL_TIMEOUT_MS = 5 * 60 * 1000;
+// How long a timed-out npm child gets to exit after kill() before SIGKILL.
+const KILL_GRACE_MS = 5_000;
 
 const RUNTIME_PACKAGE_JSON_CONTENTS = JSON.stringify(
   {
@@ -482,16 +484,19 @@ export async function ensureRuntimeInstalled(
   // full functionality. Done here so both the JIT path (loadHeavyDep) and the
   // bulk path (installRuntime / `install all`) get them.
   packages = withPeerCompanions(packages);
-  if (packagesToInstall(packages, ctx, force).length === 0) return;
+  const runtimeDir = getRuntimeDir(ctx);
+  const lockDir = path.join(runtimeDir, "install.lock");
+  // A package npm has only partly extracted already resolves, so trust a
+  // cache hit only while no install holds the lock.
+  if (packagesToInstall(packages, ctx, force).length === 0 && !fs.existsSync(lockDir)) return;
 
   // Two `npm install`s into one prefix corrupt it (#896): each reifies its own
   // ideal tree and removes what the other just extracted. Installs into one
   // runtime dir therefore serialize through the cross-process lock, in this
   // process too. A waiter re-checks what's missing once it holds the lock, so
   // two runs that need the same package install it once.
-  const runtimeDir = getRuntimeDir(ctx);
   const lock = await acquireLock({
-    dir: path.join(runtimeDir, "install.lock"),
+    dir: lockDir,
     pollMs: 250,
     // The lock's default sleep is unref'd. A process with nothing else to do
     // (`doc-detective install`) would exit mid-wait, so keep this one ref'd.
@@ -677,6 +682,7 @@ async function installUnderLock(
     let timer: NodeJS.Timeout | null = null;
     const clearTimer = () => {
       if (timer) clearTimeout(timer);
+      if (graceTimer) clearTimeout(graceTimer);
     };
     // Settle exactly once, flushing the log stream first so the file is fully
     // written before the error propagates and the process may exit. end()'s
@@ -705,20 +711,35 @@ async function installUnderLock(
         action();
       }
     };
+    // After a timeout the caller still holds the install lock, so settle only
+    // once the child has exited: a waiter must not start npm while this one
+    // still writes the runtime. kill() doesn't guarantee exit, so escalate to
+    // SIGKILL and give up after a bounded grace.
+    let timedOut = false;
+    let graceTimer: NodeJS.Timeout | null = null;
+    const rejectTimedOut = () =>
+      reject(
+        new Error(
+          `npm install timed out after ${installTimeoutMs}ms while installing ${specs.join(", ")} into ${runtimeDir}.${logHint}`
+        )
+      );
     if (installTimeoutMs > 0) {
       timer = setTimeout(() => {
+        timedOut = true;
         try {
           child.kill();
         } catch {
           // best-effort — the child may already have exited
         }
-        finish(() =>
-          reject(
-            new Error(
-              `npm install timed out after ${installTimeoutMs}ms while installing ${specs.join(", ")} into ${runtimeDir}.${logHint}`
-            )
-          )
-        );
+        graceTimer = setTimeout(() => {
+          try {
+            child.kill("SIGKILL");
+          } catch {
+            // best-effort
+          }
+          finish(rejectTimedOut);
+        }, KILL_GRACE_MS);
+        if (typeof graceTimer.unref === "function") graceTimer.unref();
       }, installTimeoutMs);
       // Don't keep the event loop alive solely for this timer.
       if (typeof timer.unref === "function") timer.unref();
@@ -728,7 +749,9 @@ async function installUnderLock(
     child.on("error", (err: Error) => finish(() => reject(err)));
     child.on("close", (code: number | null) =>
       finish(() =>
-        code === 0
+        timedOut
+          ? rejectTimedOut()
+          : code === 0
           ? resolve()
           : reject(
               new Error(

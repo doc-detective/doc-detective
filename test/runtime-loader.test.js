@@ -938,7 +938,7 @@ describe("runtime/loader", function () {
       const { execFile } = await import("node:child_process");
       const loaderUrl = new URL("../dist/runtime/loader.js", import.meta.url).href;
       const log = path.join(tmpRoot, "spans.log");
-      // Each child installs through a fake npm that holds for 400ms and logs
+      // Each child installs through a fake npm that holds for 1.5s (well past both children's startup) and logs
       // its start/end, so overlapping spans would show in the log. Nothing
       // else keeps the child's event loop alive while it waits for the lock.
       const script = `
@@ -953,7 +953,7 @@ describe("runtime/loader", function () {
           setTimeout(() => {
             fs.appendFileSync(process.env.SPANS, "end " + Date.now() + "\\n");
             child.emit("close", 0);
-          }, 400);
+          }, 1500);
           return child;
         };
         await ensureRuntimeInstalled(["pngjs"], { force: true, deps: { spawn, logger: () => {} } });
@@ -984,6 +984,66 @@ describe("runtime/loader", function () {
       ]);
       expect(spawner.state.calls).to.equal(1);
       expect(resolveHeavyDepSource("appium")).to.equal("cache");
+    });
+
+    // A package npm has only partly extracted already resolves and reports its
+    // version, so a cache hit while another install runs waits for it.
+    it("waits for an install in progress before trusting a cache hit", async function () {
+      this.timeout(20000);
+      const spawner = makeSlowSpawner(0);
+      await ensureRuntimeInstalled(["appium"], { deps: { spawn: spawner, logger: () => {} } });
+      const lockDir = path.join(getRuntimeDir({}), "install.lock");
+      fs.mkdirSync(lockDir);
+      fs.writeFileSync(
+        path.join(lockDir, "owner.json"),
+        JSON.stringify({ pid: process.pid, hostname: os.hostname(), acquiredAt: Date.now(), heartbeatAt: Date.now() })
+      );
+      let released = false;
+      setTimeout(() => {
+        released = true;
+        fs.rmSync(lockDir, { recursive: true, force: true });
+      }, 500);
+      await ensureRuntimeInstalled(["appium"], { deps: { spawn: spawner, logger: () => {} } });
+      expect(released, "returned while another install held the lock").to.equal(true);
+      expect(spawner.state.calls).to.equal(1);
+    });
+
+    it("keeps the lock until a timed-out npm child has exited", async function () {
+      this.timeout(20000);
+      const events = [];
+      const stalled = () => {
+        const child = new EventEmitter();
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        child.kill = () => {
+          events.push("kill");
+          // The child takes a while to die after the signal.
+          setTimeout(() => {
+            events.push("exit");
+            child.emit("close", null);
+          }, 300);
+        };
+        return child;
+      };
+      const first = ensureRuntimeInstalled(["pngjs"], {
+        deps: { spawn: stalled, logger: () => {} },
+        force: true,
+        installTimeoutMs: 50,
+      }).catch((err) => err);
+      await new Promise((r) => setTimeout(r, 10));
+      const second = ensureRuntimeInstalled(["pixelmatch"], {
+        deps: {
+          spawn: (...args) => {
+            events.push("second-spawn");
+            return makeFakeSpawner()(...args);
+          },
+          logger: () => {},
+        },
+        force: true,
+      });
+      const [err] = await Promise.all([first, second]);
+      expect(String(err.message)).to.match(/timed out after 50ms/);
+      expect(events).to.deep.equal(["kill", "exit", "second-spawn"]);
     });
   });
 
