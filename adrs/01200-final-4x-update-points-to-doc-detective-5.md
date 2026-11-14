@@ -50,12 +50,16 @@ stays on 5.x and `doc-detective@4` resolves to it.
   only in GitHub Actions.
 - Bad, because a 4.x run's stderr always ends with the notice, until the user upgrades or sets
   `logLevel: silent`.
+- Neutral, because `--dry-run` doesn't print it. A dry run writes its plan to stdout as JSON, and the
+  `::notice` line would corrupt that in GitHub Actions. A dry run also runs nothing.
 
 ### Confirmation
 
 `test/upgrade-warnings.test.js` covers the notice after passing and failing runs, in the Action's
-legacy path, the `::notice` line in GitHub Actions, and its absence at `silent`. After release, `npm view doc-detective@4 version` returns
-the new patch and `npm view doc-detective dist-tags.latest` is still 5.x.
+legacy path, the `::notice` line in GitHub Actions, and its absence at `silent`.
+
+After release, `npm view doc-detective@4 version` returns the new patch, and
+`npm view doc-detective dist-tags.latest` is still 5.x.
 
 ## Pros and Cons of the Options
 
