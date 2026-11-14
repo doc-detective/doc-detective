@@ -307,6 +307,68 @@ describeIfSharp("saveScreenshot unified assertions", function () {
     assert.equal(result.outputs.variation, undefined);
   });
 
+  // Issue #719 / ADR 01209: a near-miss size at the same scale compares the
+  // common top-left region; resampling smeared every row into false drift.
+  it("same-scale size mismatch compares the common region, not a resample", async function () {
+    const target = path.join(tmpDir, "shot.png");
+    const width = 300;
+    const height = 101;
+    // Per-pixel noise: any resample changes nearly every pixel.
+    const raw = Buffer.alloc(width * height * 3);
+    let seed = 719;
+    for (let i = 0; i < raw.length; i++) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      raw[i] = seed & 0xff;
+    }
+    const tall = await sharp(raw, { raw: { width, height, channels: 3 } }).png().toBuffer();
+    // The short capture is byte-for-byte the top height-1 rows of the reference.
+    const short = await sharp(raw.subarray(0, width * (height - 1) * 3), {
+      raw: { width, height: height - 1, channels: 3 },
+    })
+      .png()
+      .toBuffer();
+    fs.writeFileSync(target, tall);
+    const result = await saveScreenshot({
+      config,
+      step: {
+        stepId: "s719",
+        screenshot: { path: target, maxVariation: 0.05, overwrite: "aboveVariation" },
+      },
+      driver: fakeDriver(short),
+    });
+    assert.equal(result.outputs.variation, 0);
+    assert.equal(result.status, "PASS");
+    assert.ok(fs.readFileSync(target).equals(tall), "reference must not be overwritten");
+  });
+
+  it("uniform scale mismatch (devicePixelRatio) still resamples to compare", async function () {
+    // Left half red, right half blue, at 1x and 2x. Cropping the 2x capture's
+    // top-left would compare all red against half red (50% drift).
+    const halves = (w, h) =>
+      sharp({ create: { width: w, height: h, channels: 3, background: { r: 0, g: 0, b: 255 } } })
+        .composite([
+          {
+            input: { create: { width: w / 2, height: h, channels: 3, background: { r: 255, g: 0, b: 0 } } },
+            left: 0,
+            top: 0,
+          },
+        ])
+        .png()
+        .toBuffer();
+    const target = path.join(tmpDir, "shot.png");
+    fs.writeFileSync(target, await halves(200, 100));
+    const result = await saveScreenshot({
+      config,
+      step: {
+        stepId: "sdpr",
+        screenshot: { path: target, maxVariation: 0.05, overwrite: "aboveVariation" },
+      },
+      driver: fakeDriver(await halves(400, 200)),
+    });
+    assert.equal(result.status, "PASS");
+    assert.ok(result.outputs.variation <= 0.05, `variation ${result.outputs.variation}`);
+  });
+
   it("file exists + overwrite:false -> SKIPPED with no assertions", async function () {
     const target = path.join(tmpDir, "shot.png");
     const buf = await makePngBuffer(100, 80);

@@ -1214,14 +1214,26 @@ async function captureScreenshot({
         return await evaluateApplicable();
       }
 
-      // Resize images to a common size. Stay in sharp's raw pipeline (RGBA in →
-      // RGBA out) instead of round-tripping PNG→buffer→PNG: PNG is lossless, so
-      // the resized pixels are identical to the prior encode/decode path, and
-      // pixelmatch consumes raw RGBA directly.
-      if (img1.width !== img2.width || img1.height !== img2.height) {
-        const width = Math.min(img1.width, img2.width);
-        const height = Math.min(img1.height, img2.height);
-
+      // Bring the images to a common size (ADR 01203). At the same scale (each
+      // side within 5%, such as a viewport a pixel shorter) compare the common
+      // top-left region: resampling would smear every row into false drift.
+      // A larger uniform scale is a devicePixelRatio difference, so resample.
+      const width = Math.min(img1.width, img2.width);
+      const height = Math.min(img1.height, img2.height);
+      const sameScale =
+        width / Math.max(img1.width, img2.width) >= 0.95 &&
+        height / Math.max(img1.height, img2.height) >= 0.95;
+      if (sameScale) {
+        for (const img of [img1, img2]) {
+          if (img.width === width && img.height === height) continue;
+          const cropped = Buffer.alloc(width * height * 4);
+          for (let y = 0; y < height; y++)
+            img.data.copy(cropped, y * width * 4, y * img.width * 4, (y * img.width + width) * 4);
+          img.data = cropped;
+        }
+      } else {
+        // Stay in sharp's raw pipeline (RGBA in → RGBA out); pixelmatch
+        // consumes raw RGBA directly.
         const img1ResizedBuffer = await sharp(img1.data, {
           raw: { width: img1.width, height: img1.height, channels: 4 },
         })
@@ -1237,11 +1249,8 @@ async function captureScreenshot({
 
         img1.data = img1ResizedBuffer;
         img2.data = img2ResizedBuffer;
-        img1.width = width;
-        img1.height = height;
       }
 
-      const { width, height } = img1;
       let pixelmatchFn: any;
       try {
         pixelmatchFn = await getPixelmatch(loadCtx);
