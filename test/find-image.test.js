@@ -1138,6 +1138,12 @@ describe("elementImage matching", function () {
       expect(match.missMessage(reference, best, 1)).to.include("scored 0.98 (shape 1.00, color 0.98)");
     });
 
+    it("image-miss-message: a score below 0 prints as 0", async function () {
+      const reference = await match.loadImageReference({ base64: b64(solid("#333333", 24)) });
+      const best = { x: 40, y: 50, width: 24, height: 24, score: -0.23, shape: 0.94, color: -0.23, fileColor: "#333333", pageColor: "#ffffff", contrast: 1 };
+      expect(match.missMessage(reference, best, 1)).to.include("scored 0.00 (shape 0.94, color 0.00)");
+    });
+
     it("image-uniform-reference: a solid icon with rounded corners is still an icon", async function () {
       for (const rx of [1, 2, 3]) {
         const file = rounded(rx);

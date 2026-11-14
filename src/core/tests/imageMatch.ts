@@ -690,7 +690,8 @@ function missMessage(reference: ImageReference, best: Candidate | null, scale: n
   const display = `a display scale of ${Math.round(scale * 100) / 100}`;
   if (!best) return `Couldn't find ${label}: no part of the page could be compared with it, at ${display}.`;
   // Rounded down, so a score never prints as reaching the `threshold` it missed.
-  const shown = (v: number) => (Math.floor(v * 100 + 1e-9) / 100).toFixed(2);
+  // A color far enough off scores below 0, which prints as 0.
+  const shown = (v: number) => (Math.max(0, Math.floor(v * 100 + 1e-9)) / 100).toFixed(2);
   let message =
     `Couldn't find ${label}. The closest match scored ${shown(best.score)} ` +
     `(shape ${shown(best.shape)}, color ${shown(best.color)}) ` +
