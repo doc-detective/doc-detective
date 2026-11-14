@@ -269,3 +269,5 @@ An `arrow` points at an element, while a `text` box sits at a fixed position rat
 Doc Detective draws annotations into a `dd-annotation-layer` element with its own shadow root, sitting above the page and ignoring pointer events. The page under test keeps behaving exactly as it would without annotations, and the page's CSS can't restyle them.
 
 Doc Detective tracks the annotations itself, so they survive navigation: after a step loads a new page, it re-draws whatever is still up. Annotations last until an `annotate` step clears them, their `duration` elapses, or the test context ends.
+
+A [`screenshot`](/docs/actions/screenshot) taken while a `blur` is up blurs the same regions in the image itself, so the screenshot hides them in every browser. Firefox leaves the page's blur out of its screenshots. Chrome keeps it, so in Chrome Doc Detective blurs those regions twice, which shifts them by a shade or two. If Doc Detective can't read where the blurs are, the `screenshot` step fails rather than save the image without them.
