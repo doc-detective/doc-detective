@@ -56,7 +56,7 @@ it's on screen.
    in full and lightness past a tolerance. `color` sets a one-color file's color, for files drawn in `currentColor`.
 3. A transparent one-color file is tried at every whole size from 12 to 64 CSS pixels. A multi-color file is tried at 13
    common sizes. A score of 0.98 ends the search, and otherwise the best score wins, at device resolution. An SVG is rendered
-   at each size, and a raster is resized. An opaque reference is also tried at the sizes a 1×, 1.25×, 1.5×, or 2× capture would give.
+   at each size, and a raster is resized. An opaque reference is also tried at the sizes a 1×, 1.25×, 1.5×, 1.75×, 2×, 2.25×, 2.5×, or 3× capture would give.
 4. The default threshold is 0.9.
 5. A match stands in for an element, and its center is where every pointer action lands.
 6. Other criteria scope the search to their elements.

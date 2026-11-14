@@ -40,7 +40,7 @@ const COMMON_HEIGHTS = [24, 16, 20, 32, 18, 14, 22, 28, 36, 40, 48, 64, 12];
 const WHOLE_HEIGHTS = Array.from({ length: 53 }, (_, i) => i + 12);
 
 // The display scales a crop might have been captured at.
-const CAPTURE_SCALES = [1, 1.25, 1.5, 2];
+const CAPTURE_SCALES = [1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 3];
 
 // Browsers draw thin strokes up to 28% lighter than a file predicts, but the hue
 // stays put. Below this share of ink at full coverage, a stroke counts as thin.

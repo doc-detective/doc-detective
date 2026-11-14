@@ -1136,6 +1136,22 @@ describe("elementImage matching", function () {
       }
     });
 
+    it("image-rescale: a crop from a 1.75×, 2.25×, 2.5×, or 3× screen works on a 1× screen", async function () {
+      const shot = await page({ items: [{ svg: check("#2ec27e", "#ffffff", 32), x: 44, y: 54 }] });
+      for (const density of [1.75, 2.25, 2.5, 3]) {
+        const size = Math.round(40 * density);
+        const crop = await sharp({ create: { width: size, height: size, channels: 3, background: "#ffffff" } })
+          .composite([
+            { input: check("#2ec27e", "#ffffff", Math.round(32 * density)), left: Math.round(4 * density), top: Math.round(4 * density) },
+          ])
+          .png()
+          .toBuffer();
+        const { match: found } = await once(shot, { base64: b64(crop) });
+        expect(found, `a crop at ${density}×`).to.not.equal(null);
+        near(found, 40, 50, 3);
+      }
+    });
+
     it("image-miss-message: drag, crop, and annotations say why, too", async function () {
       const missing = path.join(tmp, "not-there.svg");
       const why = /Couldn't read `.*not-there\.svg`: there's no file at that path\./;
