@@ -566,8 +566,8 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
       source:
         file: src/core/tests/saveScreenshot.ts
         lines: 777-787
-        integrity: sha256-07fdc78840103decc569b3c714641715771476495dc54bb3b1059ddf531d9311
-        commit-sha: 66a81c9d15c23e3e2af557bb34e5173c16b2802c
+        integrity: sha256-dd4f8aefea539b13c39aba61e4721fffe4c5bef8979f2db690394340a1bcdf72
+        commit-sha: 47c3fcd4c0becdd7fb0c6138d701c14ac3ccaeab
     - id: image-crop-scrolls-proof
       claim:
         integrity: sha256-1bfc99775e2e40ba80b8354615ae0eb6d3026ed7f090352b9bc80f092195e875
