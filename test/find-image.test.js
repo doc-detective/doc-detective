@@ -1415,6 +1415,26 @@ describe("elementImage matching", function () {
       expect(all.placed.map((p) => p.rect.x)).to.have.members([40, 200]);
     });
 
+    it("image-annotation-target: a live annotation's restyle keeps its place, and draws the new style", async function () {
+      const { renderLayer, applyAnnotateOps } = await import("../dist/core/tests/annotate.js");
+      const svg = icon(GEAR, "#333333", 24);
+      // Every look after the first sees the page under its own annotation, without the icon.
+      const driver = fakeDriver(await page({}), { captures: [await page({ items: [{ svg, x: 40, y: 50 }] })] });
+      driver.getUrl = async () => "http://localhost:8092/find-image.html";
+      const execute = driver.execute;
+      let mounted;
+      driver.execute = async (fn, ...args) => {
+        if (args[2]?.svg !== undefined) return void (mounted = args[2]);
+        return execute(fn, ...args);
+      };
+      const target = { elementImage: { base64: b64(svg) } };
+      const added = applyAnnotateOps([], { add: [{ id: "mark", outline: target }] }, 0);
+      expect((await renderLayer({ config: {}, driver, entries: added.next })).errors).to.deep.equal([]);
+      const restyled = applyAnnotateOps(added.next, { update: [{ id: "mark", outline: target, style: { color: "#ff0000" } }] }, 0);
+      expect((await renderLayer({ config: {}, driver, entries: restyled.next })).errors).to.deep.equal([]);
+      expect(mounted.svg).to.include('stroke="#ff0000"');
+    });
+
     it("image-annotation-target: all marks every copy, at every size", async function () {
       const capture = await page({
         items: [
