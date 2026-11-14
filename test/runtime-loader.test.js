@@ -17,6 +17,7 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import sinon from "sinon";
 
 before(async function () {
   const { expect } = await import("chai");
@@ -1046,6 +1047,36 @@ describe("runtime/loader", function () {
       await loadHeavyDep("appium", { autoInstall: false, deps: { spawn: spawner, logger: () => {} } });
       expect(released, "imported while another install held the lock").to.equal(true);
       expect(spawner.state.calls).to.equal(1);
+    });
+
+    it("loadHeavyDep fails instead of importing when the install lock never frees", async function () {
+      this.timeout(20000);
+      const spawner = makeSlowSpawner(0);
+      await ensureRuntimeInstalled(["appium"], { deps: { spawn: spawner, logger: () => {} } });
+      const lockDir = path.join(getRuntimeDir({}), "install.lock");
+      fs.mkdirSync(lockDir);
+      // A live holder whose heartbeat stays fresh past the wait.
+      fs.writeFileSync(
+        path.join(lockDir, "owner.json"),
+        JSON.stringify({ pid: process.pid, hostname: os.hostname(), acquiredAt: Date.now(), heartbeatAt: Date.now() + 3600000 })
+      );
+      // Fake only the clock the lock reads, then jump past its 10-minute wait.
+      const clock = sinon.useFakeTimers({ now: Date.now(), toFake: ["Date"] });
+      try {
+        const pending = loadHeavyDep("appium", { autoInstall: false, deps: { spawn: spawner, logger: () => {} } }).then(
+          () => null,
+          (err) => err
+        );
+        await new Promise((r) => setTimeout(r, 100));
+        clock.tick(11 * 60000);
+        const err = await pending;
+        expect(err, "imported without the lock").to.be.an("error");
+        expect(err.message).to.match(/^Couldn't load `appium`: another Doc Detective process is still installing into /);
+        expect(spawner.state.calls).to.equal(1);
+      } finally {
+        clock.restore();
+        fs.rmSync(lockDir, { recursive: true, force: true });
+      }
     });
 
     it("keeps the lock until a timed-out npm child has exited", async function () {

@@ -271,7 +271,12 @@ export async function loadHeavyDep<T = unknown>(
     const runtimeDir = resolved ? getRuntimeDir(ctx) : "";
     if (resolved && fs.existsSync(installLockDir(runtimeDir))) {
       const lock = await acquireInstallLock(runtimeDir);
-      lock?.release();
+      if (!lock) {
+        throw new Error(
+          `Couldn't load \`${name}\`: another Doc Detective process is still installing into ${runtimeDir}. Wait for it to finish, then run again.`
+        );
+      }
+      lock.release();
       resolved = tryResolveFromCache(name, ctx);
     }
   }
