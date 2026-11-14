@@ -292,8 +292,9 @@ function sweepHeights(reference: ImageReference, scale: number): number[] {
     kind === "opaque"
       ? [height, ...CAPTURE_SCALES.map((captured) => (height * scale) / captured)]
       : [
-          // A raster's own size is already in device pixels. An SVG's is in CSS pixels.
-          isSvg ? height * scale : height,
+          // An SVG's own size is in CSS pixels. A raster's can be in device pixels, as a
+          // capture's is, or in CSS pixels, as an icon file's usually is.
+          ...(isSvg ? [height * scale] : [height, height * scale]),
           ...(kind === "oneColor"
             ? [...COMMON_HEIGHTS, ...WHOLE_HEIGHTS.filter((h) => !COMMON_HEIGHTS.includes(h))]
             : COMMON_HEIGHTS
@@ -653,7 +654,8 @@ async function matchImageOnce({
       seen.push(...scan.candidates);
       // Across sizes a miss goes by shape too, because people copy its color into `color`.
       if (scan.closest && (!closest || scan.closest.shape > closest.shape)) closest = scan.closest;
-      if (!all && scan.best && scan.best.score >= STOP_SCORE) break;
+      // A score below `threshold` isn't a match, however near-perfect.
+      if (!all && scan.best && scan.best.score >= Math.max(STOP_SCORE, ref.threshold)) break;
     }
     if (!fits) {
       throw new ImageReferenceError(
@@ -684,9 +686,11 @@ function missMessage(reference: ImageReference, best: Candidate | null, scale: n
   const { label, threshold, statedThreshold } = reference;
   const display = `a display scale of ${Math.round(scale * 100) / 100}`;
   if (!best) return `Couldn't find ${label}: no part of the page could be compared with it, at ${display}.`;
+  // Rounded down, so a score never prints as reaching the `threshold` it missed.
+  const shown = (v: number) => (Math.floor(v * 100 + 1e-9) / 100).toFixed(2);
   let message =
-    `Couldn't find ${label}. The closest match scored ${best.score.toFixed(2)} ` +
-    `(shape ${best.shape.toFixed(2)}, color ${best.color.toFixed(2)}) ` +
+    `Couldn't find ${label}. The closest match scored ${shown(best.score)} ` +
+    `(shape ${shown(best.shape)}, color ${shown(best.color)}) ` +
     `at (${Math.round(best.x)}, ${Math.round(best.y)}), below the \`threshold\` of ${statedThreshold}, at ${display}.`;
   // A faint texture can correlate with any shape, and its color isn't worth copying.
   if (best.shape >= threshold && best.color < threshold && best.contrast >= FAINT_CONTRAST) {

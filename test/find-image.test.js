@@ -588,6 +588,18 @@ describe("elementImage matching", function () {
       near((await once(shot, { base64: file })).match, 200, 200);
     });
 
+    it("image-file-any-size: a near-perfect score below a raised `threshold` doesn't stop the search", async function () {
+      // The first size, 24, scores about 0.987 on a gear of a slightly different color.
+      const file = { base64: b64(icon(GEAR, "#333333", 24)), threshold: 0.99 };
+      const shot = await page({
+        items: [
+          { svg: icon(GEAR, "#33333a", 24), x: 40, y: 50 },
+          { svg: icon(GEAR, "#333333", 20), x: 200, y: 100 },
+        ],
+      });
+      near((await once(shot, file)).match, 200, 100);
+    });
+
     it("image-svg-rendered: an SVG stays sharp at a large size, where a small PNG doesn't", async function () {
       const shot = await page({ items: [{ svg: icon(GEAR, "#333333", 40), x: 40, y: 50 }] });
       const svg = await once(shot, { base64: b64(icon(GEAR, "#333333", 24)) });
@@ -603,6 +615,15 @@ describe("elementImage matching", function () {
       near(found, 40.5, 20.5, 1);
       expect(found.height).to.equal(24);
       expect(found.score).to.be.above(0.98);
+    });
+
+    it("image-device-pixels: a raster file matches at its CSS size times the scale", async function () {
+      // 80 tall is past the sizes a one-color file is also tried at, so only its own size can find it.
+      const file = await sharp(icon(GEAR, "#333333", 80)).png().toBuffer();
+      const shot = await page({ width: 300, height: 200, density: 2, items: [{ svg: icon(GEAR, "#333333", 160), x: 80, y: 100 }] });
+      const { match: found } = await once(shot, { base64: b64(file) }, { scale: 2 });
+      near(found, 40, 50, 1);
+      expect(found.height).to.equal(80);
     });
   });
 
@@ -1045,6 +1066,12 @@ describe("elementImage matching", function () {
       const reference = await match.loadImageReference({ base64: b64(solid("#333333", 24)), threshold: 1 });
       const best = { x: 40, y: 50, width: 24, height: 24, score: 0.5, shape: 0.5, color: 0.5, fileColor: "#333333", pageColor: "#ffffff", contrast: 1 };
       expect(match.missMessage(reference, best, 1)).to.include("below the `threshold` of 1, at");
+    });
+
+    it("image-miss-message: a score just below the `threshold` doesn't print as reaching it", async function () {
+      const reference = await match.loadImageReference({ base64: b64(solid("#333333", 24)), threshold: 0.99 });
+      const best = { x: 40, y: 50, width: 24, height: 24, score: 0.987, shape: 1, color: 0.987, fileColor: "#333333", pageColor: "#32323a", contrast: 1 };
+      expect(match.missMessage(reference, best, 1)).to.include("scored 0.98 (shape 1.00, color 0.98)");
     });
 
     it("image-uniform-reference: a solid icon with rounded corners is still an icon", async function () {
