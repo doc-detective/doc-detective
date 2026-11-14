@@ -386,7 +386,7 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         commit-sha: 7556f4aff617739effc5d7a257f773dc41bb3680
     - id: image-browser-only
       claim:
-        integrity: sha256-ac100bc0913cc9395237d221ac8442beee99c64ff24aa8efe1ed87c7a740f4a4
+        integrity: sha256-660a60dff80699e25f0f759e1b8c8b8f044dfbc9b53e174be2d945820c2dbab3
       source:
         file: src/core/tests/appSurface.ts
         lines: 1058
@@ -394,7 +394,7 @@ docs/fern/pages/docs/test-docs/find-elements-by-image.mdx:
         commit-sha: 24a32427f695226065564abd2c691897a0afbe68
     - id: image-browser-only-proof
       claim:
-        integrity: sha256-ac100bc0913cc9395237d221ac8442beee99c64ff24aa8efe1ed87c7a740f4a4
+        integrity: sha256-660a60dff80699e25f0f759e1b8c8b8f044dfbc9b53e174be2d945820c2dbab3
       source:
         file: test/find-image.test.js
         lines: 1535-1558
