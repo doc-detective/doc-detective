@@ -443,15 +443,19 @@ async function sharpness(file, { x0, y0, x1, y1 }) {
 
 // A page with a live `annotate` blur up. The layer draws blurs with CSS
 // `backdrop-filter`, which Firefox leaves out of WebDriver screenshots, so the
-// capture comes back unblurred, the way Firefox returns it.
-function liveBlurDriver(buffer, { innerWidth, regions, fail = false }) {
+// capture comes back unblurred, the way Firefox returns it. With `navigates`,
+// the page loads a new document between the capture and the read.
+function liveBlurDriver(buffer, { innerWidth, regions, fail = false, navigates = false }) {
   const driver = fakeDriver(buffer, { innerWidth });
   const execute = driver.execute;
   driver.state = { annotations: [{ id: "redact", spec: { blur: "#secret" } }] };
   driver.execute = async (fn, ...args) => {
-    if (String(fn).includes("dd-blur")) {
+    const source = String(fn);
+    if (source.includes("dd-blur")) {
       if (fail) throw new Error("no such window");
-      return { viewportWidth: innerWidth, regions };
+      if (source.includes("requestAnimationFrame")) return true;
+      if (navigates) return { viewportWidth: innerWidth, regions: [], watched: false };
+      return { viewportWidth: innerWidth, regions, watched: true };
     }
     return execute(fn, ...args);
   };
@@ -542,17 +546,42 @@ describe("live annotate blurs in a screenshot", function () {
     });
     const driver = { execute: async (fn, ...args) => fn(...args) };
     try {
-      await watchBlurRegions(driver);
+      assert.equal(await watchBlurRegions(driver), true);
       left = 250;
       frames.shift()();
       left = 50;
       frames.shift()();
       const page = await readBlurRegions(driver);
       assert.deepEqual(page.regions, [{ x: 50, y: 50, width: 300, height: 100, intensity: 14 }]);
+      assert.equal(page.watched, true);
       assert.equal(frames.length, 0, "the read must stop the watch");
+
+      // A new document's layer has no watch on it.
+      const fresh = { isConnected: true, shadowRoot: { querySelectorAll: () => [] } };
+      global.document = { querySelector: () => fresh };
+      assert.equal((await readBlurRegions(driver)).watched, false);
     } finally {
       for (const [key, value] of saved) global[key] = value;
     }
+  });
+
+  it("FAILs rather than save the capture unblurred when the page changes before the read", async function () {
+    const capture = await makeStripedPng(400, 300);
+    const driver = liveBlurDriver(capture, {
+      innerWidth: 400,
+      regions: [{ x: 50, y: 50, width: 100, height: 100, intensity: 14 }],
+      navigates: true,
+    });
+    const file = path.join(dir, "navigated.png");
+    const result = await saveScreenshot({
+      config: {},
+      step: { stepId: "live5", screenshot: { path: file, overwrite: "true" } },
+      driver,
+    });
+
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Couldn't read where the live `blur` annotations are on the page\. The page changed during the screenshot\./);
+    assert.equal(fs.existsSync(file), false);
   });
 
   it("FAILs rather than save the capture unblurred when the page won't report its blurs", async function () {

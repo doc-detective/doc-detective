@@ -185,7 +185,7 @@ function referenceViewport({
 async function takeBrowserScreenshot(driver: any, sharp: any): Promise<Buffer> {
   // A tracked blur can move during the capture, so the page notes every place
   // each blur is drawn from here until the read after it.
-  await liveBlurs(driver, watchBlurRegions);
+  const watching = await liveBlurs(driver, watchBlurRegions);
   const unblur = await blurSecretsForCapture(driver);
   let buffer: Buffer;
   try {
@@ -193,7 +193,13 @@ async function takeBrowserScreenshot(driver: any, sharp: any): Promise<Buffer> {
   } finally {
     await unblur();
   }
-  return await burnInLiveBlurs(sharp, buffer, await liveBlurs(driver, readBlurRegions));
+  const page = await liveBlurs(driver, readBlurRegions);
+  // A watch that's gone means a new document, which can't say where the
+  // captured frame's blurs were.
+  if (watching && !page?.watched) {
+    throw new Error("Couldn't read where the live `blur` annotations are on the page. The page changed during the screenshot.");
+  }
+  return await burnInLiveBlurs(sharp, buffer, page);
 }
 
 async function liveBlurs(driver: any, call: (driver: any) => Promise<any>): Promise<any> {

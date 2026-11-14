@@ -64,6 +64,9 @@ capture, before any `crop` and before the screenshot's own `annotations`.
 
 If the page won't report its blurs, the capture throws, and the step fails with
 ``Couldn't save screenshot. Error: Couldn't read where the live `blur` annotations are on the page. <cause>``.
+A page can navigate between the capture and the read. The new document has no watch on its layer, so it can't say
+where the captured frame's blurs were. The step then fails with the cause "The page changed during the screenshot." A
+recording checkpoint that fails this way logs a warning and skips that checkpoint, as any failed checkpoint does.
 
 ### Consequences
 
@@ -88,7 +91,8 @@ If the page won't report its blurs, the capture throws, and the step fails with
   them stay above 120. A second case asserts the step fails, and saves nothing, when the page won't report its
   blurs. Both failed before the fix: the region read 126.70, and the step passed. A third case runs the page
   code against a stand-in page. A blur moves away for one frame and is back before the read, and the read still
-  covers both places.
+  covers both places. A fourth case loads a new document before the read, and asserts the step fails and saves
+  nothing.
 - `test/core-artifacts/capture/annotate-blur-capture.spec.json` runs headless Chrome and Firefox on every platform
   against `test/server/public/annotate-blur.html`. Each test compares a capture under the blur with its own
   unblurred reference. The full viewport must differ in more than 10% of pixels (the box is 16%), and a crop of the
