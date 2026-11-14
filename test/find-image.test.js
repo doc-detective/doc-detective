@@ -863,6 +863,27 @@ describe("elementImage matching", function () {
       return driver;
     };
 
+    it("image-combined: a match inside the scope isn't outranked by an equal one outside it", async function () {
+      // Horizontal stripes score the same at every position along a striped band.
+      const stripes = (width) =>
+        Buffer.from(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="20"><rect width="${width}" height="20" fill="#fff"/>${[0, 4, 8, 12, 16]
+            .map((y) => `<rect y="${y}" width="${width}" height="2" fill="#000"/>`)
+            .join("")}</svg>`
+        );
+      const shot = await page({ items: [{ svg: stripes(300), x: 40, y: 100 }] });
+      const found = await visual.findByImage({
+        elementImage: { base64: b64(await sharp(stripes(20)).png().toBuffer()) },
+        driver: fakeDriver(shot),
+        timeout: 0,
+        scope: async () => [{ x: 150, y: 90, width: 60, height: 40 }],
+      });
+      expect(found.error).to.equal(null);
+      const { x, y } = await found.element.getLocation();
+      expect(x).to.be.within(149, 191);
+      expect(y).to.equal(100);
+    });
+
     it("image-combined: an element with no size on screen leaves nothing to search", async function () {
       const svg = icon(GEAR, "#333333", 24);
       const shot = await page({ items: [{ svg, x: 40, y: 50 }] });

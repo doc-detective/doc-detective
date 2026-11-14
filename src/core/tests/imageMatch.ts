@@ -549,6 +549,9 @@ function scanSize(
         (r) => x >= r.x - 1 && y >= r.y - 1 && x + tw <= r.x + r.width + 1 && y + th <= r.y + r.height + 1
       );
 
+    // A neighbor outside the scope can't be the match, so it doesn't outrank one inside.
+    const rival = (i: number, x: number, y: number) => (inScope(x, y) ? shapeAt(i) : -2);
+
     const peaks: { x: number; y: number; shape: number }[] = [];
     let top = { x: 0, y: 0, shape: -2 };
     for (let y = 0; y < rows; y++) {
@@ -558,10 +561,10 @@ function scanSize(
         if (shape === -2 || !inScope(x, y)) continue;
         if (shape > top.shape) top = { x, y, shape };
         if (shape < reference.threshold) continue;
-        if (x > 0 && shapeAt(i - 1) >= shape) continue;
-        if (y > 0 && shapeAt(i - cols) >= shape) continue;
-        if (x < cols - 1 && shapeAt(i + 1) > shape) continue;
-        if (y < rows - 1 && shapeAt(i + cols) > shape) continue;
+        if (x > 0 && rival(i - 1, x - 1, y) >= shape) continue;
+        if (y > 0 && rival(i - cols, x, y - 1) >= shape) continue;
+        if (x < cols - 1 && rival(i + 1, x + 1, y) > shape) continue;
+        if (y < rows - 1 && rival(i + cols, x, y + 1) > shape) continue;
         peaks.push({ x, y, shape });
       }
     }
