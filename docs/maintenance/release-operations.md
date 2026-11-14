@@ -233,7 +233,9 @@ The step then fails with `Cannot destructure property 'repository'` (#949).
 - **Effect:** the `release` job fails, but the packages, tag, and GitHub release are already out.
   `promote` still runs, because it gates on the `published` output rather than on the job passing.
   Only the "released in" comments and labels are missing.
-- **Recover:** nothing to re-run. Post the missing comments by hand if they matter.
+- **Recover:** on `main`, check the run's promote jobs. If they passed, nothing needs a re-run.
+  If they failed, follow [Stuck `@latest` releases](#stuck-latest-releases). Post the missing
+  comments by hand if they matter.
 
 ## Failed npm publishes
 
