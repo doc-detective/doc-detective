@@ -183,6 +183,8 @@ function referenceViewport({
 // A browser capture with every element that shows a secret blurred, and the
 // blur removed after (ADR 01178), and the live annotate blurs burned in.
 async function takeBrowserScreenshot(driver: any, sharp: any): Promise<Buffer> {
+  // Read before and after: a tracked blur can move during the capture.
+  const before = await readLiveBlurs(driver);
   const unblur = await blurSecretsForCapture(driver);
   let buffer: Buffer;
   try {
@@ -190,7 +192,30 @@ async function takeBrowserScreenshot(driver: any, sharp: any): Promise<Buffer> {
   } finally {
     await unblur();
   }
-  return await burnInLiveBlurs(driver, sharp, buffer);
+  return await burnInLiveBlurs(sharp, buffer, before, await readLiveBlurs(driver));
+}
+
+async function readLiveBlurs(driver: any): Promise<any> {
+  if (!(driver?.state?.annotations?.length > 0)) return undefined;
+  try {
+    return await readBlurRegions(driver);
+  } catch (error: any) {
+    throw new Error(`Couldn't read where the live \`blur\` annotations are on the page. ${error?.message ?? error}`);
+  }
+}
+
+// The box that covers both places a blur was read at, and the span between.
+function spanOf(a: any, b: any): any {
+  if (!b) return a;
+  const x = Math.min(a.x, b.x);
+  const y = Math.min(a.y, b.y);
+  return {
+    x,
+    y,
+    width: Math.max(a.x + a.width, b.x + b.width) - x,
+    height: Math.max(a.y + a.height, b.y + b.height) - y,
+    intensity: Math.max(a.intensity, b.intensity),
+  };
 }
 
 // The annotate layer draws its blurs with CSS `backdrop-filter`, which Firefox
@@ -198,16 +223,12 @@ async function takeBrowserScreenshot(driver: any, sharp: any): Promise<Buffer> {
 // (ADR 01202). Chrome's capture already shows them, so there they're blurred
 // twice: stronger, never weaker. Hiding the layer's blurs for the capture would
 // avoid that, but a running recording would catch the page unblurred. Fails
-// closed, like the secret blur: no capture beats an unredacted one.
-async function burnInLiveBlurs(driver: any, sharp: any, buffer: Buffer): Promise<Buffer> {
-  if (!(driver?.state?.annotations?.length > 0)) return buffer;
-  let page: any;
-  try {
-    page = await readBlurRegions(driver);
-  } catch (error: any) {
-    throw new Error(`Couldn't read where the live \`blur\` annotations are on the page. ${error?.message ?? error}`);
-  }
-  const regions: any[] = Array.isArray(page?.regions) ? page.regions : [];
+// closed, like the secret blur: no capture beats an unredacted one. The capture
+// happened between the two reads, so each blur covers both its places.
+async function burnInLiveBlurs(sharp: any, buffer: Buffer, before: any, page: any): Promise<Buffer> {
+  const earlier: any[] = Array.isArray(before?.regions) ? before.regions : [];
+  const later: any[] = Array.isArray(page?.regions) ? page.regions : [];
+  const regions = [...later.map((region, i) => spanOf(region, earlier[i])), ...earlier.slice(later.length)];
   if (regions.length === 0) return buffer;
   const meta = await sharp(buffer).metadata();
   const scale = computeScale(meta.width, page.viewportWidth);

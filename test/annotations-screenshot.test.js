@@ -444,14 +444,22 @@ async function sharpness(file, { x0, y0, x1, y1 }) {
 // A page with a live `annotate` blur up. The layer draws blurs with CSS
 // `backdrop-filter`, which Firefox leaves out of WebDriver screenshots, so the
 // capture comes back unblurred, the way Firefox returns it.
-function liveBlurDriver(buffer, { innerWidth, regions, fail = false }) {
+// `movedTo` is where a tracked blur reports itself once the capture is taken.
+function liveBlurDriver(buffer, { innerWidth, regions, fail = false, movedTo }) {
   const driver = fakeDriver(buffer, { innerWidth });
   const execute = driver.execute;
+  const takeScreenshot = driver.takeScreenshot;
+  let taken = false;
+  driver.takeScreenshot = async (...args) => {
+    const shot = await takeScreenshot.apply(driver, args);
+    taken = true;
+    return shot;
+  };
   driver.state = { annotations: [{ id: "redact", spec: { blur: "#secret" } }] };
   driver.execute = async (fn, ...args) => {
     if (String(fn).includes("dd-blur")) {
       if (fail) throw new Error("no such window");
-      return { viewportWidth: innerWidth, regions };
+      return { viewportWidth: innerWidth, regions: taken && movedTo ? movedTo : regions };
     }
     return execute(fn, ...args);
   };
@@ -496,6 +504,29 @@ describe("live annotate blurs in a screenshot", function () {
     assert.ok(under < 5, `the region under the live blur reads ${under.toFixed(2)}, so it wasn't blurred`);
     assert.ok(underSecond < 5, `the region under the second blur reads ${underSecond.toFixed(2)}, so it wasn't blurred`);
     assert.ok(beside > 120, `the region beside the blur reads ${beside.toFixed(2)}, so the blur spread past its rect`);
+  });
+
+  it("blurs where a tracked blur was during the capture, even after it moves", async function () {
+    // The capture shows the blur at x 50–150, and by the next read it has
+    // tracked its element to x 250–350.
+    const capture = await makeStripedPng(400, 300);
+    const driver = liveBlurDriver(capture, {
+      innerWidth: 400,
+      regions: [{ x: 50, y: 50, width: 100, height: 100, intensity: 14 }],
+      movedTo: [{ x: 250, y: 50, width: 100, height: 100, intensity: 14 }],
+    });
+    const file = path.join(dir, "moved.png");
+    const result = await saveScreenshot({
+      config: {},
+      step: { stepId: "live3", screenshot: { path: file, overwrite: "true" } },
+      driver,
+    });
+
+    assert.equal(result.status, "PASS", result.description);
+    const where = await sharpness(file, { x0: 60, y0: 60, x1: 140, y1: 140 });
+    const below = await sharpness(file, { x0: 60, y0: 200, x1: 340, y1: 290 });
+    assert.ok(where < 5, `where the blur was during the capture reads ${where.toFixed(2)}, so it wasn't blurred`);
+    assert.ok(below > 120, `the stripes below the blurs read ${below.toFixed(2)}, so the blur spread past its rects`);
   });
 
   it("FAILs rather than save the capture unblurred when the page won't report its blurs", async function () {

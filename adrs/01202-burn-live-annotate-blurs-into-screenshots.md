@@ -46,11 +46,14 @@ Chosen option: **A**.
 
 Every browser capture goes through `takeBrowserScreenshot` in `src/core/tests/saveScreenshot.ts`: the first
 capture, the retake at a reference's size ([ADR 01144](01144-resize-to-reference-and-default-browser-size.md)), and
-recording checkpoints. After it takes the screenshot, and only when `driver.state.annotations` isn't empty, it
-asks the page where the layer's blurs sit (`readBlurRegions` in `src/core/annotations/domAdapter.ts`). The page
-reports each `.dd-blur` element's bounding rect in CSS pixels and its intensity, which the layer now stores in a
-`data-dd-intensity` attribute. Reading the page, rather than rebuilding rects from state, gets a tracked blur where it
-has moved to and costs no element lookups.
+recording checkpoints. Only when `driver.state.annotations` isn't empty, it asks the page where the layer's blurs
+sit (`readBlurRegions` in `src/core/annotations/domAdapter.ts`). The page reports each `.dd-blur` element's bounding
+rect in CSS pixels and its intensity, which the layer now stores in a `data-dd-intensity` attribute. Reading the
+page, rather than rebuilding rects from state, gets a tracked blur where it has moved to and costs no element lookups.
+
+A tracked blur follows its element, so it can move while the screenshot is taken. The page is read once before the
+capture and once after, and each blur covers the box that spans both rects. Over-blurring is the safe side of a
+redaction.
 
 The rects and intensities scale by the capture's width over the viewport's, as `screenshot.annotations` rects do.
 They go through the same generator and compositor the screenshot's own annotations use (`annotationsToSvg`,
@@ -71,7 +74,8 @@ If the page won't report its blurs, the capture throws, and the step fails with
   in the region by at most 2 of 255 grey levels. The mean shift was 0.53 headless and 0.21 headed. Nobody can see
   it, but `maxVariation` comparisons use a zero pixel threshold. So a Chrome reference taken under a live blur
   before this change differs across the blurred region once. Retake it, or let `overwrite: "aboveVariation"` replace it.
-- Bad: a screenshot under a live blur costs one more page round trip and a `sharp` composite.
+- Bad: a screenshot under a live blur costs two more page round trips and a `sharp` composite.
+- Bad: a blur that moved during the capture covers more than its own rect, up to the span between its two reads.
 - Neutral: this doesn't catch an annotate state that names a blur the page isn't showing. That can happen after a
   failed re-mount on navigation. The page is the record of what's displayed, in every browser alike.
 
@@ -80,7 +84,9 @@ If the page won't report its blurs, the capture throws, and the step fails with
 - `test/annotations-screenshot.test.js` ("live annotate blurs in a screenshot") feeds the real `saveScreenshot` a
   striped capture and a page reporting two blurs at 2x. It asserts both regions read below 5 and the stripes beside
   them stay above 120. A second case asserts the step fails, and saves nothing, when the page won't report its
-  blurs. Both failed before the fix: the region read 126.70, and the step passed.
+  blurs. Both failed before the fix: the region read 126.70, and the step passed. A third case moves a blur
+  between the capture and the next read, and asserts where it was during the capture still reads below 5. It read
+  125.89 when only the read after the capture counted.
 - `test/core-artifacts/capture/annotate-blur-capture.spec.json` runs headless Chrome and Firefox on every platform
   against `test/server/public/annotate-blur.html`. Each test compares a capture under the blur with its own
   unblurred reference. The full viewport must differ in more than 10% of pixels (the box is 16%), and a crop of the
