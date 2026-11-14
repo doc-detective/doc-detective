@@ -46,7 +46,8 @@ stays on 5.x and `doc-detective@4` resolves to it.
 ### Consequences
 
 - Good, because every 4.x user who runs the CLI learns that 5 exists, in CI too.
-- Good, because stdout, exit codes, and results files don't change.
+- Good, because exit codes and results files don't change. Stdout gains only the `::notice` line, and
+  only in GitHub Actions.
 - Bad, because a 4.x run's stderr always ends with the notice, until the user upgrades or sets
   `logLevel: silent`.
 
