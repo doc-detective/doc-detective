@@ -223,6 +223,18 @@ passes. If that job fails, the version is published to `staging-<version>` (and 
   fixtures baseline-free. The smoke test's purpose is exercising the action end-to-end, not visual
   regression.
 
+## Failed `success` step
+
+After a release publishes, `@semantic-release/github`'s `success` step looks up every commit's
+pull requests to comment "released in X.Y.Z". On a large release (5.0.0 had 1,126 commits),
+GitHub's GraphQL API can answer some of those parallel lookups with a 504, and the step fails with
+`Cannot destructure property 'repository'` (#949).
+
+- **Effect:** the `release` job fails, but the packages, tag, and GitHub release are already out.
+  `promote` still runs, because it gates on the `published` output rather than on the job passing.
+  Only the "released in" comments and labels are missing.
+- **Recover:** nothing to re-run. Post the missing comments by hand if they matter.
+
 ## Failed npm publishes
 
 The release job publishes during semantic-release's `prepare` step, before it commits or tags
