@@ -185,6 +185,8 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
   // Docs can hold `.env` values, so mask the report like every other output.
   const report = maskDeep(summarize(files));
   // `--json` is the result itself, so it prints at any log level, as in ADR 01146.
+  // `--json` and `-q` pick the output shape and have no config key, so they're
+  // read from `args`, as `debug` does.
   if (args.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   else if (config.logLevel !== "silent") process.stdout.write(renderText(report, { quiet: Boolean(args.quiet) }));
 }
