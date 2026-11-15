@@ -64,6 +64,29 @@ describe("audit command", function () {
     assert.equal(process.exitCode ?? 0, 0);
   });
 
+  it("warns and leaves out a file it can't read after detection", async function () {
+    const gone = path.join(dir, "gone.md");
+    fs.writeFileSync(path.join(dir, "install.md"), page);
+    fs.writeFileSync(gone, page);
+    const read = fs.readFileSync;
+    // Fail only audit's own read, as if the file vanished after detection.
+    const stub = sinon.stub(fs, "readFileSync").callsFake(function (file, ...rest) {
+      if (path.resolve(String(file)) === gone && /audit[\\/]index\.js/.test(new Error().stack)) {
+        throw Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" });
+      }
+      return read.call(fs, file, ...rest);
+    });
+    try {
+      const report = JSON.parse(await run({ input: dir, json: true }));
+      assert.deepEqual(report.files.map((f) => path.basename(f.path)), ["install.md"]);
+      const message = err.args.map((a) => String(a[0])).join("");
+      assert.ok(message.includes(`Couldn't read \`${gone}\`.`), message);
+      assert.equal(process.exitCode ?? 0, 0);
+    } finally {
+      stub.restore();
+    }
+  });
+
   it("prints only the first line with --quiet", async function () {
     fs.writeFileSync(path.join(dir, "install.md"), page);
     const text = await run({ input: dir, quiet: true });
