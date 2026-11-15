@@ -1,3 +1,61 @@
+# [5.1.0](https://github.com/doc-detective/doc-detective/compare/v5.0.0...v5.1.0) (2026-11-15)
+
+
+### Bug Fixes
+
+* **annotate:** keep an image target's place through an update ([f1e254a](https://github.com/doc-detective/doc-detective/commit/f1e254ae3812356fc43ed0f15e095bec395abcda))
+* **annotate:** track only the elements this render tagged ([c3645e6](https://github.com/doc-detective/doc-detective/commit/c3645e6c747facc9f925cbd17db971a9cf2a0911))
+* **find:** drop two schema edits that made the PR diff too large ([19e7701](https://github.com/doc-detective/doc-detective/commit/19e7701561bd69ac9081919a5c647ae7238e3c71))
+* **find:** fail `elementImage` on an app surface beside a native selector ([48f8821](https://github.com/doc-detective/doc-detective/commit/48f8821cf799f9d2317de8e8606f2ec94e720523))
+* **find:** fail only the step when matching errors, and retry a failed load ([d2a90fa](https://github.com/doc-detective/doc-detective/commit/d2a90fae51b1b3ab7b9a1a83d25805163d4dea2f))
+* **find:** free a size's reference and mask when an allocation fails ([7556f4a](https://github.com/doc-detective/doc-detective/commit/7556f4aff617739effc5d7a257f773dc41bb3680))
+* **find:** free the gray surface when the color one can't be made ([ed5d22e](https://github.com/doc-detective/doc-detective/commit/ed5d22eafb3056583ac219193a26c5f49d72aeb0))
+* **find:** install sharp as a core package when a step uses elementImage ([ee237e0](https://github.com/doc-detective/doc-detective/commit/ee237e0b41060139626eb9f50b2c2022414d59b0))
+* **find:** keep a reason's own question or exclamation mark ([03fba61](https://github.com/doc-detective/doc-detective/commit/03fba6153b03396d122f871826260047b32cb826))
+* **find:** keep an out-of-scope neighbor from hiding a match ([036f457](https://github.com/doc-detective/doc-detective/commit/036f457caf8f2f4d2bec7385e5cfc0d4c356e6b3))
+* **find:** keep one-time listeners one-time when restoring them ([07cb0d0](https://github.com/doc-detective/doc-detective/commit/07cb0d0c5d26f50435a5c0ac31b58789c76f4e7e))
+* **find:** keep the other regions when one element goes stale ([052ca5a](https://github.com/doc-detective/doc-detective/commit/052ca5ab3579f177dbb037c8813bc598083693ce))
+* **find:** leave elements with no size out of an image search's scope ([705f383](https://github.com/doc-detective/doc-detective/commit/705f3831473140df71cc7f4b3f4f991dab9493d2))
+* **find:** make elementImage do what its page promises ([208a40c](https://github.com/doc-detective/doc-detective/commit/208a40c8de44928c40802ec2da6ac3afd731426f))
+* **find:** name the `threshold` an author wrote when an image misses ([c545f8a](https://github.com/doc-detective/doc-detective/commit/c545f8a211f932531dc2f16120ef254d81f65754))
+* **find:** print a score below 0 as 0 in a failed step ([2925322](https://github.com/doc-detective/doc-detective/commit/2925322660134c333bd99dd8328185fad7a2f8a6))
+* **find:** read the other criteria's elements one at a time ([a62d0a9](https://github.com/doc-detective/doc-detective/commit/a62d0a9e18b652684b71cb1e47c72695d9f91b5d))
+* **find:** retry a look when the page replaces an element mid-look ([9c72cd5](https://github.com/doc-detective/doc-detective/commit/9c72cd58eaf6c3d73952b75d0d1b375f3ab5bcc6))
+* **find:** scope to the boxes an element and its overflow cover ([b6a85d8](https://github.com/doc-detective/doc-detective/commit/b6a85d8303f4c3f1f0f9f62d7ac12d3548d8636b))
+* **find:** scope to what an element contains, and keep live image targets ([24a3242](https://github.com/doc-detective/doc-detective/commit/24a32427f695226065564abd2c691897a0afbe68))
+* **find:** skip a size that resizing blurs into one color ([2952ec5](https://github.com/doc-detective/doc-detective/commit/2952ec5db34919105eba952fd635483b9b32dd5a))
+* **find:** stop wrong colors passing at another size, and fix multi-color scores ([51fbe52](https://github.com/doc-detective/doc-detective/commit/51fbe52ee05f3a75c547626c62a9259166985c1a))
+* **find:** take turns capturing, so a recording's cursor stays hidden ([b68065d](https://github.com/doc-detective/doc-detective/commit/b68065df35a7cadbdc2068c9436f49c16e17103d))
+* **find:** three matching fixes from the third verification round ([00a2354](https://github.com/doc-detective/doc-detective/commit/00a235488a48393e29afde3f4f9753f6024fb1ef))
+* **find:** use an example image in the schema that works when copied ([cbb6443](https://github.com/doc-detective/doc-detective/commit/cbb644311d0dba44c80824112fb694d4fea45f53))
+* **find:** word image failures like every other failure ([2e17e3e](https://github.com/doc-detective/doc-detective/commit/2e17e3e982921e6a40f47aa0e4f519c33c4893ad))
+* **goTo:** name every criterion a waitUntil.find looked for ([4b32a11](https://github.com/doc-detective/doc-detective/commit/4b32a11bfded8fdadbec216ade82bd1752e9fb89))
+* **runtime:** fail a load when the install lock never frees ([6d22950](https://github.com/doc-detective/doc-detective/commit/6d22950887fac2855dfcb2664d027d22c04916bf)), closes [#896](https://github.com/doc-detective/doc-detective/issues/896)
+* **runtime:** give SIGKILL its own grace before releasing the lock ([42c22b9](https://github.com/doc-detective/doc-detective/commit/42c22b94b4da145028f65935599ac11cfbeafa6e)), closes [#896](https://github.com/doc-detective/doc-detective/issues/896)
+* **runtime:** hold the install lock until a timed-out npm exits ([e2a1ae7](https://github.com/doc-detective/doc-detective/commit/e2a1ae73e2c0b87522b25125e179e35cfaa97e2f)), closes [#896](https://github.com/doc-detective/doc-detective/issues/896)
+* **runtime:** resolve a relative cache dir to an absolute path ([b751f3a](https://github.com/doc-detective/doc-detective/commit/b751f3a7e9898628d1bd190020da5cd608b25d81)), closes [#897](https://github.com/doc-detective/doc-detective/issues/897)
+* **runtime:** serialize installs into one cache through the runtime lock ([a0df91b](https://github.com/doc-detective/doc-detective/commit/a0df91bbef87ad34fcbe3368293c092d37e98a37)), closes [#896](https://github.com/doc-detective/doc-detective/issues/896)
+* **runtime:** wait for an install in progress before loading a cache hit ([c0304d0](https://github.com/doc-detective/doc-detective/commit/c0304d0f7fd4d51992dc52c92b834e8195969a76)), closes [#896](https://github.com/doc-detective/doc-detective/issues/896)
+* **runtime:** wait for an install in progress with autoInstall false too ([f493e2a](https://github.com/doc-detective/doc-detective/commit/f493e2a731252dabcc11bff620451465889771be)), closes [#896](https://github.com/doc-detective/doc-detective/issues/896)
+* **schema:** reject `elementImage` inside `find.type` ([bab15fe](https://github.com/doc-detective/doc-detective/commit/bab15fe9f8866998553262f1613cedd1f4f94ccd))
+* **screenshot:** blur where a tracked blur was during the capture ([e5d7a65](https://github.com/doc-detective/doc-detective/commit/e5d7a65b1a48070d62a65a01f341069938b0ce46))
+* **screenshot:** burn live annotate blurs into the capture ([c7ed6c6](https://github.com/doc-detective/doc-detective/commit/c7ed6c677713d5df0f1d6bf12fa5b98f69ff27ea))
+* **screenshot:** center crop targets so fixed headers don't cover them ([47c3fcd](https://github.com/doc-detective/doc-detective/commit/47c3fcd4c0becdd7fb0c6138d701c14ac3ccaeab)), closes [#145](https://github.com/doc-detective/doc-detective/issues/145)
+* **screenshot:** crop same-scale size mismatches instead of resampling ([39b9d0d](https://github.com/doc-detective/doc-detective/commit/39b9d0d301b5c43cb5ea2ab3512462130dcea026)), closes [#719](https://github.com/doc-detective/doc-detective/issues/719)
+* **screenshot:** fail when the page changes between capture and blur read ([66a81c9](https://github.com/doc-detective/doc-detective/commit/66a81c9d15c23e3e2af557bb34e5173c16b2802c))
+* **screenshot:** keep the stronger live blur where blurs overlap ([9788976](https://github.com/doc-detective/doc-detective/commit/9788976ae625a491994a023edc09740349692210))
+* **screenshot:** note every frame a live blur is drawn in during a capture ([e28a0f2](https://github.com/doc-detective/doc-detective/commit/e28a0f238889bca9c27e490d36607b4d26d1e44f))
+* **screenshot:** say plainly which live blurs couldn't be read ([0c2ef93](https://github.com/doc-detective/doc-detective/commit/0c2ef93d8617a6bdb7a933b32de83dc0febcf0ad))
+* **security:** bound the inline-attribute regex and hash temp names with SHA-256 ([2fba60c](https://github.com/doc-detective/doc-detective/commit/2fba60c5667d907c342905eff3a65731f5828779)), closes [#948](https://github.com/doc-detective/doc-detective/issues/948)
+
+
+### Features
+
+* **find:** accept elementImage in schemas and install its matcher on demand ([7f10c52](https://github.com/doc-detective/doc-detective/commit/7f10c52ed861c046e604dac2da819ef3a0151227))
+* **find:** find elements by matching an image on screen ([131a535](https://github.com/doc-detective/doc-detective/commit/131a5354f9e16c8c298c8d0dd719e6ee18bf62d5))
+* **find:** try a crop at 175%, 225%, 250%, and 300% display scale too ([aa75661](https://github.com/doc-detective/doc-detective/commit/aa75661261d75f0045b56e73a66465c2f218eb76))
+* **find:** use elementImage in the actions that build on find ([a27922a](https://github.com/doc-detective/doc-detective/commit/a27922ab25254b4bf06ca2b7c0d49adc1eaa917e))
+
 # [5.0.0](https://github.com/doc-detective/doc-detective/compare/v4.43.0...v5.0.0) (2026-11-13)
 
 
