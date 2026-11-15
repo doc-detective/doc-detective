@@ -59,15 +59,15 @@ describe("engines.node", function () {
     );
   });
 
-  it("floors at node 24.15, with nothing older admitted", function () {
-    // ADR 01148. 24.15 rather than 24.0 because appium-uiautomator2-driver 9,
-    // appium-xcuitest-driver 13, and the semantic-release plugins need it, so
-    // a lower floor would have to rise during v5.
-    assert.equal(semver.minVersion(declared).version, "24.15.0");
-    for (const version of ["22.23.4", "23.11.0", "24.14.9"]) {
+  it("floors at node 24.22.1 and 26.12.1, with node 25 excluded", function () {
+    // ADR 01207, amending ADR 01148. webdriverio 10.2 needs 24.22.1 on the 24
+    // line and 26.12.1 on the 26 line, and @inquirer/prompts 8.8 dropped
+    // node 25.
+    assert.equal(semver.minVersion(declared).version, "24.22.1");
+    for (const version of ["22.23.4", "23.11.0", "24.15.0", "24.22.0", "25.9.0", "26.0.0", "26.12.0"]) {
       assert.ok(!semver.satisfies(version, declared), `${version} must be rejected`);
     }
-    for (const version of ["24.15.0", "26.13.0"]) {
+    for (const version of ["24.22.1", "24.23.0", "26.12.1", "26.13.0", "28.0.0"]) {
       assert.ok(semver.satisfies(version, declared), `${version} must be accepted`);
     }
   });
