@@ -1,6 +1,6 @@
 {
   "specId": "audit",
-  "description": "`doc-detective audit` through the real CLI (ADR 01206). Each test runs one case of audit-check.cjs, which writes documents and a config under .tmp/fixture-audit/, runs `audit`, and checks the report and exit code. No browser or network, so every case runs on Windows, macOS, and Linux.",
+  "description": "`doc-detective audit` through the real CLI (ADR 01213). Each test runs one case of audit-check.cjs, which writes documents and a config under .tmp/fixture-audit/, runs `audit`, and checks the report and exit code. No browser or network, so every case runs on Windows, macOS, and Linux.",
   "tests": [
     {
       "testId": "audit-tier-marker",
