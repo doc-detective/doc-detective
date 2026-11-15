@@ -108,6 +108,8 @@ describe("selectors", function () {
       expect(parseStatementText("test ignore start")).to.deep.equal({ type: "ignoreStart", payload: "" });
       expect(parseStatementText("test ignore end")).to.deep.equal({ type: "ignoreEnd", payload: "" });
       expect(parseStatementText('step {"find": "x"}')).to.deep.equal({ type: "step", payload: '{"find": "x"}' });
+      expect(parseStatementText(" procedure ")).to.deep.equal({ type: "procedure", payload: "" });
+      expect(parseStatementText("procedures to follow")).to.equal(null);
     });
 
     it("needs the keyword to end at a word boundary", function () {
@@ -264,6 +266,14 @@ describe("selectors", function () {
       const { tests, steps } = await detect(content, md({ inlineStatements: { in: ["comment"] } }));
       expect(tests.map((t) => t.testId)).to.deep.equal(["t"]);
       expect(strip(steps)).to.deep.equal([{ find: "a" }]);
+    });
+
+    it("leaves a procedure marker out of tests and steps", async function () {
+      const content = '<!-- procedure -->\n1. Click **a**\n\n<!-- step {"find": "b"} -->\n';
+      const { tests, steps, warnings } = await detect(content, md({ inlineStatements: { in: ["comment"] }, markup: [{ strong: {}, actions: ["find"] }] }));
+      expect(tests).to.have.length(1);
+      expect(strip(steps)).to.deep.equal([{ find: "a" }, { find: "b" }]);
+      expect(warnings).to.deep.equal([]);
     });
 
     it("honors ignore statements from containers", async function () {
