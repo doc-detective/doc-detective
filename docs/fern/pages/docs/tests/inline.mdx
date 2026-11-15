@@ -119,6 +119,10 @@ DITA `<data>` elements let you define inline tests using standard DITA markup:
 
 You can use single or double quotes for either attribute. Use `<data>` elements when you want tests that validate with DITA-aware tools, or when your publishing workflow filters out processing instructions.
 
+## Mark a procedure
+
+A `procedure` statement, such as `<!-- procedure -->` or `{/* procedure */}`, marks the numbered list right after it as a procedure. Test runs skip it. [`doc-detective audit`](/docs/test-docs/audit-test-coverage) counts that list's items as procedure steps, even when the list's first item doesn't read as an instruction. For the statement in each format, see [Mark a list as a procedure](/docs/test-docs/audit-test-coverage#mark-a-list-as-a-procedure).
+
 ## Examples
 
 {/* The examples below document inline-test syntax; they aren't runnable tests (they navigate real

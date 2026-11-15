@@ -142,7 +142,7 @@ A field a node doesn't have is an empty string. A regex group that didn't take p
 
 ## Read inline statements from nodes
 
-`inlineStatements.in` lists the nodes that hold [inline test statements](/docs/test-docs/inline). Doc Detective reads a node as a statement when its text starts with `test`, `test start`, `test end`, `test ignore start`, `test ignore end`, or `step`. A comment inside a code block isn't a node, so a statement in a code sample stays text.
+`inlineStatements.in` lists the nodes that hold [inline test statements](/docs/test-docs/inline). Doc Detective reads a node as a statement when its text starts with `test`, `test start`, `test end`, `test ignore start`, `test ignore end`, or `step`. It also reads a node whose text is `procedure`, which marks the next list as a procedure for [`audit`](/docs/test-docs/audit-test-coverage). A comment inside a code block isn't a node, so a statement in a code sample stays text.
 
 ```json
 {
