@@ -183,7 +183,7 @@ function toNode(frame: Frame, endIndex: number, spec: DialectSpec): Node | null 
     case "codeBlock": {
       const language = LANGUAGE_CLASS.exec(attributes.class ?? "")?.[1] ?? frame.language ?? "";
       // HTML drops a newline right after <pre>.
-      return { ...base, kind: "codeBlock", language, meta: "", content: frame.text.replace(/^\r?\n/, "") };
+      return { ...base, kind: "codeBlock", language, meta: "", content: frame.text.replace(/^\r?\n/, ""), attributes };
     }
   }
   if (frame.code) return null;
