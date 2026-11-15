@@ -48,6 +48,10 @@ const instructions = [
   "Briefly state the relevant concept",
   "Re-run the test.",
   "Preview the injection using the skill",
+  "Apply the patch",
+  "Supply your token",
+  "Open the file, then save it",
+  "Select **File**, and then click **Save**.",
 ];
 
 const notInstructions = [

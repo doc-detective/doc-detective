@@ -46,8 +46,10 @@ A list's tier is the first that matches:
 1. **Explicit.** DITA `<steps>`, an MDX `<Steps>` component, or a list right after a `procedure`
    statement. `procedure` is a new inline statement keyword. The runner and the LSP skip it.
 2. **Tagger.** An ordered list whose first item reads as an instruction. compromise 14.19.0 tags the
-   item. It's lexicon-based and pinned exactly. Before tagging, the item loses its markup, any
-   opener of up to five words before a comma, and a leading adverb such as "Briefly". The item is an
+   item. It's lexicon-based and pinned exactly. Before tagging, the item loses its markup. The tagger
+   reads it as is, and again without an opener of up to five words before a comma. A third reading
+   also drops a leading adverb such as "Briefly". Any reading counts. So "Apply the patch" and "Open the
+   file, then save it" keep their verb. The item is an
    instruction when its first word is an imperative or infinitive verb with a complement after it.
    A complement is a determiner, pronoun, preposition, particle, UI label, value, or adjective. A
    bare noun after the verb reads as a noun phrase, as in "Release notes". That choice trades a few

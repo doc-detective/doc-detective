@@ -99,7 +99,9 @@ export function computeCoverage({ content, fileType, filePath, steps, index, ori
   }
   if (open !== null) ignored.push([open, content.length]);
   const isIgnored = (start: number, end: number) => ignored.some(([a, b]) => start < b && a < end);
-  const authored = statements.filter((s) => s.type === "step" && !isIgnored(s._startIndex, s._endIndex));
+  const authored = statements
+    .filter((s) => s.type === "step" && !isIgnored(s._startIndex, s._endIndex))
+    .sort((a, b) => a._startIndex - b._startIndex);
   const markers = statements.filter((s) => s.type === "procedure").map((s) => s._endIndex);
 
   const located = steps.filter((step) => typeof step.location?.startIndex === "number");
@@ -135,7 +137,8 @@ export function computeCoverage({ content, fileType, filePath, steps, index, ori
       const classes = classesOf(node);
       const language = (node.language ?? "").toLowerCase();
       // An authored step right after the block, with only whitespace between.
-      const following = authored.find((s) => s._startIndex >= end && content.slice(end, s._startIndex).trim() === "");
+      const next = authored.find((s) => s._startIndex >= end);
+      const following = next && content.slice(end, next._startIndex).trim() === "" ? next : undefined;
       const own = [...stepsIn(start, end), ...(following ? located.filter((step) => step.location.startIndex === following._startIndex) : [])];
       const id = node.attributes?.id;
       const byId = typeof id === "string" && index.stepIds.has(id);

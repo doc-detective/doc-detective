@@ -150,7 +150,8 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
   for (const spec of specs) {
     for (const test of spec.tests ?? []) {
       const file = path.resolve(test.contentPath ?? spec.contentPath ?? "");
-      stepsByFile.set(file, [...(stepsByFile.get(file) ?? []), ...(test.steps ?? [])]);
+      if (!stepsByFile.has(file)) stepsByFile.set(file, []);
+      stepsByFile.get(file)!.push(...(test.steps ?? []));
     }
   }
 
