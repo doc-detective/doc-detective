@@ -256,7 +256,7 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
  * @returns {Promise<string|null>} Path to output directory or null on failure
  */
 async function processDitaMap({ config, source }: { config: any; source: string }) {
-  const hash = crypto.createHash("md5").update(source).digest("hex");
+  const hash = crypto.createHash("sha256").update(source).digest("hex");
   const tmpBase = path.join(os.tmpdir(), "doc-detective");
   const outputDir = path.join(tmpBase, `ditamap_${hash}`);
   if (!fs.existsSync(tmpBase)) {
