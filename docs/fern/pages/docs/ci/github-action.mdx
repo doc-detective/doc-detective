@@ -32,11 +32,7 @@ jobs:
       - uses: doc-detective/github-action@v2
 ```
 
-This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.22.1 or later, and GitHub-hosted runners default to an older version. On older Node.js, the action warns:
-
-```text
-Doc Detective 5 needs Node.js 24.15 or later, but this job runs <version>. Add `actions/setup-node` with `node-version: 24`.
-```
+This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.22.1 or later, and GitHub-hosted runners default to an older version. On older Node.js, the action warns you to add `actions/setup-node` with `node-version: 24`.
 
 Pin to the major version (`@v2`) to pick up fixes automatically, or pin to a full version such as `@v2.0.0` for a fixed release. Action `@v2` runs CLI 5, and `@v1` stays on CLI 4. If you're moving from `@v1`, see [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
 
