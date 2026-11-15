@@ -461,6 +461,8 @@ function buildPage(data) {
   parts.push(
     "## Exit codes",
     "",
+    "A test run exits with these codes. `validate` has its own codes, listed under [`validate`](#validate).",
+    "",
     "| Code | Meaning |",
     "|------|---------|",
     "| `0` | No spec failed, and at least one passed or warned |",
