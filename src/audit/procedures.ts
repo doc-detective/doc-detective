@@ -1,6 +1,6 @@
 /**
  * Finds the lists in a file that `audit` treats as procedures, from each
- * format's parse tree, never from a raw text scan (ADR 01206).
+ * format's parse tree, never from a raw text scan (ADR 01207).
  *
  * Tiers, first match wins:
  * 1. explicit: DITA `<steps>`, MDX `<Steps>`, or a list right after a
