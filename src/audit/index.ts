@@ -150,7 +150,10 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
   const stepsByFile = new Map<string, any[]>();
   for (const spec of specs) {
     for (const test of spec.tests ?? []) {
-      const file = path.resolve(test.contentPath ?? spec.contentPath ?? "");
+      // A test with no source file has no located steps to credit.
+      const source = test.contentPath ?? spec.contentPath;
+      if (!source) continue;
+      const file = path.resolve(source);
       if (!stepsByFile.has(file)) stepsByFile.set(file, []);
       stepsByFile.get(file)!.push(...(test.steps ?? []));
     }
