@@ -1435,6 +1435,16 @@ describe("CLI contract", function () {
       expect(result.stdout).to.include(SECRET).and.not.include(DOTENV);
     });
 
+    it("masks values in validate's output", function () {
+      fs.writeFileSync(path.join(cwd, `${DOTENV}.spec.json`), JSON.stringify({ tests: [{ steps: [{ clik: DOTENV }] }] }));
+      for (const args of [[], ["--json"]]) {
+        const r = run(["validate", ...args, `${DOTENV}.spec.json`]);
+        expect(r.status, r.stderr).to.equal(1);
+        expect(r.stdout).to.not.include(DOTENV);
+        expect(r.stdout).to.include("***DD_DOTENV_VALUE***");
+      }
+    });
+
     it("exits 0 on an all-passing run when a secret's value is `pass`", function () {
       fs.writeFileSync(path.join(cwd, ".env"), "DB_PASSWORD=pass\nNODE_ENV=test\n");
       const result = run(["-i", "pass.spec.json", "--json"]);

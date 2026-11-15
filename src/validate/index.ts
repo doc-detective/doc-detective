@@ -3,6 +3,7 @@ import { setConfig as setCliConfig, loadProjectEnv, readStdinInputs, discoverCon
 import { setConfig } from "../core/config.js";
 import { detectTests } from "../core/detectTests.js";
 import { diag } from "../cliOutput.js";
+import { maskDeep, maskString } from "../core/masking.js";
 
 interface FileResult {
   path: string;
@@ -44,11 +45,11 @@ export async function validateHandler(args: any): Promise<void> {
   const results = [...files.values()];
   const invalid = results.filter((file) => !file.valid);
   if (args.json) {
-    console.log(JSON.stringify({ valid: invalid.length === 0, files: results }, null, 2));
+    console.log(JSON.stringify(maskDeep({ valid: invalid.length === 0, files: results }), null, 2));
   } else {
     for (const file of invalid) {
-      console.log(`Couldn't validate \`${file.path}\`.`);
-      for (const error of file.errors) console.log(`  ${error}`);
+      console.log(maskString(`Couldn't validate \`${file.path}\`.`));
+      for (const error of file.errors) console.log(maskString(`  ${error}`));
     }
     console.log(`Checked ${results.length} ${results.length === 1 ? "file" : "files"}: ${results.length - invalid.length} valid, ${invalid.length} invalid.`);
   }
