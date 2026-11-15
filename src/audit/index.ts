@@ -9,7 +9,7 @@ import path from "node:path";
 import { loadProjectEnv, setConfig, discoverConfigPath, log } from "../utils.js";
 import { setConfig as setRunConfig } from "../core/config.js";
 import { detectTests } from "../core/index.js";
-import { maskDeep } from "../core/masking.js";
+import { maskDeep, maskString } from "../core/masking.js";
 import { canonicalUrl, computeCoverage, type CoverageIndex, type FileCoverage, type Item, type State } from "./coverage.js";
 
 const SPEC_EXTENSIONS = new Set(["json", "yaml", "yml"]);
@@ -182,11 +182,12 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
     return;
   }
 
-  // Docs can hold `.env` values, so mask the report like every other output.
-  const report = maskDeep(summarize(files));
+  // Docs can hold `.env` values, so mask the output like every other. Text
+  // renders from the real states first, then masks.
+  const report = summarize(files);
   // `--json` is the result itself, so it prints at any log level, as in ADR 01146.
   // `--json` and `-q` pick the output shape and have no config key, so they're
   // read from `args`, as `debug` does.
-  if (args.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-  else if (config.logLevel !== "silent") process.stdout.write(renderText(report, { quiet: Boolean(args.quiet) }));
+  if (args.json) process.stdout.write(`${JSON.stringify(maskDeep(report), null, 2)}\n`);
+  else if (config.logLevel !== "silent") process.stdout.write(maskString(renderText(report, { quiet: Boolean(args.quiet) })));
 }
