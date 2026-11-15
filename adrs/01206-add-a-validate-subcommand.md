@@ -11,8 +11,8 @@ Builds on [ADR 01146](01146-cli-v5-contract.md) and [ADR 01199](01199-reject-inv
 ## Context and Problem Statement
 
 Authors and agents want to know whether their spec files and inline tests are valid before they run anything. The
-only way to ask today is `doc-detective run --dry-run`. That also resolves the tests and prints the whole test plan,
-and it exits `2` for an invalid spec, the same code as a bad config or a usage error. A script can't tell "your tests
+only way to ask today is `doc-detective run --dry-run`. That also resolves the tests and prints the whole test plan.
+It exits `2` for an invalid spec, the same code as a bad config or a usage error. A script can't tell "your tests
 are wrong" from "the command couldn't start". The agent skill that validates specs uses `--dry-run` as a workaround
 for exactly this.
 
