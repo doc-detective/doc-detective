@@ -18,7 +18,7 @@ This page documents every Doc Detective command and flag. The primary invocation
 npx doc-detective [command] [options]
 ```
 
-A bare invocation with no command runs tests; the available commands are `run`, `install`, `lsp`, `debug`, and `help`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. For one command's usage, add `--help` after it or name it after `help`, including nested commands (for example, `npx doc-detective help install browsers`). The CLI is strict: unknown flags cause an error instead of being ignored.
+A bare invocation with no command runs tests; the available commands are `run`, `audit`, `install`, `lsp`, `debug`, and `help`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. For one command's usage, add `--help` after it or name it after `help`, including nested commands (for example, `npx doc-detective help install browsers`). The CLI is strict: unknown flags cause an error instead of being ignored.
 
 ## Run flags
 
@@ -95,6 +95,16 @@ Run tests as the bare command does, with file and folder paths as arguments. The
 ```bash
 npx doc-detective run ./docs a.spec.json
 cat a.spec.json | npx doc-detective run -
+```
+
+### audit
+
+Report which procedure steps, code blocks, links, and images in your docs have a test step. It runs no tests.
+
+`audit` takes files and folders as arguments, like `run`, and also accepts `--config`, `--input`, `--no-env-file`, and the global flags. It exits 0 whenever it prints a report, and 2 for bad usage, a bad config, or no files to audit. For what it counts, see [Audit test coverage](/docs/test-docs/audit-test-coverage).
+
+```bash
+npx doc-detective audit docs/ --json
 ```
 
 ### install

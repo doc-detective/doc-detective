@@ -281,7 +281,7 @@ function installSummary(subcommands) {
 }
 
 function buildPage(data) {
-  const { runFlags, lsp, debug, installSubcommands, configSchema } = data;
+  const { runFlags, audit, lsp, debug, installSubcommands, configSchema } = data;
 
   const negatable = negatableFlags(runFlags);
 
@@ -317,7 +317,7 @@ function buildPage(data) {
     "npx doc-detective [command] [options]",
     "```",
     "",
-    "A bare invocation with no command runs tests; the available commands are `run`, `install`, `lsp`, `debug`, and `help`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. For one command's usage, add `--help` after it or name it after `help`, including nested commands (for example, `npx doc-detective help install browsers`). The CLI is strict: unknown flags cause an error instead of being ignored.",
+    "A bare invocation with no command runs tests; the available commands are `run`, `audit`, `install`, `lsp`, `debug`, and `help`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. For one command's usage, add `--help` after it or name it after `help`, including nested commands (for example, `npx doc-detective help install browsers`). The CLI is strict: unknown flags cause an error instead of being ignored.",
     ""
   );
 
@@ -389,6 +389,25 @@ function buildPage(data) {
     "```bash",
     "npx doc-detective run ./docs a.spec.json",
     "cat a.spec.json | npx doc-detective run -",
+    "```",
+    ""
+  );
+
+  // audit.
+  parts.push(
+    "### audit",
+    "",
+    escapeMdxBraces(audit.describe),
+    "",
+    "`audit` takes files and folders as arguments, like `run`, and also accepts `--config`, `--input`, `--no-env-file`, and the global flags. It exits 0 whenever it prints a report, and 2 for bad usage, a bad config, or no files to audit. For what it counts, see [Audit test coverage](/docs/test-docs/audit-test-coverage).",
+    ""
+  );
+  if (audit.options.length > 0) {
+    parts.push(optionTable(audit.options), "");
+  }
+  parts.push(
+    "```bash",
+    "npx doc-detective audit docs/ --json",
     "```",
     ""
   );
@@ -585,12 +604,19 @@ async function main() {
     options: readOptions(debugCommand, { except: runFlagNames }),
   };
 
+  const auditCommand = subcommand(program, "audit");
+  const audit = {
+    describe: prose(auditCommand.description()),
+    options: readOptions(auditCommand, { except: runFlagNames }),
+  };
+
   const installSubcommands = subcommand(program, "install")
     .commands.map((command) => ({ name: command.name() }));
 
   const content =
     buildPage({
       runFlags,
+      audit,
       lsp,
       debug,
       installSubcommands,

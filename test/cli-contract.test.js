@@ -612,6 +612,18 @@ describe("CLI contract", function () {
       expect(r.stdout + r.stderr).to.equal("");
     });
 
+    it("prints JSON from `audit --json`", function () {
+      const r = run(["audit", "--json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).summary).to.have.keys(["procedureSteps", "possibleProcedureSteps", "lists", "codeBlocks", "links", "images", "pages"]);
+    });
+
+    it("rejects run flags on `audit`", function () {
+      const r = run(["audit", "--plain"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("unknown option '--plain'");
+    });
+
     it("prints JSON from `debug --json`", function () {
       const r = run(["debug", "--json"]);
       expect(r.status, r.stderr).to.equal(0);
@@ -701,6 +713,7 @@ describe("CLI contract", function () {
       ["install", "status"],
       ["debug"],
       ["lsp"],
+      ["audit"],
     ];
     for (const path of commands) {
       const name = ["doc-detective", ...path].join(" ");
@@ -716,7 +729,7 @@ describe("CLI contract", function () {
     }
 
     it("keeps each subcommand's help focused", function () {
-      for (const path of [["debug"], ["lsp"], ["install", "status"], ["install", "agents"]]) {
+      for (const path of [["debug"], ["lsp"], ["audit"], ["install", "status"], ["install", "agents"]]) {
         const help = run([...path, "--help"]).stdout;
         expect(help, path.join(" ")).to.not.include("--reporters");
         expect(help.length, path.join(" ")).to.be.lessThan(2500);
