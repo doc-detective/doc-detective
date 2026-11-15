@@ -97,7 +97,9 @@ on a range. Bump a pin only to a version CI has run.
 writes an `overrides` entry for that one peer edge into the runtime `package.json` before each npm
 spawn (ADR 01208). Without it, npm fails the install with `ERESOLVE`. Don't swap it for
 `--legacy-peer-deps`: that stops npm installing required peers, and `geckodriver` needs
-`@wdio/logger`. When a driver release peers on Appium 4, bump the pin and delete the override.
+`@wdio/logger`. When a driver release peers on Appium 4, bump the pin and replace the assignment
+with `delete pkg.overrides`. Existing caches keep the old entry otherwise, and it would hold the
+driver's peer at a stale Appium version.
 
 ## Testing note
 
