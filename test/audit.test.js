@@ -83,6 +83,17 @@ describe("audit command", function () {
     assert.equal(report.files[0].path, path.join(dir, "install.md"));
   });
 
+  it("credits an image a spec's screenshot step writes, resolved against the spec file", async function () {
+    fs.mkdirSync(path.join(dir, "img"));
+    fs.writeFileSync(path.join(dir, "page.md"), "![Home](img/home.png)\n\n![Other](img/other.png)\n");
+    fs.writeFileSync(
+      path.join(dir, "shots.spec.json"),
+      JSON.stringify({ tests: [{ steps: [{ goTo: "https://example.com" }, { screenshot: { path: "img/home.png" } }] }] })
+    );
+    const report = JSON.parse(await run({ input: dir, json: true }));
+    assert.deepEqual(report.summary.images, { total: 2, hasStep: 1 });
+  });
+
   it("combines positional inputs with --input", async function () {
     fs.mkdirSync(path.join(dir, "a"));
     fs.mkdirSync(path.join(dir, "b"));
