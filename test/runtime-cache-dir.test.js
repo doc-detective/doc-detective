@@ -93,6 +93,34 @@ describe("runtime/cacheDir", function () {
     });
   });
 
+  // #897: a relative cache dir reached npm as a relative `--prefix`, which npm
+  // resolves against its own cwd (the runtime dir), nesting the install.
+  describe("relative cache dirs", function () {
+    let abs;
+    let rel;
+    beforeEach(function () {
+      abs = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-rel-"));
+      rel = path.relative(process.cwd(), abs);
+    });
+    afterEach(function () {
+      setRunCacheDir(undefined);
+      fs.rmSync(abs, { recursive: true, force: true });
+    });
+
+    for (const [source, apply] of [
+      ["--cache-dir (the run's cache dir)", (r) => setRunCacheDir(r)],
+      ["DOC_DETECTIVE_CACHE_DIR", (r) => (process.env.DOC_DETECTIVE_CACHE_DIR = r)],
+      ["config.cacheDir", () => {}],
+    ]) {
+      it(`resolves a relative ${source} against the working directory`, function () {
+        if (path.isAbsolute(rel)) this.skip(); // tmpdir on another drive
+        apply(rel);
+        expect(getCacheDir({ cacheDir: rel })).to.equal(abs);
+        expect(getRuntimeDir({ cacheDir: rel })).to.equal(path.join(abs, "runtime"));
+      });
+    }
+  });
+
   describe("dir helpers", function () {
     it("getRuntimeDir / getBrowsersDir compose from the resolved cache dir", function () {
       const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cache-sub-"));
