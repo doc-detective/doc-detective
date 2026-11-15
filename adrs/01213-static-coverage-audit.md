@@ -94,7 +94,8 @@ item. So an unsafe match leaves the item `skipped`.
 
 ### Command contract
 
-`doc-detective audit [inputs...]` takes `-c`, `-i`, `--no-env-file`, and the global flags. It prints
+`doc-detective audit [inputs...]` takes `-c`, `-i`, `--no-env-file`, and the global flags. An input
+of `-` reads a document from stdin, as in `run`. It prints
 a text report or, with `--json`, one JSON document on stdout. Secrets from `.env` are masked in
 both, as in run output. Warnings go to stderr. Spec files don't count as files to audit. It exits 0
 whenever it prints a report, and 2 for bad usage, a bad config, or no files to audit. There's no

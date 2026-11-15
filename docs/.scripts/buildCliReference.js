@@ -399,7 +399,7 @@ function buildPage(data) {
     "",
     escapeMdxBraces(audit.describe),
     "",
-    "`audit` takes files and folders as arguments, like `run`, and also accepts `--config`, `--input`, `--no-env-file`, and the global flags. It exits 0 whenever it prints a report, and 2 for bad usage, a bad config, or no files to audit. For what it counts, see [Audit test coverage](/docs/test-docs/audit-test-coverage).",
+    "`audit` takes files and folders as arguments, like `run`, with `-` to read a document from stdin. It also accepts `--config`, `--input`, `--no-env-file`, and the global flags. It exits 0 whenever it prints a report, and 2 for bad usage, a bad config, or no files to audit. For what it counts, see [Audit test coverage](/docs/test-docs/audit-test-coverage).",
     ""
   );
   if (audit.options.length > 0) {
