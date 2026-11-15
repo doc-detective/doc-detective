@@ -45,6 +45,9 @@ const instructions = [
   "Save",
   "Paste the code into the file",
   "Navigate to the folder",
+  "Briefly state the relevant concept",
+  "Re-run the test.",
+  "Preview the injection using the skill",
 ];
 
 const notInstructions = [
@@ -72,6 +75,9 @@ const notInstructions = [
   "Chrome",
   "Firefox and Safari",
   "Better accuracy",
+  "**Action type match** - Step action must match the pattern",
+  "**Sequential steps** - Ordered actions that build on each other",
+  "Only Chrome supports this",
   "",
 ];
 
