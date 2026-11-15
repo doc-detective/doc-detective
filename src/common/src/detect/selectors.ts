@@ -48,7 +48,9 @@ export interface Node {
 }
 
 const STATEMENT_TYPES = ["testStart", "testEnd", "ignoreStart", "ignoreEnd", "step"] as const;
-type StatementType = (typeof STATEMENT_TYPES)[number];
+// `procedure` marks the next list as a procedure for `audit`. It has no regex
+// form in `inlineStatements`, and the runner skips it.
+type StatementType = (typeof STATEMENT_TYPES)[number] | "procedure";
 
 /**
  * Reads statement text from a container. Keywords must end at a word
@@ -58,6 +60,7 @@ export function parseStatementText(text: string | undefined): { type: StatementT
   const s = (text ?? "").trim();
   if (s === "test ignore start") return { type: "ignoreStart", payload: "" };
   if (s === "test ignore end") return { type: "ignoreEnd", payload: "" };
+  if (s === "procedure") return { type: "procedure", payload: "" };
   const m = /^(test end|test(?:\s+start)?|step)\b\s*([\s\S]*)$/.exec(s);
   if (!m) return null;
   const type = m[1] === "test end" ? "testEnd" : m[1] === "step" ? "step" : "testStart";
@@ -183,10 +186,16 @@ const FORMAT_BY_EXTENSION: Record<string, string> = {
   asc: "asciidoc",
 };
 
-/** Parses a file into nodes. The extension picks the parser, else the fileType's `extends` or `name`. */
-function parseFile(content: string, fileType: FileType, filePath: string, warn: (message: string) => void): Node[] {
+/** The parser format for a file: its extension's, else the fileType's `extends` or `name`. */
+export function formatOf(fileType: FileType, filePath: string): string | undefined {
   const ext = /\.([^./\\]+)$/.exec(filePath)?.[1].toLowerCase() ?? "";
-  const format = FORMAT_BY_EXTENSION[ext] ?? fileType.extends ?? fileType.name;
+  return FORMAT_BY_EXTENSION[ext] ?? fileType.extends ?? fileType.name;
+}
+
+/** Parses a file into nodes. The extension picks the parser, else the fileType's `extends` or `name`. */
+export function parseFile(content: string, fileType: FileType, filePath: string, warn: (message: string) => void): Node[] {
+  const ext = /\.([^./\\]+)$/.exec(filePath)?.[1].toLowerCase() ?? "";
+  const format = formatOf(fileType, filePath);
   if (format === "html" || format === "dita") return parseMarkup(content, format);
   if (format === "asciidoc") return parseAsciidoc(content);
   if (format !== "markdown") {
