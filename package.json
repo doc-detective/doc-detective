@@ -106,14 +106,14 @@
   "ddRuntimeDependencies": {
     "@appium/opencv": "6.0.0",
     "@homebridge/node-pty-prebuilt-multiarch": "0.15.0",
-    "appium": "3.9.1",
-    "appium-chromium-driver": "3.2.0",
-    "appium-geckodriver": "3.0.18",
-    "appium-mac2-driver": "4.6.1",
+    "appium": "4.0.0",
+    "appium-chromium-driver": "4.0.2",
+    "appium-geckodriver": "4.0.2",
+    "appium-mac2-driver": "5.0.1",
     "appium-novawindows-driver": "1.5.0",
-    "appium-safari-driver": "5.0.11",
-    "appium-uiautomator2-driver": "8.7.3",
-    "appium-xcuitest-driver": "12.22.8",
+    "appium-safari-driver": "6.0.1",
+    "appium-uiautomator2-driver": "9.2.0",
+    "appium-xcuitest-driver": "13.1.1",
     "opencv-bindings": "4.5.5"
   },
   "optionalDependencies": {

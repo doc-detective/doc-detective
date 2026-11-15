@@ -91,6 +91,14 @@ range (#722). These install with no lockfile, so a caret let one upstream releas
 (`appium-chromium-driver` 3.1.0) break every user at once. `test/publish-manifest.test.js` fails
 on a range. Bump a pin only to a version CI has run.
 
+## The Windows driver's Appium peer override
+
+`appium-novawindows-driver` 1.x peers on Appium 3 and runs on Appium 4. `recordRuntimeDependencies`
+writes an `overrides` entry for that one peer edge into the runtime `package.json` before each npm
+spawn (ADR 01208). Without it, npm fails the install with `ERESOLVE`. Don't swap it for
+`--legacy-peer-deps`: that stops npm installing required peers, and `geckodriver` needs
+`@wdio/logger`. When a driver release peers on Appium 4, bump the pin and delete the override.
+
 ## Testing note
 
 Unit tests around preflight/install paths must stub `resolvePathInCache`/`ensureInstalled` (with
