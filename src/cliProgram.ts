@@ -1,6 +1,7 @@
 import { Command, Option } from "commander";
 import { applyHelpText, rewriteRootError } from "./cliHelp.js";
 import { buildInstallAgentsCommand } from "./agents/command.js";
+import { buildAuditCommand } from "./audit/command.js";
 import {
   addGlobalOptions,
   addRunOptions,
@@ -56,6 +57,7 @@ export function buildProgram({ runTests }: { runTests: RunHandler }): Command {
   addRunCommand("runTests", `Run tests. ${DEPRECATED_COMMAND_LABEL}`);
   addRunCommand("runtests", `Run tests. ${DEPRECATED_COMMAND_LABEL}`);
 
+  program.addCommand(buildAuditCommand());
   program.addCommand(buildInstallCommand());
   program.addCommand(buildLspCommand());
   program.addCommand(buildDebugCommand());
