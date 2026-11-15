@@ -1,7 +1,7 @@
 /**
  * Decides whether a list item reads as an instruction, using compromise's
  * lexicon-based tagger. Deterministic: no model, no network. The contract
- * cases live in test/audit-tagger.test.js (ADR 01206).
+ * cases live in test/audit-tagger.test.js (ADR 01213).
  */
 
 import nlp from "compromise";
