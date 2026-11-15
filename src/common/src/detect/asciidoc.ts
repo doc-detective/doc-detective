@@ -135,6 +135,10 @@ export function parseAsciidoc(content: string): Node[] {
       const closed = j > i && lines[j].text.trim() === fence;
       // The source style, alone or with %options, as in [source%linenums,bash].
       const source = /^source(?:%|$)/.test(attributes?.positional[0] ?? "");
+      // `#id` and `.role`, as in [source#install.procedure,bash].
+      const tags: Record<string, string> = {};
+      if (attributes?.named.id) tags.id = attributes.named.id;
+      if (attributes?.roles.length) tags.class = attributes.roles.join(" ");
       nodes.push({
         kind: "codeBlock",
         startIndex: start,
@@ -142,6 +146,7 @@ export function parseAsciidoc(content: string): Node[] {
         language: source ? attributes!.positional[1] ?? "" : "",
         meta: source ? attributes!.positional.slice(2).join(",") : "",
         content: inner(i + 1, closed ? j : j + 1),
+        ...(Object.keys(tags).length && { attributes: tags }),
         before: "",
       });
       i = j;

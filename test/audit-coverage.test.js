@@ -253,6 +253,95 @@ describe("audit coverage", function () {
     });
   });
 
+  describe("HTML", function () {
+    it("reads ordered lists through the tagger, top-level items only", async function () {
+      const content = "<ol>\n  <li>Click <b>Save</b>.\n    <ol><li>Wait.</li></ol>\n  </li>\n  <li>Close it.</li>\n</ol>\n<ul><li>Click this</li></ul>\n";
+      const result = await audit(content, { file: "page.html" });
+      const items = procedureSteps(result);
+      assert.deepEqual(items.map((item) => [item.source, item.line]), [["tagger", 2], ["tagger", 5]]);
+      assert.equal(items[0].state, "hasStep");
+      assert.match(items[0].text, /^Click \*\*Save\*\*\./);
+    });
+
+    it("counts a list after a procedure comment as explicit", async function () {
+      const result = await audit("<!-- procedure -->\n<ol><li>Release notes</li></ol>\n", { file: "page.html" });
+      assert.equal(procedureSteps(result)[0].source, "explicit");
+    });
+
+    it("reads id and class tags on a code block", async function () {
+      const index = emptyIndex();
+      index.stepIds.add("install");
+      const content = '<p>Run this:</p>\n<pre id="install" class="procedure"><code class="language-bash">npm i</code></pre>\n';
+      const result = await audit(content, { file: "page.html", config: { detectSteps: false }, index });
+      assert.deepEqual(result.items.map((item) => [item.kind, item.state]), [["procedureStep", "hasStep"], ["codeBlock", "hasStep"]]);
+    });
+
+    it("lets a custom codeBlock selector match on attributes", async function () {
+      const fileType = structuredClone(defaultFileTypes.html);
+      fileType.markup = [{ name: "tagged", codeBlock: { attributes: { class: "runme" } }, captures: ["content"], actions: ["runShell"] }];
+      const tests = await detectTests({ content: '<pre class="runme">echo hi</pre>\n', filePath: "a.html", fileType, config: { detectSteps: true } });
+      assert.deepEqual(tests[0].steps.map(({ location, ...step }) => step), [{ runShell: "echo hi" }]);
+    });
+
+    it("keeps detecting runCode and httpRequest blocks", async function () {
+      const content = '<pre><code class="language-bash">npm test</code></pre>\n<pre><code class="language-http">GET https://example.com</code></pre>\n';
+      const tests = await detectTests({ content, filePath: "a.html", fileType: structuredClone(defaultFileTypes.html), config: { detectSteps: true } });
+      assert.deepEqual(tests[0].steps.map((step) => Object.keys(step).filter((k) => k !== "location").sort()), [["runCode", "unsafe"], ["httpRequest"]]);
+    });
+  });
+
+  describe("DITA", function () {
+    it("counts steps as an explicit procedure, reading each cmd", async function () {
+      const content = '<task id="t"><taskbody><steps>\n<step><cmd>Release notes</cmd></step>\n<step><cmd>Click <uicontrol>Save</uicontrol>.</cmd><substeps><substep><cmd>Wait.</cmd></substep></substeps></step>\n</steps></taskbody></task>\n';
+      const result = await audit(content, { file: "task.dita" });
+      const items = procedureSteps(result);
+      assert.deepEqual(items.map((item) => [item.source, item.line]), [["explicit", 2], ["explicit", 3]]);
+      assert.equal(items[1].state, "hasStep");
+      assert.deepEqual(result.lists, { explicit: 1, tagged: 0, possible: 0 });
+    });
+
+    it("reads an ol after a processing-instruction marker as explicit", async function () {
+      const content = '<topic id="t"><body><?doc-detective procedure?>\n<ol><li>Release notes</li></ol></body></topic>\n';
+      const result = await audit(content, { file: "topic.dita" });
+      assert.equal(procedureSteps(result)[0].source, "explicit");
+    });
+
+    it("reads id on a codeblock", async function () {
+      const index = emptyIndex();
+      index.stepIds.add("install");
+      const content = '<topic id="t"><body><codeblock id="install" outputclass="language-bash">npm i</codeblock></body></topic>\n';
+      const result = await audit(content, { file: "topic.dita", config: { detectSteps: false }, index });
+      assert.equal(result.items.find((item) => item.kind === "codeBlock").state, "hasStep");
+    });
+  });
+
+  describe("AsciiDoc", function () {
+    it("reads dot and number lists through the tagger, top-level items only", async function () {
+      const content = ["= Title", "", ". Open the app.", ".. Find the menu.", ". Close it.", "", "1. Release notes", "2. Bug fixes", ""].join("\n");
+      const result = await audit(content, { file: "page.adoc" });
+      assert.deepEqual(procedureSteps(result).map((item) => [item.source, item.line]), [["tagger", 3], ["tagger", 5], ["possible", 7], ["possible", 8]]);
+    });
+
+    it("keeps an attached block in its item and skips items inside listings", async function () {
+      const content = [". Run the command:", "+", "----", ". not an item", "----", ". Close it.", ""].join("\n");
+      const result = await audit(content, { file: "page.adoc" });
+      assert.deepEqual(procedureSteps(result).map((item) => item.line), [1, 6]);
+    });
+
+    it("counts a list after a procedure comment as explicit", async function () {
+      const result = await audit("// (procedure)\n. Release notes\n", { file: "page.adoc" });
+      assert.equal(procedureSteps(result)[0].source, "explicit");
+    });
+
+    it("reads id and role tags on a source block", async function () {
+      const index = emptyIndex();
+      index.stepIds.add("install");
+      const content = "Run this:\n\n[source#install.procedure,bash]\n----\nnpm i\n----\n";
+      const result = await audit(content, { file: "page.adoc", config: { detectSteps: false }, index });
+      assert.deepEqual(result.items.map((item) => [item.kind, item.state]), [["procedureStep", "hasStep"], ["codeBlock", "hasStep"]]);
+    });
+  });
+
   describe("canonicalUrl", function () {
     it("drops fragments and trailing slashes, and resolves against origin", function () {
       assert.equal(canonicalUrl("https://a.example/x/#y"), "https://a.example/x");
