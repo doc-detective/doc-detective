@@ -34,10 +34,10 @@ export interface Item {
 export interface CoverageIndex {
   /** Steps by authored `stepId`. The runner derives the rest at run time. */
   stepIds: Map<string, any[]>;
-  /** `goTo` and `checkLink` targets, through `canonicalUrl`. */
-  linkTargets: Set<string>;
-  /** Absolute paths that `screenshot` steps write. */
-  screenshotFiles: Set<string>;
+  /** `goTo` and `checkLink` steps by target, through `canonicalUrl`. */
+  linkTargets: Map<string, any[]>;
+  /** `screenshot` steps by the absolute path they write. */
+  screenshotFiles: Map<string, any[]>;
 }
 
 export interface FileCoverage {
@@ -156,13 +156,13 @@ export function computeCoverage({ content, fileType, filePath, steps, index, ori
       linksTotal++;
       const target = canonicalUrl(node.url, origin);
       if (!target) continue;
-      const own = stepsIn(start, end).filter((step) => NAVIGATION.has(actionOf(step) ?? ""));
-      const state = index.linkTargets.has(target) ? "hasStep" : stateOf(own, start, end).state;
+      const own = [...stepsIn(start, end).filter((step) => NAVIGATION.has(actionOf(step) ?? "")), ...(index.linkTargets.get(target) ?? [])];
+      const { state } = stateOf(own, start, end);
       items.push({ kind: "link", url: node.url, line: lineOf(start), state });
     } else if (node.kind === "image" && node.src) {
-      const own = stepsIn(start, end).filter((step) => actionOf(step) === "screenshot");
       const file = canonicalUrl(node.src) ? null : path.resolve(path.dirname(filePath), node.src);
-      const state = file && index.screenshotFiles.has(file) ? "hasStep" : stateOf(own, start, end).state;
+      const own = [...stepsIn(start, end).filter((step) => actionOf(step) === "screenshot"), ...((file && index.screenshotFiles.get(file)) || [])];
+      const { state } = stateOf(own, start, end);
       items.push({ kind: "image", src: node.src, line: lineOf(start), state });
     }
   }

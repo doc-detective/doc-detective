@@ -79,14 +79,16 @@ never count. Items covered only by `goTo` or `checkLink` are counted separately 
 
 - **Code blocks.** Only runnable languages count. A block has a step when a step lies inside it, when
   an authored step statement directly follows it, or when its `id` equals an authored `stepId`. The
-  runner derives other step IDs at run time, so only authored ones can match. A step matched by ID
-  follows the same rules as any other, so an unsafe one leaves the block `skipped`. A `procedure` class
+  runner derives other step IDs at run time, so only authored ones can match. A `procedure` class
   counts the block as a procedure step.
 - **Links.** A link is testable when it's absolute, or relative with `origin` set. It has a step
   when any `goTo` or `checkLink` targets the same URL, compared through `new URL(url, origin)` without
   the fragment or a trailing slash.
 - **Images.** An image has a step when a `screenshot` step is detected on it, or when a `screenshot`
   path resolves to the same file.
+
+A step matched by ID, URL, or screenshot path follows the same state rules as a step inside the
+item. So an unsafe match leaves the item `skipped`.
 
 `detectSteps: false` keeps the inventory and drops only detected credit.
 
