@@ -126,6 +126,29 @@ describe("audit command", function () {
     assert.equal(report.summary.pages.total, 2);
   });
 
+  it("exits 2 when the inputs hold only spec files", async function () {
+    fs.writeFileSync(path.join(dir, "only.spec.json"), JSON.stringify({ tests: [{ steps: [{ goTo: "https://example.com" }] }] }));
+    const text = await run({ input: dir });
+    assert.equal(text, "");
+    assert.equal(process.exitCode, 2);
+    const message = err.args.map((a) => String(a[0])).join("");
+    assert.match(message, /Couldn't find any files to audit in/);
+  });
+
+  for (const json of [true, false]) {
+    it(`masks .env secrets in the ${json ? "JSON" : "text"} report`, async function () {
+      fs.writeFileSync(path.join(dir, ".env"), "API_TOKEN=s3cr3tvalue42\n");
+      fs.writeFileSync(path.join(dir, "page.md"), "1. Open the s3cr3tvalue42 page.\n\nSee [the site](https://example.com/s3cr3tvalue42).\n");
+      try {
+        const output = await run({ input: dir, json, envFile: true });
+        assert.match(output, json ? /"summary"/ : /Procedure steps/);
+        assert.ok(!output.includes("s3cr3tvalue42"), output);
+      } finally {
+        delete process.env.API_TOKEN;
+      }
+    });
+  }
+
   it("keeps --json stdout clean when an MDX file doesn't parse", async function () {
     fs.writeFileSync(path.join(dir, "broken.mdx"), "1. Open <Unclosed the app.\n");
     const report = JSON.parse(await run({ input: dir, json: true }));

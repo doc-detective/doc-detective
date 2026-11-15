@@ -9,6 +9,7 @@ import path from "node:path";
 import { loadProjectEnv, setConfig, discoverConfigPath, log } from "../utils.js";
 import { setConfig as setRunConfig } from "../core/config.js";
 import { detectTests } from "../core/index.js";
+import { maskDeep } from "../core/masking.js";
 import { canonicalUrl, computeCoverage, type CoverageIndex, type FileCoverage, type Item, type State } from "./coverage.js";
 
 const SPEC_EXTENSIONS = new Set(["json", "yaml", "yml"]);
@@ -18,12 +19,12 @@ const urlOf = (value: any): string | undefined => (typeof value === "string" ? v
 
 /** What any spec in the inputs can credit: authored step IDs, link targets, and screenshot files. */
 export function buildIndex(specs: any[], origin?: string): CoverageIndex {
-  const index: CoverageIndex = { stepIds: new Set(), linkTargets: new Set(), screenshotFiles: new Set() };
+  const index: CoverageIndex = { stepIds: new Map(), linkTargets: new Set(), screenshotFiles: new Set() };
   for (const spec of specs) {
     for (const test of spec.tests ?? []) {
       const source = test.contentPath ?? spec.contentPath;
       for (const step of test.steps ?? []) {
-        if (typeof step.stepId === "string") index.stepIds.add(step.stepId);
+        if (typeof step.stepId === "string") index.stepIds.set(step.stepId, [...(index.stepIds.get(step.stepId) ?? []), step]);
         for (const action of ["goTo", "checkLink"]) {
           const url = urlOf(step[action]);
           const target = url && canonicalUrl(url, step[action]?.origin ?? origin);
@@ -138,13 +139,6 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
   const config = await setRunConfig({ config: cliConfig, detectApps: false });
   const specs: any[] = await detectTests({ config });
   const qualified: string[] = config._qualifiedFiles ?? [];
-  if (qualified.length === 0) {
-    const inputs = [config.input].flat().map((input: string) => `\`${input}\``).join(", ");
-    log(`Couldn't find any files to audit in ${inputs}. Pass a file or folder with \`--input\`.`, "error", config);
-    process.exitCode = 2;
-    return;
-  }
-
   const index = buildIndex(specs, config.origin);
   const stepsByFile = new Map<string, any[]>();
   for (const spec of specs) {
@@ -180,7 +174,16 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
     files.push({ path: file, fileType: fileType.name, ...coverage });
   }
 
-  const report = summarize(files);
+  // Spec files and unreadable files don't count, so check after reading.
+  if (files.length === 0) {
+    const inputs = [config.input].flat().map((input: string) => `\`${input}\``).join(", ");
+    log(`Couldn't find any files to audit in ${inputs}. Pass a file or folder with \`--input\`.`, "error", config);
+    process.exitCode = 2;
+    return;
+  }
+
+  // Docs can hold `.env` values, so mask the report like every other output.
+  const report = maskDeep(summarize(files));
   // `--json` is the result itself, so it prints at any log level, as in ADR 01146.
   if (args.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   else if (config.logLevel !== "silent") process.stdout.write(renderText(report, { quiet: Boolean(args.quiet) }));
