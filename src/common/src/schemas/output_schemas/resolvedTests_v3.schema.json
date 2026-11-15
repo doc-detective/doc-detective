@@ -970,7 +970,7 @@
                         "additionalProperties": false,
                         "properties": {
                           "in": {
-                            "description": "Nodes to read as statements. Each node's text must start with `test`, `test start`, `test end`, `test ignore start`, `test ignore end`, or `step`. `\"comment\"` reads every comment.",
+                            "description": "Nodes to read as statements. Each node's text must start with `test`, `test start`, `test end`, `test ignore start`, `test ignore end`, or `step`, or be `procedure`, which marks the next list as a procedure for `audit`. `\"comment\"` reads every comment.",
                             "type": "array",
                             "minItems": 1,
                             "items": {
@@ -4260,7 +4260,7 @@
             "additionalProperties": false,
             "properties": {
               "in": {
-                "description": "Nodes to read as statements. Each node's text must start with `test`, `test start`, `test end`, `test ignore start`, `test ignore end`, or `step`. `\"comment\"` reads every comment.",
+                "description": "Nodes to read as statements. Each node's text must start with `test`, `test start`, `test end`, `test ignore start`, `test ignore end`, or `step`, or be `procedure`, which marks the next list as a procedure for `audit`. `\"comment\"` reads every comment.",
                 "type": "array",
                 "minItems": 1,
                 "items": {
