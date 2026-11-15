@@ -347,7 +347,7 @@ describe("CLI contract", function () {
       writeInvalid();
       const r = run(["validate", "invalid.spec.json", "-i", "pass.spec.json"]);
       expect(r.status, r.stderr).to.equal(1);
-      expect(r.stdout).to.include(`Couldn't validate \`${path.join(cwd, "invalid.spec.json")}\`.`);
+      expect(r.stdout).to.include(`Couldn't validate \`${path.join(fs.realpathSync(cwd), "invalid.spec.json")}\`.`);
       expect(r.stdout).to.include("clik");
       expect(r.stdout).to.include("Checked 2 files: 1 valid, 1 invalid.");
     });
@@ -381,11 +381,11 @@ describe("CLI contract", function () {
       const out = JSON.parse(r.stdout);
       expect(out.valid).to.equal(false);
       expect(out.files).to.have.lengthOf(2);
-      const bad = out.files.find((f) => f.path === path.join(cwd, "invalid.spec.json"));
+      const bad = out.files.find((f) => f.path === path.join(fs.realpathSync(cwd), "invalid.spec.json"));
       expect(bad.valid).to.equal(false);
       expect(bad.errors.join("\n")).to.include("clik");
-      const good = out.files.find((f) => f.path === path.join(cwd, "pass.spec.json"));
-      expect(good).to.deep.equal({ path: path.join(cwd, "pass.spec.json"), valid: true, errors: [] });
+      const good = out.files.find((f) => f.path === path.join(fs.realpathSync(cwd), "pass.spec.json"));
+      expect(good).to.deep.equal({ path: good.path, valid: true, errors: [] });
     });
   });
 
