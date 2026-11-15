@@ -21,7 +21,11 @@ const urlOf = (value: any): string | undefined => (typeof value === "string" ? v
 export function buildIndex(specs: any[], origin?: string): CoverageIndex {
   const index: CoverageIndex = { stepIds: new Map(), linkTargets: new Map(), screenshotFiles: new Map() };
   // Steps, not keys, so a match goes through the same state rules as a located step.
-  const put = (map: Map<string, any[]>, key: string, step: any) => map.set(key, [...(map.get(key) ?? []), step]);
+  const put = (map: Map<string, any[]>, key: string, step: any) => {
+    const steps = map.get(key);
+    if (steps) steps.push(step);
+    else map.set(key, [step]);
+  };
   for (const spec of specs) {
     for (const test of spec.tests ?? []) {
       const source = test.contentPath ?? spec.contentPath;
@@ -84,7 +88,7 @@ export function summarize(files: Array<{ path: string; fileType?: string } & Fil
         add(into, item);
         if (item.navigationOnly) into.navigationOnly++;
       } else if (item.kind === "codeBlock") {
-        add((byLanguage[item.language!] ??= counts()), item);
+        add((byLanguage[item.language ?? ""] ??= counts()), item);
       } else if (item.kind === "link") {
         links.testable++;
         if (item.state === "hasStep") links.hasStep++;

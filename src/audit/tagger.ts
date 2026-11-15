@@ -37,7 +37,8 @@ function readings(text: string): string[] {
   // A short opener before a comma, as in "In a terminal, run it".
   const opener = /^([^,.:;]{1,60}),\s+/.exec(plain);
   const rest = opener && opener[1].split(" ").length <= 5 ? plain.slice(opener[0].length) : plain;
-  // A leading adverb, as in "Briefly state the concept".
+  // A leading word ending in "ly", for an adverb as in "Briefly state the
+  // concept". It also strips verbs like "Apply", which the other readings keep.
   return [plain, rest, rest.replace(/^[A-Za-z]+ly\s+(?=\S)/, "")];
 }
 
