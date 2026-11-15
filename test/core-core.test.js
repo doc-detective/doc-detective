@@ -698,6 +698,51 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("A cropped screenshot shows the element, not a fixed header that overlaps it (#145)", async () => {
+    // The page's red fixed header covers the top of the viewport. Scrolling the
+    // crop target to the top edge put it under the header, so the crop showed
+    // the banner instead of the blue button.
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "crop-sticky-"));
+    const crop = (text, file) => ({
+      screenshot: { path: file, directory: tempDir, crop: { elementText: text, padding: 5 } },
+    });
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/crop-sticky-header.html" },
+            crop("Get started", "get-started.png"),
+            { find: { elementText: "Learn more", moveTo: true } },
+            crop("Learn more", "learn-more.png"),
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.join(tempDir, "crop-sticky.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
+      const context = result.specs[0].tests[0].contexts.find((c) => c.steps && c.steps.length);
+      assert.ok(context, "expected a context that ran steps");
+      for (const step of context.steps) assert.equal(step.result, "PASS", step.resultDescription);
+      const { PNG } = await loadHeavyDep("pngjs");
+      for (const file of ["get-started.png", "learn-more.png"]) {
+        const png = PNG.sync.read(fs.readFileSync(path.join(tempDir, file)));
+        let red = 0;
+        let blue = 0;
+        for (let i = 0; i < png.data.length; i += 4) {
+          const [r, g, b] = png.data.subarray(i, i + 3);
+          if (r > 200 && g < 60 && b < 60) red++;
+          if (b > 200 && r < 60 && g < 60) blue++;
+        }
+        assert.equal(red, 0, `${file} shows the red header`);
+        assert.ok(blue > 0, `${file} doesn't show the blue button`);
+      }
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("A find that misses a renamed element reports near matches as drift, with a hint (ADR 01194)", async () => {
     // The page's button says "Start late arrival". A step that still says
     // "Start late" FAILs, so the PASS/SKIPPED fixture gate can't carry it.
