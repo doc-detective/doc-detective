@@ -1250,7 +1250,15 @@ describe("Run tests successfully", function () {
     const config = { input: tempFilePath, logLevel: "silent", autoRecord: true };
     try {
       const result = await runTests(config);
-      assert.equal(result.summary.specs.fail, 0);
+      // Explicit `autoRecord: true` is strict: a recording this host can't
+      // start or save FAILs the context. That's host-dependent (#955) and
+      // pinned elsewhere, so gate on the authored steps, not the spec result.
+      const context = result.specs?.[0]?.tests?.[0]?.contexts?.[0];
+      assert.deepEqual(
+        context?.steps?.map((s) => s.result),
+        ["PASS", "PASS"],
+        JSON.stringify({ steps: context?.steps?.map((s) => s.resultDescription), autoRecording: context?.autoRecording })
+      );
       assert.ok(
         hasSyntheticRecord(result),
         "config-level autoRecord should inject the synthetic recording step"
