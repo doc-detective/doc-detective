@@ -34,9 +34,18 @@ the whole family on Appium 3. Do we stay, or move and work around the peer?
 
 ## Decision Outcome
 
-Chosen option: **A**. The pins move to `appium` 4.0.0, `appium-chromium-driver` 4.0.2,
-`appium-geckodriver` 4.0.2, `appium-mac2-driver` 5.0.1, `appium-safari-driver` 6.0.1,
-`appium-uiautomator2-driver` 9.2.0, and `appium-xcuitest-driver` 13.1.1.
+Chosen option: **A**. The pins move to:
+
+| Package | Pin |
+|---|---|
+| `appium` | 4.0.0 |
+| `appium-chromium-driver` | 4.0.2 |
+| `appium-geckodriver` | 4.0.2 |
+| `appium-mac2-driver` | 5.0.1 |
+| `appium-safari-driver` | 6.0.1 |
+| `appium-uiautomator2-driver` | 9.2.0 |
+| `appium-xcuitest-driver` | 13.1.1 |
+
 `appium-novawindows-driver` stays at 1.5.0.
 
 Before each npm spawn, the runtime installer writes this into `<cacheDir>/runtime/package.json`:

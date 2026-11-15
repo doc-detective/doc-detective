@@ -50,8 +50,13 @@ the range?
 Chosen option: **A**. `engines.node` is `^24.22.1 || >=26.12.1` in `doc-detective` and
 `doc-detective-common`. `webdriverio` moves to 10.2.0 and `@inquirer/prompts` to `^8.8.0`.
 
-The range drops three bands that `>=24.15.0` admitted: Node 24.15.0 through 24.22.0, all of Node 25,
-and Node 26.0.0 through 26.12.0. As in ADR 01148, there's no runtime version gate. A Node version
+The range drops three bands that `>=24.15.0` admitted:
+
+- Node 24.15.0 through 24.22.0.
+- All of Node 25.
+- Node 26.0.0 through 26.12.0.
+
+As in ADR 01148, there's no runtime version gate. A Node version
 outside the range gets npm's `EBADENGINE` warning at install rather than a refusal.
 
 This ships as a `fix`, not a breaking change. That's a maintainer decision, and it amends ADR 01148's
