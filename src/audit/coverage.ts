@@ -1,6 +1,6 @@
 /**
  * Computes one file's static coverage for `audit`: which procedure steps,
- * code blocks, links, and images have a step (ADR 01203). Steps come from
+ * code blocks, links, and images have a step (ADR 01206). Steps come from
  * the runner's own detection, so this adds no second engine.
  */
 
