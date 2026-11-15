@@ -1,14 +1,14 @@
 /**
  * `doc-detective audit`: detects tests the way a run does, then reports which
  * procedure steps, code blocks, links, and images have a step. Nothing runs
- * (ADR 01206).
+ * (ADR 01207).
  */
 
 import fs from "node:fs";
 import path from "node:path";
-import { loadProjectEnv, setConfig, discoverConfigPath, log } from "../utils.js";
+import { loadProjectEnv, readStdinInputs, setConfig, discoverConfigPath, log } from "../utils.js";
 import { setConfig as setRunConfig } from "../core/config.js";
-import { detectTests } from "../core/index.js";
+import { detectTests } from "../core/detectTests.js";
 import { maskDeep, maskString } from "../core/masking.js";
 import { canonicalUrl, computeCoverage, type CoverageIndex, type FileCoverage, type Item, type State } from "./coverage.js";
 
@@ -137,6 +137,7 @@ export function renderText(report: AuditReport, { quiet = false } = {}): string 
 
 export async function runAudit(args: Record<string, any>): Promise<void> {
   await loadProjectEnv(args);
+  await readStdinInputs(args);
   const cliConfig = await setConfig({ configPath: discoverConfigPath(args), args });
   const config = await setRunConfig({ config: cliConfig, detectApps: false });
   const specs: any[] = await detectTests({ config });

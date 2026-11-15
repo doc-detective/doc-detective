@@ -1,4 +1,4 @@
-// Golden tests for `audit`'s coverage calculation (ADR 01206). Steps come from
+// Golden tests for `audit`'s coverage calculation (ADR 01207). Steps come from
 // the real detection path, so these tests exercise what `audit` sees.
 import assert from "node:assert/strict";
 import path from "node:path";

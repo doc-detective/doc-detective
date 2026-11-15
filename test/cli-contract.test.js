@@ -678,6 +678,13 @@ describe("CLI contract", function () {
       expect(JSON.parse(r.stdout).summary).to.have.keys(["procedureSteps", "possibleProcedureSteps", "lists", "codeBlocks", "links", "images", "pages"]);
     });
 
+    it("audits a document from stdin with `audit -`", function () {
+      const r = run(["audit", "-", "--json"], { input: "1. Open the app.\n" });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).summary.procedureSteps.total).to.equal(1);
+      expect(fs.readdirSync(cwd).filter((f) => f.startsWith("stdin"))).to.deep.equal([]);
+    });
+
     it("rejects run flags on `audit`", function () {
       const r = run(["audit", "--plain"]);
       expect(r.status).to.equal(2);
