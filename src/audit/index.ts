@@ -9,6 +9,7 @@ import path from "node:path";
 import { loadProjectEnv, setConfig, discoverConfigPath, log } from "../utils.js";
 import { setConfig as setRunConfig } from "../core/config.js";
 import { detectTests } from "../core/index.js";
+import { maskDeep, maskString } from "../core/masking.js";
 import { canonicalUrl, computeCoverage, type CoverageIndex, type FileCoverage, type Item, type State } from "./coverage.js";
 
 const SPEC_EXTENSIONS = new Set(["json", "yaml", "yml"]);
@@ -18,20 +19,22 @@ const urlOf = (value: any): string | undefined => (typeof value === "string" ? v
 
 /** What any spec in the inputs can credit: authored step IDs, link targets, and screenshot files. */
 export function buildIndex(specs: any[], origin?: string): CoverageIndex {
-  const index: CoverageIndex = { stepIds: new Set(), linkTargets: new Set(), screenshotFiles: new Set() };
+  const index: CoverageIndex = { stepIds: new Map(), linkTargets: new Map(), screenshotFiles: new Map() };
+  // Steps, not keys, so a match goes through the same state rules as a located step.
+  const put = (map: Map<string, any[]>, key: string, step: any) => map.set(key, [...(map.get(key) ?? []), step]);
   for (const spec of specs) {
     for (const test of spec.tests ?? []) {
       const source = test.contentPath ?? spec.contentPath;
       for (const step of test.steps ?? []) {
-        if (typeof step.stepId === "string") index.stepIds.add(step.stepId);
+        if (typeof step.stepId === "string") put(index.stepIds, step.stepId, step);
         for (const action of ["goTo", "checkLink"]) {
           const url = urlOf(step[action]);
           const target = url && canonicalUrl(url, step[action]?.origin ?? origin);
-          if (target) index.linkTargets.add(target);
+          if (target) put(index.linkTargets, target, step);
         }
         const shot = typeof step.screenshot === "string" ? step.screenshot : step.screenshot?.path;
         if (typeof shot === "string" && !canonicalUrl(shot) && source) {
-          index.screenshotFiles.add(path.resolve(path.dirname(source), shot));
+          put(index.screenshotFiles, path.resolve(path.dirname(source), shot), step);
         }
       }
     }
@@ -138,19 +141,13 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
   const config = await setRunConfig({ config: cliConfig, detectApps: false });
   const specs: any[] = await detectTests({ config });
   const qualified: string[] = config._qualifiedFiles ?? [];
-  if (qualified.length === 0) {
-    const inputs = [config.input].flat().map((input: string) => `\`${input}\``).join(", ");
-    log(`Couldn't find any files to audit in ${inputs}. Pass a file or folder with \`--input\`.`, "error", config);
-    process.exitCode = 2;
-    return;
-  }
-
   const index = buildIndex(specs, config.origin);
   const stepsByFile = new Map<string, any[]>();
   for (const spec of specs) {
     for (const test of spec.tests ?? []) {
       const file = path.resolve(test.contentPath ?? spec.contentPath ?? "");
-      stepsByFile.set(file, [...(stepsByFile.get(file) ?? []), ...(test.steps ?? [])]);
+      if (!stepsByFile.has(file)) stepsByFile.set(file, []);
+      stepsByFile.get(file)!.push(...(test.steps ?? []));
     }
   }
 
@@ -159,7 +156,14 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
     if (SPEC_EXTENSIONS.has(extensionOf(file))) continue;
     const fileType = config.fileTypes.find((ft: any) => ft.extensions.includes(extensionOf(file)));
     if (!fileType) continue;
-    const content = fs.readFileSync(file, "utf8");
+    let content: string;
+    try {
+      content = fs.readFileSync(file, "utf8");
+    } catch {
+      // The file changed after detection read it.
+      log(`Couldn't read \`${file}\`. It's left out of the report.`, "warning", config);
+      continue;
+    }
     const coverage = computeCoverage({
       content,
       fileType,
@@ -172,7 +176,20 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
     files.push({ path: file, fileType: fileType.name, ...coverage });
   }
 
+  // Spec files and unreadable files don't count, so check after reading.
+  if (files.length === 0) {
+    const inputs = [config.input].flat().map((input: string) => `\`${input}\``).join(", ");
+    log(`Couldn't find any files to audit in ${inputs}. Pass a file or folder with \`--input\`.`, "error", config);
+    process.exitCode = 2;
+    return;
+  }
+
+  // Docs can hold `.env` values, so mask the output like every other. Text
+  // renders from the real states first, then masks.
   const report = summarize(files);
-  if (args.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-  else if (config.logLevel !== "silent") process.stdout.write(renderText(report, { quiet: Boolean(args.quiet) }));
+  // `--json` is the result itself, so it prints at any log level, as in ADR 01146.
+  // `--json` and `-q` pick the output shape and have no config key, so they're
+  // read from `args`, as `debug` does.
+  if (args.json) process.stdout.write(`${JSON.stringify(maskDeep(report), null, 2)}\n`);
+  else if (config.logLevel !== "silent") process.stdout.write(maskString(renderText(report, { quiet: Boolean(args.quiet) })));
 }

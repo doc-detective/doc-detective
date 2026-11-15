@@ -64,6 +64,29 @@ describe("audit command", function () {
     assert.equal(process.exitCode ?? 0, 0);
   });
 
+  it("warns and leaves out a file it can't read after detection", async function () {
+    const gone = path.join(dir, "gone.md");
+    fs.writeFileSync(path.join(dir, "install.md"), page);
+    fs.writeFileSync(gone, page);
+    const read = fs.readFileSync;
+    // Fail only audit's own read, as if the file vanished after detection.
+    const stub = sinon.stub(fs, "readFileSync").callsFake(function (file, ...rest) {
+      if (path.resolve(String(file)) === gone && /audit[\\/]index\.js/.test(new Error().stack)) {
+        throw Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" });
+      }
+      return read.call(fs, file, ...rest);
+    });
+    try {
+      const report = JSON.parse(await run({ input: dir, json: true }));
+      assert.deepEqual(report.files.map((f) => path.basename(f.path)), ["install.md"]);
+      const message = err.args.map((a) => String(a[0])).join("");
+      assert.ok(message.includes(`Couldn't read \`${gone}\`.`), message);
+      assert.equal(process.exitCode ?? 0, 0);
+    } finally {
+      stub.restore();
+    }
+  });
+
   it("prints only the first line with --quiet", async function () {
     fs.writeFileSync(path.join(dir, "install.md"), page);
     const text = await run({ input: dir, quiet: true });
@@ -103,6 +126,40 @@ describe("audit command", function () {
     assert.equal(report.summary.pages.total, 2);
   });
 
+  it("exits 2 when the inputs hold only spec files", async function () {
+    fs.writeFileSync(path.join(dir, "only.spec.json"), JSON.stringify({ tests: [{ steps: [{ goTo: "https://example.com" }] }] }));
+    const text = await run({ input: dir });
+    assert.equal(text, "");
+    assert.equal(process.exitCode, 2);
+    const message = err.args.map((a) => String(a[0])).join("");
+    assert.match(message, /Couldn't find any files to audit in/);
+  });
+
+  for (const json of [true, false]) {
+    it(`masks .env secrets in the ${json ? "JSON" : "text"} report`, async function () {
+      fs.writeFileSync(path.join(dir, ".env"), "API_TOKEN=s3cr3tvalue42\n");
+      fs.writeFileSync(path.join(dir, "page.md"), "1. Open the s3cr3tvalue42 page.\n\nSee [the site](https://example.com/s3cr3tvalue42).\n");
+      try {
+        const output = await run({ input: dir, json, envFile: true });
+        assert.match(output, json ? /"summary"/ : /Procedure steps/);
+        assert.ok(!output.includes("s3cr3tvalue42"), output);
+      } finally {
+        delete process.env.API_TOKEN;
+      }
+    });
+  }
+
+  it("lists untested steps even when a secret equals a state name", async function () {
+    fs.writeFileSync(path.join(dir, ".env"), "API_TOKEN=untested\n");
+    fs.writeFileSync(path.join(dir, "page.md"), "1. Open the app.\n");
+    try {
+      const text = await run({ input: dir, envFile: true });
+      assert.match(text, /Untested procedure steps:/);
+    } finally {
+      delete process.env.API_TOKEN;
+    }
+  });
+
   it("keeps --json stdout clean when an MDX file doesn't parse", async function () {
     fs.writeFileSync(path.join(dir, "broken.mdx"), "1. Open <Unclosed the app.\n");
     const report = JSON.parse(await run({ input: dir, json: true }));
@@ -116,5 +173,13 @@ describe("audit command", function () {
     assert.equal(process.exitCode, 2);
     const message = err.args.map((a) => String(a[0])).join("");
     assert.match(message, /Couldn't find any files to audit in `.*empty`\. Pass a file or folder with `--input`\./);
+  });
+
+  it("names a relative input by its absolute path when there are no files", async function () {
+    const empty = path.join(dir, "empty-relative");
+    fs.mkdirSync(empty);
+    await run({ input: path.relative(process.cwd(), empty) });
+    const message = err.args.map((a) => String(a[0])).join("");
+    assert.ok(message.includes(`\`${empty}\``), message);
   });
 });

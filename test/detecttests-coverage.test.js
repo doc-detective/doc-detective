@@ -480,7 +480,8 @@ describe("skipInvalidSpec", function () {
     const { object, validation } = invalid();
     const { lines } = await captureConsoleError(() => skipInvalidSpec(config, "doc.md", MESSAGE, validation, object));
     assert.deepEqual(lines, []);
-    assert.match(config._invalidSpecs[0], /tests: must NOT have fewer than 1 items\./);
+    assert.equal(config._invalidSpecs[0].path, "doc.md");
+    assert.match(config._invalidSpecs[0].reason, /tests: must NOT have fewer than 1 items\./);
   });
 
   it("logs the raw errors at debug", async function () {

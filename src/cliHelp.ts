@@ -158,6 +158,22 @@ Examples:
 Docs: ${DOCS}#debug
 Issues: ${ISSUES}`,
   },
+  validate: {
+    usage: "[inputs...] [options]",
+    description: `Check that spec files and inline tests are valid, without running them. Finds
+files the same way a run does.
+
+Examples:
+  doc-detective validate                    Check the tests in the current directory
+  doc-detective validate docs/ a.spec.json  Check a folder and a spec
+  doc-detective validate --json docs/       Print the result as JSON`,
+    after: `Exit codes:
+  0  Every test is valid
+  1  At least one test is invalid
+  2  Bad usage, bad config, or no tests found
+
+Docs: ${DOCS}#validate`,
+  },
   lsp: {
     description: `Start the language server over stdio, for editors and AI agents. You normally
 don't run this yourself: your editor or agent starts it. Press Ctrl-C to stop.
@@ -174,6 +190,7 @@ const SUMMARIES: Record<string, string> = {
   audit: "Report which docs content has a test step",
   install: "Install browsers, runtimes, and agent tools",
   debug: "Print diagnostics for a bug report",
+  validate: "Check test files without running them",
   lsp: "Start the language server for editors and agents",
   help: "Show help for a command",
   "install all": "Install runtimes, browsers, and Git Bash on Windows",

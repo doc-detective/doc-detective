@@ -148,7 +148,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Track overview / start here | W1, D1 | ★ | Frames the one job, routes by surface (UI vs. CLI/code/API). |
 | Inline tests | W2 | ★ | Tests embedded in a doc source file. |
 | Detected tests | W2 | ★ | Tests inferred from prose. |
-| Standalone test specs | W1, D1 | ★ | `*.spec.json` files kept beside the docs, a valid authoring choice for any surface. |
+| Standalone test specs | W1, D1 | ★ | `*.spec.json` files kept beside the docs, a valid authoring choice for any surface. Includes checking specs with `doc-detective validate` before a run. |
 | Last verified on | W2 | | `verified-by` write-back in front matter and manni `meta` statements, plus the `badge: true` test flag. Records when a test last passed. |
 | Audit test coverage | W1, W2 | | `doc-detective audit`: which procedure steps, code blocks, links, and images have a step, with no run. Procedure tiers, the `procedure` statement, and code-block tags. |
 
