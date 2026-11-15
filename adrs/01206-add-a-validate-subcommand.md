@@ -63,7 +63,7 @@ instead. With no tests found, stderr says so and names `--input`.
 ### Confirmation
 
 [test/cli-contract.test.js](../test/cli-contract.test.js) spawns the CLI and asserts each exit code, the stdout lines,
-and the `--json` shape. [test/core-artifacts/validate/](../test/core-artifacts/validate) runs the command through the
+and the `--json` shape. [test/core-artifacts/cli/validate.spec.json](../test/core-artifacts/cli/validate.spec.json) runs the command through the
 fixture gate.
 
 ## Pros and Cons of the Options
