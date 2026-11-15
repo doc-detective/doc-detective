@@ -1,3 +1,15 @@
+# [5.2.0](https://github.com/doc-detective/doc-detective/compare/v5.1.0...v5.2.0) (2026-11-15)
+
+
+### Bug Fixes
+
+* **validate:** mask output and run the fixture's checks in order ([444e8d2](https://github.com/doc-detective/doc-detective/commit/444e8d208b1a5d02cec70bb86819cdd7a1eb19c1))
+
+
+### Features
+
+* **cli:** add validate subcommand ([77e4cf6](https://github.com/doc-detective/doc-detective/commit/77e4cf6a7f84bba3873a0a76e32c86940c059139))
+
 # [5.1.0](https://github.com/doc-detective/doc-detective/compare/v5.0.0...v5.1.0) (2026-11-15)
 
 
