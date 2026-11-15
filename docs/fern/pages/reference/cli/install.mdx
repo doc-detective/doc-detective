@@ -260,7 +260,7 @@ Earlier versions defaulted to `<os.tmpdir()>/doc-detective/`. After upgrading fr
 
 ### Share a cache between runs
 
-Test runs and `install` commands can safely share one cache at the same time, such as parallel CI jobs on a shared volume. While one process installs runtime packages into the cache, the others wait for it to finish. A process that waits more than 10 minutes stops with an error that names the package and the runtime directory. If the package wasn't in the cache yet, the error starts with `Couldn't install`. If a test run found the package mid-install, it starts with `Couldn't load`:
+Test runs and `install` commands can safely share one cache at the same time, such as parallel CI jobs on a shared volume. While one process installs runtime packages into the cache, the others wait for it to finish. A process that waits more than 10 minutes stops with an error that names the package and the runtime directory. The 10-minute limit isn't configurable. The error starts with `Couldn't install` if the process needed to install or update packages, which includes any `install` command. It starts with `Couldn't load` if a test run only needed to load a package that's already in the cache:
 
 ```
 Couldn't install webdriverio: another Doc Detective process is still installing into /home/user/.cache/doc-detective/runtime. Wait for it to finish, then run again.
