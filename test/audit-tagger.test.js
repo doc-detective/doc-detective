@@ -1,4 +1,4 @@
-// Contract suite for the procedure tagger (ADR 01201). The expected values are
+// Contract suite for the procedure tagger (ADR 01203). The expected values are
 // pinned to compromise 14.19.0. A version bump that changes a result must
 // update this table on purpose, never by accident.
 import assert from "node:assert/strict";
