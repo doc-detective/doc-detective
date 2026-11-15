@@ -92,7 +92,7 @@ Each item gets one state:
 | Skipped as unsafe | The item's only steps are unsafe, such as a detected code block, and `allowUnsafeSteps` is off. |
 | Untested | No step belongs to the item. |
 
-Steps that check nothing, such as `wait` and `loadVariables`, don't count for any item. A step that reaches a code block through a `stepId` follows the same rules, so an unsafe one leaves the block skipped as unsafe.
+Steps that check nothing, such as `wait` and `loadVariables`, don't count for any item. A step outside an item, such as one in a standalone spec, can still match it. A code block matches by `stepId`, a link by target URL, and an image by screenshot path. The matched step follows the same rules as a step inside the item. If it's unsafe and `allowUnsafeSteps` is off, the item's state is Skipped as unsafe.
 
 - **Procedure steps.** A step belongs to the item it sits in. An item runs from its marker to the next item, so put a step statement after the sentence it tests. A test wrapped around a whole list gives its items no credit.
 - **Code blocks.** Only runnable languages count: shell (`bash`, `sh`, `shell`, `console`, `zsh`, `powershell`, `pwsh`), Python, JavaScript, and `http`. A block has a step when detection finds a step inside it, when a step statement directly follows it, or when its `id` matches an authored `stepId`.
