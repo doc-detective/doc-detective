@@ -779,6 +779,11 @@ describe("lsp — inline tests (markup fileTypes)", function () {
     expect(d[0].range.start.line).to.equal(0);
   });
 
+  it("doesn't flag a procedure marker", function () {
+    const fileType = { name: "docs", extensions: ["md"], inlineStatements: { in: ["comment"] } };
+    expect(computeInlineDiagnostics(doc("file:///a/x.md", "<!-- procedure -->\n1. Open it.\n"), fileType)).to.deep.equal([]);
+  });
+
   it("works across asciidoc, html, and dita fileTypes", function () {
     const bad = '{"goTo":123}';
     expect(
