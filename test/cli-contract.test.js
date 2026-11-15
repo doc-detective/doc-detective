@@ -672,6 +672,7 @@ describe("CLI contract", function () {
     });
 
     it("prints JSON from `audit --json`", function () {
+      fs.writeFileSync(path.join(cwd, "page.md"), "1. Open the app.\n");
       const r = run(["audit", "--json"]);
       expect(r.status, r.stderr).to.equal(0);
       expect(JSON.parse(r.stdout).summary).to.have.keys(["procedureSteps", "possibleProcedureSteps", "lists", "codeBlocks", "links", "images", "pages"]);
