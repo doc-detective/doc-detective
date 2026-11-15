@@ -1,5 +1,5 @@
 // `doc-detective audit`, in process: output shapes, credit across files, and
-// exit codes (ADR 01203).
+// exit codes (ADR 01206).
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
