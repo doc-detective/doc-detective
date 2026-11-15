@@ -12,6 +12,10 @@ const UI_VERBS = new Set(["hover", "tap", "select", "preview"]);
 // An imperative takes an object or a complement: "the", "your", "it", a UI
 // label, "to", "in", "sure". A bare noun after the verb reads as a noun
 // phrase instead, as in "Release notes" or "Start date".
+// Bold text is a UI label, read as this placeholder. "Zed" is a proper noun
+// to the tagger, while a word like "Label" reads as a verb.
+const LABEL = "Zed";
+
 const COMPLEMENTS = ["#Determiner", "#Pronoun", "#Possessive", "#Preposition", "#Particle", "#ProperNoun", "#Value", "#Adjective", "#Conjunction"];
 
 /**
@@ -24,8 +28,7 @@ function readings(text: string): string[] {
   const plain = text
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1") // links and images keep their text
     .replace(/`[^`]*`/g, "it") // inline code reads as an object
-    // Bold is a UI label. "Zed" is a proper noun to the tagger; "Label" reads as a verb.
-    .replace(/(\*\*|__)([^*_]+)\1/g, "Zed")
+    .replace(/(\*\*|__)([^*_]+)\1/g, LABEL)
     .replace(/[*_]+/g, "")
     .replace(/\b(?:double|right|left|triple)-click\b/gi, "click")
     .replace(/\bre-(?=[a-z])/gi, "") // "Re-run" reads as "run"

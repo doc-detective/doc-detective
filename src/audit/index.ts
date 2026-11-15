@@ -160,7 +160,14 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
     if (SPEC_EXTENSIONS.has(extensionOf(file))) continue;
     const fileType = config.fileTypes.find((ft: any) => ft.extensions.includes(extensionOf(file)));
     if (!fileType) continue;
-    const content = fs.readFileSync(file, "utf8");
+    let content: string;
+    try {
+      content = fs.readFileSync(file, "utf8");
+    } catch {
+      // The file changed after detection read it.
+      log(`Couldn't read \`${file}\`. It's left out of the report.`, "warning", config);
+      continue;
+    }
     const coverage = computeCoverage({
       content,
       fileType,
@@ -174,6 +181,7 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
   }
 
   const report = summarize(files);
+  // `--json` is the result itself, so it prints at any log level, as in ADR 01146.
   if (args.json) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   else if (config.logLevel !== "silent") process.stdout.write(renderText(report, { quiet: Boolean(args.quiet) }));
 }
