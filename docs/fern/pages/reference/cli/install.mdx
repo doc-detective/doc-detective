@@ -258,6 +258,18 @@ Browsers always install into `<cacheDir>/browsers`. A `./browser-snapshots/` fol
 Earlier versions defaulted to `<os.tmpdir()>/doc-detective/`. After upgrading from one of those versions, the first run re-downloads assets into the default location. To keep using the old location, set `DOC_DETECTIVE_CACHE_DIR` to it. You can delete the old directory once you no longer need it.
 </Note>
 
+### Share a cache between runs
+
+Test runs and `install` commands can safely share one cache at the same time, such as parallel CI jobs on a shared volume. While one process installs runtime packages into the cache, the others wait for it to finish. A process that waits more than 10 minutes stops with an error that names the runtime directory:
+
+```
+Couldn't install webdriverio: another Doc Detective process is still installing into /home/user/.cache/doc-detective/runtime. Wait for it to finish, then run again.
+```
+
+Let the other process finish, then run again. If an installing process crashed, the next run takes over automatically within about 5 minutes.
+
+To avoid the wait, run `doc-detective install runtime` once before the parallel jobs start.
+
 ### Restricted characters
 
 The cache path can't contain shell metacharacters. Doc Detective rejects any path set through `DOC_DETECTIVE_CACHE_DIR`, `cacheDir`, or `--cache-dir` that includes one of these characters. On Windows, the runtime installer runs `npm.cmd` through a shell, where an unescaped metacharacter could break out of the command's argument boundary. Doc Detective enforces this check on every platform, not just Windows, so a cache path stays portable across your runners. When a path contains a rejected character, the install fails with an error naming both the character and the path. Set the cache to a path without those characters to resolve it.
