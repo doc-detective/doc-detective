@@ -19,20 +19,22 @@ const urlOf = (value: any): string | undefined => (typeof value === "string" ? v
 
 /** What any spec in the inputs can credit: authored step IDs, link targets, and screenshot files. */
 export function buildIndex(specs: any[], origin?: string): CoverageIndex {
-  const index: CoverageIndex = { stepIds: new Map(), linkTargets: new Set(), screenshotFiles: new Set() };
+  const index: CoverageIndex = { stepIds: new Map(), linkTargets: new Map(), screenshotFiles: new Map() };
+  // Steps, not keys, so a match goes through the same state rules as a located step.
+  const put = (map: Map<string, any[]>, key: string, step: any) => map.set(key, [...(map.get(key) ?? []), step]);
   for (const spec of specs) {
     for (const test of spec.tests ?? []) {
       const source = test.contentPath ?? spec.contentPath;
       for (const step of test.steps ?? []) {
-        if (typeof step.stepId === "string") index.stepIds.set(step.stepId, [...(index.stepIds.get(step.stepId) ?? []), step]);
+        if (typeof step.stepId === "string") put(index.stepIds, step.stepId, step);
         for (const action of ["goTo", "checkLink"]) {
           const url = urlOf(step[action]);
           const target = url && canonicalUrl(url, step[action]?.origin ?? origin);
-          if (target) index.linkTargets.add(target);
+          if (target) put(index.linkTargets, target, step);
         }
         const shot = typeof step.screenshot === "string" ? step.screenshot : step.screenshot?.path;
         if (typeof shot === "string" && !canonicalUrl(shot) && source) {
-          index.screenshotFiles.add(path.resolve(path.dirname(source), shot));
+          put(index.screenshotFiles, path.resolve(path.dirname(source), shot), step);
         }
       }
     }

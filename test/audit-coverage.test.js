@@ -6,7 +6,7 @@ import { computeCoverage, canonicalUrl } from "../dist/audit/coverage.js";
 import { detectTests } from "../dist/common/src/detectTests.js";
 import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
 
-const emptyIndex = () => ({ stepIds: new Map(), linkTargets: new Set(), screenshotFiles: new Set() });
+const emptyIndex = () => ({ stepIds: new Map(), linkTargets: new Map(), screenshotFiles: new Map() });
 const root = path.resolve("/docs");
 
 async function audit(content, { file = "page.md", fileType, config = {}, index = emptyIndex() } = {}) {
@@ -229,9 +229,19 @@ describe("audit coverage", function () {
 
     it("matches a relative link to a spec target through origin, ignoring fragments and trailing slashes", async function () {
       const index = emptyIndex();
-      index.linkTargets.add(canonicalUrl("/guide/", "https://docs.example"));
+      index.linkTargets.set(canonicalUrl("/guide/", "https://docs.example"), [{ goTo: "/guide/" }]);
       const result = await audit("See [setup](/guide#install).\n", { config: { origin: "https://docs.example" }, index });
       assert.equal(result.items.find((item) => item.kind === "link").state, "hasStep");
+    });
+
+    it("applies the unsafe rule to a spec's link target", async function () {
+      const index = emptyIndex();
+      index.linkTargets.set("https://example.com/a", [{ checkLink: "https://example.com/a", unsafe: true }]);
+      const content = "See [the site](https://example.com/a).\n";
+      const blocked = await audit(content, { config: { detectSteps: false }, index });
+      assert.equal(blocked.items.find((item) => item.kind === "link").state, "skipped");
+      const allowed = await audit(content, { config: { detectSteps: false, allowUnsafeSteps: true }, index });
+      assert.equal(allowed.items.find((item) => item.kind === "link").state, "hasStep");
     });
 
     it("keeps counting links with detectSteps off, as untested", async function () {
@@ -248,9 +258,18 @@ describe("audit coverage", function () {
 
     it("credits an image a spec screenshot writes to", async function () {
       const index = emptyIndex();
-      index.screenshotFiles.add(path.join(root, "img", "home.png"));
+      index.screenshotFiles.set(path.join(root, "img", "home.png"), [{ screenshot: "img/home.png" }]);
       const result = await audit("![Home](img/home.png)\n", { index });
       assert.equal(result.items.find((item) => item.kind === "image").state, "hasStep");
+    });
+
+    it("applies the unsafe rule to a spec's screenshot", async function () {
+      const index = emptyIndex();
+      index.screenshotFiles.set(path.join(root, "img", "home.png"), [{ screenshot: "img/home.png", unsafe: true }]);
+      const blocked = await audit("![Home](img/home.png)\n", { index });
+      assert.equal(blocked.items.find((item) => item.kind === "image").state, "skipped");
+      const allowed = await audit("![Home](img/home.png)\n", { config: { allowUnsafeSteps: true }, index });
+      assert.equal(allowed.items.find((item) => item.kind === "image").state, "hasStep");
     });
 
     it("leaves other images untested", async function () {
