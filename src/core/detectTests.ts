@@ -12,7 +12,7 @@ import { validate } from "../common/src/validate.js";
 import { getLineNumber, getLineStarts, contentHash } from "../common/src/textUtils.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand, runConcurrent, summarizeSchemaErrors, shortJson } from "./utils.js";
-import { diag, displayPath } from "../cliOutput.js";
+import { diag } from "../cliOutput.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
 
@@ -116,7 +116,7 @@ function noteInvalidSpec(config: any, source: string, reason = "It isn't valid J
   if (!config._invalidSpecs) {
     Object.defineProperty(config, "_invalidSpecs", { value: [], enumerable: false });
   }
-  config._invalidSpecs.push(`${displayPath(source)}\n${reason}`);
+  config._invalidSpecs.push({ path: source, reason });
 }
 
 // Skip a spec that failed its schema check, and say why once: a strict run's
@@ -978,7 +978,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       if (!validation.valid) {
         const message = `Tests from ${file} don't create a valid test specification. Skipping.`;
         // A document with no tests in it is just a document: no reason to give.
-        if (spec.tests.length === 0) log(config, "warning", message);
+        if (spec.tests.length === 0) log(config, "debug", message);
         else skipInvalidSpec(config, file, message, validation, spec);
       } else {
         spec = await resolvePaths({
