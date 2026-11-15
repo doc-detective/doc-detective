@@ -149,6 +149,17 @@ describe("audit command", function () {
     });
   }
 
+  it("lists untested steps even when a secret equals a state name", async function () {
+    fs.writeFileSync(path.join(dir, ".env"), "API_TOKEN=untested\n");
+    fs.writeFileSync(path.join(dir, "page.md"), "1. Open the app.\n");
+    try {
+      const text = await run({ input: dir, envFile: true });
+      assert.match(text, /Untested procedure steps:/);
+    } finally {
+      delete process.env.API_TOKEN;
+    }
+  });
+
   it("keeps --json stdout clean when an MDX file doesn't parse", async function () {
     fs.writeFileSync(path.join(dir, "broken.mdx"), "1. Open <Unclosed the app.\n");
     const report = JSON.parse(await run({ input: dir, json: true }));
