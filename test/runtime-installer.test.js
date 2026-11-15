@@ -124,7 +124,9 @@ describe("runtime/installer", function () {
         const child = new EventEmitter();
         child.stdout = new EventEmitter();
         child.stderr = new EventEmitter();
-        return child; // never emits 'close'
+        // Never exits on its own; exits once killed, as a real child does.
+        child.kill = () => setImmediate(() => child.emit("close", null));
+        return child;
       };
       try {
         await installRuntime({

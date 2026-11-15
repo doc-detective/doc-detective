@@ -19,6 +19,7 @@ import {
   writeInstalledRecord,
   type CacheDirContext,
 } from "./cacheDir.js";
+import { acquireLock } from "./lock.js";
 
 export type LogLevel = "info" | "warning" | "error" | "debug";
 export type Logger = (msg: string, level?: LogLevel) => void;
@@ -262,7 +263,23 @@ export async function loadHeavyDep<T = unknown>(
   const { autoInstall = true, ctx = {}, deps = {} } = options;
 
   let resolved = tryResolveFromShim(name);
-  if (!resolved) resolved = tryResolveFromCache(name, ctx);
+  if (!resolved) {
+    resolved = tryResolveFromCache(name, ctx);
+    // A cache hit while another install holds the lock may be a package npm
+    // has only partly extracted: wait for that install, then resolve again.
+    // Waiting installs nothing, so autoInstall: false waits too.
+    const runtimeDir = resolved ? getRuntimeDir(ctx) : "";
+    if (resolved && fs.existsSync(installLockDir(runtimeDir))) {
+      const lock = await acquireInstallLock(runtimeDir);
+      if (!lock) {
+        throw new Error(
+          `Couldn't load \`${name}\`: another Doc Detective process is still installing into ${runtimeDir}. Wait for it to finish, then run again.`
+        );
+      }
+      lock.release();
+      resolved = tryResolveFromCache(name, ctx);
+    }
+  }
 
   if (!resolved) {
     if (!autoInstall) {
@@ -343,6 +360,8 @@ export interface EnsureRuntimeInstalledOptions {
 }
 
 const DEFAULT_INSTALL_TIMEOUT_MS = 5 * 60 * 1000;
+// How long a timed-out npm child gets to exit after kill() before SIGKILL.
+const KILL_GRACE_MS = 5_000;
 
 const RUNTIME_PACKAGE_JSON_CONTENTS = JSON.stringify(
   {
@@ -461,6 +480,19 @@ function readInstalledVersionFromCache(
   }
 }
 
+const installLockDir = (runtimeDir: string) => path.join(runtimeDir, "install.lock");
+
+// Null when another install still holds the lock after the lock's 10-minute wait.
+function acquireInstallLock(runtimeDir: string) {
+  return acquireLock({
+    dir: installLockDir(runtimeDir),
+    pollMs: 250,
+    // The lock's default sleep is unref'd. A process with nothing else to do
+    // (`doc-detective install`) would exit mid-wait, so keep this one ref'd.
+    deps: { sleep: (ms) => new Promise<void>((r) => setTimeout(r, ms)) },
+  });
+}
+
 /**
  * Install one or more heavy npm packages into <cacheDir>/runtime. Uses
  * `npm install --prefix <runtimeDir> --no-save --no-audit --no-fund <pkg>@<v>`
@@ -474,21 +506,36 @@ export async function ensureRuntimeInstalled(
   packages: string[],
   options: EnsureRuntimeInstalledOptions = {}
 ): Promise<void> {
-  const {
-    ctx = {},
-    deps = {},
-    force = false,
-    installTimeoutMs = DEFAULT_INSTALL_TIMEOUT_MS,
-  } = options;
-  const logger = deps.logger ?? defaultLogger;
-  const spawner = deps.spawn ?? (nodeSpawn as SpawnFn);
   if (packages.length === 0) return;
-
+  const { ctx = {}, force = false } = options;
   // Pull in optional peer companions (e.g. proxy-agent for
   // @puppeteer/browsers@3) that npm won't auto-install but the dep needs for
   // full functionality. Done here so both the JIT path (loadHeavyDep) and the
   // bulk path (installRuntime / `install all`) get them.
   packages = withPeerCompanions(packages);
+  const runtimeDir = getRuntimeDir(ctx);
+  const lockDir = installLockDir(runtimeDir);
+  // A package npm has only partly extracted already resolves, so trust a
+  // cache hit only while no install holds the lock.
+  if (packagesToInstall(packages, ctx, force).length === 0 && !fs.existsSync(lockDir)) return;
+
+  // Two `npm install`s into one prefix corrupt it (#896): each reifies its own
+  // ideal tree and removes what the other just extracted. Installs into one
+  // runtime dir therefore serialize through the cross-process lock, in this
+  // process too. A waiter re-checks what's missing once it holds the lock, so
+  // two runs that need the same package install it once.
+  const lock = await acquireInstallLock(runtimeDir);
+  if (!lock) {
+    throw new Error(
+      `Couldn't install ${packages.join(", ")}: another Doc Detective process is still installing into ${runtimeDir}. Wait for it to finish, then run again.`
+    );
+  }
+  try {
+    await installUnderLock(packages, options);
+  } finally {
+    lock.release();
+  }
+}
 
   // Decide what actually needs `npm install`. The skip cases — when
   // not forced — are:
@@ -503,7 +550,12 @@ export async function ensureRuntimeInstalled(
   //      stale version; we re-install in that case so an upgraded shim
   //      doesn't run against an outdated cache (the bug Copilot
   //      flagged for persistent DOC_DETECTIVE_CACHE_DIR setups).
-  const toInstall = force
+function packagesToInstall(
+  packages: string[],
+  ctx: CacheDirContext,
+  force: boolean
+): string[] {
+  return force
     ? [...packages]
     : packages.filter((name) => {
         if (tryResolveFromShim(name)) return false;
@@ -520,6 +572,21 @@ export async function ensureRuntimeInstalled(
           return true;
         }
       });
+}
+
+async function installUnderLock(
+  packages: string[],
+  options: EnsureRuntimeInstalledOptions
+): Promise<void> {
+  const {
+    ctx = {},
+    deps = {},
+    force = false,
+    installTimeoutMs = DEFAULT_INSTALL_TIMEOUT_MS,
+  } = options;
+  const logger = deps.logger ?? defaultLogger;
+  const spawner = deps.spawn ?? (nodeSpawn as SpawnFn);
+  const toInstall = packagesToInstall(packages, ctx, force);
   if (toInstall.length === 0) return;
 
   const specs = toInstall.map(
@@ -638,6 +705,7 @@ export async function ensureRuntimeInstalled(
     let timer: NodeJS.Timeout | null = null;
     const clearTimer = () => {
       if (timer) clearTimeout(timer);
+      if (graceTimer) clearTimeout(graceTimer);
     };
     // Settle exactly once, flushing the log stream first so the file is fully
     // written before the error propagates and the process may exit. end()'s
@@ -666,20 +734,37 @@ export async function ensureRuntimeInstalled(
         action();
       }
     };
+    // After a timeout the caller still holds the install lock, so settle only
+    // once the child has exited: a waiter must not start npm while this one
+    // still writes the runtime. kill() doesn't guarantee exit, so escalate to
+    // SIGKILL and give up after a bounded grace.
+    let timedOut = false;
+    let graceTimer: NodeJS.Timeout | null = null;
+    const rejectTimedOut = () =>
+      reject(
+        new Error(
+          `npm install timed out after ${installTimeoutMs}ms while installing ${specs.join(", ")} into ${runtimeDir}.${logHint}`
+        )
+      );
     if (installTimeoutMs > 0) {
       timer = setTimeout(() => {
+        timedOut = true;
         try {
           child.kill();
         } catch {
           // best-effort — the child may already have exited
         }
-        finish(() =>
-          reject(
-            new Error(
-              `npm install timed out after ${installTimeoutMs}ms while installing ${specs.join(", ")} into ${runtimeDir}.${logHint}`
-            )
-          )
-        );
+        graceTimer = setTimeout(() => {
+          try {
+            child.kill("SIGKILL");
+          } catch {
+            // best-effort
+          }
+          // Give SIGKILL the same grace to land; `close` settles sooner.
+          graceTimer = setTimeout(() => finish(rejectTimedOut), KILL_GRACE_MS);
+          if (typeof graceTimer.unref === "function") graceTimer.unref();
+        }, KILL_GRACE_MS);
+        if (typeof graceTimer.unref === "function") graceTimer.unref();
       }, installTimeoutMs);
       // Don't keep the event loop alive solely for this timer.
       if (typeof timer.unref === "function") timer.unref();
@@ -689,7 +774,9 @@ export async function ensureRuntimeInstalled(
     child.on("error", (err: Error) => finish(() => reject(err)));
     child.on("close", (code: number | null) =>
       finish(() =>
-        code === 0
+        timedOut
+          ? rejectTimedOut()
+          : code === 0
           ? resolve()
           : reject(
               new Error(
