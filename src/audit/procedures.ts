@@ -98,8 +98,13 @@ function markdownLists(content: string, mdx: boolean): RawList[] {
   const end = (n: any): number => n.position.end.offset;
   // The item's text: its first child, or the item itself when it has none.
   const textOf = (n: any) => {
-    const first = n.children?.find((c: any) => c.type !== "mdxJsxAttribute") ?? n;
+    const first = n.children?.[0] ?? n;
     return { startIndex: start(n), textStart: start(first), textEnd: end(first) };
+  };
+  // A Step's text: its `title`, else its first child.
+  const stepOf = (n: any) => {
+    const title = n.attributes?.find((a: any) => a.name === "title" && typeof a.value === "string")?.value;
+    return { ...textOf(n), ...(title && { text: title.trim() }) };
   };
 
   const lists: RawList[] = [];
@@ -109,7 +114,7 @@ function markdownLists(content: string, mdx: boolean): RawList[] {
         lists.push({ explicit: false, startIndex: start(child), endIndex: end(child), items: child.children.map(textOf) });
       } else if (child.type === "mdxJsxFlowElement" && child.name === "Steps") {
         const steps = child.children.filter((c: any) => c.type === "mdxJsxFlowElement" && c.name === "Step");
-        lists.push({ explicit: true, startIndex: start(child), endIndex: end(child), items: steps.map(textOf) });
+        lists.push({ explicit: true, startIndex: start(child), endIndex: end(child), items: steps.map(stepOf) });
       } else {
         walk(child);
       }
@@ -124,6 +129,8 @@ const CODE_TAGS = new Set(["code", "codeph", "kbd", "samp", "filepath", "cmdname
 const LABEL_TAGS = new Set(["b", "strong", "uicontrol", "wintitle"]);
 const LIST_TAGS = new Set(["ol", "ul", "steps", "steps-unordered", "substeps", "dl"]);
 const SKIP_TAGS = new Set(["pre", "codeblock", "script", "style", "screen"]);
+// The item's text is its first block, such as a `<p>` or DITA `<cmd>`.
+const BLOCK_TAGS = new Set(["p", "div", "cmd", "info", "stepxmp", "stepresult", "note", "table"]);
 
 /**
  * HTML `<ol>` and DITA `<ol>` or `<steps>`, with `<li>` or `<step>` items.
@@ -151,8 +158,8 @@ function markupLists(content: string, dialect: "html" | "dita"): RawList[] {
           item = { depth, text: "", done: false };
           list.raw.items.push({ startIndex: parser.startIndex, textStart: 0, textEnd: 0 });
         } else if (item && !item.done) {
-          // A nested list ends the item's own text.
-          if (LIST_TAGS.has(tag)) item.done = true;
+          // A nested list, or a block after text, ends the item's own text.
+          if (LIST_TAGS.has(tag) || (BLOCK_TAGS.has(tag) && item.text.trim())) item.done = true;
           else if (CODE_TAGS.has(tag)) item.text += "`";
           else if (LABEL_TAGS.has(tag)) item.text += "**";
         }
@@ -165,6 +172,7 @@ function markupLists(content: string, dialect: "html" | "dita"): RawList[] {
         if (list && item && !item.done) {
           if (CODE_TAGS.has(tag)) item.text += "`";
           else if (LABEL_TAGS.has(tag)) item.text += "**";
+          else if (BLOCK_TAGS.has(tag) && item.text.trim()) item.done = true;
         }
         if (item && depth === item.depth) {
           list!.raw.items[list!.raw.items.length - 1].text = item.text.replace(/\s+/g, " ").trim();
@@ -213,13 +221,22 @@ function asciidocLists(content: string): RawList[] {
       let j = i + 1;
       while (j < lines.length && lines[j].text.trim() !== fence) j++;
       j = Math.min(j, lines.length - 1);
+      i = j;
+      // A comment block keeps the list open, and belongs to the item above it.
+      if (fence.startsWith("/")) {
+        if (list && !list.blank) list.lastEnd = lines[j].end;
+        continue;
+      }
       if (list?.attached) list.lastEnd = lines[j].end;
       else close();
       if (list) list.attached = false;
-      i = j;
       continue;
     }
-    if (/^\/\/(?!\/)/.test(text)) continue; // a line comment
+    if (/^\/\/(?!\/)/.test(text)) {
+      // A line comment belongs to the item above it.
+      if (list && !list.blank) list.lastEnd = end;
+      continue;
+    }
     const item = ADOC_ITEM.exec(text);
     if (item) {
       const marker = /^\d/.test(item[1]) ? "1." : item[1];
@@ -245,7 +262,8 @@ function asciidocLists(content: string): RawList[] {
     // Text right after an item, or attached with `+`, continues it.
     if (!list.blank || list.attached) {
       list.lastEnd = end;
-      list.attached = false;
+      // A block attribute line or title, as in `[source,bash]`, keeps the attachment for the block below.
+      list.attached &&= /^\[.*\]$|^\.[^.\s]/.test(text.trim());
       continue;
     }
     close();

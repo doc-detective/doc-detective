@@ -117,4 +117,12 @@ describe("audit command", function () {
     const message = err.args.map((a) => String(a[0])).join("");
     assert.match(message, /Couldn't find any files to audit in `.*empty`\. Pass a file or folder with `--input`\./);
   });
+
+  it("names a relative input by its absolute path when there are no files", async function () {
+    const empty = path.join(dir, "empty-relative");
+    fs.mkdirSync(empty);
+    await run({ input: path.relative(process.cwd(), empty) });
+    const message = err.args.map((a) => String(a[0])).join("");
+    assert.ok(message.includes(`\`${empty}\``), message);
+  });
 });

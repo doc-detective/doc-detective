@@ -139,6 +139,12 @@ describe("audit coverage", function () {
       assert.deepEqual(result.lists, { explicit: 1, tagged: 0, possible: 0 });
     });
 
+    it("reads a Step's title as its text", async function () {
+      const content = ["<Steps>", "  <Step title=\"Install the CLI\">", "    Run the installer.", "  </Step>", "</Steps>", ""].join("\n");
+      const result = await audit(content, { file: "page.mdx" });
+      assert.equal(procedureSteps(result)[0].text, "Install the CLI");
+    });
+
     it("marks an item navigation-only when only goTo or checkLink cover it", async function () {
       const result = await audit("1. Go to [the site](https://example.com).\n2. Close it.\n");
       const [first] = procedureSteps(result);
@@ -263,6 +269,11 @@ describe("audit coverage", function () {
       assert.match(items[0].text, /^Click \*\*Save\*\*\./);
     });
 
+    it("reads only an item's first block as its text", async function () {
+      const result = await audit("<ol><li><p>Open the app.</p><p>More detail here.</p></li></ol>\n", { file: "page.html" });
+      assert.equal(procedureSteps(result)[0].text, "Open the app.");
+    });
+
     it("counts a list after a procedure comment as explicit", async function () {
       const result = await audit("<!-- procedure -->\n<ol><li>Release notes</li></ol>\n", { file: "page.html" });
       assert.equal(procedureSteps(result)[0].source, "explicit");
@@ -300,6 +311,12 @@ describe("audit coverage", function () {
       assert.deepEqual(result.lists, { explicit: 1, tagged: 0, possible: 0 });
     });
 
+    it("reads a step's text from its cmd only", async function () {
+      const content = '<task id="t"><taskbody><steps><step><cmd>Open the app.</cmd><info>This takes a while.</info></step></steps></taskbody></task>\n';
+      const result = await audit(content, { file: "task.dita" });
+      assert.equal(procedureSteps(result)[0].text, "Open the app.");
+    });
+
     it("reads an ol after a processing-instruction marker as explicit", async function () {
       const content = '<topic id="t"><body><?doc-detective procedure?>\n<ol><li>Release notes</li></ol></body></topic>\n';
       const result = await audit(content, { file: "topic.dita" });
@@ -326,6 +343,26 @@ describe("audit coverage", function () {
       const content = [". Run the command:", "+", "----", ". not an item", "----", ". Close it.", ""].join("\n");
       const result = await audit(content, { file: "page.adoc" });
       assert.deepEqual(procedureSteps(result).map((item) => item.line), [1, 6]);
+    });
+
+    it("keeps an attached source block with an attribute line in its item", async function () {
+      const content = [". Run this:", "+", "[source,bash]", "----", "npm test", "----", '// (step {"goTo":"https://example.com"})', ". Close it.", ""].join("\n");
+      const result = await audit(content, { file: "page.adoc", config: { detectSteps: false } });
+      assert.deepEqual(procedureSteps(result).map((item) => [item.line, item.state]), [[1, "hasStep"], [8, "untested"]]);
+      assert.deepEqual(result.lists, { explicit: 0, tagged: 1, possible: 0 });
+    });
+
+    it("keeps a list open across a comment block, crediting the item above", async function () {
+      const content = [". Open the app.", "////", '(step {"goTo":"https://example.com"})', "////", ". Close it.", ""].join("\n");
+      const result = await audit(content, { file: "page.adoc", config: { detectSteps: false } });
+      assert.deepEqual(procedureSteps(result).map((item) => [item.line, item.state]), [[1, "hasStep"], [5, "untested"]]);
+      assert.deepEqual(result.lists, { explicit: 0, tagged: 1, possible: 0 });
+    });
+
+    it("credits the last item for a step comment right after it", async function () {
+      const content = [". Open the app.", '// (step {"goTo":"https://example.com"})', ""].join("\n");
+      const result = await audit(content, { file: "page.adoc", config: { detectSteps: false } });
+      assert.equal(procedureSteps(result)[0].state, "hasStep");
     });
 
     it("continues an item through a wrapped line, and ends the list at a paragraph after a blank line", async function () {
