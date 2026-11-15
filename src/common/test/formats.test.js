@@ -197,6 +197,16 @@ describe("formats", function () {
       expect(blocks.map((b) => b.language)).to.deep.equal(["", "bash"]);
     });
 
+    it("reads a block's id and roles as attributes", function () {
+      const adoc = "[source#install.procedure.testIgnore,bash]\n----\na\n----\n\n[source#only,bash]\n----\nb\n----\n\n[.only,bash]\n----\nc\n----\n\n----\nd\n----\n";
+      expect(pick(parseAsciidoc(adoc), "codeBlock").map((b) => b.attributes)).to.deep.equal([
+        { id: "install", class: "procedure testIgnore" },
+        { id: "only" },
+        { class: "only" },
+        undefined,
+      ]);
+    });
+
     it("reads images, with roles as classes", function () {
       expect(pick(nodes, "image").map((n) => [n.src, n.alt, n.attributes?.class])).to.deep.equal([
         ["a.png", "Alt A", "screenshot"],
