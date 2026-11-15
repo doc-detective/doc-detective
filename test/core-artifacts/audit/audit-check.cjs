@@ -1,4 +1,4 @@
-// `doc-detective audit` permutations, run by audit.spec.json (ADR 01203).
+// `doc-detective audit` permutations, run by audit.spec.json (ADR 01206).
 //
 //   node test/core-artifacts/audit/audit-check.cjs <case>
 //
