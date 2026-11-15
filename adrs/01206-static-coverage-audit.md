@@ -45,14 +45,14 @@ A list's tier is the first that matches:
 
 1. **Explicit.** DITA `<steps>`, an MDX `<Steps>` component, or a list right after a `procedure`
    statement. `procedure` is a new inline statement keyword. The runner and the LSP skip it.
-2. **Tagger.** An ordered list whose first item reads as an instruction. compromise 14.19.0,
-   lexicon-based and pinned exactly, tags the item after it strips markup and an opener of up to five
-   words before a comma. It counts as an instruction when the first word is an imperative or
-   infinitive verb, followed by a complement: a determiner, pronoun, preposition, particle, UI label,
-   value, or adjective. A bare noun after the verb reads as a noun phrase ("Release notes"), and that
-   choice trades a few misses ("Open settings") for a cleaner headline. Three UI verbs the lexicon
-   misreads (hover, tap, select) are corrected. `test/audit-tagger.test.js` pins the expected result
-   for every contract case.
+2. **Tagger.** An ordered list whose first item reads as an instruction. compromise 14.19.0 tags the
+   item. It's lexicon-based and pinned exactly. Before tagging, the item loses its markup and any
+   opener of up to five words before a comma. The item is an instruction when its first word is an
+   imperative or infinitive verb with a complement after it. A complement is a determiner, pronoun,
+   preposition, particle, UI label, value, or adjective. A bare noun after the verb reads as a noun
+   phrase, as in "Release notes". That choice trades a few misses ("Open settings") for a cleaner
+   headline. Three UI verbs the lexicon misreads (hover, tap, select) are corrected.
+   `test/audit-tagger.test.js` pins the expected result for every contract case.
 3. **Possible.** Any other ordered list, including one the tagger can't read. These are counted, but
    kept out of the headline.
 
