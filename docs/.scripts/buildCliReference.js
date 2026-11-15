@@ -317,7 +317,7 @@ function buildPage(data) {
     "npx doc-detective [command] [options]",
     "```",
     "",
-    "A bare invocation with no command runs tests; the available commands are `run`, `install`, `lsp`, `debug`, and `help`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. For one command's usage, add `--help` after it or name it after `help`, including nested commands (for example, `npx doc-detective help install browsers`). The CLI is strict: unknown flags cause an error instead of being ignored.",
+    "A bare invocation with no command runs tests; the available commands are `run`, `install`, `validate`, `lsp`, `debug`, and `help`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. For one command's usage, add `--help` after it or name it after `help`, including nested commands (for example, `npx doc-detective help install browsers`). The CLI is strict: unknown flags cause an error instead of being ignored.",
     ""
   );
 
@@ -432,6 +432,27 @@ function buildPage(data) {
   parts.push(
     "```bash",
     "npx doc-detective debug --include-env",
+    "```",
+    ""
+  );
+
+  // validate.
+  parts.push(
+    "### validate",
+    "",
+    "Check that spec files and inline tests are valid, without running them. `validate` finds files the same way a run does, from positional inputs, `--input`, and `--config`, and also accepts the global flags.",
+    "",
+    "For each invalid file, stdout names the file and each problem. The last line counts the files checked. With `--json`, stdout carries one JSON document instead: `valid`, and a `files` array of `{ path, valid, errors }`.",
+    "",
+    "| Code | Meaning |",
+    "|------|---------|",
+    "| `0` | At least one test was found, and every test is valid |",
+    "| `1` | At least one spec or inline test is invalid |",
+    "| `2` | A usage error, invalid config, or no tests found |",
+    "",
+    "```bash",
+    "npx doc-detective validate docs/",
+    "npx doc-detective validate --json docs/ tests/login.spec.json",
     "```",
     ""
   );

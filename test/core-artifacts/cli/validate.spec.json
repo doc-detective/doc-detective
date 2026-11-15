@@ -1,0 +1,104 @@
+{
+  "specId": "cli-validate",
+  "description": "`doc-detective validate` checks test files without running them: 0 all valid, 1 any invalid, 2 none found (ADR 01206).",
+  "tests": [
+    {
+      "testId": "setup",
+      "description": "Writes the files the other tests check.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs'),d='.tmp/fixture-validate';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d+'/empty',{recursive:true});fs.writeFileSync(d+'/ok.spec.json',JSON.stringify({tests:[{steps:[{runShell:'echo ran > .tmp/fixture-validate/ran.txt'}]}]}));fs.writeFileSync(d+'/bad.spec.json',JSON.stringify({tests:[{steps:[{clik:'x'}]}]}));fs.writeFileSync(d+'/ok.md','# Doc\\n\\n<!-- test\\ntestId: t\\n-->\\n\\n<!-- step runShell: echo hi -->\\n');fs.writeFileSync(d+'/bad.md','# Doc\\n\\n<!-- test\\ntestId: t\\n-->\\n\\n<!-- step clik: x -->\\n');fs.writeFileSync(d+'/empty/readme.md','# Nothing to test\\n');\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "all-valid",
+      "description": "Valid specs and inline tests exit 0, and nothing runs.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js validate .tmp/fixture-validate/ok.spec.json .tmp/fixture-validate/ok.md",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "stdio": "Checked 2 files: 2 valid, 0 invalid."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"process.exit(require('fs').existsSync('.tmp/fixture-validate/ran.txt') ? 1 : 0)\"",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "invalid-spec",
+      "description": "An invalid spec file exits 1 and names the bad action.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js validate -i .tmp/fixture-validate/bad.spec.json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              1
+            ],
+            "stdio": "unknown action `clik`"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "invalid-inline",
+      "description": "An invalid inline test in Markdown exits 1.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js validate .tmp/fixture-validate/bad.md",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              1
+            ],
+            "stdio": "Checked 1 file: 0 valid, 1 invalid."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "json",
+      "description": "--json prints the verdict as one JSON document.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js validate --json .tmp/fixture-validate/ok.spec.json .tmp/fixture-validate/bad.spec.json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              1
+            ],
+            "stdio": "\"valid\": false"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "no-tests",
+      "description": "A folder with no tests exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node ./bin/doc-detective.js validate .tmp/fixture-validate/empty",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              2
+            ],
+            "stdio": "Couldn't find tests in"
+          }
+        }
+      ]
+    }
+  ]
+}
