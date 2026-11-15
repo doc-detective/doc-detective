@@ -328,6 +328,13 @@ describe("audit coverage", function () {
       assert.deepEqual(procedureSteps(result).map((item) => item.line), [1, 6]);
     });
 
+    it("continues an item through a wrapped line, and ends the list at a paragraph after a blank line", async function () {
+      const content = [". Open the app", "and sign in.", "", "A paragraph.", "", ". Release notes", ""].join("\n");
+      const result = await audit(content, { file: "page.adoc" });
+      assert.deepEqual(procedureSteps(result).map((item) => [item.source, item.line]), [["tagger", 1], ["possible", 6]]);
+      assert.deepEqual(result.lists, { explicit: 0, tagged: 1, possible: 1 });
+    });
+
     it("counts a list after a procedure comment as explicit", async function () {
       const result = await audit("// (procedure)\n. Release notes\n", { file: "page.adoc" });
       assert.equal(procedureSteps(result)[0].source, "explicit");
