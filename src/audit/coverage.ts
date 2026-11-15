@@ -32,8 +32,8 @@ export interface Item {
 
 /** What every spec in the audited inputs can credit, across files. */
 export interface CoverageIndex {
-  /** Authored `stepId` values. The runner derives the rest at run time. */
-  stepIds: Set<string>;
+  /** Steps by authored `stepId`. The runner derives the rest at run time. */
+  stepIds: Map<string, any[]>;
   /** `goTo` and `checkLink` targets, through `canonicalUrl`. */
   linkTargets: Set<string>;
   /** Absolute paths that `screenshot` steps write. */
@@ -139,11 +139,14 @@ export function computeCoverage({ content, fileType, filePath, steps, index, ori
       // An authored step right after the block, with only whitespace between.
       const next = authored.find((s) => s._startIndex >= end);
       const following = next && content.slice(end, next._startIndex).trim() === "" ? next : undefined;
-      const own = [...stepsIn(start, end), ...(following ? located.filter((step) => step.location.startIndex === following._startIndex) : [])];
       const id = node.attributes?.id;
-      const byId = typeof id === "string" && index.stepIds.has(id);
+      const own = [
+        ...stepsIn(start, end),
+        ...(following ? located.filter((step) => step.location.startIndex === following._startIndex) : []),
+        ...((typeof id === "string" && index.stepIds.get(id)) || []),
+      ];
       const testIgnore = /\btestIgnore\b/.test(node.meta ?? "") || classes.includes("testIgnore");
-      const result: Pick<Item, "state" | "navigationOnly"> = byId ? { state: "hasStep" } : stateOf(own, start, end, testIgnore);
+      const result = stateOf(own, start, end, testIgnore);
       if (classes.includes("procedure") && !inList(start)) {
         items.push({ kind: "procedureStep", source: "explicit", line: lineOf(start), text: itemText(node), state: result.state });
       }

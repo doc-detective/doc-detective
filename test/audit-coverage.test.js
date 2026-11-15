@@ -6,7 +6,7 @@ import { computeCoverage, canonicalUrl } from "../dist/audit/coverage.js";
 import { detectTests } from "../dist/common/src/detectTests.js";
 import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
 
-const emptyIndex = () => ({ stepIds: new Set(), linkTargets: new Set(), screenshotFiles: new Set() });
+const emptyIndex = () => ({ stepIds: new Map(), linkTargets: new Set(), screenshotFiles: new Set() });
 const root = path.resolve("/docs");
 
 async function audit(content, { file = "page.md", fileType, config = {}, index = emptyIndex() } = {}) {
@@ -168,9 +168,23 @@ describe("audit coverage", function () {
 
     it("credits a block whose id matches an authored stepId", async function () {
       const index = emptyIndex();
-      index.stepIds.add("install");
+      index.stepIds.set("install", [{ runShell: "npm i" }]);
       const result = await audit("```bash {#install}\nnpm i\n```\n", { config: { detectSteps: false }, index });
       assert.equal(result.items.find((item) => item.kind === "codeBlock").state, "hasStep");
+    });
+
+    it("applies the unsafe and non-checking rules to a step matched by id", async function () {
+      const content = "```bash {#install}\nnpm i\n```\n";
+      const unsafe = emptyIndex();
+      unsafe.stepIds.set("install", [{ runShell: "npm i", unsafe: true }]);
+      const blocked = await audit(content, { config: { detectSteps: false }, index: unsafe });
+      assert.equal(blocked.items.find((item) => item.kind === "codeBlock").state, "skipped");
+      const allowed = await audit(content, { config: { detectSteps: false, allowUnsafeSteps: true }, index: unsafe });
+      assert.equal(allowed.items.find((item) => item.kind === "codeBlock").state, "hasStep");
+      const waits = emptyIndex();
+      waits.stepIds.set("install", [{ wait: 500 }]);
+      const waited = await audit(content, { config: { detectSteps: false }, index: waits });
+      assert.equal(waited.items.find((item) => item.kind === "codeBlock").state, "untested");
     });
 
     it("reports a detected but unsafe block as skipped, unless unsafe steps are allowed", async function () {
@@ -281,7 +295,7 @@ describe("audit coverage", function () {
 
     it("reads id and class tags on a code block", async function () {
       const index = emptyIndex();
-      index.stepIds.add("install");
+      index.stepIds.set("install", [{ runShell: "npm i" }]);
       const content = '<p>Run this:</p>\n<pre id="install" class="procedure"><code class="language-bash">npm i</code></pre>\n';
       const result = await audit(content, { file: "page.html", config: { detectSteps: false }, index });
       assert.deepEqual(result.items.map((item) => [item.kind, item.state]), [["procedureStep", "hasStep"], ["codeBlock", "hasStep"]]);
@@ -325,7 +339,7 @@ describe("audit coverage", function () {
 
     it("reads id on a codeblock", async function () {
       const index = emptyIndex();
-      index.stepIds.add("install");
+      index.stepIds.set("install", [{ runShell: "npm i" }]);
       const content = '<topic id="t"><body><codeblock id="install" outputclass="language-bash">npm i</codeblock></body></topic>\n';
       const result = await audit(content, { file: "topic.dita", config: { detectSteps: false }, index });
       assert.equal(result.items.find((item) => item.kind === "codeBlock").state, "hasStep");
@@ -379,7 +393,7 @@ describe("audit coverage", function () {
 
     it("reads id and role tags on a source block", async function () {
       const index = emptyIndex();
-      index.stepIds.add("install");
+      index.stepIds.set("install", [{ runShell: "npm i" }]);
       const content = "Run this:\n\n[source#install.procedure,bash]\n----\nnpm i\n----\n";
       const result = await audit(content, { file: "page.adoc", config: { detectSteps: false }, index });
       assert.deepEqual(result.items.map((item) => [item.kind, item.state]), [["procedureStep", "hasStep"], ["codeBlock", "hasStep"]]);

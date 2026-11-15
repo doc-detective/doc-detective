@@ -79,7 +79,8 @@ never count. Items covered only by `goTo` or `checkLink` are counted separately 
 
 - **Code blocks.** Only runnable languages count. A block has a step when a step lies inside it, when
   an authored step statement directly follows it, or when its `id` equals an authored `stepId`. The
-  runner derives other step IDs at run time, so only authored ones can match. A `procedure` class
+  runner derives other step IDs at run time, so only authored ones can match. A step matched by ID
+  follows the same rules as any other, so an unsafe one leaves the block `skipped`. A `procedure` class
   counts the block as a procedure step.
 - **Links.** A link is testable when it's absolute, or relative with `origin` set. It has a step
   when any `goTo` or `checkLink` targets the same URL, compared through `new URL(url, origin)` without
@@ -92,7 +93,8 @@ never count. Items covered only by `goTo` or `checkLink` are counted separately 
 ### Command contract
 
 `doc-detective audit [inputs...]` takes `-c`, `-i`, `--no-env-file`, and the global flags. It prints
-a text report or, with `--json`, one JSON document on stdout. Warnings go to stderr. It exits 0
+a text report or, with `--json`, one JSON document on stdout. Secrets from `.env` are masked in
+both, as in run output. Warnings go to stderr. Spec files don't count as files to audit. It exits 0
 whenever it prints a report, and 2 for bad usage, a bad config, or no files to audit. There's no
 coverage gate, so it never exits 1.
 
