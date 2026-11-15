@@ -4,7 +4,7 @@ import { addGlobalOptions, addInputOptions, cliArgv } from "../cliOptions.js";
 const GROUP = "Audit options:";
 
 // `doc-detective audit`: report which documented content has a step, without
-// running anything (ADR 01203). The implementation loads when the command runs.
+// running anything (ADR 01206). The implementation loads when the command runs.
 export function buildAuditCommand(): Command {
   return addGlobalOptions(addInputOptions(new Command("audit"), GROUP))
     .argument("[inputs...]", "Files or folders to audit. Combines with --input.")

@@ -1,7 +1,7 @@
 /**
  * `doc-detective audit`: detects tests the way a run does, then reports which
  * procedure steps, code blocks, links, and images have a step. Nothing runs
- * (ADR 01203).
+ * (ADR 01206).
  */
 
 import fs from "node:fs";
