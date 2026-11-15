@@ -228,12 +228,12 @@
       ]
     },
     {
-      "testId": "audit-code-not-runnable",
+      "testId": "audit-code-not-runnable-and-unsafe",
       "description": "Other languages are not runnable; a detected unsafe block is skipped.",
       "steps": [
         {
           "runShell": {
-            "command": "node test/core-artifacts/audit/audit-check.cjs code-not-runnable",
+            "command": "node test/core-artifacts/audit/audit-check.cjs code-not-runnable-and-unsafe",
             "workingDirectory": "../../..",
             "exitCodes": [
               0
