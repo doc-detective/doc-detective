@@ -102,7 +102,7 @@ const cases = {
     check: (r) => states(r, "codeBlock"),
     expect: ["ignored"],
   },
-  "code-not-runnable": {
+  "code-not-runnable-and-unsafe": {
     files: { "doc.md": fence("json", "{}") + "\n" + fence("python", "print(1)") + "\n" },
     check: (r) => r.summary.codeBlocks,
     expect: { byLanguage: { python: { total: 1, hasStep: 0, ignored: 0, skipped: 1, untested: 0 } }, notRunnable: 1 },
