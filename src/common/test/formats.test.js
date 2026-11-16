@@ -339,6 +339,15 @@ describe("formats", function () {
       expect(blocks.map((b) => [b.language, b.content])).to.deep.equal([["", "x"], ["bash", "y"], ["js", "z"]]);
     });
 
+    it("scans long runs of tabs in comments, directives, and options in linear time", function () {
+      const tabs = "\t".repeat(40000);
+      for (const content of [`..${tabs}x`, `.. 0::${tabs}x`, `.. code-block:: bash\n   :a:${tabs}x\n\n   y`, `See \`${tabs}x`]) {
+        const started = performance.now();
+        parseRst(content);
+        expect(performance.now() - started, JSON.stringify(content.slice(0, 20))).to.be.below(500);
+      }
+    });
+
     it("handles CRLF, a body that runs to the end, an empty comment, and an expanded literal marker", function () {
       const crlf = parseRst(".. step {}\r\n\r\n.. code-block:: bash\r\n\r\n   open");
       expect(pick(crlf, "comment")[0]).to.include({ content: "step {}", endIndex: 10 });

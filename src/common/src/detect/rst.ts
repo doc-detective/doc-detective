@@ -20,14 +20,17 @@
 import type { Kind, Node } from "./selectors.js";
 import { splitLines, type Line } from "./asciidoc.js";
 
-const EXPLICIT = /^([ \t]*)\.\.(?:[ \t]+(.*?))?[ \t]*$/;
-const DIRECTIVE = /^(\w[\w:.+-]*?)::(?:[ \t]+(.*))?$/;
-const OPTION = /^[ \t]*:([^:\s][^:]*):(?:[ \t]+(.*?))?[ \t]*$/;
+// Each tail is one `(.*)` behind a lookahead, trimmed in code: a tail that splits whitespace
+// between `[ \t]+`, a lazy group, and `[ \t]*$` backtracks quadratically on long runs of tabs.
+const EXPLICIT = /^([ \t]*)\.\.(?=[ \t]|$)(.*)$/;
+const DIRECTIVE = /^(\w[\w:.+-]*?)::(?=[ \t]|$)(.*)$/;
+const OPTION = /^[ \t]*:([^:\s][^:]*):(?=[ \t]|$)(.*)$/;
 const ADORNMENT = /^([!-/:-@[-`{-~])\1{2,}[ \t]*$/;
 const CODE_DIRECTIVES = new Set(["code-block", "code", "sourcecode"]);
 const INLINE: Array<[Kind | "code", RegExp]> = [
   ["code", /``[^\n]+?``/g],
-  ["link", /`([^`<\n]*?)\s*<([^`>\n]+)>`__?(?!\w)/g],
+  // The text keeps its trailing space, trimmed in code, so no two parts compete for whitespace.
+  ["link", /`([^`<\n]*)<([^`>\n]+)>`__?(?!\w)/g],
   // Interpreted text, with or without a role, and named references. Single backticks only,
   // so it can't start or end inside an inline literal's ``.
   ["code", /(?::[\w:.+-]+:)?(?<!`)`(?!`)[^`\n]+(?<!`)`(?!`)(?::[\w:.+-]+:)?_{0,2}/g],
@@ -82,7 +85,7 @@ export function parseRst(content: string): Node[] {
     const explicit = paragraph === null ? EXPLICIT.exec(text) : null;
     if (explicit) {
       const indent = explicit[1].length;
-      const rest = explicit[2] ?? "";
+      const rest = explicit[2].trim();
       const j = blockEnd(i, indent);
       const directive = DIRECTIVE.exec(rest);
       if (!directive) {
@@ -98,12 +101,12 @@ export function parseRst(content: string): Node[] {
       }
 
       const name = directive[1].toLowerCase();
-      const argument = (directive[2] ?? "").trim();
+      const argument = directive[2].trim();
       let k = i + 1;
       const options: Record<string, string | true> = {};
       for (; k <= j && OPTION.test(lines[k].text); k++) {
         const [, key, value] = OPTION.exec(lines[k].text)!;
-        options[key] = value ?? true;
+        options[key] = value.trim() || true;
       }
       const base = { startIndex: start + indent, before: "" };
 
@@ -165,7 +168,7 @@ function scanInline(content: string, line: Line, paragraph: number, nodes: Node[
     if (kind === "link") {
       // An embedded URI has groups. A bare one is the whole match.
       const url = m[2]?.trim() ?? m[0];
-      nodes.push({ ...base, kind, url, text: m[2] === undefined ? url : m[1] || url });
+      nodes.push({ ...base, kind, url, text: m[2] === undefined ? url : m[1].trim() || url });
     } else if (kind !== "code") {
       nodes.push({ ...base, kind, text: m[1] });
     }
