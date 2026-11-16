@@ -1,3 +1,11 @@
+## [5.3.1](https://github.com/doc-detective/doc-detective/compare/v5.3.0...v5.3.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **container:** pin the image's pre-installed browsers ([ab76c6e](https://github.com/doc-detective/doc-detective/commit/ab76c6e60cf298d4cb7588b29b58204cb9327a3a))
+* **runtime:** install the iOS driver best-effort ([077a332](https://github.com/doc-detective/doc-detective/commit/077a332bc1d5ab574e859ada7758127352a91c9a))
+
 # [5.3.0](https://github.com/doc-detective/doc-detective/compare/v5.2.1...v5.3.0) (2026-11-16)
 
 
