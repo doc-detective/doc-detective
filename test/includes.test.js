@@ -80,6 +80,13 @@ describe("expandIncludes", function () {
       assert.deepEqual(warnings(), []);
     });
 
+    it("reads lines=N.. as running to the last line", function () {
+      write("guide.adoc", "include::s.adoc[lines=3..]\n");
+      write("s.adoc", "L1\nL2\nL3\nL4\n");
+      assert.equal(expand("guide.adoc", asciidoc).content, "L3\nL4\n");
+      assert.deepEqual(warnings(), []);
+    });
+
     it("warns for a missing file, unless the include is optional", function () {
       write("guide.adoc", "include::nope.adoc[]\ninclude::gone.adoc[opts=optional]\n");
       const x = expand("guide.adoc", asciidoc);

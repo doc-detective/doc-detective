@@ -135,7 +135,8 @@ function asciidocDirectives(text: string): Directive[] {
     if (attrs.lines) {
       const ranges = attrs.lines.split(/[;,]/).filter(Boolean).map((r): [number, number | undefined] => {
         const [from, to] = r.split("..");
-        return [Number(from), to === undefined ? Number(from) : Number(to)];
+        // `N..` runs to the last line, like `N..-1`.
+        return [Number(from), to === undefined ? Number(from) : to === "" ? undefined : Number(to)];
       });
       select = (t) => selectLines(t, ranges);
     } else if (attrs.tag || attrs.tags) {

@@ -588,7 +588,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
   const kept = new Set(expansions.keys());
   for (const [file] of expansions) {
     const real = realpath(file);
-    const includer = [...kept].find((other) => other !== file && expansions.get(other)!.included.has(real));
+    const includer = [...kept].find((other) => realpath(other) !== real && expansions.get(other)!.included.has(real));
     if (includer) {
       kept.delete(file);
       log(config, "debug", `Skipped: ${path.resolve(file)} runs inside the files that include it.`);
