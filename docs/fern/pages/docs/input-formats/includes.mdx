@@ -24,7 +24,7 @@ Include resolution is on by default. You don't need to configure anything for th
 | MDX (Starlight, Astro) | `import { Content } from './setup.md'`, then `<Content />` | n/a |
 | reStructuredText | `.. include:: path` | `:start-line:`, `:end-line:`, `:start-after:`, `:end-before:` |
 
-Doc Detective reads each included file with its own format's syntax, so includes can nest. A Markdown snippet can include another snippet, and so on.
+Doc Detective reads each included file with its own format's syntax, so includes can nest. A Markdown snippet can include another snippet, and so on. A file whose extension matches no file type, such as `.txt`, is read with the including file's syntax.
 
 ### AsciiDoc
 

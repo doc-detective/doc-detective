@@ -215,6 +215,8 @@ function rstDirectives(text: string): Directive[] {
       };
       // Line options that leave nothing warn, named as written.
       const lineOptions = ["start-line", "end-line"].filter((k) => k in options);
+      const bad = lineOptions.find((k) => !Number.isInteger(Number(options[k])));
+      if (bad) return { missing: `:${bad}: ${options[bad]}` };
       let s = at(options["start-line"], 0);
       let e = at(options["end-line"], t.length);
       if (lineOptions.length && e <= s) return { missing: lineOptions.map((k) => `:${k}: ${options[k]}`).join(" ") };
@@ -333,6 +335,7 @@ function expandIncludes({
   const fileTypeFor = (file: string, parent: any) =>
     config.fileTypes?.find((ft: any) => ft.extensions?.includes(path.extname(file).slice(1))) ?? parent;
 
+  // `null` keeps the directive as text; `[]` replaces it with nothing.
   const resolve = (d: Directive, file: string, offset: number, chain: string[], ft: any): Piece[] | null => {
     const from = `${file}:${getLineNumber(texts.get(file)!, offset)}`;
     if (d.skip) {
