@@ -390,7 +390,8 @@ function expandIncludes({
   const expand = (pieces: Piece[], ft: any, chain: string[]): Piece[] => {
     const file = pieces[0]?.file ?? rootFile;
     // The whole file, so MDX imports outside a selected range still apply.
-    const fileText = texts.get(file) ?? pieces.map((p) => p.text).join("");
+    // Every file is read into `texts` before its pieces expand.
+    const fileText = texts.get(file)!;
     const out: Piece[] = [];
     for (const piece of pieces) {
       const directives = [
