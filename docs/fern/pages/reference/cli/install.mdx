@@ -116,6 +116,8 @@ doc-detective install browsers chrome chromedriver
 
 Available names: `chrome`, `firefox`, `chromedriver`, `geckodriver`.
 
+Doc Detective keeps cached browsers and drivers current. Once a day at most, `install browsers`, `install all`, and test runs that use a browser check each cached asset against the latest build on its channel. An outdated asset is replaced, and the old build is deleted from the cache. If the check or the download fails, Doc Detective warns, keeps the installed build, and tries again a day later. To keep the installed builds, set `DOC_DETECTIVE_SKIP_BROWSER_UPDATE=1`. With it set, a missing browser still installs, and `--force` still reinstalls.
+
 <Note>
 Some assets have no installable build for the current platform and architecture. Chrome and ChromeDriver on `linux/arm64` are one example, since Google's Chrome for Testing doesn't publish them natively. Doc Detective skips those rather than failing the whole command, and the report shows them as `skipped`. Run `doc-detective install status` to see what actually installed.
 </Note>

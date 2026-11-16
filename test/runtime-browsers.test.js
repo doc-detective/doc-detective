@@ -7,6 +7,7 @@ import {
   geckodriverBinaryInCache,
   foreignExecutableImageReason,
   driverExecOptions,
+  browserRefreshDue,
 } from "../dist/runtime/browsers.js";
 import {
   readInstalledRecord,
@@ -145,34 +146,235 @@ describe("runtime/browsers", function () {
     expect(browsersModule._calls.installs).to.deep.equal([]);
   });
 
-  it("ensureBrowserInstalled warns (no install) when the installed version is older than the channel's current", async function () {
+  function seedChrome(installedVersion, extra = {}) {
     writeInstalledRecord({
       npmPackages: {},
       browsers: {
         chrome: {
-          installedVersion: "100.0.0",
+          installedVersion,
           installedAt: "2026-01-01T00:00:00Z",
-          latestKnownVersion: "100.0.0",
+          latestKnownVersion: installedVersion,
           latestCheckedAt: "2020-01-01T00:00:00Z", // stale → resolves channel
+          ...extra,
         },
       },
     }, {});
-    const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
+  }
+
+  function collectWarnings() {
     const warnings = [];
     const logger = (msg, level) => {
       if (level === "warning") warnings.push(msg);
     };
+    return { warnings, logger };
+  }
+
+  it("ensureBrowserInstalled replaces an outdated build, records it, and prunes the old one", async function () {
+    seedChrome("100.0.0");
+    const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
     const result = await ensureBrowserInstalled("chrome", {
-      deps: { browsersModule, logger },
+      deps: { browsersModule, logger: () => {} },
+    });
+    expect(result.version).to.equal("124.0.0");
+    expect(result.outdated).to.equal(false);
+    expect(browsersModule._calls.installs.map((i) => i.buildId)).to.deep.equal(["124.0.0"]);
+    expect(browsersModule._calls.uninstalls.map((u) => u.buildId)).to.deep.equal(["100.0.0"]);
+    const record = readInstalledRecord({});
+    expect(record.browsers.chrome.installedVersion).to.equal("124.0.0");
+    expect(record.browsers.chrome.latestKnownVersion).to.equal("124.0.0");
+  });
+
+  it("ensureBrowserInstalled re-checks a fresh record that already knows it's outdated", async function () {
+    seedChrome("100.0.0", {
+      latestKnownVersion: "124.0.0",
+      latestCheckedAt: new Date().toISOString(),
+    });
+    const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
+    const result = await ensureBrowserInstalled("chrome", {
+      deps: { browsersModule, logger: () => {} },
+    });
+    expect(result.version).to.equal("124.0.0");
+    expect(browsersModule._calls.uninstalls.map((u) => u.buildId)).to.deep.equal(["100.0.0"]);
+  });
+
+  it("ensureBrowserInstalled keeps an outdated build with a warning when DOC_DETECTIVE_SKIP_BROWSER_UPDATE is on", async function () {
+    process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE = "1";
+    try {
+      seedChrome("100.0.0");
+      const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
+      const { warnings, logger } = collectWarnings();
+      const result = await ensureBrowserInstalled("chrome", {
+        deps: { browsersModule, logger },
+      });
+      expect(result.version).to.equal("100.0.0");
+      expect(result.outdated).to.equal(true);
+      expect(browsersModule._calls.installs).to.deep.equal([]);
+      expect(warnings).to.have.lengthOf(1);
+      expect(warnings[0]).to.include("DOC_DETECTIVE_SKIP_BROWSER_UPDATE");
+      expect(warnings[0]).to.include("doc-detective install browsers chrome --force");
+      const record = readInstalledRecord({});
+      expect(record.browsers.chrome.installedVersion).to.equal("100.0.0");
+      expect(record.browsers.chrome.latestKnownVersion).to.equal("124.0.0");
+    } finally {
+      delete process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE;
+    }
+  });
+
+  it("ensureBrowserInstalled still installs a missing browser when DOC_DETECTIVE_SKIP_BROWSER_UPDATE is on", async function () {
+    process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE = "1";
+    try {
+      const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
+      const result = await ensureBrowserInstalled("chrome", {
+        deps: { browsersModule, logger: () => {} },
+      });
+      expect(result.version).to.equal("124.0.0");
+    } finally {
+      delete process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE;
+    }
+  });
+
+  it("ensureBrowserInstalled keeps the installed build with a warning when the update download fails", async function () {
+    seedChrome("100.0.0");
+    const browsersModule = makeFakeBrowsersModule({
+      latest: "124.0.0",
+      onInstall: async () => {
+        throw new Error("connection reset");
+      },
+    });
+    const { warnings, logger } = collectWarnings();
+    const now = new Date("2026-11-15T12:00:00Z");
+    const result = await ensureBrowserInstalled("chrome", {
+      deps: { browsersModule, logger, now: () => now },
     });
     expect(result.version).to.equal("100.0.0");
     expect(result.outdated).to.equal(true);
-    expect(browsersModule._calls.installs).to.deep.equal([]);
-    expect(warnings.length).to.equal(1);
-    expect(warnings[0]).to.include("doc-detective install browsers chrome --force");
-    // Freshness record updated even though we didn't install.
+    expect(warnings).to.have.lengthOf(1);
+    expect(warnings[0]).to.match(/^Couldn't update `chrome` to 124\.0\.0/);
+    expect(warnings[0]).to.include("connection reset");
+    // The failed build is cleaned up; the installed one is untouched.
+    expect(browsersModule._calls.uninstalls.map((u) => u.buildId)).to.deep.equal(["124.0.0"]);
     const record = readInstalledRecord({});
-    expect(record.browsers.chrome.latestKnownVersion).to.equal("124.0.0");
+    expect(record.browsers.chrome.installedVersion).to.equal("100.0.0");
+    expect(record.browsers.chrome.installedAt).to.equal("2026-01-01T00:00:00Z");
+    // Throttled: the next attempt waits for the TTL.
+    expect(record.browsers.chrome.latestCheckedAt).to.equal(now.toISOString());
+    // A second call inside the TTL doesn't download again.
+    await ensureBrowserInstalled("chrome", {
+      deps: { browsersModule, logger: () => {}, now: () => now },
+    });
+    expect(browsersModule._calls.installs).to.have.lengthOf(1);
+  });
+
+  it("ensureBrowserInstalled waits out the TTL after a failed update of a record already known to be outdated", async function () {
+    const now = new Date("2026-11-15T12:00:00Z");
+    // An earlier run with updates off recorded the newer build.
+    seedChrome("100.0.0", {
+      latestKnownVersion: "124.0.0",
+      latestCheckedAt: new Date(now.getTime() - 60_000).toISOString(),
+    });
+    const browsersModule = makeFakeBrowsersModule({
+      latest: "124.0.0",
+      onInstall: async () => {
+        throw new Error("connection reset");
+      },
+    });
+    const deps = { browsersModule, logger: () => {}, now: () => now };
+    const first = await ensureBrowserInstalled("chrome", { deps });
+    expect(first.version).to.equal("100.0.0");
+    expect(browsersModule._calls.installs).to.have.lengthOf(1);
+    const second = await ensureBrowserInstalled("chrome", { deps });
+    expect(second.version).to.equal("100.0.0");
+    expect(second.outdated).to.equal(true);
+    expect(browsersModule._calls.installs).to.have.lengthOf(1);
+  });
+
+  it("ensureBrowserInstalled waits out the TTL after a failed check of a record already known to be outdated", async function () {
+    const now = new Date("2026-11-15T12:00:00Z");
+    seedChrome("100.0.0", { latestKnownVersion: "124.0.0" }); // stale check
+    let resolves = 0;
+    const browsersModule = makeFakeBrowsersModule();
+    browsersModule.resolveBuildId = async () => {
+      resolves++;
+      throw new Error("network down");
+    };
+    const deps = { browsersModule, logger: () => {}, now: () => now };
+    await ensureBrowserInstalled("chrome", { deps });
+    const second = await ensureBrowserInstalled("chrome", { deps });
+    expect(resolves).to.equal(1);
+    expect(second.version).to.equal("100.0.0");
+    expect(browsersModule._calls.installs).to.deep.equal([]);
+  });
+
+  it("ensureBrowserInstalled doesn't report outdated after a failed check that never learned a newer build", async function () {
+    const now = new Date("2026-11-15T12:00:00Z");
+    seedChrome("100.0.0", { latestKnownVersion: undefined }); // stale check, no known version
+    let resolves = 0;
+    const browsersModule = makeFakeBrowsersModule();
+    browsersModule.resolveBuildId = async () => {
+      resolves++;
+      throw new Error("network down");
+    };
+    const deps = { browsersModule, logger: () => {}, now: () => now };
+    await ensureBrowserInstalled("chrome", { deps });
+    const second = await ensureBrowserInstalled("chrome", { deps });
+    expect(second.outdated).to.equal(false);
+    expect(resolves).to.equal(1);
+  });
+
+  it("ensureBrowserInstalled keeps another asset's entry written while it was checking", async function () {
+    seedChrome("124.0.0");
+    const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
+    // Another asset's install lands between this call's read and its write.
+    browsersModule.resolveBuildId = async () => {
+      const current = readInstalledRecord({});
+      current.browsers.firefox = {
+        installedVersion: "140.0",
+        installedAt: "2026-11-15T00:00:00Z",
+      };
+      writeInstalledRecord(current, {});
+      return "124.0.0";
+    };
+    await ensureBrowserInstalled("chrome", {
+      deps: { browsersModule, logger: () => {} },
+    });
+    expect(readInstalledRecord({}).browsers.firefox?.installedVersion).to.equal("140.0");
+  });
+
+  it("ensureBrowserInstalled leaves installedVersion and installedAt alone when the build is current", async function () {
+    seedChrome("124.0.0");
+    const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
+    const now = new Date("2026-11-15T12:00:00Z");
+    await ensureBrowserInstalled("chrome", {
+      deps: { browsersModule, logger: () => {}, now: () => now },
+    });
+    const entry = readInstalledRecord({}).browsers.chrome;
+    expect(entry.installedVersion).to.equal("124.0.0");
+    expect(entry.installedAt).to.equal("2026-01-01T00:00:00Z");
+    expect(entry.latestCheckedAt).to.equal(now.toISOString());
+    expect(browsersModule._calls.installs).to.deep.equal([]);
+  });
+
+  describe("browserRefreshDue", function () {
+    const now = new Date("2026-11-15T12:00:00Z");
+    afterEach(function () {
+      delete process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE;
+    });
+    it("is false for an asset the cache doesn't record", function () {
+      expect(browserRefreshDue("chrome", {}, now)).to.equal(false);
+    });
+    it("is true once the last check is older than a day", function () {
+      seedChrome("124.0.0", { latestCheckedAt: "2026-11-14T11:00:00Z" });
+      expect(browserRefreshDue("chrome", {}, now)).to.equal(true);
+    });
+    it("is false within a day of the last check", function () {
+      seedChrome("124.0.0", { latestCheckedAt: "2026-11-15T01:00:00Z" });
+      expect(browserRefreshDue("chrome", {}, now)).to.equal(false);
+    });
+    it("is false when DOC_DETECTIVE_SKIP_BROWSER_UPDATE is on", function () {
+      process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE = "1";
+      seedChrome("124.0.0");
+      expect(browserRefreshDue("chrome", {}, now)).to.equal(false);
+    });
   });
 
   it("ensureBrowserInstalled with force replaces the old buildId and prunes it", async function () {
@@ -257,11 +459,19 @@ describe("runtime/browsers", function () {
     browsersModule.resolveBuildId = async () => {
       throw new Error("network down");
     };
+    const { warnings, logger } = collectWarnings();
+    const now = new Date("2026-11-15T12:00:00Z");
     const result = await ensureBrowserInstalled("chrome", {
-      deps: { browsersModule, logger: () => {} },
+      deps: { browsersModule, logger, now: () => now },
     });
     expect(result.version).to.equal("100.0.0");
     expect(result.outdated).to.equal(false);
+    expect(warnings).to.have.lengthOf(1);
+    expect(warnings[0]).to.match(/^Couldn't check for a newer `chrome` build/);
+    expect(warnings[0]).to.include("network down");
+    const entry = readInstalledRecord({}).browsers.chrome;
+    expect(entry.installedVersion).to.equal("100.0.0");
+    expect(entry.latestCheckedAt).to.equal(now.toISOString());
   });
 
   it("getInstalledBrowsers reads from the cache record", function () {
@@ -815,6 +1025,140 @@ describe("runtime/browsers", function () {
       expect(res.error).to.match(/spawn failed/i);
       expect(res.error).to.not.match(/code null/i);
     });
+  });
+
+  function geckoBin(dir, version) {
+    return path.join(dir, `geckodriver-${version}${process.platform === "win32" ? ".exe" : ""}`);
+  }
+
+  function seedGecko(installedVersion) {
+    writeInstalledRecord({
+      npmPackages: {},
+      browsers: {
+        geckodriver: {
+          installedVersion,
+          installedAt: "2026-01-01T00:00:00Z",
+          latestKnownVersion: installedVersion,
+          latestCheckedAt: "2020-01-01T00:00:00Z",
+        },
+      },
+    }, {});
+  }
+
+  it("ensureBrowserInstalled('geckodriver') replaces an outdated binary and deletes the old one", async function () {
+    const browsersDir = path.join(tmpRoot, "browsers");
+    fs.mkdirSync(browsersDir, { recursive: true });
+    const oldBin = geckoBin(browsersDir, "0.36.0");
+    const newBin = geckoBin(browsersDir, "0.37.1");
+    fs.writeFileSync(oldBin, "old");
+    seedGecko("0.36.0");
+    const geckodriverModule = {
+      download: async () => {
+        fs.writeFileSync(newBin, "new");
+        return newBin;
+      },
+    };
+    const verifyExec = async () => ({ code: 0, stdout: "geckodriver 0.37.1\n", stderr: "" });
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(result.version).to.equal("0.37.1");
+    expect(fs.existsSync(newBin)).to.equal(true);
+    expect(fs.existsSync(oldBin)).to.equal(false);
+    expect(readInstalledRecord({}).browsers.geckodriver.installedVersion).to.equal("0.37.1");
+  });
+
+  it("ensureBrowserInstalled('geckodriver') keeps installedAt when the check finds the same version", async function () {
+    const browsersDir = path.join(tmpRoot, "browsers");
+    fs.mkdirSync(browsersDir, { recursive: true });
+    const bin = geckoBin(browsersDir, "0.37.1");
+    fs.writeFileSync(bin, "same");
+    seedGecko("0.37.1");
+    const geckodriverModule = { download: async () => bin };
+    const verifyExec = async () => ({ code: 0, stdout: "geckodriver 0.37.1\n", stderr: "" });
+    await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(readInstalledRecord({}).browsers.geckodriver.installedAt).to.equal("2026-01-01T00:00:00Z");
+    expect(fs.existsSync(bin)).to.equal(true);
+  });
+
+  it("ensureBrowserInstalled('geckodriver') keeps the installed binary with a warning when the update fails", async function () {
+    const browsersDir = path.join(tmpRoot, "browsers");
+    fs.mkdirSync(browsersDir, { recursive: true });
+    const bin = geckoBin(browsersDir, "0.36.0");
+    fs.writeFileSync(bin, "old");
+    seedGecko("0.36.0");
+    const geckodriverModule = {
+      download: async () => {
+        throw new Error("getaddrinfo ENOTFOUND");
+      },
+    };
+    const warnings = [];
+    const logger = (msg, level) => {
+      if (level === "warning") warnings.push(msg);
+    };
+    const now = new Date("2026-11-15T12:00:00Z");
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger, now: () => now },
+    });
+    expect(result.version).to.equal("0.36.0");
+    expect(result.path).to.equal(bin);
+    expect(warnings).to.have.lengthOf(1);
+    expect(warnings[0]).to.match(/^Couldn't update `geckodriver`/);
+    expect(warnings[0]).to.include("ENOTFOUND");
+    const entry = readInstalledRecord({}).browsers.geckodriver;
+    expect(entry.installedVersion).to.equal("0.36.0");
+    expect(entry.latestCheckedAt).to.equal(now.toISOString());
+  });
+
+  it("ensureBrowserInstalled('geckodriver') returns the kept binary and removes a newer one that failed validation", async function () {
+    const browsersDir = path.join(tmpRoot, "browsers");
+    fs.mkdirSync(browsersDir, { recursive: true });
+    const oldBin = geckoBin(browsersDir, "0.36.0");
+    const badBin = geckoBin(browsersDir, "0.37.1");
+    fs.writeFileSync(oldBin, "old");
+    seedGecko("0.36.0");
+    const geckodriverModule = {
+      download: async () => {
+        fs.writeFileSync(badBin, "broken");
+        return badBin;
+      },
+    };
+    // Both validation attempts fail.
+    const verifyExec = async () => ({ code: 1, stdout: "", stderr: "boom" });
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(result.version).to.equal("0.36.0");
+    expect(result.path).to.equal(oldBin);
+    expect(fs.existsSync(oldBin)).to.equal(true);
+    expect(fs.existsSync(badBin)).to.equal(false);
+  });
+
+  it("ensureBrowserInstalled('geckodriver') doesn't download when DOC_DETECTIVE_SKIP_BROWSER_UPDATE is on", async function () {
+    process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE = "1";
+    try {
+      const browsersDir = path.join(tmpRoot, "browsers");
+      fs.mkdirSync(browsersDir, { recursive: true });
+      const bin = geckoBin(browsersDir, "0.36.0");
+      fs.writeFileSync(bin, "old");
+      seedGecko("0.36.0");
+      let downloads = 0;
+      const geckodriverModule = {
+        download: async () => {
+          downloads++;
+        },
+      };
+      const result = await ensureBrowserInstalled("geckodriver", {
+        deps: { geckodriverModule, logger: () => {} },
+      });
+      expect(downloads).to.equal(0);
+      expect(result.version).to.equal("0.36.0");
+      expect(result.path).to.equal(bin);
+    } finally {
+      delete process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE;
+    }
   });
 
   it("ensureBrowserInstalled('geckodriver') records the binary-reported version, never 'unknown'", async function () {
