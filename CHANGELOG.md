@@ -1,3 +1,12 @@
+## [5.2.1](https://github.com/doc-detective/doc-detective/compare/v5.2.0...v5.2.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **deps:** move to Appium 4 ([a23c386](https://github.com/doc-detective/doc-detective/commit/a23c3860c345ecefb82520b4fb851d25c8b65997))
+* **deps:** update dependencies and narrow the Node range ([dd0017b](https://github.com/doc-detective/doc-detective/commit/dd0017bf6812a350e35e1c4e1da5d7a6c2ab5923))
+* state both supported Node ranges in the docs and the upgrade hint ([4e446e0](https://github.com/doc-detective/doc-detective/commit/4e446e03db6d41ce73ba67e93c5607349329d63a))
+
 # [5.2.0](https://github.com/doc-detective/doc-detective/compare/v5.1.0...v5.2.0) (2026-11-15)
 
 
