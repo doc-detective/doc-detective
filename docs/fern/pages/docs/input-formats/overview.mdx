@@ -13,6 +13,7 @@ Doc Detective includes built-in support for:
 - [**DITA**](dita): XML-based format with semantic markup for technical documentation
 - [**AsciiDoc**](asciidoc): Lightweight markup language popular in technical writing
 - [**HTML**](html): Standard web format with HTML comment syntax
+- [**reStructuredText**](rst): Markup language of Sphinx and docutils projects
 
 Every format detects the same steps, written in its own syntax.
 
@@ -52,26 +53,19 @@ Doc Detective includes default configurations for common file types:
 
 ```json
 {
-  "fileTypes": [
-    {
-      "name": "markdown",
-      "extensions": ["md", "markdown", "mdx"]
-    },
-    {
-      "name": "html",
-      "extensions": ["html", "htm"]
-    },
-    {
-      "name": "asciidoc",
-      "extensions": ["adoc", "asciidoc", "asc"]
-    },
-    {
-      "name": "dita",
-      "extensions": ["dita", "ditamap", "xml"]
-    }
-  ]
+  "fileTypes": ["markdown", "asciidoc", "html", "dita", "rst"]
 }
 ```
+
+Each name loads that format's built-in rules for these extensions:
+
+| Name | Extensions |
+|---|---|
+| `markdown` | `md`, `markdown`, `mdx` |
+| `asciidoc` | `adoc`, `asciidoc`, `asc` |
+| `html` | `html`, `htm` |
+| `dita` | `dita`, `ditamap`, `xml` |
+| `rst` | `rst` |
 
 ## Choosing an input format
 
@@ -81,6 +75,7 @@ The input format you choose depends on your documentation toolchain and team pre
 - Use **DITA** for enterprise documentation with semantic markup requirements
 - Use **AsciiDoc** for technical documentation with advanced formatting needs
 - Use **HTML** for web-based documentation or when working directly with HTML files
+- Use **reStructuredText** for Sphinx and docutils projects
 
 ## Custom input formats
 
@@ -94,4 +89,5 @@ Learn more about each specific input format:
 - [DITA input format](dita)
 - [AsciiDoc input format](asciidoc)
 - [HTML input format](html)
+- [reStructuredText input format](rst)
 - [Custom input formats](custom)
