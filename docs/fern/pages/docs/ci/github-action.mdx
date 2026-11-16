@@ -385,7 +385,7 @@ jobs:
 
 Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every step, so the pre-install step and the action share the same cached directory.
 
-Doc Detective replaces outdated cached browsers about once a day, so use a run-scoped key, as above. A static key keeps restoring the first copy it saved, and each run downloads the newer browser again.
+Doc Detective 5.3.0 and later replace outdated cached browsers about once a day, so use a run-scoped key, as above. The unpinned `npm install -g doc-detective` step installs one of those releases. A static key keeps restoring the first copy it saved, and each run downloads the newer browser again.
 
 ## Verify it works
 
