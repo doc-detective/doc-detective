@@ -1,0 +1,11 @@
+import A from './_a.md';
+
+# Includes: nested, across formats
+
+{/* test {"testId": "includes-nested", "description": "An MDX import includes Markdown, which includes Markdown. Steps run in reading order (ADR 01209)."} */}
+
+<A />
+
+{/* step {"runShell": "node -e \"process.exit(process.env.INC_NEST_BA === 'ba' ? 0 : 1)\""} */}
+
+{/* test end */}

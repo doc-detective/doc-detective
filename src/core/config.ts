@@ -198,6 +198,7 @@ async function setConfig({ config, detectApps = true }: any) {
       if (typeof fileType.inlineStatements.step === "string")
         fileType.inlineStatements.step = [fileType.inlineStatements.step];
     }
+    if (typeof fileType.includeStatements === "string") fileType.includeStatements = [fileType.includeStatements];
     if (fileType.markup) {
       fileType.markup = fileType.markup.map((markup: any) => {
         if (typeof markup?.regex === "string") markup.regex = [markup.regex];

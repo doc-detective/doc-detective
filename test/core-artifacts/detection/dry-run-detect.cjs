@@ -16,7 +16,89 @@ const step = (s) => JSON.stringify(shell(s));
 const fence = (lang, body) => "```" + lang + "\n" + body + "\n```";
 const md = (extra) => ({ name: "docs", extensions: ["md"], inlineStatements: { in: ["comment"] }, ...extra });
 
+// Include cases (ADR 01209) run on the case's whole folder, so a partial that
+// a page includes must not come back as a spec of its own.
+const partial = `<!-- step ${step("partial")} -->\n`;
+const page = (include) => `<!-- step ${step("before")} -->\n${include}\n<!-- step ${step("after")} -->\n`;
+const specNames = (json) => json.specs.map((s) => path.basename(s.contentPath)).sort();
+const expectSpecs = (...names) => (json) =>
+  JSON.stringify(specNames(json)) === JSON.stringify(names) ? undefined : `specs ${JSON.stringify(specNames(json))}, expected ${JSON.stringify(names)}`;
+
+const includeCases = {
+  "includes-off": {
+    file: "page.md",
+    input: ".",
+    files: { "_partial.md": partial },
+    config: { resolveIncludes: false },
+    content: page("{{#include _partial.md}}"),
+    check: expectSpecs("_partial.md", "page.md"),
+  },
+  "includes-custom": {
+    file: "page.txt",
+    files: { "_partial.txt": `.. step ${step("partial")}\n` },
+    config: {
+      fileTypes: [{ name: "plain", extensions: ["txt"], inlineStatements: { step: ["\\.\\. step (\\{.*\\})"] }, includeStatements: ["^\\.\\. include:: (\\S+)"] }],
+    },
+    content: `.. step ${step("before")}\n.. include:: _partial.txt\n.. step ${step("after")}\n`,
+    expect: [[{ runShell: "echo before" }, { runShell: "echo partial" }, { runShell: "echo after" }]],
+  },
+  "includes-extends": {
+    file: "page.md",
+    files: { "_a.md": `<!-- step ${step("liquid")} -->\n`, "_b.md": `<!-- step ${step("mdbook")} -->\n` },
+    config: { fileTypes: [{ extends: "markdown", includeStatements: ['\\{% include "([^"]+)" %\\}'] }] },
+    content: '{% include "_a.md" %}\n{{#include _b.md}}\n',
+    expect: [[shell("liquid"), shell("mdbook")]],
+  },
+  "includes-location": {
+    file: "page.md",
+    input: ".",
+    files: { "_partial.md": partial },
+    content: page("{{#include _partial.md}}"),
+    check: (json, dir) => {
+      const steps = json.specs[0].tests[0].contexts[0].steps;
+      const want = path.join(dir, "_partial.md");
+      if (specNames(json).join() !== "page.md") return `specs ${specNames(json)}`;
+      if (steps[1].location?.file !== want || steps[1].location.line !== 1) return `included step location ${JSON.stringify(steps[1].location)}`;
+      if (steps[2].location?.file !== undefined || steps[2].location.line !== 3) return `page step location ${JSON.stringify(steps[2].location)}`;
+    },
+  },
+  "includes-mintlify": {
+    file: "guides/page.mdx",
+    files: { "docs.json": "{}", "snippets/s.mdx": `{/* step ${step("snippet")} */}\n` },
+    content: `import Snippet from '/snippets/s.mdx';\n\n{/* step ${step("before")} */}\n\n<Snippet />\n`,
+    expect: [[shell("before"), shell("snippet")]],
+  },
+  "includes-cycle": {
+    file: "a.md",
+    input: ".",
+    files: { "b.md": `{{#include a.md}}\n<!-- step ${step("b")} -->\n` },
+    content: `{{#include b.md}}\n<!-- step ${step("a")} -->\n`,
+    run: true,
+    stderr: "because it includes itself:",
+    expect: ["echo a", "echo b"],
+    check: expectSpecs("b.md"),
+  },
+  "includes-outside": {
+    file: "page.md",
+    // The case folder is the working directory, so its parent is outside it.
+    files: { "../outside-partial.md": partial },
+    content: page("{{#include ../outside-partial.md}}"),
+    run: true,
+    stderr: "is outside the working directory",
+    expect: ["echo before", "echo after"],
+  },
+  "includes-depth": {
+    file: "d0.md",
+    files: Object.fromEntries(Array.from({ length: 66 }, (_, i) => [`d${i + 1}.md`, i === 65 ? "" : `{{#include d${i + 2}.md}}\n`])),
+    content: `<!-- step ${step("top")} -->\n{{#include d1.md}}\n`,
+    run: true,
+    stderr: "because includes nest more than 64 levels deep.",
+    expect: ["echo top"],
+  },
+};
+
 const cases = {
+  ...includeCases,
   // Every kind Markdown produces, with both shorthands.
   "markdown-kinds": {
     file: "doc.md",
@@ -497,15 +579,19 @@ const dir = path.join(root, ".tmp", "fixture-detection", name);
 fs.rmSync(dir, { recursive: true, force: true });
 fs.mkdirSync(dir, { recursive: true });
 const doc = path.join(dir, c.file);
-const cfg = path.join(dir, "config.json");
-fs.writeFileSync(doc, c.content);
+// Outside the case folder, so a case that runs the whole folder skips it.
+const cfg = `${dir}.config.json`;
+for (const [rel, text] of Object.entries({ ...c.files, [c.file]: c.content })) {
+  fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+  fs.writeFileSync(path.join(dir, rel), text);
+}
 fs.writeFileSync(cfg, JSON.stringify({ telemetry: { send: false }, detectSteps: true, ...c.config }, null, 2));
 
 const results = path.join(dir, "results.json");
 const mode = c.run ? ["--output", results] : ["--dry-run", "--json"];
 const run = spawnSync(
   process.execPath,
-  [path.join(root, "bin", "doc-detective.js"), "run", doc, "--config", cfg, ...mode, "--no-env-file"],
+  [path.join(root, "bin", "doc-detective.js"), "run", c.input ? path.join(dir, c.input) : doc, "--config", cfg, ...mode, "--no-env-file"],
   { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 120_000 }
 );
 const fail = (message) => {
@@ -531,5 +617,9 @@ if (c.run) {
   if (JSON.stringify(actual) !== JSON.stringify(c.expect)) {
     fail(`detected steps differ.\nexpected: ${JSON.stringify(c.expect)}\nactual:   ${JSON.stringify(actual)}`);
   }
+}
+if (c.check) {
+  const problem = c.check(JSON.parse(c.run ? fs.readFileSync(results, "utf8") : run.stdout), dir);
+  if (problem) fail(problem);
 }
 console.log(`Case ${name}: passed.`);

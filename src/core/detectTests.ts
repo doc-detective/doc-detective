@@ -15,6 +15,7 @@ import { log, fetchFile, spawnCommand, runConcurrent, summarizeSchemaErrors, sho
 import { diag } from "../cliOutput.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
+import { expandIncludes, remapLocations } from "./includes.js";
 
 // common's parseContent pulls in the yaml parser, so it loads on the first file
 // that needs it, once per process, instead of at module load.
@@ -561,7 +562,40 @@ async function qualifyFiles({ config }: { config: any }) {
  * @param {Array<string>} options.files - Array of file paths to parse
  * @returns {Promise<Array>} Array of test specifications
  */
+// Expands the includes in every local documentation source (ADR 01209). A
+// remote file has no folder of its own to resolve includes against.
+function expandAll(config: any, files: string[]) {
+  const expansions = new Map<string, ReturnType<typeof expandIncludes>>();
+  if (config.resolveIncludes === false) return expansions;
+  for (const file of files) {
+    const fileType = config.fileTypes?.find((ft: any) => ft.extensions?.includes(path.extname(file).slice(1)));
+    if (!fileType || fileType.runShell || config._remoteFiles?.has(path.resolve(file))) continue;
+    let content: string;
+    try {
+      content = fs.readFileSync(file, "utf8");
+    } catch {
+      continue; // parseOneFile reports the unreadable file.
+    }
+    expansions.set(file, expandIncludes({ content, filePath: file, fileType, config }));
+  }
+  return expansions;
+}
+
 async function parseTests({ config, files }: { config: any; files: string[] }) {
+  const expansions = expandAll(config, files);
+  // A file another input includes runs inside that input, not on its own.
+  // Inputs are checked in order, so one file of an include cycle still runs.
+  const kept = new Set(expansions.keys());
+  for (const [file] of expansions) {
+    const real = fs.realpathSync(file);
+    const includer = [...kept].find((other) => other !== file && expansions.get(other)!.included.has(real));
+    if (includer) {
+      kept.delete(file);
+      log(config, "debug", `Skipped: ${path.resolve(file)} runs inside the files that include it.`);
+    }
+  }
+  files = files.filter((file) => !expansions.has(file) || kept.has(file));
+
   // Per-file parsing extracted so it can run concurrently. Returns the parsed
   // spec, or null when the file yields no valid spec (the old `continue` cases).
   const parseOneFile = async (file: string): Promise<any | null> => {
@@ -946,9 +980,10 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       // Parse content using common's detectTests. testIdBase keys generated
       // testIds to the spec's stable path-derived ID instead of the absolute
       // file path.
+      const expansion = expansions.get(file);
       const tests = await (await loadParseContent())({
         config: config,
-        content: content,
+        content: expansion?.content ?? content,
         fileType: fileType,
         filePath: file,
         testIdBase: id,
@@ -961,6 +996,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           noteInvalidSpec(config, file, summary ? `${shortJson(details?.object)}: ${summary}` : reason);
         },
       });
+      if (expansion?.included.size) remapLocations(tests, expansion, file);
       spec.tests.push(...tests);
 
       // Remove tests with no steps

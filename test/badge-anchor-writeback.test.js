@@ -56,6 +56,17 @@ describe("Badge-anchored test verification — write-back", function () {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
+  it("writes the badge into the included file that holds the test statement, not the page", function () {
+    const page = write("page.md", "# Page\n\n{{#include _part.md}}\n");
+    const part = write("_part.md", '<!-- test {"badge": true} -->\n<!-- step {"wait": 10} -->\n<!-- test end -->\n');
+    const results = report(page, { line: 3 });
+    results.specs[0].tests[0].location = { line: 1, startIndex: 0, endIndex: 29, file: part };
+    applyBadgeAnchoredTests({ config: silent, results });
+    expect(read(page)).to.equal("# Page\n\n{{#include _part.md}}\n");
+    expect(read(part).split("\n")[0]).to.match(/img\.shields\.io\/badge/);
+    expect(read(part).split("\n")[1]).to.equal('<!-- test {"badge": true} -->');
+  });
+
   describe("PASS inserts a badge above the test statement, per format", function () {
     it("markdown", function () {
       const f = write(

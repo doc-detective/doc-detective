@@ -1,0 +1,14 @@
+= Includes: AsciiDoc
+:partials: _partials
+
+// (test {"testId": "includes-asciidoc", "description": "AsciiDoc include with tag, lines, an attribute in the path, and an optional missing file (ADR 01209)."})
+
+include::{partials}/tagged.adoc[tag=install]
+
+include::_partials/lines.adoc[lines=2]
+
+include::_partials/absent.adoc[opts=optional]
+
+// (step {"runShell": "node -e \"process.exit(process.env.INC_AD_TAG === 'tag' && process.env.INC_AD_LINES === 'lines' ? 0 : 1)\""})
+
+// (test end)

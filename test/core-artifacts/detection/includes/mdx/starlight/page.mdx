@@ -1,0 +1,17 @@
+import { Content } from './_one.md';
+import { Content as Two } from './_two.md';
+import * as Three from './_three.md';
+
+# Includes: Starlight and Astro imports
+
+{/* test {"testId": "includes-starlight", "description": "Astro Content imports: named, renamed, and namespace (ADR 01209)."} */}
+
+<Content />
+
+<Two />
+
+<Three.Content />
+
+{/* step {"runShell": "node -e \"process.exit(process.env.INC_STAR_1 === '1' && process.env.INC_STAR_2 === '2' && process.env.INC_STAR_3 === '3' ? 0 : 1)\""} */}
+
+{/* test end */}

@@ -2908,6 +2908,7 @@ function applyVerifiedMarkers({
     if (spec?.contentPath) files.add(spec.contentPath);
     for (const test of spec?.tests || []) {
       if (test?.contentPath) files.add(test.contentPath);
+      if (test?.location?.file) files.add(test.location.file);
     }
   }
 
@@ -3011,7 +3012,9 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
         }
         continue;
       }
-      const byLine = byFile.get(test.contentPath) || new Map<number, LineWork>();
+      // A test from an included file has its statement in that file (ADR 01209).
+      const file = test.location.file ?? test.contentPath;
+      const byLine = byFile.get(file) || new Map<number, LineWork>();
       const work: LineWork = byLine.get(test.location.line) || { checks: new Map() };
       if (test.badge === true) work.badge = merge(work.badge, test.result);
       if (init && typeof test.testId === "string") {
@@ -3020,7 +3023,7 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
         work.checks.set(test.testId, { result, start, end });
       }
       byLine.set(test.location.line, work);
-      byFile.set(test.contentPath, byLine);
+      byFile.set(file, byLine);
     }
   }
 
