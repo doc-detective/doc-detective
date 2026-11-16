@@ -1,6 +1,6 @@
 {
   "specId": "includes",
-  "description": "Include resolution through the real CLI (ADR 01209). The pages under includes/ run directly. Each case here needs its own config or a guard path, so it runs one case of dry-run-detect.cjs, which writes its files under .tmp/fixture-detection/ and checks the detected or run steps, the specs, and stderr. No browser or network, so every case runs on Windows, macOS, and Linux.",
+  "description": "Include resolution through the real CLI (ADR 01210). The pages under includes/ run directly. Each case here needs its own config or a guard path, so it runs one case of dry-run-detect.cjs, which writes its files under .tmp/fixture-detection/ and checks the detected or run steps, the specs, and stderr. No browser or network, so every case runs on Windows, macOS, and Linux.",
   "tests": [
     {
       "testId": "includes-off",

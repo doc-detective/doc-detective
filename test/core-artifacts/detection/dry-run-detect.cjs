@@ -16,7 +16,7 @@ const step = (s) => JSON.stringify(shell(s));
 const fence = (lang, body) => "```" + lang + "\n" + body + "\n```";
 const md = (extra) => ({ name: "docs", extensions: ["md"], inlineStatements: { in: ["comment"] }, ...extra });
 
-// Include cases (ADR 01209) run on the case's whole folder, so a partial that
+// Include cases (ADR 01210) run on the case's whole folder, so a partial that
 // a page includes must not come back as a spec of its own.
 const partial = `<!-- step ${step("partial")} -->\n`;
 const page = (include) => `<!-- step ${step("before")} -->\n${include}\n<!-- step ${step("after")} -->\n`;
