@@ -42,16 +42,16 @@ Chosen option: **A**.
 
 - `ensureBrowserInstalled` is the single place every path goes through (`install all`,
   `install browsers`, postinstall, and the run's lazy install). When it learns the channel's
-  latest build differs from the installed one, it installs the new build, validates the driver as
-  before, records it, and removes the previous build's directory (Chrome family through
-  `@puppeteer/browsers` `uninstall`; Geckodriver by deleting the other `geckodriver-<version>`
-  binaries at the cache root).
+  latest build differs from the installed one, it installs and records the new build. It validates
+  the driver as before. It then removes the previous build: Chrome-family builds through
+  `@puppeteer/browsers` `uninstall`, and Geckodriver by deleting the other
+  `geckodriver-<version>` binaries at the cache root.
 - The channel check is throttled by the existing 24-hour `latestCheckedAt` TTL. Within the TTL no
   network call is made. A failed check or failed download logs a warning, records
   `latestCheckedAt` so the next attempt waits a day, and keeps using the installed build. Only a
   missing browser with no fallback still raises.
-- A test run's preflight now also calls `ensureBrowserInstalled` for each needed browser that is
-  already available from the cache, but only when its check is due (`browserRefreshDue`). When a
+- A test run's preflight now also checks each needed browser that's already in the cache. It
+  calls `ensureBrowserInstalled` only when the check is due (`browserRefreshDue`). When a
   build changed, the available-apps cache is cleared so the run re-probes the new paths.
 - `installedVersion` and `installedAt` change only when a new build lands. `latestKnownVersion`
   and `latestCheckedAt` may change on any check.
@@ -65,9 +65,9 @@ Chosen option: **A**.
 - Good: caches stay current with no key rotation; the action's cache saves only on real changes.
 - Good: the cache holds one build per browser.
 - Bad: the first run after a channel release downloads the new build (~150 MB for Chrome).
-- Bad: an image with a baked, read-only or pinned cache (such as the Docker image) should set
-  `DOC_DETECTIVE_SKIP_BROWSER_UPDATE=1`, or each container started more than a day after the image
-  was built downloads new builds.
+- Bad: an image with a baked, read-only, or pinned cache, such as the Docker image, should set
+  `DOC_DETECTIVE_SKIP_BROWSER_UPDATE=1`. Otherwise each container started a day or more after the
+  build downloads new browsers.
 - Neutral: Chrome and ChromeDriver update independently; both follow the `stable` channel, so they
   normally land together. If one download fails, the other may be a build ahead until the next
   check.
