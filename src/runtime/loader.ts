@@ -458,6 +458,14 @@ function recordRuntimeDependencies(
       if (range) deps[name] = range;
     }
     pkg.dependencies = deps;
+    // ADR 01208: appium-novawindows-driver 1.x declares an Appium 3 peer and
+    // runs on Appium 4. Without this, npm refuses the pair with ERESOLVE. The
+    // override rewrites that one peer edge, so every other package keeps npm's
+    // normal peer handling (geckodriver needs its `@wdio/logger` peer
+    // installed). Drop it once the driver peers on Appium 4.
+    pkg.overrides = {
+      "appium-novawindows-driver": { appium: getDeclaredVersion("appium") },
+    };
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2), "utf8");
   } catch {
     // Best-effort: a failure to record must never break the install itself.
