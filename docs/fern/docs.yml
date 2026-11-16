@@ -253,9 +253,6 @@ navigation:
                   - page: AsciiDoc
                     path: pages/docs/input-formats/asciidoc.mdx
                     slug: asciidoc
-                  - page: reStructuredText
-                    path: pages/docs/input-formats/rst.mdx
-                    slug: rst
                   - page: HTML
                     path: pages/docs/input-formats/html.mdx
                     slug: html

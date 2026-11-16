@@ -22,7 +22,7 @@ Combine detected tests with [inline tests](/docs/test-docs/inline) for comprehen
 
 ## Default markup patterns
 
-Every built-in format detects the same steps from links, bold text, images, code blocks, and quoted text after `Type`, `Enter`, or `Press`. [What gets detected](/docs/test-docs/input-formats/overview#what-gets-detected) lists them. Doc Detective parses each file first, so text inside code blocks and inline code never becomes a step.
+Every built-in format (Markdown, HTML, AsciiDoc, and DITA) detects the same steps from links, bold text, images, code blocks, and quoted text after `Type`, `Enter`, or `Press`. [What gets detected](/docs/test-docs/input-formats/overview#what-gets-detected) lists them. Doc Detective parses each file first, so text inside code blocks and inline code never becomes a step.
 
 In Markdown, for example:
 
@@ -37,7 +37,7 @@ In Markdown, for example:
 
 DITA also uses its semantic elements. `<cmd>Click the <uicontrol>Submit</uicontrol> button</cmd>` generates `click` and `find` steps, and `<cmd>Type <userinput>text</userinput> into the <uicontrol>Field</uicontrol></cmd>` generates a `type` step into that field.
 
-For each format's syntax, see [Markdown](/docs/test-docs/input-formats/markdown), [HTML](/docs/test-docs/input-formats/html), [AsciiDoc](/docs/test-docs/input-formats/asciidoc), [DITA](/docs/test-docs/input-formats/dita), and [reStructuredText](/docs/test-docs/input-formats/rst).
+For each format's syntax, see [Markdown](/docs/test-docs/input-formats/markdown), [HTML](/docs/test-docs/input-formats/html), [AsciiDoc](/docs/test-docs/input-formats/asciidoc), and [DITA](/docs/test-docs/input-formats/dita).
 
 ## Example with detected tests
 

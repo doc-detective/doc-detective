@@ -36,7 +36,7 @@ stall the suite for long.
 
 ### W3 · Test across formats and surfaces
 
-Wren's docs span formats (Markdown, DITA, AsciiDoc, reStructuredText, HTML, or a custom format) and her product runs on
+Wren's docs span formats (Markdown, DITA, AsciiDoc, HTML, or a custom format) and her product runs on
 multiple platforms and browsers. She detects and tests content regardless of source format, and
 targets multiple platform and browser contexts through `runOn`. When her content lives in a CMS, she
 round-trips through the Heretto integration.
