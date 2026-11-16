@@ -592,7 +592,8 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
     // afterAll file still runs as a barrier.
     const phase = (f: string) => config._phaseByFile?.get(path.resolve(f)) ?? "main";
     const includer = [...kept].find(
-      (other) => realpath(other) !== real && phase(other) === phase(file) && expansions.get(other)!.included.has(real)
+      // The set lookup goes first, so realpath runs only for actual includers.
+      (other) => expansions.get(other)!.included.has(real) && phase(other) === phase(file) && realpath(other) !== real
     );
     if (includer) {
       kept.delete(file);
