@@ -22,6 +22,7 @@ Include resolution is on by default. You don't need to configure anything for th
 | MDX (Fern) | `<Markdown src="path" />` | n/a |
 | MDX (Docusaurus, Mintlify) | `import Setup from './setup.mdx'`, then `<Setup />` | n/a |
 | MDX (Starlight, Astro) | `import { Content } from './setup.md'`, then `<Content />` | n/a |
+| reStructuredText | `.. include:: path` | `:start-line:`, `:end-line:`, `:start-after:`, `:end-before:` |
 
 Doc Detective reads each included file with its own format's syntax, so includes can nest. A Markdown snippet can include another snippet, and so on.
 
@@ -82,6 +83,25 @@ import { Content as Login } from '../shared/login.md';
 - Package imports and path aliases, such as `~/`, aren't followed.
 - Components inside a code fence are examples, not includes, so Doc Detective leaves them alone.
 - When a Markdown (`.md`) file with HTML comments is included into an `.mdx` page, its comments become MDX comments, so [inline test statements](/docs/test-docs/inline) in it still work.
+
+### reStructuredText
+
+```rst
+.. include:: snippets/install.rst
+
+.. include:: /shared/setup.rst
+   :start-after: .. login-start
+   :end-before: .. login-end
+
+.. note::
+
+   .. include:: snippets/tip.rst
+```
+
+- A path that starts with `/` resolves from the nearest folder that holds `conf.py`, the Sphinx source folder.
+- `:start-line:` and `:end-line:` count lines from 0, as docutils does. `:start-after:` and `:end-before:` select the text between two markers.
+- An indented directive indents every included line, so a snippet included inside a directive stays in it.
+- `:literal:` and `:code:` includes, and docutils standard includes such as `<isonum.txt>`, show text rather than content, so Doc Detective leaves them alone.
 
 ## How paths resolve
 
@@ -184,6 +204,6 @@ DITA reuse works differently. Conrefs, conkeyrefs, and keyrefs resolve when Doc 
 
 ## Next steps
 
-- See the [Markdown](markdown), [AsciiDoc](asciidoc), and [custom](custom) input format pages.
+- See the [Markdown](markdown), [AsciiDoc](asciidoc), [reStructuredText](rst), and [custom](custom) input format pages.
 - See [inline tests](/docs/test-docs/inline) to put tests in your snippets.
 - See the [configuration reference](/reference/schemas/config) for `resolveIncludes` and `fileTypes`.
