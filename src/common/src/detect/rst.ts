@@ -146,20 +146,18 @@ export function parseRst(content: string): Node[] {
       continue;
     }
 
-    if (ADORNMENT.test(text)) {
+    let from = start;
+    if (openLiteral) {
+      // The line is literal up to the `` that closes it, which follows a non-space.
+      const close = /(?<=\S)``/.exec(text);
+      if (!close) continue;
+      from = start + close.index + 2;
+    } else if (ADORNMENT.test(text)) {
       paragraph = null;
-      openLiteral = false;
       continue;
     }
 
     paragraph ??= start;
-    let from = start;
-    if (openLiteral) {
-      // The line is literal up to the `` that closes it.
-      const close = text.indexOf("``");
-      if (close === -1) continue;
-      from = start + close + 2;
-    }
     openLiteral = scanInline(content, lines[i], paragraph, nodes, from);
     if (text.trimEnd().endsWith("::")) literal = indent;
   }
@@ -173,6 +171,9 @@ export function parseRst(content: string): Node[] {
 function scanInline(content: string, line: Line, paragraph: number, nodes: Node[], from: number): boolean {
   const found: Array<{ kind: Kind | "code"; start: number; end: number; m: RegExpMatchArray }> = [];
   for (const [kind, re] of INLINE) {
+    // Match from `from` on, so a literal's closer can't pair with a later opener. matchAll copies
+    // lastIndex, and lookbehinds still see the whole line.
+    re.lastIndex = from - line.start;
     for (const m of line.text.matchAll(re)) found.push({ kind, start: line.start + m.index!, end: line.start + m.index! + m[0].length, m });
   }
   // The earliest construct wins an overlap. The sort is stable, so on a tie the earlier pattern wins.

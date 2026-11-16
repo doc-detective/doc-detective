@@ -373,8 +373,18 @@ describe("formats", function () {
       for (const n of pick(nodes, "text")) expect(n.text).to.not.include("Delete");
     });
 
+    it("closes a wrapped inline literal only at a valid closer, past adornment-shaped lines", function () {
+      const strong = (rst) => pick(parseRst(rst), "strong").map((n) => n.text);
+      // An adornment-shaped line inside the literal is literal text, not a title underline.
+      expect(strong("Example ``literal\n---\n**Delete**\nend``.\n")).to.deep.equal([]);
+      // A `` after whitespace can't close the literal.
+      expect(strong("Example ``literal\nstill `` inside **Delete**\nend`` then **Keep**.\n")).to.deep.equal(["Keep"]);
+      // After the closer, the rest of the line scans from there, so a second literal pairs up.
+      expect(strong("Example ``first\nend`` and ``second`` then **Keep**.\nNext **Also**.\n")).to.deep.equal(["Keep", "Also"]);
+    });
+
     it("handles an empty code directive, a link with no text, and an open literal before markup", function () {
-      const nodes = parseRst(".. code-block:: bash\n\nSee `<https://x.com>`_ and ``open **no**\nstill **no** `` then **yes**.\n");
+      const nodes = parseRst(".. code-block:: bash\n\nSee `<https://x.com>`_ and ``open **no**\nstill **no** end`` then **yes**.\n");
       expect(pick(nodes, "codeBlock")[0]).to.include({ language: "bash", content: "" });
       expect(pick(nodes, "link")[0]).to.include({ url: "https://x.com", text: "https://x.com" });
       expect(pick(nodes, "strong").map((n) => n.text)).to.deep.equal(["yes"]);
