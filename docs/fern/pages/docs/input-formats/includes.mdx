@@ -97,6 +97,8 @@ A file that another input includes doesn't run on its own. It runs inside each p
 
 When a partial is included by two pages, its tests run once in each page.
 
+A file listed in `beforeAll` or `afterAll` still runs in that phase, even when a page in `input` includes it. Its tests then also run inside that page.
+
 To run a partial by itself, name it alone:
 
 ```bash

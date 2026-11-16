@@ -588,7 +588,12 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
   const kept = new Set(expansions.keys());
   for (const [file] of expansions) {
     const real = realpath(file);
-    const includer = [...kept].find((other) => realpath(other) !== real && expansions.get(other)!.included.has(real));
+    // Only an includer in the same phase absorbs the file, so a beforeAll or
+    // afterAll file still runs as a barrier.
+    const phase = (f: string) => config._phaseByFile?.get(path.resolve(f)) ?? "main";
+    const includer = [...kept].find(
+      (other) => realpath(other) !== real && phase(other) === phase(file) && expansions.get(other)!.included.has(real)
+    );
     if (includer) {
       kept.delete(file);
       log(config, "debug", `Skipped: ${path.resolve(file)} runs inside the files that include it.`);

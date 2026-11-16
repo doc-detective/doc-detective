@@ -158,8 +158,12 @@ function markdownDirectives(text: string, fileText: string): Directive[] {
     const start = m.index! + m[0].length - m[0].trimStart().length;
     found.push({ start, end: m.index! + m[0].length, base: "rootThenFile", ...splitSelector(m[2], MKDOCS_SECTION) });
   }
-  const fences = fenceRanges(text);
-  const inFence = (i: number) => fences.some(([s, e]) => i >= s && i < e);
+  // Components render nowhere inside code or comments.
+  const skipped = [
+    ...fenceRanges(text),
+    ...[...text.matchAll(/`[^`\r\n]+`|\{\/\*[\s\S]*?\*\/\}|<!--[\s\S]*?-->/g)].map((m) => [m.index!, m.index! + m[0].length]),
+  ];
+  const inFence = (i: number) => skipped.some(([s, e]) => i >= s && i < e);
   for (const m of text.matchAll(/<Markdown\s+src=["']([^"']+)["']\s*\/>/g)) {
     if (!inFence(m.index!)) found.push({ start: m.index!, end: m.index! + m[0].length, target: m[1], base: "fileThenRoot" });
   }

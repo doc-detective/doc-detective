@@ -75,8 +75,14 @@ const includeCases = {
     content: `{{#include b.md}}\n<!-- step ${step("a")} -->\n`,
     run: true,
     stderr: "because it includes itself:",
-    expect: ["echo a", "echo b"],
-    check: expectSpecs("b.md"),
+    // Either file of the cycle may survive, depending on directory order. The
+    // survivor runs the other file's step first.
+    expect: [["echo a", "echo b"], ["echo b", "echo a"]],
+    check: (json) => {
+      const ran = json.specs.flatMap((s) => s.tests.flatMap((t) => t.contexts.flatMap((x) => x.steps.map((st) => st.runShell?.command ?? st.runShell))));
+      const want = { "b.md": "echo a,echo b", "a.md": "echo b,echo a" }[specNames(json).join()];
+      if (ran.join() !== want) return `specs ${specNames(json)} ran ${ran}`;
+    },
   },
   "includes-outside": {
     file: "page.md",
@@ -740,7 +746,9 @@ if (c.run) {
   // A run compares the commands of the steps that ran, which must all pass.
   const steps = JSON.parse(fs.readFileSync(results, "utf8")).specs.flatMap((s) => s.tests.flatMap((t) => t.contexts.flatMap((x) => x.steps)));
   const ran = steps.map((s) => (s.result === "PASS" ? s.runShell?.command ?? s.runShell : `${s.result}: ${JSON.stringify(s)}`));
-  if (JSON.stringify(ran) !== JSON.stringify(c.expect)) fail(`steps differ.\nexpected: ${JSON.stringify(c.expect)}\nactual:   ${JSON.stringify(ran)}`);
+  // An array of arrays lists the accepted alternatives.
+  const accepted = Array.isArray(c.expect[0]) ? c.expect : [c.expect];
+  if (!accepted.some((e) => JSON.stringify(ran) === JSON.stringify(e))) fail(`steps differ.\nexpected: ${JSON.stringify(c.expect)}\nactual:   ${JSON.stringify(ran)}`);
 } else if (c.expect) {
   // The runner resolves screenshot paths against the document.
   const strip = ({ location, stepId, description, ...rest }) => {

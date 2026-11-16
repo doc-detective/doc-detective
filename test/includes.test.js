@@ -145,6 +145,21 @@ describe("expandIncludes", function () {
       assert.equal(expand("guide.mdx", markdown).content, ["S", "```mdx", '<Markdown src="snips/s.md" />', "```", ""].join("\n"));
     });
 
+    it("leaves components in inline code and comments alone", function () {
+      const text = [
+        "import S from './snips/s.md';",
+        '`<Markdown src="snips/s.md" />` and `<S />`',
+        '{/* <Markdown src="snips/s.md" /> <S /> */}',
+        '<!-- <Markdown src="snips/s.md" /> -->',
+        "",
+      ].join("\n");
+      write("guide.mdx", text);
+      write("snips/s.md", "S\n");
+      const x = expand("guide.mdx", markdown);
+      assert.equal(x.content, text);
+      assert.equal(x.included.size, 0);
+    });
+
     it("resolves MDX imports: default, @site/, Mintlify /snippets, { Content }, { Content as X }, and * as X", function () {
       write("site/docusaurus.config.js", "");
       write("site/docs/_d.mdx", "D\n");
@@ -434,6 +449,14 @@ describe("detection with includes", function () {
   it("still runs a partial given alone", async function () {
     const specs = await run({ input: [path.join(root, "_partials", "setup.md")] });
     assert.equal(specs.length, 1);
+  });
+
+  it("keeps a beforeAll file in its own phase when a main page includes it", async function () {
+    const specs = await run({ beforeAll: [path.join(root, "_partials", "setup.md")] });
+    const setup = specs.find((s) => s.contentPath.endsWith("setup.md"));
+    assert.equal(setup?._phase, "beforeAll");
+    const guide = specs.find((s) => s.contentPath.endsWith("guide.md"));
+    assert.equal(guide.tests[0].steps.length, 3);
   });
 
   it("runs one file of an include cycle", async function () {

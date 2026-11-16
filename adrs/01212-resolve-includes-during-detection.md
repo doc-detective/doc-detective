@@ -50,7 +50,9 @@ Chosen option: **A**, on by default.
   absolute path), and `line`, `startIndex`, and `endIndex` refer to that file. `contentPath`,
   `specId`, and test IDs keep naming the page.
 - **Partials.** An input that another input includes doesn't run on its own. Inputs are checked in
-  order, so one file of an include cycle still runs. A partial given alone still runs.
+  order, so one file of an include cycle still runs. A partial given alone still runs. Only an
+  includer in the same phase absorbs a file, so a `beforeAll` or `afterAll` file still runs as
+  its phase's barrier.
 - **Built-in syntax:**
   - AsciiDoc `include::`, with `lines`, `tag` and `tags`, `opts=optional`, and `{attribute}`
     paths.
