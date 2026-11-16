@@ -74,7 +74,7 @@ const runCode: MarkupDefinition = {
   actions: [{ unsafe: true, runCode: { language: "$1", code: "$2" } }],
 };
 
-/** Markdown, AsciiDoc, and HTML share these definitions. Each format takes its own copy. */
+/** Markdown, AsciiDoc, HTML, and reStructuredText share these definitions. Each format takes its own copy. */
 const sharedMarkup: MarkupDefinition[] = [
   { name: "goToUrl", link: { url: "^https?://", precededBy: GO_TO_VERBS }, captures: ["url"], actions: ["goTo"] },
   { name: "checkHyperlink", link: { url: "^https?://" }, captures: ["url"], actions: ["checkLink"] },
@@ -151,6 +151,13 @@ const defaultFileTypesBase: Record<string, FileType> = {
     inlineStatements: { in: ["comment"] },
     markup: structuredClone(sharedMarkup),
   },
+  rst_1_0: {
+    name: "rst",
+    // Not `.rest`: the REST Client editor extension uses it for HTTP request files.
+    extensions: ["rst"],
+    inlineStatements: { in: ["comment"] },
+    markup: structuredClone(sharedMarkup),
+  },
 };
 
 /**
@@ -164,6 +171,7 @@ export const defaultFileTypes: Record<string, FileType> = {
     asciidoc: defaultFileTypesBase.asciidoc_1_0,
     html: defaultFileTypesBase.html_1_0,
     dita: defaultFileTypesBase.dita_1_0,
+    rst: defaultFileTypesBase.rst_1_0,
 };
 
 /**

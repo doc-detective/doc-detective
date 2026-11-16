@@ -16,7 +16,7 @@ const step = (s) => JSON.stringify(shell(s));
 const fence = (lang, body) => "```" + lang + "\n" + body + "\n```";
 const md = (extra) => ({ name: "docs", extensions: ["md"], inlineStatements: { in: ["comment"] }, ...extra });
 
-// Include cases (ADR 01210) run on the case's whole folder, so a partial that
+// Include cases (ADR 01212) run on the case's whole folder, so a partial that
 // a page includes must not come back as a spec of its own.
 const partial = `<!-- step ${step("partial")} -->\n`;
 const page = (include) => `<!-- step ${step("before")} -->\n${include}\n<!-- step ${step("after")} -->\n`;
@@ -410,6 +410,106 @@ const cases = {
     ]],
   },
 
+  // reStructuredText: comments, links, formatting, images with classes, code directives, and literal blocks.
+  // Nothing from inside a code directive or a literal block.
+  "rst-kinds": {
+    file: "doc.rst",
+    config: {
+      fileTypes: [
+        {
+          name: "docs",
+          extensions: ["rst"],
+          inlineStatements: { in: ["comment"] },
+          markup: [
+            { link: { url: "^https://", precededBy: "[Gg]o to\\s+$" }, captures: ["url"], actions: ["goTo"] },
+            { strong: { precededBy: "[Cc]lick\\s+$" }, actions: ["click"] },
+            { emphasis: {}, actions: ["find"] },
+            { image: { attributes: { class: "(^|\\s)screenshot" } }, captures: ["src"], actions: ["screenshot"] },
+            { codeBlock: { language: ["bash"], metaExcludes: "testIgnore" }, actions: [{ runShell: "$1" }] },
+          ],
+        },
+      ],
+    },
+    content: [
+      "Guide",
+      "=====",
+      "",
+      `.. step ${step("comment")}`,
+      "",
+      "..",
+      `   step ${step("block")}`,
+      "",
+      "Go to `the site <https://example.com>`_, click **Search**, and see *Results*.",
+      "",
+      ".. image:: shot.png",
+      "   :class: screenshot",
+      "",
+      ".. code-block:: bash",
+      "",
+      `   .. step ${step("listing")}`,
+      "   echo rst",
+      "",
+      ".. code-block:: bash",
+      "   :class: testIgnore",
+      "",
+      "   echo skipped",
+      "",
+      "Literal::",
+      "",
+      `   .. step ${step("literal")}`,
+    ].join("\n"),
+    expect: [[
+      shell("comment"),
+      shell("block"),
+      { goTo: "https://example.com" },
+      { click: "Search" },
+      { find: "Results" },
+      { screenshot: "shot.png" },
+      { runShell: `.. step ${step("listing")}\necho rst` },
+    ]],
+  },
+
+  // An .rst file parses as reStructuredText even when its fileType extends Markdown,
+  // so a 3-space-indented directive body is code, not Markdown prose.
+  "rst-extension-picks-parser": {
+    file: "doc.rst",
+    config: { fileTypes: [{ name: "rst-as-markdown", extends: "markdown", extensions: ["rst"] }] },
+    content: "Click **Save**.\n\n.. code-block:: text\n\n   **not bold**\n",
+    expect: [[{ click: "Save" }, { find: "Save" }]],
+  },
+
+  // A file under another extension parses as reStructuredText when its fileType extends rst.
+  "extends-rst": {
+    file: "doc.txt",
+    config: { fileTypes: [{ name: "notes", extends: "rst", extensions: ["txt"] }] },
+    content: `.. step ${step("txt")}\n\nClick **Save**.\n`,
+    expect: [[shell("txt"), { click: "Save" }, { find: "Save" }]],
+  },
+
+  // RST statements run end to end: single-line and multi-line steps, and an ignore block.
+  "rst-run": {
+    file: "doc.rst",
+    run: true,
+    config: {},
+    content: [
+      '.. test {"testId": "rst-run"}',
+      "",
+      `.. step ${step("inline")}`,
+      "",
+      ".. step",
+      `   ${step("multiline")}`,
+      "",
+      ".. test ignore start",
+      "",
+      `.. step ${step("ignored")}`,
+      "",
+      ".. test ignore end",
+      "",
+      ".. test end",
+    ].join("\n"),
+    expect: ["echo inline", "echo multiline"],
+  },
+
   // HTML inside Markdown reads as HTML kinds, and lowercase JSX tags in .mdx do too.
   "embedded-html": {
     file: "doc.md",
@@ -544,7 +644,41 @@ const cases = {
     ]],
   },
 
+  "builtin-rst": {
+    file: "doc.rst",
+    config: {},
+    content: [
+      `.. step ${step("comment")}`,
+      "",
+      'Go to `the site <https://example.com>`_, click **Search**, and type "kittens".',
+      "",
+      ".. image:: results.png",
+      "   :class: screenshot",
+      "",
+      ".. code-block:: rst",
+      "",
+      `   .. step ${step("fenced")}`,
+      "   **fenced**",
+    ].join("\n"),
+    expect: [[
+      shell("comment"),
+      { goTo: "https://example.com" },
+      { checkLink: "https://example.com" },
+      { click: "Search" },
+      { find: "Search" },
+      { type: "kittens" },
+      { screenshot: "results.png" },
+    ]],
+  },
+
   // Configs the CLI must reject: exit 2, and nothing runs.
+  "reject-unknown-builtin": {
+    file: "doc.rst",
+    config: { fileTypes: ["restructuredtext"] },
+    content: "x\n",
+    exit: 2,
+    stderr: 'fileTypes[0]: must be one of markdown, asciidoc, html, dita, rst (got "restructuredtext").',
+  },
   "reject-two-kinds": {
     file: "doc.md",
     config: { fileTypes: [md({ markup: [{ link: {}, image: {}, actions: ["find"] }] })] },

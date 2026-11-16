@@ -256,6 +256,9 @@ navigation:
                   - page: HTML
                     path: pages/docs/input-formats/html.mdx
                     slug: html
+                  - page: reStructuredText
+                    path: pages/docs/input-formats/rst.mdx
+                    slug: rst
                   - page: Custom
                     path: pages/docs/input-formats/custom.mdx
                     slug: custom

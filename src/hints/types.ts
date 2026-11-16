@@ -141,16 +141,6 @@ export interface HintContext {
   /** Major Node.js version (e.g. 20 for Node 20.11.0). */
   nodeMajor: number;
   /**
-   * True if the cwd (or a parent up to the repo root) contains at
-   * least one `.rst` (reStructuredText) file. `.mdx` and `.adoc` are
-   * intentionally not part of this signal because they are already
-   * covered by the default `markdown` and `asciidoc` file-type
-   * templates in `src/core/config.ts`. Recursive scan capped at 100
-   * files to bound worst-case cost per `./AGENTS.md`. Powers
-   * `useFileTypesForRst`.
-   */
-  hasRstFiles: boolean;
-  /**
    * True if any goTo/checkLink step in the run used a relative URL — i.e.
    * a value that did not begin with `http://`, `https://`, `file://`, or
    * `data:`. Powers `setOriginForRelativeUrls`.

@@ -1,5 +1,5 @@
 /**
- * Include resolution for detection (ADR 01210).
+ * Include resolution for detection (ADR 01212).
  *
  * Replaces each include directive in a documentation source with the included
  * file's content, so detection sees the page the way a reader does. The result

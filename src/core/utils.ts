@@ -3017,7 +3017,7 @@ function applyBadgeAnchoredTests({ config, results, init = false }: { config: an
         }
         continue;
       }
-      // A test from an included file has its statement in that file (ADR 01210).
+      // A test from an included file has its statement in that file (ADR 01212).
       const file = test.location.file ?? test.contentPath;
       const byLine = byFile.get(file) || new Map<number, LineWork>();
       const work: LineWork = byLine.get(test.location.line) || { checks: new Map() };

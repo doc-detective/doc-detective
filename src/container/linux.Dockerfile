@@ -5,7 +5,8 @@ ARG PACKAGE_VERSION=latest
 # The cache dir is pinned to /opt/doc-detective so the pre-warm step at image
 # build time isn't lost to a per-boot /tmp wipe at runtime. Auto-update is off
 # because the image is the authoritative version-bump signal — image releases
-# bump doc-detective, not runtime self-update.
+# bump doc-detective, not runtime self-update. SKIP_BROWSER_UPDATE does the same
+# for the pre-installed browsers (ADR 01209).
 #
 # The image's own defaults live in a user config, the lowest config layer, so
 # any project config, environment variable, or flag overrides them (ADR 01165).
@@ -15,7 +16,8 @@ ARG PACKAGE_VERSION=latest
 ENV DEBIAN_FRONTEND=noninteractive \
     XDG_CONFIG_HOME=/etc/doc-detective-xdg \
     DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective \
-    DOC_DETECTIVE_SKIP_AUTO_UPDATE=1
+    DOC_DETECTIVE_SKIP_AUTO_UPDATE=1 \
+    DOC_DETECTIVE_SKIP_BROWSER_UPDATE=1
 
 RUN mkdir -p /etc/doc-detective-xdg/doc-detective \
     && echo '{"allowUnsafeSteps": true}' > /etc/doc-detective-xdg/doc-detective/config.json

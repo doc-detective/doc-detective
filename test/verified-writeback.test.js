@@ -81,7 +81,7 @@ describe("Verification metadata — write-back", function () {
       }
       expect(read(f)).to.contain("\n    version: unknown\n");
     });
-    it("writes into a partial that only a step's location points at (ADR 01210)", function () {
+    it("writes into a partial that only a step's location points at (ADR 01212)", function () {
       const pagePath = write("a.md", "# Doc\n");
       const partial = write("_p.md", page("test~1"));
       const results = report(pagePath);

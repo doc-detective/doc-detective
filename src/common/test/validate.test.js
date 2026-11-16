@@ -3720,6 +3720,23 @@ import { schemas } from "../dist/index.js";
       });
     });
 
+    describe("config_v3 rst fileType", function () {
+      it("accepts rst as a predefined fileType and as an extends base, and defaults to it", function () {
+        for (const fileTypes of [["rst"], [{ extends: "rst", extensions: ["txt"] }]]) {
+          const result = validate({ schemaKey: "config_v3", object: { fileTypes } });
+          expect(result.valid, result.errors).to.be.true;
+        }
+        const defaults = validate({ schemaKey: "config_v3", object: {} });
+        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst"]);
+      });
+
+      it("rejects restructuredtext as a predefined fileType or extends base", function () {
+        for (const fileTypes of [["restructuredtext"], [{ extends: "restructuredtext", extensions: ["txt"] }]]) {
+          expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
+        }
+      });
+    });
+
     describe("config_v3 fileTypes transformations", function () {
       it("should transform config_v2 with fileTypes to config_v3", function () {
         const result = transformToSchemaKey({

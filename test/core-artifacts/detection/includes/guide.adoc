@@ -1,7 +1,7 @@
 = Includes: AsciiDoc
 :partials: _partials
 
-// (test {"testId": "includes-asciidoc", "description": "AsciiDoc include with tag, lines, an attribute in the path, and an optional missing file (ADR 01210)."})
+// (test {"testId": "includes-asciidoc", "description": "AsciiDoc include with tag, lines, an attribute in the path, and an optional missing file (ADR 01212)."})
 
 include::{partials}/tagged.adoc[tag=install]
 

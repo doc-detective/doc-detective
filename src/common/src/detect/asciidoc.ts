@@ -33,14 +33,14 @@ const INLINE: Array<[Kind | "code", RegExp]> = [
   ["emphasis", /(?<![\w_])_(?=[^\s_])([^_\n]*?[^\s_])_(?![\w_])/g],
 ];
 
-interface Line {
+export interface Line {
   start: number;
   /** The end of the line's text, before any `\r\n`. */
   end: number;
   text: string;
 }
 
-function splitLines(content: string): Line[] {
+export function splitLines(content: string): Line[] {
   const lines: Line[] = [];
   let start = 0;
   for (const raw of content.split("\n")) {

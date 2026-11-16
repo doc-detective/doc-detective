@@ -259,3 +259,4 @@ Astro
 [Cc]onrefs?
 [Cc]onkeyrefs?
 [Kk]eyrefs?
+docutils

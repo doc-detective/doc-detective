@@ -562,7 +562,7 @@ async function qualifyFiles({ config }: { config: any }) {
  * @param {Array<string>} options.files - Array of file paths to parse
  * @returns {Promise<Array>} Array of test specifications
  */
-// Expands the includes in every local documentation source (ADR 01210). A
+// Expands the includes in every local documentation source (ADR 01212). A
 // remote file has no folder of its own to resolve includes against.
 function expandAll(config: any, files: string[]) {
   const expansions = new Map<string, ReturnType<typeof expandIncludes>>();

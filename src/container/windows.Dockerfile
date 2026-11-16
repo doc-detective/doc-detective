@@ -24,14 +24,16 @@ LABEL authors="Doc Detective" \
 # DOC_DETECTIVE_CACHE_DIR is pinned to a fixed image path so the pre-warm
 # below isn't lost to a per-boot temp-dir wipe at runtime. SKIP_AUTO_UPDATE
 # stops the runtime from quietly bumping the version baked into the image —
-# image releases own that signal.
+# image releases own that signal. SKIP_BROWSER_UPDATE does the same for the
+# pre-installed browsers (ADR 01209).
 #
 # The image's own defaults live in a user config, the lowest config layer, so
 # any project config, environment variable, or flag overrides them (ADR 01165).
 # The only default: the container is the sandbox, so steps marked unsafe run.
 ENV XDG_CONFIG_HOME=C:\\ProgramData\\doc-detective-xdg \
     DOC_DETECTIVE_CACHE_DIR=C:\\ProgramData\\doc-detective \
-    DOC_DETECTIVE_SKIP_AUTO_UPDATE=1
+    DOC_DETECTIVE_SKIP_AUTO_UPDATE=1 \
+    DOC_DETECTIVE_SKIP_BROWSER_UPDATE=1
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 

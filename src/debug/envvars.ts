@@ -102,6 +102,7 @@ const DOC_EXTENSIONS_BY_TYPE: Record<string, string[]> = {
   asciidoc: ["adoc", "asciidoc", "asc"],
   html: ["html", "htm"],
   dita: ["dita", "ditamap", "xml"],
+  rst: ["rst"],
 };
 
 // Resolve `config.fileTypes` into the set of lowercase extensions (no

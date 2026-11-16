@@ -7,7 +7,7 @@ import { defaultFileTypes, detectFileTypeFromContent } from "../dist/fileTypes.j
 import { validate } from "../dist/validate.js";
 import { REGEX_FILE_TYPES } from "./fixtures/regex-fileTypes.js";
 
-const BUILT_INS = ["markdown", "asciidoc", "html", "dita"];
+const BUILT_INS = ["markdown", "asciidoc", "html", "dita", "rst"];
 const INTENTS = ["goTo", "checkLink", "click", "find", "screenshot", "type", "httpRequest", "runCode"];
 const KINDS = ["comment", "codeBlock", "link", "image", "strong", "emphasis", "text", "element"];
 const fixtures = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
@@ -41,9 +41,12 @@ describe("built-in fileTypes", function () {
     });
   }
 
-  it("shares one definition list across Markdown, AsciiDoc, and HTML", function () {
+  it("shares one definition list across Markdown, AsciiDoc, HTML, and reStructuredText", function () {
     expect(defaultFileTypes.asciidoc.markup).to.deep.equal(defaultFileTypes.markdown.markup);
     expect(defaultFileTypes.html.markup).to.deep.equal(defaultFileTypes.markdown.markup);
+    expect(defaultFileTypes.rst.markup).to.deep.equal(defaultFileTypes.markdown.markup);
+    expect(defaultFileTypes.rst.markup).to.not.equal(defaultFileTypes.markdown.markup);
+    expect(defaultFileTypes.rst_1_0).to.equal(defaultFileTypes.rst);
     // Each format holds its own copy, so changing one can't change the others.
     expect(defaultFileTypes.asciidoc.markup).to.not.equal(defaultFileTypes.markdown.markup);
     expect(defaultFileTypes.html.markup).to.not.equal(defaultFileTypes.markdown.markup);
@@ -65,6 +68,7 @@ describe("built-in fileTypes", function () {
       "doc.html": `<!-- step ${step("prose")} -->\n<pre><!-- step ${step("fenced")} --><b>fenced</b></pre>\n`,
       "doc.dita": `<topic><body><!-- step ${step("prose")} --><codeblock><!-- step ${step("fenced")} --></codeblock></body></topic>`,
       "doc.adoc": `// (step ${step("prose")})\n\n----\n// (step ${step("fenced")})\n*fenced*\n----\n`,
+      "doc.rst": `.. step ${step("prose")}\n\n.. code-block:: rst\n\n   .. step ${step("fenced")}\n   **fenced**\n\nLiteral::\n\n   .. step ${step("literal")}\n`,
     };
     for (const [file, content] of Object.entries(cases)) {
       it(file, async function () {
@@ -103,6 +107,7 @@ describe("built-in fileTypes", function () {
       "doc.html": '<p>Go to <a href="https://example.com">the site</a>, click <strong>Search</strong>, and type "kittens".</p>\n<img src="results.png" class="screenshot">\n',
       "doc.adoc": 'Go to https://example.com[the site], click *Search*, and type "kittens".\n\n[.screenshot]\nimage::results.png[Results]\n',
       "doc.dita": '<topic><body><p>Go to <xref href="https://example.com" scope="external">the site</xref>, click <b>Search</b>, and type "kittens".</p><image href="results.png" outputclass="screenshot"/></body></topic>',
+      "doc.rst": 'Go to `the site <https://example.com>`_, click **Search**, and type "kittens".\n\n.. image:: results.png\n   :class: screenshot\n',
     };
     const expected = [{ goTo: "https://example.com" }, { checkLink: "https://example.com" }, { click: "Search" }, { find: "Search" }, { type: "kittens" }, { screenshot: "results.png" }];
     for (const [file, content] of Object.entries(docs)) {
@@ -116,6 +121,7 @@ describe("built-in fileTypes", function () {
       "doc.html": '<pre><code class="language-bash">echo hi</code></pre>\n<pre><code class="language-http">GET https://example.com/a HTTP/1.1</code></pre>\n',
       "doc.adoc": "[source,bash]\n----\necho hi\n----\n\n[source,http]\n----\nGET https://example.com/a HTTP/1.1\n----\n",
       "doc.dita": '<topic><body><codeblock outputclass="language-bash">echo hi</codeblock><codeblock outputclass="language-http">GET https://example.com/a HTTP/1.1</codeblock></body></topic>',
+      "doc.rst": ".. code-block:: bash\n\n   echo hi\n\n.. code-block:: http\n\n   GET https://example.com/a HTTP/1.1\n",
     };
     for (const [file, content] of Object.entries(docs)) {
       const [[run, http]] = await steps(content, undefined, file);
@@ -130,6 +136,7 @@ describe("built-in fileTypes", function () {
       "doc.html": (code) => `<pre><code class="language-http">${code}</code></pre>\n`,
       "doc.adoc": (code) => "[source,http]\n----\n" + code + "\n----\n",
       "doc.dita": (code) => `<topic><body><codeblock outputclass="language-http">${code}</codeblock></body></topic>`,
+      "doc.rst": (code) => ".. code-block:: http\n\n" + code.replace(/^(?=.)/gm, "   ") + "\n",
     };
     const cases = [
       {

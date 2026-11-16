@@ -28,6 +28,7 @@ const MARKUP_FILE_TYPES: FileType[] = [
   defaultFileTypes.asciidoc,
   defaultFileTypes.html,
   defaultFileTypes.dita,
+  defaultFileTypes.rst,
 ].filter(Boolean) as FileType[];
 
 /** Find the fileType whose extensions match this URI, or null. */
@@ -167,7 +168,7 @@ function warn(range: Range, message: string, code?: string): Diagnostic {
 
 /**
  * Compute diagnostics for inline Doc Detective test statements embedded in a
- * markup document (markdown/asciidoc/html/dita, or a config fileType). Only the
+ * markup document (markdown/asciidoc/html/dita/rst, or a config fileType). Only the
  * `test` open and `step` statement regions the runner recognizes get language
  * features — the rest of the prose is left alone.
  */

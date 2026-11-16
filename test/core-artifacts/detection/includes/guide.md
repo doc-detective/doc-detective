@@ -2,7 +2,7 @@
 
 Each include below adds a step that sets a variable. The last step checks them all, so the test fails if any include didn't resolve. The `nested/` fixture checks order. The partials also hold steps that fail, outside the selected sections, and run only if a selection or the partial-exclusion rule breaks.
 
-<!-- test {"testId": "includes-markdown", "description": "mdBook, MkDocs snippets, and Fern includes, with sections and anchors (ADR 01210)."} -->
+<!-- test {"testId": "includes-markdown", "description": "mdBook, MkDocs snippets, and Fern includes, with sections and anchors (ADR 01212)."} -->
 
 {{#include _partials/book.md:setup}}
 

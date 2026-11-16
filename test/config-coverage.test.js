@@ -606,7 +606,7 @@ describe("config.ts — setConfig", function () {
         logLevel: "silent",
         dryRun: true,
         input: ["./README.md"],
-        fileTypes: ["markdown", "asciidoc", "html", "dita"],
+        fileTypes: ["markdown", "asciidoc", "html", "dita", "rst"],
       },
     });
     assert.deepEqual(config.fileTypes, [
@@ -614,6 +614,7 @@ describe("config.ts — setConfig", function () {
       defaultFileTypes.asciidoc,
       defaultFileTypes.html,
       defaultFileTypes.dita,
+      defaultFileTypes.rst,
     ]);
   });
 
@@ -962,7 +963,7 @@ describe("config.ts — setConfig", function () {
             fileTypes: [{ extends: "nope-nope", extensions: ["z"] }],
           },
         }),
-      /fileTypes\[0\]\.extends: must be one of markdown, asciidoc, html, dita \(got "nope-nope"\)\./
+      /fileTypes\[0\]\.extends: must be one of markdown, asciidoc, html, dita, rst \(got "nope-nope"\)\./
     );
   });
 
