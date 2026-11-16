@@ -227,6 +227,12 @@
                 "title": "File type (custom)",
                 "type": "object",
                 "additionalProperties": false,
+                "examples": [
+                  {
+                    "extends": "markdown",
+                    "includeStatements": ["\\{%\\s*include_relative\\s+(\\S+)\\s*%\\}"]
+                  }
+                ],
                 "anyOf": [
                   {
                     "required": [
