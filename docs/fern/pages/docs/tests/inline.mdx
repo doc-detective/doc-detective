@@ -67,15 +67,6 @@ Doc Detective reads statements from comments only. A statement inside a code blo
 - Test end: `// (test end)`
 - Ignore blocks: `// (test ignore start)` and `// (test ignore end)`
 
-**reStructuredText files** (`.rst`):
-
-- Test comments: `.. test {"testId": "my-test-rst"}`
-- Step comments: `.. step {"goTo": "https://example.com"}`
-- Test end: `.. test end`
-- Ignore blocks: `.. test ignore start` and `.. test ignore end`
-
-Put a blank line before and after each statement. An RST statement can span lines. A comment's indented block belongs to it, so a step can continue on the lines below `.. step`. See [reStructuredText](/docs/test-docs/input-formats/rst).
-
 **DITA XML files** (`.dita`, `.ditamap`, `.xml`):
 
 DITA (Darwin Information Typing Architecture) files use XML processing instructions to define tests. Processing instructions must start with `<?doc-detective` for Doc Detective to recognize them.
@@ -127,6 +118,15 @@ DITA `<data>` elements let you define inline tests using standard DITA markup:
 - Test end: `<data name="doc-detective" value="test end"/>`
 
 You can use single or double quotes for either attribute. Use `<data>` elements when you want tests that validate with DITA-aware tools, or when your publishing workflow filters out processing instructions.
+
+**reStructuredText files** (`.rst`):
+
+- Test comments: `.. test {"testId": "my-test-rst"}`
+- Step comments: `.. step {"goTo": "https://example.com"}`
+- Test end: `.. test end`
+- Ignore blocks: `.. test ignore start` and `.. test ignore end`
+
+Put a blank line before and after each statement. An RST statement can span lines. A comment's indented block belongs to it, so a step can continue on the lines below `.. step`. See [reStructuredText](/docs/test-docs/input-formats/rst).
 
 ## Examples
 
