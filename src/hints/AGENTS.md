@@ -241,9 +241,9 @@ If you do need a new signal:
 3. **Bound the cost.** Cheap signals are: a single file read, a single
    linear walk over already-in-memory data, an `os.platform()` check.
    Expensive things require a budget:
-   - Filesystem walks: cap at 100 files (see `detectRstFiles` in
-     `context.ts` for the canonical pattern, `scanForExtensions` with
-     a budget callback).
+   - Filesystem walks: cap at 100 entries. Tick the budget once per
+     dirent, not per directory, skip dotted entries and `node_modules`,
+     and treat any read error as "not found".
    - Async probes (e.g. agent adapters): per-call timeout of 500ms
      (see `withTimeout` in `context.ts`).
    - Network calls: don't. Push the data through telemetry instead.

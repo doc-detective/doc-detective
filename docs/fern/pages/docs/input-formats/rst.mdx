@@ -1,0 +1,172 @@
+---
+title: reStructuredText input format
+sidebar-title: reStructuredText
+description: Use Doc Detective with reStructuredText files, such as Sphinx and docutils sources.
+---
+
+reStructuredText (RST) is the markup language of Sphinx and docutils projects. Doc Detective reads inline tests from RST comments and detects steps from RST syntax, with no configuration.
+
+## File extensions
+
+Doc Detective processes reStructuredText files with the `.rst` extension.
+
+To read files with another extension as RST, add a file type that extends `rst`:
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "rst-notes",
+      "extends": "rst",
+      "extensions": ["txt"]
+    }
+  ]
+}
+```
+
+The extension picks the parser, so a `.rst` file always parses as RST, even in a file type that extends `markdown`.
+
+## Inline test syntax
+
+RST files use comments for inline tests:
+
+```rst
+.. test {"testId": "my-test"}
+.. step {"goTo": "https://example.com"}
+.. test end
+```
+
+**Test start:**
+```rst
+.. test {"testId": "my-test"}
+```
+
+**Step:**
+```rst
+.. step {"goTo": "https://example.com"}
+```
+
+**Test end:**
+```rst
+.. test end
+```
+
+**Ignore blocks:**
+```rst
+.. test ignore start
+
+Content to ignore
+
+.. test ignore end
+```
+
+A comment holds its first line plus the indented block below it, so a long step can continue on the next lines:
+
+```rst
+.. step
+   {"find": "Welcome"}
+```
+
+Only comments hold statements. Directives (`.. note::`), hyperlink targets (`.. _name:`), footnotes (`.. [1]`), citations (`.. [name]`), and substitution definitions (`.. |name|`) aren't comments.
+
+## Example
+
+Here's a complete example of an RST file with inline tests:
+
+```rst
+.. test {"testId": "doc-test"}
+
+Getting started
+===============
+
+Navigate to the application:
+
+.. step {"goTo": "https://app.example.com"}
+
+Click the **Start** button:
+
+.. step {"click": "Start"}
+
+Enter your username:
+
+.. step {"type": {"keys": "testuser", "selector": "[name=username]"}}
+
+Submit the form:
+
+.. step {"click": "Submit"}
+
+.. test end
+```
+
+## Detected tests
+
+With step detection on, RST files detect the steps listed in [What gets detected](overview#what-gets-detected), from RST syntax:
+
+| Step | reStructuredText that matches |
+|---|---|
+| `goTo` | ``Go to `the site <https://example.com>`_``, and the other navigation verbs |
+| `checkLink` | Any embedded-URI link, such as `` `text <https://example.com>`_ `` or `` `text <https://example.com>`__ ``, and any bare `http` or `https` URL |
+| `click` | `Click **Search**`, and the other click verbs |
+| `find` | Any `**bold**` text |
+| `screenshot` | An `image` or `figure` directive with `:class: screenshot` |
+| `type` | `Type "kittens"` in prose |
+| `httpRequest` | A `code-block`, `code`, or `sourcecode` directive tagged `http`, or a literal block, that holds a request |
+| `runCode` | A `code-block`, `code`, or `sourcecode` directive tagged `bash`, `python`, `py`, `javascript`, or `js`, unless it has `:class: testIgnore`. These steps are unsafe |
+
+A screenshot image's source is the file to save:
+
+```rst
+.. image:: results.png
+   :alt: Search results
+   :class: screenshot
+```
+
+To show a command without running it, add `:class: testIgnore`:
+
+```rst
+.. code-block:: bash
+   :class: testIgnore
+
+   rm -rf build/
+```
+
+A literal block is the indented block after a paragraph that ends in `::`. It has no language.
+
+Comments, links, and formatting inside code blocks, literal blocks, inline literals (` ``text`` `), interpreted text and roles (`` :guilabel:`Save` ``), and `raw` directives aren't read. In other directives, such as `note` and `warning`, the body is prose, but the text on the directive's own line isn't read.
+
+Doc Detective reads links whose URL sits inside the link, as in `` `text <https://example.com>`_ ``. To make a link detectable, write it that way rather than as a named reference to a `.. _name: url` target. To change what's detected, see [Selectors](selectors) and [custom inputs](custom).
+
+## JSON and YAML syntax
+
+RST inline tests support both JSON and YAML syntax:
+
+**JSON syntax:**
+```rst
+.. test {"testId": "my-test", "description": "Test description"}
+.. step {"goTo": "https://example.com"}
+```
+
+**YAML syntax:**
+```rst
+.. test testId: my-test
+.. step goTo: https://example.com
+```
+
+Both formats work identically. Choose the format that's most readable for your team.
+
+## Best practices
+
+- Put a blank line between a paragraph and the statement after it. A `..` line that continues a paragraph is prose, not a comment
+- Use descriptive test IDs to identify tests in results
+- Write links with an embedded URI so Doc Detective detects them
+- Combine inline tests with [detected tests](#detected-tests) so links, bold text, and code blocks become steps without extra comments
+
+## Effect on your build
+
+RST test comments are standard RST comments, so Sphinx and docutils leave them out of the rendered output. Your build doesn't change, and the tests stay in the source.
+
+## Next steps
+
+- Learn about [inline tests](/docs/test-docs/inline) for manual test definition
+- See [custom inputs](custom) to add detected test patterns for RST
+- Explore [Markdown](markdown) and [AsciiDoc](asciidoc) formats for detected test examples

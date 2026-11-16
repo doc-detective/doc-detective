@@ -878,7 +878,8 @@
             "markdown",
             "asciidoc",
             "html",
-            "dita"
+            "dita",
+            "rst"
           ],
           "anyOf": [
             {
@@ -894,7 +895,8 @@
                       "markdown",
                       "asciidoc",
                       "html",
-                      "dita"
+                      "dita",
+                      "rst"
                     ]
                   },
                   {
@@ -926,7 +928,8 @@
                           "markdown",
                           "asciidoc",
                           "html",
-                          "dita"
+                          "dita",
+                          "rst"
                         ]
                       },
                       "extensions": {

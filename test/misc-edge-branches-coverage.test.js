@@ -57,7 +57,6 @@ import {
   detectOutputDirGitignored,
   gitignoreCovers,
   parseNodeMajor,
-  detectRstFiles,
 } from "../dist/hints/context.js";
 
 // --- shared teardown -------------------------------------------------------
@@ -1387,11 +1386,5 @@ describe("hints/context.ts — git origin + workflow + walk branches", function 
     // An absolute path in an unrelated tree relativizes to a `..`-prefixed path.
     const escaping = path.resolve(mkTmp("dd-edge-elsewhere-"), "build");
     assert.equal(detectOutputDirGitignored(root, escaping), false);
-  });
-
-  it("detectRstFiles returns false for a directory whose readdir throws (scan guard)", function () {
-    const root = mkTmp("dd-edge-rst-");
-    sinon.stub(fs, "readdirSync").throws(Object.assign(new Error("perm"), { code: "EACCES" }));
-    assert.equal(detectRstFiles(root), false);
   });
 });

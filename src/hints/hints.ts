@@ -18,8 +18,6 @@
 //   - Order entries alphabetically by id within this file.
 
 import type { Hint } from "./types.js";
-// Note: when re-enabling `useFileTypesForRst` below, also restore:
-//   import { RST_EXTENSIONS } from "./context.js";
 
 export const HINTS: Hint[] = [
   // ------------------------------------------------------------------
@@ -621,61 +619,6 @@ export const HINTS: Hint[] = [
     ].join("\n"),
     when: (ctx) => ctx.totalTests === 0 && ctx.totalSpecs > 0,
   },
-
-  // ------------------------------------------------------------------
-  // useFileTypesForRst (advanced)
-  //
-  // Targets `.rst` only because `.mdx` and `.adoc` are already covered
-  // by the default `markdown` / `asciidoc` file-type templates in
-  // `src/core/config.ts`. `extensions` values use the no-dot form
-  // because file detection in `src/common/src/detectTests.ts` compares
-  // against `filePath.split('.').pop().toLowerCase()`.
-  // ------------------------------------------------------------------
-  // {
-  //   id: "useFileTypesForRst",
-  //   priority: 50,
-  //   markdown: [
-  //     "Doc Detective doesn't have a built-in `reStructuredText` (`.rst`) file type. Extend `fileTypes` so its detector picks them up:",
-  //     "",
-  //     "```json",
-  //     "{",
-  //     "  \"fileTypes\": [",
-  //     "    \"markdown\", \"asciidoc\", \"html\", \"dita\",",
-  //     "    { \"extends\": \"markdown\", \"extensions\": [\"rst\"] }",
-  //     "  ]",
-  //     "}",
-  //     "```",
-  //   ].join("\n"),
-  //   when: (ctx) => {
-  //     // Strip leading dots so "rst" (the schema/runtime form) and
-  //     // ".rst" (the dotted form some authors might still write) both
-  //     // count as a custom-extension declaration.
-  //     const targetExtensions = RST_EXTENSIONS.map((e) =>
-  //       e.startsWith(".") ? e.slice(1) : e
-  //     );
-  //     const declared = ctx.config?.fileTypes;
-  //     const hasCustomExtensions = Array.isArray(declared)
-  //       ? declared.some((entry: any) => {
-  //           if (!entry || typeof entry !== "object") return false;
-  //           const exts = entry.extensions;
-  //           const normalize = (e: any): string =>
-  //             typeof e === "string"
-  //               ? (e.startsWith(".") ? e.slice(1) : e).toLowerCase()
-  //               : "";
-  //           if (typeof exts === "string") {
-  //             return targetExtensions.includes(normalize(exts));
-  //           }
-  //           if (Array.isArray(exts)) {
-  //             return exts.some((e: any) =>
-  //               targetExtensions.includes(normalize(e))
-  //             );
-  //           }
-  //           return false;
-  //         })
-  //       : false;
-  //     return !hasCustomExtensions && ctx.hasRstFiles;
-  //   },
-  // },
 
   // ------------------------------------------------------------------
   // useHttpRequestStep (feature discovery)

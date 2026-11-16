@@ -39,7 +39,7 @@ Tests defined directly in documentation source files using specially formatted c
 
 ## Input format
 
-The file format of your documentation source files. Doc Detective supports Markdown, DITA, AsciiDoc, HTML, and custom formats. See [Input formats](/docs/test-docs/input-formats/overview).
+The file format of your documentation source files. Doc Detective supports Markdown, DITA, AsciiDoc, HTML, reStructuredText, and custom formats. See [Input formats](/docs/test-docs/input-formats/overview).
 
 ## Markup definition
 
@@ -52,6 +52,10 @@ Another name for a [markup definition](#markup-definition). A markup pattern can
 ## Name
 
 A `name` field labels something created while tests run, so a later step can refer to it: a [surface](#surface), a background process, or a recording. For example, `closeSurface` stops a background process by its name, and `stopRecord` stops a recording by its name. Contrast with an [ID](#id), which identifies a specification, test, or step you wrote.
+
+## reStructuredText
+
+The markup language of Sphinx and docutils projects. Doc Detective supports `.rst` files with inline and detected tests. See [reStructuredText input format](/docs/test-docs/input-formats/rst).
 
 ## Selector
 

@@ -67,6 +67,15 @@ Doc Detective reads statements from comments only. A statement inside a code blo
 - Test end: `// (test end)`
 - Ignore blocks: `// (test ignore start)` and `// (test ignore end)`
 
+**reStructuredText files** (`.rst`):
+
+- Test comments: `.. test {"testId": "my-test-rst"}`
+- Step comments: `.. step {"goTo": "https://example.com"}`
+- Test end: `.. test end`
+- Ignore blocks: `.. test ignore start` and `.. test ignore end`
+
+A comment's indented block belongs to it, so a step can continue on the lines below `.. step`. See [reStructuredText](/docs/test-docs/input-formats/rst).
+
 **DITA XML files** (`.dita`, `.ditamap`, `.xml`):
 
 DITA (Darwin Information Typing Architecture) files use XML processing instructions to define tests. Processing instructions must start with `<?doc-detective` for Doc Detective to recognize them.
