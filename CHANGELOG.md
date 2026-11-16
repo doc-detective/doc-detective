@@ -1,3 +1,18 @@
+# [5.3.0](https://github.com/doc-detective/doc-detective/compare/v5.2.1...v5.3.0) (2026-11-16)
+
+
+### Bug Fixes
+
+* **runtime:** harden browser refresh against races and failed updates ([15b9682](https://github.com/doc-detective/doc-detective/commit/15b968220a6f55826649fe2e9e95c0dba0e0a381))
+* **runtime:** hold off the retry after a failed browser update ([59e9523](https://github.com/doc-detective/doc-detective/commit/59e9523d9f64a5215b6d028ba298478d5470b769))
+* **runtime:** report outdated only when a newer build is known ([6a8c85a](https://github.com/doc-detective/doc-detective/commit/6a8c85a9bf7c1b4aaa920f60b764314a96a9be7d))
+* **runtime:** throttle a failed check of an outdated browser ([83c340c](https://github.com/doc-detective/doc-detective/commit/83c340cd22b23d3628aa9dd220c321cd2bf0941d))
+
+
+### Features
+
+* **runtime:** replace outdated cached browsers and drivers ([63398fa](https://github.com/doc-detective/doc-detective/commit/63398fa495107dd0ea4c5bed88a2476a441e9462))
+
 ## [5.2.1](https://github.com/doc-detective/doc-detective/compare/v5.2.0...v5.2.1) (2026-11-16)
 
 
