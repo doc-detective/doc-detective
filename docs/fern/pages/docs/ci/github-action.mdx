@@ -326,13 +326,15 @@ Doc Detective installs heavy runtime assets on first use, including browsers, dr
 
 The first run in a repository installs everything and saves it. Each later run restores the newest cache entry for its OS, CPU architecture, and Node.js major version. It prefers an entry saved by the same Doc Detective version. After the tests run, the action saves a new entry only if the run installed or updated something. For example, a new Doc Detective release or an updated browser saves a new entry. GitHub evicts entries unused for 7 days, and the oldest ones once a repository passes its cache limit.
 
+When `version` resolves to 5.3.0 or later, as the default `5` does, Doc Detective replaces outdated browsers in a restored cache. Releases before 5.3.0 don't replace them. For those releases, the action starts a new cache entry each week and restores only entries the same release saved that week. Cached browsers are then at most a week behind. To avoid the weekly reset, use 5.3.0 or later.
+
 While caching is on, the action resolves `version` to an exact release, such as `5.3.1`, and runs that release. It resolves `version` again on every run, so a range such as `5` still picks up new releases. To keep every run on one release, set `version` to an exact release.
 
 The cache holds the `doc-detective` package that `npx` installs, plus the `runtime` and `browsers` folders and `installed.json` from Doc Detective's [cache directory](/reference/reference/cli/install#cache-directory). It doesn't hold the Android SDK, the Java runtime, Android emulators, or WebDriverAgent builds. It also doesn't hold your project's own dependencies, such as tools your `runShell` steps call. Cache those with your language's setup action or `actions/cache`.
 
 With the default cache directory, there's nothing to configure. If you set `DOC_DETECTIVE_CACHE_DIR` or `cacheDir`, the action caches that directory. It finds the directory the way Doc Detective does, in this order:
 
-1. `DOC_DETECTIVE_CACHE_DIR`, resolved against `working_directory`.
+1. `DOC_DETECTIVE_CACHE_DIR`, resolved against `working_directory`. The action reads it from the job's environment or from a `.env` file in `working_directory`. A workflow `env` value overrides `.env`.
 2. `cacheDir` in `DOC_DETECTIVE_CONFIG`, resolved against `working_directory`.
 3. `cacheDir` in the config file: the `config` input, or `.doc-detective.json`, `.doc-detective.yaml`, or `.doc-detective.yml` in `working_directory`. It resolves against the config file's folder, or against `working_directory` when the file sets `relativePathBase: "cwd"`.
 4. Doc Detective's default cache directory.
