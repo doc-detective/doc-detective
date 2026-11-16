@@ -335,13 +335,13 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: .doc-detective-cache
-          key: doc-detective-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: doc-detective-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             doc-detective-${{ runner.os }}-
       - uses: doc-detective/github-action@v2
 ```
 
-Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs.
+Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs. Doc Detective replaces outdated cached browsers about once a day, so use a run-scoped key, as above. A static key keeps restoring the first copy it saved, and each run downloads the newer browser again.
 
 ### Pre-install assets
 

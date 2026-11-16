@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { isDebugRequested } from "../envFlag.js";
+import { envFlag, isDebugRequested } from "../envFlag.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -417,6 +417,35 @@ function isStillFresh(latestCheckedAt: string | undefined, now: Date): boolean {
   return now.getTime() - t < FRESHNESS_TTL_MS;
 }
 
+// Opt-out for replacing an outdated cached build (ADR 01209). A missing asset
+// still installs, and `--force` still reinstalls.
+function browserUpdatesSkipped(): boolean {
+  return envFlag("DOC_DETECTIVE_SKIP_BROWSER_UPDATE");
+}
+
+/**
+ * Whether a cached asset's channel check is due: it's recorded in the cache,
+ * updates aren't turned off, and the last check is older than the TTL. Reads
+ * only installed.json, so a run can ask cheaply before loading any heavy dep.
+ */
+export function browserRefreshDue(
+  name: BrowserAssetName,
+  ctx: CacheDirContext = {},
+  now: Date = new Date()
+): boolean {
+  const entry = readInstalledRecord(ctx).browsers[name];
+  if (!entry || browserUpdatesSkipped()) return false;
+  return !isStillFresh(entry.latestCheckedAt, now);
+}
+
+function errorText(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function outdatedWarning(name: BrowserAssetName, installed: string, latest: string, cacheDir: string): string {
+  return `\`${name}\` ${installed} is installed in ${cacheDir}, and the \`${BROWSER_CHANNELS[name]}\` channel is now ${latest}. Unset \`DOC_DETECTIVE_SKIP_BROWSER_UPDATE\`, or run \`doc-detective install browsers ${name} --force\`, to update.`;
+}
+
 async function resolveChannelBuildId(
   browsersModule: any,
   assetName: BrowserAssetName,
@@ -537,142 +566,144 @@ async function ensureBrowserInstalledImpl(
     );
   }
 
-  // Fast path: present and the freshness check says we already know the
-  // current channel buildId — no resolveBuildId network call needed.
-  if (!force && existing && isStillFresh(existing.latestCheckedAt, now)) {
-    if (existing.latestKnownVersion === existing.installedVersion) {
-      const path = await locateExecutable(
-        browsersModule,
-        name,
-        existing.installedVersion,
-        cacheDir,
-        platform
-      );
-      return { path, version: existing.installedVersion, outdated: false };
-    }
-    // Cached metadata says we're stale.
-    const path = await locateExecutable(
-      browsersModule,
-      name,
-      existing.installedVersion,
+  // Download, locate, and (for chromedriver) validate one build. Throws on
+  // failure, leaving any previous build in place.
+  const installBuild = async (latest: string): Promise<string> => {
+    await browsersModule.install({
+      browser: name,
+      buildId: latest,
       cacheDir,
-      platform
-    );
-    logger(
-      `${name} ${existing.installedVersion} installed in ${cacheDir}; "${BROWSER_CHANNELS[name]}" channel is now ${existing.latestKnownVersion}. Run \`doc-detective install browsers ${name} --force\` to update.`,
-      "warning"
-    );
-    return { path, version: existing.installedVersion, outdated: true };
-  }
+    });
 
-  // Slow path: re-resolve the channel buildId. Bounded by a short timeout so
-  // a network hiccup never blocks the run — we degrade to "still current."
-  let latest: string;
-  try {
-    latest = await resolveChannelBuildId(browsersModule, name, platform);
-  } catch (err) {
-    logger(`Channel resolution for ${name} skipped: ${String(err)}`, "debug");
-    if (existing) {
-      const path = await locateExecutable(
-        browsersModule,
-        name,
-        existing.installedVersion,
-        cacheDir,
-        platform
-      );
-      return { path, version: existing.installedVersion, outdated: false };
-    }
-    throw err;
-  }
-
-  if (!force && existing && existing.installedVersion === latest) {
-    record.browsers[name] = {
-      ...existing,
-      latestKnownVersion: latest,
-      latestCheckedAt: now.toISOString(),
-    };
-    writeInstalledRecord(record, ctx);
-    const path = await locateExecutable(
+    let path = await locateExecutable(
       browsersModule,
       name,
       latest,
       cacheDir,
       platform
     );
-    return { path, version: latest, outdated: false };
-  }
 
-  if (!force && existing) {
-    // Present but stale — warn-only, do NOT replace.
+    // Validate chromedriver by execution before recording the install (this
+    // branch only handles @puppeteer/browsers assets; geckodriver validation
+    // lives in ensureGeckodriver, and Safari's driver ships with macOS). A
+    // browser binary (chrome/firefox) is launched by the driver and self-checks
+    // at session start, but the driver itself is the thing that, when partially
+    // downloaded, runs and fails — so confirm it actually reports a version. On
+    // failure, reinstall exactly once (force a clean extract), then give up.
+    //
+    // Only when we actually located a chromedriver executable: locateExecutable
+    // falls back to the bare cacheDir when computeExecutablePath is unavailable
+    // (older/alternate @puppeteer/browsers), and validating a directory path
+    // would always fail and turn a best-effort install into a hard failure.
+    if (name === "chromedriver" && isAllowedDriverPath(path)) {
+      let verify = await verifyDriverBinary(name, path, { exec: deps.verifyExec });
+      if (!verify.ok) {
+        logger(
+          `Installed ${name} ${latest} failed validation (${verify.error}); reinstalling once.`,
+          "warning"
+        );
+        try {
+          await browsersModule.uninstall({ browser: name, buildId: latest, cacheDir });
+        } catch (err) {
+          logger(`Failed to prune broken ${name} ${latest}: ${String(err)}`, "debug");
+        }
+        await browsersModule.install({ browser: name, buildId: latest, cacheDir });
+        path = await locateExecutable(browsersModule, name, latest, cacheDir, platform);
+        verify = await verifyDriverBinary(name, path, { exec: deps.verifyExec });
+      }
+      if (!verify.ok) {
+        throw new Error(
+          `${name} ${latest} is present but non-functional after a reinstall (${verify.error}). It may be a partial or corrupt download; delete ${path} or reinstall.`
+        );
+      }
+    }
+    return path;
+  };
+
+  const skipUpdate = browserUpdatesSkipped();
+  const locate = (buildId: string) =>
+    locateExecutable(browsersModule, name, buildId, cacheDir, platform);
+  const keepExisting = async (outdated: boolean): Promise<EnsureBrowserResult> => ({
+    path: await locate(existing.installedVersion),
+    version: existing.installedVersion,
+    outdated,
+  });
+  // Record a channel check. Touches only the check fields, never
+  // `installedVersion`/`installedAt`: the GitHub Action hashes those to decide
+  // whether to save a new cache entry (ADR 01209).
+  const noteCheck = (latestKnownVersion?: string) => {
     record.browsers[name] = {
       ...existing,
-      latestKnownVersion: latest,
+      ...(latestKnownVersion ? { latestKnownVersion } : {}),
       latestCheckedAt: now.toISOString(),
     };
     writeInstalledRecord(record, ctx);
-    logger(
-      `${name} ${existing.installedVersion} installed in ${cacheDir}; "${BROWSER_CHANNELS[name]}" channel is now ${latest}. Run \`doc-detective install browsers ${name} --force\` to update.`,
-      "warning"
-    );
-    const path = await locateExecutable(
-      browsersModule,
-      name,
-      existing.installedVersion,
-      cacheDir,
-      platform
-    );
-    return { path, version: existing.installedVersion, outdated: true };
+  };
+
+  // Fast path: checked within the TTL, so no resolveBuildId network call. A
+  // record that already knows it's outdated re-checks and updates, unless
+  // updates are off.
+  if (!force && existing && isStillFresh(existing.latestCheckedAt, now)) {
+    const known = existing.latestKnownVersion;
+    if (known === existing.installedVersion) return await keepExisting(false);
+    if (skipUpdate) {
+      if (known) logger(outdatedWarning(name, existing.installedVersion, known, cacheDir), "warning");
+      return await keepExisting(Boolean(known));
+    }
   }
 
-  // Install path (missing OR force).
-  logger(`Installing ${name} ${latest} into ${cacheDir}`, "info");
-  await browsersModule.install({
-    browser: name,
-    buildId: latest,
-    cacheDir,
-  });
+  // Slow path: re-resolve the channel buildId. Bounded by a short timeout so
+  // a network hiccup never blocks the run. A failed check keeps the installed
+  // build and waits out the TTL before trying again.
+  let latest: string;
+  try {
+    latest = await resolveChannelBuildId(browsersModule, name, platform);
+  } catch (err) {
+    if (!existing) throw err;
+    logger(
+      `Couldn't check for a newer \`${name}\` build: ${errorText(err)}. Using the installed ${existing.installedVersion}.`,
+      "warning"
+    );
+    noteCheck();
+    return await keepExisting(false);
+  }
 
-  let path = await locateExecutable(
-    browsersModule,
-    name,
-    latest,
-    cacheDir,
-    platform
-  );
+  if (!force && existing && existing.installedVersion === latest) {
+    noteCheck(latest);
+    return await keepExisting(false);
+  }
 
-  // Validate chromedriver by execution before recording the install (this
-  // branch only handles @puppeteer/browsers assets; geckodriver validation
-  // lives in ensureGeckodriver, and Safari's driver ships with macOS). A
-  // browser binary (chrome/firefox) is launched by the driver and self-checks
-  // at session start, but the driver itself is the thing that, when partially
-  // downloaded, runs and fails — so confirm it actually reports a version. On
-  // failure, reinstall exactly once (force a clean extract), then give up.
-  //
-  // Only when we actually located a chromedriver executable: locateExecutable
-  // falls back to the bare cacheDir when computeExecutablePath is unavailable
-  // (older/alternate @puppeteer/browsers), and validating a directory path
-  // would always fail and turn a best-effort install into a hard failure.
-  if (name === "chromedriver" && isAllowedDriverPath(path)) {
-    let verify = await verifyDriverBinary(name, path, { exec: deps.verifyExec });
-    if (!verify.ok) {
-      logger(
-        `Installed ${name} ${latest} failed validation (${verify.error}); reinstalling once.`,
-        "warning"
-      );
-      try {
-        await browsersModule.uninstall({ browser: name, buildId: latest, cacheDir });
-      } catch (err) {
-        logger(`Failed to prune broken ${name} ${latest}: ${String(err)}`, "debug");
-      }
-      await browsersModule.install({ browser: name, buildId: latest, cacheDir });
-      path = await locateExecutable(browsersModule, name, latest, cacheDir, platform);
-      verify = await verifyDriverBinary(name, path, { exec: deps.verifyExec });
+  if (!force && existing && skipUpdate) {
+    noteCheck(latest);
+    logger(outdatedWarning(name, existing.installedVersion, latest, cacheDir), "warning");
+    return await keepExisting(true);
+  }
+
+  // Install path: missing, outdated, or force.
+  const updating = Boolean(existing) && !force;
+  let path: string;
+  try {
+    logger(
+      updating
+        ? `Updating ${name} ${existing.installedVersion} to ${latest} in ${cacheDir}`
+        : `Installing ${name} ${latest} into ${cacheDir}`,
+      "info"
+    );
+    path = await installBuild(latest);
+  } catch (err) {
+    if (!updating) throw err;
+    // Keep the working build. Remove the failed one so it can't pile up.
+    logger(
+      `Couldn't update \`${name}\` to ${latest}: ${errorText(err)}. Using the installed ${existing.installedVersion}.`,
+      "warning"
+    );
+    try {
+      await browsersModule.uninstall({ browser: name, buildId: latest, cacheDir });
+    } catch (cleanupErr) {
+      logger(`Failed to remove the partial ${name} ${latest}: ${errorText(cleanupErr)}`, "debug");
     }
-    if (!verify.ok) {
-      throw new Error(
-        `${name} ${latest} is present but non-functional after a reinstall (${verify.error}). It may be a partial or corrupt download; delete ${path} or reinstall.`
-      );
-    }
+    noteCheck(latest);
+    return await keepExisting(true);
   }
 
   // Prune the previous buildId only after the replacement is known-good, so a
@@ -965,7 +996,13 @@ async function ensureGeckodriver(
       ? downloaded
       : resolveBinaryPath(gecko);
 
-  if (!ctxBag.force && existing && isStillFresh(existing.latestCheckedAt, ctxBag.now)) {
+  // Within the TTL, or with updates off, use the recorded binary without the
+  // network check `download()` makes.
+  if (
+    !ctxBag.force &&
+    existing &&
+    (isStillFresh(existing.latestCheckedAt, ctxBag.now) || browserUpdatesSkipped())
+  ) {
     // Load the geckodriver module so the returned `path` is the actual
     // binary path, not just the cache directory — matches the contract
     // EnsureBrowserResult documents. Tests can inject `geckodriverModule`
@@ -1000,6 +1037,29 @@ async function ensureGeckodriver(
   // process-wide env across the awaits below.
   return await withGeckodriverCacheDir(cacheDir, async () => {
     const gecko = await loadGeckodriver(ctxBag.deps, ctxBag.ctx);
+    try {
+      return await downloadValidated(gecko);
+    } catch (err) {
+      if (ctxBag.force || !existing) throw err;
+      // Keep the working binary, and wait out the TTL before trying again.
+      logger(
+        `Couldn't update \`geckodriver\`: ${errorText(err)}. Using the installed ${existing.installedVersion}.`,
+        "warning"
+      );
+      record.browsers.geckodriver = {
+        ...existing,
+        latestCheckedAt: ctxBag.now.toISOString(),
+      };
+      writeInstalledRecord(record, ctxBag.ctx);
+      return {
+        path: resolveBinaryPath(gecko),
+        version: existing.installedVersion,
+        outdated: false,
+      };
+    }
+  });
+
+  async function downloadValidated(gecko: any): Promise<EnsureBrowserResult> {
     logger(`Installing geckodriver into ${cacheDir}`, "info");
     let downloaded = await gecko.download();
     // Validate by execution, not just presence: a partial download (seen on
@@ -1043,19 +1103,43 @@ async function ensureGeckodriver(
     // The validated binary's own --version output is the source of truth —
     // never record "unknown".
     const installedVersion: string = verify.version as string;
+    const unchanged = existing?.installedVersion === installedVersion;
     record.browsers.geckodriver = {
       installedVersion,
-      installedAt: ctxBag.now.toISOString(),
+      // Same build → same installedAt, so the record only changes on a real update.
+      installedAt: unchanged ? existing.installedAt : ctxBag.now.toISOString(),
       latestKnownVersion: installedVersion,
       latestCheckedAt: ctxBag.now.toISOString(),
     };
     writeInstalledRecord(record, ctxBag.ctx);
+    if (binaryPath) pruneOtherGeckodrivers(cacheDir, binaryPath, logger);
     return {
       path: binaryPath,
       version: installedVersion,
       outdated: false,
     };
-  });
+  }
+}
+
+// Delete every other `geckodriver-<version>` binary at the cache root, so a
+// cache restored and saved run after run holds one build (ADR 01209). The
+// package's staging dirs share the prefix but aren't files, so they're skipped.
+function pruneOtherGeckodrivers(cacheDir: string, keep: string, logger: Logger) {
+  for (const entry of readDirEntries(cacheDir)) {
+    const file = path.join(cacheDir, entry.name);
+    if (
+      !/^geckodriver-\d[\w.-]*?(\.exe)?$/.test(entry.name) ||
+      !isRegularFileEntry(cacheDir, entry) ||
+      path.resolve(file) === path.resolve(keep)
+    ) {
+      continue;
+    }
+    try {
+      fs.rmSync(file, { force: true });
+    } catch (err) {
+      logger(`Failed to remove the old ${file}: ${errorText(err)}`, "debug");
+    }
+  }
 }
 
 /**
