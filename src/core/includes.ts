@@ -12,10 +12,10 @@ import path from "node:path";
 import { getLineNumber, getLineStarts, safeRegExp } from "../common/src/textUtils.js";
 import { log, redactUrlForOutput } from "./utils.js";
 
-export { expandIncludes, remapLocations, MAX_INCLUDE_DEPTH };
+export { expandIncludes, remapLocations };
 
 // Asciidoctor's `max-include-depth` default.
-const MAX_INCLUDE_DEPTH = 64;
+export const MAX_INCLUDE_DEPTH = 64;
 
 // A run of text and where it starts in its own file.
 type Piece = { text: string; file: string; srcStart: number };
