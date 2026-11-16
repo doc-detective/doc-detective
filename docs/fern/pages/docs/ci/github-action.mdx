@@ -341,7 +341,7 @@ jobs:
       - uses: doc-detective/github-action@v2
 ```
 
-Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs. Doc Detective replaces outdated cached browsers about once a day, so use a run-scoped key, as above. A static key keeps restoring the first copy it saved, and each run downloads the newer browser again.
+Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs. Doc Detective replaces outdated cached browsers about once a day, so use a run-scoped key, as above. A static key keeps restoring the first copy it saved, and each run downloads the newer browser again. A run-scoped key saves a new cache entry on every run. GitHub evicts entries unused for 7 days, and the oldest ones once a repository passes its cache limit.
 
 ### Pre-install assets
 

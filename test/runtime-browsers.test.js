@@ -1139,6 +1139,10 @@ describe("runtime/browsers", function () {
   it("ensureBrowserInstalled('geckodriver') doesn't download when DOC_DETECTIVE_SKIP_BROWSER_UPDATE is on", async function () {
     process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE = "1";
     try {
+      const browsersDir = path.join(tmpRoot, "browsers");
+      fs.mkdirSync(browsersDir, { recursive: true });
+      const bin = geckoBin(browsersDir, "0.36.0");
+      fs.writeFileSync(bin, "old");
       seedGecko("0.36.0");
       let downloads = 0;
       const geckodriverModule = {
@@ -1151,6 +1155,7 @@ describe("runtime/browsers", function () {
       });
       expect(downloads).to.equal(0);
       expect(result.version).to.equal("0.36.0");
+      expect(result.path).to.equal(bin);
     } finally {
       delete process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE;
     }

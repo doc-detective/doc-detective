@@ -648,7 +648,10 @@ async function ensureBrowserInstalledImpl(
   // Record a channel check. Touches only the check fields, never
   // `installedVersion`/`installedAt`: the GitHub Action hashes those to decide
   // whether to save a new cache entry (ADR 01209).
-  const noteCheck = (latestKnownVersion?: string, extra: Partial<InstalledBrowser> = {}) =>
+  const noteCheck = (
+    latestKnownVersion?: string,
+    extra: Pick<InstalledBrowser, "updateFailedAt"> = {}
+  ) =>
     writeBrowserEntry(name, {
       ...existing,
       ...(latestKnownVersion ? { latestKnownVersion } : {}),
