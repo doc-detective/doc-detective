@@ -54,9 +54,10 @@ By default, the action runs from the repository root and uses the config file Do
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
 | `config` | None | Path to a configuration file, relative to `working_directory`. |
 | `input` | None | Path to an input file or directory, relative to `working_directory`. Overrides the `input` field in the config file. |
+| `cache` | `true` | Caches the `doc-detective` package, runtime, and browsers between runs. Set to `false` to install them on every run. See [Runtime caching](#runtime-caching). |
 
 <Note>
-Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package. The action expects version 5's exit codes, so the local build must be version 5 or later.
+Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package. The action expects version 5's exit codes, so the local build must be version 5 or later. With `version` empty, the action doesn't cache the runtime. See [Runtime caching](#runtime-caching).
 </Note>
 
 ## Step 3: Fail the build when tests fail
@@ -307,7 +308,11 @@ jobs:
             dd-cache-${{ runner.os }}-
       - run: npx doc-detective install ios --yes
       - uses: doc-detective/github-action@v2
+        with:
+          cache: false
 ```
+
+The `actions/cache` step already stores the whole cache directory, including the runtime and browsers, so the action step sets `cache: false` to avoid storing them twice. See [Runtime caching](#runtime-caching).
 
 The `actions/cache` step's `path` reads the same `DOC_DETECTIVE_CACHE_DIR` value, so the two stay in sync if you change the directory.
 
@@ -315,37 +320,42 @@ Use a rotating key (`github.run_id`) with `restore-keys` rather than a static ke
 
 ## Runtime caching
 
-Doc Detective installs heavy runtime assets on first use, including browsers, drivers, and npm packages. To speed up CI, cache them between runs.
+Doc Detective installs heavy runtime assets on first use, including browsers, drivers, and npm packages. The action caches them in the [GitHub Actions cache](https://docs.github.com/actions/using-workflows/caching-dependencies-to-speed-up-workflows), so later runs restore them instead of downloading them again. Caching is on by default and needs no extra workflow steps.
 
-### Cache the runtime directory
+### How the action caches the runtime
 
-Point `DOC_DETECTIVE_CACHE_DIR` at a path under the workspace, then use GitHub's cache action to persist it between runs:
+The first run in a repository installs everything and saves it. Each later run restores the newest cache entry for its OS, CPU architecture, and Node.js major version. It prefers an entry saved by the same Doc Detective version. After the tests run, the action saves a new entry only if the run installed or updated something. For example, a new Doc Detective release or an updated browser saves a new entry. GitHub evicts entries unused for 7 days, and the oldest ones once a repository passes its cache limit.
+
+While caching is on, the action resolves `version` to an exact release, such as `5.3.1`, and runs that release. It resolves `version` again on every run, so a range such as `5` still picks up new releases. To keep every run on one release, set `version` to an exact release.
+
+The cache holds the `doc-detective` package that `npx` installs, plus the `runtime` and `browsers` folders and `installed.json` from Doc Detective's [cache directory](/reference/reference/cli/install#cache-directory). It doesn't hold the Android SDK, the Java runtime, Android emulators, or WebDriverAgent builds. It also doesn't hold your project's own dependencies, such as tools your `runShell` steps call. Cache those with your language's setup action or `actions/cache`.
+
+With the default cache directory, there's nothing to configure. If you set `DOC_DETECTIVE_CACHE_DIR` or `cacheDir`, the action caches that directory. It finds the directory the way Doc Detective does, in this order:
+
+1. `DOC_DETECTIVE_CACHE_DIR`, resolved against `working_directory`.
+2. `cacheDir` in `DOC_DETECTIVE_CONFIG`, resolved against `working_directory`.
+3. `cacheDir` in the config file: the `config` input, or `.doc-detective.json`, `.doc-detective.yaml`, or `.doc-detective.yml` in `working_directory`. It resolves against the config file's folder, or against `working_directory` when the file sets `relativePathBase: "cwd"`.
+4. Doc Detective's default cache directory.
+
+The action doesn't read the user-level config file or a remote config loaded from a URL. A `cacheDir` set only there isn't cached, because the action caches the default directory instead.
+
+The action skips caching when `version` is empty or when the Actions cache service isn't available to the job. In that case, the job log says so. A cache miss, or a restore or save that fails, logs a message, and the run continues without the cache.
+
+### Turn off caching
+
+To install everything on every run, set `cache` to `false`:
 
 ```yaml
-jobs:
-  doc-tests:
-    runs-on: ubuntu-latest
-    env:
-      DOC_DETECTIVE_CACHE_DIR: ${{ github.workspace }}/.doc-detective-cache
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - uses: actions/cache@v4
-        with:
-          path: .doc-detective-cache
-          key: doc-detective-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            doc-detective-${{ runner.os }}-
-      - uses: doc-detective/github-action@v2
+- uses: doc-detective/github-action@v2
+  with:
+    cache: false
 ```
 
-Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs. Doc Detective replaces outdated cached browsers about once a day, so use a run-scoped key, as above. A static key keeps restoring the first copy it saved, and each run downloads the newer browser again. A run-scoped key saves a new cache entry on every run. GitHub evicts entries unused for 7 days, and the oldest ones once a repository passes its cache limit.
+Also turn it off when your workflow caches Doc Detective's whole cache directory itself. [Speed up iOS tests on macOS](#speed-up-ios-tests-on-macos) and [Pre-install assets](#pre-install-assets) do this. That cache already holds the runtime and browsers, so the action's cache would store them twice.
 
 ### Pre-install assets
 
-To control exactly when assets download, install them before the action runs:
+To control exactly when assets download, install them before the action runs. A pre-install step runs before the action restores its cache, so the action's cache can't speed it up. Persist the cache directory with GitHub's cache action instead, and set `cache: false` on the action:
 
 ```yaml
 jobs:
@@ -367,9 +377,13 @@ jobs:
       - run: npm install -g doc-detective
       - run: doc-detective install all --yes
       - uses: doc-detective/github-action@v2
+        with:
+          cache: false
 ```
 
 Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every step, so the pre-install step and the action share the same cached directory.
+
+Doc Detective replaces outdated cached browsers about once a day, so use a run-scoped key, as above. A static key keeps restoring the first copy it saved, and each run downloads the newer browser again.
 
 ## Verify it works
 
@@ -418,9 +432,13 @@ Open a pull request that touches a documented command, screenshot, or API respon
 
 ### Runs are slow because assets download every time
 
-**Cause:** The runtime cache isn't persisted between runs.
+**Cause:** The runtime isn't cached between runs. One of these applies:
 
-**Solution:** Set `DOC_DETECTIVE_CACHE_DIR` to a cached workspace path and pre-install assets. See [Runtime caching](#runtime-caching).
+- The action step sets `cache: false`, or `version` is empty.
+- The Actions cache service isn't available to the job.
+- A workflow `actions/cache` step for Doc Detective's cache directory uses a static key.
+
+**Solution:** Remove `cache: false` and leave `version` set. If you cache the directory yourself, use a run-scoped key. When you test a local build with `version: ""`, cache the directory yourself, as in [Pre-install assets](#pre-install-assets). The job log shows `Restored doc-detective and its runtime from the cache` when a run restored a cache entry. See [Runtime caching](#runtime-caching).
 
 ## What's next
 
