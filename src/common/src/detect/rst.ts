@@ -35,10 +35,14 @@ const INLINE: Array<[Kind | "code", RegExp]> = [
   // so it can't start or end inside an inline literal's ``.
   ["code", /(?::[\w:.+-]+:)?(?<!`)`(?!`)[^`\n]+(?<!`)`(?!`)(?::[\w:.+-]+:)?_{0,2}/g],
   ["link", /https?:\/\/[^\s<>`]*[^\s<>`.,;:!?'")\]]/g],
-  // Inline markup hugs its text and sits outside words, so list markers and 2*3*4 stay text.
-  ["strong", /(?<![\w*])\*\*(?=\S)([^\n]*?\S)\*\*(?![\w*])/g],
-  ["emphasis", /(?<![\w*])\*(?=[^\s*])([^*\n]*?[^\s*])\*(?![\w*])/g],
+  // Inline markup hugs its text and sits outside words, so list markers and 2*3*4 stay text. An
+  // odd run of backslashes escapes the opener. Strong text can't hold `**`, so an unclosed opener
+  // scans only to the next one, which keeps a line of them linear.
+  ["strong", /(?<![\w*])(?<!(?:^|[^\\])(?:\\\\)*\\)\*\*(?=\S)((?:[^*\n]|\*(?!\*))*?\S)\*\*(?![\w*])/g],
+  ["emphasis", /(?<![\w*])(?<!(?:^|[^\\])(?:\\\\)*\\)\*(?=[^\s*])([^*\n]*?[^\s*])\*(?![\w*])/g],
 ];
+// The punctuation that can quote an unindented literal block after `::`.
+const QUOTE = /^[!-/:-@[-`{-~]/;
 
 const indentOf = (text: string) => text.length - text.trimStart().length;
 const isBlank = (text: string) => text.trim() === "";
@@ -50,6 +54,8 @@ export function parseRst(content: string): Node[] {
   let paragraph: number | null = null;
   // The indent of a paragraph that ended in `::`, so the more-indented block after it is literal.
   let literal: number | null = null;
+  // An inline literal (``) left open on a paragraph's earlier line.
+  let openLiteral = false;
 
   /** The last non-blank line of the block indented past `indent` after line `i`, or `i`. */
   const blockEnd = (i: number, indent: number) => {
@@ -71,12 +77,19 @@ export function parseRst(content: string): Node[] {
     const literalIndent = literal;
     if (isBlank(text)) {
       paragraph = null;
+      openLiteral = false;
       continue;
     }
     literal = null;
 
-    if (literalIndent !== null && indentOf(text) > literalIndent) {
-      const j = blockEnd(i, literalIndent);
+    // After `::`, a more-indented block is literal, and so is a run of lines at the same indent
+    // that all start with the same punctuation, such as `>`.
+    const indent = indentOf(text);
+    const quote = literalIndent === indent ? QUOTE.exec(text.slice(indent))?.[0] : undefined;
+    if (literalIndent !== null && (indent > literalIndent || quote)) {
+      let j = i;
+      if (quote) while (j + 1 < lines.length && lines[j + 1].text.startsWith(text.slice(0, indent) + quote)) j++;
+      else j = blockEnd(i, literalIndent);
       nodes.push({ kind: "codeBlock", startIndex: start, endIndex: lines[j].end, language: "", meta: "", content: dedent(i, j), before: "" });
       i = j;
       continue;
@@ -84,7 +97,6 @@ export function parseRst(content: string): Node[] {
 
     const explicit = paragraph === null ? EXPLICIT.exec(text) : null;
     if (explicit) {
-      const indent = explicit[1].length;
       const rest = explicit[2].trim();
       const j = blockEnd(i, indent);
       const directive = DIRECTIVE.exec(rest);
@@ -136,32 +148,51 @@ export function parseRst(content: string): Node[] {
 
     if (ADORNMENT.test(text)) {
       paragraph = null;
+      openLiteral = false;
       continue;
     }
 
     paragraph ??= start;
-    scanInline(content, lines[i], paragraph, nodes);
-    if (text.trimEnd().endsWith("::")) literal = indentOf(text);
+    let from = start;
+    if (openLiteral) {
+      // The line is literal up to the `` that closes it.
+      const close = text.indexOf("``");
+      if (close === -1) continue;
+      from = start + close + 2;
+    }
+    openLiteral = scanInline(content, lines[i], paragraph, nodes, from);
+    if (text.trimEnd().endsWith("::")) literal = indent;
   }
   return nodes.sort((a, b) => a.startIndex - b.startIndex);
 }
 
-/** Adds a prose line's inline nodes, and the text between them. */
-function scanInline(content: string, line: Line, paragraph: number, nodes: Node[]) {
+/**
+ * Adds the inline nodes of a prose line from `from` on, and the text between them. Returns true
+ * when an inline literal opens with no closer on the line, so the next line starts inside it.
+ */
+function scanInline(content: string, line: Line, paragraph: number, nodes: Node[], from: number): boolean {
   const found: Array<{ kind: Kind | "code"; start: number; end: number; m: RegExpMatchArray }> = [];
   for (const [kind, re] of INLINE) {
     for (const m of line.text.matchAll(re)) found.push({ kind, start: line.start + m.index!, end: line.start + m.index! + m[0].length, m });
   }
   // The earliest construct wins an overlap. The sort is stable, so on a tie the earlier pattern wins.
   found.sort((a, b) => a.start - b.start);
-  let cursor = line.start;
+  let cursor = from;
   const text = (to: number) => {
     if (content.slice(cursor, to).trim()) {
       nodes.push({ kind: "text", startIndex: cursor, endIndex: to, text: content.slice(cursor, to), before: content.slice(paragraph, cursor) });
     }
   };
+  // A `` in plain text opens a literal that no construct on this line closes: the rest is code.
+  const opens = (to: number) => {
+    const at = content.slice(cursor, to).indexOf("``");
+    if (at === -1) return false;
+    text(cursor + at);
+    return true;
+  };
   for (const { kind, start, end, m } of found) {
     if (start < cursor) continue;
+    if (opens(start)) return true;
     text(start);
     cursor = end;
     const base = { startIndex: start, endIndex: end, before: content.slice(paragraph, start) };
@@ -173,5 +204,7 @@ function scanInline(content: string, line: Line, paragraph: number, nodes: Node[
       nodes.push({ ...base, kind, text: m[1] });
     }
   }
+  if (opens(line.end)) return true;
   text(line.end);
+  return false;
 }

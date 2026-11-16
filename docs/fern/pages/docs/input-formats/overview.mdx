@@ -53,30 +53,19 @@ Doc Detective includes default configurations for common file types:
 
 ```json
 {
-  "fileTypes": [
-    {
-      "name": "markdown",
-      "extensions": ["md", "markdown", "mdx"]
-    },
-    {
-      "name": "html",
-      "extensions": ["html", "htm"]
-    },
-    {
-      "name": "asciidoc",
-      "extensions": ["adoc", "asciidoc", "asc"]
-    },
-    {
-      "name": "dita",
-      "extensions": ["dita", "ditamap", "xml"]
-    },
-    {
-      "name": "rst",
-      "extensions": ["rst"]
-    }
-  ]
+  "fileTypes": ["markdown", "asciidoc", "html", "dita", "rst"]
 }
 ```
+
+Each name loads that format's built-in rules for these extensions:
+
+| Name | Extensions |
+|---|---|
+| `markdown` | `md`, `markdown`, `mdx` |
+| `asciidoc` | `adoc`, `asciidoc`, `asc` |
+| `html` | `html`, `htm` |
+| `dita` | `dita`, `ditamap`, `xml` |
+| `rst` | `rst` |
 
 ## Choosing an input format
 

@@ -348,6 +348,38 @@ describe("formats", function () {
       }
     });
 
+    it("scans many unclosed strong openers on one line in linear time", function () {
+      const started = performance.now();
+      parseRst("**x ".repeat(40000));
+      expect(performance.now() - started).to.be.below(500);
+    });
+
+    it("skips escaped formatting delimiters", function () {
+      const nodes = parseRst("See \\**Save** and \\*Keep*, but **Bold** and \\\\*Em*.");
+      expect(pick(nodes, "strong").map((n) => n.text)).to.deep.equal(["Bold"]);
+      expect(pick(nodes, "emphasis").map((n) => n.text)).to.deep.equal(["Em"]);
+    });
+
+    it("reads a quoted literal block after `::`", function () {
+      const nodes = parseRst("Example::\n\n> **Delete**\n> rm x\n\nAfter **Keep**.\n");
+      expect(pick(nodes, "codeBlock").map((b) => b.content)).to.deep.equal(["> **Delete**\n> rm x"]);
+      expect(pick(nodes, "strong").map((n) => n.text)).to.deep.equal(["Keep"]);
+    });
+
+    it("keeps an inline literal open across line breaks", function () {
+      const rst = "Example ``literal\nClick **Delete**\nend`` then **Keep**.\n\n``open\n\nNew **para**.\n";
+      const nodes = parseRst(rst);
+      expect(pick(nodes, "strong").map((n) => n.text)).to.deep.equal(["Keep", "para"]);
+      for (const n of pick(nodes, "text")) expect(n.text).to.not.include("Delete");
+    });
+
+    it("handles an empty code directive, a link with no text, and an open literal before markup", function () {
+      const nodes = parseRst(".. code-block:: bash\n\nSee `<https://x.com>`_ and ``open **no**\nstill **no** `` then **yes**.\n");
+      expect(pick(nodes, "codeBlock")[0]).to.include({ language: "bash", content: "" });
+      expect(pick(nodes, "link")[0]).to.include({ url: "https://x.com", text: "https://x.com" });
+      expect(pick(nodes, "strong").map((n) => n.text)).to.deep.equal(["yes"]);
+    });
+
     it("handles CRLF, a body that runs to the end, an empty comment, and an expanded literal marker", function () {
       const crlf = parseRst(".. step {}\r\n\r\n.. code-block:: bash\r\n\r\n   open");
       expect(pick(crlf, "comment")[0]).to.include({ content: "step {}", endIndex: 10 });
