@@ -67,7 +67,7 @@ export function parseRst(content: string): Node[] {
   };
 
   for (let i = 0; i < lines.length; i++) {
-    const { start, end, text } = lines[i];
+    const { start, text } = lines[i];
     const literalIndent = literal;
     if (isBlank(text)) {
       paragraph = null;

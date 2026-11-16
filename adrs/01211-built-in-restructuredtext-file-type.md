@@ -10,8 +10,8 @@ decision-makers: doc-detective maintainers
 
 Doc Detective ships four built-in file types: `markdown`, `asciidoc`, `html`, and `dita`. Sphinx and
 docutils projects write reStructuredText (`.rst`), and those files got no detection. The only advice
-was a dormant hint that told users to declare `{ "extends": "markdown", "extensions": ["rst"] }`,
-which parses RST as Markdown: directive bodies read as prose, `.. ` comments never hold statements,
+was a dormant hint that told users to declare `{ "extends": "markdown", "extensions": ["rst"] }`.
+That parses RST as Markdown: directive bodies read as prose, `.. ` comments never hold statements,
 and `` `text <url>`_ `` links aren't links.
 
 Selector detection needs a parser that turns a file into nodes with exact source offsets (comment,
@@ -77,9 +77,13 @@ substitution images, and roles such as `:guilabel:` as elements.
 
 - `src/common/test/formats.test.js` covers the scanner node by node, and `builtins.test.js` holds RST
   to the same steps as the other built-ins.
-- `test/core-artifacts/detection/` runs the RST cases through the real CLI: every kind, the extension
-  picking the parser over `extends`, `extends: "rst"`, a run with a multi-line step and an ignore
-  block, the built-in with no config, and the exit-2 rejection of an unknown built-in name.
+- `test/core-artifacts/detection/` runs the RST cases through the real CLI:
+  - every kind;
+  - the extension picking the parser over `extends`;
+  - `extends: "rst"`;
+  - a run with a multi-line step and an ignore block;
+  - the built-in with no config;
+  - the exit-2 rejection of an unknown built-in name.
 
 ## Pros and Cons of the Options
 
