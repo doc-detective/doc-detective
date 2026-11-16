@@ -19,6 +19,7 @@ Field | Type | Description | Default
 line | integer | Required. 1-indexed line number in the source file where the step was detected.<br/><br/>Minimum: 1 | —
 startIndex | integer | Required. 0-indexed character offset from the start of the source file where the step begins.<br/><br/>Minimum: 0 | —
 endIndex | integer | Required. 0-indexed character offset from the start of the source file where the step ends (exclusive).<br/><br/>Minimum: 0 | —
+file | string | Optional. Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file. | —
 
 ## Examples
 
@@ -26,6 +27,7 @@ endIndex | integer | Required. 0-indexed character offset from the start of the 
 {
   "line": 42,
   "startIndex": 42,
-  "endIndex": 42
+  "endIndex": 42,
+  "file": "example"
 }
 ```

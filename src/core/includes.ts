@@ -36,8 +36,7 @@ type Location = { startIndex: number; endIndex: number };
 type Mapped = { file: string; startIndex: number; endIndex: number; line: number };
 
 const isUrl = (target: string) => /^[a-z][a-z0-9+.-]*:\/\//i.test(target);
-const familyOf = (fileType: any, file: string, family: string) =>
-  fileType?.name === family || fileType?.extends === family || (family === "rst" && path.extname(file) === ".rst");
+const familyOf = (fileType: any, family: string) => fileType?.name === family || fileType?.extends === family;
 
 // Each line's [start, end) span, the end past its line break.
 function lineSpans(text: string): Array<[number, number]> {
@@ -380,9 +379,9 @@ function expandIncludes({
     const out: Piece[] = [];
     for (const piece of pieces) {
       const directives = [
-        ...(familyOf(ft, piece.file, "asciidoc") ? asciidocDirectives(piece.text, attributes) : []),
-        ...(familyOf(ft, piece.file, "markdown") ? markdownDirectives(piece.text, fileText) : []),
-        ...(familyOf(ft, piece.file, "rst") ? rstDirectives(piece.text) : []),
+        ...(familyOf(ft, "asciidoc") ? asciidocDirectives(piece.text, attributes) : []),
+        ...(familyOf(ft, "markdown") ? markdownDirectives(piece.text, fileText) : []),
+        ...(familyOf(ft, "rst") ? rstDirectives(piece.text) : []),
         ...customDirectives(piece.text, ft),
       ]
         .sort((a, b) => a.start - b.start)

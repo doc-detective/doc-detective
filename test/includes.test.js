@@ -214,6 +214,13 @@ describe("expandIncludes", function () {
     });
   });
 
+  it("applies rST include syntax only to the rst fileType, not to any .rst file", function () {
+    write("page.rst", ".. include:: s.rst\n");
+    write("s.rst", "S\n");
+    assert.equal(expand("page.rst", { name: "rest", extensions: ["rst"] }).content, ".. include:: s.rst\n");
+    assert.equal(expand("page.rst", { extends: "rst", extensions: ["rst"] }).content, "S\n");
+  });
+
   it("resolves a custom fileType's includeStatements, whole file", function () {
     write("guide.txt", "x\n{% include \"s.txt\" %}\ny\n");
     write("s.txt", "S\n");

@@ -119,6 +119,10 @@ Both formats work identically. Choose the format that's most readable for your t
 - Combine inline tests with [detected tests](#detected-tests) so links, bold text, and listings become steps without extra comments
 - Use YAML syntax for simpler, more readable inline tests
 
+## Includes
+
+Doc Detective resolves `include::` directives before it finds tests, so a test in an included file runs inside the page that includes it. It supports `lines=`, `tag=` and `tags=`, `opts=optional`, and `{attribute}` paths. An included file doesn't run on its own. See [Test pages that include other files](includes).
+
 ## Integration with AsciiDoc toolchains
 
 AsciiDoc test comments are standard AsciiDoc comments and don't affect document rendering. This makes Doc Detective tests invisible to your documentation build process while still being testable.

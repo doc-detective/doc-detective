@@ -259,6 +259,9 @@ navigation:
                   - page: Custom
                     path: pages/docs/input-formats/custom.mdx
                     slug: custom
+                  - page: Includes
+                    path: pages/docs/input-formats/includes.mdx
+                    slug: includes
                   - page: Selectors
                     path: pages/docs/input-formats/selectors.mdx
                     slug: selectors
