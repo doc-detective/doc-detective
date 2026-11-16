@@ -183,9 +183,12 @@ describe("expandIncludes", function () {
     write("_p.md", '<!-- step {"find": "x"} -->\n```html\n<!-- kept -->\n```\n');
     const x = expand("page.mdx", markdown);
     const body = x.content.split("\n").slice(1).join("\n");
-    assert.equal(body, '{/* step {"find": "x"} */}\n```html\n<!-- kept -->\n```\n');
+    assert.equal(body, '{/*  step {"find": "x"} */}\n```html\n<!-- kept -->\n```\n');
+    const source = '<!-- step {"find": "x"} -->';
     const at = x.content.indexOf("{/*");
-    assert.deepEqual(x.mapLocation({ startIndex: at, endIndex: at + 26 }), { file: real("_p.md"), startIndex: 0, endIndex: 26, line: 1 });
+    const end = x.content.indexOf("*/}") + 3;
+    assert.equal(end - at, source.length);
+    assert.deepEqual(x.mapLocation({ startIndex: at, endIndex: end }), { file: real("_p.md"), startIndex: 0, endIndex: source.length, line: 1 });
   });
 
   describe("reStructuredText", function () {

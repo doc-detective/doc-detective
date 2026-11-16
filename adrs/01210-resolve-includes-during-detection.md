@@ -65,7 +65,8 @@ Chosen option: **A**, on by default.
   include the whole file.
 - **Opting out.** `resolveIncludes: false` restores the old behavior.
 - **MDX.** HTML comments in a non-MDX file included into an MDX page become MDX comments. `<!--`
-  and `{/*` have the same length, as do `-->` and `*/}`, so offsets don't move.
+  becomes `{/* ` (a space pads it to the same four characters) and `-->` becomes `*/}`, so
+  offsets don't move.
 - **Guards.** Each one warns, leaves the directive in place, and keeps the exit code:
   - a missing file;
   - a target whose real path is outside the working directory;

@@ -12,7 +12,7 @@ import path from "node:path";
 import { getLineNumber, getLineStarts, safeRegExp } from "../common/src/textUtils.js";
 import { log, redactUrlForOutput } from "./utils.js";
 
-export { expandIncludes, remapLocations };
+export { expandIncludes, remapLocations, realpath };
 
 // Asciidoctor's `max-include-depth` default.
 export const MAX_INCLUDE_DEPTH = 64;
@@ -217,7 +217,8 @@ function rstDirectives(text: string): Directive[] {
 function customDirectives(text: string, fileType: any): Directive[] {
   const found: Directive[] = [];
   for (const pattern of fileType?.includeStatements ?? []) {
-    const re = safeRegExp(pattern, "gm");
+    // Patterns come from the user's own fileType config, like `inlineStatements`.
+    const re = safeRegExp(pattern, "gm"); // codeql[js/regex-injection]
     if (!re) continue;
     for (const m of text.matchAll(re)) {
       if (m[1]) found.push({ start: m.index!, end: m.index! + m[0].length, target: m[1], base: "fileThenRoot" });
@@ -311,7 +312,7 @@ function expandIncludes({
   const fileTypeFor = (file: string, parent: any) =>
     config.fileTypes?.find((ft: any) => ft.extensions?.includes(path.extname(file).slice(1))) ?? parent;
 
-  const resolve = (d: Directive, file: string, offset: number, chain: string[]): Piece[] | null => {
+  const resolve = (d: Directive, file: string, offset: number, chain: string[], ft: any): Piece[] | null => {
     const from = `${file}:${getLineNumber(texts.get(file)!, offset)}`;
     if (d.skip) {
       report("debug", `Skipped: include \`${d.target}\` from ${from}, because ${d.skip}.`);
@@ -369,11 +370,8 @@ function expandIncludes({
     return path.extname(file) === ".mdx" ? expanded.map(asMdx) : expanded;
   };
 
-  // The file type in force while expanding; nested files swap in their own.
-  let ft = fileType;
-  const expand = (pieces: Piece[], pieceType: any, chain: string[]): Piece[] => {
-    const outerType = ft;
-    ft = pieceType;
+  // `ft` is the file type of the pieces; nested files pass their own.
+  const expand = (pieces: Piece[], ft: any, chain: string[]): Piece[] => {
     const file = pieces[0]?.file;
     const fileText = pieces.map((p) => p.text).join("");
     const out: Piece[] = [];
@@ -389,7 +387,7 @@ function expandIncludes({
       let pos = 0;
       for (const d of directives) {
         const offset = piece.srcStart + d.start;
-        const resolved = resolve(d, piece.file, offset, chain);
+        const resolved = resolve(d, piece.file, offset, chain, ft);
         if (resolved === null) continue;
         if (d.start > pos) out.push({ text: piece.text.slice(pos, d.start), file: piece.file, srcStart: piece.srcStart + pos });
         // A directive indented on its own line indents every included line.
@@ -400,7 +398,6 @@ function expandIncludes({
       }
       if (pos < piece.text.length) out.push({ text: piece.text.slice(pos), file: piece.file, srcStart: piece.srcStart + pos });
     }
-    ft = outerType;
     return out;
   };
 
@@ -441,13 +438,13 @@ function expandIncludes({
 }
 
 // An MDX page can't hold an HTML comment, so a non-MDX file's comments become
-// MDX comments outside code fences. Both delimiters keep their length, so
-// every offset still maps back to the file.
+// MDX comments outside code fences. `<!--` becomes `{/* ` (a space pads it to
+// four characters) and `-->` becomes `*/}`, so every offset still maps back.
 function asMdx(piece: Piece): Piece {
   if (path.extname(piece.file) === ".mdx") return piece;
   const fences = fenceRanges(piece.text);
   const text = piece.text.replace(/<!--([\s\S]*?)-->/g, (all, body, at) =>
-    fences.some(([s, e]) => at >= s && at < e) ? all : `{/*${body}*/}`
+    fences.some(([s, e]) => at >= s && at < e) ? all : `{/* ${body}*/}`
   );
   return { ...piece, text };
 }

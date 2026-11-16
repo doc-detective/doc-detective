@@ -15,7 +15,7 @@ import { log, fetchFile, spawnCommand, runConcurrent, summarizeSchemaErrors, sho
 import { diag } from "../cliOutput.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
-import { expandIncludes, remapLocations } from "./includes.js";
+import { expandIncludes, remapLocations, realpath } from "./includes.js";
 
 // common's parseContent pulls in the yaml parser, so it loads on the first file
 // that needs it, once per process, instead of at module load.
@@ -587,7 +587,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
   // Inputs are checked in order, so one file of an include cycle still runs.
   const kept = new Set(expansions.keys());
   for (const [file] of expansions) {
-    const real = fs.realpathSync(file);
+    const real = realpath(file);
     const includer = [...kept].find((other) => other !== file && expansions.get(other)!.included.has(real));
     if (includer) {
       kept.delete(file);
