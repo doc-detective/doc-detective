@@ -654,6 +654,7 @@ describe("lsp — inline tests (markup fileTypes)", function () {
     expect(fileTypeForUri("file:///a/doc.adoc")).to.be.an("object");
     expect(fileTypeForUri("file:///a/doc.html")).to.be.an("object");
     expect(fileTypeForUri("file:///a/doc.dita")).to.be.an("object");
+    expect(fileTypeForUri("file:///a/doc.rst")).to.include({ name: "rst" });
     expect(fileTypeForUri("file:///a/doc.txt")).to.equal(null);
     expect(fileTypeForUri("file:///a/x.spec.json")).to.equal(null);
   });
@@ -779,8 +780,11 @@ describe("lsp — inline tests (markup fileTypes)", function () {
     expect(d[0].range.start.line).to.equal(0);
   });
 
-  it("works across asciidoc, html, and dita fileTypes", function () {
+  it("works across asciidoc, html, dita, and rst fileTypes", function () {
     const bad = '{"goTo":123}';
+    expect(
+      computeDiagnostics(doc("file:///a/d.rst", `.. step ${bad}\n`)).length,
+    ).to.be.greaterThan(0);
     expect(
       computeDiagnostics(doc("file:///a/d.adoc", `// (step ${bad})\n`)).length,
     ).to.be.greaterThan(0);

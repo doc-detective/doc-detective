@@ -15,7 +15,6 @@ import {
   detectOutputDirGitignored,
   gitignoreCovers,
   parseNodeMajor,
-  detectRstFiles,
   detectManagedWdaProducts,
   runInvokesDocDetective,
   VIEWPORT_FLOOR_TOLERANCE_PX,
@@ -1276,100 +1275,6 @@ describe("hints/context", function () {
     });
   });
 
-  describe("detectRstFiles", function () {
-    it("returns false when no .rst files present", function () {
-      const root = makeTmpDir();
-      try {
-        fs.writeFileSync(path.join(root, "readme.md"), "# md");
-        fs.writeFileSync(path.join(root, "guide.mdx"), "# mdx");
-        // .mdx and .adoc are NOT scanned: they're already covered by
-        // the default markdown / asciidoc file types in core config.
-        fs.writeFileSync(path.join(root, "spec.adoc"), "= adoc");
-        expect(detectRstFiles(root)).to.equal(false);
-      } finally {
-        rmTmpDir(root);
-      }
-    });
-
-    it("returns true when an .rst file exists in a nested directory", function () {
-      const root = makeTmpDir();
-      try {
-        const sub = path.join(root, "docs", "guides");
-        fs.mkdirSync(sub, { recursive: true });
-        fs.writeFileSync(path.join(sub, "intro.rst"), "Title\n=====\n");
-        expect(detectRstFiles(root)).to.equal(true);
-      } finally {
-        rmTmpDir(root);
-      }
-    });
-
-    it("ignores node_modules and dotfiles", function () {
-      const root = makeTmpDir();
-      try {
-        const nm = path.join(root, "node_modules", "pkg");
-        const dot = path.join(root, ".cache");
-        fs.mkdirSync(nm, { recursive: true });
-        fs.mkdirSync(dot, { recursive: true });
-        fs.writeFileSync(path.join(nm, "x.rst"), "x");
-        fs.writeFileSync(path.join(dot, "y.rst"), "x");
-        expect(detectRstFiles(root)).to.equal(false);
-      } finally {
-        rmTmpDir(root);
-      }
-    });
-
-    it("walks up to the repo root and scans from there", function () {
-      // Doc Detective run from a subdirectory of a repo should still
-      // see `.rst` files in sibling packages. Mirrors the walk-up
-      // behavior of detectDocDetectiveWorkflow and
-      // findPackageJsonUpward.
-      const root = makeTmpDir();
-      try {
-        // Repo root marker.
-        fs.mkdirSync(path.join(root, ".git"), { recursive: true });
-        // Sibling package with the .rst file.
-        const sibling = path.join(root, "packages", "manual");
-        fs.mkdirSync(sibling, { recursive: true });
-        fs.writeFileSync(path.join(sibling, "intro.rst"), "Title\n=====\n");
-        // Where doc-detective is invoked from.
-        const cwd = path.join(root, "packages", "site");
-        fs.mkdirSync(cwd, { recursive: true });
-        expect(detectRstFiles(cwd)).to.equal(true);
-      } finally {
-        rmTmpDir(root);
-      }
-    });
-
-    it("falls back to cwd when no .git is found in any parent", function () {
-      const root = makeTmpDir();
-      try {
-        fs.writeFileSync(path.join(root, "spec.rst"), "");
-        expect(detectRstFiles(root)).to.equal(true);
-      } finally {
-        rmTmpDir(root);
-      }
-    });
-
-    it("enforces the 100-file budget even on a flat directory", function () {
-      // Regression for the per-recursion vs per-entry budget bug. With
-      // the broken per-recursion counter, a flat dir of 200 files would
-      // be fully walked. With the per-entry counter, the scan must
-      // bail out before reaching a .rst file placed past entry 100.
-      const root = makeTmpDir();
-      try {
-        // 150 non-matching files, then a .rst at the end. With a
-        // working budget, the .rst is never reached.
-        for (let i = 0; i < 150; i++) {
-          fs.writeFileSync(path.join(root, `pad-${i}.md`), "");
-        }
-        fs.writeFileSync(path.join(root, "zzz-late.rst"), "");
-        expect(detectRstFiles(root)).to.equal(false);
-      } finally {
-        rmTmpDir(root);
-      }
-    });
-  });
-
   describe("parseNodeMajor", function () {
     it("extracts the major version", function () {
       expect(parseNodeMajor("20.11.0")).to.equal(20);
@@ -1852,7 +1757,6 @@ function fakeCtx(partial = {}) {
     hasRelativeUrls: false,
     hasCurlInRunShell: false,
     hasNodeOrPythonInRunShell: false,
-    hasRstFiles: false,
     recordingSerialized: false,
     usedCustomAssertions: false,
     usedRetry: false,
@@ -2141,10 +2045,6 @@ describe("hints/index pickByPriority + priorityWeight", function () {
 
 describe("hints/hints (registry)", function () {
   it("every hint has stable id, body, predicate, and a numeric priority when set", function () {
-    // (`useFileTypesForRst` is commented out in the registry but its
-    // `RST_EXTENSIONS` constant, `detectRstFiles` helper, and `hasRstFiles`
-    // context field are kept in place so the hint can be re-enabled without
-    // re-plumbing — so it isn't in HINTS and isn't covered below.)
     const ids = new Set();
     // Ids are camelCase, matching the convention used everywhere else
     // in the project (step names like `goTo`, config fields like
@@ -2910,45 +2810,6 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(false);
-  });
-
-  // Skipped while the `useFileTypesForRst` hint is commented out in
-  // the registry. Re-enable both together — the test body still
-  // exercises the (preserved) `hasRstFiles` context field and the
-  // custom-extension normalization logic.
-  it.skip("useFileTypesForRst: fires when .rst files exist and fileTypes lacks them", function () {
-    const h = findHint("useFileTypesForRst");
-    expect(h.when(fakeCtx({ hasRstFiles: true, config: {} }))).to.equal(true);
-    // Already declared as a custom extension (no-dot form, matching the
-    // schema/runtime convention) -> skip.
-    expect(
-      h.when(
-        fakeCtx({
-          hasRstFiles: true,
-          config: {
-            fileTypes: [
-              { extends: "markdown", extensions: ["rst"] },
-            ],
-          },
-        })
-      )
-    ).to.equal(false);
-    // Author wrote ".rst" with a leading dot — also recognized as a
-    // custom-extension declaration (defensive normalization).
-    expect(
-      h.when(
-        fakeCtx({
-          hasRstFiles: true,
-          config: {
-            fileTypes: [
-              { extends: "markdown", extensions: [".rst"] },
-            ],
-          },
-        })
-      )
-    ).to.equal(false);
-    // No matching files -> skip.
-    expect(h.when(fakeCtx({ hasRstFiles: false }))).to.equal(false);
   });
 
   it("enableTelemetryUserIdForTeam: fires for github repos with telemetry on but userId missing", function () {
