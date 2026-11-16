@@ -209,6 +209,13 @@ describe("expandIncludes", function () {
     assert.equal(expand("page.mdx", markdown).content, "```md\n``` \n<Markdown src=\"_p.md\" />\n```\n");
   });
 
+  it("reads MDX imports from the whole included file when only part of it is selected", function () {
+    write("page.md", "{{#include _p.mdx:2}}\n");
+    write("_p.mdx", "import Setup from './_setup.md';\n<Setup />\n");
+    write("_setup.md", "SETUP\n");
+    assert.equal(expand("page.md", markdown).content, "SETUP\n");
+  });
+
   it("ignores an MDX import inside a fenced code block", function () {
     write("page.mdx", "import Setup from './_real.md';\n\n```mdx\nimport Setup from './_example.md';\n```\n\n<Setup />\n");
     write("_real.md", "REAL\n");

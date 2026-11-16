@@ -384,7 +384,8 @@ function expandIncludes({
   // `ft` is the file type of the pieces; nested files pass their own.
   const expand = (pieces: Piece[], ft: any, chain: string[]): Piece[] => {
     const file = pieces[0]?.file ?? rootFile;
-    const fileText = pieces.map((p) => p.text).join("");
+    // The whole file, so MDX imports outside a selected range still apply.
+    const fileText = texts.get(file) ?? pieces.map((p) => p.text).join("");
     const out: Piece[] = [];
     for (const piece of pieces) {
       const directives = [
@@ -401,6 +402,7 @@ function expandIncludes({
           attributes.set(...d.attribute);
           continue;
         }
+        // Directives are built fresh for each expansion, so this mutation is safe.
         if (d.attributes) d.target = d.target.replace(/\{([\w-]+)\}/g, (all, name) => attributes.get(name) ?? all);
         const offset = piece.srcStart + d.start;
         const resolved = resolve(d, piece.file, offset, chain, ft);
