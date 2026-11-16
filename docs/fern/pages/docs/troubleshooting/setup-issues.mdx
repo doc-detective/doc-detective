@@ -229,13 +229,24 @@ The **Install status** section compares your installed npm packages and browsers
 -- Install status ---------------------------------------------------
   npm packages:
     webdriverio              installed  8.39.0  expected 9.2.1  OUTDATED
+
+  browsers:
+    chrome                   installed  130.0.6723.58  latest 131.0.6778.85  OUTDATED
 ```
 
-Doc Detective expects the exact version its CI tested, so a package newer than the expected version is also flagged `OUTDATED`. Reinstall the runtime to bring everything back in sync:
+Doc Detective expects the exact version its CI tested, so a package newer than the expected version is also flagged `OUTDATED`. Reinstall the runtime to bring the packages back in sync:
 
 ```bash
 doc-detective install runtime
 ```
+
+A browser or driver is flagged `OUTDATED` when its channel has a newer build, shown after `latest`. At most once a day, test runs that use the browser, `install browsers`, and `install all` check for a newer build and replace the cached one. To replace it now, install the browsers:
+
+```bash
+doc-detective install browsers
+```
+
+If the browser stays `OUTDATED`, check whether your shell or CI environment sets [`DOC_DETECTIVE_SKIP_BROWSER_UPDATE`](/reference/reference/cli#environment-variables). That variable pins the cached builds, so `OUTDATED` is expected while it's on. Unset it to let Doc Detective replace them. A failed check or download also keeps the installed build, and Doc Detective tries again a day later. To reinstall sooner, run `doc-detective install browsers --force`, which replaces the build even while the variable is on.
 
 ### Appium driver installed but not registered
 
