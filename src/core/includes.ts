@@ -215,8 +215,8 @@ function rstDirectives(text: string): Directive[] {
       };
       // Line options that leave nothing warn, named as written.
       const lineOptions = ["start-line", "end-line"].filter((k) => k in options);
-      const bad = lineOptions.find((k) => !Number.isInteger(Number(options[k])));
-      if (bad) return { missing: `:${bad}: ${options[bad]}` };
+      const bad = lineOptions.find((k) => !/^-?\d+$/.test(options[k]));
+      if (bad) return { missing: `:${bad}: ${options[bad]}`.trimEnd() };
       let s = at(options["start-line"], 0);
       let e = at(options["end-line"], t.length);
       if (lineOptions.length && e <= s) return { missing: lineOptions.map((k) => `:${k}: ${options[k]}`).join(" ") };

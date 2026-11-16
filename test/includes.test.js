@@ -301,12 +301,13 @@ describe("expandIncludes", function () {
     });
 
     it("warns on a line option that isn't a whole number", function () {
-      write("page.rst", ".. include:: s.rst\n   :start-line: 1.5\n\n.. include:: s.rst\n   :end-line: two\n");
+      write("page.rst", ".. include:: s.rst\n   :start-line: 1.5\n\n.. include:: s.rst\n   :end-line: two\n\n.. include:: s.rst\n   :start-line:\n");
       write("s.rst", "S\nT\n");
-      assert.equal(expand("page.rst", rst).content, "\n\n\n");
+      assert.equal(expand("page.rst", rst).content, "\n\n\n\n\n");
       assert.deepEqual(warnings(), [
         `Couldn't find \`:start-line: 1.5\` in ${real("s.rst")}, included from ${path.join(root, "page.rst")}:1.`,
         `Couldn't find \`:end-line: two\` in ${real("s.rst")}, included from ${path.join(root, "page.rst")}:4.`,
+        `Couldn't find \`:start-line:\` in ${real("s.rst")}, included from ${path.join(root, "page.rst")}:7.`,
       ]);
     });
 
