@@ -620,7 +620,7 @@ async function ensureBrowserInstalledImpl(
         try {
           await browsersModule.uninstall({ browser: name, buildId: latest, cacheDir });
         } catch (err) {
-          logger(`Failed to prune broken ${name} ${latest}: ${String(err)}`, "debug");
+          logger(`Failed to prune broken ${name} ${latest}: ${errorText(err)}`, "debug");
         }
         await browsersModule.install({ browser: name, buildId: latest, cacheDir });
         path = await locateExecutable(browsersModule, name, latest, cacheDir, platform);
@@ -733,7 +733,7 @@ async function ensureBrowserInstalledImpl(
       });
     } catch (err) {
       logger(
-        `Failed to prune old ${name} buildId ${existing.installedVersion}: ${String(err)}`,
+        `Failed to prune old ${name} buildId ${existing.installedVersion}: ${errorText(err)}`,
         "debug"
       );
     }
