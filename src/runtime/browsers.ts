@@ -442,7 +442,12 @@ function errorText(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-function outdatedWarning(name: BrowserAssetName, installed: string, latest: string, cacheDir: string): string {
+function outdatedWarning(
+  name: BrowserAssetName,
+  installed: string,
+  latest: string,
+  cacheDir: string
+): string {
   return `\`${name}\` ${installed} is installed in ${cacheDir}, and the \`${BROWSER_CHANNELS[name]}\` channel is now ${latest}. Unset \`DOC_DETECTIVE_SKIP_BROWSER_UPDATE\`, or run \`doc-detective install browsers ${name} --force\`, to update.`;
 }
 
@@ -1035,30 +1040,6 @@ async function ensureGeckodriver(
   // the module (otherwise resolveBinaryPath(gecko) can point at the wrong path).
   // Serialized so two installs for different cache dirs can't clobber the
   // process-wide env across the awaits below.
-  return await withGeckodriverCacheDir(cacheDir, async () => {
-    const gecko = await loadGeckodriver(ctxBag.deps, ctxBag.ctx);
-    try {
-      return await downloadValidated(gecko);
-    } catch (err) {
-      if (ctxBag.force || !existing) throw err;
-      // Keep the working binary, and wait out the TTL before trying again.
-      logger(
-        `Couldn't update \`geckodriver\`: ${errorText(err)}. Using the installed ${existing.installedVersion}.`,
-        "warning"
-      );
-      record.browsers.geckodriver = {
-        ...existing,
-        latestCheckedAt: ctxBag.now.toISOString(),
-      };
-      writeInstalledRecord(record, ctxBag.ctx);
-      return {
-        path: resolveBinaryPath(gecko),
-        version: existing.installedVersion,
-        outdated: false,
-      };
-    }
-  });
-
   async function downloadValidated(gecko: any): Promise<EnsureBrowserResult> {
     logger(`Installing geckodriver into ${cacheDir}`, "info");
     let downloaded = await gecko.download();
@@ -1106,7 +1087,7 @@ async function ensureGeckodriver(
     const unchanged = existing?.installedVersion === installedVersion;
     record.browsers.geckodriver = {
       installedVersion,
-      // Same build → same installedAt, so the record only changes on a real update.
+      // The GitHub Action hashes installed.json to decide cache saves (ADR 01209).
       installedAt: unchanged ? existing.installedAt : ctxBag.now.toISOString(),
       latestKnownVersion: installedVersion,
       latestCheckedAt: ctxBag.now.toISOString(),
@@ -1119,6 +1100,30 @@ async function ensureGeckodriver(
       outdated: false,
     };
   }
+  return await withGeckodriverCacheDir(cacheDir, async () => {
+    const gecko = await loadGeckodriver(ctxBag.deps, ctxBag.ctx);
+    try {
+      return await downloadValidated(gecko);
+    } catch (err) {
+      if (ctxBag.force || !existing) throw err;
+      // Keep the working binary, and wait out the TTL before trying again.
+      logger(
+        `Couldn't update \`geckodriver\`: ${errorText(err)}. Using the installed ${existing.installedVersion}.`,
+        "warning"
+      );
+      record.browsers.geckodriver = {
+        ...existing,
+        latestCheckedAt: ctxBag.now.toISOString(),
+      };
+      writeInstalledRecord(record, ctxBag.ctx);
+      return {
+        path: resolveBinaryPath(gecko),
+        version: existing.installedVersion,
+        outdated: false,
+      };
+    }
+  });
+
 }
 
 // Delete every other `geckodriver-<version>` binary at the cache root, so a

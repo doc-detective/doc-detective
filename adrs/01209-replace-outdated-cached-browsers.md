@@ -68,6 +68,9 @@ Chosen option: **A**.
 - Bad: an image with a baked, read-only, or pinned cache, such as the Docker image, should set
   `DOC_DETECTIVE_SKIP_BROWSER_UPDATE=1`. Otherwise each container started a day or more after the
   build downloads new browsers.
+- Neutral: Geckodriver learns the latest version only by downloading it, so its record never
+  holds a newer `latestKnownVersion` than it installed. Its fast path therefore needs no
+  known-outdated branch like the Chrome family's.
 - Neutral: Chrome and ChromeDriver update independently; both follow the `stable` channel, so they
   normally land together. If one download fails, the other may be a build ahead until the next
   check.

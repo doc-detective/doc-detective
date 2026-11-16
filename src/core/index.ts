@@ -316,6 +316,7 @@ async function runTestsAndReport(config: any, options: any) {
           driverPath?: string;
         }[] = [];
         let refreshed = false;
+        const installedBefore = getInstalledBrowsers(ctx);
         for (const browser of needs.browsers) {
           if (availableNames.has(browser)) {
             // Replace an outdated cached build once its daily check is due
@@ -323,7 +324,7 @@ async function runTestsAndReport(config: any, options: any) {
             // and free on most runs.
             for (const asset of requiredBrowserAssets(browser)) {
               if (!browserRefreshDue(asset, ctx)) continue;
-              const before = getInstalledBrowsers(ctx).find((b) => b.name === asset)?.installedVersion;
+              const before = installedBefore.find((b) => b.name === asset)?.installedVersion;
               const result = await ensureBrowserInstalled(asset, {
                 ctx,
                 deps: { logger: preflightLogger },
