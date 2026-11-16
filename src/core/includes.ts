@@ -12,7 +12,7 @@ import path from "node:path";
 import { getLineNumber, getLineStarts, safeRegExp } from "../common/src/textUtils.js";
 import { log, redactUrlForOutput } from "./utils.js";
 
-export { expandIncludes, remapLocations, realpath };
+export { expandIncludes, remapLocations };
 
 // Asciidoctor's `max-include-depth` default.
 export const MAX_INCLUDE_DEPTH = 64;
@@ -218,7 +218,7 @@ function customDirectives(text: string, fileType: any): Directive[] {
   const found: Directive[] = [];
   for (const pattern of fileType?.includeStatements ?? []) {
     // Patterns come from the user's own fileType config, like `inlineStatements`.
-    const re = safeRegExp(pattern, "gm"); // codeql[js/regex-injection]
+    const re = safeRegExp(pattern, "gm");
     if (!re) continue;
     for (const m of text.matchAll(re)) {
       if (m[1]) found.push({ start: m.index!, end: m.index! + m[0].length, target: m[1], base: "fileThenRoot" });
@@ -269,7 +269,7 @@ const inside = (child: string, parent: string) => {
   const rel = path.relative(parent, child);
   return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
 };
-const realpath = (file: string) => {
+export const realpath = (file: string) => {
   try {
     return fs.realpathSync(file);
   } catch {
