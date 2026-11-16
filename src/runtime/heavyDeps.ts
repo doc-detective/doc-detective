@@ -43,6 +43,11 @@ export type HeavyDepName = (typeof HEAVY_NPM_DEPS)[number];
 // HEAVY_NPM_DEPS) is a compile error.
 export const BEST_EFFORT_NPM_DEPS: ReadonlySet<string> = new Set<HeavyDepName>([
   "@homebridge/node-pty-prebuilt-multiarch",
+  // Pulls in appium-ios-tuntap, a native addon whose Linux prebuild needs
+  // glibc 2.38. On older hosts without a C toolchain and OpenSSL headers (such
+  // as node:24-slim) the build fails, and iOS needs a macOS host anyway, so it
+  // must not take the rest of Appium down with it (ADR 01210).
+  "appium-xcuitest-driver",
 ]);
 
 /**
