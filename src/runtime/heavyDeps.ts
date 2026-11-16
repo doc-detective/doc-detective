@@ -22,6 +22,10 @@ export const HEAVY_NPM_DEPS = [
   // prebuild and ships a non-executable macOS spawn-helper, so it can't be relied
   // on across the CI matrix; the fork can.
   "@homebridge/node-pty-prebuilt-multiarch",
+  // The image matcher behind `elementImage`. WebAssembly, so nothing native to
+  // install. Declared in ddRuntimeDependencies: few runs need it, and it's 8 MB.
+  "@appium/opencv",
+  "opencv-bindings",
 ] as const;
 
 export type HeavyDepName = (typeof HEAVY_NPM_DEPS)[number];

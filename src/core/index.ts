@@ -21,6 +21,7 @@ import {
   flushRunTelemetry as awaitTelemetryFlush,
 } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
+import { displayPath } from "../cliOutput.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
@@ -45,7 +46,9 @@ async function detectAndResolveFromConfig(config: any, { strictSpecs = false } =
   const detectedTests = await detectTests({ config });
   if (strictSpecs && config._invalidSpecs?.length) {
     throw new Error(
-      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs.join("\n")}\nFix them, or skip them with \`--no-exit-on-fail\` or \`exitOnFail: false\`.`
+      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs
+        .map(({ path, reason }: { path: string; reason: string }) => `${displayPath(path)}\n${reason}`)
+        .join("\n")}\nFix them, or skip them with \`--no-exit-on-fail\` or \`exitOnFail: false\`.`
     );
   }
   if (!detectedTests || detectedTests.length === 0) {

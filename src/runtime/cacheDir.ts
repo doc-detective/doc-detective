@@ -122,11 +122,16 @@ export function getCacheDir(ctx: CacheDirContext = {}): string {
   // validation — so this is the single layer that trims and neutralizes
   // whitespace-only values, preventing the surprise of creating a "   "
   // directory relative to the cwd.
-  const resolved =
+  //
+  // Resolve to absolute here, where every source meets (#897): npm runs with
+  // the runtime dir as its cwd, so a relative `--prefix` nested the install
+  // inside itself. A relative value resolves against the working directory.
+  const resolved = path.resolve(
     trimOrUndefined(runCacheDir) ??
-    trimOrUndefined(process.env.DOC_DETECTIVE_CACHE_DIR) ??
-    trimOrUndefined(ctx.cacheDir) ??
-    defaultCacheRoot();
+      trimOrUndefined(process.env.DOC_DETECTIVE_CACHE_DIR) ??
+      trimOrUndefined(ctx.cacheDir) ??
+      defaultCacheRoot()
+  );
   // Validate at the source so every downstream consumer (loader,
   // installer, browsers helper) inherits the safety check without
   // having to remember to call assertSafeRuntimePath itself. The cache

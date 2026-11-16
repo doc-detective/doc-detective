@@ -26,6 +26,10 @@ The defenses (keep all of them intact when touching install paths):
 - Bulk installs (postinstall `install all`) use the 9-minute `BULK_INSTALL_TIMEOUT_MS` in
   `installer.ts`. That sits under the 10-minute outer postinstall ceiling, so the diagnosable inner
   timeout fires first. Single-package JIT installs keep the loader's 5-minute default. (ADR 01035)
+- `ensureRuntimeInstalled` holds `<runtime>/install.lock` ([lock.ts](lock.ts)) around every npm
+  spawn, so two installs into one cache never reify at once (ADR 01203). Any new path that spawns
+  npm into the runtime must go through it. Its wait uses a ref'd timer. The lock's default sleep is
+  unref'd, so a process with nothing else pending would exit mid-wait.
 - `ensurePtyBackendOnDisk` (`src/core/ptyWatchdog.ts`) fs-verifies the resolved node-pty entry
   before spawn and force-reinstalls if files vanished.
 
@@ -56,6 +60,16 @@ ships that shape (ADR 01143). Unwrap with `mod.default ?? mod` at the call site,
 geckodriver, sharp, and pixelmatch loads do. Diagnostic: `<x>.<fn> is not a function` right after a
 heavy-dep major bump, while `Object.keys(mod)` shows only `default` and `module.exports`.
 
+## Thenable heavy deps
+
+`opencv-bindings` is an Emscripten module whose `then` calls back with the module itself. Returning
+it from an async function, or awaiting it, resolves the promise with the thenable again, forever. It
+spins the microtask queue at 100% CPU, so timers never fire and mocha's timeout can't catch it. The
+log just stops. `loadOpenCv` deletes `then` before the module reaches a promise. The delete lasts for the whole
+process, so anything else that loads `opencv-bindings` gets the module without `then`. Keep it that way for
+any Emscripten dep. Diagnostic: attach with `process._debugProcess(pid)` and pause; the stack is only
+`Module.then`.
+
 ## Appium extension manifest cache
 
 Appium only scans `APPIUM_HOME/node_modules` for drivers when its manifest cache
@@ -76,6 +90,16 @@ Every entry in `ddRuntimeDependencies` and `optionalDependencies` is an exact ve
 range (#722). These install with no lockfile, so a caret let one upstream release
 (`appium-chromium-driver` 3.1.0) break every user at once. `test/publish-manifest.test.js` fails
 on a range. Bump a pin only to a version CI has run.
+
+## The Windows driver's Appium peer override
+
+`appium-novawindows-driver` 1.x peers on Appium 3 and runs on Appium 4. `recordRuntimeDependencies`
+writes an `overrides` entry for that one peer edge into the runtime `package.json` before each npm
+spawn (ADR 01208). Without it, npm fails the install with `ERESOLVE`. Don't swap it for
+`--legacy-peer-deps`: that stops npm installing required peers, and `geckodriver` needs
+`@wdio/logger`. When a driver release peers on Appium 4, bump the pin and replace the assignment
+with `delete pkg.overrides`. Existing caches keep the old entry otherwise, and it would hold the
+driver's peer at a stale Appium version.
 
 ## Testing note
 

@@ -1,0 +1,11 @@
+collections:
+  - name: specs
+    paths:
+      - "docs/design/**/*.md"
+      - "docs/fern/pages/docs/**/*.mdx"
+    externalMetadata:
+      - file: "{page}.citations.yaml"
+        keys: [citations]
+cite:
+  severity:
+    claim-changed: error

@@ -1,6 +1,8 @@
 import { validate } from "../../common/src/validate.js";
 import { findElement } from "./findElement.js";
 import { switchToSurface } from "./browserSurface.js";
+import { performMovement } from "./movement.js";
+import { isVisualMatch, viewportCenter } from "./visualMatch.js";
 import { log, invalidStepMessage } from "../utils.js";
 import {
   buildConditionContext,
@@ -120,7 +122,8 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
 
   try {
     // Source and target each take find's string or object form. Execute both
-    // element searches concurrently.
+    // element searches concurrently. Image captures take turns (visualMatch.ts), so
+    // one end's look can't capture the cursor the other end's drag has moved.
     const [sourceResult, targetResult] = await Promise.all([
       findElement({ config, step: { find: step.dragAndDrop.source }, driver }),
       findElement({ config, step: { find: step.dragAndDrop.target }, driver }),
@@ -144,11 +147,11 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
 
     // Either element missing → FAIL: stop before the drag EXECUTION.
     if (status === "FAIL") {
+      const missing = result.outputs.sourceFound ? targetResult : sourceResult;
       result.description = `Couldn't find ${
         result.outputs.sourceFound ? "target" : "source"
-      } element.`;
+      } element. ${missing.description}`;
       // The missing element's near matches (ADR 01194).
-      const missing = result.outputs.sourceFound ? targetResult : sourceResult;
       if (missing.outputs?.nearMatches) result.outputs.nearMatches = missing.outputs.nearMatches;
       return result;
     }
@@ -158,6 +161,23 @@ async function dragAndDropElement({ config, step, driver }: { config: any; step:
   } catch (error: any) {
     result.status = "FAIL";
     result.description = error.message;
+    return result;
+  }
+
+  // A match on screen has no DOM node to drag, so the whole drag is pointer input.
+  if (isVisualMatch(sourceElement) || isVisualMatch(targetElement)) {
+    try {
+      await performMovement({
+        driver,
+        from: await viewportCenter(driver, sourceElement),
+        to: await viewportCenter(driver, targetElement),
+        duration,
+      });
+      result.description += " Performed drag and drop.";
+    } catch (error: any) {
+      result.status = "FAIL";
+      result.description = `Couldn't perform drag and drop. ${error.message}`;
+    }
     return result;
   }
 

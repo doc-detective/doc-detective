@@ -82,6 +82,57 @@
           "runShell": "node -e \"const v = Number(process.env.VARIATION_OVER); process.exit(v > 0.01 ? 0 : 1)\""
         }
       ]
+    },
+    {
+      "testId": "variation-near-miss-size",
+      "description": "ADR 01205 / #719: the compare crop is 1px taller than the reference at the same scale, so the comparison crops to the common region instead of resampling, and the unchanged page measures no drift.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "stepId": "variation-near-miss-seed",
+          "screenshot": {
+            "path": "variation-near-miss.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": {
+              "selector": "#text-input",
+              "padding": {
+                "top": 20,
+                "right": 20,
+                "bottom": 20,
+                "left": 20
+              }
+            }
+          }
+        },
+        {
+          "stepId": "variation-near-miss-compare",
+          "screenshot": {
+            "path": "variation-near-miss.png",
+            "directory": "static/images",
+            "maxVariation": 0.05,
+            "overwrite": "aboveVariation",
+            "crop": {
+              "selector": "#text-input",
+              "padding": {
+                "top": 20,
+                "right": 20,
+                "bottom": 21,
+                "left": 20
+              }
+            }
+          },
+          "variables": {
+            "VARIATION_NEAR_MISS": "$$variation"
+          }
+        },
+        {
+          "description": "Assert the comparison ran and measured no drift on the common region.",
+          "runShell": "node -e \"const v = process.env.VARIATION_NEAR_MISS; if (Number(v) !== 0 || v === '') { console.error(v); process.exit(1) }\""
+        }
+      ]
     }
   ]
 }

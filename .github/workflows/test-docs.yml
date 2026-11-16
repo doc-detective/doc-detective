@@ -47,7 +47,7 @@ jobs:
         run: npm link
 
       - name: Run Doc Detective on the docs
-        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        uses: doc-detective/github-action@d4754e923691878e777b1266ccb65260bc559bdc # v2.0.0
         with:
           version: "" # bare npx doc-detective -> the linked local build above
           config: docs/.doc-detective.json
@@ -96,7 +96,7 @@ jobs:
       # can't boot here: turn off the lazy SDK install so the Android test
       # skips on this runner instead of downloading the SDK and timing out.
       - name: Run Doc Detective on the docs
-        uses: doc-detective/github-action@f2ec2be7f8aefbb9c2457b3211610364c7bd14b1 # ios WDA cache key v2 (github-action#74)
+        uses: doc-detective/github-action@d4754e923691878e777b1266ccb65260bc559bdc # v2.0.0
         env:
           DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: '1'
         with:
@@ -105,7 +105,6 @@ jobs:
           input: docs/fern/pages
           exit_on_fail: true
           android: 'false'
-          ios: 'false'
 
       # The action writes its results to $RUNNER_TEMP/doc-detective-output.json,
       # the same file fixtures.yml gates on (scripts/check-fixture-results.cjs).

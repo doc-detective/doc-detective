@@ -443,6 +443,11 @@ describe("buildAppLocator", function () {
     assert.match(buildAppLocator({}).error, /No app-mappable/);
   });
 
+  it("image-browser-only: rejects elementImage even beside a native selector", function () {
+    assert.match(buildAppLocator({ selector: "//Button[@Name='Save']", elementImage: "save.png" }).error, /elementImage/);
+    assert.match(buildAppLocator({ selector: "~Save", elementImage: { base64: "aGk=" } }).error, /elementImage/);
+  });
+
   it("selects the platform's locator column (mac → AX, default → UIA)", function () {
     assert.deepEqual(buildAppLocator({ elementText: "Save" }, "mac"), {
       strategy: "xpath",

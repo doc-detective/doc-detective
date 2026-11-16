@@ -497,11 +497,12 @@ export const HINTS: Hint[] = [
     id: "upgradeNodeVersion",
     priority: 20,
     markdown: [
-      "You're on Node 23 or older. Doc Detective needs Node 24.15 or later — older runtimes hit obscure bugs in the browser stack and the schema parser. Upgrade and retry:",
+      "You're on Node 23 or older. Doc Detective needs Node 24.22.1 or later on the 24 line, or 26.12.1 or later — older runtimes hit obscure bugs in the browser stack and the schema parser. Upgrade and retry:",
       "",
       "More: [Node.js release schedule](https://nodejs.org/en/about/previous-releases)",
     ].join("\n"),
-    // Major version only, so 24.0 to 24.14 rely on npm's EBADENGINE warning.
+    // Major version only, so 24.0 to 24.22.0, 25, and 26.0 to 26.12.0 rely on
+    // npm's EBADENGINE warning.
     when: (ctx) => ctx.nodeMajor > 0 && ctx.nodeMajor < 24,
   },
 

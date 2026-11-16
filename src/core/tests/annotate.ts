@@ -22,6 +22,7 @@ import {
   TARGET_ATTRIBUTE,
 } from "../annotations/domAdapter.js";
 import { log, invalidStepMessage } from "../utils.js";
+import { isVisualMatch } from "./visualMatch.js";
 
 export { annotate, applyAnnotateOps, pruneExpired, renderLayer };
 
@@ -29,7 +30,13 @@ type StoredAnnotation = {
   id: string;
   spec: any;
   expiresAt?: number;
+  // Where an image target was found, on which page, and for which target. Looked
+  // for again while this layer is up, it would be under its own blur or highlight.
+  placed?: { url: string; target: string; items: { rect: any; element?: any }[] };
 };
+
+const namesImage = (spec: any) => JSON.stringify(spec).includes('"elementImage":');
+const targetKey = (resolved: any) => JSON.stringify([resolved.target, resolved.all]);
 
 /**
  * Fold an annotate payload into the current annotation list.
@@ -76,7 +83,8 @@ function applyAnnotateOps(
         typeof spec.duration === "number" ? now + spec.duration : undefined,
     };
     const existing = next.findIndex((item) => item.id === id);
-    if (existing >= 0) next[existing] = entry;
+    // The render keeps the place only while the target is the same.
+    if (existing >= 0) next[existing] = { ...entry, placed: next[existing].placed };
     else next.push(entry);
     added.push(id);
   }
@@ -98,6 +106,7 @@ function applyAnnotateOps(
       spec,
       expiresAt:
         typeof spec.duration === "number" ? now + spec.duration : undefined,
+      placed: next[index].placed,
     };
   }
 
@@ -175,14 +184,28 @@ async function renderLayer({
   // CSS pixel space, so the browser applies devicePixelRatio itself. The
   // generator is unit-agnostic — it only needs rects and a canvas in the same
   // space — which is what lets one implementation serve both media.
-  const { placed, errors } = await resolveAnnotationRects({
+  const url = typeof driver.getUrl === "function" ? await driver.getUrl() : undefined;
+  const reused = entries.map(({ placed }, i) =>
+    placed && url !== undefined && placed.url === url && placed.target === targetKey(resolved[i]) ? placed.items : null
+  );
+  const { placed: found, errors } = await resolveAnnotationRects({
     config,
-    annotations: resolved as any,
+    annotations: resolved.filter((_, i) => !reused[i]) as any,
     driver,
     canvas: viewport,
     scale: 1,
   });
   if (errors.length > 0) return { errors };
+  // A kept place takes the annotation's current style and label.
+  const placed = entries.flatMap((entry, i) => {
+    if (reused[i]) return reused[i].map((where) => ({ ...resolved[i], ...where }));
+    const items = (found as any[]).filter((item) => item.__ddId === entry.id);
+    if (url !== undefined && namesImage(entry.spec)) {
+      const where = items.map(({ rect, element }) => ({ rect, element }));
+      entry.placed = { url, target: targetKey(resolved[i]), items: where };
+    }
+    return items;
+  });
 
   // Give every placed annotation a UNIQUE render id.
   //
@@ -200,7 +223,10 @@ async function renderLayer({
     idCounts.set(base, seen + 1);
     item.id = seen === 0 ? base : `${base}--${seen}`;
   }
-  const tracked = (placed as any[]).filter((item) => item.track && item.element);
+  // A match on screen has no DOM node to tag, so it doesn't follow the page.
+  const tracked = (placed as any[]).filter(
+    (item) => item.track && item.element && !isVisualMatch(item.element)
+  );
   for (const item of tracked) {
     try {
       await driver.execute(

@@ -60,7 +60,7 @@ jobs:
             3. Flag if the issue requires product changes vs documentation changes
 ```
 
-Doc Detective 5 needs Node.js 24.15 or later, so the workflow sets up Node.js 24 before the action. This configuration:
+Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. The workflow sets up Node.js 24 before the action. This configuration:
 - Runs tests against the `./docs` directory on every push to `main`
 - Creates a GitHub issue when any test fails, or updates the open one from an earlier run, using the token in the `DOC_DETECTIVE_ISSUE_TOKEN` secret
 - Mentions Claude in the issue with a detailed diagnostic prompt

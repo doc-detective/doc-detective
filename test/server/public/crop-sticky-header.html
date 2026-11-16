@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Crop under a sticky header</title>
+    <style>
+      body { margin: 0; font-family: sans-serif; }
+      header {
+        position: fixed; top: 0; left: 0; right: 0; height: 80px;
+        background: rgb(255, 0, 0); z-index: 10;
+      }
+      main { padding: 120px 40px 2000px; }
+      .spacer { height: 1200px; }
+      button { background: rgb(0, 0, 255); color: white; border: 0; padding: 12px 24px; font-size: 18px; }
+    </style>
+  </head>
+  <body>
+    <header>Site banner</header>
+    <main>
+      <div class="spacer"></div>
+      <button id="get-started">Get started</button>
+      <div class="spacer"></div>
+      <button id="learn-more">Learn more</button>
+    </main>
+  </body>
+</html>

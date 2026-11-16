@@ -27,11 +27,11 @@ npx doc-detective@4
 
 ## Node.js version
 
-**What changed:** Doc Detective 5 needs Node.js 24.15 or later, and it's tested on Node.js 24 and 26. Node.js 22 reaches end of life in April 2027. On an older version, npm prints an `EBADENGINE` warning during install, and the run isn't supported.
+**What changed:** Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line. On the 26 line, it needs 26.12.1 or later. Node.js 25 isn't supported. Node.js 22 reaches end of life in April 2027. On an unsupported version, npm prints an `EBADENGINE` warning during install, and the run isn't supported.
 
 **What to do:**
 
-1. Move to Node.js 24.15 or later while you're still on Doc Detective 4, which also runs on it.
+1. Move to a supported Node.js version while you're still on Doc Detective 4, which also runs on it.
 2. Upgrade Doc Detective.
 3. In CI, set the version explicitly, because GitHub-hosted runners default to Node.js 22:
 
@@ -66,13 +66,13 @@ if: runner.os == 'macOS'
 
 **What changed:** An invalid spec exits `2` before any test runs. Version 4 warned, skipped that spec, and ran the rest.
 
-**What to do:** Fix the spec the error names. To skip invalid specs and run the valid ones while you clean up, pass `--no-exit-on-fail` or set `exitOnFail: false`.
+**What to do:** Fix the spec the error names. To find every invalid spec at once without running any tests, run `npx doc-detective@5 validate` on your inputs, such as `npx doc-detective@5 validate ./docs`. It checks spec files and inline tests, names the file and field for each problem, and exits `1` if any test is invalid. For its other exit codes and its `--json` output, see [`validate`](/reference/reference/cli#validate). To skip invalid specs and run the valid ones while you clean up, pass `--no-exit-on-fail` or set `exitOnFail: false`.
 
 ## Unknown keys in specs and steps
 
 **What changed:** A key Doc Detective doesn't recognize on a spec or step, or in a `click`, `runCode`, `record`, or `dragAndDrop` object, makes the spec invalid. Version 4 ignored those keys, so a typo such as `asertions` silently turned off a check. An invalid inline step, or an invalid step in a `before` or `after` file, also makes its spec invalid. Version 4 dropped the step and kept going.
 
-**What to do:** Run your suite, then fix or remove each key the error names. The error suggests the closest valid key:
+**What to do:** To check your specs and inline tests without running them, run `npx doc-detective@5 validate` on your inputs. Then fix or remove each key the output names. The error suggests the closest valid key:
 
 ```text
 tests[0].steps[0]: unknown key `asertions`. Did you mean `assertions`?
@@ -688,7 +688,7 @@ Its `container` key no longer turns on unsafe steps. The official Docker images 
 - `config.reporters` is a CLI setting. `runTests()` returns the results and runs no reporters.
 - The results and the dry-run plan it returns show environment variable values as `***NAME***`. See [Environment variable values are masked](#environment-variable-values-are-masked).
 
-**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To validate specs or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it. Replace `runTests()` null checks with `report.specs.length === 0`. Replace checks of an API run's `status` or `error` with a `catch`.
+**What to do:** To see the tests a run would perform, use `doc-detective --dry-run`. To check spec files and inline tests without running them, use `doc-detective validate`. To validate spec objects or detect tests in a string, use the [`doc-detective-common`](https://www.npmjs.com/package/doc-detective-common) package. Run the CLI as a command, not by importing it. Replace `runTests()` null checks with `report.specs.length === 0`. Replace checks of an API run's `status` or `error` with a `catch`.
 
 ## Deprecated arguments
 

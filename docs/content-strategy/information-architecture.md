@@ -148,7 +148,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Track overview / start here | W1, D1 | ★ | Frames the one job, routes by surface (UI vs. CLI/code/API). |
 | Inline tests | W2 | ★ | Tests embedded in a doc source file. |
 | Detected tests | W2 | ★ | Tests inferred from prose. |
-| Standalone test specs | W1, D1 | ★ | `*.spec.json` files kept beside the docs, a valid authoring choice for any surface. |
+| Standalone test specs | W1, D1 | ★ | `*.spec.json` files kept beside the docs, a valid authoring choice for any surface. Includes checking specs with `doc-detective validate` before a run. |
 | Last verified on | W2 | | `verified-by` write-back in front matter and manni `meta` statements, plus the `badge: true` test flag. Records when a test last passed. |
 
 **UI procedures: Wren**
@@ -156,6 +156,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Page | CUJ | ★ | Notes |
 |---|---|---|---|
 | Fill fields & UI flows | W2 | | `find`/`click`/`type`/`dragAndDrop`. |
+| Find elements by image | W2 | | Authored: `/docs/test-docs/find-elements-by-image`. `elementImage` for canvases and custom-drawn controls that selectors can't reach. Its claims are pinned with `manni cite`. |
 | Capture screenshots | W2 | ★ | Authored: `/docs/test-docs/capture-screenshots-guide`. Lead guide for the Screenshots sub-section: a single `screenshot` capture (full viewport, cropped element, padding). The topic split into a Screenshots sub-section. Visual regression, automatic screenshots, and annotations each moved to their own guide (below). |
 | Screenshot visual regression | W2 | ★ | Authored: `/docs/test-docs/screenshot-visual-regression`. Compare a capture against a committed reference image with `maxVariation`; cloud-storage references and the SSRF guard. |
 | Automatic screenshots | W2 | ★ | Authored: `/docs/test-docs/automatic-screenshots`. `autoScreenshot` captures an image after every browser-driven step; artifact paths. |

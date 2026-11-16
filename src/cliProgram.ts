@@ -12,6 +12,7 @@ import {
 import { buildDebugCommand } from "./debug/command.js";
 import { buildLspCommand } from "./lsp/command.js";
 import { buildInstallCommand } from "./runtime/installCommand.js";
+import { buildValidateCommand } from "./validate/command.js";
 import { ownVersion } from "./runtime/heavyDeps.js";
 
 type RunHandler = (args: Record<string, any>) => Promise<void> | void;
@@ -58,6 +59,7 @@ export function buildProgram({ runTests }: { runTests: RunHandler }): Command {
   program.addCommand(buildInstallCommand());
   program.addCommand(buildLspCommand());
   program.addCommand(buildDebugCommand());
+  program.addCommand(buildValidateCommand());
 
   // No global flags: the hosted runner reports to its API, not to stdout, and
   // reads its settings from the environment (ADR 01193).

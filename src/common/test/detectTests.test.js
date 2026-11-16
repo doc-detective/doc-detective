@@ -49,6 +49,21 @@ function readFixture(filename) {
   };
     // ========== parseXmlAttributes ==========
     describe("parseXmlAttributes", function () {
+      // CodeQL js/polynomial-redos (alert 102): the key pattern restarted
+      // inside every run of `[\w.]`, so a long dotted run with no `=` took
+      // quadratic time.
+      it("parses a long run of dots with no `=` in linear time", function () {
+        const start = Date.now();
+        expect(parseXmlAttributes({ stringifiedObject: ".".repeat(50000) })).to.be.null;
+        expect(Date.now() - start).to.be.below(100);
+      });
+
+      it("still matches a dotted key that follows other text", function () {
+        expect(
+          parseXmlAttributes({ stringifiedObject: 'x httpRequest.url="https://example.com"' })
+        ).to.deep.equal({ httpRequest: { url: "https://example.com" } });
+      });
+
       it("should return null for non-string input", function () {
         expect(parseXmlAttributes({ stringifiedObject: 123 })).to.be.null;
         expect(parseXmlAttributes({ stringifiedObject: null })).to.be.null;

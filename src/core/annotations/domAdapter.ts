@@ -22,6 +22,8 @@
 // Declared before the export so the two module constants precede their first
 // textual use (the export list is a binding, not an evaluation, so this is
 // cosmetic — but it keeps CodeQL's declared-before-use check quiet).
+import { isVisualMatch } from "../tests/visualMatch.js";
+
 const LAYER_TAG = "dd-annotation-layer";
 const TARGET_ATTRIBUTE = "data-dd-annotate-target";
 
@@ -31,6 +33,8 @@ export {
   mountAnnotations,
   clearLayer,
   layerScript,
+  watchBlurRegions,
+  readBlurRegions,
 };
 
 /**
@@ -234,7 +238,8 @@ function blurRegionsToHtml(regions: any[]): string {
     .map((region) => {
       const id = String(region.id ?? "").replace(/"/g, "");
       return (
-        `<div class="dd-blur" data-dd-blur="${id}" style="` +
+        `<div class="dd-blur" data-dd-blur="${id}" ` +
+        `data-dd-intensity="${region.intensity}" style="` +
         `left:${region.rect.x}px;top:${region.rect.y}px;` +
         `width:${region.rect.width}px;height:${region.rect.height}px;` +
         `backdrop-filter:blur(${region.intensity}px);` +
@@ -280,7 +285,9 @@ async function mountAnnotations({
       type: item.transition?.enter ?? "fade",
       durationMs: item.transition?.durationMs ?? 250,
     };
-    if (item.track) tracked.push({ id, rect: item.rect });
+    // Only a tagged element is followed. Anything else would follow whichever
+    // element an older annotation with this id left tagged.
+    if (item.track && item.element && !isVisualMatch(item.element)) tracked.push({ id, rect: item.rect });
   }
 
   await driver.execute(
@@ -299,6 +306,87 @@ async function mountAnnotations({
       tracked,
     }
   );
+}
+
+/**
+ * Start noting every place each of the layer's blurs is drawn, on every frame,
+ * until `readBlurRegions`. A tracked blur only moves on an animation frame, so
+ * whichever frame a screenshot captures is one of the frames noted (ADR 01202).
+ * Resolves whether there was a layer to watch.
+ */
+async function watchBlurRegions(driver: any): Promise<boolean> {
+  return await driver.execute((tag: string) => {
+    const layer: any = document.querySelector(tag);
+    if (!layer || !layer.shadowRoot) return false;
+    cancelAnimationFrame(layer.__ddWatch);
+    const seen: any[] = [];
+    // ponytail: a capture that throws leaves this noting until the next read or
+    // until the layer goes; one rect read per blur per frame.
+    const note = () => {
+      if (!layer.isConnected) return;
+      Array.from(layer.shadowRoot.querySelectorAll(".dd-blur")).forEach((blur: any, i: number) => {
+        const r = blur.getBoundingClientRect();
+        const s = seen[i] || r;
+        seen[i] = {
+          left: Math.min(s.left, r.left),
+          top: Math.min(s.top, r.top),
+          right: Math.max(s.right, r.right),
+          bottom: Math.max(s.bottom, r.bottom),
+        };
+      });
+      layer.__ddWatch = requestAnimationFrame(note);
+    };
+    layer.__ddSeen = seen;
+    layer.__ddNote = note;
+    note();
+    return true;
+  }, LAYER_TAG);
+}
+
+/**
+ * Where the layer's blurs are, in CSS pixels, and how strong each is. After
+ * `watchBlurRegions`, each one covers every place it was drawn since, and
+ * `watched` says the watch was still there: a new document has none.
+ *
+ * A screenshot burns these into its capture, because Firefox leaves
+ * `backdrop-filter` out of WebDriver screenshots (ADR 01202). They're read from
+ * the page rather than rebuilt from state, so a tracked blur is read where it
+ * has moved to.
+ */
+async function readBlurRegions(driver: any): Promise<{
+  viewportWidth: number;
+  regions: { x: number; y: number; width: number; height: number; intensity: number }[];
+  watched: boolean;
+}> {
+  return await driver.execute((tag: string) => {
+    const layer: any = document.querySelector(tag);
+    const blurs: any[] =
+      layer && layer.shadowRoot
+        ? Array.from(layer.shadowRoot.querySelectorAll(".dd-blur"))
+        : [];
+    let seen: any[] = [];
+    const watched = !!(layer && layer.__ddNote);
+    if (watched) {
+      layer.__ddNote();
+      cancelAnimationFrame(layer.__ddWatch);
+      seen = layer.__ddSeen;
+      layer.__ddNote = layer.__ddSeen = undefined;
+    }
+    return {
+      watched,
+      viewportWidth: window.innerWidth,
+      regions: blurs.map((blur, i) => {
+        const rect = seen[i] || blur.getBoundingClientRect();
+        return {
+          x: rect.left,
+          y: rect.top,
+          width: rect.right - rect.left,
+          height: rect.bottom - rect.top,
+          intensity: Number(blur.getAttribute("data-dd-intensity")),
+        };
+      }),
+    };
+  }, LAYER_TAG);
 }
 
 /** Remove the layer entirely, stopping its tracking loop and any pending

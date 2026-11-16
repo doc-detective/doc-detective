@@ -104,7 +104,13 @@ jobs:
   promote:
     name: Smoke-test → promote → Docker
     needs: release
-    if: needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main'
+    # `!cancelled()` instead of the implicit `success()`: `published` is set by
+    # the exec `successCmd`, which runs after the packages reach npm and before
+    # @semantic-release/github's `success` step. That step can still fail the
+    # job afterwards (GitHub's GraphQL API answers 504 when a large release's
+    # commit lookups run in parallel, #949), and a published release must
+    # still be promoted.
+    if: ${{ !cancelled() && needs.release.outputs.published == 'true' && github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/promote.yml
     with:
       version: ${{ needs.release.outputs.version }}

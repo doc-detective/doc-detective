@@ -772,6 +772,8 @@ describe("runtime/loader.ts — install teardown & log-stream branches", functio
   });
 
   it("kills the child on install timeout and settles even when child.kill() throws", async function () {
+    // An unkillable child settles only after both kill graces (2 x 5 s).
+    this.timeout(20000);
     const cacheDir = mkTmp("dd-edge-loader-");
     const child = makeFakeChild();
     // Never emit `close` — force the wall-clock timeout to fire.

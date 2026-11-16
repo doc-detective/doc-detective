@@ -1,0 +1,192 @@
+{
+  "specId": "annotate-blur-capture",
+  "description": "A screenshot taken while an `annotate` blur is up comes out blurred in every browser (ADR 01202). The live layer draws blurs with CSS `backdrop-filter`, which Firefox leaves out of WebDriver screenshots, so the screenshot step burns the layer's blurs into the capture itself. Each test captures the page unblurred as its own reference, puts a blur over the striped `#secret` box, and compares: the box is 16% of the viewport, so a blurred capture differs from the reference in about that share of pixels, and an unblurred one in none. A crop of the box differs almost everywhere. After `clear`, the capture matches the reference again, so nothing stale is burned in. Headless, so every platform runs both browsers; the failure path (a page that won't report its blurs) is pinned in test/annotations-screenshot.test.js.",
+  "tests": [
+    {
+      "testId": "annotate-blur-capture-chrome",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/annotate-blur.html"
+        },
+        {
+          "description": "The unblurred reference for the full viewport.",
+          "screenshot": {
+            "path": "live-blur-chrome.png",
+            "directory": "static/images",
+            "overwrite": "true"
+          }
+        },
+        {
+          "description": "The unblurred reference for a crop of the box.",
+          "screenshot": {
+            "path": "live-blur-chrome-crop.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#secret"
+          }
+        },
+        {
+          "annotate": {
+            "add": [
+              {
+                "id": "redact",
+                "blur": "#secret",
+                "transition": {
+                  "enter": "none"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "description": "The full capture differs from the reference across the box.",
+          "screenshot": {
+            "path": "live-blur-chrome.png",
+            "directory": "static/images",
+            "overwrite": "aboveVariation",
+            "maxVariation": 1
+          },
+          "assertions": [
+            "$$outputs.variation > 0.1"
+          ]
+        },
+        {
+          "description": "The crop differs from the reference almost everywhere.",
+          "screenshot": {
+            "path": "live-blur-chrome-crop.png",
+            "directory": "static/images",
+            "overwrite": "aboveVariation",
+            "maxVariation": 1,
+            "crop": "#secret"
+          },
+          "assertions": [
+            "$$outputs.variation > 0.9"
+          ]
+        },
+        {
+          "annotate": {
+            "clear": true
+          }
+        },
+        {
+          "description": "With the blur cleared, the capture matches the reference again.",
+          "screenshot": {
+            "path": "live-blur-chrome.png",
+            "directory": "static/images",
+            "overwrite": "aboveVariation",
+            "maxVariation": 1
+          },
+          "assertions": [
+            "$$outputs.variation == 0"
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "annotate-blur-capture-firefox",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/annotate-blur.html"
+        },
+        {
+          "description": "The unblurred reference for the full viewport.",
+          "screenshot": {
+            "path": "live-blur-firefox.png",
+            "directory": "static/images",
+            "overwrite": "true"
+          }
+        },
+        {
+          "description": "The unblurred reference for a crop of the box.",
+          "screenshot": {
+            "path": "live-blur-firefox-crop.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#secret"
+          }
+        },
+        {
+          "annotate": {
+            "add": [
+              {
+                "id": "redact",
+                "blur": "#secret",
+                "transition": {
+                  "enter": "none"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "description": "The full capture differs from the reference across the box.",
+          "screenshot": {
+            "path": "live-blur-firefox.png",
+            "directory": "static/images",
+            "overwrite": "aboveVariation",
+            "maxVariation": 1
+          },
+          "assertions": [
+            "$$outputs.variation > 0.1"
+          ]
+        },
+        {
+          "description": "The crop differs from the reference almost everywhere.",
+          "screenshot": {
+            "path": "live-blur-firefox-crop.png",
+            "directory": "static/images",
+            "overwrite": "aboveVariation",
+            "maxVariation": 1,
+            "crop": "#secret"
+          },
+          "assertions": [
+            "$$outputs.variation > 0.9"
+          ]
+        },
+        {
+          "annotate": {
+            "clear": true
+          }
+        },
+        {
+          "description": "With the blur cleared, the capture matches the reference again.",
+          "screenshot": {
+            "path": "live-blur-firefox.png",
+            "directory": "static/images",
+            "overwrite": "aboveVariation",
+            "maxVariation": 1
+          },
+          "assertions": [
+            "$$outputs.variation == 0"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -192,6 +192,12 @@
             "required": [
               "elementAria"
             ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "elementImage"
+            ]
           }
         ]
       },
@@ -237,6 +243,9 @@
               "type": ["boolean", "number", "string"]
             },
             "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
+          },
+          "elementImage": {
+            "$ref": "elementImage_v3.schema.json#"
           },
           "elementAria": {
             "type": "string",
