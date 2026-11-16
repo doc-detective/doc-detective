@@ -24,7 +24,7 @@ The `-v .:/app` flag mounts your current directory to `/app` inside the containe
 Inside the official image, unsafe steps run automatically without `--allow-unsafe`. Those include `runCode` snippets detected from Markdown code fences. The image sets `"allowUnsafeSteps": true` in a user config at `/etc/doc-detective-xdg/doc-detective/config.json`, and points `XDG_CONFIG_HOME` at it. A user config is the lowest config layer, so your project config, `DOC_DETECTIVE_CONFIG`, or `--no-allow-unsafe` overrides it. To opt out, set `allowUnsafeSteps` to `false` in your config. See [Configuration precedence](/reference/reference/cli#configuration-precedence).
 </Note>
 
-The image also sets `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`, where its browsers are pre-installed, and `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1`, because the image tag sets the version. For every variable Doc Detective reads, see [Environment variables](/reference/reference/cli#environment-variables).
+The image also sets `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`, where its browsers are pre-installed, and `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1`, because the image tag sets the version. A container that starts more than a day after the image's build can download newer browser and driver builds. To keep the builds baked into the image, set `DOC_DETECTIVE_SKIP_BROWSER_UPDATE=1` in the container, for example with `docker run -e DOC_DETECTIVE_SKIP_BROWSER_UPDATE=1`. For newer browsers, pull a newer image. For every variable Doc Detective reads, see [Environment variables](/reference/reference/cli#environment-variables).
 
 ## Step 2: Understand headless behavior
 
