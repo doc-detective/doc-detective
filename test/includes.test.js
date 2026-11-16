@@ -96,6 +96,15 @@ describe("expandIncludes", function () {
       ]);
     });
 
+    it("warns when lines select nothing", function () {
+      write("guide.adoc", "include::s.adoc[lines=9..12]\n");
+      write("s.adoc", "x\n");
+      assert.equal(expand("guide.adoc", asciidoc).content, "\n");
+      assert.deepEqual(warnings(), [
+        `Couldn't find \`lines=9..12\` in ${real("s.adoc")}, included from ${path.join(root, "guide.adoc")}:1.`,
+      ]);
+    });
+
     it("warns when a tag isn't found and includes nothing", function () {
       write("guide.adoc", "include::s.adoc[tag=missing]\n");
       write("s.adoc", "x\n");
@@ -148,7 +157,7 @@ describe("expandIncludes", function () {
     it("leaves components in inline code and comments alone", function () {
       const text = [
         "import S from './snips/s.md';",
-        '`<Markdown src="snips/s.md" />` and `<S />`',
+        '`<Markdown src="snips/s.md" />` and `<S />` and `` <S /> `` and ```<Markdown src="snips/s.md" />```',
         '{/* <Markdown src="snips/s.md" /> <S /> */}',
         '<!-- <Markdown src="snips/s.md" /> -->',
         "",

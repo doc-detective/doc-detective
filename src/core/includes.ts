@@ -50,15 +50,16 @@ function lineSpans(text: string): Array<[number, number]> {
   return spans;
 }
 
-// Lines 1-based and inclusive; a missing end runs to the last line.
-function selectLines(text: string, ranges: Array<[number, number | undefined]>): Selection {
+// Lines 1-based and inclusive; a missing end runs to the last line. A
+// selection with no lines is missing, named by `label`.
+function selectLines(text: string, ranges: Array<[number, number | undefined]>, label: string): Selection {
   const spans = lineSpans(text);
   const out: Array<[number, number]> = [];
   for (const [from, to] of ranges) {
     const last = to === undefined || to < 0 ? spans.length : Math.min(to, spans.length);
     for (let n = Math.max(from, 1); n <= last; n++) out.push(spans[n - 1]);
   }
-  return { ranges: out };
+  return out.length ? { ranges: out } : { missing: label };
 }
 
 // Lines inside the wanted named regions, without the marker lines. With no
@@ -96,7 +97,7 @@ function splitSelector(spec: string, markers: [RegExp, RegExp]): { target: strin
   if (!/^\d*$/.test(a)) return { target, select: (text) => selectRegions(text, ...markers, [a]) };
   const from = a ? Number(a) : 1;
   const to = b === undefined ? (a ? from : undefined) : b ? Number(b) : undefined;
-  return { target, select: (text) => selectLines(text, [[from, to]]) };
+  return { target, select: (text) => selectLines(text, [[from, to]], spec.slice(target.length + 1)) };
 }
 
 // Ranges of fenced code blocks, where MDX elements are examples, not content.
@@ -138,7 +139,7 @@ function asciidocDirectives(text: string): Directive[] {
         // `N..` runs to the last line, like `N..-1`.
         return [Number(from), to === undefined ? Number(from) : to === "" ? undefined : Number(to)];
       });
-      select = (t) => selectLines(t, ranges);
+      select = (t) => selectLines(t, ranges, `lines=${attrs.lines}`);
     } else if (attrs.tag || attrs.tags) {
       const names = (attrs.tag ?? attrs.tags).split(/[;,]/).filter(Boolean);
       select = (t) => selectRegions(t, ...ASCIIDOC_TAG, names);
@@ -467,8 +468,8 @@ function expandIncludes({
 function asMdx(piece: Piece): Piece {
   if (path.extname(piece.file) === ".mdx") return piece;
   const fences = fenceRanges(piece.text);
-  const text = piece.text.replace(/<!--([\s\S]*?)-->/g, (all, body, at) =>
-    fences.some(([s, e]) => at >= s && at < e) ? all : `{/* ${body}*/}`
+  const text = piece.text.replace(/<!--([\s\S]*?)-->/g, (all, body, offset) =>
+    fences.some(([s, e]) => offset >= s && offset < e) ? all : `{/* ${body}*/}`
   );
   return { ...piece, text };
 }

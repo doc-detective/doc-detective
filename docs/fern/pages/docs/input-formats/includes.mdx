@@ -124,7 +124,7 @@ Doc Detective writes freshness badges and verified dates from [Last verified on]
 
 ## When an include can't resolve
 
-A broken include never fails a run. Doc Detective prints a warning on stderr and keeps going. The directive stays in the page as text, except when a tag, section, or anchor isn't found: then the directive includes nothing. The run's exit code doesn't change.
+A broken include never fails a run. Doc Detective prints a warning on stderr and keeps going. The directive stays in the page as text, except when a tag, section, anchor, or line range isn't found: then the directive includes nothing. The run's exit code doesn't change.
 
 | Cause | Warning |
 |---|---|
@@ -132,7 +132,7 @@ A broken include never fails a run. Doc Detective prints a warning on stderr and
 | The file is outside the working directory | ``Couldn't include `<target>` from <page>:<line> because <path> is outside the working directory <cwd>. Run Doc Detective from a directory that contains both files.`` |
 | The file includes itself | ``Couldn't include `<target>` from <page>:<line> because it includes itself: <a> → <b> → <a>.`` |
 | Includes nest too deep | ``Couldn't include `<target>` from <page>:<line> because includes nest more than 64 levels deep.`` |
-| A tag, section, or anchor isn't in the file | ``Couldn't find `<name>` in <path>, included from <page>:<line>.`` The directive includes nothing. |
+| A tag, section, anchor, or line range isn't in the file | ``Couldn't find `<name>` in <path>, included from <page>:<line>.`` The directive includes nothing. |
 | The target is a URL | ``Skipped: include `<url>` from <page>:<line>. Detection reads only local files.`` |
 
 Paths in the messages are absolute. An AsciiDoc include with `opts=optional` doesn't warn when its file is missing.

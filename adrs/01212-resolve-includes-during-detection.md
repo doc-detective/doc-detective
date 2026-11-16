@@ -75,7 +75,7 @@ Chosen option: **A**, on by default.
   - a cycle, with the chain named;
   - nesting more than 64 levels deep, Asciidoctor's default;
   - a URL target;
-  - a tag, section, or anchor that isn't found. That one includes nothing.
+  - a tag, section, anchor, or line range that isn't found. That one includes nothing.
 
 ### Consequences
 
