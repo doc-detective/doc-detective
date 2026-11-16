@@ -8,6 +8,7 @@ import {
   readInstalledRecord,
   writeInstalledRecord,
   type CacheDirContext,
+  type InstalledBrowser,
 } from "./cacheDir.js";
 import { loadHeavyDep, type Logger } from "./loader.js";
 
@@ -438,6 +439,15 @@ export function browserRefreshDue(
   return !isStillFresh(entry.latestCheckedAt, now);
 }
 
+// Write one asset's entry onto the record as it is now. Installs of other
+// assets run concurrently, so writing back a record read before a long await
+// would undo their entries.
+function writeBrowserEntry(name: BrowserAssetName, entry: InstalledBrowser, ctx: CacheDirContext) {
+  const current = readInstalledRecord(ctx);
+  current.browsers[name] = entry;
+  writeInstalledRecord(current, ctx);
+}
+
 function errorText(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
@@ -636,14 +646,12 @@ async function ensureBrowserInstalledImpl(
   // Record a channel check. Touches only the check fields, never
   // `installedVersion`/`installedAt`: the GitHub Action hashes those to decide
   // whether to save a new cache entry (ADR 01209).
-  const noteCheck = (latestKnownVersion?: string) => {
-    record.browsers[name] = {
+  const noteCheck = (latestKnownVersion?: string) =>
+    writeBrowserEntry(name, {
       ...existing,
       ...(latestKnownVersion ? { latestKnownVersion } : {}),
       latestCheckedAt: now.toISOString(),
-    };
-    writeInstalledRecord(record, ctx);
-  };
+    }, ctx);
 
   // Fast path: checked within the TTL, so no resolveBuildId network call. A
   // record that already knows it's outdated re-checks and updates, unless
@@ -707,7 +715,9 @@ async function ensureBrowserInstalledImpl(
     } catch (cleanupErr) {
       logger(`Failed to remove the partial ${name} ${latest}: ${errorText(cleanupErr)}`, "debug");
     }
-    noteCheck(latest);
+    // Leave latestKnownVersion alone: a known-outdated record re-checks on the
+    // fast path, and the retry must wait out the TTL.
+    noteCheck();
     return await keepExisting(true);
   }
 
@@ -729,13 +739,12 @@ async function ensureBrowserInstalledImpl(
     }
   }
 
-  record.browsers[name] = {
+  writeBrowserEntry(name, {
     installedVersion: latest,
     installedAt: now.toISOString(),
     latestKnownVersion: latest,
     latestCheckedAt: now.toISOString(),
-  };
-  writeInstalledRecord(record, ctx);
+  }, ctx);
   return { path, version: latest, outdated: false };
 }
 
@@ -1085,14 +1094,13 @@ async function ensureGeckodriver(
     // never record "unknown".
     const installedVersion: string = verify.version as string;
     const unchanged = existing?.installedVersion === installedVersion;
-    record.browsers.geckodriver = {
+    writeBrowserEntry("geckodriver", {
       installedVersion,
       // The GitHub Action hashes installed.json to decide cache saves (ADR 01209).
       installedAt: unchanged ? existing.installedAt : ctxBag.now.toISOString(),
       latestKnownVersion: installedVersion,
       latestCheckedAt: ctxBag.now.toISOString(),
-    };
-    writeInstalledRecord(record, ctxBag.ctx);
+    }, ctxBag.ctx);
     if (binaryPath) pruneOtherGeckodrivers(cacheDir, binaryPath, logger);
     return {
       path: binaryPath,
@@ -1102,6 +1110,9 @@ async function ensureGeckodriver(
   }
   return await withGeckodriverCacheDir(cacheDir, async () => {
     const gecko = await loadGeckodriver(ctxBag.deps, ctxBag.ctx);
+    // Resolve the kept binary before downloading: afterwards the newest
+    // version-suffixed file may be the rejected download.
+    const keptPath = existing ? resolveBinaryPath(gecko) : undefined;
     try {
       return await downloadValidated(gecko);
     } catch (err) {
@@ -1111,13 +1122,14 @@ async function ensureGeckodriver(
         `Couldn't update \`geckodriver\`: ${errorText(err)}. Using the installed ${existing.installedVersion}.`,
         "warning"
       );
-      record.browsers.geckodriver = {
+      writeBrowserEntry("geckodriver", {
         ...existing,
         latestCheckedAt: ctxBag.now.toISOString(),
-      };
-      writeInstalledRecord(record, ctxBag.ctx);
+      }, ctxBag.ctx);
+      // Remove a rejected download so later lookups can't pick it up.
+      if (keptPath) pruneOtherGeckodrivers(cacheDir, keptPath, logger);
       return {
-        path: resolveBinaryPath(gecko),
+        path: keptPath,
         version: existing.installedVersion,
         outdated: false,
       };

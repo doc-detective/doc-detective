@@ -329,7 +329,12 @@ async function runTestsAndReport(config: any, options: any) {
                 ctx,
                 deps: { logger: preflightLogger },
               });
-              if (result.version !== before) refreshed = true;
+              if (result.version !== before) {
+                // The old build is gone. Drop the cached app paths now, so a
+                // later failure in this loop can't leave them pointing at it.
+                refreshed = true;
+                clearAppCache(config);
+              }
             }
             continue;
           }
@@ -377,11 +382,9 @@ async function runTestsAndReport(config: any, options: any) {
         // rebuilds each descriptor from the install results and still runs the
         // functional verifyDriverBinary gate. Fail-open: it invalidates the
         // entry on any error, so a downstream re-probe is still the safety net.
-        // A replaced build moved paths the cache already holds, so drop the
-        // entry and let the next lookup re-probe instead of patching it.
-        if (refreshed) {
-          clearAppCache(config);
-        } else if (installedDescriptors.length > 0) {
+        // After a replacement the cache was dropped: let the next lookup
+        // re-probe rather than patch a partial entry.
+        if (!refreshed && installedDescriptors.length > 0) {
           await patchAppCache(config, installedDescriptors);
         }
       } catch (browserErr: any) {

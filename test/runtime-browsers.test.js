@@ -258,6 +258,30 @@ describe("runtime/browsers", function () {
     expect(record.browsers.chrome.installedAt).to.equal("2026-01-01T00:00:00Z");
     // Throttled: the next attempt waits for the TTL.
     expect(record.browsers.chrome.latestCheckedAt).to.equal(now.toISOString());
+    // A second call inside the TTL doesn't download again.
+    await ensureBrowserInstalled("chrome", {
+      deps: { browsersModule, logger: () => {}, now: () => now },
+    });
+    expect(browsersModule._calls.installs).to.have.lengthOf(1);
+  });
+
+  it("ensureBrowserInstalled keeps another asset's entry written while it was checking", async function () {
+    seedChrome("124.0.0");
+    const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
+    // Another asset's install lands between this call's read and its write.
+    browsersModule.resolveBuildId = async () => {
+      const current = readInstalledRecord({});
+      current.browsers.firefox = {
+        installedVersion: "140.0",
+        installedAt: "2026-11-15T00:00:00Z",
+      };
+      writeInstalledRecord(current, {});
+      return "124.0.0";
+    };
+    await ensureBrowserInstalled("chrome", {
+      deps: { browsersModule, logger: () => {} },
+    });
+    expect(readInstalledRecord({}).browsers.firefox?.installedVersion).to.equal("140.0");
   });
 
   it("ensureBrowserInstalled leaves installedVersion and installedAt alone when the build is current", async function () {
@@ -1030,6 +1054,30 @@ describe("runtime/browsers", function () {
     const entry = readInstalledRecord({}).browsers.geckodriver;
     expect(entry.installedVersion).to.equal("0.36.0");
     expect(entry.latestCheckedAt).to.equal(now.toISOString());
+  });
+
+  it("ensureBrowserInstalled('geckodriver') returns the kept binary and removes a newer one that failed validation", async function () {
+    const browsersDir = path.join(tmpRoot, "browsers");
+    fs.mkdirSync(browsersDir, { recursive: true });
+    const oldBin = geckoBin(browsersDir, "0.36.0");
+    const badBin = geckoBin(browsersDir, "0.37.1");
+    fs.writeFileSync(oldBin, "old");
+    seedGecko("0.36.0");
+    const geckodriverModule = {
+      download: async () => {
+        fs.writeFileSync(badBin, "broken");
+        return badBin;
+      },
+    };
+    // Both validation attempts fail.
+    const verifyExec = async () => ({ code: 1, stdout: "", stderr: "boom" });
+    const result = await ensureBrowserInstalled("geckodriver", {
+      deps: { geckodriverModule, logger: () => {}, verifyExec },
+    });
+    expect(result.version).to.equal("0.36.0");
+    expect(result.path).to.equal(oldBin);
+    expect(fs.existsSync(oldBin)).to.equal(true);
+    expect(fs.existsSync(badBin)).to.equal(false);
   });
 
   it("ensureBrowserInstalled('geckodriver') doesn't download when DOC_DETECTIVE_SKIP_BROWSER_UPDATE is on", async function () {
