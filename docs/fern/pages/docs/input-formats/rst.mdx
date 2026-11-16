@@ -134,7 +134,9 @@ To show a command without running it, add `:class: testIgnore`:
    rm -rf build/
 ```
 
-A literal block is the indented block after a paragraph that ends in `::`. It has no language.
+A literal block follows a paragraph that ends in `::`. It's usually indented. It can also be a run of lines at the paragraph's own indent that all start with the same punctuation character, such as `>`. A literal block has no language.
+
+Because `.` is punctuation, a `.. step` or `.. test` comment right after a paragraph that ends in `::` becomes part of a literal block. Doc Detective skips it without a warning, and the step doesn't run. End that paragraph with a single colon, or put the comment after the literal block.
 
 Comments, links, and formatting inside code blocks, literal blocks, inline literals (` ``text`` `), interpreted text and roles (`` :guilabel:`Save` ``), and `raw` directives aren't read. In other directives, such as `note` and `warning`, the body is prose, but the text on the directive's own line isn't read.
 
