@@ -646,16 +646,17 @@ async function ensureBrowserInstalledImpl(
   // Record a channel check. Touches only the check fields, never
   // `installedVersion`/`installedAt`: the GitHub Action hashes those to decide
   // whether to save a new cache entry (ADR 01209).
-  const noteCheck = (latestKnownVersion?: string) =>
+  const noteCheck = (latestKnownVersion?: string, extra: Partial<InstalledBrowser> = {}) =>
     writeBrowserEntry(name, {
       ...existing,
       ...(latestKnownVersion ? { latestKnownVersion } : {}),
       latestCheckedAt: now.toISOString(),
+      ...extra,
     }, ctx);
 
   // Fast path: checked within the TTL, so no resolveBuildId network call. A
   // record that already knows it's outdated re-checks and updates, unless
-  // updates are off.
+  // updates are off or an update failed within the TTL.
   if (!force && existing && isStillFresh(existing.latestCheckedAt, now)) {
     const known = existing.latestKnownVersion;
     if (known === existing.installedVersion) return await keepExisting(false);
@@ -663,6 +664,7 @@ async function ensureBrowserInstalledImpl(
       if (known) logger(outdatedWarning(name, existing.installedVersion, known, cacheDir), "warning");
       return await keepExisting(Boolean(known));
     }
+    if (isStillFresh(existing.updateFailedAt, now)) return await keepExisting(true);
   }
 
   // Slow path: re-resolve the channel buildId. Bounded by a short timeout so
@@ -715,9 +717,9 @@ async function ensureBrowserInstalledImpl(
     } catch (cleanupErr) {
       logger(`Failed to remove the partial ${name} ${latest}: ${errorText(cleanupErr)}`, "debug");
     }
-    // Leave latestKnownVersion alone: a known-outdated record re-checks on the
-    // fast path, and the retry must wait out the TTL.
-    noteCheck();
+    // A known-outdated record re-checks on the fast path, so mark the failure
+    // to make the retry wait out the TTL.
+    noteCheck(latest, { updateFailedAt: now.toISOString() });
     return await keepExisting(true);
   }
 

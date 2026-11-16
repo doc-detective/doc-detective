@@ -265,6 +265,29 @@ describe("runtime/browsers", function () {
     expect(browsersModule._calls.installs).to.have.lengthOf(1);
   });
 
+  it("ensureBrowserInstalled waits out the TTL after a failed update of a record already known to be outdated", async function () {
+    const now = new Date("2026-11-15T12:00:00Z");
+    // An earlier run with updates off recorded the newer build.
+    seedChrome("100.0.0", {
+      latestKnownVersion: "124.0.0",
+      latestCheckedAt: new Date(now.getTime() - 60_000).toISOString(),
+    });
+    const browsersModule = makeFakeBrowsersModule({
+      latest: "124.0.0",
+      onInstall: async () => {
+        throw new Error("connection reset");
+      },
+    });
+    const deps = { browsersModule, logger: () => {}, now: () => now };
+    const first = await ensureBrowserInstalled("chrome", { deps });
+    expect(first.version).to.equal("100.0.0");
+    expect(browsersModule._calls.installs).to.have.lengthOf(1);
+    const second = await ensureBrowserInstalled("chrome", { deps });
+    expect(second.version).to.equal("100.0.0");
+    expect(second.outdated).to.equal(true);
+    expect(browsersModule._calls.installs).to.have.lengthOf(1);
+  });
+
   it("ensureBrowserInstalled keeps another asset's entry written while it was checking", async function () {
     seedChrome("124.0.0");
     const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
