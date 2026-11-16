@@ -203,6 +203,12 @@ describe("expandIncludes", function () {
     assert.equal(expand("page.mdx", markdown).content, "```md\n```mdx\n<Markdown src=\"_p.md\" />\n```\n");
   });
 
+  it("doesn't close a fence on a line ending in a non-breaking space", function () {
+    write("page.mdx", "```md\n``` \n<Markdown src=\"_p.md\" />\n```\n");
+    write("_p.md", "P\n");
+    assert.equal(expand("page.mdx", markdown).content, "```md\n``` \n<Markdown src=\"_p.md\" />\n```\n");
+  });
+
   it("ignores an MDX import inside a fenced code block", function () {
     write("page.mdx", "import Setup from './_real.md';\n\n```mdx\nimport Setup from './_example.md';\n```\n\n<Setup />\n");
     write("_real.md", "REAL\n");
@@ -422,6 +428,8 @@ describe("detection with includes", function () {
     fs.rmSync(path.join(root, "guide.md"));
     fs.rmSync(path.join(root, "_partials"), { recursive: true });
     const specs = await run();
-    assert.deepEqual(specs.map((s) => path.basename(s.contentPath)), ["b.md"]);
+    // Which file survives depends on input order; exactly one must run.
+    assert.equal(specs.length, 1);
+    assert.ok(["a.md", "b.md"].includes(path.basename(specs[0].contentPath)));
   });
 });

@@ -107,8 +107,8 @@ function fenceRanges(text: string): Array<[number, number]> {
     const [, fence, rest] = text.slice(s, e).match(/^\s*(`{3,}|~{3,})(.*)/) ?? [];
     if (!fence) continue;
     if (!open) open = { start: s, fence };
-    // A closing fence has nothing after it but whitespace.
-    else if (fence[0] === open.fence[0] && fence.length >= open.fence.length && !rest.trim()) {
+    // A closing fence has nothing after it but spaces and tabs (CommonMark).
+    else if (fence[0] === open.fence[0] && fence.length >= open.fence.length && /^[ \t]*\r?\n?$/.test(rest)) {
       ranges.push([open.start, e]);
       open = undefined;
     }
@@ -383,7 +383,7 @@ function expandIncludes({
 
   // `ft` is the file type of the pieces; nested files pass their own.
   const expand = (pieces: Piece[], ft: any, chain: string[]): Piece[] => {
-    const file = pieces[0]?.file;
+    const file = pieces[0]?.file ?? rootFile;
     const fileText = pieces.map((p) => p.text).join("");
     const out: Piece[] = [];
     for (const piece of pieces) {
