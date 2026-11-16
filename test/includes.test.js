@@ -286,6 +286,30 @@ describe("expandIncludes", function () {
       assert.ok(lines.includes(".. include:: <isonum.txt>"));
       assert.deepEqual(warnings(), []);
     });
+
+    it("leaves rST includes in code blocks, literal blocks, and comments alone, but resolves them in a note", function () {
+      const text = [
+        ".. code-block:: rst", "", "   .. include:: s.rst", "",
+        "Example::", "", "   .. include:: s.rst", "",
+        "..", "   .. include:: s.rst", "",
+        ".. note::", "", "   .. include:: s.rst", "",
+      ].join("\n");
+      write("page.rst", text);
+      write("s.rst", "S\n");
+      const x = expand("page.rst", rst);
+      assert.equal(x.content, text.replace(/   \.\. include:: s\.rst\n$/, "   S\n"));
+    });
+
+    it("handles a negative line on an empty file, and warns when lines select nothing", function () {
+      write("page.rst", ".. include:: empty.rst\n   :start-line: -1\n\n.. include:: s.rst\n   :start-line: 9\n");
+      write("empty.rst", "");
+      write("s.rst", "S\n");
+      expand("page.rst", rst);
+      assert.deepEqual(warnings(), [
+        `Couldn't find \`:start-line: -1\` in ${real("empty.rst")}, included from ${path.join(root, "page.rst")}:1.`,
+        `Couldn't find \`:start-line: 9\` in ${real("s.rst")}, included from ${path.join(root, "page.rst")}:4.`,
+      ]);
+    });
   });
 
   it("applies rST include syntax only to the rst fileType, not to any .rst file", function () {

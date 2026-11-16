@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { getLineNumber, getLineStarts, safeRegExp } from "../common/src/textUtils.js";
+import { parseRst } from "../common/src/detect/rst.js";
 import { log, redactUrlForOutput } from "./utils.js";
 
 export { expandIncludes, remapLocations };
@@ -192,8 +193,13 @@ function markdownDirectives(text: string, fileText: string): Directive[] {
 
 function rstDirectives(text: string): Directive[] {
   const found: Directive[] = [];
+  // An include shown in a code block, literal block, or comment is an example.
+  const skipped = parseRst(text)
+    .filter((n) => n.kind === "codeBlock" || n.kind === "comment")
+    .map((n) => [n.startIndex, n.endIndex]);
   const re = /^([ \t]*)\.\.[ \t]+include::[ \t]+(\S.*?)[ \t]*(?=\r?$)((?:\r?\n\1[ \t]+:[\w-]+:.*?(?=\r?$))*)/gm;
   for (const m of text.matchAll(re)) {
+    if (skipped.some(([s, e]) => m.index! >= s && m.index! < e)) continue;
     const options: Record<string, string> = {};
     for (const o of m[3].matchAll(/:([\w-]+):[ \t]*(.*?)[ \t]*(?=\r?$)/gm)) options[o[1]] = o[2];
     const start = m.index! + m[1].length;
@@ -204,11 +210,14 @@ function rstDirectives(text: string): Directive[] {
       const spans = lineSpans(t);
       const at = (n: string | undefined, fallback: number) => {
         if (n === undefined) return fallback;
-        const i = Number(n) < 0 ? spans.length + Number(n) : Number(n);
-        return i >= spans.length ? t.length : spans[Math.max(i, 0)][0];
+        const i = Math.max(Number(n) < 0 ? spans.length + Number(n) : Number(n), 0);
+        return i >= spans.length ? t.length : spans[i][0];
       };
+      // Line options that leave nothing warn, named as written.
+      const lineOptions = ["start-line", "end-line"].filter((k) => k in options);
       let s = at(options["start-line"], 0);
       let e = at(options["end-line"], t.length);
+      if (lineOptions.length && e <= s) return { missing: lineOptions.map((k) => `:${k}: ${options[k]}`).join(" ") };
       if (options["start-after"] !== undefined) {
         const i = t.indexOf(options["start-after"], s);
         if (i < 0 || i >= e) return { missing: options["start-after"] };

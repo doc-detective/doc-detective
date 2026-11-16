@@ -102,6 +102,7 @@ import { Content as Login } from '../shared/login.md';
 - `:start-line:` and `:end-line:` count lines from 0, as docutils does. `:start-after:` and `:end-before:` select the text between two markers.
 - An indented directive indents every included line, so a snippet included inside a directive stays in it.
 - `:literal:` and `:code:` includes, and docutils standard includes such as `<isonum.txt>`, show text rather than content, so Doc Detective leaves them alone.
+- An include inside a code block, a literal block, or a comment is an example, not an include, so Doc Detective leaves it alone.
 
 ## How paths resolve
 
