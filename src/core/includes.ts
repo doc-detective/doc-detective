@@ -30,6 +30,10 @@ type Directive = {
   optional?: boolean;
   // Set when the directive is deliberately left alone; logged at debug.
   skip?: string;
+  // An AsciiDoc attribute entry, applied when expansion reaches it.
+  attribute?: [string, string];
+  // Substitute AsciiDoc `{attr}` references in the target when reached.
+  attributes?: boolean;
 };
 type Report = (level: string, message: string) => void;
 type Location = { startIndex: number; endIndex: number };
@@ -100,10 +104,11 @@ function fenceRanges(text: string): Array<[number, number]> {
   const ranges: Array<[number, number]> = [];
   let open: { start: number; fence: string } | undefined;
   for (const [s, e] of lineSpans(text)) {
-    const fence = text.slice(s, e).match(/^\s*(`{3,}|~{3,})/)?.[1];
+    const [, fence, rest] = text.slice(s, e).match(/^\s*(`{3,}|~{3,})(.*)/) ?? [];
     if (!fence) continue;
     if (!open) open = { start: s, fence };
-    else if (fence[0] === open.fence[0] && fence.length >= open.fence.length) {
+    // A closing fence has nothing after it but whitespace.
+    else if (fence[0] === open.fence[0] && fence.length >= open.fence.length && !rest.trim()) {
       ranges.push([open.start, e]);
       open = undefined;
     }
@@ -112,18 +117,17 @@ function fenceRanges(text: string): Array<[number, number]> {
   return ranges;
 }
 
-function asciidocDirectives(text: string, attributes: Map<string, string>): Directive[] {
+function asciidocDirectives(text: string): Directive[] {
   const found: Directive[] = [];
-  // Attribute entries apply to the includes after them. ponytail: one map per
-  // document in reading order of each piece; an attribute set inside an
-  // include reaches later parent lines only if that piece is scanned later.
+  // Attribute entries apply to the includes after them, in reading order, so
+  // expansion applies both as it reaches them.
   const re = /^(?::([\w][\w-]*):[ \t]*(.*?)[ \t]*|include::([^\[\r\n]+)\[([^\]\r\n]*)\][ \t]*)(?=\r?$)/gm;
   for (const m of text.matchAll(re)) {
     if (m[1]) {
-      attributes.set(m[1], m[2]);
+      found.push({ start: m.index!, end: m.index!, target: "", base: "fileThenRoot", attribute: [m[1], m[2]] });
       continue;
     }
-    const target = m[3].replace(/\{([\w-]+)\}/g, (all, name) => attributes.get(name) ?? all);
+    const target = m[3];
     const attrs = Object.fromEntries(
       [...m[4].matchAll(/([\w-]+)=("([^"]*)"|[^,]*)/g)].map((a) => [a[1], a[3] ?? a[2]])
     ) as Record<string, string>;
@@ -139,7 +143,7 @@ function asciidocDirectives(text: string, attributes: Map<string, string>): Dire
       select = (t) => selectRegions(t, ...ASCIIDOC_TAG, names);
     }
     const optional = /(^|,)\s*(opts="?[^"]*optional|optional-option)/.test(m[4]);
-    found.push({ start: m.index!, end: m.index! + m[0].length, target, base: "fileThenRoot", select, optional });
+    found.push({ start: m.index!, end: m.index! + m[0].length, target, base: "fileThenRoot", select, optional, attributes: true });
   }
   return found;
 }
@@ -161,7 +165,9 @@ function markdownDirectives(text: string, fileText: string): Directive[] {
   // MDX imports map a component name to a file; `<Name />` is where it renders.
   const imports = new Map<string, string>();
   const importRe = /^import\s+(?:(\w+)|\{([^}]*)\}|\*\s+as\s+(\w+))\s+from\s+["']([^"']+\.mdx?)["'];?/gm;
+  const fileFences = fenceRanges(fileText);
   for (const m of fileText.matchAll(importRe)) {
+    if (fileFences.some(([s, e]) => m.index! >= s && m.index! < e)) continue;
     if (m[1]) imports.set(m[1], m[4]);
     if (m[3]) imports.set(`${m[3]}.Content`, m[4]);
     for (const named of (m[2] ?? "").split(",")) {
@@ -363,9 +369,14 @@ function expandIncludes({
       return [];
     }
     report("debug", `Included ${real} from ${from}.`);
-    const pieces = selection.ranges
-      .filter(([s, e]) => e > s)
-      .map(([s, e]) => ({ text: text!.slice(s, e), file: real, srcStart: s }));
+    // Adjacent ranges join, so a comment spanning selected lines stays whole.
+    const ranges: Array<[number, number]> = [];
+    for (const [s, e] of selection.ranges.filter(([s, e]) => e > s)) {
+      const last = ranges[ranges.length - 1];
+      if (last && last[1] === s) last[1] = e;
+      else ranges.push([s, e]);
+    }
+    const pieces = ranges.map(([s, e]) => ({ text: text!.slice(s, e), file: real, srcStart: s }));
     const expanded = trimFinalBreak(expand(pieces, fileTypeFor(real, ft), [...chain, real]));
     return path.extname(file) === ".mdx" ? expanded.map(asMdx) : expanded;
   };
@@ -377,7 +388,7 @@ function expandIncludes({
     const out: Piece[] = [];
     for (const piece of pieces) {
       const directives = [
-        ...(familyOf(ft, "asciidoc") ? asciidocDirectives(piece.text, attributes) : []),
+        ...(familyOf(ft, "asciidoc") ? asciidocDirectives(piece.text) : []),
         ...(familyOf(ft, "markdown") ? markdownDirectives(piece.text, fileText) : []),
         ...(familyOf(ft, "rst") ? rstDirectives(piece.text) : []),
         ...customDirectives(piece.text, ft),
@@ -386,6 +397,11 @@ function expandIncludes({
         .filter((d, i, all) => i === 0 || d.start >= all[i - 1].end);
       let pos = 0;
       for (const d of directives) {
+        if (d.attribute) {
+          attributes.set(...d.attribute);
+          continue;
+        }
+        if (d.attributes) d.target = d.target.replace(/\{([\w-]+)\}/g, (all, name) => attributes.get(name) ?? all);
         const offset = piece.srcStart + d.start;
         const resolved = resolve(d, piece.file, offset, chain, ft);
         if (resolved === null) continue;

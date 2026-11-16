@@ -191,6 +191,33 @@ describe("expandIncludes", function () {
     assert.deepEqual(x.mapLocation({ startIndex: at, endIndex: end }), { file: real("_p.md"), startIndex: 0, endIndex: source.length, line: 1 });
   });
 
+  it("converts a multiline HTML comment from a line-selected region into one MDX comment", function () {
+    write("page.mdx", "{{#include _p.md:a}}\n");
+    write("_p.md", "ANCHOR: a\n<!--\nstep {\"find\": \"x\"}\n-->\nANCHOR_END: a\n");
+    assert.equal(expand("page.mdx", markdown).content, '{/* \nstep {"find": "x"}\n*/}\n');
+  });
+
+  it("doesn't close a fence on a line with an info string", function () {
+    write("page.mdx", "```md\n```mdx\n<Markdown src=\"_p.md\" />\n```\n");
+    write("_p.md", "P\n");
+    assert.equal(expand("page.mdx", markdown).content, "```md\n```mdx\n<Markdown src=\"_p.md\" />\n```\n");
+  });
+
+  it("ignores an MDX import inside a fenced code block", function () {
+    write("page.mdx", "import Setup from './_real.md';\n\n```mdx\nimport Setup from './_example.md';\n```\n\n<Setup />\n");
+    write("_real.md", "REAL\n");
+    write("_example.md", "EXAMPLE\n");
+    assert.match(expand("page.mdx", markdown).content, /REAL/);
+  });
+
+  it("substitutes an AsciiDoc attribute set inside an earlier include", function () {
+    write("guide.adoc", "include::attrs.adoc[]\ninclude::{snippet}[]\n");
+    write("attrs.adoc", ":snippet: setup.adoc\n");
+    write("setup.adoc", "SETUP\n");
+    assert.match(expand("guide.adoc", asciidoc).content, /SETUP/);
+    assert.deepEqual(warnings(), []);
+  });
+
   describe("reStructuredText", function () {
     it("resolves includes with options, indent, and the conf.py root, and skips literal and standard includes", function () {
       write("conf.py", "");

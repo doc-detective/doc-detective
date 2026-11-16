@@ -278,6 +278,9 @@
                       {
                         "$ref": "#/components/schemas/stringOrArray"
                       }
+                    ],
+                    "examples": [
+                      ["\\{%\\s*include_relative\\s+(\\S+)\\s*%\\}"]
                     ]
                   }
                 }

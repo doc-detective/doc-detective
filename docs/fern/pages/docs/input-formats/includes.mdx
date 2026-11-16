@@ -122,7 +122,7 @@ Doc Detective writes freshness badges and verified dates from [Last verified on]
 
 ## When an include can't resolve
 
-A broken include never fails a run. Doc Detective prints a warning on stderr, leaves the directive in the page as text, and keeps going. The run's exit code doesn't change.
+A broken include never fails a run. Doc Detective prints a warning on stderr and keeps going. The directive stays in the page as text, except when a tag, section, or anchor isn't found: then the directive includes nothing. The run's exit code doesn't change.
 
 | Cause | Warning |
 |---|---|
@@ -137,7 +137,7 @@ Paths in the messages are absolute. An AsciiDoc include with `opts=optional` doe
 
 To see which partials Doc Detective skipped as standalone inputs, run with `--log-level debug`.
 
-These directives stay as text: MkDocs block-form snippets, AsciiDoc `tags=*` wildcards, and directives in a remote input.
+MkDocs block-form snippets and directives in a remote input stay as text. An AsciiDoc `tags=*` wildcard warns that it can't find `*`, and includes nothing.
 
 ## Turn include resolution off
 

@@ -345,6 +345,7 @@ function exampleValue(propSchema, depth = 0) {
   if (!propSchema || typeof propSchema !== "object" || depth > 5) return undefined;
   if (propSchema.default !== undefined) return propSchema.default;
   if (propSchema.const !== undefined) return propSchema.const;
+  if (Array.isArray(propSchema.examples) && propSchema.examples.length > 0) return propSchema.examples[0];
   if (propSchema.enum) return propSchema.enum[0];
 
   switch (propSchema.type) {

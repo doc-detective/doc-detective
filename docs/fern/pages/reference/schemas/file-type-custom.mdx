@@ -29,6 +29,8 @@ includeStatements | one of:<br/>- string<br/>- array of string | Optional. Regul
   "extends": "markdown",
   "extensions": "example",
   "markup": [],
-  "includeStatements": "example"
+  "includeStatements": [
+    "\\{%\\s*include_relative\\s+(\\S+)\\s*%\\}"
+  ]
 }
 ```

@@ -2909,6 +2909,11 @@ function applyVerifiedMarkers({
     for (const test of spec?.tests || []) {
       if (test?.contentPath) files.add(test.contentPath);
       if (test?.location?.file) files.add(test.location.file);
+      for (const context of test?.contexts || []) {
+        for (const step of context?.steps || []) {
+          if (step?.location?.file) files.add(step.location.file);
+        }
+      }
     }
   }
 
