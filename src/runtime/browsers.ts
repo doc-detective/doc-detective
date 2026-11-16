@@ -679,7 +679,8 @@ async function ensureBrowserInstalledImpl(
       `Couldn't check for a newer \`${name}\` build: ${errorText(err)}. Using the installed ${existing.installedVersion}.`,
       "warning"
     );
-    noteCheck();
+    // Mark the failure so a known-outdated record also waits out the TTL.
+    noteCheck(undefined, { updateFailedAt: now.toISOString() });
     return await keepExisting(false);
   }
 
@@ -1147,7 +1148,7 @@ function pruneOtherGeckodrivers(cacheDir: string, keep: string, logger: Logger) 
   for (const entry of readDirEntries(cacheDir)) {
     const file = path.join(cacheDir, entry.name);
     if (
-      !/^geckodriver-\d[\w.-]*?(\.exe)?$/.test(entry.name) ||
+      !GECKODRIVER_VERSIONED_NAME.test(entry.name) ||
       !isRegularFileEntry(cacheDir, entry) ||
       path.resolve(file) === path.resolve(keep)
     ) {

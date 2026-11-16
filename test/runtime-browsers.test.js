@@ -288,6 +288,23 @@ describe("runtime/browsers", function () {
     expect(browsersModule._calls.installs).to.have.lengthOf(1);
   });
 
+  it("ensureBrowserInstalled waits out the TTL after a failed check of a record already known to be outdated", async function () {
+    const now = new Date("2026-11-15T12:00:00Z");
+    seedChrome("100.0.0", { latestKnownVersion: "124.0.0" }); // stale check
+    let resolves = 0;
+    const browsersModule = makeFakeBrowsersModule();
+    browsersModule.resolveBuildId = async () => {
+      resolves++;
+      throw new Error("network down");
+    };
+    const deps = { browsersModule, logger: () => {}, now: () => now };
+    await ensureBrowserInstalled("chrome", { deps });
+    const second = await ensureBrowserInstalled("chrome", { deps });
+    expect(resolves).to.equal(1);
+    expect(second.version).to.equal("100.0.0");
+    expect(browsersModule._calls.installs).to.deep.equal([]);
+  });
+
   it("ensureBrowserInstalled keeps another asset's entry written while it was checking", async function () {
     seedChrome("124.0.0");
     const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
