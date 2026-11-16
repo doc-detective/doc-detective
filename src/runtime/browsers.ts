@@ -522,9 +522,11 @@ const inFlightInstalls = new Map<string, Promise<EnsureBrowserResult>>();
  * Install (or refresh) a browser asset into <cacheDir>/browsers.
  *
  * Missing → install latest channel buildId. Present and matches channel →
- * no-op. Present and outdated → warn (with update instructions) and proceed
- * with the installed version. force=true reinstalls and prunes the old
- * buildId from the cache.
+ * no-op. Present and outdated → install the new build and prune the old one;
+ * on failure, warn and keep the installed build. A check runs at most once
+ * per TTL, and a failed check or update waits out the TTL too.
+ * DOC_DETECTIVE_SKIP_BROWSER_UPDATE keeps an outdated build with a warning.
+ * force=true reinstalls and prunes regardless (ADR 01209).
  *
  * Concurrent calls for the same (name, cacheDir) share a single
  * in-flight promise so parallel installs can't corrupt each other.
@@ -664,7 +666,8 @@ async function ensureBrowserInstalledImpl(
       if (known) logger(outdatedWarning(name, existing.installedVersion, known, cacheDir), "warning");
       return await keepExisting(Boolean(known));
     }
-    if (isStillFresh(existing.updateFailedAt, now)) return await keepExisting(true);
+    // Outdated only when a check actually learned a newer build.
+    if (isStillFresh(existing.updateFailedAt, now)) return await keepExisting(Boolean(known));
   }
 
   // Slow path: re-resolve the channel buildId. Bounded by a short timeout so
@@ -1121,6 +1124,8 @@ async function ensureGeckodriver(
     } catch (err) {
       if (ctxBag.force || !existing) throw err;
       // Keep the working binary, and wait out the TTL before trying again.
+      // A fresh latestCheckedAt alone throttles geckodriver: its fast path
+      // has no known-outdated branch, so it needs no updateFailedAt.
       logger(
         `Couldn't update \`geckodriver\`: ${errorText(err)}. Using the installed ${existing.installedVersion}.`,
         "warning"

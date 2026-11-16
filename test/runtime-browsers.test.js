@@ -305,6 +305,22 @@ describe("runtime/browsers", function () {
     expect(browsersModule._calls.installs).to.deep.equal([]);
   });
 
+  it("ensureBrowserInstalled doesn't report outdated after a failed check that never learned a newer build", async function () {
+    const now = new Date("2026-11-15T12:00:00Z");
+    seedChrome("100.0.0", { latestKnownVersion: undefined }); // stale check, no known version
+    let resolves = 0;
+    const browsersModule = makeFakeBrowsersModule();
+    browsersModule.resolveBuildId = async () => {
+      resolves++;
+      throw new Error("network down");
+    };
+    const deps = { browsersModule, logger: () => {}, now: () => now };
+    await ensureBrowserInstalled("chrome", { deps });
+    const second = await ensureBrowserInstalled("chrome", { deps });
+    expect(second.outdated).to.equal(false);
+    expect(resolves).to.equal(1);
+  });
+
   it("ensureBrowserInstalled keeps another asset's entry written while it was checking", async function () {
     seedChrome("124.0.0");
     const browsersModule = makeFakeBrowsersModule({ latest: "124.0.0" });
