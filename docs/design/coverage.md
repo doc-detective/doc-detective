@@ -8,7 +8,8 @@ Update (2026-11-14): the static view shipped as `doc-detective audit`
 ([ADR 01213](../../adrs/01213-static-coverage-audit.md)). It departs from this design in three places:
 
 - **Procedures come in tiers instead of a verb list.** Explicit markers count first, then a grammar
-  tagger reads the first item. Lists the tagger rejects go to a separate "possible procedures" count.
+  tagger reads every item, and a list counts when at least half read as instructions. Lists the
+  tagger rejects go to a separate "possible procedures" count.
   That settles open question 1.
 - **HTTP examples fold into code blocks,** which are counted per language.
 - **The calculation lives in core, not `src/common`,** so the tagger stays out of the browser

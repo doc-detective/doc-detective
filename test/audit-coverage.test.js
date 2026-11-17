@@ -71,6 +71,16 @@ describe("audit coverage", function () {
       assert.deepEqual(states(procedureSteps(result)), ["ignored", "hasStep", "untested", "untested", "ignored"]);
     });
 
+    it("counts a list when at least half its items read as instructions", async function () {
+      const result = await audit("1. Release notes\n2. Open the app.\n");
+      assert.deepEqual(procedureSteps(result).map((item) => item.source), ["tagger", "tagger"]);
+    });
+
+    it("keeps a list where fewer than half the items read as instructions in possible procedures", async function () {
+      const result = await audit("1. Open the app.\n2. Release notes\n3. Bug fixes\n");
+      assert.deepEqual(procedureSteps(result).map((item) => item.source), ["possible", "possible", "possible"]);
+    });
+
     it("puts a list the tagger rejects in possible procedures", async function () {
       const result = await audit("1. Release notes\n2. Bug fixes\n");
       assert.deepEqual(procedureSteps(result).map((item) => item.source), ["possible", "possible"]);

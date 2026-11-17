@@ -54,7 +54,7 @@ To get the full report as JSON, for a script or a CI summary, add `--json`. To p
 A procedure is a numbered list. `audit` decides whether a list is a procedure in this order:
 
 1. **You marked it.** A DITA `<steps>` element, an MDX `<Steps>` component, or a list right after a `procedure` statement always counts.
-2. **Its first item is an instruction.** A built-in grammar tagger reads the first item. "Open a terminal." and "In a terminal, run `npm test`." count. "Release notes" doesn't.
+2. **At least half its items are instructions.** A built-in grammar tagger reads each item. "Open a terminal.", "In a terminal, run `npm test`.", "Then click **Save**.", and "**Create a branch**: run `git checkout -b fix`." count. "Release notes" doesn't.
 3. **Anything else** goes in **Possible procedures**. These lists stay out of the headline, but you still see their counts.
 
 Only a list's top-level items are procedure steps. A nested list belongs to the item above it.
