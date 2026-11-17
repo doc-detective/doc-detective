@@ -48,15 +48,8 @@ export const SYNTAXES: Record<string, Templates> = {
 const LABELS: Record<string, string> = { markdown: "Markdown", mdx: "MDX", asciidoc: "AsciiDoc", html: "HTML", dita: "DITA" };
 export const labelOf = (syntax: string) => LABELS[syntax] ?? syntax;
 
+// Template keys, which are also the statement types they produce.
 const KINDS = ["step", "testStart", "testEnd", "ignoreStart", "ignoreEnd", "procedure"] as const;
-const TYPE_OF: Record<(typeof KINDS)[number], string> = {
-  step: "step",
-  testStart: "testStart",
-  testEnd: "testEnd",
-  ignoreStart: "ignoreStart",
-  ignoreEnd: "ignoreEnd",
-  procedure: "procedure",
-};
 
 /**
  * The file's syntax: a built-in name when its file type reads that syntax's
@@ -69,7 +62,7 @@ export function syntaxFor(fileType: FileType, filePath: string): string {
   if (t) {
     const content = KINDS.map((kind) => t[kind]).join("\n\n");
     const types = new Set(collectStatements({ content, fileType, filePath, detectSteps: false, warn: () => {} }).map((s: any) => s.type));
-    if (KINDS.every((kind) => types.has(TYPE_OF[kind]))) return candidate!;
+    if (KINDS.every((kind) => types.has(kind))) return candidate!;
   }
   return fileType.name ?? fileType.extensions.join(",");
 }

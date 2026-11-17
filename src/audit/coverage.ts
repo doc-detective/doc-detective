@@ -123,6 +123,10 @@ export function computeCoverage({ content, fileType, filePath, steps, tests = []
     if (s.type !== "testStart") return;
     const next = testStatements[i + 1];
     const end = !next ? content.length : next.type === "testEnd" ? next._endIndex : next._startIndex;
+    // Detection sets a test's `location` from this same `collectStatements`
+    // pass over the same content, so the offsets match by construction. A
+    // statement with no test (a bare `test start`, or one detection skipped)
+    // has no own steps. test/audit-coverage.test.js guards the match.
     const own = tests.find((test) => test.location?.startIndex === s._startIndex)?.steps ?? [];
     if (running([...stepsIn(s._startIndex, end), ...own]).length) testRegions.push([s._startIndex, end]);
   });
@@ -168,6 +172,7 @@ export function computeCoverage({ content, fileType, filePath, steps, tests = []
       const testIgnore = /\btestIgnore\b/.test(node.meta ?? "") || classes.includes("testIgnore");
       const result = stateOf(own, start, end, testIgnore);
       if (classes.includes("procedure") && !inList(start)) {
+        // As a procedure step it can be inTest, which the code-block `result` can't.
         items.push({ kind: "procedureStep", source: "explicit", line: lineOf(start), text: itemText(node), state: stateOf(own, start, end, testIgnore, true).state });
       }
       if (RUNNABLE_LANGUAGES.has(language)) items.push({ kind: "codeBlock", language, line: lineOf(start), state: result.state });
