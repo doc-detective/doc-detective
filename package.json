@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "5.3.1",
+  "version": "5.4.0",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "workspaces": [
     "src/common"

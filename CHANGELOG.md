@@ -1,3 +1,18 @@
+# [5.4.0](https://github.com/doc-detective/doc-detective/compare/v5.3.1...v5.4.0) (2026-11-17)
+
+
+### Bug Fixes
+
+* **common:** close wrapped rst inline literals only at valid closers ([38cd627](https://github.com/doc-detective/doc-detective/commit/38cd627bbcb8fbcdf47a21288bd57bc4e5173b1a))
+* **common:** keep the rst scanner's regexes linear on long whitespace ([c939c5a](https://github.com/doc-detective/doc-detective/commit/c939c5afbba85892100f0aedcd5168b0b3dbf778))
+* **common:** read escapes, quoted literals, and wrapped inline literals in rst ([634e6e1](https://github.com/doc-detective/doc-detective/commit/634e6e12dbd7737da08346f7d278b4c979f3ce28))
+* split long ADR sentences and drop an unused variable ([0c5a92f](https://github.com/doc-detective/doc-detective/commit/0c5a92fde4b14f4f3276362e0c4808f18cf54685))
+
+
+### Features
+
+* add a built-in reStructuredText (rst) file type ([bdb2159](https://github.com/doc-detective/doc-detective/commit/bdb21598aa6de8f5c95192d375c8aad8657a06b7))
+
 ## [5.3.1](https://github.com/doc-detective/doc-detective/compare/v5.3.0...v5.3.1) (2026-11-16)
 
 
