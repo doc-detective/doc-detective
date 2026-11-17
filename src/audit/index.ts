@@ -10,6 +10,7 @@ import { loadProjectEnv, readStdinInputs, setConfig, discoverConfigPath, log } f
 import { setConfig as setRunConfig } from "../core/config.js";
 import { detectTests } from "../core/detectTests.js";
 import { maskDeep, maskString } from "../core/masking.js";
+import { buildGuidance, labelOf, syntaxFor, type Guidance } from "./guidance.js";
 import { canonicalUrl, computeCoverage, type CoverageIndex, type FileCoverage, type Item, type State } from "./coverage.js";
 
 const SPEC_EXTENSIONS = new Set(["json", "yaml", "yml"]);
@@ -64,11 +65,12 @@ export interface AuditReport {
     images: { total: number; hasStep: number };
     pages: { total: number; measured: number; hasAuthoredStep: number };
   };
-  files: Array<{ path: string; fileType?: string; measured: boolean; items: Item[] }>;
+  files: Array<{ path: string; fileType?: string; syntax: string; measured: boolean; items: Item[] }>;
+  guidance: Guidance;
 }
 
 /** Totals across files. */
-export function summarize(files: Array<{ path: string; fileType?: string } & FileCoverage>): AuditReport {
+export function summarize(files: Array<{ path: string; fileType?: string; syntax: string } & FileCoverage>): AuditReport {
   const procedureSteps = { ...counts(), inTest: 0, navigationOnly: 0 };
   const possibleProcedureSteps = { ...counts(), inTest: 0, navigationOnly: 0 };
   const lists = { explicit: 0, tagged: 0, possible: 0 };
@@ -101,8 +103,27 @@ export function summarize(files: Array<{ path: string; fileType?: string } & Fil
   }
   return {
     summary: { procedureSteps, possibleProcedureSteps, lists, codeBlocks: { byLanguage, notRunnable }, links, images, pages },
-    files: files.map(({ path: file, fileType, measured, items }) => ({ path: file, fileType, measured, items })),
+    files: files.map(({ path: file, fileType, syntax, measured, items }) => ({ path: file, fileType, syntax, measured, items })),
+    guidance: buildGuidance(files.map((file) => file.syntax)),
   };
+}
+
+/** How to fix what the report found, for the syntaxes in the run. */
+function renderGuidance(report: AuditReport): string[] {
+  const { procedureSteps, lists } = report.summary;
+  if (!procedureSteps.untested && !lists.possible) return [];
+  const syntaxes = Object.entries(report.guidance.syntaxes);
+  const rows = (pick: (t: any) => string) => syntaxes.map(([name, t]) => `  ${labelOf(name).padEnd(11)}${pick(t)}`);
+  const lines = ["", "To cover a step, put a step statement inside the item, on the line after the sentence it tests:"];
+  for (const [name, t] of syntaxes) {
+    lines.push(`  ${labelOf(name).padEnd(11)}${t.step}`);
+    if ("custom" in t) lines.push(`  (wrap it in the comment form \`${name}\`'s \`inlineStatements\` define)`);
+  }
+  lines.push("Or wrap the procedure in a test with at least one step:", ...rows((t) => `${t.testStart}  …  ${t.testEnd}`));
+  lines.push("To flag a list that isn't a procedure, wrap it in ignore statements:", ...rows((t) => `${t.ignoreStart}  …  ${t.ignoreEnd}`));
+  if (lists.possible) lines.push("If audit missed a procedure, put a procedure statement before the list:", ...rows((t) => t.procedure));
+  lines.push(`More: ${report.guidance.docs}`);
+  return lines;
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -142,6 +163,7 @@ export function renderText(report: AuditReport, { quiet = false } = {}): string 
       for (const item of items) lines.push(`    ${String(item.line).padStart(4)}  ${item.text}`);
     }
   }
+  lines.push(...renderGuidance(report));
   return `${lines.join("\n")}\n`;
 }
 
@@ -188,7 +210,7 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
       origin: config.origin,
       allowUnsafe: config.allowUnsafeSteps === true,
     });
-    files.push({ path: file, fileType: fileType.name, ...coverage });
+    files.push({ path: file, fileType: fileType.name, syntax: syntaxFor(fileType, file), ...coverage });
   }
 
   // Spec files and unreadable files don't count, so check after reading.
