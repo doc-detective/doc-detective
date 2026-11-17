@@ -49,7 +49,7 @@
     },
     {
       "testId": "audit-tier-tagger",
-      "description": "A list whose first item is an instruction counts through the tagger.",
+      "description": "A list whose items are instructions counts through the tagger.",
       "steps": [
         {
           "runShell": {
@@ -69,6 +69,36 @@
         {
           "runShell": {
             "command": "node test/core-artifacts/audit/audit-check.cjs tier-opener",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-tier-vote",
+      "description": "A list counts when at least a third of its items are instructions, and lands in possible procedures otherwise.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs tier-vote",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-tier-lead-in",
+      "description": "A bold lead-in, a sequence word, or (Optional) doesn't hide the instruction.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs tier-lead-in",
             "workingDirectory": "../../..",
             "exitCodes": [
               0
@@ -228,12 +258,12 @@
       ]
     },
     {
-      "testId": "audit-code-not-runnable",
+      "testId": "audit-code-not-runnable-and-unsafe",
       "description": "Other languages are not runnable; a detected unsafe block is skipped.",
       "steps": [
         {
           "runShell": {
-            "command": "node test/core-artifacts/audit/audit-check.cjs code-not-runnable",
+            "command": "node test/core-artifacts/audit/audit-check.cjs code-not-runnable-and-unsafe",
             "workingDirectory": "../../..",
             "exitCodes": [
               0
@@ -294,6 +324,126 @@
         {
           "runShell": {
             "command": "node test/core-artifacts/audit/audit-check.cjs state-nested",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-in-test-authored",
+      "description": "An item inside a test with an authored step counts as inside a test.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs in-test-authored",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-in-test-detected",
+      "description": "A detected step in a test credits the other items in it.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs in-test-detected",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-in-test-detect-steps-false",
+      "description": "With detectSteps false, a test whose only step was detected gives no credit.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs in-test-detect-steps-false",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-in-test-empty",
+      "description": "A test with no step gives no credit.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs in-test-empty",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-in-test-ignored",
+      "description": "An ignore region wins over a wrapping test.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs in-test-ignored",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-guidance-json",
+      "description": "The JSON report names each file syntax and gives templates per syntax, with a bare form for a custom file type.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs guidance-json",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-guidance-text",
+      "description": "The text report ends with guidance, including the procedure statement when a list is a possible procedure.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs guidance-text",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-guidance-none",
+      "description": "The text report prints no guidance when nothing is untested or possible.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs guidance-none",
             "workingDirectory": "../../..",
             "exitCodes": [
               0

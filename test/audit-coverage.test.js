@@ -20,6 +20,7 @@ async function audit(content, { file = "page.md", fileType, config = {}, index =
     fileType,
     filePath,
     steps,
+    tests,
     index,
     origin: config.origin,
     allowUnsafe: config.allowUnsafeSteps ?? false,
@@ -55,6 +56,53 @@ const tutorial = [
 ].join("\n");
 
 describe("audit coverage", function () {
+  describe("test regions", function () {
+    const region = (body, open = "<!-- test start -->") => `${open}\n${body}\n<!-- test end -->\n`;
+
+    it("credits the other items in a test with an authored step", async function () {
+      const result = await audit(region('1. Open the app.\n   <!-- step {"click": "Save"} -->\n2. Close it.'));
+      assert.deepEqual(states(procedureSteps(result)), ["hasStep", "inTest"]);
+    });
+
+    it("credits them for a step in the test statement's own steps", async function () {
+      const result = await audit(region("1. Open the app.\n2. Close it.", '<!-- test {"steps": [{"click": "Save"}]} -->'));
+      assert.deepEqual(states(procedureSteps(result)), ["inTest", "inTest"]);
+    });
+
+    it("credits them for a detected step when detectSteps is on, and not when it's off", async function () {
+      const content = region("1. Open the app.\n2. Go to [the site](https://example.com).");
+      assert.equal(procedureSteps(await audit(content))[0].state, "inTest");
+      assert.equal(procedureSteps(await audit(content, { config: { detectSteps: false } }))[0].state, "untested");
+    });
+
+    it("gives no credit for an empty test or one with only a wait", async function () {
+      assert.deepEqual(states(procedureSteps(await audit(region("1. Open the app.\n2. Close it.")))), ["untested", "untested"]);
+      const waits = await audit(region('1. Open the app.\n   <!-- step {"wait": 100} -->\n2. Close it.'));
+      assert.deepEqual(states(procedureSteps(waits)), ["untested", "untested"]);
+    });
+
+    it("gives no credit for an unsafe-only test unless allowUnsafeSteps is on", async function () {
+      const content = region('1. Open the app.\n   <!-- step {"runShell": "echo hi", "unsafe": true} -->\n2. Close it.');
+      assert.deepEqual(states(procedureSteps(await audit(content))), ["skipped", "untested"]);
+      assert.deepEqual(states(procedureSteps(await audit(content, { config: { allowUnsafeSteps: true } }))), ["hasStep", "inTest"]);
+    });
+
+    it("lets ignored win over inTest", async function () {
+      const content = region('1. Open the app.\n   <!-- step {"click": "Save"} -->\n2. Close it.\n<!-- test ignore start -->\n3. Clean up.\n<!-- test ignore end -->');
+      assert.deepEqual(states(procedureSteps(await audit(content))), ["hasStep", "inTest", "ignored"]);
+    });
+
+    it("ends a region with no test end at the next test statement", async function () {
+      const content = '<!-- test start -->\n1. Open the app.\n   <!-- step {"click": "Save"} -->\n2. Close it.\n\n<!-- test start -->\n\nText.\n\n1. Open the app.\n2. Close it.\n';
+      assert.deepEqual(states(procedureSteps(await audit(content))), ["hasStep", "inTest", "untested", "untested"]);
+    });
+
+    it("gives no credit for the implicit test around a whole file", async function () {
+      const result = await audit("1. Open the app.\n2. Go to [the site](https://example.com).\n");
+      assert.deepEqual(states(procedureSteps(result)), ["untested", "hasStep"]);
+    });
+  });
+
   describe("procedures", function () {
     it("matches the design doc's tutorial page", async function () {
       const result = await audit(tutorial, { file: "first-test.mdx" });
@@ -69,6 +117,16 @@ describe("audit coverage", function () {
     it("gives the same result with CRLF line endings", async function () {
       const result = await audit(tutorial.replace(/\n/g, "\r\n"), { file: "first-test.mdx" });
       assert.deepEqual(states(procedureSteps(result)), ["ignored", "hasStep", "untested", "untested", "ignored"]);
+    });
+
+    it("counts a list when at least a third of its items read as instructions", async function () {
+      const result = await audit("1. Release notes\n2. Open the app.\n3. Bug fixes\n");
+      assert.deepEqual(procedureSteps(result).map((item) => item.source), ["tagger", "tagger", "tagger"]);
+    });
+
+    it("keeps a list where fewer than a third of the items read as instructions in possible procedures", async function () {
+      const result = await audit("1. Open the app.\n2. Release notes\n3. Bug fixes\n4. New features\n");
+      assert.deepEqual(procedureSteps(result).map((item) => item.source), ["possible", "possible", "possible", "possible"]);
     });
 
     it("puts a list the tagger rejects in possible procedures", async function () {
@@ -160,7 +218,7 @@ describe("audit coverage", function () {
 
   describe("code blocks", function () {
     it("credits a block an authored step directly follows", async function () {
-      const content = '```bash\nnpm test\n```\n<!-- step {"runShell":"npm test"} -->\n';
+      const content = '```bash\nnpm test\n```\n   <!-- step {"runShell":"npm test"} -->\n';
       const result = await audit(content, { config: { detectSteps: false } });
       const [block] = result.items.filter((item) => item.kind === "codeBlock");
       assert.equal(block.state, "hasStep");
