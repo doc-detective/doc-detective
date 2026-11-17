@@ -40,7 +40,7 @@ describe("audit guidance", function () {
       const t = SYNTAXES[name];
 
       it("is the syntax of a file in its default file type", function () {
-        assert.equal(syntaxFor(fileTypeFor(p.file), path.join(root, p.file)), name);
+        assert.deepEqual(syntaxFor(fileTypeFor(p.file), path.join(root, p.file)), { syntax: name, custom: false });
       });
 
       it("credits an item with the step template", async function () {
@@ -84,11 +84,18 @@ describe("audit guidance", function () {
     };
 
     it("takes the file type's name as its syntax", function () {
-      assert.equal(syntaxFor(hugo, path.join(root, "page.md")), "hugo");
+      assert.deepEqual(syntaxFor(hugo, path.join(root, "page.md")), { syntax: "hugo", custom: true });
+    });
+
+    it("gets the bare statements even when it's named like a built-in", function () {
+      const named = { ...hugo, name: "markdown" };
+      const { syntax, custom } = syntaxFor(named, path.join(root, "page.md"));
+      assert.deepEqual({ syntax, custom }, { syntax: "markdown", custom: true });
+      assert.equal(buildGuidance([{ syntax, custom }]).syntaxes.markdown.custom, true);
     });
 
     it("gets the bare statements and a note", function () {
-      const { syntaxes } = buildGuidance(["hugo"]);
+      const { syntaxes } = buildGuidance([{ syntax: "hugo", custom: true }]);
       assert.deepEqual(syntaxes.hugo, {
         custom: true,
         step: 'step {"click": "Save"}',
@@ -103,7 +110,8 @@ describe("audit guidance", function () {
   });
 
   it("builds one key per syntax, and none when nothing was audited", function () {
-    const guidance = buildGuidance(["markdown", "markdown", "mdx"]);
+    const builtIn = (syntax) => ({ syntax, custom: false });
+    const guidance = buildGuidance([builtIn("markdown"), builtIn("markdown"), builtIn("mdx")]);
     assert.deepEqual(Object.keys(guidance.syntaxes), ["markdown", "mdx"]);
     assert.deepEqual(guidance.syntaxes.mdx, SYNTAXES.mdx);
     assert.equal(guidance.docs, "https://docs.doc-detective.com/docs/test-docs/audit-test-coverage");
