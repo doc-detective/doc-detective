@@ -6,6 +6,11 @@
    "Go to [https://github.com/doc-detective/doc-detective](https://github.com/doc-detective/doc-detective).",
    "Click **Fork** in the top right.",
    "Select your GitHub account as the destination."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -15,6 +20,11 @@
    "**Create a branch**:",
    "**Edit files**:",
    "**Commit regularly**:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -24,6 +34,11 @@
    "Create the file:",
    "Add front matter:",
    "Update the navigation (if needed):"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -32,6 +47,10 @@
   "items": [
    "From the `docs/` directory, place images in a folder under `fern/assets/images/`, named after the page that uses them:",
    "Reference images with a path that starts at `/assets/`, which Fern resolves from the `fern/` directory:"
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -40,6 +59,10 @@
   "items": [
    "Check Node.js version:",
    "Clear npm cache:"
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -50,6 +73,12 @@
    "Click **Compare & pull request**.",
    "Fill out the PR template.",
    "Click **Create pull request**."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -62,6 +91,14 @@
    "__Preview your changes__: Open a preview panel (Ctrl+Shift+V) to see how it looks.",
    "__Commit your changes__:",
    "__Create a pull request__:"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -92,6 +129,12 @@
    "Fix the syntax error",
    "If working locally, run `(cd docs && npx fern check)` from the repository root to verify",
    "Commit and push the fix"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -102,6 +145,12 @@
    "Verify the URL is correct",
    "For internal links, ensure the file exists at that path",
    "For external links, verify the site is accessible"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -111,6 +160,11 @@
    "Click the CLA check in your PR",
    "Follow the prompts to sign",
    "The check automatically re-runs after signing"
+  ],
+  "actions": [
+   true,
+   true,
+   false
   ]
  },
  {
@@ -121,6 +175,12 @@
    "**Commit with descriptive messages**:",
    "**Push to your branch**:",
    "**Reply to comments**: Let reviewer know you've addressed their feedback"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -130,6 +190,11 @@
    "**Resolve conversations**: Click \"Resolve conversation\" on addressed comments",
    "**Leave unresolved**: Keep conversations open if you have questions",
    "**Re-request review**: Click \"Re-request review\" from the reviewer"
+  ],
+  "actions": [
+   true,
+   false,
+   true
   ],
   "note": "Re-request-review steps; one item ('Leave unresolved') is a conditional option rather than an action."
  },
@@ -169,6 +234,11 @@
    "Use the **Edit this page** button on any doc page",
    "Make your changes using the web editor",
    "Commit and create a pull request"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -181,6 +251,13 @@
    "Verify screenshots are clear and relevant.",
    "Make sure formatting looks correct."
   ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
   "note": "Pre-PR self-review checklist; order is loose but every item is an action the reader performs."
  },
  {
@@ -190,6 +267,11 @@
    "**Title**: Briefly describe what you added. Examples:",
    "**Description**: Use the PR template to provide context:",
    "**Submit**: Create your pull request."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -209,6 +291,12 @@
    "**Open a discussion**: If no issue exists, open one describing your plans.",
    "**Get feedback**: Wait for maintainer input before starting major work. If you don't hear back in a few days, politely ping in the issue or on [Discord](https://discord.gg/2M7wXEThfF).",
    "**Claim the work**: Comment on the issue to let others know you're working on it."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -219,6 +307,12 @@
    "Commit and push to your branch",
    "Open a draft pull request marked \"WIP\" or \"Draft\"",
    "Request feedback on structure"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -229,6 +323,12 @@
    "**Commit and push**: Save your progress",
    "**Review locally**: Read it fresh after a break",
    "**Move to next section**: Repeat the process"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -238,6 +338,11 @@
    "**Run the code**: Verify examples work as shown",
    "**Test variations**: Ensure options are documented correctly",
    "**Check edge cases**: Document limitations if found"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -271,6 +376,12 @@
    "✅ Test on a clean environment if possible",
    "✅ Note any assumptions or prerequisites"
   ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
+  ],
   "note": "Pre-submit test checklist; order is loose but every item is an action the reader performs."
  },
  {
@@ -280,6 +391,11 @@
    "Open `.doc-detective.json`",
    "Add `\"timeout\": 10000` to the test configuration",
    "Save the file and run tests again"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -291,6 +407,12 @@
    "Add error handling",
    "Organize into a test suite"
   ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
+  ],
   "note": "Illustrative example of good tutorial progression, but the items themselves are ordered actions."
  },
  {
@@ -299,6 +421,10 @@
   "items": [
    "Create a basic test",
    "Deploy to production (too big a jump)"
+  ],
+  "actions": [
+   true,
+   true
   ],
   "note": "Anti-example of tutorial progression; the items are still ordered actions."
  },
@@ -310,6 +436,12 @@
    "Have someone unfamiliar with the topic try it",
    "Note where they get stuck or confused",
    "Revise based on feedback"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -319,6 +451,11 @@
    "Create a file named `test.spec.json`",
    "Add a test that navigates to doc-detective.com",
    "Run the test with `npx doc-detective`"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -338,6 +475,12 @@
    "Check the \"Tests\" status check",
    "Click \"Details\" to see full output",
    "Failed tests show specific error messages"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   false
   ]
  },
  {
@@ -348,6 +491,12 @@
    "**Look for environment differences**: Paths, dependencies, timing",
    "**Run tests in Docker** (mimics CI environment):",
    "**Ask for help**: Comment on the PR with the error details"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -366,6 +515,10 @@
   "items": [
    "Create a `.env` file with the following content:",
    "Modify your test configuration to include a `loadVariables` step (Note: `setVariables` is deprecated, use `loadVariables`):"
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -385,6 +538,10 @@
   "items": [
    "Open Claude Code:",
    "Add the Doc Detective marketplace and install the plugin:"
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -444,6 +601,10 @@
   "items": [
    "Set `create_issue_on_fail` to `true`, and give the job the `issues: write` permission.",
    "List the assistants in `issue_mentions`, separated by commas."
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -453,6 +614,11 @@
    "Run your suite once on version 5 with `--no-exit-on-fail`. The run behaves as it did on version 4, and the job stays green while you read the results:",
    "Fix or triage the failures the run reports.",
    "Remove `--no-exit-on-fail` to turn the gate on."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -462,6 +628,11 @@
    "Move to Node.js 24.15 or later while you're still on Doc Detective 4, which also runs on it.",
    "Upgrade Doc Detective.",
    "In CI, set the version explicitly, because GitHub-hosted runners default to Node.js 22:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -488,6 +659,16 @@
    "If you set `create_pr_on_change`, don't commit to `pr_branch` by hand, because the next run force-pushes it. If more than one workflow or job sets `create_pr_on_change`, give each its own `pr_branch`.",
    "To keep the results JSON in the issue, set `issue_body` to the `@v1` default. `$RESULTS` starts with a blank line, so it needs no separator before it:"
   ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
   "note": "Upgrade steps; most items are cumulative conditionals ('If you set X...'), not mutually exclusive alternatives."
  },
  {
@@ -497,6 +678,11 @@
    "Confirm the version:",
    "Run your suite and check the exit code:",
    "Search your pipelines and scripts for the removed items: `testResults-`, `See detailed results`, `See HTML report`, `See JUnit report`, `See Markdown summary`, `install-agents`, `doc-detective-lsp`, `doc-detective-runner`, and `--output` with a folder."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -505,6 +691,10 @@
   "items": [
    "Run `safaridriver --enable` in your terminal.",
    "Ensure **Develop > Allow Remote Automation** is checked in Safari's menu bar. You might need to enable the Develop menu first in Safari's Advanced preferences."
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -516,6 +706,13 @@
    "Open the file in your text editor and paste the following code:",
    "Save the file.",
    "In your terminal, enter the following command to run the test:"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -526,6 +723,12 @@
    "In a terminal, install Doc Detective globally:",
    "Save this file to your current directory as _sample.spec.json_:",
    "Run a test, pointing to the file you just created:"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -535,6 +738,11 @@
    "Install prerequisites:",
    "Save this file to your current directory as _sample.spec.json_:",
    "Run a test, pointing to the file you just created:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -544,6 +752,11 @@
    "Uninstall the package:",
    "Delete the cache directory, which holds browsers, drivers, and runtime packages. It's the first of these that applies:",
    "Delete your user config directory, which holds `config.json` and the record that you saw the telemetry notice. It's `$XDG_CONFIG_HOME/doc-detective` or `~/.config/doc-detective` on macOS and Linux, and `%APPDATA%\\doc-detective` on Windows."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -563,6 +776,12 @@
    "Add test comments or content that matches your patterns",
    "Run Doc Detective with the `--input` flag pointing to your file",
    "Check the generated test results to verify patterns were detected correctly"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -583,6 +802,11 @@
    "Create a `.env` file with your Heretto credentials:",
    "Add Heretto to your `config.json`:",
    "Run Doc Detective to load and test your Heretto content:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -592,6 +816,11 @@
    "**Inspect element:** Right-click an element and select \"Inspect\" or \"Inspect Element\"",
    "**Copy selector:** In the developer tools, right-click the highlighted element in the HTML pane and select \"Copy\" → \"Copy selector\"",
    "**Test selector:** In the browser console, use `document.querySelector('your-selector')` to verify it targets the correct element"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -603,6 +832,13 @@
    "Type `$x(\"your-xpath-here\")` and press Enter",
    "The console shows all matching elements",
    "Hover over results to highlight them on the page"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   false,
+   true
   ]
  },
  {
@@ -612,6 +848,11 @@
    "Run `audit` on your docs folder:",
    "Read the **Untested procedure steps** list. Each entry is a file, a line number, and the step's text.",
    "Add a test for a step, then run `audit` again to see the count change. See [Inline tests](/docs/test-docs/inline) and [Standalone tests](/docs/test-docs/standalone)."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -632,6 +873,13 @@
    "Check that Node.js is installed:",
    "Install Doc Detective globally:",
    "Check that Doc Detective is installed:"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -641,6 +889,11 @@
    "Create a folder and move into it:",
    "In your text editor, create a file named `charmap.spec.json` in that folder and paste in this test:",
    "Save the file."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -649,6 +902,10 @@
   "items": [
    "In the terminal, from the `charmap-docs` folder, run the test:",
    "Wait for the run to finish, and don't use the mouse or keyboard while it runs. Character Map opens, a character appears in the **Characters to copy** box followed by `AB`, and then the window closes."
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -658,6 +915,11 @@
    "In `charmap.spec.json`, find the `click` step and change `Select` to `Choose`:",
    "Run the test again:",
    "Change `Choose` back to `Select` and save the file."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -667,6 +929,11 @@
    "In the `charmap-docs` folder, create a file named `copy-characters.md` with this content:",
    "Save the file.",
    "Run Doc Detective on the how-to:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -694,6 +961,11 @@
    "Run `doc-detective debug`",
    "Copy the output",
    "Paste it into your [GitHub issue](https://github.com/doc-detective/doc-detective/issues) or [Discord message](https://discord.gg/2M7wXEThfF)"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -744,6 +1016,12 @@
    "**Run with verbose output**: Use `--verbose` to see npm's output in real time:",
    "**Check network and authentication**: The log often reveals proxy issues, registry authentication failures, or network timeouts.",
    "**Retry with force**: If a partial install left the cache in a bad state:"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -752,6 +1030,10 @@
   "items": [
    "[Set up your test environment](/docs/ci/set-up-environment) so the sample form is served at `http://localhost:8080/watson_and_holmes_intake_form.html`.",
    "Run the hosted _form-filler2.md_ test spec with Doc Detective:"
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -760,6 +1042,10 @@
   "items": [
    "[Set up your test environment](/docs/ci/set-up-environment) so the sample form is served at `http://localhost:8080/watson_and_holmes_intake_form.html`.",
    "Run the hosted _form-filler1.md_ test spec with Doc Detective:"
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -768,6 +1054,10 @@
   "items": [
    "[Set up your test environment](/docs/ci/set-up-environment) so the sample form is served at `http://localhost:8080/watson_and_holmes_intake_form.html`.",
    "Run the hosted _form-filler3.md_ test spec with Doc Detective:"
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -777,6 +1067,11 @@
    "Download the sample intake form, [watson_and_holmes_intake_form.html](https://raw.githubusercontent.com/doc-detective/doc-detective/main/docs/examples/watson-and-holmes/watson_and_holmes_intake_form.html), into an empty folder. The file is self-contained, so it's the only file you need.",
    "In a terminal, navigate to the folder that contains the form:",
    "Install and run a webserver. Running your tests against a local server allows you to make edits and see them in real time. Also, you need to serve the files in a web browser to experiment with video recording and other features."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -797,6 +1092,12 @@
    "Provide the specific technical answer with code/config examples",
    "Point to relevant reference files or documentation URLs for further reading",
    "Suggest next steps or related topics the user might want to explore"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ],
   "note": "Agent response-structure guidance; ordered imperatives the agent performs when answering."
  },
@@ -868,6 +1169,12 @@
    "If no files found, stop and ask the user where documentation is located.",
    "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
    "Identify procedure-heavy files: read each file and flag it if it contains 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select)."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -877,6 +1184,11 @@
    "Invoke `/doc-detective-generate <file-path> --output doc-detective-tests/<name>-spec.json`, where `<name>` is the source filename lowercased with non-alphanumeric characters replaced by hyphens (e.g., `login-guide.md` → `login-guide`). Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
    "Confirm each spec passes validation before continuing. If a spec cannot be fixed, skip it and report it to the user.",
    "If `--dry-run`, print each spec without writing to disk."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -886,6 +1198,11 @@
    "In the results file, find the steps in `specs[].tests[].contexts[].steps[]` whose `result` is `FAIL`, and read each one's `resultDescription`.",
    "Propose a fix and assign a confidence score: **High (80–100)** — exact alternative identified; **Medium (50–79)** — likely correct but uncertain; **Low (0–49)** — best guess with significant uncertainty.",
    "Apply the fix based on confidence:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -894,6 +1211,10 @@
   "items": [
    "Re-run the test. If it passes, move to the next failing test.",
    "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -903,6 +1224,11 @@
    "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
    "If in `--ci` mode, default to yes — proceed without prompting.",
    "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -953,6 +1279,13 @@
    "Check for existing Doc Detective config: `.doc-detective.json`, `doc-detective.config.js`. Record the path if found.",
    "Check for existing workflows in `.github/workflows/` — note any existing `doc-detective*.yml` files to avoid conflicts.",
    "Identify the docs directory: use the `input` field from existing config if available, otherwise look for common directories (`docs/`, `documentation/`, `content/`, `wiki/`). Fall back to `.` if no convention is detected."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -962,6 +1295,11 @@
    "Create `.github/workflows/` directory if it doesn't exist.",
    "Check if `.github/workflows/doc-detective.yml` already exists.",
    "Write the workflow YAML file."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -983,6 +1321,13 @@
    "Apply the fix to the test spec.",
    "Re-run the fixed test, and read the results file again. Exit `1` means the test still fails; exit `2` means nothing valid ran, because the fix made the spec invalid or every test skipped. Check stderr, then revert or correct the fix.",
    "If the test passes, mark it resolved. If it still fails, generate a new fix and repeat from step 1."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1002,6 +1347,12 @@
    "Copy `plugins/doc-detective` into the local plugins directory:",
    "Run **Developer: Reload Window** from the Command Palette (or restart Cursor).",
    "In Agent chat, type `/` and confirm the `/doc-detective-*` commands appear."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1011,6 +1362,11 @@
    "[cursor.com](https://cursor.com) → **Dashboard → Settings → Plugins → Team",
    "Paste `https://github.com/doc-detective/agent-tools`; Cursor reads the repo-root",
    "Assign access groups, mark the plugin Required or Optional, and save. (Auto-refresh"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1041,6 +1397,12 @@
    "Provide the specific technical answer with code/config examples",
    "Point to relevant reference files or documentation URLs for further reading",
    "Suggest next steps or related topics the user might want to explore"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ],
   "note": "Agent response-structure guidance; ordered imperatives the agent performs when answering."
  },
@@ -1092,6 +1454,12 @@
    "Type \"hello world\" in the search box",
    "Click the Search button",
    "Verify you see search results"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1101,6 +1469,11 @@
    "Navigate to https://doc-detective.com",
    "Verify you see the **Doc Detective** heading",
    "Look for the **Get started** link"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1118,6 +1491,11 @@
    "Save spec: `echo '<spec-json>' > /tmp/doc-detective-test-spec.json`",
    "Run: `node ./scripts/doc-detective-validate-test.js /tmp/doc-detective-test-spec.json`",
    "Only proceed if output shows `Validation PASSED`."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1127,6 +1505,11 @@
    "**Write spec to temp file**:",
    "**Show preview** (no `--apply` flag):",
    "**Apply on confirmation**:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1177,6 +1560,12 @@
    "If no files found, stop and ask the user where documentation is located.",
    "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
    "Identify procedure-heavy files: read each file and flag it if it contains 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select)."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1186,6 +1575,11 @@
    "Invoke `/doc-detective-generate <file-path> --output doc-detective-tests/<name>-spec.json`, where `<name>` is the source filename lowercased with non-alphanumeric characters replaced by hyphens (e.g., `login-guide.md` → `login-guide`). Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
    "Confirm each spec passes validation before continuing. If a spec cannot be fixed, skip it and report it to the user.",
    "If `--dry-run`, print each spec without writing to disk."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1195,6 +1589,11 @@
    "In the results file, find the steps in `specs[].tests[].contexts[].steps[]` whose `result` is `FAIL`, and read each one's `resultDescription`.",
    "Propose a fix and assign a confidence score: **High (80–100)** — exact alternative identified; **Medium (50–79)** — likely correct but uncertain; **Low (0–49)** — best guess with significant uncertainty.",
    "Apply the fix based on confidence:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1203,6 +1602,10 @@
   "items": [
    "Re-run the test. If it passes, move to the next failing test.",
    "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -1212,6 +1615,11 @@
    "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
    "If in `--ci` mode, default to yes — proceed without prompting.",
    "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1298,6 +1706,13 @@
    "Check for existing Doc Detective config: `.doc-detective.json`, `doc-detective.config.js`. Record the path if found.",
    "Check for existing workflows in `.github/workflows/` — note any existing `doc-detective*.yml` files to avoid conflicts.",
    "Identify the docs directory: use the `input` field from existing config if available, otherwise look for common directories (`docs/`, `documentation/`, `content/`, `wiki/`). Fall back to `.` if no convention is detected."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1307,6 +1722,11 @@
    "Create `.github/workflows/` directory if it doesn't exist.",
    "Check if `.github/workflows/doc-detective.yml` already exists.",
    "Write the workflow YAML file."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1348,6 +1768,13 @@
    "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
    "Identify procedure-heavy files: flag any file containing 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select).",
    "Report file counts, key directories, and identified procedure-heavy files to the user."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1357,6 +1784,11 @@
    "Invoke the `doc-testing` skill to generate a test spec: use the file as input, and write output to `doc-detective-tests/<name>-spec.json`. `<name>` is the source filename, lowercased, with non-alphanumeric characters replaced by hyphens. Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
    "Track the source file for each test (`_sourceFile` field) to support Phase 6 injection.",
    "Validate each spec before proceeding. If a spec cannot be fixed, skip it and report it to the user."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1368,6 +1800,13 @@
    "Apply: if ≥ threshold apply automatically; if < threshold show fix, ask user to apply/skip/edit; if < 50% always ask regardless of threshold.",
    "Re-run the test. If it passes, move to the next failing test.",
    "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1377,6 +1816,11 @@
    "Preview the injection using the `inline-test-injection` skill (no `--apply` flag).",
    "Show the preview and ask the user to confirm before applying.",
    "Apply confirmed injections using the skill's `--apply` mode."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1386,6 +1830,11 @@
    "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
    "If in `--ci` mode, default to yes — proceed without prompting.",
    "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1407,6 +1856,13 @@
    "Apply the fix to the test spec.",
    "Re-run the fixed test, and read the results file again. Exit `1` means the test still fails; exit `2` means nothing valid ran, because the fix made the spec invalid or every test skipped. Check stderr, then revert or correct the fix.",
    "If the test passes, mark it resolved. If it still fails, generate a new fix and repeat from step 1."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1425,6 +1881,11 @@
    "Open Claude Code:",
    "Add the Doc Detective marketplace and plugin:",
    "Ask about Doc Detective, or use the `init` command to get started:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1434,6 +1895,11 @@
    "Open Copilot CLI:",
    "Install the Doc Detective plugin:",
    "Ask about Doc Detective, or use the `init` command to get started:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1443,6 +1909,11 @@
    "Clone the repository:",
    "Copy the plugin contents to your project's `.opencode/` directory:",
    "Start OpenCode and ask about Doc Detective, or use the `init` command:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1452,6 +1923,11 @@
    "Clone the repo and copy the plugin and marketplace into your project:",
    "Open Codex and install the plugin from the marketplace:",
    "Ask about Doc Detective, or use the `init` command to get started:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1462,6 +1938,12 @@
    "Copy the plugin folder into Cursor's local plugins directory. Copy",
    "Reload Cursor: open the Command Palette (`Cmd/Ctrl+Shift+P`) and run",
    "Verify: in Agent chat, type `/` and confirm the `/doc-detective-*` commands appear."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1471,6 +1953,11 @@
    "Go to [cursor.com](https://cursor.com) → **Dashboard → Settings → Plugins → Team",
    "Paste `https://github.com/doc-detective/agent-tools` and review the parsed plugins",
    "Assign access groups, mark the plugin Required or Optional, and save."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1523,6 +2010,12 @@
    "Type \"hello world\" in the search box",
    "Click the Search button",
    "Verify you see search results"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1532,6 +2025,11 @@
    "Navigate to https://doc-detective.com",
    "Verify you see the **Doc Detective** heading",
    "Look for the **Get started** link"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1549,6 +2047,11 @@
    "Save spec: `echo '<spec-json>' > /tmp/doc-detective-test-spec.json`",
    "Run: `node ./scripts/doc-detective-validate-test.js /tmp/doc-detective-test-spec.json`",
    "Only proceed if output shows `Validation PASSED`."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1558,6 +2061,11 @@
    "**Write spec to temp file**:",
    "**Show preview** (no `--apply` flag):",
    "**Apply on confirmation**:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1608,6 +2116,12 @@
    "If no files found, stop and ask the user where documentation is located.",
    "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
    "Identify procedure-heavy files: read each file and flag it if it contains 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select)."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1617,6 +2131,11 @@
    "Invoke `/doc-detective-generate <file-path> --output doc-detective-tests/<name>-spec.json`, where `<name>` is the source filename lowercased with non-alphanumeric characters replaced by hyphens (e.g., `login-guide.md` → `login-guide`). Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
    "Confirm each spec passes validation before continuing. If a spec cannot be fixed, skip it and report it to the user.",
    "If `--dry-run`, print each spec without writing to disk."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1626,6 +2145,11 @@
    "In the results file, find the steps in `specs[].tests[].contexts[].steps[]` whose `result` is `FAIL`, and read each one's `resultDescription`.",
    "Propose a fix and assign a confidence score: **High (80–100)** — exact alternative identified; **Medium (50–79)** — likely correct but uncertain; **Low (0–49)** — best guess with significant uncertainty.",
    "Apply the fix based on confidence:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1634,6 +2158,10 @@
   "items": [
    "Re-run the test. If it passes, move to the next failing test.",
    "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -1643,6 +2171,11 @@
    "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
    "If in `--ci` mode, default to yes — proceed without prompting.",
    "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1729,6 +2262,13 @@
    "Check for existing Doc Detective config: `.doc-detective.json`, `doc-detective.config.js`. Record the path if found.",
    "Check for existing workflows in `.github/workflows/` — note any existing `doc-detective*.yml` files to avoid conflicts.",
    "Identify the docs directory: use the `input` field from existing config if available, otherwise look for common directories (`docs/`, `documentation/`, `content/`, `wiki/`). Fall back to `.` if no convention is detected."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1738,6 +2278,11 @@
    "Create `.github/workflows/` directory if it doesn't exist.",
    "Check if `.github/workflows/doc-detective.yml` already exists.",
    "Write the workflow YAML file."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1779,6 +2324,13 @@
    "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
    "Identify procedure-heavy files: flag any file containing 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select).",
    "Report file counts, key directories, and identified procedure-heavy files to the user."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1788,6 +2340,11 @@
    "Invoke the `doc-testing` skill to generate a test spec: use the file as input, and write output to `doc-detective-tests/<name>-spec.json`. `<name>` is the source filename, lowercased, with non-alphanumeric characters replaced by hyphens. Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
    "Track the source file for each test (`_sourceFile` field) to support Phase 6 injection.",
    "Validate each spec before proceeding. If a spec cannot be fixed, skip it and report it to the user."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1799,6 +2356,13 @@
    "Apply: if ≥ threshold apply automatically; if < threshold show fix, ask user to apply/skip/edit; if < 50% always ask regardless of threshold.",
    "Re-run the test. If it passes, move to the next failing test.",
    "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1808,6 +2372,11 @@
    "Preview the injection using the `inline-test-injection` skill (no `--apply` flag).",
    "Show the preview and ask the user to confirm before applying.",
    "Apply confirmed injections using the skill's `--apply` mode."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1817,6 +2386,11 @@
    "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
    "If in `--ci` mode, default to yes — proceed without prompting.",
    "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1838,6 +2412,13 @@
    "Apply the fix to the test spec.",
    "Re-run the fixed test, and read the results file again. Exit `1` means the test still fails; exit `2` means nothing valid ran, because the fix made the spec invalid or every test skipped. Check stderr, then revert or correct the fix.",
    "If the test passes, mark it resolved. If it still fails, generate a new fix and repeat from step 1."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1867,6 +2448,12 @@
    "Provide the specific technical answer with code/config examples",
    "Point to relevant reference files or documentation URLs for further reading",
    "Suggest next steps or related topics the user might want to explore"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ],
   "note": "Agent response-structure guidance; ordered imperatives the agent performs when answering."
  },
@@ -1918,6 +2505,12 @@
    "Type \"hello world\" in the search box",
    "Click the Search button",
    "Verify you see search results"
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1927,6 +2520,11 @@
    "Navigate to https://doc-detective.com",
    "Verify you see the **Doc Detective** heading",
    "Look for the **Get started** link"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1944,6 +2542,11 @@
    "Save spec: `echo '<spec-json>' > /tmp/doc-detective-test-spec.json`",
    "Run: `node ./scripts/doc-detective-validate-test.js /tmp/doc-detective-test-spec.json`",
    "Only proceed if output shows `Validation PASSED`."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -1953,6 +2556,11 @@
    "**Write spec to temp file**:",
    "**Show preview** (no `--apply` flag):",
    "**Apply on confirmation**:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2003,6 +2611,12 @@
    "If no files found, stop and ask the user where documentation is located.",
    "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
    "Identify procedure-heavy files: read each file and flag it if it contains 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select)."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2012,6 +2626,11 @@
    "Invoke `/doc-detective-generate <file-path> --output doc-detective-tests/<name>-spec.json`, where `<name>` is the source filename lowercased with non-alphanumeric characters replaced by hyphens (e.g., `login-guide.md` → `login-guide`). Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
    "Confirm each spec passes validation before continuing. If a spec cannot be fixed, skip it and report it to the user.",
    "If `--dry-run`, print each spec without writing to disk."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2021,6 +2640,11 @@
    "In the results file, find the steps in `specs[].tests[].contexts[].steps[]` whose `result` is `FAIL`, and read each one's `resultDescription`.",
    "Propose a fix and assign a confidence score: **High (80–100)** — exact alternative identified; **Medium (50–79)** — likely correct but uncertain; **Low (0–49)** — best guess with significant uncertainty.",
    "Apply the fix based on confidence:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2029,6 +2653,10 @@
   "items": [
    "Re-run the test. If it passes, move to the next failing test.",
    "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ],
+  "actions": [
+   true,
+   true
   ]
  },
  {
@@ -2038,6 +2666,11 @@
    "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
    "If in `--ci` mode, default to yes — proceed without prompting.",
    "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2124,6 +2757,13 @@
    "Check for existing Doc Detective config: `.doc-detective.json`, `doc-detective.config.js`. Record the path if found.",
    "Check for existing workflows in `.github/workflows/` — note any existing `doc-detective*.yml` files to avoid conflicts.",
    "Identify the docs directory: use the `input` field from existing config if available, otherwise look for common directories (`docs/`, `documentation/`, `content/`, `wiki/`). Fall back to `.` if no convention is detected."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2133,6 +2773,11 @@
    "Create `.github/workflows/` directory if it doesn't exist.",
    "Check if `.github/workflows/doc-detective.yml` already exists.",
    "Write the workflow YAML file."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2174,6 +2819,13 @@
    "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
    "Identify procedure-heavy files: flag any file containing 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select).",
    "Report file counts, key directories, and identified procedure-heavy files to the user."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2183,6 +2835,11 @@
    "Invoke the `doc-testing` skill to generate a test spec: use the file as input, and write output to `doc-detective-tests/<name>-spec.json`. `<name>` is the source filename, lowercased, with non-alphanumeric characters replaced by hyphens. Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
    "Track the source file for each test (`_sourceFile` field) to support Phase 6 injection.",
    "Validate each spec before proceeding. If a spec cannot be fixed, skip it and report it to the user."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2194,6 +2851,13 @@
    "Apply: if ≥ threshold apply automatically; if < threshold show fix, ask user to apply/skip/edit; if < 50% always ask regardless of threshold.",
    "Re-run the test. If it passes, move to the next failing test.",
    "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2203,6 +2867,11 @@
    "Preview the injection using the `inline-test-injection` skill (no `--apply` flag).",
    "Show the preview and ask the user to confirm before applying.",
    "Apply confirmed injections using the skill's `--apply` mode."
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2212,6 +2881,11 @@
    "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
    "If in `--ci` mode, default to yes — proceed without prompting.",
    "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ],
+  "actions": [
+   true,
+   true,
+   true
   ]
  },
  {
@@ -2233,6 +2907,13 @@
    "Apply the fix to the test spec.",
    "Re-run the fixed test, and read the results file again. Exit `1` means the test still fails; exit `2` means nothing valid ran, because the fix made the spec invalid or every test skipped. Check stderr, then revert or correct the fix.",
    "If the test passes, mark it resolved. If it still fails, generate a new fix and repeat from step 1."
+  ],
+  "actions": [
+   true,
+   true,
+   true,
+   true,
+   true
   ]
  },
  {
