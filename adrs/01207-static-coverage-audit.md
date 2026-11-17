@@ -109,8 +109,10 @@ Each item gets one state, checked in this order:
 
 1. `hasStep`: a counting step that isn't unsafe-skipped.
 2. `ignored`: the item overlaps a `test ignore` region, or its block is tagged `testIgnore`.
-3. `skipped`: the item's only steps are unsafe.
-4. `untested`.
+3. `inTest`: a procedure step that overlaps a counting test region. See
+   [Test regions and guidance](#test-regions-and-guidance).
+4. `skipped`: the item's only steps are unsafe.
+5. `untested`.
 
 `wait`, `loadVariables`, `saveCookie`, `loadCookie`, `record`, `stopRecord`, and `closeSurface`
 never count. Items covered only by `goTo` or `checkLink` are counted separately as navigation-only.
@@ -139,6 +141,122 @@ both, as in run output. Warnings go to stderr. Spec files don't count as files t
 whenever it prints a report, and 2 for bad usage, a bad config, or no files to audit. There's no
 coverage gate, so it never exits 1.
 
+### Test regions and guidance
+
+The report lists untested procedure steps, but it doesn't say what to write to fix them. An agent or
+a person had to look up each format's inline-statement syntax in the docs. Two changes make the
+report something an agent can act on.
+
+Decision drivers:
+
+- An agent reading `--json` must be able to act without opening the docs.
+- No false credit. Wrapping a page in an empty test must not hide untested steps. That's why a
+  wrapping test used to give no credit.
+- The guidance must match what `audit` actually accepts, including custom file types.
+- Keep the report readable. Hundreds of untested items must not repeat the same snippet.
+
+Considered options:
+
+- For a test region around an item:
+  - No credit, as before, with guidance only.
+  - Count it as `hasStep`.
+  - A new `inTest` state, credited only when the test has a step that runs. **Chosen.**
+- For where guidance goes:
+  - Per item. Rejected, because one snippet would repeat hundreds of times.
+  - Once per syntax, with each file naming its syntax. **Chosen.**
+- For a file type's templates:
+  - Built-in templates, keyed by format. Rejected, because they'd be wrong for a custom file type.
+  - Built-in templates checked against the file's own file type, with a bare fallback. **Chosen.**
+
+#### The `inTest` state
+
+A test region runs from a `test` or `test start` statement to the next `test end`. With no `test
+end`, it runs to the next test statement or the end of the file. Only regions opened by a statement
+count. The implicit whole-file test that detection creates doesn't count, or one detected link would
+credit a whole page.
+
+A region counts when its test has at least one step that would run. An authored step counts: a
+`step` statement in the region, or a step in the test statement's own `steps`. So does a detected
+step that detection assigned to the test while `detectSteps` is on. "Would run" uses the rules
+above. Steps that check nothing don't count, and unsafe steps don't count unless `allowUnsafeSteps`
+is on. A test with no such step, such as an empty `<!-- test -->` wrapper, gives no credit.
+
+`inTest` applies to procedure steps only. Code blocks, links, and images are unchanged. `ignored`
+wins over `inTest`, because the author said not to test the item.
+
+The headline counts `inTest` as covered, but shows it apart. In JSON, `procedureSteps` and
+`possibleProcedureSteps` gain an `inTest` count, and items can carry `"state": "inTest"`. In text, the
+headline gains ", N more are inside a test" when N is more than 0:
+
+```text
+Procedure steps      8 of 42 have a step, 6 more are inside a test (3 only by navigation or a link check)
+                     21 untested, 5 ignored, 2 skipped as unsafe
+```
+
+An `inTest` item isn't in the untested list.
+
+#### Guidance
+
+Each file gets a syntax. A built-in syntax applies when the file's own `fileType` reads that syntax's
+templates. `audit` checks this by running each template through `collectStatements` with the file's
+real `fileType` and path. The candidate comes from the file's format, plus the `.mdx` extension. So a
+custom file type that extends Markdown and keeps its statements still gets the `markdown` templates.
+
+| Syntax | `step` | `testStart` / `testEnd` | `ignoreStart` / `ignoreEnd` | `ignoreCodeBlock` | `procedure` |
+|---|---|---|---|---|---|
+| `markdown` | `<!-- step {"click": "Save"} -->` | `<!-- test start -->` / `<!-- test end -->` | `<!-- test ignore start -->` / `<!-- test ignore end -->` | ```` ```bash testIgnore ```` | `<!-- procedure -->` |
+| `mdx` | `{/* step {"click": "Save"} */}` | `{/* test start */}` / `{/* test end */}` | `{/* test ignore start */}` / `{/* test ignore end */}` | ```` ```bash testIgnore ```` | `{/* procedure */}` |
+| `asciidoc` | `// (step {"click": "Save"})` | `// (test start)` / `// (test end)` | `// (test ignore start)` / `// (test ignore end)` | `[source.testIgnore,bash]` | `// (procedure)` |
+| `html` | `<!-- step {"click": "Save"} -->` | `<!-- test start -->` / `<!-- test end -->` | `<!-- test ignore start -->` / `<!-- test ignore end -->` | `<pre class="testIgnore">` | `<!-- procedure -->` |
+| `dita` | `<data name="doc-detective" value="step click='Save'"/>` | `<data name="doc-detective" value="test start"/>` / `<data name="doc-detective" value="test end"/>` | `<data name="doc-detective" value="test ignore start"/>` / `<data name="doc-detective" value="test ignore end"/>` | `<codeblock outputclass="testIgnore">` | `<data name="doc-detective" value="procedure"/>` |
+
+DITA uses the `<data>` element, not processing instructions or comments, because `<data>` survives
+every DITA-OT build. Its step uses the attribute form, so the value needs no escaped quotes.
+
+A file type might not read the built-in templates. Examples are custom `inlineStatements` such as
+Hugo shortcodes, or a format with no built-in parser. Then its syntax is the file type's `name`. The
+guidance gives each statement's text without a wrapper, and says to wrap it in the comment form the
+file type's `inlineStatements` define.
+
+The `procedure` statement is the manual fix for a false negative: a real procedure that `audit`
+leaves in "possible procedures".
+
+In JSON, each entry in `files` gains `syntax`, and a top-level `guidance` object has one key per
+syntax in `files`, or `{}` when no file was audited:
+
+```json
+"guidance": {
+  "docs": "https://docs.doc-detective.com/docs/test-docs/audit-test-coverage",
+  "coverStep": "Put a step statement inside the item, on the line after the sentence it tests. Or wrap the procedure in `test start` and `test end` with at least one step inside, and its items count as inside a test.",
+  "flagFalsePositive": "Wrap a list that isn't a procedure, or an item you won't test, in `test ignore start` and `test ignore end`. Its items then count as ignored. Tag a code block you won't run with `testIgnore`.",
+  "markProcedure": "If `audit` misses a procedure and puts it in Possible procedures, put a `procedure` statement directly before the list.",
+  "syntaxes": {
+    "markdown": { "step": "<!-- step {\"click\": \"Save\"} -->", "testStart": "<!-- test start -->", "testEnd": "<!-- test end -->", "ignoreStart": "<!-- test ignore start -->", "ignoreEnd": "<!-- test ignore end -->", "ignoreCodeBlock": "```bash testIgnore", "procedure": "<!-- procedure -->" },
+    "hugo": { "custom": true, "step": "step {\"click\": \"Save\"}", "testStart": "test start", "testEnd": "test end", "ignoreStart": "test ignore start", "ignoreEnd": "test ignore end", "procedure": "procedure", "note": "Wrap each statement in the comment form that the `hugo` file type's `inlineStatements` define." }
+  }
+}
+```
+
+In text, a guidance block follows the untested list when a procedure step is untested or a list is a
+possible procedure. It lists only the syntaxes in the run. `-q` never prints it. The `procedure`
+lines print only when a list is a possible procedure.
+
+```text
+To cover a step, put a step statement inside the item, on the line after the sentence it tests:
+  Markdown   <!-- step {"click": "Save"} -->
+Or wrap the procedure in a test with at least one step:
+  Markdown   <!-- test start -->  …  <!-- test end -->
+To flag a list that isn't a procedure, wrap it in ignore statements:
+  Markdown   <!-- test ignore start -->  …  <!-- test ignore end -->
+If audit missed a procedure, put a procedure statement before the list:
+  Markdown   <!-- procedure -->
+More: https://docs.doc-detective.com/docs/test-docs/audit-test-coverage
+```
+
+A custom syntax prints under its file type's name with the bare statement, followed by
+``(wrap it in the comment form `<name>`'s `inlineStatements` define)``. Flags, exit codes, and
+usage errors don't change.
+
 ### Placement
 
 Coverage lives in core (`src/audit/`), not in `doc-detective-common` as coverage.md proposed. This
@@ -158,11 +276,19 @@ nothing in those formats, and now it can.
 - Bad, because the tagger reads English only. Other languages land in "possible" until marked.
 - Bad, because a compromise upgrade can change results. The pinned version and contract suite make
   that change deliberate.
+- Good, because an agent gets the exact statement for each file, checked against that file's type.
+- Good, because wrapping a procedure in a real test now counts, without letting an empty wrapper
+  pass.
+- Bad, because `inTest` credits items the test never checks one by one. The headline keeps them
+  apart from items with their own step.
+- Bad, because the templates must track the statement grammar. The contract test catches drift.
 
 ### Confirmation
 
 - `test/audit-tagger.test.js`, `test/audit-coverage.test.js`, and `test/audit.test.js`.
 - `test/audit-tagger-corpus.test.js`, which holds the tagger to its precision and recall floors.
+- `test/audit-guidance.test.js`, which reads every built-in template back through the coverage
+  calculation and checks the state the guidance promises.
 - The `test/core-artifacts/audit/` fixtures, which run every tier, format, credit rule, state, and
   output mode through the real CLI.
 
