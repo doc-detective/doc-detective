@@ -79,7 +79,7 @@
     },
     {
       "testId": "audit-tier-vote",
-      "description": "A list counts when at least half its items are instructions, and lands in possible procedures otherwise.",
+      "description": "A list counts when at least a third of its items are instructions, and lands in possible procedures otherwise.",
       "steps": [
         {
           "runShell": {

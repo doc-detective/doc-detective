@@ -53,9 +53,13 @@ function readings(text: string): string[] {
   return [plain, lead, rest, rest.replace(/^[A-Za-z]+ly\s+(?=\S)/, "")];
 }
 
-/** True when at least half the items read as instructions. */
+/**
+ * True when at least a third of the items read as instructions. The tagger
+ * misses about one real step in five, so a lower bar recovers procedures while
+ * lists with no instructions stay out. ADR 01207 records the measurement.
+ */
 export function readsAsProcedure(items: string[]): boolean {
-  return items.length > 0 && items.filter(isInstruction).length * 2 >= items.length;
+  return items.length > 0 && items.filter(isInstruction).length * 3 >= items.length;
 }
 
 /** True when `text` starts with an imperative verb, so it reads as an instruction. */

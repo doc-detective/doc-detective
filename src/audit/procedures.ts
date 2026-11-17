@@ -5,7 +5,7 @@
  * Tiers, first match wins:
  * 1. explicit: DITA `<steps>`, MDX `<Steps>`, or a list right after a
  *    `procedure` statement.
- * 2. tagger: an ordered list where at least half the items read as instructions.
+ * 2. tagger: an ordered list where at least a third of the items read as instructions.
  * 3. possible: any other ordered list.
  *
  * Only top-level items count. A nested list belongs to its parent item.

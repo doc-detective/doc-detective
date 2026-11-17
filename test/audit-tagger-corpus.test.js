@@ -1,14 +1,15 @@
 // Accuracy of the procedure tier on labeled lists (ADR 01207). The corpus is
 // every non-explicit ordered list in this repo's docs and the agent-tools docs,
-// each labeled by a reader who didn't see the tagger's result. Lists with
-// identical items count once. The floors ratchet: raise them when a change
+// each labeled by a reader who didn't see the tagger's result. A procedure's
+// `actions` labels each item as an action or not. Lists with identical items
+// count once. The floors ratchet: raise them when a change
 // improves the numbers, and never lower them to make a change pass.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { readsAsProcedure } from "../dist/audit/tagger.js";
 
-const PRECISION_FLOOR = 0.94;
-const RECALL_FLOOR = 0.88;
+const PRECISION_FLOOR = 0.93;
+const RECALL_FLOOR = 0.95;
 
 describe("audit tagger accuracy", function () {
   it("meets the precision and recall floors on the labeled corpus", function () {
