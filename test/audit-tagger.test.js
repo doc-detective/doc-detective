@@ -52,6 +52,20 @@ const instructions = [
   "Supply your token",
   "Open the file, then save it",
   "Select **File**, and then click **Save**.",
+  "Then click Save",
+  "Now run the tests",
+  "Next, click **Save**",
+  "Please enter your name",
+  "Just run `npm i`",
+  "Don't close the window",
+  "Do not close the window",
+  "(Optional) Add a description",
+  "**Optional:** Click Save",
+  "**Create a branch**: run `git checkout -b fix`",
+  "__Find the issue__: Navigate to the page with the problem.",
+  "**Commit**: Run `git commit`",
+  "In the terminal, from the `charmap-docs` folder, run the test:",
+  "✅ Follow your own steps exactly as written",
 ];
 
 const notInstructions = [
@@ -82,6 +96,10 @@ const notInstructions = [
   "**Action type match** - Step action must match the pattern",
   "**Sequential steps** - Ordered actions that build on each other",
   "Only Chrome supports this",
+  "**Exact match** - Step action must match the pattern",
+  "**Review**: A maintainer reviews your changes",
+  "Next steps",
+  "Now available in Chrome",
   "",
 ];
 

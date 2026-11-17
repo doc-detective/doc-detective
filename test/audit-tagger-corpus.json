@@ -1,0 +1,2247 @@
+[
+ {
+  "file": "doc-detective/contribute/local-development.mdx",
+  "procedure": true,
+  "items": [
+   "Go to [https://github.com/doc-detective/doc-detective](https://github.com/doc-detective/doc-detective).",
+   "Click **Fork** in the top right.",
+   "Select your GitHub account as the destination."
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/local-development.mdx",
+  "procedure": true,
+  "items": [
+   "**Create a branch**:",
+   "**Edit files**:",
+   "**Commit regularly**:"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/local-development.mdx",
+  "procedure": true,
+  "items": [
+   "Create the file:",
+   "Add front matter:",
+   "Update the navigation (if needed):"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/local-development.mdx",
+  "procedure": true,
+  "items": [
+   "From the `docs/` directory, place images in a folder under `fern/assets/images/`, named after the page that uses them:",
+   "Reference images with a path that starts at `/assets/`, which Fern resolves from the `fern/` directory:"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/local-development.mdx",
+  "procedure": true,
+  "items": [
+   "Check Node.js version:",
+   "Clear npm cache:"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/local-development.mdx",
+  "procedure": true,
+  "items": [
+   "Go to your fork on GitHub.",
+   "Click **Compare & pull request**.",
+   "Fill out the PR template.",
+   "Click **Create pull request**."
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/quick-start.mdx",
+  "procedure": true,
+  "items": [
+   "__Find the issue__: Navigate to the page with the problem.",
+   "__Open the editor__: Click **Edit this page**, located at the bottom of every doc page.",
+   "__Make your changes__: Edit the Markdown file directly in the browser to fix the issue.",
+   "__Preview your changes__: Open a preview panel (Ctrl+Shift+V) to see how it looks.",
+   "__Commit your changes__:",
+   "__Create a pull request__:"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/quick-start.mdx",
+  "procedure": false,
+  "items": [
+   "__Automated checks__: Our CI/CD pipeline runs automated checks on your contribution",
+   "__Review__: A maintainer reviews your changes (usually within 2 business days)",
+   "__Feedback__: If changes are needed, the reviewer will comment on your pull request",
+   "__Merge__: Once approved, your contribution is merged and goes live."
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/review-process.mdx",
+  "procedure": false,
+  "items": [
+   "**Vale (style checking)**: Checks prose against the Google developer style guide and the Doc Detective house voice.",
+   "**Build verification**: Ensures the site builds successfully.",
+   "**Link validation**: Verifies all links work.",
+   "**CLA check**: Confirms you've signed the Contributor License Agreement."
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/review-process.mdx",
+  "procedure": true,
+  "items": [
+   "Check the error message for the specific file and line number",
+   "Fix the syntax error",
+   "If working locally, run `(cd docs && npx fern check)` from the repository root to verify",
+   "Commit and push the fix"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/review-process.mdx",
+  "procedure": true,
+  "items": [
+   "Check the error message for which link failed",
+   "Verify the URL is correct",
+   "For internal links, ensure the file exists at that path",
+   "For external links, verify the site is accessible"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/review-process.mdx",
+  "procedure": true,
+  "items": [
+   "Click the CLA check in your PR",
+   "Follow the prompts to sign",
+   "The check automatically re-runs after signing"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/review-process.mdx",
+  "procedure": true,
+  "items": [
+   "**Make requested changes** in your local branch",
+   "**Commit with descriptive messages**:",
+   "**Push to your branch**:",
+   "**Reply to comments**: Let reviewer know you've addressed their feedback"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/review-process.mdx",
+  "procedure": true,
+  "items": [
+   "**Resolve conversations**: Click \"Resolve conversation\" on addressed comments",
+   "**Leave unresolved**: Keep conversations open if you have questions",
+   "**Re-request review**: Click \"Re-request review\" from the reviewer"
+  ],
+  "note": "Re-request-review steps; one item ('Leave unresolved') is a conditional option rather than an action."
+ },
+ {
+  "file": "doc-detective/contribute/review-process.mdx",
+  "procedure": false,
+  "items": [
+   "**Explain your reasoning**: Why you prefer your approach",
+   "**Provide evidence**: Link to examples or documentation supporting your view",
+   "**Suggest compromise**: Offer an alternative solution",
+   "**Be open**: The reviewer might have context you don't"
+  ],
+  "note": "Imperative advice for handling disagreement; guidelines, not an ordered sequence."
+ },
+ {
+  "file": "doc-detective/contribute/review-process.mdx",
+  "procedure": false,
+  "items": [
+   "**Maintainer merges**: A maintainer with merge permissions merges your PR",
+   "**Automatic deployment**: GitHub Actions automatically deploys to production",
+   "**Live in minutes**: Your changes appear on doc-detective.com within 5-10 minutes"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/review-process.mdx",
+  "procedure": false,
+  "items": [
+   "**Comment on the PR**: Let reviewers know you'll return to it",
+   "**Mark as draft**: Convert to draft PR if you need more time",
+   "**No deadline**: Take the time you need. We appreciate all contributions"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/standard-contributions.mdx",
+  "procedure": true,
+  "items": [
+   "Use the **Edit this page** button on any doc page",
+   "Make your changes using the web editor",
+   "Commit and create a pull request"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/standard-contributions.mdx",
+  "procedure": true,
+  "items": [
+   "Read your changes out loud. Does it make sense?",
+   "Test any code examples or commands.",
+   "Check that links work.",
+   "Verify screenshots are clear and relevant.",
+   "Make sure formatting looks correct."
+  ],
+  "note": "Pre-PR self-review checklist; order is loose but every item is an action the reader performs."
+ },
+ {
+  "file": "doc-detective/contribute/standard-contributions.mdx",
+  "procedure": true,
+  "items": [
+   "**Title**: Briefly describe what you added. Examples:",
+   "**Description**: Use the PR template to provide context:",
+   "**Submit**: Create your pull request."
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/standard-contributions.mdx",
+  "procedure": false,
+  "items": [
+   "**Automated checks** run (typically 2-5 minutes)",
+   "**Maintainer reviews** your contribution (within 5 business days)",
+   "**Feedback or approval**:"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/substantial-contributions.mdx",
+  "procedure": true,
+  "items": [
+   "**Check for existing issues**: Look for [documentation issues](https://github.com/doc-detective/doc-detective/issues?q=is%3Aissue+is%3Aopen+label%3Adocumentation) or feature requests.",
+   "**Open a discussion**: If no issue exists, open one describing your plans.",
+   "**Get feedback**: Wait for maintainer input before starting major work. If you don't hear back in a few days, politely ping in the issue or on [Discord](https://discord.gg/2M7wXEThfF).",
+   "**Claim the work**: Comment on the issue to let others know you're working on it."
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/substantial-contributions.mdx",
+  "procedure": true,
+  "items": [
+   "Create a draft with section headings and bullet points",
+   "Commit and push to your branch",
+   "Open a draft pull request marked \"WIP\" or \"Draft\"",
+   "Request feedback on structure"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/substantial-contributions.mdx",
+  "procedure": true,
+  "items": [
+   "**Write one section**: Complete a single logical section",
+   "**Commit and push**: Save your progress",
+   "**Review locally**: Read it fresh after a break",
+   "**Move to next section**: Repeat the process"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/substantial-contributions.mdx",
+  "procedure": true,
+  "items": [
+   "**Run the code**: Verify examples work as shown",
+   "**Test variations**: Ensure options are documented correctly",
+   "**Check edge cases**: Document limitations if found"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/substantial-contributions.mdx",
+  "procedure": false,
+  "items": [
+   "**Technical accuracy**: Is the information correct?",
+   "**Content organization**: Is the structure logical?",
+   "**Completeness**: Are there gaps that need filling?",
+   "**Examples**: Are they clear and correct?",
+   "**Writing quality**: Is it clear and concise?"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/substantial-contributions.mdx",
+  "procedure": false,
+  "items": [
+   "**Address feedback**: Make requested changes.",
+   "**Ask questions**: If feedback is unclear, ask for clarification.",
+   "**Suggest alternatives**: If you disagree, explain your reasoning.",
+   "**Iterate**: Multiple review rounds are normal."
+  ],
+  "note": "Imperative advice for responding to review feedback; guidelines, not a sequence."
+ },
+ {
+  "file": "doc-detective/contribute/templates/how-to.mdx",
+  "procedure": true,
+  "items": [
+   "✅ Follow your own steps exactly as written",
+   "✅ Verify the outcome matches what you documented",
+   "✅ Test on a clean environment if possible",
+   "✅ Note any assumptions or prerequisites"
+  ],
+  "note": "Pre-submit test checklist; order is loose but every item is an action the reader performs."
+ },
+ {
+  "file": "doc-detective/contribute/templates/troubleshooting.mdx",
+  "procedure": true,
+  "items": [
+   "Open `.doc-detective.json`",
+   "Add `\"timeout\": 10000` to the test configuration",
+   "Save the file and run tests again"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/templates/tutorial.mdx",
+  "procedure": true,
+  "items": [
+   "Create a basic test with one action",
+   "Add a second action to create a flow",
+   "Add error handling",
+   "Organize into a test suite"
+  ],
+  "note": "Illustrative example of good tutorial progression, but the items themselves are ordered actions."
+ },
+ {
+  "file": "doc-detective/contribute/templates/tutorial.mdx",
+  "procedure": true,
+  "items": [
+   "Create a basic test",
+   "Deploy to production (too big a jump)"
+  ],
+  "note": "Anti-example of tutorial progression; the items are still ordered actions."
+ },
+ {
+  "file": "doc-detective/contribute/templates/tutorial.mdx",
+  "procedure": true,
+  "items": [
+   "Follow the tutorial yourself from scratch",
+   "Have someone unfamiliar with the topic try it",
+   "Note where they get stuck or confused",
+   "Revise based on feedback"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/testing.mdx",
+  "procedure": true,
+  "items": [
+   "Create a file named `test.spec.json`",
+   "Add a test that navigates to doc-detective.com",
+   "Run the test with `npx doc-detective`"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/testing.mdx",
+  "procedure": false,
+  "items": [
+   "Creates the test file as documented",
+   "Runs it as documented",
+   "Cleans up after itself"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/testing.mdx",
+  "procedure": true,
+  "items": [
+   "Go to your pull request",
+   "Check the \"Tests\" status check",
+   "Click \"Details\" to see full output",
+   "Failed tests show specific error messages"
+  ]
+ },
+ {
+  "file": "doc-detective/contribute/testing.mdx",
+  "procedure": true,
+  "items": [
+   "**Check the logs**: Click \"Details\" on the failed check",
+   "**Look for environment differences**: Paths, dependencies, timing",
+   "**Run tests in Docker** (mimics CI environment):",
+   "**Ask for help**: Comment on the PR with the error details"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/actions/checkLink.mdx",
+  "procedure": false,
+  "items": [
+   "Issues a `GET` request with browser-mimicking default headers (`User-Agent`, `Accept`, `Accept-Language`, `Accept-Encoding`, `Upgrade-Insecure-Requests`, and the `Sec-Fetch-*` and `Sec-Ch-Ua*` Client Hints set) to reduce false 429 or 403 responses from bot-protection layers. If no response arrives within `timeout`, the step fails right away without retrying.",
+   "Retries up to three times (four attempts total) with exponential backoff (1 second, then 2 seconds, then 4 seconds) on `429` or `5xx` responses. If the server sends a `Retry-After` header, Doc Detective waits that duration (capped at 10 seconds) instead.",
+   "If the final response is still `429` or `403`, retries the URL once with a `HEAD` request. Some web application firewalls (WAFs) rate-limit HTML `GET` requests but allow `HEAD` requests. If the `HEAD` returns an accepted status code, the step passes.",
+   "Compares the final status code against `statusCodes` and reports PASS or FAIL."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/actions/checkLink.mdx",
+  "procedure": true,
+  "items": [
+   "Create a `.env` file with the following content:",
+   "Modify your test configuration to include a `loadVariables` step (Note: `setVariables` is deprecated, use `loadVariables`):"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/actions/find.mdx",
+  "procedure": false,
+  "items": [
+   "Display text",
+   "Accessible name, such as an `aria-label`",
+   "`id` attribute",
+   "`data-testid` attribute",
+   "CSS or XPath selector"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/agent-tools/claude-code.mdx",
+  "procedure": true,
+  "items": [
+   "Open Claude Code:",
+   "Add the Doc Detective marketplace and install the plugin:"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/agent-tools/claude-code.mdx",
+  "procedure": false,
+  "items": [
+   "Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)",
+   "Generates a `.doc-detective.json` configuration file",
+   "Creates test specifications for procedures with step-by-step instructions",
+   "Runs the tests and fixes failures"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/agent-tools/copilot-cli.mdx",
+  "procedure": false,
+  "items": [
+   "Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)",
+   "Generates a `.doc-detective.json` configuration file",
+   "Creates test specifications for procedures with step-by-step instructions",
+   "Runs the tests and fixes failures"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/agent-tools/gemini-cli.mdx",
+  "procedure": false,
+  "items": [
+   "Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)",
+   "Generates a `.doc-detective.json` configuration file",
+   "Creates test specifications for procedures with step-by-step instructions",
+   "Runs the tests and fixes failures"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/agent-tools/other-assistants.mdx",
+  "procedure": false,
+  "items": [
+   "Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)",
+   "Generates a `.doc-detective.json` configuration file",
+   "Creates test specifications for procedures with step-by-step instructions",
+   "Runs the tests and fixes failures"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/agent-tools/overview.mdx",
+  "procedure": false,
+  "items": [
+   "Detects documentation files in your repository",
+   "Generates a minimal configuration file",
+   "Creates test specifications for identified procedures",
+   "Runs the tests",
+   "Iteratively fixes failures with confidence-based suggestions"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/ci/issue-mentions.mdx",
+  "procedure": true,
+  "items": [
+   "Set `create_issue_on_fail` to `true`, and give the job the `issues: write` permission.",
+   "List the assistants in `issue_mentions`, separated by commas."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/ci/upgrade-to-v5.mdx",
+  "procedure": true,
+  "items": [
+   "Run your suite once on version 5 with `--no-exit-on-fail`. The run behaves as it did on version 4, and the job stays green while you read the results:",
+   "Fix or triage the failures the run reports.",
+   "Remove `--no-exit-on-fail` to turn the gate on."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/ci/upgrade-to-v5.mdx",
+  "procedure": true,
+  "items": [
+   "Move to Node.js 24.15 or later while you're still on Doc Detective 4, which also runs on it.",
+   "Upgrade Doc Detective.",
+   "In CI, set the version explicitly, because GitHub-hosted runners default to Node.js 22:"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/ci/upgrade-to-v5.mdx",
+  "procedure": false,
+  "items": [
+   "Run your suite with `--dry-run` on version 4 and version 5, and compare the tests each detects.",
+   "Point `--input` at source files, not generated HTML, where every link and bold phrase becomes a step.",
+   "To turn off step detection, set `detectSteps: false`. Inline statements still work.",
+   "If a custom file type extends a built-in with `regex` definitions, they still match raw text, code samples included. To limit one to prose, add `\"text\": {}` to it. See [Selectors](/docs/test-docs/input-formats/selectors)."
+  ],
+  "note": "Remediation list mixing two actions with optional and conditional settings; not a sequence."
+ },
+ {
+  "file": "doc-detective/docs/ci/upgrade-to-v5.mdx",
+  "procedure": true,
+  "items": [
+   "Change the action reference:",
+   "For your first run, set `exit_on_fail: false` while you triage existing failures. Remove it to turn the gate on.",
+   "If you set `integrations` or `prompt`, rename them to `issue_mentions` and `issue_prompt`. Remove the old names rather than keeping them beside the new ones, because setting both fails the job before the run.",
+   "If you pin an exact version of v1.6.1 or earlier and can't move to `@v2` yet, set `version: 4` on the step.",
+   "If a later step reads reports from `${{ runner.temp }}`, read them from your `outputDir` instead.",
+   "If you set `create_pr_on_change`, set `pr_paths` to a comma-separated list of the paths to stage. By default it stages everything, so the run's screenshots get committed.",
+   "If you set `create_pr_on_change`, don't commit to `pr_branch` by hand, because the next run force-pushes it. If more than one workflow or job sets `create_pr_on_change`, give each its own `pr_branch`.",
+   "To keep the results JSON in the issue, set `issue_body` to the `@v1` default. `$RESULTS` starts with a blank line, so it needs no separator before it:"
+  ],
+  "note": "Upgrade steps; most items are cumulative conditionals ('If you set X...'), not mutually exclusive alternatives."
+ },
+ {
+  "file": "doc-detective/docs/ci/upgrade-to-v5.mdx",
+  "procedure": true,
+  "items": [
+   "Confirm the version:",
+   "Run your suite and check the exit code:",
+   "Search your pipelines and scripts for the removed items: `testResults-`, `See detailed results`, `See HTML report`, `See JUnit report`, `See Markdown summary`, `install-agents`, `doc-detective-lsp`, `doc-detective-runner`, and `--output` with a folder."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/config/contexts.mdx",
+  "procedure": true,
+  "items": [
+   "Run `safaridriver --enable` in your terminal.",
+   "Ensure **Develop > Allow Remote Automation** is checked in Safari's menu bar. You might need to enable the Develop menu first in Safari's Advanced preferences."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/get-started/create-your-first-test.mdx",
+  "procedure": true,
+  "items": [
+   "In a terminal, navigate to the folder where you plan to create your test:",
+   "Create a new test file named `homepage-check.spec.json`:",
+   "Open the file in your text editor and paste the following code:",
+   "Save the file.",
+   "In your terminal, enter the following command to run the test:"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/get-started/installation.mdx",
+  "procedure": true,
+  "items": [
+   "Install prerequisites:",
+   "In a terminal, install Doc Detective globally:",
+   "Save this file to your current directory as _sample.spec.json_:",
+   "Run a test, pointing to the file you just created:"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/get-started/installation.mdx",
+  "procedure": true,
+  "items": [
+   "Install prerequisites:",
+   "Save this file to your current directory as _sample.spec.json_:",
+   "Run a test, pointing to the file you just created:"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/get-started/installation.mdx",
+  "procedure": true,
+  "items": [
+   "Uninstall the package:",
+   "Delete the cache directory, which holds browsers, drivers, and runtime packages. It's the first of these that applies:",
+   "Delete your user config directory, which holds `config.json` and the record that you saw the telemetry notice. It's `$XDG_CONFIG_HOME/doc-detective` or `~/.config/doc-detective` on macOS and Linux, and `%APPDATA%\\doc-detective` on Windows."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/get-started/self-healing.mdx",
+  "procedure": false,
+  "items": [
+   "**Automated testing**: Doc Detective runs on every push or pull request, catching documentation that no longer matches your product.",
+   "**Failure detection**: When tests fail, the GitHub Action opens an issue with a summary of the failures, or updates the open one.",
+   "**AI diagnosis**: The issue mentions an AI assistant that analyzes the failure and suggests fixes."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/input-formats/custom.mdx",
+  "procedure": true,
+  "items": [
+   "Create a sample documentation file in your format",
+   "Add test comments or content that matches your patterns",
+   "Run Doc Detective with the `--input` flag pointing to your file",
+   "Check the generated test results to verify patterns were detected correctly"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/integrations/heretto.mdx",
+  "procedure": false,
+  "items": [
+   "Finds the publishing scenario named `Doc Detective` (or your custom `scenarioName`)",
+   "Triggers a publishing job in Heretto",
+   "Polls the job until the required output is available",
+   "Downloads and extracts the published DITA content",
+   "Processes the DITA files for test detection"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/integrations/heretto.mdx",
+  "procedure": true,
+  "items": [
+   "Create a `.env` file with your Heretto credentials:",
+   "Add Heretto to your `config.json`:",
+   "Run Doc Detective to load and test your Heretto content:"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/selectors/css.mdx",
+  "procedure": true,
+  "items": [
+   "**Inspect element:** Right-click an element and select \"Inspect\" or \"Inspect Element\"",
+   "**Copy selector:** In the developer tools, right-click the highlighted element in the HTML pane and select \"Copy\" → \"Copy selector\"",
+   "**Test selector:** In the browser console, use `document.querySelector('your-selector')` to verify it targets the correct element"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/selectors/xpath.mdx",
+  "procedure": true,
+  "items": [
+   "Open Developer Tools (F12)",
+   "Go to the Console tab",
+   "Type `$x(\"your-xpath-here\")` and press Enter",
+   "The console shows all matching elements",
+   "Hover over results to highlight them on the page"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/test-docs/audit-test-coverage.mdx",
+  "procedure": true,
+  "items": [
+   "Run `audit` on your docs folder:",
+   "Read the **Untested procedure steps** list. Each entry is a file, a line number, and the step's text.",
+   "Add a test for a step, then run `audit` again to see the count change. See [Inline tests](/docs/test-docs/inline) and [Standalone tests](/docs/test-docs/standalone)."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/test-docs/audit-test-coverage.mdx",
+  "procedure": false,
+  "items": [
+   "**You marked it.** A DITA `<steps>` element, an MDX `<Steps>` component, or a list right after a `procedure` statement always counts.",
+   "**Its first item is an instruction.** A built-in grammar tagger reads the first item. \"Open a terminal.\" and \"In a terminal, run `npm test`.\" count. \"Release notes\" doesn't.",
+   "**Anything else** goes in **Possible procedures**. These lists stay out of the headline, but you still see their counts."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/test-docs/native-apps/windows-tutorial.mdx",
+  "procedure": true,
+  "items": [
+   "Install [Node.js](https://nodejs.org/) 24.15 or later.",
+   "Open a new terminal window, so it picks up the updated `PATH`.",
+   "Check that Node.js is installed:",
+   "Install Doc Detective globally:",
+   "Check that Doc Detective is installed:"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/test-docs/native-apps/windows-tutorial.mdx",
+  "procedure": true,
+  "items": [
+   "Create a folder and move into it:",
+   "In your text editor, create a file named `charmap.spec.json` in that folder and paste in this test:",
+   "Save the file."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/test-docs/native-apps/windows-tutorial.mdx",
+  "procedure": true,
+  "items": [
+   "In the terminal, from the `charmap-docs` folder, run the test:",
+   "Wait for the run to finish, and don't use the mouse or keyboard while it runs. Character Map opens, a character appears in the **Characters to copy** box followed by `AB`, and then the window closes."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/test-docs/native-apps/windows-tutorial.mdx",
+  "procedure": true,
+  "items": [
+   "In `charmap.spec.json`, find the `click` step and change `Select` to `Choose`:",
+   "Run the test again:",
+   "Change `Choose` back to `Select` and save the file."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/test-docs/native-apps/windows-tutorial.mdx",
+  "procedure": true,
+  "items": [
+   "In the `charmap-docs` folder, create a file named `copy-characters.md` with this content:",
+   "Save the file.",
+   "Run Doc Detective on the how-to:"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/test-docs/screenshot-visual-regression.mdx",
+  "procedure": false,
+  "items": [
+   "If the test runs in a headed browser, set `\"headless\": true` on the browser in the context, or on the [`startSurface`](/docs/actions/startsurface) browser descriptor that opens it. Headless browsers aren't limited by the display size. [Chrome dimensions and visibility](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility) describes these size limits.",
+   "If the browser can't run headless, or the new size is permanent, refresh the reference image by running the step once with `\"overwrite\": \"true\"`. Safari, for example, doesn't support headless mode."
+  ]
+ },
+ {
+  "file": "doc-detective/docs/tests/overview.mdx",
+  "procedure": false,
+  "items": [
+   "Detects that the specified browser isn't available",
+   "Downloads and installs the browser and its driver",
+   "Re-checks available browsers",
+   "Proceeds with the test if installation succeeded, or skips if it failed"
+  ]
+ },
+ {
+  "file": "doc-detective/docs/troubleshooting/setup-issues.mdx",
+  "procedure": true,
+  "items": [
+   "Run `doc-detective debug`",
+   "Copy the output",
+   "Paste it into your [GitHub issue](https://github.com/doc-detective/doc-detective/issues) or [Discord message](https://discord.gg/2M7wXEThfF)"
+  ]
+ },
+ {
+  "file": "doc-detective/index.mdx",
+  "procedure": false,
+  "items": [
+   "**Bring your docs.** Whether in Markdown, AsciiDoc, DITA, or other formats, Doc Detective can read them.",
+   "**Detect testable content.** Doc Detective scans commands, code blocks, and examples users are expected to run.",
+   "**Run the tests.** Each instruction is executed in a real environment to confirm it works as documented.",
+   "**Get actionable reports.** See what passed, what failed, and where your docs need updates."
+  ],
+  "note": "Imperative-headed overview of how Doc Detective works; items 2-3 describe what the tool does."
+ },
+ {
+  "file": "doc-detective/reference/cli/install.mdx",
+  "procedure": false,
+  "items": [
+   "**Prerequisite checks.** Verifies that the Xcode command-line tools resolve (`xcode-select -p`) and that the iOS Simulator control tool responds (`xcrun simctl`). It gives actionable guidance when either is missing.",
+   "**Driver install.** Installs `appium-xcuitest-driver` into the Doc Detective cache if it isn't already present. That's the same install a first test run performs lazily.",
+   "**WebDriverAgent prebuild.** When full Xcode 14+ is present, this compiles the WebDriverAgent that ships inside the driver once for the iOS Simulator. It stores the result in the cache, keyed by your Xcode and driver versions (`<cacheDir>/ios/wda/…`). If a build for the current key already exists, the step is a fast check-and-skip. Test sessions then use these build products automatically and read-only, so concurrent runs can safely share one cache. A session that finds no matching products builds WebDriverAgent itself, exactly as before."
+  ]
+ },
+ {
+  "file": "doc-detective/reference/cli/install.mdx",
+  "procedure": false,
+  "items": [
+   "`~/.doc-detective`, if it already exists from an earlier install.",
+   "`$XDG_CACHE_HOME/doc-detective`, if `XDG_CACHE_HOME` is set.",
+   "`%LOCALAPPDATA%\\doc-detective` on Windows.",
+   "`~/.cache/doc-detective`."
+  ]
+ },
+ {
+  "file": "doc-detective/reference/cli/install.mdx",
+  "procedure": false,
+  "items": [
+   "**CLI flag**: `--cache-dir /opt/doc-detective`",
+   "**Environment variable**: `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`",
+   "**Project config**: `cacheDir` in the file `--config` names, or else in `.doc-detective.json`, `.yaml`, or `.yml`. A relative path resolves against the config file.",
+   "**User config**: `cacheDir` in `$XDG_CONFIG_HOME/doc-detective/config.json`"
+  ]
+ },
+ {
+  "file": "doc-detective/reference/cli/install.mdx",
+  "procedure": true,
+  "items": [
+   "**Check the install log**: Open `<cacheDir>/runtime/install.log` to see the full npm output, including errors the filtered terminal output hides.",
+   "**Run with verbose output**: Use `--verbose` to see npm's output in real time:",
+   "**Check network and authentication**: The log often reveals proxy issues, registry authentication failures, or network timeouts.",
+   "**Retry with force**: If a partial install left the cache in a bad state:"
+  ]
+ },
+ {
+  "file": "doc-detective/tutorials/capture-screenshot.mdx",
+  "procedure": true,
+  "items": [
+   "[Set up your test environment](/docs/ci/set-up-environment) so the sample form is served at `http://localhost:8080/watson_and_holmes_intake_form.html`.",
+   "Run the hosted _form-filler2.md_ test spec with Doc Detective:"
+  ]
+ },
+ {
+  "file": "doc-detective/tutorials/fill-fields.mdx",
+  "procedure": true,
+  "items": [
+   "[Set up your test environment](/docs/ci/set-up-environment) so the sample form is served at `http://localhost:8080/watson_and_holmes_intake_form.html`.",
+   "Run the hosted _form-filler1.md_ test spec with Doc Detective:"
+  ]
+ },
+ {
+  "file": "doc-detective/tutorials/record-video.mdx",
+  "procedure": true,
+  "items": [
+   "[Set up your test environment](/docs/ci/set-up-environment) so the sample form is served at `http://localhost:8080/watson_and_holmes_intake_form.html`.",
+   "Run the hosted _form-filler3.md_ test spec with Doc Detective:"
+  ]
+ },
+ {
+  "file": "doc-detective/tutorials/set-up-your-test-environment.mdx",
+  "procedure": true,
+  "items": [
+   "Download the sample intake form, [watson_and_holmes_intake_form.html](https://raw.githubusercontent.com/doc-detective/doc-detective/main/docs/examples/watson-and-holmes/watson_and_holmes_intake_form.html), into an empty folder. The file is self-contained, so it's the only file you need.",
+   "In a terminal, navigate to the folder that contains the form:",
+   "Install and run a webserver. Running your tests against a local server allows you to make edits and see them in real time. Also, you need to serve the files in a web browser to experiment with video recording and other features."
+  ]
+ },
+ {
+  "file": "agent-tools/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "**Doc Detective Configuration**: Help users configure Doc Detective for their projects, including:",
+   "**Writing Doc Tests**: Guide users in authoring effective documentation tests:",
+   "**Docs as Tests Methodology**: Explain the Docs as Tests approach using the canonical reference in [Docs as Tests Methodology](#docs-as-tests-methodology) below. Do not rely on baseline knowledge—use the tenets, patterns, and validation hierarchy defined in that section.",
+   "**Troubleshooting**: Debug doc test failures and configuration issues:"
+  ]
+ },
+ {
+  "file": "agent-tools/agents/doc-detective-specialist.md",
+  "procedure": true,
+  "items": [
+   "Briefly state the relevant concept or principle",
+   "Provide the specific technical answer with code/config examples",
+   "Point to relevant reference files or documentation URLs for further reading",
+   "Suggest next steps or related topics the user might want to explore"
+  ],
+  "note": "Agent response-structure guidance; ordered imperatives the agent performs when answering."
+ },
+ {
+  "file": "agent-tools/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "Literal text — `\"find\": { \"elementText\": \"Submit\" }`",
+   "data-testid attributes — `\"find\": { \"selector\": \"[data-testid='submit']\" }`",
+   "Stable IDs — `\"find\": { \"selector\": \"#submit-button\" }`",
+   "CSS paths (avoid) — `div.container > form > button:nth-child(3)`"
+  ]
+ },
+ {
+  "file": "agent-tools/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "Live product access — AI controls real browsers, observes actual DOM",
+   "Current specifications — Feed authoritative OpenAPI specs as context",
+   "Product instrumentation — Query `/health`, `/config`, `/version` endpoints"
+  ]
+ },
+ {
+  "file": "agent-tools/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "Is answer grounded in retrieved content? → Generation problem",
+   "Was right content retrieved? → Retrieval/search issue",
+   "Is source content correct? → Doc accuracy issue (Docs as Tests territory)",
+   "Is source unambiguous? → Clarity issue (probabilistic testing)",
+   "Otherwise → Generation-level issue outside doc team control"
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-generate.md",
+  "procedure": false,
+  "items": [
+   "[ ] No `\"action\":` property — action name IS the key",
+   "[ ] Text-based matching used where possible (not CSS selectors)",
+   "[ ] Validator ran and output shows `Validation PASSED`",
+   "[ ] If `--merge`: new tests de-duplicated by `testId`"
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-init.md",
+  "procedure": false,
+  "items": [
+   "[ ] Config created or merged and confirmed",
+   "[ ] Test specs generated and validated for all identified procedures",
+   "[ ] Tests executed (unless `--skip-tests` or `--dry-run`)",
+   "[ ] Fix loop completed or skipped (unless `--skip-fix-loop`)",
+   "[ ] Any unresolved failures reported to user with \"needs manual review\" status",
+   "[ ] GitHub Action workflow offered/installed (if GitHub repo)"
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-init.md",
+  "procedure": false,
+  "items": [
+   "Detect → 2. Configure → 3. Generate Tests → 4. Execute → 5. Fix Loop → 6. GitHub Action"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-init.md",
+  "procedure": true,
+  "items": [
+   "Search for documentation files matching: `**/*.md`, `**/*.mdx`, `**/*.adoc`, `**/*.rst`, `**/*.html`, `**/*.dita`",
+   "If no files found, stop and ask the user where documentation is located.",
+   "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
+   "Identify procedure-heavy files: read each file and flag it if it contains 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select)."
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-init.md",
+  "procedure": true,
+  "items": [
+   "Invoke `/doc-detective-generate <file-path> --output doc-detective-tests/<name>-spec.json`, where `<name>` is the source filename lowercased with non-alphanumeric characters replaced by hyphens (e.g., `login-guide.md` → `login-guide`). Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
+   "Confirm each spec passes validation before continuing. If a spec cannot be fixed, skip it and report it to the user.",
+   "If `--dry-run`, print each spec without writing to disk."
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-init.md",
+  "procedure": true,
+  "items": [
+   "In the results file, find the steps in `specs[].tests[].contexts[].steps[]` whose `result` is `FAIL`, and read each one's `resultDescription`.",
+   "Propose a fix and assign a confidence score: **High (80–100)** — exact alternative identified; **Medium (50–79)** — likely correct but uncertain; **Low (0–49)** — best guess with significant uncertainty.",
+   "Apply the fix based on confidence:"
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-init.md",
+  "procedure": true,
+  "items": [
+   "Re-run the test. If it passes, move to the next failing test.",
+   "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-init.md",
+  "procedure": true,
+  "items": [
+   "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
+   "If in `--ci` mode, default to yes — proceed without prompting.",
+   "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-inject.md",
+  "procedure": false,
+  "items": [
+   "[ ] All steps are matched or marked with ``",
+   "[ ] Each test is wrapped with `` and ``",
+   "[ ] Each step comment uses the correct syntax for the source file type",
+   "[ ] In preview mode: unified diff is printed to stdout, file is not modified",
+   "[ ] In apply mode: changes are written directly to the source file"
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-inject.md",
+  "procedure": false,
+  "items": [
+   "**Exact value match**: If a line contains the step's value verbatim, select the first such line. Insert the step comment immediately after it.",
+   "**Contains match**: If a line contains the step's value as a substring, select the first such line. Insert the step comment immediately after it.",
+   "**Pattern match**: If a line matches the action's content pattern (table below), select the first such line. Insert the step comment immediately after it.",
+   "**No match**: Insert the step comment immediately after the previous step's insertion point. Insert `` on the following line."
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-install-github-action.md",
+  "procedure": false,
+  "items": [
+   "[ ] Workflow YAML file created at `.github/workflows/doc-detective.yml` (or user-chosen name)",
+   "[ ] Required permissions correctly set in the `permissions:` block",
+   "[ ] Optional features (PR creation, issue creation, integrations) configured per user choices",
+   "[ ] Manual steps reported to user (e.g., enabling Actions permissions, adding secrets)"
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-install-github-action.md",
+  "procedure": false,
+  "items": [
+   "Detect → 2. Configure → 3. Write → 4. Report"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-install-github-action.md",
+  "procedure": true,
+  "items": [
+   "Confirm this is a Git repository (`.git` exists as a file or directory). If not, stop and inform the user.",
+   "Confirm the remote points to GitHub. Check `.git/config` for `github.com` in a remote URL, or run `gh repo view --json url` if the `gh` CLI is available. If not a GitHub repo, stop and inform the user this skill is GitHub-specific.",
+   "Check for existing Doc Detective config: `.doc-detective.json`, `doc-detective.config.js`. Record the path if found.",
+   "Check for existing workflows in `.github/workflows/` — note any existing `doc-detective*.yml` files to avoid conflicts.",
+   "Identify the docs directory: use the `input` field from existing config if available, otherwise look for common directories (`docs/`, `documentation/`, `content/`, `wiki/`). Fall back to `.` if no convention is detected."
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-install-github-action.md",
+  "procedure": true,
+  "items": [
+   "Create `.github/workflows/` directory if it doesn't exist.",
+   "Check if `.github/workflows/doc-detective.yml` already exists.",
+   "Write the workflow YAML file."
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-test.md",
+  "procedure": false,
+  "items": [
+   "[ ] All tests have been executed and results recorded",
+   "[ ] If `--fix`: failing tests have been processed through the fix loop",
+   "[ ] If `--inject`: passing tests have been injected into the source file",
+   "[ ] Final pass/fail counts are accurate and complete"
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-test.md",
+  "procedure": true,
+  "items": [
+   "Analyze the failure and generate a proposed fix. Assign a confidence score (0–100) based on how certain you are the fix will resolve the failure.",
+   "Decide whether to apply the fix:",
+   "Apply the fix to the test spec.",
+   "Re-run the fixed test, and read the results file again. Exit `1` means the test still fails; exit `2` means nothing valid ran, because the fix made the spec invalid or every test skipped. Check stderr, then revert or correct the fix.",
+   "If the test passes, mark it resolved. If it still fails, generate a new fix and repeat from step 1."
+  ]
+ },
+ {
+  "file": "agent-tools/commands/doc-detective-validate.md",
+  "procedure": false,
+  "items": [
+   "[ ] Validation executed against the provided input",
+   "[ ] Each error reported as: `[FIELD]: [ERROR REASON]`",
+   "[ ] Final result stated as `Validation PASSED` or `Validation FAILED`"
+  ]
+ },
+ {
+  "file": "agent-tools/docs/README.cursor.md",
+  "procedure": true,
+  "items": [
+   "Clone the repo:",
+   "Copy `plugins/doc-detective` into the local plugins directory:",
+   "Run **Developer: Reload Window** from the Command Palette (or restart Cursor).",
+   "In Agent chat, type `/` and confirm the `/doc-detective-*` commands appear."
+  ]
+ },
+ {
+  "file": "agent-tools/docs/README.cursor.md",
+  "procedure": true,
+  "items": [
+   "[cursor.com](https://cursor.com) → **Dashboard → Settings → Plugins → Team",
+   "Paste `https://github.com/doc-detective/agent-tools`; Cursor reads the repo-root",
+   "Assign access groups, mark the plugin Required or Optional, and save. (Auto-refresh"
+  ]
+ },
+ {
+  "file": "agent-tools/GEMINI.md",
+  "procedure": false,
+  "items": [
+   "**Action name IS the key** — Use `{ \"goTo\": \"url\" }`, never `{ \"action\": \"goTo\", \"url\": \"...\" }`",
+   "**Prefer text over selectors** — Use `{ \"click\": \"Submit\" }` not `{ \"click\": \"#submit-btn\" }`",
+   "**Always validate specs** — Run the validate-test script before returning any test specification",
+   "**Execution fallback chain.** Try `doc-detective`, then `docker run docdetective/docdetective`, then `npx doc-detective@5`"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "**Doc Detective Configuration**: Help users configure Doc Detective for their projects, including:",
+   "**Writing Doc Tests**: Guide users in authoring effective documentation tests:",
+   "**Docs as Tests Methodology**: Explain the Docs as Tests approach using the canonical reference in [Docs as Tests Methodology](#docs-as-tests-methodology) below. Do not rely on baseline knowledge—use the tenets, patterns, and validation hierarchy defined in that section.",
+   "**Troubleshooting**: Debug doc test failures and configuration issues:"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/agents/doc-detective-specialist.md",
+  "procedure": true,
+  "items": [
+   "Briefly state the relevant concept or principle",
+   "Provide the specific technical answer with code/config examples",
+   "Point to relevant reference files or documentation URLs for further reading",
+   "Suggest next steps or related topics the user might want to explore"
+  ],
+  "note": "Agent response-structure guidance; ordered imperatives the agent performs when answering."
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "Literal text — `\"find\": { \"elementText\": \"Submit\" }`",
+   "data-testid attributes — `\"find\": { \"selector\": \"[data-testid='submit']\" }`",
+   "Stable IDs — `\"find\": { \"selector\": \"#submit-button\" }`",
+   "CSS paths (avoid) — `div.container > form > button:nth-child(3)`"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "Live product access — AI controls real browsers, observes actual DOM",
+   "Current specifications — Feed authoritative OpenAPI specs as context",
+   "Product instrumentation — Query `/health`, `/config`, `/version` endpoints"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "Is answer grounded in retrieved content? → Generation problem",
+   "Was right content retrieved? → Retrieval/search issue",
+   "Is source content correct? → Doc accuracy issue (Docs as Tests territory)",
+   "Is source unambiguous? → Clarity issue (probabilistic testing)",
+   "Otherwise → Generation-level issue outside doc team control"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-doc-testing/references/fix-failing-tests.md",
+  "procedure": false,
+  "items": [
+   "**Error type**: Element not found, timeout, navigation failure, assertion failure",
+   "**Context**: What the step was trying to do",
+   "**Actual result**: What happened instead",
+   "**Potential causes**: Why it might have failed"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-doc-testing/scripts/sample-docs-injection-test.md",
+  "procedure": true,
+  "items": [
+   "Navigate to https://duckduckgo.com",
+   "Type \"hello world\" in the search box",
+   "Click the Search button",
+   "Verify you see search results"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-doc-testing/scripts/sample-docs.md",
+  "procedure": true,
+  "items": [
+   "Navigate to https://doc-detective.com",
+   "Verify you see the **Doc Detective** heading",
+   "Look for the **Get started** link"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Interpret (docs → spec) → 2. **VALIDATE** (mandatory gate) → 2b. Inject? (optional) → 3. Execute → 4. Analyze → 5. Fix? (optional)"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Save spec: `echo '<spec-json>' > /tmp/doc-detective-test-spec.json`",
+   "Run: `node ./scripts/doc-detective-validate-test.js /tmp/doc-detective-test-spec.json`",
+   "Only proceed if output shows `Validation PASSED`."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": true,
+  "items": [
+   "**Write spec to temp file**:",
+   "**Show preview** (no `--apply` flag):",
+   "**Apply on confirmation**:"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] No `\"action\":` property anywhere — action name IS the key",
+   "[ ] Text-based matching used where possible",
+   "[ ] Valid structure: `tests` array with `testId` and `steps`",
+   "[ ] Validator executed and output shows `Validation PASSED`"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-generate/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] No `\"action\":` property — action name IS the key",
+   "[ ] Text-based matching used where possible (not CSS selectors)",
+   "[ ] Validator ran and output shows `Validation PASSED`",
+   "[ ] If `--merge`: new tests de-duplicated by `testId`"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-init/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Config created or merged and confirmed",
+   "[ ] Test specs generated and validated for all identified procedures",
+   "[ ] Tests executed (unless `--skip-tests` or `--dry-run`)",
+   "[ ] Fix loop completed or skipped (unless `--skip-fix-loop`)",
+   "[ ] Any unresolved failures reported to user with \"needs manual review\" status",
+   "[ ] GitHub Action workflow offered/installed (if GitHub repo)"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-init/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Detect → 2. Configure → 3. Generate Tests → 4. Execute → 5. Fix Loop → 6. GitHub Action"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Search for documentation files matching: `**/*.md`, `**/*.mdx`, `**/*.adoc`, `**/*.rst`, `**/*.html`, `**/*.dita`",
+   "If no files found, stop and ask the user where documentation is located.",
+   "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
+   "Identify procedure-heavy files: read each file and flag it if it contains 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select)."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Invoke `/doc-detective-generate <file-path> --output doc-detective-tests/<name>-spec.json`, where `<name>` is the source filename lowercased with non-alphanumeric characters replaced by hyphens (e.g., `login-guide.md` → `login-guide`). Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
+   "Confirm each spec passes validation before continuing. If a spec cannot be fixed, skip it and report it to the user.",
+   "If `--dry-run`, print each spec without writing to disk."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "In the results file, find the steps in `specs[].tests[].contexts[].steps[]` whose `result` is `FAIL`, and read each one's `resultDescription`.",
+   "Propose a fix and assign a confidence score: **High (80–100)** — exact alternative identified; **Medium (50–79)** — likely correct but uncertain; **Low (0–49)** — best guess with significant uncertainty.",
+   "Apply the fix based on confidence:"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Re-run the test. If it passes, move to the next failing test.",
+   "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
+   "If in `--ci` mode, default to yes — proceed without prompting.",
+   "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-inject/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] All steps are matched or marked with ``",
+   "[ ] Each test is wrapped with `` and ``",
+   "[ ] Each step comment uses the correct syntax for the source file type",
+   "[ ] In preview mode: unified diff is printed to stdout, file is not modified",
+   "[ ] In apply mode: changes are written directly to the source file"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-inject/SKILL.md",
+  "procedure": false,
+  "items": [
+   "**Exact value match**: If a line contains the step's value verbatim, select the first such line. Insert the step comment immediately after it.",
+   "**Contains match**: If a line contains the step's value as a substring, select the first such line. Insert the step comment immediately after it.",
+   "**Pattern match**: If a line matches the action's content pattern (table below), select the first such line. Insert the step comment immediately after it.",
+   "**No match**: Insert the step comment immediately after the previous step's insertion point. Insert `` on the following line."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-inline-test-injection/references/markup-patterns.md",
+  "procedure": false,
+  "items": [
+   "**Action type match** - Step action must match pattern's detected action (e.g., `click` step matches `clickOnscreenText` pattern)",
+   "**Value similarity** - The step's value is compared with the captured content:"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-inline-test-injection/references/markup-patterns.md",
+  "procedure": false,
+  "items": [
+   "After the last successfully matched step",
+   "At the beginning of the document if no prior matches"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-inline-test-injection/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] All steps are placed or marked with ``",
+   "[ ] Each test is wrapped with `` and ``",
+   "[ ] Each step comment uses the correct syntax for the source file type",
+   "[ ] Step comments appear in the same order as steps in the spec"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-inline-test-injection/SKILL.md",
+  "procedure": false,
+  "items": [
+   "**Exact match**: Line contains the match value verbatim → insert step comment immediately after that line.",
+   "**Contains match**: Line contains the match value as a substring → insert step comment immediately after that line.",
+   "**Pattern match**: Line matches the action's content pattern (table below) → insert step comment immediately after that line.",
+   "**No match**: Insert step comment immediately after the previous insertion point (line 1 if first step). Insert `` on the following line."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Workflow YAML file created at `.github/workflows/doc-detective.yml` (or user-chosen name)",
+   "[ ] Required permissions correctly set in the `permissions:` block",
+   "[ ] Optional features (PR creation, issue creation, integrations) configured per user choices",
+   "[ ] Manual steps reported to user (e.g., enabling Actions permissions, adding secrets)"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Detect → 2. Configure → 3. Write → 4. Report"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Confirm this is a Git repository (`.git` exists as a file or directory). If not, stop and inform the user.",
+   "Confirm the remote points to GitHub. Check `.git/config` for `github.com` in a remote URL, or run `gh repo view --json url` if the `gh` CLI is available. If not a GitHub repo, stop and inform the user this skill is GitHub-specific.",
+   "Check for existing Doc Detective config: `.doc-detective.json`, `doc-detective.config.js`. Record the path if found.",
+   "Check for existing workflows in `.github/workflows/` — note any existing `doc-detective*.yml` files to avoid conflicts.",
+   "Identify the docs directory: use the `input` field from existing config if available, otherwise look for common directories (`docs/`, `documentation/`, `content/`, `wiki/`). Fall back to `.` if no convention is detected."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Create `.github/workflows/` directory if it doesn't exist.",
+   "Check if `.github/workflows/doc-detective.yml` already exists.",
+   "Write the workflow YAML file."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-project-bootstrap/references/procedure-heuristics.md",
+  "procedure": false,
+  "items": [
+   "**Sequential steps** - Ordered actions that build on each other",
+   "**Observable actions** - Things that can be automated (click, navigate, verify)",
+   "**Defined outcomes** - Expected results that can be verified",
+   "**Reproducible context** - Clear starting point and requirements"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Documentation files detected and reported",
+   "[ ] Config created or merged and confirmed",
+   "[ ] Test specs generated, validated, and executed (unless `--dry-run`)",
+   "[ ] Fix loop completed or skipped; unresolved failures reported as \"needs manual review\"",
+   "[ ] Passing tests injected into source files (unless `--skip-inject` or `--ci` without `--inject-all`)",
+   "[ ] GitHub Action workflow offered/installed (if GitHub repo)"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Detect → 2. Configure → 3. Generate Tests → 4. Execute → 5. Fix Loop → 6. Inject → 7. GitHub Action"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Search for documentation files matching: `**/*.md`, `**/*.mdx`, `**/*.adoc`, `**/*.rst`, `**/*.html`, `**/*.dita`",
+   "If no files found, stop and ask the user where documentation is located.",
+   "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
+   "Identify procedure-heavy files: flag any file containing 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select).",
+   "Report file counts, key directories, and identified procedure-heavy files to the user."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Invoke the `doc-testing` skill to generate a test spec: use the file as input, and write output to `doc-detective-tests/<name>-spec.json`. `<name>` is the source filename, lowercased, with non-alphanumeric characters replaced by hyphens. Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
+   "Track the source file for each test (`_sourceFile` field) to support Phase 6 injection.",
+   "Validate each spec before proceeding. If a spec cannot be fixed, skip it and report it to the user."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "In the results file, find the steps in `specs[].tests[].contexts[].steps[]` whose `result` is `FAIL`, and read each one's `resultDescription`.",
+   "Propose a fix and assign a confidence score: **High (80–100)** — exact match found; **Medium (50–79)** — probable fix; **Low (0–49)** — uncertain.",
+   "Apply: if ≥ threshold apply automatically; if < threshold show fix, ask user to apply/skip/edit; if < 50% always ask regardless of threshold.",
+   "Re-run the test. If it passes, move to the next failing test.",
+   "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Preview the injection using the `inline-test-injection` skill (no `--apply` flag).",
+   "Show the preview and ask the user to confirm before applying.",
+   "Apply confirmed injections using the skill's `--apply` mode."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
+   "If in `--ci` mode, default to yes — proceed without prompting.",
+   "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-test/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] All tests have been executed and results recorded",
+   "[ ] If `--fix`: failing tests have been processed through the fix loop",
+   "[ ] If `--inject`: passing tests have been injected into the source file",
+   "[ ] Final pass/fail counts are accurate and complete"
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-test/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Analyze the failure and generate a proposed fix. Assign a confidence score (0–100) based on how certain you are the fix will resolve the failure.",
+   "Decide whether to apply the fix:",
+   "Apply the fix to the test spec.",
+   "Re-run the fixed test, and read the results file again. Exit `1` means the test still fails; exit `2` means nothing valid ran, because the fix made the spec invalid or every test skipped. Check stderr, then revert or correct the fix.",
+   "If the test passes, mark it resolved. If it still fails, generate a new fix and repeat from step 1."
+  ]
+ },
+ {
+  "file": "agent-tools/plugins/doc-detective/skills/doc-detective-validate/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Validation executed against the provided input",
+   "[ ] Each error reported as: `[FIELD]: [ERROR REASON]`",
+   "[ ] Final result stated as `Validation PASSED` or `Validation FAILED`"
+  ]
+ },
+ {
+  "file": "agent-tools/README.md",
+  "procedure": true,
+  "items": [
+   "Open Claude Code:",
+   "Add the Doc Detective marketplace and plugin:",
+   "Ask about Doc Detective, or use the `init` command to get started:"
+  ]
+ },
+ {
+  "file": "agent-tools/README.md",
+  "procedure": true,
+  "items": [
+   "Open Copilot CLI:",
+   "Install the Doc Detective plugin:",
+   "Ask about Doc Detective, or use the `init` command to get started:"
+  ]
+ },
+ {
+  "file": "agent-tools/README.md",
+  "procedure": true,
+  "items": [
+   "Clone the repository:",
+   "Copy the plugin contents to your project's `.opencode/` directory:",
+   "Start OpenCode and ask about Doc Detective, or use the `init` command:"
+  ]
+ },
+ {
+  "file": "agent-tools/README.md",
+  "procedure": true,
+  "items": [
+   "Clone the repo and copy the plugin and marketplace into your project:",
+   "Open Codex and install the plugin from the marketplace:",
+   "Ask about Doc Detective, or use the `init` command to get started:"
+  ]
+ },
+ {
+  "file": "agent-tools/README.md",
+  "procedure": true,
+  "items": [
+   "Clone the repo:",
+   "Copy the plugin folder into Cursor's local plugins directory. Copy",
+   "Reload Cursor: open the Command Palette (`Cmd/Ctrl+Shift+P`) and run",
+   "Verify: in Agent chat, type `/` and confirm the `/doc-detective-*` commands appear."
+  ]
+ },
+ {
+  "file": "agent-tools/README.md",
+  "procedure": true,
+  "items": [
+   "Go to [cursor.com](https://cursor.com) → **Dashboard → Settings → Plugins → Team",
+   "Paste `https://github.com/doc-detective/agent-tools` and review the parsed plugins",
+   "Assign access groups, mark the plugin Required or Optional, and save."
+  ]
+ },
+ {
+  "file": "agent-tools/README.md",
+  "procedure": false,
+  "items": [
+   "Detecting documentation files",
+   "Generating a minimal configuration",
+   "Creating tests for identified procedures",
+   "Running tests",
+   "Iteratively fixing failures with confidence-based suggestions"
+  ]
+ },
+ {
+  "file": "agent-tools/README.md",
+  "procedure": false,
+  "items": [
+   "Extracts step-by-step procedures from your documentation.",
+   "Converts them to Doc Detective test specifications.",
+   "Validates the test specs.",
+   "Executes tests using Doc Detective.",
+   "Reports results with any failures mapped back to documentation sections."
+  ]
+ },
+ {
+  "file": "agent-tools/README.md",
+  "procedure": false,
+  "items": [
+   "Detects project context (config files, docs directory, existing workflows).",
+   "Generates a workflow YAML with configurable triggers and optional features.",
+   "Writes the workflow to `.github/workflows/doc-detective.yml`.",
+   "Reports manual steps needed (e.g., enabling Actions permissions)."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-doc-testing/references/fix-failing-tests.md",
+  "procedure": false,
+  "items": [
+   "**Error type**: Element not found, timeout, navigation failure, assertion failure",
+   "**Context**: What the step was trying to do",
+   "**Actual result**: What happened instead",
+   "**Potential causes**: Why it might have failed"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-doc-testing/scripts/sample-docs-injection-test.md",
+  "procedure": true,
+  "items": [
+   "Navigate to https://duckduckgo.com",
+   "Type \"hello world\" in the search box",
+   "Click the Search button",
+   "Verify you see search results"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-doc-testing/scripts/sample-docs.md",
+  "procedure": true,
+  "items": [
+   "Navigate to https://doc-detective.com",
+   "Verify you see the **Doc Detective** heading",
+   "Look for the **Get started** link"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Interpret (docs → spec) → 2. **VALIDATE** (mandatory gate) → 2b. Inject? (optional) → 3. Execute → 4. Analyze → 5. Fix? (optional)"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Save spec: `echo '<spec-json>' > /tmp/doc-detective-test-spec.json`",
+   "Run: `node ./scripts/doc-detective-validate-test.js /tmp/doc-detective-test-spec.json`",
+   "Only proceed if output shows `Validation PASSED`."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": true,
+  "items": [
+   "**Write spec to temp file**:",
+   "**Show preview** (no `--apply` flag):",
+   "**Apply on confirmation**:"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] No `\"action\":` property anywhere — action name IS the key",
+   "[ ] Text-based matching used where possible",
+   "[ ] Valid structure: `tests` array with `testId` and `steps`",
+   "[ ] Validator executed and output shows `Validation PASSED`"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-generate/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] No `\"action\":` property — action name IS the key",
+   "[ ] Text-based matching used where possible (not CSS selectors)",
+   "[ ] Validator ran and output shows `Validation PASSED`",
+   "[ ] If `--merge`: new tests de-duplicated by `testId`"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-init/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Config created or merged and confirmed",
+   "[ ] Test specs generated and validated for all identified procedures",
+   "[ ] Tests executed (unless `--skip-tests` or `--dry-run`)",
+   "[ ] Fix loop completed or skipped (unless `--skip-fix-loop`)",
+   "[ ] Any unresolved failures reported to user with \"needs manual review\" status",
+   "[ ] GitHub Action workflow offered/installed (if GitHub repo)"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-init/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Detect → 2. Configure → 3. Generate Tests → 4. Execute → 5. Fix Loop → 6. GitHub Action"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Search for documentation files matching: `**/*.md`, `**/*.mdx`, `**/*.adoc`, `**/*.rst`, `**/*.html`, `**/*.dita`",
+   "If no files found, stop and ask the user where documentation is located.",
+   "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
+   "Identify procedure-heavy files: read each file and flag it if it contains 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select)."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Invoke `/doc-detective-generate <file-path> --output doc-detective-tests/<name>-spec.json`, where `<name>` is the source filename lowercased with non-alphanumeric characters replaced by hyphens (e.g., `login-guide.md` → `login-guide`). Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
+   "Confirm each spec passes validation before continuing. If a spec cannot be fixed, skip it and report it to the user.",
+   "If `--dry-run`, print each spec without writing to disk."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "In the results file, find the steps in `specs[].tests[].contexts[].steps[]` whose `result` is `FAIL`, and read each one's `resultDescription`.",
+   "Propose a fix and assign a confidence score: **High (80–100)** — exact alternative identified; **Medium (50–79)** — likely correct but uncertain; **Low (0–49)** — best guess with significant uncertainty.",
+   "Apply the fix based on confidence:"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Re-run the test. If it passes, move to the next failing test.",
+   "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
+   "If in `--ci` mode, default to yes — proceed without prompting.",
+   "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-inject/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] All steps are matched or marked with ``",
+   "[ ] Each test is wrapped with `` and ``",
+   "[ ] Each step comment uses the correct syntax for the source file type",
+   "[ ] In preview mode: unified diff is printed to stdout, file is not modified",
+   "[ ] In apply mode: changes are written directly to the source file"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-inject/SKILL.md",
+  "procedure": false,
+  "items": [
+   "**Exact value match**: If a line contains the step's value verbatim, select the first such line. Insert the step comment immediately after it.",
+   "**Contains match**: If a line contains the step's value as a substring, select the first such line. Insert the step comment immediately after it.",
+   "**Pattern match**: If a line matches the action's content pattern (table below), select the first such line. Insert the step comment immediately after it.",
+   "**No match**: Insert the step comment immediately after the previous step's insertion point. Insert `` on the following line."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-inline-test-injection/references/markup-patterns.md",
+  "procedure": false,
+  "items": [
+   "**Action type match** - Step action must match pattern's detected action (e.g., `click` step matches `clickOnscreenText` pattern)",
+   "**Value similarity** - The step's value is compared with the captured content:"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-inline-test-injection/references/markup-patterns.md",
+  "procedure": false,
+  "items": [
+   "After the last successfully matched step",
+   "At the beginning of the document if no prior matches"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-inline-test-injection/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] All steps are placed or marked with ``",
+   "[ ] Each test is wrapped with `` and ``",
+   "[ ] Each step comment uses the correct syntax for the source file type",
+   "[ ] Step comments appear in the same order as steps in the spec"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-inline-test-injection/SKILL.md",
+  "procedure": false,
+  "items": [
+   "**Exact match**: Line contains the match value verbatim → insert step comment immediately after that line.",
+   "**Contains match**: Line contains the match value as a substring → insert step comment immediately after that line.",
+   "**Pattern match**: Line matches the action's content pattern (table below) → insert step comment immediately after that line.",
+   "**No match**: Insert step comment immediately after the previous insertion point (line 1 if first step). Insert `` on the following line."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Workflow YAML file created at `.github/workflows/doc-detective.yml` (or user-chosen name)",
+   "[ ] Required permissions correctly set in the `permissions:` block",
+   "[ ] Optional features (PR creation, issue creation, integrations) configured per user choices",
+   "[ ] Manual steps reported to user (e.g., enabling Actions permissions, adding secrets)"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Detect → 2. Configure → 3. Write → 4. Report"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Confirm this is a Git repository (`.git` exists as a file or directory). If not, stop and inform the user.",
+   "Confirm the remote points to GitHub. Check `.git/config` for `github.com` in a remote URL, or run `gh repo view --json url` if the `gh` CLI is available. If not a GitHub repo, stop and inform the user this skill is GitHub-specific.",
+   "Check for existing Doc Detective config: `.doc-detective.json`, `doc-detective.config.js`. Record the path if found.",
+   "Check for existing workflows in `.github/workflows/` — note any existing `doc-detective*.yml` files to avoid conflicts.",
+   "Identify the docs directory: use the `input` field from existing config if available, otherwise look for common directories (`docs/`, `documentation/`, `content/`, `wiki/`). Fall back to `.` if no convention is detected."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Create `.github/workflows/` directory if it doesn't exist.",
+   "Check if `.github/workflows/doc-detective.yml` already exists.",
+   "Write the workflow YAML file."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-project-bootstrap/references/procedure-heuristics.md",
+  "procedure": false,
+  "items": [
+   "**Sequential steps** - Ordered actions that build on each other",
+   "**Observable actions** - Things that can be automated (click, navigate, verify)",
+   "**Defined outcomes** - Expected results that can be verified",
+   "**Reproducible context** - Clear starting point and requirements"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Documentation files detected and reported",
+   "[ ] Config created or merged and confirmed",
+   "[ ] Test specs generated, validated, and executed (unless `--dry-run`)",
+   "[ ] Fix loop completed or skipped; unresolved failures reported as \"needs manual review\"",
+   "[ ] Passing tests injected into source files (unless `--skip-inject` or `--ci` without `--inject-all`)",
+   "[ ] GitHub Action workflow offered/installed (if GitHub repo)"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Detect → 2. Configure → 3. Generate Tests → 4. Execute → 5. Fix Loop → 6. Inject → 7. GitHub Action"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Search for documentation files matching: `**/*.md`, `**/*.mdx`, `**/*.adoc`, `**/*.rst`, `**/*.html`, `**/*.dita`",
+   "If no files found, stop and ask the user where documentation is located.",
+   "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
+   "Identify procedure-heavy files: flag any file containing 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select).",
+   "Report file counts, key directories, and identified procedure-heavy files to the user."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Invoke the `doc-testing` skill to generate a test spec: use the file as input, and write output to `doc-detective-tests/<name>-spec.json`. `<name>` is the source filename, lowercased, with non-alphanumeric characters replaced by hyphens. Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
+   "Track the source file for each test (`_sourceFile` field) to support Phase 6 injection.",
+   "Validate each spec before proceeding. If a spec cannot be fixed, skip it and report it to the user."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "In the results file, find the steps in `specs[].tests[].contexts[].steps[]` whose `result` is `FAIL`, and read each one's `resultDescription`.",
+   "Propose a fix and assign a confidence score: **High (80–100)** — exact match found; **Medium (50–79)** — probable fix; **Low (0–49)** — uncertain.",
+   "Apply: if ≥ threshold apply automatically; if < threshold show fix, ask user to apply/skip/edit; if < 50% always ask regardless of threshold.",
+   "Re-run the test. If it passes, move to the next failing test.",
+   "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Preview the injection using the `inline-test-injection` skill (no `--apply` flag).",
+   "Show the preview and ask the user to confirm before applying.",
+   "Apply confirmed injections using the skill's `--apply` mode."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
+   "If in `--ci` mode, default to yes — proceed without prompting.",
+   "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-test/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] All tests have been executed and results recorded",
+   "[ ] If `--fix`: failing tests have been processed through the fix loop",
+   "[ ] If `--inject`: passing tests have been injected into the source file",
+   "[ ] Final pass/fail counts are accurate and complete"
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-test/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Analyze the failure and generate a proposed fix. Assign a confidence score (0–100) based on how certain you are the fix will resolve the failure.",
+   "Decide whether to apply the fix:",
+   "Apply the fix to the test spec.",
+   "Re-run the fixed test, and read the results file again. Exit `1` means the test still fails; exit `2` means nothing valid ran, because the fix made the spec invalid or every test skipped. Check stderr, then revert or correct the fix.",
+   "If the test passes, mark it resolved. If it still fails, generate a new fix and repeat from step 1."
+  ]
+ },
+ {
+  "file": "agent-tools/skills/doc-detective-validate/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Validation executed against the provided input",
+   "[ ] Each error reported as: `[FIELD]: [ERROR REASON]`",
+   "[ ] Final result stated as `Validation PASSED` or `Validation FAILED`"
+  ]
+ },
+ {
+  "file": "agent-tools/src/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "**Doc Detective Configuration**: Help users configure Doc Detective for their projects, including:",
+   "**Writing Doc Tests**: Guide users in authoring effective documentation tests:",
+   "**Docs as Tests Methodology**: Explain the Docs as Tests approach using the canonical reference in [Docs as Tests Methodology](#docs-as-tests-methodology) below. Do not rely on baseline knowledge—use the tenets, patterns, and validation hierarchy defined in that section.",
+   "**Troubleshooting**: Debug doc test failures and configuration issues:"
+  ]
+ },
+ {
+  "file": "agent-tools/src/agents/doc-detective-specialist.md",
+  "procedure": true,
+  "items": [
+   "Briefly state the relevant concept or principle",
+   "Provide the specific technical answer with code/config examples",
+   "Point to relevant reference files or documentation URLs for further reading",
+   "Suggest next steps or related topics the user might want to explore"
+  ],
+  "note": "Agent response-structure guidance; ordered imperatives the agent performs when answering."
+ },
+ {
+  "file": "agent-tools/src/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "Literal text — `\"find\": { \"elementText\": \"Submit\" }`",
+   "data-testid attributes — `\"find\": { \"selector\": \"[data-testid='submit']\" }`",
+   "Stable IDs — `\"find\": { \"selector\": \"#submit-button\" }`",
+   "CSS paths (avoid) — `div.container > form > button:nth-child(3)`"
+  ]
+ },
+ {
+  "file": "agent-tools/src/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "Live product access — AI controls real browsers, observes actual DOM",
+   "Current specifications — Feed authoritative OpenAPI specs as context",
+   "Product instrumentation — Query `/health`, `/config`, `/version` endpoints"
+  ]
+ },
+ {
+  "file": "agent-tools/src/agents/doc-detective-specialist.md",
+  "procedure": false,
+  "items": [
+   "Is answer grounded in retrieved content? → Generation problem",
+   "Was right content retrieved? → Retrieval/search issue",
+   "Is source content correct? → Doc accuracy issue (Docs as Tests territory)",
+   "Is source unambiguous? → Clarity issue (probabilistic testing)",
+   "Otherwise → Generation-level issue outside doc team control"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-doc-testing/references/fix-failing-tests.md",
+  "procedure": false,
+  "items": [
+   "**Error type**: Element not found, timeout, navigation failure, assertion failure",
+   "**Context**: What the step was trying to do",
+   "**Actual result**: What happened instead",
+   "**Potential causes**: Why it might have failed"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-doc-testing/scripts/sample-docs-injection-test.md",
+  "procedure": true,
+  "items": [
+   "Navigate to https://duckduckgo.com",
+   "Type \"hello world\" in the search box",
+   "Click the Search button",
+   "Verify you see search results"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-doc-testing/scripts/sample-docs.md",
+  "procedure": true,
+  "items": [
+   "Navigate to https://doc-detective.com",
+   "Verify you see the **Doc Detective** heading",
+   "Look for the **Get started** link"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Interpret (docs → spec) → 2. **VALIDATE** (mandatory gate) → 2b. Inject? (optional) → 3. Execute → 4. Analyze → 5. Fix? (optional)"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Save spec: `echo '<spec-json>' > /tmp/doc-detective-test-spec.json`",
+   "Run: `node ./scripts/doc-detective-validate-test.js /tmp/doc-detective-test-spec.json`",
+   "Only proceed if output shows `Validation PASSED`."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": true,
+  "items": [
+   "**Write spec to temp file**:",
+   "**Show preview** (no `--apply` flag):",
+   "**Apply on confirmation**:"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-doc-testing/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] No `\"action\":` property anywhere — action name IS the key",
+   "[ ] Text-based matching used where possible",
+   "[ ] Valid structure: `tests` array with `testId` and `steps`",
+   "[ ] Validator executed and output shows `Validation PASSED`"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-generate/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] No `\"action\":` property — action name IS the key",
+   "[ ] Text-based matching used where possible (not CSS selectors)",
+   "[ ] Validator ran and output shows `Validation PASSED`",
+   "[ ] If `--merge`: new tests de-duplicated by `testId`"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-init/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Config created or merged and confirmed",
+   "[ ] Test specs generated and validated for all identified procedures",
+   "[ ] Tests executed (unless `--skip-tests` or `--dry-run`)",
+   "[ ] Fix loop completed or skipped (unless `--skip-fix-loop`)",
+   "[ ] Any unresolved failures reported to user with \"needs manual review\" status",
+   "[ ] GitHub Action workflow offered/installed (if GitHub repo)"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-init/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Detect → 2. Configure → 3. Generate Tests → 4. Execute → 5. Fix Loop → 6. GitHub Action"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Search for documentation files matching: `**/*.md`, `**/*.mdx`, `**/*.adoc`, `**/*.rst`, `**/*.html`, `**/*.dita`",
+   "If no files found, stop and ask the user where documentation is located.",
+   "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
+   "Identify procedure-heavy files: read each file and flag it if it contains 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select)."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Invoke `/doc-detective-generate <file-path> --output doc-detective-tests/<name>-spec.json`, where `<name>` is the source filename lowercased with non-alphanumeric characters replaced by hyphens (e.g., `login-guide.md` → `login-guide`). Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
+   "Confirm each spec passes validation before continuing. If a spec cannot be fixed, skip it and report it to the user.",
+   "If `--dry-run`, print each spec without writing to disk."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "In the results file, find the steps in `specs[].tests[].contexts[].steps[]` whose `result` is `FAIL`, and read each one's `resultDescription`.",
+   "Propose a fix and assign a confidence score: **High (80–100)** — exact alternative identified; **Medium (50–79)** — likely correct but uncertain; **Low (0–49)** — best guess with significant uncertainty.",
+   "Apply the fix based on confidence:"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Re-run the test. If it passes, move to the next failing test.",
+   "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-init/SKILL.md",
+  "procedure": true,
+  "items": [
+   "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
+   "If in `--ci` mode, default to yes — proceed without prompting.",
+   "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-inject/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] All steps are matched or marked with ``",
+   "[ ] Each test is wrapped with `` and ``",
+   "[ ] Each step comment uses the correct syntax for the source file type",
+   "[ ] In preview mode: unified diff is printed to stdout, file is not modified",
+   "[ ] In apply mode: changes are written directly to the source file"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-inject/SKILL.md",
+  "procedure": false,
+  "items": [
+   "**Exact value match**: If a line contains the step's value verbatim, select the first such line. Insert the step comment immediately after it.",
+   "**Contains match**: If a line contains the step's value as a substring, select the first such line. Insert the step comment immediately after it.",
+   "**Pattern match**: If a line matches the action's content pattern (table below), select the first such line. Insert the step comment immediately after it.",
+   "**No match**: Insert the step comment immediately after the previous step's insertion point. Insert `` on the following line."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-inline-test-injection/references/markup-patterns.md",
+  "procedure": false,
+  "items": [
+   "**Action type match** - Step action must match pattern's detected action (e.g., `click` step matches `clickOnscreenText` pattern)",
+   "**Value similarity** - The step's value is compared with the captured content:"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-inline-test-injection/references/markup-patterns.md",
+  "procedure": false,
+  "items": [
+   "After the last successfully matched step",
+   "At the beginning of the document if no prior matches"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-inline-test-injection/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] All steps are placed or marked with ``",
+   "[ ] Each test is wrapped with `` and ``",
+   "[ ] Each step comment uses the correct syntax for the source file type",
+   "[ ] Step comments appear in the same order as steps in the spec"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-inline-test-injection/SKILL.md",
+  "procedure": false,
+  "items": [
+   "**Exact match**: Line contains the match value verbatim → insert step comment immediately after that line.",
+   "**Contains match**: Line contains the match value as a substring → insert step comment immediately after that line.",
+   "**Pattern match**: Line matches the action's content pattern (table below) → insert step comment immediately after that line.",
+   "**No match**: Insert step comment immediately after the previous insertion point (line 1 if first step). Insert `` on the following line."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Workflow YAML file created at `.github/workflows/doc-detective.yml` (or user-chosen name)",
+   "[ ] Required permissions correctly set in the `permissions:` block",
+   "[ ] Optional features (PR creation, issue creation, integrations) configured per user choices",
+   "[ ] Manual steps reported to user (e.g., enabling Actions permissions, adding secrets)"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Detect → 2. Configure → 3. Write → 4. Report"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Confirm this is a Git repository (`.git` exists as a file or directory). If not, stop and inform the user.",
+   "Confirm the remote points to GitHub. Check `.git/config` for `github.com` in a remote URL, or run `gh repo view --json url` if the `gh` CLI is available. If not a GitHub repo, stop and inform the user this skill is GitHub-specific.",
+   "Check for existing Doc Detective config: `.doc-detective.json`, `doc-detective.config.js`. Record the path if found.",
+   "Check for existing workflows in `.github/workflows/` — note any existing `doc-detective*.yml` files to avoid conflicts.",
+   "Identify the docs directory: use the `input` field from existing config if available, otherwise look for common directories (`docs/`, `documentation/`, `content/`, `wiki/`). Fall back to `.` if no convention is detected."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-install-github-action/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Create `.github/workflows/` directory if it doesn't exist.",
+   "Check if `.github/workflows/doc-detective.yml` already exists.",
+   "Write the workflow YAML file."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-project-bootstrap/references/procedure-heuristics.md",
+  "procedure": false,
+  "items": [
+   "**Sequential steps** - Ordered actions that build on each other",
+   "**Observable actions** - Things that can be automated (click, navigate, verify)",
+   "**Defined outcomes** - Expected results that can be verified",
+   "**Reproducible context** - Clear starting point and requirements"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Documentation files detected and reported",
+   "[ ] Config created or merged and confirmed",
+   "[ ] Test specs generated, validated, and executed (unless `--dry-run`)",
+   "[ ] Fix loop completed or skipped; unresolved failures reported as \"needs manual review\"",
+   "[ ] Passing tests injected into source files (unless `--skip-inject` or `--ci` without `--inject-all`)",
+   "[ ] GitHub Action workflow offered/installed (if GitHub repo)"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": false,
+  "items": [
+   "Detect → 2. Configure → 3. Generate Tests → 4. Execute → 5. Fix Loop → 6. Inject → 7. GitHub Action"
+  ],
+  "note": "Single-item phase overview (phase names joined by arrows): a summary of the workflow, not steps."
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Search for documentation files matching: `**/*.md`, `**/*.mdx`, `**/*.adoc`, `**/*.rst`, `**/*.html`, `**/*.dita`",
+   "If no files found, stop and ask the user where documentation is located.",
+   "Check for existing config: `.doc-detective.json`, `doc-detective.config.js`",
+   "Identify procedure-heavy files: flag any file containing 3 or more numbered steps or sequential bullet points with action verbs (navigate, click, enter, verify, type, select).",
+   "Report file counts, key directories, and identified procedure-heavy files to the user."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Invoke the `doc-testing` skill to generate a test spec: use the file as input, and write output to `doc-detective-tests/<name>-spec.json`. `<name>` is the source filename, lowercased, with non-alphanumeric characters replaced by hyphens. Keep specs out of `.doc-detective/`: it holds run output, and projects add it to `.gitignore`.",
+   "Track the source file for each test (`_sourceFile` field) to support Phase 6 injection.",
+   "Validate each spec before proceeding. If a spec cannot be fixed, skip it and report it to the user."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "In the results file, find the steps in `specs[].tests[].contexts[].steps[]` whose `result` is `FAIL`, and read each one's `resultDescription`.",
+   "Propose a fix and assign a confidence score: **High (80–100)** — exact match found; **Medium (50–79)** — probable fix; **Low (0–49)** — uncertain.",
+   "Apply: if ≥ threshold apply automatically; if < threshold show fix, ask user to apply/skip/edit; if < 50% always ask regardless of threshold.",
+   "Re-run the test. If it passes, move to the next failing test.",
+   "After 3 failed attempts, mark the test as \"needs manual review\" and continue."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Preview the injection using the `inline-test-injection` skill (no `--apply` flag).",
+   "Show the preview and ask the user to confirm before applying.",
+   "Apply confirmed injections using the skill's `--apply` mode."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-project-bootstrap/SKILL.md",
+  "procedure": true,
+  "items": [
+   "If not in `--ci` mode, ask the user if they want to set up the Doc Detective GitHub Action for CI. If the user declines, skip this phase.",
+   "If in `--ci` mode, default to yes — proceed without prompting.",
+   "Invoke `/doc-detective-install-github-action` with matching flags:"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-test/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] All tests have been executed and results recorded",
+   "[ ] If `--fix`: failing tests have been processed through the fix loop",
+   "[ ] If `--inject`: passing tests have been injected into the source file",
+   "[ ] Final pass/fail counts are accurate and complete"
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-test/SKILL.md",
+  "procedure": true,
+  "items": [
+   "Analyze the failure and generate a proposed fix. Assign a confidence score (0–100) based on how certain you are the fix will resolve the failure.",
+   "Decide whether to apply the fix:",
+   "Apply the fix to the test spec.",
+   "Re-run the fixed test, and read the results file again. Exit `1` means the test still fails; exit `2` means nothing valid ran, because the fix made the spec invalid or every test skipped. Check stderr, then revert or correct the fix.",
+   "If the test passes, mark it resolved. If it still fails, generate a new fix and repeat from step 1."
+  ]
+ },
+ {
+  "file": "agent-tools/src/skills/doc-detective-validate/SKILL.md",
+  "procedure": false,
+  "items": [
+   "[ ] Validation executed against the provided input",
+   "[ ] Each error reported as: `[FIELD]: [ERROR REASON]`",
+   "[ ] Final result stated as `Validation PASSED` or `Validation FAILED`"
+  ]
+ }
+]
