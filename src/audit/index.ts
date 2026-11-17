@@ -46,17 +46,18 @@ export function buildIndex(specs: any[], origin?: string): CoverageIndex {
   return index;
 }
 
-type Counts = Record<State, number> & { total: number };
+// Only procedure steps can be `inTest`, so only their counts carry it.
+type Counts = Record<Exclude<State, "inTest">, number> & { total: number; inTest?: number };
 const counts = (): Counts => ({ total: 0, hasStep: 0, ignored: 0, skipped: 0, untested: 0 });
 const add = (into: Counts, item: Item) => {
   into.total++;
-  into[item.state]++;
+  into[item.state] = (into[item.state] ?? 0) + 1;
 };
 
 export interface AuditReport {
   summary: {
-    procedureSteps: Counts & { navigationOnly: number };
-    possibleProcedureSteps: Counts & { navigationOnly: number };
+    procedureSteps: Counts & { inTest: number; navigationOnly: number };
+    possibleProcedureSteps: Counts & { inTest: number; navigationOnly: number };
     lists: { explicit: number; tagged: number; possible: number };
     codeBlocks: { byLanguage: Record<string, Counts>; notRunnable: number };
     links: { total: number; testable: number; hasStep: number };
@@ -68,8 +69,8 @@ export interface AuditReport {
 
 /** Totals across files. */
 export function summarize(files: Array<{ path: string; fileType?: string } & FileCoverage>): AuditReport {
-  const procedureSteps = { ...counts(), navigationOnly: 0 };
-  const possibleProcedureSteps = { ...counts(), navigationOnly: 0 };
+  const procedureSteps = { ...counts(), inTest: 0, navigationOnly: 0 };
+  const possibleProcedureSteps = { ...counts(), inTest: 0, navigationOnly: 0 };
   const lists = { explicit: 0, tagged: 0, possible: 0 };
   const byLanguage: Record<string, Counts> = {};
   let notRunnable = 0;
@@ -111,7 +112,12 @@ export function renderText(report: AuditReport, { quiet = false } = {}): string 
   const { procedureSteps: p, possibleProcedureSteps: maybe, lists, codeBlocks, links, images, pages } = report.summary;
   const row = (label: string, text: string) => `${label.padEnd(21)}${text}`;
   const lines = [
-    row("Procedure steps", `${p.hasStep} of ${p.total} have a step` + (p.navigationOnly ? ` (${p.navigationOnly} only by navigation or a link check)` : "")),
+    row(
+      "Procedure steps",
+      `${p.hasStep} of ${p.total} have a step` +
+        (p.inTest ? `, ${p.inTest} more ${p.inTest === 1 ? "is" : "are"} inside a test` : "") +
+        (p.navigationOnly ? ` (${p.navigationOnly} only by navigation or a link check)` : "")
+    ),
   ];
   if (quiet) return `${lines[0]}\n`;
   lines.push(row("", `${p.untested} untested, ${p.ignored} ignored, ${p.skipped} skipped as unsafe`));
@@ -147,15 +153,15 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
   const specs: any[] = await detectTests({ config });
   const qualified: string[] = config._qualifiedFiles ?? [];
   const index = buildIndex(specs, config.origin);
-  const stepsByFile = new Map<string, any[]>();
+  const testsByFile = new Map<string, any[]>();
   for (const spec of specs) {
     for (const test of spec.tests ?? []) {
       // A test with no source file has no located steps to credit.
       const source = test.contentPath ?? spec.contentPath;
       if (!source) continue;
       const file = path.resolve(source);
-      if (!stepsByFile.has(file)) stepsByFile.set(file, []);
-      stepsByFile.get(file)!.push(...(test.steps ?? []));
+      if (!testsByFile.has(file)) testsByFile.set(file, []);
+      testsByFile.get(file)!.push(test);
     }
   }
 
@@ -176,7 +182,8 @@ export async function runAudit(args: Record<string, any>): Promise<void> {
       content,
       fileType,
       filePath: file,
-      steps: stepsByFile.get(file) ?? [],
+      steps: (testsByFile.get(file) ?? []).flatMap((test) => test.steps ?? []),
+      tests: testsByFile.get(file) ?? [],
       index,
       origin: config.origin,
       allowUnsafe: config.allowUnsafeSteps === true,

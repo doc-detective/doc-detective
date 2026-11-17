@@ -87,6 +87,27 @@ describe("audit command", function () {
     }
   });
 
+  const wrapped = '<!-- test start -->\n1. Open the app.\n   <!-- step {"click": "Save"} -->\n2. Close it.\n3. Log out.\n<!-- test end -->\n';
+
+  it("counts steps inside a test apart in the headline, and leaves them out of the untested list", async function () {
+    fs.writeFileSync(path.join(dir, "wrapped.md"), wrapped);
+    const text = await run({ input: dir });
+    assert.match(text, /^Procedure steps {6}1 of 3 have a step, 2 more are inside a test\n/);
+    assert.doesNotMatch(text, /Untested procedure steps:/);
+  });
+
+  it("reports inTest in JSON", async function () {
+    fs.writeFileSync(path.join(dir, "wrapped.md"), wrapped);
+    const report = JSON.parse(await run({ input: dir, json: true }));
+    assert.equal(report.summary.procedureSteps.inTest, 2);
+    assert.deepEqual(report.files[0].items.filter((i) => i.kind === "procedureStep").map((i) => i.state), ["hasStep", "inTest", "inTest"]);
+  });
+
+  it("keeps the inside-a-test clause with --quiet", async function () {
+    fs.writeFileSync(path.join(dir, "wrapped.md"), wrapped.replace("3. Log out.\n", ""));
+    assert.equal(await run({ input: dir, quiet: true }), "Procedure steps      1 of 2 have a step, 1 more is inside a test\n");
+  });
+
   it("prints only the first line with --quiet", async function () {
     fs.writeFileSync(path.join(dir, "install.md"), page);
     const text = await run({ input: dir, quiet: true });
@@ -100,7 +121,7 @@ describe("audit command", function () {
       JSON.stringify({ tests: [{ steps: [{ stepId: "install", runShell: "npm i -g doc-detective" }] }] })
     );
     const report = JSON.parse(await run({ input: dir, json: true }));
-    assert.deepEqual(report.summary.procedureSteps, { total: 3, hasStep: 0, ignored: 0, skipped: 1, untested: 2, navigationOnly: 0 });
+    assert.deepEqual(report.summary.procedureSteps, { total: 3, hasStep: 0, ignored: 0, inTest: 0, skipped: 1, untested: 2, navigationOnly: 0 });
     assert.deepEqual(report.summary.codeBlocks, { byLanguage: { bash: { total: 1, hasStep: 1, ignored: 0, skipped: 0, untested: 0 } }, notRunnable: 0 });
     assert.equal(report.summary.pages.total, 1);
     assert.equal(report.files[0].path, path.join(dir, "install.md"));
