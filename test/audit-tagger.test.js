@@ -67,6 +67,9 @@ const instructions = [
   "In the terminal, from the `charmap-docs` folder, run the test:",
   "✅ Follow your own steps exactly as written",
   "In a terminal, run `npm test`, then click **Save**.",
+  "👩‍💻 Tap **Settings**",
+  "👍🏽 Open the file",
+  "(Optional) **Create a branch**: Run `git checkout -b fix`",
 ];
 
 const notInstructions = [

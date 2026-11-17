@@ -20,8 +20,8 @@ const COMPLEMENTS = ["#Determiner", "#Pronoun", "#Possessive", "#Preposition", "
 
 /**
  * Rewrites Markdown-flavored item text into plain words the tagger reads
- * well. Returns the text as is, then without a leading emoji, "(Optional)",
- * sequence word, or negation, then after each short comma opener, then also
+ * well. Returns the text as is, then without a leading sequence word or
+ * negation, then after each short comma opener, then also
  * without a leading adverb. So "Apply the patch", "Then click Save", and "In a
  * terminal, run it" all read from their verb.
  */
@@ -35,12 +35,9 @@ function readings(text: string): string[] {
     .replace(/\bre-(?=[a-z])/gi, "") // "Re-run" reads as "run"
     .replace(/\s+/g, " ")
     .trim();
-  // An emoji, "(Optional)", a sequence word, or a negation before the verb, as
-  // in "✅ Follow the steps", "Then click Save", or "Don't close the window".
-  const lead = plain
-    .replace(/^\p{Extended_Pictographic}[\p{Extended_Pictographic}\u{FE0F}\s]*/u, "")
-    .replace(/^\(optional\)\s*/i, "")
-    .replace(/^(?:then|now|next|finally|lastly|please|just|simply|also|do not|don't|never),?\s+/i, "");
+  // A sequence word or a negation before the verb, as in "Then click Save" or
+  // "Don't close the window".
+  const lead = plain.replace(/^(?:then|now|next|finally|lastly|please|just|simply|also|do not|don't|never),?\s+/i, "");
   // Up to two short openers before a comma, as in "In a terminal, from the
   // repo folder, run it". Each step is its own reading, so "In a terminal, run
   // it, then click Save" keeps "run it, then click Save".
@@ -67,8 +64,13 @@ export function readsAsProcedure(items: string[]): boolean {
   return items.length > 0 && items.filter(isInstruction).length * 3 >= items.length;
 }
 
+// Leading emoji, including joined and skin-tone sequences such as "👩‍💻", and
+// "(Optional)", as in "✅ Follow the steps" or "(Optional) **Create a branch**: …".
+const LEADING_MARKS = /^\s*(?:[\p{Extended_Pictographic}\p{Emoji_Modifier}\u{200D}\u{FE0F}]+\s*|\(optional\)\s*)+/iu;
+
 /** True when `text` starts with an imperative verb, so it reads as an instruction. */
-export function isInstruction(text: string): boolean {
+export function isInstruction(raw: string): boolean {
+  const text = raw.replace(LEADING_MARKS, "");
   // A bold lead-in of two or more words is the step itself, as in "**Create a
   // branch**: …", or a term it defines, as in "**Exact match** - …". One word
   // names or labels the step, as in "**Commit**: Run …" or "**Optional:** …",
