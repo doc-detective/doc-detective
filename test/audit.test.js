@@ -108,6 +108,48 @@ describe("audit command", function () {
     assert.equal(await run({ input: dir, quiet: true }), "Procedure steps      1 of 2 have a step, 1 more is inside a test\n");
   });
 
+  describe("guidance", function () {
+    it("names each file's syntax and gives templates once per syntax in JSON", async function () {
+      fs.writeFileSync(path.join(dir, "a.md"), page);
+      fs.writeFileSync(path.join(dir, "b.md"), page);
+      fs.writeFileSync(path.join(dir, "c.mdx"), "1. Open the app.\n2. Close it.\n");
+      const report = JSON.parse(await run({ input: dir, json: true }));
+      assert.deepEqual(report.files.map((f) => [path.basename(f.path), f.syntax]), [["a.md", "markdown"], ["b.md", "markdown"], ["c.mdx", "mdx"]]);
+      assert.deepEqual(Object.keys(report.guidance.syntaxes), ["markdown", "mdx"]);
+      assert.equal(report.guidance.syntaxes.mdx.step, '{/* step {"click": "Save"} */}');
+      assert.match(report.guidance.coverStep, /on the line after the sentence it tests/);
+    });
+
+    it("prints the guidance block after the untested list, for the syntaxes in the run", async function () {
+      fs.writeFileSync(path.join(dir, "install.md"), page);
+      const text = await run({ input: dir });
+      const block = [
+        "",
+        "To cover a step, put a step statement inside the item, on the line after the sentence it tests:",
+        '  Markdown   <!-- step {"click": "Save"} -->',
+        "Or wrap the procedure in a test with at least one step:",
+        '  Markdown   <!-- test {"testId": "my-test"} -->  …  <!-- test end -->',
+        "To flag a list that isn't a procedure, wrap it in ignore statements:",
+        "  Markdown   <!-- test ignore start -->  …  <!-- test ignore end -->",
+        "More: https://docs.doc-detective.com/docs/test-docs/audit-test-coverage",
+        "",
+      ].join("\n");
+      assert.ok(text.endsWith(block), text);
+      assert.doesNotMatch(text, /MDX/);
+    });
+
+    it("adds the procedure lines when a list is a possible procedure", async function () {
+      fs.writeFileSync(path.join(dir, "notes.md"), "1. Release notes\n2. Bug fixes\n");
+      const text = await run({ input: dir });
+      assert.match(text, /If audit missed a procedure, put a procedure statement before the list:\n {2}Markdown {3}<!-- procedure -->\n/);
+    });
+
+    it("prints no guidance when nothing is untested or possible, or with --quiet", async function () {
+      fs.writeFileSync(path.join(dir, "wrapped.md"), wrapped);
+      assert.doesNotMatch(await run({ input: dir }), /To cover a step/);
+    });
+  });
+
   it("prints only the first line with --quiet", async function () {
     fs.writeFileSync(path.join(dir, "install.md"), page);
     const text = await run({ input: dir, quiet: true });
