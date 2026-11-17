@@ -132,7 +132,78 @@ const cases = {
   "state-navigation-only": {
     files: { "doc.md": "1. Go to [the site](https://example.com).\n2. Close the tab.\n" },
     check: (r) => r.summary.procedureSteps,
-    expect: { total: 2, hasStep: 1, ignored: 0, skipped: 0, untested: 1, navigationOnly: 1 },
+    expect: { total: 2, hasStep: 1, ignored: 0, skipped: 0, untested: 1, inTest: 0, navigationOnly: 1 },
+  },
+  "in-test-authored": {
+    files: { "doc.md": '<!-- test {"testId": "t"} -->\n\n1. Open the app.\n   <!-- step {"click": "Save"} -->\n2. Close it.\n\n<!-- test end -->\n' },
+    check: (r) => ({ states: states(r), inTest: r.summary.procedureSteps.inTest }),
+    expect: { states: ["hasStep", "inTest"], inTest: 1 },
+  },
+  "in-test-detected": {
+    files: { "doc.md": '<!-- test {"testId": "t"} -->\n\n1. Open the app.\n2. Go to [the site](https://example.com).\n\n<!-- test end -->\n' },
+    check: states,
+    expect: ["inTest", "hasStep"],
+  },
+  "in-test-detect-steps-false": {
+    config: { detectSteps: false },
+    files: { "doc.md": '<!-- test {"testId": "t"} -->\n\n1. Open the app.\n2. Go to [the site](https://example.com).\n\n<!-- test end -->\n' },
+    check: states,
+    expect: ["untested", "untested"],
+  },
+  "in-test-empty": {
+    files: { "doc.md": '<!-- test {"testId": "t"} -->\n\n1. Open the app.\n2. Close it.\n\n<!-- test end -->\n' },
+    check: states,
+    expect: ["untested", "untested"],
+  },
+  "in-test-ignored": {
+    files: { "doc.md": '<!-- test {"testId": "t"} -->\n\n1. Open the app.\n   <!-- step {"click": "Save"} -->\n2. Close it.\n\n<!-- test ignore start -->\n\n3. Clean up.\n\n<!-- test ignore end -->\n<!-- test end -->\n' },
+    check: states,
+    expect: ["hasStep", "inTest", "ignored"],
+  },
+
+  // Guidance.
+  "guidance-json": {
+    config: {
+      fileTypes: [
+        "markdown",
+        "asciidoc",
+        "html",
+        "dita",
+        { name: "hugo", extensions: ["hugo"], inlineStatements: { step: ["{{<\\s*step\\s+([\\s\\S]*?)\\s*>}}"] } },
+      ],
+    },
+    files: {
+      "a.md": "1. Open the app.\n",
+      "b.mdx": "1. Open the app.\n",
+      "c.adoc": ". Open the app.\n",
+      "d.html": "<ol><li>Open the app.</li></ol>\n",
+      "e.dita": '<topic id="t"><title>T</title><body><ol><li>Open the app.</li></ol></body></topic>\n',
+      "f.hugo": "1. Open the app.\n",
+    },
+    check: (r) => ({
+      syntaxes: Object.fromEntries(r.files.map((f) => [path.basename(f.path), f.syntax])),
+      keys: Object.keys(r.guidance.syntaxes).sort(),
+      hugo: r.guidance.syntaxes.hugo.custom,
+      dita: r.guidance.syntaxes.dita.step,
+    }),
+    expect: {
+      syntaxes: { "a.md": "markdown", "b.mdx": "mdx", "c.adoc": "asciidoc", "d.html": "html", "e.dita": "dita", "f.hugo": "hugo" },
+      keys: ["asciidoc", "dita", "html", "hugo", "markdown", "mdx"],
+      hugo: true,
+      dita: "<data name=\"doc-detective\" value=\"step click='Save'\"/>",
+    },
+  },
+  "guidance-text": {
+    text: true,
+    files: { "doc.md": "1. Open a terminal.\n2. Run the tests.\n\n<!-- -->\n\n1. Release notes\n2. Bug fixes\n" },
+    check: (stdout) => ["To cover a step", '  Markdown   <!-- step {"click": "Save"} -->', "If audit missed a procedure", "  Markdown   <!-- procedure -->"].every((line) => stdout.includes(line)),
+    expect: true,
+  },
+  "guidance-none": {
+    text: true,
+    files: { "doc.md": '<!-- test {"testId": "t"} -->\n\n1. Open the app.\n   <!-- step {"click": "Save"} -->\n2. Close it.\n\n<!-- test end -->\n' },
+    check: (stdout) => stdout.includes("To cover a step"),
+    expect: false,
   },
   "state-nested": {
     config: { detectSteps: false },
