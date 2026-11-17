@@ -204,14 +204,18 @@ custom file type that extends Markdown and keeps its statements still gets the `
 
 | Syntax | `step` | `testStart` / `testEnd` | `ignoreStart` / `ignoreEnd` | `ignoreCodeBlock` | `procedure` |
 |---|---|---|---|---|---|
-| `markdown` | `<!-- step {"click": "Save"} -->` | `<!-- test start -->` / `<!-- test end -->` | `<!-- test ignore start -->` / `<!-- test ignore end -->` | ```` ```bash testIgnore ```` | `<!-- procedure -->` |
-| `mdx` | `{/* step {"click": "Save"} */}` | `{/* test start */}` / `{/* test end */}` | `{/* test ignore start */}` / `{/* test ignore end */}` | ```` ```bash testIgnore ```` | `{/* procedure */}` |
-| `asciidoc` | `// (step {"click": "Save"})` | `// (test start)` / `// (test end)` | `// (test ignore start)` / `// (test ignore end)` | `[source.testIgnore,bash]` | `// (procedure)` |
-| `html` | `<!-- step {"click": "Save"} -->` | `<!-- test start -->` / `<!-- test end -->` | `<!-- test ignore start -->` / `<!-- test ignore end -->` | `<pre class="testIgnore">` | `<!-- procedure -->` |
-| `dita` | `<data name="doc-detective" value="step click='Save'"/>` | `<data name="doc-detective" value="test start"/>` / `<data name="doc-detective" value="test end"/>` | `<data name="doc-detective" value="test ignore start"/>` / `<data name="doc-detective" value="test ignore end"/>` | `<codeblock outputclass="testIgnore">` | `<data name="doc-detective" value="procedure"/>` |
+| `markdown` | `<!-- step {"click": "Save"} -->` | `<!-- test {"testId": "my-test"} -->` / `<!-- test end -->` | `<!-- test ignore start -->` / `<!-- test ignore end -->` | ```` ```bash testIgnore ```` | `<!-- procedure -->` |
+| `mdx` | `{/* step {"click": "Save"} */}` | `{/* test {"testId": "my-test"} */}` / `{/* test end */}` | `{/* test ignore start */}` / `{/* test ignore end */}` | ```` ```bash testIgnore ```` | `{/* procedure */}` |
+| `asciidoc` | `// (step {"click": "Save"})` | `// (test {"testId": "my-test"})` / `// (test end)` | `// (test ignore start)` / `// (test ignore end)` | `[source.testIgnore,bash]` | `// (procedure)` |
+| `html` | `<!-- step {"click": "Save"} -->` | `<!-- test {"testId": "my-test"} -->` / `<!-- test end -->` | `<!-- test ignore start -->` / `<!-- test ignore end -->` | `<pre class="testIgnore"><code class="language-bash">` | `<!-- procedure -->` |
+| `dita` | `<data name="doc-detective" value="step click='Save'"/>` | `<data name="doc-detective" value="test testId='my-test'"/>` / `<data name="doc-detective" value="test end"/>` | `<data name="doc-detective" value="test ignore start"/>` / `<data name="doc-detective" value="test ignore end"/>` | `<codeblock outputclass="language-bash testIgnore">` | `<data name="doc-detective" value="procedure"/>` |
 
 DITA uses the `<data>` element, not processing instructions or comments, because `<data>` survives
 every DITA-OT build. Its step uses the attribute form, so the value needs no escaped quotes.
+
+The test opener names the test. A bare `test start` makes detection skip the whole test in MDX and
+DITA, which would drop its steps. The HTML and DITA code-block templates keep the `language-bash`
+class, because a block without a runnable language isn't counted at all.
 
 A file type might not read the built-in templates. Examples are custom `inlineStatements` such as
 Hugo shortcodes, or a format with no built-in parser. Then its syntax is the file type's `name`. The
@@ -227,12 +231,12 @@ syntax in `files`, or `{}` when no file was audited:
 ```json
 "guidance": {
   "docs": "https://docs.doc-detective.com/docs/test-docs/audit-test-coverage",
-  "coverStep": "Put a step statement inside the item, on the line after the sentence it tests. Or wrap the procedure in `test start` and `test end` with at least one step inside, and its items count as inside a test.",
+  "coverStep": "Put a step statement inside the item, on the line after the sentence it tests. Or wrap the procedure in a `test` statement and `test end`, with at least one step inside, and its items count as inside a test.",
   "flagFalsePositive": "Wrap a list that isn't a procedure, or an item you won't test, in `test ignore start` and `test ignore end`. Its items then count as ignored. Tag a code block you won't run with `testIgnore`.",
   "markProcedure": "If `audit` misses a procedure and puts it in Possible procedures, put a `procedure` statement directly before the list.",
   "syntaxes": {
-    "markdown": { "step": "<!-- step {\"click\": \"Save\"} -->", "testStart": "<!-- test start -->", "testEnd": "<!-- test end -->", "ignoreStart": "<!-- test ignore start -->", "ignoreEnd": "<!-- test ignore end -->", "ignoreCodeBlock": "```bash testIgnore", "procedure": "<!-- procedure -->" },
-    "hugo": { "custom": true, "step": "step {\"click\": \"Save\"}", "testStart": "test start", "testEnd": "test end", "ignoreStart": "test ignore start", "ignoreEnd": "test ignore end", "procedure": "procedure", "note": "Wrap each statement in the comment form that the `hugo` file type's `inlineStatements` define." }
+    "markdown": { "step": "<!-- step {\"click\": \"Save\"} -->", "testStart": "<!-- test {\"testId\": \"my-test\"} -->", "testEnd": "<!-- test end -->", "ignoreStart": "<!-- test ignore start -->", "ignoreEnd": "<!-- test ignore end -->", "ignoreCodeBlock": "```bash testIgnore", "procedure": "<!-- procedure -->" },
+    "hugo": { "custom": true, "step": "step {\"click\": \"Save\"}", "testStart": "test {\"testId\": \"my-test\"}", "testEnd": "test end", "ignoreStart": "test ignore start", "ignoreEnd": "test ignore end", "procedure": "procedure", "note": "Wrap each statement in the comment form that the `hugo` file type's `inlineStatements` define." }
   }
 }
 ```
@@ -245,7 +249,7 @@ lines print only when a list is a possible procedure.
 To cover a step, put a step statement inside the item, on the line after the sentence it tests:
   Markdown   <!-- step {"click": "Save"} -->
 Or wrap the procedure in a test with at least one step:
-  Markdown   <!-- test start -->  …  <!-- test end -->
+  Markdown   <!-- test {"testId": "my-test"} -->  …  <!-- test end -->
 To flag a list that isn't a procedure, wrap it in ignore statements:
   Markdown   <!-- test ignore start -->  …  <!-- test ignore end -->
 If audit missed a procedure, put a procedure statement before the list:
