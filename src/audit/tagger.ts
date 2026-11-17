@@ -20,9 +20,10 @@ const COMPLEMENTS = ["#Determiner", "#Pronoun", "#Possessive", "#Preposition", "
 
 /**
  * Rewrites Markdown-flavored item text into plain words the tagger reads
- * well. Returns the text as is, then without a short opener, then also
- * without a leading adverb, so "Apply the patch" and "Open the file, then
- * save it" still read from their first word.
+ * well. Returns the text as is, then without a leading emoji, "(Optional)",
+ * sequence word, or negation, then after each short comma opener, then also
+ * without a leading adverb. So "Apply the patch", "Then click Save", and "In a
+ * terminal, run it" all read from their verb.
  */
 function readings(text: string): string[] {
   const plain = text
@@ -37,20 +38,24 @@ function readings(text: string): string[] {
   // An emoji, "(Optional)", a sequence word, or a negation before the verb, as
   // in "✅ Follow the steps", "Then click Save", or "Don't close the window".
   const lead = plain
-    .replace(/^\p{Extended_Pictographic}[\p{Extended_Pictographic}️\s]*/u, "")
+    .replace(/^\p{Extended_Pictographic}[\p{Extended_Pictographic}\u{FE0F}\s]*/u, "")
     .replace(/^\(optional\)\s*/i, "")
     .replace(/^(?:then|now|next|finally|lastly|please|just|simply|also|do not|don't|never),?\s+/i, "");
   // Up to two short openers before a comma, as in "In a terminal, from the
-  // repo folder, run it".
+  // repo folder, run it". Each step is its own reading, so "In a terminal, run
+  // it, then click Save" keeps "run it, then click Save".
+  const out = [plain, lead];
   let rest = lead;
   for (let i = 0; i < 2; i++) {
     const opener = /^([^,.:;]{1,60}),\s+/.exec(rest);
     if (!opener || opener[1].split(" ").length > 5) break;
     rest = rest.slice(opener[0].length);
+    out.push(rest);
   }
   // A leading word ending in "ly", for an adverb as in "Briefly state the
   // concept". It also strips verbs like "Apply", which the other readings keep.
-  return [plain, lead, rest, rest.replace(/^[A-Za-z]+ly\s+(?=\S)/, "")];
+  out.push(rest.replace(/^[A-Za-z]+ly\s+(?=\S)/, ""));
+  return out;
 }
 
 /**

@@ -14,8 +14,8 @@ const RECALL_FLOOR = 0.95;
 describe("audit tagger accuracy", function () {
   it("meets the precision and recall floors on the labeled corpus", function () {
     const corpus = JSON.parse(fs.readFileSync(new URL("./audit-tagger-corpus.json", import.meta.url), "utf8"));
-    const seen = new Set();
-    const lists = corpus.filter(({ items }) => !seen.has(JSON.stringify(items)) && seen.add(JSON.stringify(items)));
+    // One list per distinct set of items.
+    const lists = [...new Map(corpus.map((list) => [JSON.stringify(list.items), list])).values()];
     let tp = 0, fp = 0, fn = 0;
     for (const { items, procedure } of lists) {
       const predicted = readsAsProcedure(items);
