@@ -89,7 +89,9 @@ Working-style rules that previously lived in memory:
 
 ## Development workflow (required)
 
-Always use **red → green** test-driven development. For every behavior change:
+Always use **red → green** test-driven development. For a behavior change, the ADR comes first (see
+["Architecture Decision Records"](#architecture-decision-records-required)). Red → green starts from
+it. For every behavior change:
 
 1. **Red**: write a failing test that captures the desired behavior first. Run it to confirm it fails for the expected reason.
 2. **Green**: write the minimum code to make that test pass, and run it to confirm it passes.
@@ -101,8 +103,13 @@ Don't write implementation code before the failing test exists, and don't batch 
 
 Every **behavior change** must ship with an Architecture Decision Record (ADR) in
 [MADR](https://adr.github.io/madr/) format under [adrs/](adrs). The ADR records the *intended
-behavior, the reasoning, and the decision*. Write it **before** the code, or alongside it, so it is
-the reviewable source of truth rather than an afterthought.
+behavior, the reasoning, and the decision*. It's the reviewable source of truth, not an
+afterthought.
+
+Write the plan as the ADR: MADR's sections, holding the full user-facing interface that
+["Plans and interfaces"](#plans-and-interfaces-required) requires. Once the plan is approved, commit
+the ADR first, before any test or code. The ADR holds no user-facing detail the approved plan
+didn't.
 
 - **Format**: MADR 4.0.0. Include the YAML front matter (`status`, `date`, `decision-makers`) and
   the standard sections. Those are *Context and Problem Statement*, *Decision Drivers*, *Considered
@@ -166,8 +173,8 @@ ADRs and feature fixtures travel with a third companion: a **docs-impact assessm
   the PR description so reviewers can confirm the call.
 
 As a rule of thumb, a change that warrants an **ADR** or a **feature fixture** almost always has
-user-facing surface. It therefore almost always has docs impact. The three move together:
-**behavior change → ADR + fixtures + docs assessment.**
+user-facing surface. It therefore almost always has docs impact. The three move together, in this
+order: **behavior change → ADR → red → green → fixtures → docs.**
 
 ## Plans and interfaces (required)
 
@@ -180,8 +187,9 @@ These rules govern plans and every interface a plan defines. They're adapted fro
    ([src/common/](src/common)) are canonical, and every other surface imports or generates from them.
    A surface whose source speaks another scale maps onto the shared one, and keeps the source's value
    in a field of its own.
-2. **Plans show the full interface.** A plan for a code change spells out the user-facing interface
-   in full:
+2. **Plans show the full interface.** A plan for a behavior change is written as its ADR, per
+   ["Architecture Decision Records"](#architecture-decision-records-required). A plan for a code
+   change spells out the user-facing interface in full:
    - config before and after, as the JSON or YAML a user writes, with each key's type, default,
      whether it's required, and its effect;
    - every flag;
