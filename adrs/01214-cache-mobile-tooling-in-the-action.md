@@ -1,0 +1,179 @@
+---
+status: accepted
+date: 2026-11-18
+decision-makers: hawkeyexl
+---
+
+# Cache mobile tooling in the GitHub Action
+
+## Context and Problem Statement
+
+The Doc Detective GitHub Action (`doc-detective/github-action`) caches what the CLI installs on
+first use. Its one cache entry holds `<cacheDir>/runtime`, `<cacheDir>/browsers`, `installed.json`,
+and the `npx` folder. The key hashes every `installedVersion` in `installed.json`, so the entry
+saves again only when the CLI installed or updated something (ADR 01209). The entry leaves out the
+Android and iOS tooling on purpose. A run that tests a mobile app therefore pays for that tooling
+every time.
+
+- **Android.** A run that targets `android` installs the toolchain on first use (ADRs 01024 and
+  01025). On a fresh runner, every run downloads a system image and creates an AVD. It then
+  cold-boots the AVD to take the clean snapshot (ADRs 01106 and 01108). Most of that lands outside
+  the cache directory (ADR 01105). The installer uses the SDK it detects, and `ANDROID_HOME` comes first. On
+  GitHub's runners the system image therefore goes into the runner's own SDK. AVDs live in
+  `~/.android/avd`. Only a bootstrapped SDK (`<cacheDir>/android-sdk`) and the portable JRE
+  (`<cacheDir>/jre`) sit under the cache directory.
+- **iOS.** Only `doc-detective install ios` builds the managed WebDriverAgent (ADR 01059). A test
+  run only looks for a build under `<cacheDir>/ios/wda/<key>`. On a miss, Appium compiles its own
+  copy during the session, outside the cache, which takes about 10 minutes. Users add an
+  `install ios` step and an `actions/cache` step by hand. This repo's fixture legs do the same
+  (ADR 01116).
+
+`installed.json` records both sets, as `android.systemImages`, `android.avds`, and `ios.wdaKeys`.
+Neither slot has an `installedVersion`, so the Action's key doesn't change when they do.
+
+How should Action users get warm Android and iOS runs without writing cache steps themselves?
+
+## Decision Drivers
+
+* A warm run that tests a mobile app restores its tooling. It doesn't download a system image or
+  build WebDriverAgent.
+* The Action keeps one `cache` input. Caching needs no new inputs and no extra workflow steps.
+* A run that tests no mobile app restores nothing extra.
+* A browser update doesn't upload the Android data again. Every entry counts against the
+  repository's Actions cache quota.
+* A cache failure never fails a run.
+* Existing Android installs keep working where they are.
+* The iOS fix reaches every CLI user, not only Action users.
+
+## Considered Options
+
+* **A. The CLI builds WebDriverAgent on first use, and the Action caches each platform in its own
+  entry** (chosen).
+* **B. One cache entry for everything.**
+* **C. Move the Android SDK and AVDs under the cache directory.**
+* **D. An Action `ios` input that runs `doc-detective install ios`.**
+* **E. Status quo.** Users write their own `actions/cache` steps.
+
+## Decision Outcome
+
+Chosen option: **A**. It's the only option that meets every driver. The build moves to where the
+Xcode and driver versions are known, and the Action caches only what the CLI recorded.
+
+1. **The CLI builds the managed WebDriverAgent on first use.** On macOS, an iOS context can find no
+   managed build for the current Xcode and driver. The run then calls the existing prebuild before
+   the session starts, as Android's lazy install does for its toolchain. It warns in the terminal
+   and in the report:
+
+   ```text
+   No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios` ahead of time to skip the wait.
+   ```
+
+   A failed build warns, and the run falls back to Appium's own build:
+
+   ```text
+   Couldn't build WebDriverAgent before the test, so Appium builds it during the session. <cause in words>.
+   ```
+
+   `DOC_DETECTIVE_NO_IOS_AUTOINSTALL` turns the build off. It's named after
+   `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL`. With it set, Appium builds WebDriverAgent itself, as
+   today. The change adds no config key or flag, and exit codes stay the same. The prebuild
+   already records `ios.wdaKeys`.
+
+2. **The Action caches Android and iOS tooling under its `cache` input.** Each platform gets one
+   cache entry, separate from the runtime entry and with the same rules. The key comes from what
+   the CLI recorded, the entry saves only when that changes, and any failure only warns.
+
+   * **Android entry.** Restored when `android` is `true`, or when it's `auto` and the spec scan
+     finds an Android context. Paths: `<cacheRoot>/android-sdk`, `<cacheRoot>/jre`,
+     `$ANDROID_HOME/system-images` (or `$ANDROID_SDK_ROOT`), and `~/.android/avd`. Key:
+     `doc-detective-android-<os>-<arch>-<hash>`, hashing `android.systemImages`, `android.avds`,
+     and the UiAutomator2 driver version. The driver version is there because the clean snapshot
+     is retaken when it changes (ADR 01108).
+   * **iOS entry.** Restored on macOS when the spec scan finds an iOS context. Path:
+     `<cacheRoot>/ios/wda`. Key: `doc-detective-ios-<os>-<arch>-<hash>`, hashing `ios.wdaKeys`.
+   * **Restore.** Each entry restores after the runtime entry. It tries the exact key, then the
+     newest entry with that key's prefix.
+   * **Save.** After the run, an entry saves when its slot exists in `installed.json` and its key
+     differs from the one restored.
+   * **Runtime key.** It also hashes the three fields. The runtime entry holds `installed.json`,
+     so it saves again when the mobile set changes.
+   * **Inputs.** None are added. `android: false` also turns off the Android cache, and
+     `cache: false` caches nothing.
+
+3. **The recorded fields are a contract.** The Action hashes `android.systemImages`,
+   `android.avds`, and `ios.wdaKeys` from `installed.json`. The CLI keeps their names and meaning
+   stable. Each changes only when the set of installed images, AVDs, or WebDriverAgent builds
+   changes. ADR 01209 makes the same commitment for `installedVersion`.
+
+### Consequences
+
+* Good: a warm run restores the system image, the AVD, and the WebDriverAgent build.
+* Good: the first-use build puts WebDriverAgent in the cache directory for every CLI user, in any
+  CI system.
+* Good: a browser update saves the runtime entry only.
+* Bad: up to three entries per OS and architecture count against the cache quota, and the Android
+  entry is several gigabytes.
+* Bad: the Action mirrors two CLI locations outside the cache directory. If the CLI moves them,
+  the Action caches an empty folder, which is a miss and not a failure.
+* Neutral: `installed.json` rides the runtime entry. It can list an image or a build whose files a
+  missed or evicted platform entry didn't restore. The CLI has to trust the files over the record.
+* Neutral: the Action change doesn't wait for the CLI change. It caches `ios/wda` whenever the
+  folder exists, so with an older CLI it helps runs that call `install ios`.
+* Neutral: the two opt-outs differ. Android's skips the context. The iOS one still runs it,
+  because Appium can build WebDriverAgent itself.
+
+### Confirmation
+
+* Before the Action change ships, a throwaway workflow measures cold and warm run times and entry
+  sizes. It covers the Android system image alone, the image with its AVD and the
+  `doc-detective-clean` snapshot, and the WebDriverAgent products. The numbers are added to this
+  ADR with the implementation. A piece that doesn't make a warm run faster is dropped.
+* Snapshot portability decides whether AVD snapshots are cached. If a snapshot restored on a
+  different runner VM doesn't load, the Android entry leaves `snapshots/` out.
+* The same workflow confirms the CLI recovers when `installed.json` lists a system image whose
+  files are missing.
+* The CLI change ships with red → green unit tests and an iOS fixture permutation. A focused
+  `it(...)` in `test/core-core.test.js` covers the opt-out.
+* The Action change ships with unit tests beside its cache code. The measurement workflow runs
+  twice against its branch, to compare cold and warm.
+
+## Pros and Cons of the Options
+
+### A. First-use build in the CLI, one cache entry per platform
+
+* Good: no new inputs, and each entry saves only when its own contents change.
+* Good: the WebDriverAgent build helps outside the Action too.
+* Bad: two repositories change, and the Action tracks three entries.
+
+### B. One cache entry for everything
+
+* Good: one key and the least code.
+* Bad: every browser update uploads the multi-gigabyte Android data again, which eats the cache
+  quota.
+* Bad: a run that tests no mobile app restores all of it.
+
+### C. Move the Android SDK and AVDs under the cache directory
+
+* Good: the Action caches one directory and knows nothing about SDK paths.
+* Bad: it changes CLI behavior, and orphans the AVDs users already have in `~/.android/avd`.
+* Bad: a cold bootstrap downloads SDK tools the runner already has.
+
+### D. An Action `ios` input that runs `doc-detective install ios`
+
+* Good: works with every CLI 5 release, with no CLI change.
+* Bad: it adds back an input that the Action's v2.0.0 removed.
+* Bad: it only helps Action users.
+
+### E. Status quo
+
+* Good: no change.
+* Bad: users write and maintain `actions/cache` steps. The docs have a recipe for iOS, and none
+  at all for Android.
+
+## More Information
+
+The Android lazy install and `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL` are in `src/core/tests.ts`.
+The record shapes are in `src/runtime/cacheDir.ts`. The prebuild is `prebuildWda` in
+`src/runtime/iosInstaller.ts`, and the locator is `locateManagedWda` in
+`src/runtime/wdaProducts.ts`. The Action's cache code is `src/runtimeCache.ts` in
+`doc-detective/github-action`.
