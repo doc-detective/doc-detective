@@ -2,11 +2,7 @@
 
 ### New features
 
-- Added the `validate` command, which checks spec files and inline tests without running them, as in `doc-detective validate ./docs`. It exits `0` when every test is valid, `1` when any test is invalid, and `2` for a usage error, a bad config, or no tests found. Pass `--json` for a machine-readable list of each file and its errors. See the [CLI reference](/reference/reference/cli).
-
-### Bug fixes
-
-- `validate` masks environment variable values in its output, as every other output does.
+- Added the `validate` command, which checks spec files and inline tests without running them, as in `doc-detective validate ./docs`. It exits `0` when every test is valid, `1` when any test is invalid, and `2` for a usage error, a bad config, or no tests found. Pass `--json` for a machine-readable list of each file and its errors. Like every other output, `validate` output masks environment variable values. See the [CLI reference](/reference/reference/cli).
 
 ## v5.1.0
 
