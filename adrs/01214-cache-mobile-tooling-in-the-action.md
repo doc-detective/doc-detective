@@ -18,9 +18,9 @@ every time.
 - **Android.** A run that targets `android` installs the toolchain on first use (ADRs 01024 and
   01025). On a fresh runner, every run downloads a system image and creates an AVD. It then
   cold-boots the AVD to take the clean snapshot (ADRs 01106 and 01108). Most of that lands outside
-  the cache directory (ADR 01105). The installer uses the SDK it detects, and `ANDROID_HOME` comes first. On
-  GitHub's runners the system image therefore goes into the runner's own SDK. AVDs live in
-  `~/.android/avd`. Only a bootstrapped SDK (`<cacheDir>/android-sdk`) and the portable JRE
+  the cache directory (ADR 01105). The installer uses the SDK it detects, and `ANDROID_HOME` comes
+  first. On GitHub's runners the system image therefore goes into the runner's own SDK. AVDs live
+  in `~/.android/avd`. Only a bootstrapped SDK (`<cacheDir>/android-sdk`) and the portable JRE
   (`<cacheDir>/jre`) sit under the cache directory.
 - **iOS.** Only `doc-detective install ios` builds the managed WebDriverAgent (ADR 01059). A test
   run only looks for a build under `<cacheDir>/ios/wda/<key>`. On a miss, Appium compiles its own
@@ -91,8 +91,9 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
      finds an Android context. Paths: `<cacheRoot>/android-sdk`, `<cacheRoot>/jre`,
      `$ANDROID_HOME/system-images` (or `$ANDROID_SDK_ROOT`), and `~/.android/avd`. Key:
      `doc-detective-android-<os>-<arch>-<hash>`, hashing `android.systemImages`, `android.avds`,
-     and the UiAutomator2 driver version. The driver version is there because the clean snapshot
-     is retaken when it changes (ADR 01108).
+     and the UiAutomator2 driver version. That version is
+     `npmPackages["appium-uiautomator2-driver"].installedVersion` in `installed.json`. It's in the
+     key because the clean snapshot is retaken when it changes (ADR 01108).
    * **iOS entry.** Restored on macOS when the spec scan finds an iOS context. Path:
      `<cacheRoot>/ios/wda`. Key: `doc-detective-ios-<os>-<arch>-<hash>`, hashing `ios.wdaKeys`.
    * **Restore.** Each entry restores after the runtime entry. It tries the exact key, then the
@@ -108,6 +109,10 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
    `android.avds`, and `ios.wdaKeys` from `installed.json`. The CLI keeps their names and meaning
    stable. Each changes only when the set of installed images, AVDs, or WebDriverAgent builds
    changes. ADR 01209 makes the same commitment for `installedVersion`.
+
+   The Android key's driver version adds no field to the contract. It's the
+   `installedVersion` the runtime installer already records for the
+   `appium-uiautomator2-driver` package, which ADR 01209's commitment covers.
 
 ### Consequences
 
