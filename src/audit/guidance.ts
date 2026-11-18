@@ -53,8 +53,8 @@ const KINDS = ["step", "testStart", "testEnd", "ignoreStart", "ignoreEnd", "proc
 
 /**
  * The file's syntax: a built-in name when its file type reads that syntax's
- * templates, else the file type's name, marked custom even when that name is
- * a built-in's.
+ * templates, else the file type's name, with `-custom` added when that name
+ * is a built-in's, so the two never share a key.
  */
 export function syntaxFor(fileType: FileType, filePath: string): Syntax {
   const format = formatOf(fileType, filePath);
@@ -65,12 +65,15 @@ export function syntaxFor(fileType: FileType, filePath: string): Syntax {
     const types = new Set(collectStatements({ content, fileType, filePath, detectSteps: false, warn: () => {} }).map((s: any) => s.type));
     if (KINDS.every((kind) => types.has(kind))) return { syntax: candidate!, custom: false };
   }
-  return { syntax: fileType.name ?? fileType.extensions.join(","), custom: true };
+  const name = fileType.name ?? fileType.extensions.join(",");
+  return { syntax: Object.hasOwn(SYNTAXES, name) ? `${name}-custom` : name, custom: true, fileType: name };
 }
 
 export interface Syntax {
   syntax: string;
   custom: boolean;
+  /** A custom syntax's file type name, for its note. */
+  fileType?: string;
 }
 
 export interface Guidance {
@@ -83,10 +86,11 @@ export interface Guidance {
 
 /** The report's `guidance`: shared advice, plus templates for each syntax in the run. */
 export function buildGuidance(files: Syntax[]): Guidance {
-  const syntaxes: Guidance["syntaxes"] = {};
-  for (const { syntax, custom } of files) {
-    if (syntax in syntaxes) continue;
-    syntaxes[syntax] = (!custom && SYNTAXES[syntax]) || {
+  // A Map, so a file type named `constructor` or `__proto__` is a key like any other.
+  const syntaxes = new Map<string, Guidance["syntaxes"][string]>();
+  for (const { syntax, custom, fileType = syntax } of files) {
+    if (syntaxes.has(syntax)) continue;
+    syntaxes.set(syntax, (!custom && SYNTAXES[syntax]) || {
       custom: true,
       step: `step ${STEP}`,
       testStart: TEST,
@@ -94,8 +98,8 @@ export function buildGuidance(files: Syntax[]): Guidance {
       ignoreStart: "test ignore start",
       ignoreEnd: "test ignore end",
       procedure: "procedure",
-      note: `Wrap each statement in the comment form that the \`${syntax}\` file type's \`inlineStatements\` define.`,
-    };
+      note: `Wrap each statement in the comment form that the \`${fileType}\` file type's \`inlineStatements\` define.`,
+    });
   }
   return {
     docs: "https://docs.doc-detective.com/docs/test-docs/audit-test-coverage",
@@ -104,6 +108,6 @@ export function buildGuidance(files: Syntax[]): Guidance {
     flagFalsePositive:
       "Wrap a list that isn't a procedure, or an item you won't test, in `test ignore start` and `test ignore end`. Its items then count as ignored. Tag a code block you won't run with `testIgnore`.",
     markProcedure: "If `audit` misses a procedure and puts it in Possible procedures, put a `procedure` statement directly before the list.",
-    syntaxes,
+    syntaxes: Object.fromEntries(syntaxes),
   };
 }

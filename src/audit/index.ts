@@ -104,7 +104,7 @@ export function summarize(files: Array<{ path: string; fileType?: string; syntax
   return {
     summary: { procedureSteps, possibleProcedureSteps, lists, codeBlocks: { byLanguage, notRunnable }, links, images, pages },
     files: files.map(({ path: file, fileType, syntax, measured, items }) => ({ path: file, fileType, syntax, measured, items })),
-    guidance: buildGuidance(files.map((file) => ({ syntax: file.syntax, custom: file.customSyntax ?? false }))),
+    guidance: buildGuidance(files.map((file) => ({ syntax: file.syntax, custom: file.customSyntax ?? false, fileType: file.fileType }))),
   };
 }
 
@@ -113,13 +113,13 @@ function renderGuidance(report: AuditReport): string[] {
   const { procedureSteps, lists } = report.summary;
   if (!procedureSteps.untested && !lists.possible) return [];
   const syntaxes = Object.entries(report.guidance.syntaxes);
-  // A custom file type shows its own name, even when it's a built-in's.
+  // A custom file type shows its syntax key, never a built-in's label.
   const label = (name: string, t: object) => ("custom" in t ? name : labelOf(name)).padEnd(11);
   const rows = (pick: (t: any) => string) => syntaxes.map(([name, t]) => `  ${label(name, t)}${pick(t)}`);
   const lines = ["", "To cover a step, put a step statement inside the item, on the line after the sentence it tests:"];
   for (const [name, t] of syntaxes) {
     lines.push(`  ${label(name, t)}${t.step}`);
-    if ("custom" in t) lines.push(`  (wrap it in the comment form \`${name}\`'s \`inlineStatements\` define)`);
+    if ("custom" in t) lines.push(`  ${t.note}`);
   }
   lines.push("Or wrap the procedure in a test with at least one step:", ...rows((t) => `${t.testStart}  …  ${t.testEnd}`));
   lines.push("To flag a list that isn't a procedure, wrap it in ignore statements:", ...rows((t) => `${t.ignoreStart}  …  ${t.ignoreEnd}`));

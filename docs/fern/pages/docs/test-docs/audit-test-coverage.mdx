@@ -172,7 +172,7 @@ If `audit` puts a real procedure in **Possible procedures**, put a `procedure` s
 
 ### Custom file types
 
-The guidance checks each template against the file's own file type. A custom file type that reads the built-in statements, such as one that extends Markdown, gets the built-in templates. A file type with its own `inlineStatements` gets the bare statement text, such as `step {"click": "Save"}`. A note says to wrap it in that file type's comment form.
+The guidance checks each template against the file's own file type. A custom file type that reads the built-in statements, such as one that extends Markdown, gets the built-in templates. A file type with its own `inlineStatements` gets the bare statement text, such as `step {"click": "Save"}`. A note says to wrap it in that file type's comment form. Its key in `guidance.syntaxes` is the file type's `name`, or `<name>-custom` when that name is a built-in syntax's, such as `markdown`.
 
 ### The `guidance` object
 
