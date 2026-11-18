@@ -294,9 +294,11 @@ Doc Detective installs heavy runtime assets on first use, including browsers, dr
 
 The action caches by default, with no extra steps. It caches the `doc-detective` package that `npx` installs, and the runtime and browsers Doc Detective installs on first use. Later runs restore them from the [GitHub Actions cache](https://docs.github.com/actions/using-workflows/caching-dependencies-to-speed-up-workflows). The first run in a repository installs everything and saves it.
 
-Each run restores the newest cache saved for the same runner OS, CPU architecture, and Node.js major version. After the run, the action saves a new cache entry only if the run installed or updated something. For example, the run installed a new Doc Detective version or updated a browser. If the cache misses or a restore or save fails, the action logs a message. The run then continues.
+Each run restores a cache saved for the same runner OS, CPU architecture, and Node.js major version. It prefers the newest cache that the same Doc Detective version saved, and otherwise restores the newest cache that any Doc Detective version saved. After the run, the action saves a new cache entry only if the run installed or updated something. For example, the run installed a new Doc Detective version or updated a browser. If the cache misses or a restore or save fails, the action logs a message. The run then continues.
 
-Doc Detective 5.3.0 and later replace outdated cached browsers about once a day, and the action saves the new browser. With an earlier Doc Detective version, the action starts a new cache each week, so cached browsers are at most a week old.
+Doc Detective 5.3.0 and later replace outdated cached browsers about once a day, and the action saves the new browser. With an earlier Doc Detective version, the action starts a new cache each week, so cached browsers are at most a week old. For those versions, the action restores only a cache that the same Doc Detective version saved in the current week.
+
+While caching is on, the action resolves `version` to an exact version and runs that version, so the cached package matches the one that runs. Each run resolves `version` again, so `version: 5` picks up new 5.x releases, and the log shows a command such as `npx doc-detective@5.5.0`. To run the same release every time, set `version` to an exact version.
 
 The action caches the directory Doc Detective uses, and finds it the same way Doc Detective does. It checks, in order:
 
@@ -304,6 +306,8 @@ The action caches the directory Doc Detective uses, and finds it the same way Do
 2. `cacheDir` in `DOC_DETECTIVE_CONFIG`.
 3. `cacheDir` in your config file.
 4. The default [cache directory](/reference/reference/cli/install#cache-directory).
+
+The action doesn't read your [user config](/reference/reference/cli#configuration-precedence) or a `config` input given as a URL, so it doesn't follow a `cacheDir` set only there. In that case, set `DOC_DETECTIVE_CACHE_DIR` on the job instead.
 
 The action skips caching when `version` is empty. To cache the runtime in that case, see [Cache with `actions/cache`](#cache-with-actionscache). To install everything on every run, set `cache` to `false`:
 
