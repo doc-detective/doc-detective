@@ -334,7 +334,7 @@ jobs:
       - uses: doc-detective/github-action@v2
 ```
 
-The action detects mobile tests by scanning `working_directory`, `input`, and `config` for a context whose `platforms` include `android` or `ios`. If your tests set the platform another way, such as in `DOC_DETECTIVE_CONFIG`, set `android` to `true` so the action restores and saves the Android cache anyway:
+To find Android tests, the action scans `working_directory`, `input`, and `config` for a context whose `platforms` include `android`. If your tests set the platform another way, such as in `DOC_DETECTIVE_CONFIG`, set `android` to `true` so the action restores and saves the Android cache anyway:
 
 ```yaml
 - uses: doc-detective/github-action@v2
