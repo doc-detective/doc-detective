@@ -190,27 +190,44 @@ export const MIN_PREBUILT_WDA_DRIVER_MAJOR = 10;
  */
 export const MIN_PREINSTALLED_WDA_DRIVER_MAJOR = 12;
 
-// One `xcodebuild -version` spawn max per process: sessions can be created
-// many times per run, and the Xcode version cannot change mid-run.
-let cachedXcodeProbe: XcodeVersion | null | undefined;
+/**
+ * An Xcode version probe that remembers the answer. Sessions are created many
+ * times per run, and the Xcode version can't change mid-run.
+ *
+ * It remembers only an answer the command gave: a version, or an error exit
+ * (no full Xcode). A probe that timed out or couldn't start says nothing about
+ * Xcode, so it returns null and the next call asks again. Otherwise one slow
+ * first launch would turn managed builds off for the whole process.
+ */
+export function makeXcodeProbe(
+  run: () => { status: number | null; stdout?: unknown }
+): () => XcodeVersion | null {
+  let cached: XcodeVersion | null | undefined;
+  return () => {
+    if (cached !== undefined) return cached;
+    let result;
+    try {
+      result = run();
+    } catch {
+      return null;
+    }
+    if (typeof result.status !== "number") return null;
+    cached = result.status === 0 ? parseXcodebuildVersion(result.stdout) : null;
+    return cached;
+  };
+}
 
 /* c8 ignore start — real spawn; unit tests inject probeXcode. */
-export function probeXcodeVersionCached(): XcodeVersion | null {
-  if (cachedXcodeProbe === undefined) {
-    try {
-      const result = spawnSync("xcodebuild", ["-version"], {
-        encoding: "utf8",
-        windowsHide: true,
-        timeout: 15000,
-      });
-      cachedXcodeProbe =
-        result.status === 0 ? parseXcodebuildVersion(result.stdout) : null;
-    } catch {
-      cachedXcodeProbe = null;
-    }
-  }
-  return cachedXcodeProbe;
-}
+export const probeXcodeVersionCached = makeXcodeProbe(() =>
+  spawnSync("xcodebuild", ["-version"], {
+    encoding: "utf8",
+    windowsHide: true,
+    // The first `xcodebuild -version` on a fresh macOS image initializes
+    // Xcode and can take far longer than a warm call. `install ios` allows
+    // the same 120 s for it.
+    timeout: 120000,
+  })
+);
 /* c8 ignore stop */
 
 export interface LocateManagedWdaOptions {

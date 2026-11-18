@@ -1,6 +1,8 @@
 import path from "node:path";
 import { ensureManagedWda, installIos } from "../dist/runtime/iosInstaller.js";
-import { applyManagedWdaCapabilities, locateManagedWda } from "../dist/runtime/wdaProducts.js";
+import { locateManagedWda, makeXcodeProbe } from "../dist/runtime/wdaProducts.js";
+import { APP_DRIVER_PLATFORMS } from "../dist/core/tests/appSurface.js";
+import { buildMobileBrowserCapabilities } from "../dist/core/tests/mobileBrowser.js";
 
 before(async function () {
   const { expect } = await import("chai");
@@ -170,6 +172,31 @@ describe("install ios: WebDriverAgent prebuild", function () {
     const row = wdaRow(reports);
     expect(row.action).to.equal("already-up-to-date");
     expect(env.builds).to.have.length(0);
+  });
+
+  it("builds when the key directory's marker names another key, as the session locator would miss it", async function () {
+    for (const when of ["before the lock", "under the lock"]) {
+      const env = makeWdaEnv();
+      const seedForeignMarker = () => {
+        env.seedMarker();
+        const markerPath = path.join(env.keyDir, "products.json");
+        const marker = JSON.parse(env.fs.files.get(markerPath));
+        env.fs.files.set(markerPath, JSON.stringify({ ...marker, key: "xcode-15.4-15F31d-driver-10.8.1" }));
+      };
+      if (when === "before the lock") seedForeignMarker();
+      else {
+        env.deps.acquire = async () => {
+          seedForeignMarker();
+          return { release: () => (env.lock.released = true) };
+        };
+      }
+
+      const row = wdaRow(await installIos({ yes: true, deps: env.deps }));
+      expect(row.action, when).to.equal("installed");
+      expect(env.builds, when).to.have.length(1);
+      const marker = JSON.parse(env.fs.files.get(path.join(env.keyDir, "products.json")));
+      expect(marker.key, when).to.equal(env.key);
+    }
   });
 
   it("skips when the lock wait elapses (another install is building)", async function () {
@@ -531,11 +558,50 @@ describe("managed WDA locator (session consumption)", function () {
   });
 });
 
+describe("Xcode version probe", function () {
+  const answer = { status: 0, stdout: "Xcode 16.4\nBuild version 16F6" };
+
+  it("asks again after a probe that timed out or couldn't start", function () {
+    for (const noAnswer of [
+      () => ({ status: null }),
+      () => {
+        throw new Error("spawn failed");
+      },
+    ]) {
+      const runs = [noAnswer, () => answer];
+      const probe = makeXcodeProbe(() => runs.shift()());
+
+      expect(probe(), "no answer says nothing about Xcode").to.equal(null);
+      expect(probe(), "the next call asks again").to.deep.equal({ version: "16.4", build: "16F6" });
+    }
+  });
+
+  it("asks once when the command answered, whatever the answer", function () {
+    for (const [result, expected] of [
+      [answer, { version: "16.4", build: "16F6" }],
+      // Command Line Tools without Xcode: a real answer, and it won't change.
+      [{ status: 1, stdout: "" }, null],
+    ]) {
+      let calls = 0;
+      const probe = makeXcodeProbe(() => {
+        calls += 1;
+        return result;
+      });
+
+      expect(probe()).to.deep.equal(expected);
+      expect(probe()).to.deep.equal(expected);
+      expect(calls).to.equal(1);
+    }
+  });
+});
+
 // --- first-use build during a test run (ADR 01214) ---
 
 describe("first-use WebDriverAgent build (ADR 01214)", function () {
   const BUILDING =
-    "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios` ahead of time to skip the wait.";
+    "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.";
+  const UNRECORDED =
+    "Couldn't update the cache record after building WebDriverAgent, so `installed.json` may not list this build.";
   const FAILED =
     "Couldn't build WebDriverAgent before the test, so Appium builds it during the session.";
 
@@ -563,6 +629,39 @@ describe("first-use WebDriverAgent build (ADR 01214)", function () {
         resolveDriverVersion: env.deps.resolveDriverVersion,
       });
     return env;
+  }
+
+  // The capabilities each kind of iOS session would send to Appium, given the
+  // locator the runner passes in. The builders read the derived-data override
+  // from the real environment, so clear it for the call.
+  function sessionCapabilities(env) {
+    const saved = process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    delete process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH;
+    try {
+      return {
+        app: APP_DRIVER_PLATFORMS.ios.buildCapabilities(
+          { app: "com.apple.Preferences" },
+          "com.apple.Preferences",
+          { udid: "SIM", locateWda: env.locate }
+        ),
+        web: buildMobileBrowserCapabilities({
+          platform: "ios",
+          udid: "SIM",
+          cacheDir: "/cache",
+          locateWda: env.locate,
+        }),
+      };
+    } finally {
+      if (saved !== undefined) process.env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH = saved;
+    }
+  }
+  function expectManaged(env, capabilities) {
+    for (const kind of ["app", "web"]) {
+      expect(capabilities[kind]["appium:derivedDataPath"], kind).to.equal(
+        path.join(env.keyDir, "DerivedData")
+      );
+      expect(capabilities[kind]["appium:usePrebuiltWDA"], kind).to.equal(true);
+    }
   }
 
   // Any effect at all means the helper went too far.
@@ -595,12 +694,51 @@ describe("first-use WebDriverAgent build (ADR 01214)", function () {
     expect(env.written.at(-1).ios.wdaKeys, "installed.json records the key").to.deep.equal([env.key]);
     expect(env.lock.released, "the WebDriverAgent lock is released").to.equal(true);
 
-    const capabilities = {};
-    applyManagedWdaCapabilities(capabilities, env.locate);
-    expect(capabilities).to.deep.equal({
-      "appium:derivedDataPath": path.join(env.keyDir, "DerivedData"),
-      "appium:usePrebuiltWDA": true,
-    });
+    // Both kinds of iOS session then start on the managed build.
+    expectManaged(env, sessionCapabilities(env));
+  });
+
+  it("doesn't call a build failed when another process finished it during the lock wait", async function () {
+    const env = makeFirstUseEnv();
+    env.deps.acquire = async () => {
+      env.seedMarker();
+      return null;
+    };
+
+    expect(await env.ensure()).to.deep.equal([BUILDING]);
+    expect(env.builds).to.have.length(0);
+    expectManaged(env, sessionCapabilities(env));
+  });
+
+  it("says the record wasn't updated, not that the build failed, when only the record write fails", async function () {
+    const cases = [
+      [Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" }), "The cache directory isn't writable."],
+      [Object.assign(new Error("ENOSPC"), { code: "ENOSPC" }), "The disk is full."],
+      [new Error("boom"), "An unexpected error stopped the update."],
+    ];
+    for (const [error, cause] of cases) {
+      const env = makeFirstUseEnv();
+      env.deps.writeRecord = () => {
+        throw error;
+      };
+
+      expect(await env.ensure(), cause).to.deep.equal([BUILDING, `${UNRECORDED} ${cause}`]);
+      expect(env.warned, cause).to.deep.equal([BUILDING, `${UNRECORDED} ${cause}`]);
+      // The build itself is fine, so the session uses it.
+      expectManaged(env, sessionCapabilities(env));
+    }
+  });
+
+  it("tries again in the same run after an Xcode probe that didn't answer", async function () {
+    const env = makeFirstUseEnv();
+    let answers = false;
+    env.deps.probeXcode = () => (answers ? { version: "16.4", build: "16F6" } : null);
+
+    expect(await env.ensure(), "no answer: build nothing").to.deep.equal([]);
+    expect(env.builds).to.have.length(0);
+    answers = true;
+    expect(await env.ensure(), "the next context builds").to.deep.equal([BUILDING]);
+    expect(env.builds).to.have.length(1);
   });
 
   it("builds nothing when DOC_DETECTIVE_NO_IOS_AUTOINSTALL is on", async function () {
@@ -719,10 +857,13 @@ describe("first-use WebDriverAgent build (ADR 01214)", function () {
         "The `appium-xcuitest-driver` install failed.",
       ],
       [
-        (env) =>
-          (env.deps.writeRecord = () => {
-            throw new Error("installed.json is unwritable");
-          }),
+        (env) => {
+          const mkdirSync = env.fs.mkdirSync;
+          env.fs.mkdirSync = (p, opts) => {
+            if (p.endsWith("DerivedData")) throw new Error("ENOSPC: no space left on device");
+            return mkdirSync(p, opts);
+          };
+        },
         "An unexpected error stopped the build.",
       ],
     ];

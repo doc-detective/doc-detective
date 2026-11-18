@@ -83,9 +83,13 @@ export interface IOSInstallerDeps {
   probeXcode?: () => XcodeVersion | null;
 }
 
-/** A prebuild's report row, plus why it built nothing, as a sentence. */
+/** A prebuild's report row, plus why it built nothing. */
 interface WdaPrebuild {
   report: InstallReport;
+  /**
+   * Set only on a skipped build: the reason, as a sentence. `installIos`
+   * ignores it. `ensureManagedWda` puts it in the run's warning.
+   */
   cause?: string;
 }
 
@@ -272,7 +276,17 @@ export async function installIos({
 // --- first-use build during a test run (ADR 01214) ---
 
 const WDA_BUILDING_WARNING =
-  "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios` ahead of time to skip the wait.";
+  "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.";
+
+// Why the cache record couldn't be written, in words.
+function recordWriteCause(error: unknown): string {
+  const code = (error as NodeJS.ErrnoException)?.code;
+  if (code === "EACCES" || code === "EPERM" || code === "EROFS") {
+    return "The cache directory isn't writable.";
+  }
+  if (code === "ENOSPC") return "The disk is full.";
+  return "An unexpected error stopped the update.";
+}
 
 // One build attempt per run. `settled` tells a context that waited on the
 // build (it reports the warnings) from one that arrived afterwards.
@@ -334,17 +348,22 @@ export async function ensureManagedWda({
   );
   if (!(driverMajor >= MIN_PREBUILT_WDA_DRIVER_MAJOR)) return [];
 
-  const cached = locateManagedWda({
-    ctx,
-    fs: deps.fs,
-    platform,
-    probeXcode,
-    resolveDriverVersion,
-    wdaRootDir: deps.wdaRootDir,
-    now: deps.now,
-  });
-  if (cached) return [];
+  // What a session will find, now and again after the build.
+  const locate = () =>
+    locateManagedWda({
+      ctx,
+      fs: deps.fs,
+      platform,
+      probeXcode,
+      resolveDriverVersion,
+      wdaRootDir: deps.wdaRootDir,
+      now: deps.now,
+    });
+  if (locate()) return [];
 
+  // This run already tried. A build still running: wait on it and report its
+  // warnings. A build that failed (a miss after it settled): don't try again
+  // and don't warn again. Appium builds WebDriverAgent for this session.
   const earlier = firstUseBuilds.get(scope);
   if (earlier) return earlier.settled ? [] : earlier.warnings;
 
@@ -352,7 +371,12 @@ export async function ensureManagedWda({
     const logger = deps.logger ?? (() => {});
     const warnings = [WDA_BUILDING_WARNING];
     warn(WDA_BUILDING_WARNING);
+    const warnAlso = (message: string) => {
+      warn(message);
+      warnings.push(message);
+    };
     let cause: string | undefined;
+    let thrown: unknown;
     try {
       const prebuild = await prebuildWda({
         ctx,
@@ -364,14 +388,23 @@ export async function ensureManagedWda({
       // The notes carry the build output's tail. Keep it out of the warning.
       if (cause) logger((prebuild.report.notes ?? []).join(" | "), "debug");
     } catch (error) {
+      thrown = error;
       cause = "An unexpected error stopped the build.";
       logger(String((error as Error)?.message ?? error), "debug");
     }
-    if (cause) {
-      const failure = `Couldn't build WebDriverAgent before the test, so Appium builds it during the session. ${cause}`;
-      warn(failure);
-      warnings.push(failure);
+    if (!cause) return warnings;
+    if (!locate()) {
+      warnAlso(
+        `Couldn't build WebDriverAgent before the test, so Appium builds it during the session. ${cause}`
+      );
+    } else if (thrown) {
+      // The products are published, and the session uses them. Only the
+      // steps after the marker can still throw: the record and the prune.
+      warnAlso(
+        `Couldn't update the cache record after building WebDriverAgent, so \`installed.json\` may not list this build. ${recordWriteCause(thrown)}`
+      );
     }
+    // Otherwise another process finished the build while this one waited.
     return warnings;
   };
   const attempt = { warnings: build(), settled: false };
@@ -555,8 +588,12 @@ async function prebuildWda({
   const key = computeWdaKey(xcode, driverVersion);
   const keyDir = path.join(wdaRoot, key);
 
+  // The session locator's test, so the two never disagree: a marker that
+  // names another key is a miss there, and must be one here.
+  const built = () => readProductsMarker(keyDir, fs)?.key === key;
+
   // Pre-lock fast path: a completed build for this exact toolchain.
-  if (readProductsMarker(keyDir, fs)) {
+  if (built()) {
     touchLastUsed(keyDir, fs, now);
     return report("already-up-to-date", [
       `WebDriverAgent build products present for ${key}`,
@@ -577,7 +614,7 @@ async function prebuildWda({
     // Re-check under the lock: a contender that waited out a concurrent
     // build finds the now-valid marker and must not build again (the
     // check-then-lock TOCTOU close from the design doc).
-    if (readProductsMarker(keyDir, fs)) {
+    if (built()) {
       touchLastUsed(keyDir, fs, now);
       return report("already-up-to-date", [
         `WebDriverAgent build products present for ${key} (built concurrently)`,
