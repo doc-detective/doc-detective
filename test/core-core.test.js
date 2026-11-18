@@ -660,7 +660,6 @@ describe("Run tests successfully", function () {
     // The build decisions themselves are unit-tested in ios-installer.test.js.
     if (process.platform === "darwin") this.skip();
     const prevNoInstall = process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL;
-    process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL = "1";
     const iosTest = {
       tests: [
         {
@@ -676,8 +675,10 @@ describe("Run tests successfully", function () {
       ],
     };
     const tempFilePath = path.resolve("./test/temp-ios-no-autoinstall-test.json");
-    fs.writeFileSync(tempFilePath, JSON.stringify(iosTest, null, 2));
     try {
+      // Inside the try, so a failed write can't leave the variable set.
+      process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL = "1";
+      fs.writeFileSync(tempFilePath, JSON.stringify(iosTest, null, 2));
       const result = await runTests({ input: tempFilePath, logLevel: "debug" });
       const contexts = result.specs[0].tests.flatMap((test) => test.contexts);
       assert.equal(contexts.length, 2, "one context per test");
@@ -692,7 +693,7 @@ describe("Run tests successfully", function () {
       if (prevNoInstall === undefined)
         delete process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL;
       else process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL = prevNoInstall;
-      fs.unlinkSync(tempFilePath);
+      fs.rmSync(tempFilePath, { force: true });
     }
   });
 

@@ -277,28 +277,36 @@ describe("select-fixture-bundles", function () {
       assert.equal(selectMatrix([]).find((b) => b.name === "mobile-web-ios").wdaFirstUse, true);
       assert.equal(selectMatrix([]).find((b) => b.name === "apps-ios").wdaFirstUse, undefined);
 
-      // That leg skips every step that would put a build in the cache.
+      // That leg skips every step that would put a build in the cache. The
+      // whole condition is compared, so an `||` can't let the leg back in.
+      const prebuilt = `${iosOnly} && !matrix.bundle.wdaFirstUse`;
       for (const name of [
         "Restore WebDriverAgent products",
         "Prebuild WebDriverAgent",
         "Key the WebDriverAgent products",
-        "Save WebDriverAgent products",
       ]) {
-        assert.ok(
-          byName(name).if.startsWith(`${iosOnly} && !matrix.bundle.wdaFirstUse`),
-          `${name} must skip the first-use leg`
-        );
+        assert.equal(byName(name).if, prebuilt, `${name} must skip the first-use leg`);
       }
+      assert.equal(
+        byName("Save WebDriverAgent products").if,
+        `${prebuilt} && steps.wda-key.outputs.key != steps.wda-restore.outputs.cache-matched-key`
+      );
 
-      // The weekly dd-cache entry can carry a build too, so the leg clears it.
-      const names = steps().map((s) => s.name);
+      // The weekly dd-cache entry can carry a build too, so the leg clears it
+      // after that restore and before the run.
+      const all = steps();
+      const at = (find) => all.findIndex(find);
       const clear = byName("Clear WebDriverAgent products");
       assert.ok(clear, "the clear step exists");
       assert.equal(clear.if, "runner.os == 'macOS' && matrix.bundle.wdaFirstUse");
-      assert.match(clear.run, /rm -rf ~\/\.dd-cache\/ios\/wda\b/);
+      assert.equal(clear.run.trim(), "rm -rf ~/.dd-cache/ios/wda");
+      const ddCache = at((s) => s.uses === "./.github/actions/dd-cache");
+      const cleared = at((s) => s.name === "Clear WebDriverAgent products");
+      assert.ok(ddCache >= 0, "the dd-cache step exists");
+      assert.ok(ddCache < cleared, "clear after the dd-cache restore");
       assert.ok(
-        names.indexOf("Clear WebDriverAgent products") <
-          names.indexOf("Run ${{ matrix.bundle.name }} fixtures")
+        cleared < at((s) => s.name === "Run ${{ matrix.bundle.name }} fixtures"),
+        "clear before the fixture run"
       );
       // The session locator's Xcode probe allows 15 s, and the first
       // `xcodebuild -version` on a fresh image can take longer. This step runs

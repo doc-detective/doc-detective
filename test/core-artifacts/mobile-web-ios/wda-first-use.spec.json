@@ -1,10 +1,10 @@
 {
   "specId": "ios-wda-first-use",
-  "description": "ADR 01214: on macOS, an iOS context that finds no managed WebDriverAgent build for the current Xcode and driver builds one into `<cacheDir>/ios/wda` before its first session, then uses it. The macOS `mobile-web-ios` CI leg restores and prebuilds no WebDriverAgent (`wdaFirstUse` in scripts/select-fixture-bundles.cjs), so on that leg the build this spec finds can only come from the run itself. The `apps-ios` leg keeps `install ios`, and so covers a run that finds a cached build and builds nothing. On Windows and Linux the toolchain probe lands the context SKIPPED. The opt-outs (`DOC_DETECTIVE_NO_IOS_AUTOINSTALL`, `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH`) and a failed build are process-wide or need a broken toolchain, so test/ios-installer.test.js and test/core-core.test.js cover them.",
+  "description": "ADR 01214: on macOS, an iOS context that finds no managed WebDriverAgent build for the current Xcode and driver builds one into `<cacheDir>/ios/wda` before its first session, then uses it. The macOS `mobile-web-ios` CI leg restores and prebuilds no WebDriverAgent (`wdaFirstUse` in scripts/select-fixture-bundles.cjs), so on that leg the build this spec finds can only come from the run itself. The `apps-ios` leg keeps `install ios`, and so covers a run that finds a cached build and builds nothing. On Windows and Linux the toolchain probe lands the context SKIPPED. A fixture can't see the capabilities a session sends to Appium, so test/ios-installer.test.js asserts that both session builders get the managed build after a first-use build. The opt-outs (`DOC_DETECTIVE_NO_IOS_AUTOINSTALL`, `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH`) and a failed build are process-wide or need a broken toolchain, so that file and test/core-core.test.js cover them too.",
   "tests": [
     {
       "testId": "ios-wda-built-on-first-use",
-      "description": "Open a Safari session, which runs the iOS preflight first. Then ask the session locator, in a fresh process, for the managed build. It reads the default cache directory, as the CI leg does. With an opt-out variable set the run builds nothing by design, so the check passes without looking.",
+      "description": "Open a Safari session, which runs the iOS preflight first. Then check-managed-wda.mjs asks the session locator, in a fresh process, for the managed build. It reads the default cache directory, as the CI leg does.",
       "runOn": [
         {
           "platforms": "ios"
@@ -19,7 +19,7 @@
         },
         {
           "runShell": {
-            "command": "node -e \"if(['DOC_DETECTIVE_NO_IOS_AUTOINSTALL','DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH'].some((n)=>(process.env[n]||'').trim())){console.log('first-use build is off');process.exit(0)}import('./dist/runtime/wdaProducts.js').then((m)=>{const hit=m.locateManagedWda();if(!hit){console.error('no managed WebDriverAgent build in the cache');process.exit(1)}console.log('managed WebDriverAgent build: '+hit.key)})\"",
+            "command": "node test/core-artifacts/mobile-web-ios/check-managed-wda.mjs",
             "workingDirectory": "../../..",
             "exitCodes": [
               0
