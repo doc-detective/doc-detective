@@ -249,7 +249,7 @@ Check those prerequisites ahead of a run:
 doc-detective install ios --yes
 ```
 
-See [`install ios`](/reference/reference/cli/install#install-ios) for everything the command does. It verifies the prerequisites, installs the automation driver, and prebuilds WebDriverAgent. That page also covers the guidance it prints when a step can't run. When the host can't run an iOS simulator, the context skips with a pointer back to that command instead of failing. That covers a non-macOS host, or a macOS host without Xcode or an installed runtime. If you skip `install ios`, the first `ios` test installs the driver and builds WebDriverAgent itself.
+See [`install ios`](/reference/reference/cli/install#install-ios) for everything the command does. It verifies the prerequisites, installs the automation driver, and prebuilds WebDriverAgent. That page also covers the guidance it prints when a step can't run. When the host can't run an iOS simulator, the context skips with a pointer back to that command instead of failing. That covers a non-macOS host, or a macOS host without Xcode or an installed runtime. If you skip `install ios`, the first `ios` test installs the driver on its own.
 
 When no cached WebDriverAgent build matches your Xcode version and driver, the first `ios` test builds one before it starts. That takes about 10 minutes. Sessions then use the cached build automatically, and every session starts faster, because it launches the prebuilt WebDriverAgent instead of starting it through Xcode. Run [`doc-detective install ios`](/reference/reference/cli/install#install-ios) beforehand to build it outside the test run. In CI, a persisted cache lets every run and every parallel job share one build. See [WebDriverAgent builds on first use](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use).
 
@@ -448,7 +448,7 @@ This example targets the `android` platform and launches the Settings app by its
 
 ### Launch an iOS app on a simulator
 
-This example targets the `ios` platform and launches the Settings app by its bundle ID on the context's default simulator. It waits until the app's content is on screen, takes a screenshot of the window, and closes the surface. Give the first surface a generous `timeout` so a cold simulator boot fits inside it. A [first-use WebDriverAgent build](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use) runs before the test starts, so it doesn't count toward `timeout`. If that build fails or is turned off, Appium builds WebDriverAgent during the session, and the step needs more time.
+This example targets the `ios` platform and launches the Settings app by its bundle ID on the context's default simulator. It waits until the app's content is on screen, takes a screenshot of the window, and closes the surface. Give the first surface a generous `timeout` so a cold simulator boot fits inside it. To keep a [first-use WebDriverAgent build](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use) out of the test run, run `doc-detective install ios --yes` beforehand.
 
 ```json
 {
