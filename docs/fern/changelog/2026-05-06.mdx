@@ -1,0 +1,9 @@
+## v4.5.0
+
+### New features
+
+- Added the `doc-detective-runner` command, which the doc-detective.com platform uses to run hosted test jobs. Running the Docker image with `docker run` is unchanged.
+
+### Behavior changes
+
+- Doc Detective now starts Appium on a free port that the operating system assigns instead of port `4723`. Concurrent runs no longer collide, and another service on port `4723` no longer blocks a run.

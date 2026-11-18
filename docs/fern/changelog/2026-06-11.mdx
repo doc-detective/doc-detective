@@ -1,0 +1,25 @@
+## v4.6.1
+
+### Bug fixes
+
+- Checking for installed browsers while Doc Detective loads your config no longer installs browsers or runtime packages, including when `DOC_DETECTIVE_AUTOINSTALL=0` is set. Doc Detective installs them only when a run needs them.
+
+## v4.6.0
+
+### New features
+
+- Added the `install` command, with `agents`, `runtime`, `browsers`, `status`, and `all` subcommands, for installing runtime packages, browsers, drivers, and agent tools ahead of time or checking what's installed. The `install-agents` command still works as an alias of `install agents`. See [`install`](/reference/reference/cli/install).
+- Added the `cacheDir` [config](/reference/schemas/config) field, the `--cache-dir` CLI flag, and the `DOC_DETECTIVE_CACHE_DIR` environment variable, which set where Doc Detective stores runtime packages and browsers.
+- When a runtime install fails, the error names a log file at `<cacheDir>/runtime/install.log` that contains the full npm output.
+- Added post-run hints. After a run, Doc Detective can print one short tip about a feature you aren't using yet. Hints appear only in an interactive terminal at the default `info` log level. Turn hints off with `--no-hints` or by setting [`hints.enabled`](/reference/schemas/hints-options) to `false`.
+
+### Behavior changes
+
+- Doc Detective now requires Node.js 22.12.0 or later, which its updated browser installer needs. Installing on an older version shows an npm engine warning. See [Installation](/docs/get-started/installation).
+- Heavy runtime packages, browsers, drivers, and FFmpeg now install into a cache directory. By default, the cache is the `doc-detective` folder in your system's temporary directory. `npm install` still installs them up front by default, without npm's deprecation warnings. Set `DOC_DETECTIVE_AUTOINSTALL=0` to skip that step, and Doc Detective installs them the first time a test needs them.
+- The CLI checks npm for a newer release on startup and updates itself for global and `npx` installs. Local project installs show an update notice instead of changing your `package.json`. CI environments skip the check. To stay on the installed version, use `--no-auto-update`, set `autoUpdate` to `false` in your config, or set `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1`.
+
+### Bug fixes
+
+- A context that needs a browser when no supported browser is available is now skipped with a clear reason instead of failing to start.
+- Dry runs (`--dry-run`) no longer scan for installed browsers and Appium drivers, so they finish faster.

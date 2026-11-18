@@ -1,0 +1,31 @@
+## v4.40.5
+
+### Behavior changes
+
+- Runs start faster. Doc Detective skips browser detection for runs that don't use a browser, and loads some packages only when it needs them.
+
+### Bug fixes
+
+- A telemetry opt-out set through the `DOC_DETECTIVE` environment variable is now honored. Previously, Doc Detective still sent the telemetry event. See [telemetry](/support/support/legal/telemetry).
+- An API key set only through the `DOC_DETECTIVE` environment variable now sends the run to the orchestration API.
+- A telemetry failure no longer fails a run or loses its results.
+
+## v4.40.4
+
+### Behavior changes
+
+- Doc Detective no longer prints every detected spec as JSON at the default log level. Set the log level to `debug` to see it, or use `--dry-run` to get the resolved test plan as JSON.
+
+### Bug fixes
+
+- String shorthand [`find`](/docs/actions/find) and [`click`](/docs/actions/click) steps now return as soon as the element appears. Previously, each step waited about 5 seconds even when the element was already on the page.
+- Regular expression matches in `find` are much faster on pages with many elements.
+- Shorthand `find` with text that contains a double quote now works when matching an element ID or test ID.
+- JavaScript [`runCode`](/docs/actions/runcode) steps and, on Windows, shell steps start faster.
+
+## v4.40.3
+
+### Bug fixes
+
+- Doc Detective now launches the browser build that `installed.json` records. Previously, an old build left in the cache could launch instead, and Firefox contexts could fall back to Chrome.
+- A context that never runs [`goTo`](/docs/actions/goto), such as one with only process steps, is no longer retried because the browser stayed on its blank starting page. Previously, the retry could hide the real failure.

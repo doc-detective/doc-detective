@@ -435,6 +435,11 @@ navigation:
           - page: Privacy policy (Companion app)
             path: pages/legal/privacy-policy-companion.mdx
             slug: /legal/privacy-policy-companion
+      # One dated file per release day in changelog/ (Fern requires that folder
+      # name). Each `## vX.Y.Z` heading in a file is one release.
+      - changelog: ./changelog
+        title: Changelog
+        slug: changelog
 
 ###########
 # Redirects

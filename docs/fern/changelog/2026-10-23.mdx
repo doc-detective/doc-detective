@@ -1,0 +1,17 @@
+## v4.41.1
+
+Maintenance release; no user-facing changes.
+
+## v4.41.0
+
+### New features
+
+- Doc Detective can now write "last verified" dates back into your documentation source files when tests pass. See [Last verified on](/docs/test-docs/last-verified-on).
+  - Opt in with a `verified-by` entry that sets `tool: doc-detective` and a `check` naming a test or spec ID. Put it in front matter to date the page, or in an inline `meta` statement to date one procedure. On a pass, Doc Detective fills in the entry's `version` and `passed` date, and sets `last-verified` once every entry has passed.
+  - Doc Detective never changes other tools' entries, and writes nothing when a test fails, warns, or skips.
+  - Add `"badge": true` to an inline `test` statement to keep a "Last verified" badge on the line above the test. No test ID is required.
+- Use the `verification.write` config field, or the `--verification` CLI flag, to choose what a run writes back. See [verification options](/reference/schemas/verification-options).
+  - `"existing"`, the default, fills only what pages already declare.
+  - `true` also adds entries for passing pages and tests, and writes generated test IDs into their `test` statements so the IDs stay stable.
+  - `false` writes nothing, including badges.
+- Write-back supports Markdown, MDX, AsciiDoc, HTML, and DITA. Doc Detective warns when it can't write a statement, such as some AsciiDoc forms.

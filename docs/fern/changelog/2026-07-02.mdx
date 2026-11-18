@@ -1,0 +1,14 @@
+## v4.18.0
+
+### New features
+
+- You can now open and target multiple browser tabs and windows. Set `newTab` or `newWindow` on [`goTo`](/docs/actions/goto) to open and name a tab or window. See [Test across multiple tabs and windows](/docs/test-docs/multiple-tabs-and-windows).
+- Set `surface` on `click`, `find`, `type`, `dragAndDrop`, `runBrowserScript`, `screenshot`, and `record` to act in a specific tab or window. Select it by name, by index (`-1` for the newest), or by title or URL, with regular expression support. Tabs that a page opens, such as `target="_blank"` links, are selectable too.
+- [`closeSurface`](/docs/actions/closesurface) closes browser tabs and windows. Closing one that's already closed succeeds, and closing the last open tab is refused.
+- [`type`](/docs/actions/type) accepts `waitUntil` on browser surfaces, with `networkIdleTime`, `domIdleTime`, and `find` conditions.
+
+### Bug fixes
+
+- Fixed the [`click`](/docs/actions/click) string shorthand, such as `{ "click": "Submit" }`, which checked that the element existed but didn't click it.
+- Fixed Chrome and Firefox processes left running after a test run ended.
+- Fixed a crash, `Cannot read properties of undefined (reading 'platform')`, on runs that load a pre-resolved config through `DOC_DETECTIVE_API`.

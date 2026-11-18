@@ -1,0 +1,10 @@
+## v4.21.0
+
+### New features
+
+- You can now test native macOS apps (experimental) with [`startSurface`](/docs/actions/startsurface). Launch an app by bundle ID or by `.app` path. See [Test native macOS apps](/docs/test-docs/native-macos-apps).
+- macOS app contexts need Accessibility permission. If it isn't granted, the context is skipped with steps to grant it in System Settings. Setting `workingDirectory` on a macOS app fails the step.
+- You can now test native Android apps (experimental) on a managed emulator. Target the `android` platform, and Doc Detective boots or reuses an emulator and can run several apps on one device. See [Test Android apps](/docs/test-docs/android-apps).
+- Android contexts run on hosts that can accelerate the emulator, such as Linux with KVM. On other hosts, they're skipped with a reason.
+- Added the `doc-detective install android` command, which installs the Android SDK tools and creates a default emulator. If no Java runtime is installed, it downloads a portable one. See the [`install` reference](/reference/reference/cli/install).
+- A run that targets `android` on a capable host installs the Android tools the first time it needs them. To prevent this, set `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL=1`.

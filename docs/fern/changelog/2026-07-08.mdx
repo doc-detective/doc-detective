@@ -1,0 +1,23 @@
+## v4.26.1
+
+### Bug fixes
+
+- Fixed [`httpRequest`](/docs/actions/httprequest) steps that use an OpenAPI description failing with `OpenAPI definition not found`. The string shorthand, `"openApi": "<operationId>"`, now works too. See [OpenAPI](/reference/schemas/openapi).
+
+## v4.26.0
+
+### New features
+
+- You can now select windows in desktop apps on Windows and macOS. Set `window` on an app surface for `find`, `click`, `type`, and `screenshot`. Select a window by name, index, or title.
+- [`closeSurface`](/docs/actions/closesurface) with an app `window` closes that window and keeps the app open. Window selectors on mobile app surfaces fail, because those apps have one window.
+- [`startSurface`](/docs/actions/startsurface) can now start browsers and background processes as well as apps. A browser descriptor opens a blank session with its own `headless`, `size`, and `viewport` settings. A process descriptor starts a named background process.
+- Pass an array to `startSurface` to start several surfaces in parallel.
+
+### Behavior changes
+
+- `type` on an app surface now honors `window`, and fails if no window matches. Previously, `type` ignored `window` on app surfaces.
+- On macOS, an app screenshot without a window selector captures the app's default window instead of the whole display.
+
+### Bug fixes
+
+- Doc Detective now retries a `geckodriver` crash that happened when several Firefox sessions started at once.

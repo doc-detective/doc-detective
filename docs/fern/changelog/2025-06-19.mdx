@@ -1,0 +1,6 @@
+## v3.1.1
+
+### Breaking changes
+
+- `unsafe` now applies only to steps. Doc Detective skips each unsafe step instead of the whole test.
+- The `allowUnsafeTests` config property is now `allowUnsafeSteps`. Configs that still set `allowUnsafeTests` fail validation, so rename the property. The `--allow-unsafe` flag works as before.

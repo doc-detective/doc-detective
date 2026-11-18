@@ -1,0 +1,21 @@
+## v3.0.2
+
+### Bug fixes
+
+- Relative paths that you pass to `--input` and `--output` now resolve from the current working directory instead of from the config file's location.
+
+## v3.0.1
+
+### Behavior changes
+
+- When a test doesn't specify any contexts, Doc Detective runs it on the current platform. If the test needs a browser, it uses the first one available of Firefox, Chrome, and Safari.
+- The [`click`](/docs/actions/click) string shorthand now takes the display text or selector of the element to click, such as `{ "click": "Submit" }`. In the detailed object, `button` is optional and defaults to `left`.
+
+### New features
+
+- Expressions can read array items with index notation, such as `$$response.body.items[0].id`.
+
+### Bug fixes
+
+- Fixed tests that set `detectSteps` to `false` still getting detected steps.
+- Fixed specs appearing twice in the results report.

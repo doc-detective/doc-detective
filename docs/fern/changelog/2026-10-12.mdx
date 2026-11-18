@@ -1,0 +1,11 @@
+## v4.39.0
+
+### New features
+
+- Managed Android emulators now start from a clean snapshot. The first boot of an emulator saves the snapshot before any test touches the device. Later boots load it, so each run starts faster and from the same state.
+- To retake the snapshot from the emulator's current state, run `doc-detective install android --reset-snapshot`. Add `--dry-run` to list what it would reset. See [`install`](/reference/reference/cli/install) and [Android apps](/docs/test-docs/android-apps).
+
+### Behavior changes
+
+- If a snapshot doesn't load in time, Doc Detective discards it, cold-boots the emulator, and saves a new snapshot.
+- At the end of a run, Doc Detective shuts emulators down gracefully and in parallel instead of force-stopping them one at a time.

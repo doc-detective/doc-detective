@@ -1,0 +1,12 @@
+## v3.0.16
+
+### Bug fixes
+
+- Fixed parsing of detected HTTP request code blocks. Header values that contain colons, such as URLs, stay intact, and bodies that are JSON arrays are sent as JSON.
+
+## v3.0.15
+
+### Bug fixes
+
+- Fixed detection of HTTP request code blocks in files with Windows line endings.
+- When a detection pattern's capture group doesn't match anything, Doc Detective no longer fills the generated step with a literal placeholder, such as `$4`.

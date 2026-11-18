@@ -1,0 +1,5 @@
+## v4.37.3
+
+### Bug fixes
+
+- [`goTo`](/docs/actions/goto) now fails when the browser never leaves its blank starting page. Previously, the step passed and a later step failed instead. Doc Detective retries the navigation once before it fails the step.

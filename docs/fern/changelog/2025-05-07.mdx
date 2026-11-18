@@ -1,0 +1,10 @@
+## v3.0.4
+
+### New features
+
+- `--input` accepts a comma-separated list of files, directories, and URLs, such as `--input docs/,README.md`. Doc Detective doesn't resolve URLs as local paths.
+
+### Bug fixes
+
+- Fixed relative `loadVariables` paths in config files, which Doc Detective didn't resolve like other config paths.
+- Fixed `http://` and `https://` values in configs being resolved as file paths.

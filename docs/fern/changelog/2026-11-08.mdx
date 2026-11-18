@@ -1,0 +1,38 @@
+## v4.42.1
+
+Maintenance release; no user-facing changes.
+
+## v4.42.0
+
+This release prepares version 4 users for Doc Detective 5 and changes how Doc Detective guards local URLs. See [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
+
+### New features
+
+- [`checkLink`](/docs/actions/checklink) has a new `timeout` field that sets how long each request attempt waits, in milliseconds. It defaults to `10000`. When an attempt times out, the step fails with a message that names the URL.
+- Run reports now record when and where tests ran:
+  - The report root has `startedAt` and an `environment` object with the platform, architecture, and Doc Detective, Node.js, and OS versions.
+  - Each context has `startedAt` and, when a browser ran, the browser version and the driver's name and version.
+  - Each step has `startedAt`.
+- You can now set the pseudo-terminal size for background commands. `background.tty` on [`runShell`](/docs/actions/runshell) and [`runCode`](/docs/actions/runcode), and `tty` on a `startSurface` process descriptor, accept an object such as `{"cols": 80, "rows": 24}`. `true` keeps the 120 by 30 terminal.
+
+### Behavior changes
+
+- Doc Detective now warns on stderr when a run relies on something that Doc Detective 5 changes or removes. Examples include CLI flags, `DOC_DETECTIVE` environment variable keys, reporter names, and spec content that version 5 rejects or reads differently. The warnings link to the upgrade guide and don't print at the `silent` log level or in the GitHub Action.
+- Self-update now stays within your current major version. When a newer major version is available, Doc Detective prints the upgrade command instead of updating. Update notices go to stderr, so they don't mix with `--dry-run` JSON output.
+- Screenshot reference images and OpenAPI `$ref`s on `localhost`, Docker networks, and private networks now load by default. Previously, they required `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true`.
+  - Doc Detective now refuses a hop from a public address to a private one. Examples include a redirect to a private address and a `$ref` in a publicly hosted OpenAPI description. After it reads a public description, it also refuses local file `$ref`s.
+  - Set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=1` to turn the guard off, or `DOC_DETECTIVE_BLOCK_LOCAL_URLS=1` to refuse every private address. If you set both, Doc Detective exits with code `2`.
+  - Requests that steps make, such as `goTo` and `httpRequest`, aren't affected.
+- Heretto uploads now start only when an integration sets `uploadOnChange` to `true`. Previously, a config that skipped validation uploaded changed screenshots by default. See [Heretto](/docs/test-docs/heretto).
+- A boolean click, such as `{"click": true}`, now fails with a hint. Previously, Doc Detective clicked an element whose text was `true`. To click that text, quote it: `"click": "true"`.
+
+### Bug fixes
+
+- `find.click: false` now finds the element without clicking it. Previously, Doc Detective converted `false` to the text `"false"` and clicked. `wait: true` is no longer read as `1` either.
+- [`httpRequest`](/docs/actions/httprequest) accepts a single integer for `statusCodes`, like `checkLink`.
+- `$schema` now accepts any URL on specs, tests, steps, contexts, and config files, so you can point your editor at a versioned or local schema. Previously, other URLs failed validation. See [Standalone tests](/docs/test-docs/standalone).
+- `environment.arch` now accepts every architecture Node.js reports, such as `arm` and `ia32`.
+- Remote files whose URLs have a query string, such as presigned YAML URLs, now parse by the extension in the URL path.
+- OpenAPI descriptions that are missing, empty, or invalid now fail with one message that names the cause. A spurious `Failed to parse JSON` warning on remote `.json` descriptions no longer appears.
+- `checkLink` network errors no longer include a URL's query string, fragment, or credentials.
+- When you load Doc Detective with `require("doc-detective")`, writing verification results back to your files now works, and lazy dependency installs no longer fail with `ENOENT`.

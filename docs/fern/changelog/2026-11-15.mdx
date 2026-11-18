@@ -1,0 +1,28 @@
+## v5.2.0
+
+### New features
+
+- Added the `validate` command, which checks spec files and inline tests without running them, as in `doc-detective validate ./docs`. It exits `0` when every test is valid, `1` when any test is invalid, and `2` for a usage error, a bad config, or no tests found. Pass `--json` for a machine-readable list of each file and its errors. See the [CLI reference](/reference/reference/cli).
+
+### Bug fixes
+
+- `validate` masks environment variable values in its output, as every other output does.
+
+## v5.1.0
+
+### New features
+
+- `find` can locate an element by matching a picture of it on screen, through the new `elementImage` field. Use it for targets with no usable text or selector. Give a file path, or an object with `path` or `base64` and optional `threshold` and `color` values. See [`find`](/docs/actions/find).
+- `click`, `type`, `dragAndDrop`, screenshot crops, annotation targets, and `goTo`'s `waitUntil.find` accept `elementImage` too.
+- An image match also tries the sizes a reference would have at 175%, 225%, 250%, and 300% display scale.
+- A run that uses `elementImage` installs its image matcher on demand, and a failed install stops the run before any test starts.
+
+### Bug fixes
+
+- Fixed cropped screenshots that showed a fixed or sticky header instead of the element. The crop target now scrolls to the center of the viewport.
+- Fixed screenshot comparisons that reported drift for identical content when the capture and reference differed slightly in size. Images within 5% of each other's size now compare their common region, so `overwrite: "aboveVariation"` no longer replaces a matching reference.
+- Fixed screenshots in Firefox that showed what an `annotate` blur should hide. Screenshots now apply live blurs to the capture itself in every browser. If the page can't report its blurs, the screenshot step fails instead of saving the capture.
+- Fixed runs that shared a cache and installed runtime packages at the same time, which could remove each other's packages. Installs into one cache now wait for each other, and a run waits for an install in progress before it loads the packages.
+- Fixed relative cache paths, which installed packages where Doc Detective couldn't load them. A relative `--cache-dir`, `DOC_DETECTIVE_CACHE_DIR`, or `cacheDir` now resolves against the working directory.
+- A `goTo` whose `waitUntil.find` misses names every criterion it looked for, instead of `Element not found ()`.
+- Fixed slow parsing of inline attributes that contain a long run of dots.

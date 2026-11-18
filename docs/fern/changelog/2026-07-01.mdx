@@ -1,0 +1,9 @@
+## v4.17.1
+
+### Bug fixes
+
+- Fixed the private-address check for remote screenshot reference URLs, which allowed IPv4-mapped IPv6 addresses such as `http://[::ffff:a00:1]/`. These addresses are now blocked like other private and loopback addresses. To allow local addresses, set `DOC_DETECTIVE_ALLOW_LOCAL_URLS=true`.
+- Fixed files matched by a custom file type with a `runShell` command, which produced no test spec.
+- Fixed [`httpRequest`](/docs/actions/httprequest) headers written as a string, which cut off header values that contain a colon, such as URLs, timestamps, and `host:port` values.
+- Fixed embedded `{{...}}` [expressions](/reference/reference/expressions) that fail to resolve. The original text now stays in place instead of an internal sub-expression.
+- With `allowAdditionalFields: false`, `httpRequest` now also rejects unexpected fields inside nested objects, including nested empty objects. The failure message names each unexpected field by its dot path.

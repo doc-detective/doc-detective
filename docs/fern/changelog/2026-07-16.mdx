@@ -1,0 +1,6 @@
+## v4.31.0
+
+### New features
+
+- Browsers have a minimum window size, so a small viewport request, such as a 375-pixel mobile width, can render larger than you asked. Doc Detective now reads the viewport back after resizing and warns when the result doesn't match. The [`startSurface`](/docs/actions/startsurface) step's `viewport` output reports the `requested` and `actual` sizes.
+- [`screenshot`](/docs/actions/screenshot) steps now report the saved image's pixel dimensions in the `width` and `height` outputs.

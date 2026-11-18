@@ -1,0 +1,6 @@
+## v4.43.1
+
+### Behavior changes
+
+- Each version 4 run ends with a notice on stderr that Doc Detective 5 is available. It summarizes what changes, how to keep version 4 exit codes while you triage, and how to upgrade with npm, the GitHub Action, or Docker. The notice links to [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5), and it doesn't print when the log level is `silent`.
+- In GitHub Actions, the notice also shows on the workflow run page, whichever Action version you use.

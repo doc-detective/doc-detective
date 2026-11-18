@@ -1,0 +1,31 @@
+## v4.2.0
+
+### New features
+
+- The installer now offers to install Doc Detective's agent tools when it finds a supported coding agent that doesn't have them. It asks only in an interactive terminal, and never in CI or when `DOC_DETECTIVE_SKIP_AGENT_PROMPT` is set. The prompt never fails the install. See [AI agents](/ai/ai-agents/overview).
+
+## v4.1.2
+
+Maintenance release; no user-facing changes.
+
+## v4.1.1
+
+Maintenance release; no user-facing changes.
+
+## v4.1.0
+
+### New features
+
+- Added the `install-agents` command, which detects the AI coding agents on your machine and installs or updates Doc Detective's agent tools for each one. It supports Claude Code, GitHub Copilot CLI, Gemini CLI, Codex, Qwen Code, and OpenCode. See [AI agents](/ai/ai-agents/overview).
+- Added the `html` reporter, which writes your test results to a single self-contained HTML file with search, status filters, and media previews. Choose reporters with the new `reporters` [config](/reference/schemas/config) field or the `--reporters` (`-r`) CLI flag. The default is `terminal` and `json`. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+- Added the `originParams` config field and a `params` field on [`goTo`](/docs/actions/goto) and [`checkLink`](/docs/actions/checklink) steps, which append query parameters to URLs. `originParams` applies to relative URLs resolved against `origin`. Step-level `params` merge on top of it and also apply to absolute URLs.
+- A [`screenshot`](/docs/actions/screenshot) step's `path` can now be an HTTP or HTTPS URL to a PNG file. Doc Detective downloads the image as the reference, compares it with a new capture, and saves the capture locally. It never writes to the remote location.
+- Added a `headers` field to `checkLink` for sites that require specific headers or cookies, such as bot-protection bypass tokens. Your headers override the defaults.
+
+### Behavior changes
+
+- `checkLink` sends browser-like request headers, retries up to three times on `429` and `5xx` responses while honoring `Retry-After`, and falls back to a `HEAD` request when a `GET` returns `429` or `403`. These changes reduce false failures on sites behind bot protection.
+
+### Bug fixes
+
+- Fixed `screenshot` comparisons that failed with an aspect-ratio mismatch when a padded crop extended past the edge of the viewport. Crops now shift to stay in bounds instead of shrinking, and comparisons tolerate small aspect-ratio differences.

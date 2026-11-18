@@ -1,0 +1,23 @@
+## v4.9.0
+
+### New features
+
+- Added the `autoScreenshot` [config](/reference/schemas/config) field and the `--auto-screenshot` CLI flag, which capture a screenshot after every step that runs in a browser. Specs and tests can set their own `autoScreenshot` to override the config. Each image keeps the same relative path in every run, so you can compare runs. See [Automatic screenshots](/docs/test-docs/automatic-screenshots).
+- Added the `runFolder` reporter, which archives each run's results as `<output>/.doc-detective/run-<runId>/testResults.json`, next to any screenshots the run captured. Reports now include `runId` and `runDir` fields. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+
+### Behavior changes
+
+- The default reporters are now `terminal`, `json`, and `runFolder`, so each run also writes a run folder alongside the flat JSON results.
+- Specs, tests, contexts, and steps without explicit IDs now get IDs based on their file path and content instead of random UUIDs. These IDs stay the same from run to run. Explicit IDs still take precedence.
+
+## v4.8.0
+
+### New features
+
+- The `concurrentRunners` [config](/reference/schemas/config) field now takes effect, and the new `--concurrent-runners` CLI flag sets it. Set a number to run that many contexts in parallel, or `true` to use the number of CPU cores, up to four. The default of `1` runs contexts one at a time. Contexts that depend on variables set by other contexts aren't supported with more than one runner. See [How testing works](/docs/get-started/how-testing-works).
+- If a context's browser or driver is missing, Doc Detective now tries to install it before the context runs. If it's still unavailable, Doc Detective skips the context.
+
+### Behavior changes
+
+- Sometimes the first context for a platform and browser combination can't start a driver session. Doc Detective then skips later contexts with the same combination instead of retrying each one. Those contexts report `SKIPPED`, so exit codes don't change.
+- A context that throws an unexpected error now fails on its own instead of stopping the whole run.

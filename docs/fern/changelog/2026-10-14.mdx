@@ -1,0 +1,11 @@
+## v4.40.1
+
+### Behavior changes
+
+- Appium servers start faster, because each one loads only the drivers it hosts instead of every installed driver.
+
+## v4.40.0
+
+### Bug fixes
+
+- Managed Android emulators no longer run an outdated UiAutomator2 server. Doc Detective installs fresh copies of Appium's helper apps before it saves the clean snapshot. When the Appium driver version changes, it retakes the snapshot.
