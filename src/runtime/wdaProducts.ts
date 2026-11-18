@@ -195,7 +195,7 @@ export const MIN_PREINSTALLED_WDA_DRIVER_MAJOR = 12;
 let cachedXcodeProbe: XcodeVersion | null | undefined;
 
 /* c8 ignore start — real spawn; unit tests inject probeXcode. */
-function probeXcodeVersionCached(): XcodeVersion | null {
+export function probeXcodeVersionCached(): XcodeVersion | null {
   if (cachedXcodeProbe === undefined) {
     try {
       const result = spawnSync("xcodebuild", ["-version"], {

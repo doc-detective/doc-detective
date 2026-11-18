@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import fsDefault from "node:fs";
 import path from "node:path";
+import { envFlag } from "../envFlag.js";
 import {
   readInstalledRecord,
   writeInstalledRecord,
@@ -19,9 +20,11 @@ import {
   findWdaSource,
   getWdaRoot,
   LAST_USED_STAMP,
+  locateManagedWda,
   MIN_PREBUILT_WDA_DRIVER_MAJOR,
   MIN_XCODE_MAJOR,
   parseXcodebuildVersion,
+  probeXcodeVersionCached,
   PRODUCTS_MARKER,
   readProductsMarker,
   RUNNER_APP_RELATIVE,
@@ -76,6 +79,14 @@ export interface IOSInstallerDeps {
   now?: () => number;
   /** Inter-attempt backoff for the transient-build retry; no-op in tests. */
   sleep?: (ms: number) => Promise<void>;
+  /** The session locator's Xcode probe, for the first-use build's checks. */
+  probeXcode?: () => XcodeVersion | null;
+}
+
+/** A prebuild's report row, plus why it built nothing, as a sentence. */
+interface WdaPrebuild {
+  report: InstallReport;
+  cause?: string;
 }
 
 /** Ceiling for one xcodebuild build-for-testing attempt (~10 min typical cold). */
@@ -243,7 +254,7 @@ export async function installIos({
   // happen, and a plain `run:` step in CI must not fail the job over it.
   let wdaReport: InstallReport;
   try {
-    wdaReport = await prebuildWda({ ctx, deps, run, logger });
+    wdaReport = (await prebuildWda({ ctx, deps, run, logger })).report;
   } catch (error) {
     wdaReport = {
       kind: "ios",
@@ -256,6 +267,120 @@ export async function installIos({
     };
   }
   return [toolchainReport, wdaReport];
+}
+
+// --- first-use build during a test run (ADR 01214) ---
+
+const WDA_BUILDING_WARNING =
+  "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios` ahead of time to skip the wait.";
+
+// One build attempt per run. `settled` tells a context that waited on the
+// build (it reports the warnings) from one that arrived afterwards.
+const firstUseBuilds = new WeakMap<
+  object,
+  { warnings: Promise<string[]>; settled: boolean }
+>();
+
+/* c8 ignore start — real timers; unit tests inject acquire and sleep. */
+// A run waiting on the lock or a retry can have nothing else pending. The
+// installer's waits are unref'd, so the process would exit mid-wait with code
+// 0. These keep it alive.
+const refSleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+const acquireWithRefSleep = (options: AcquireLockOptions) =>
+  acquireLock({ ...options, deps: { ...options.deps, sleep: refSleep } });
+/* c8 ignore stop */
+
+/**
+ * Before an iOS session: build the managed WebDriverAgent when the cache has
+ * none for this Xcode and driver, so the session uses it. `install ios` runs
+ * the same build ahead of time. Returns the warnings for the context's report.
+ * It never throws: after a failed build, Appium builds WebDriverAgent itself.
+ *
+ * Builds nothing off macOS, when `DOC_DETECTIVE_NO_IOS_AUTOINSTALL` is on,
+ * when `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` supplies a build, or when
+ * Xcode or the driver is too old for a managed build.
+ *
+ * `scope` is any object that lives for one run. A run builds at most once.
+ */
+export async function ensureManagedWda({
+  scope,
+  ctx = {},
+  warn = () => {},
+  env = process.env,
+  deps = {},
+}: {
+  scope: object;
+  ctx?: CacheDirContext;
+  warn?: (message: string) => void;
+  env?: NodeJS.ProcessEnv;
+  deps?: IOSInstallerDeps;
+}): Promise<string[]> {
+  const platform = deps.platform ?? process.platform;
+  if (platform !== "darwin") return [];
+  if (envFlag("DOC_DETECTIVE_NO_IOS_AUTOINSTALL", env)) return [];
+  if (env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH?.trim()) return [];
+
+  // The same probes the session locator uses, so the two always agree on
+  // whether this host can use a managed build.
+  const probeXcode = deps.probeXcode ?? probeXcodeVersionCached;
+  const resolveDriverVersion =
+    deps.resolveDriverVersion ?? resolveHeavyDepVersion;
+  const xcode = probeXcode();
+  if (!xcode || xcodeMajor(xcode) < MIN_XCODE_MAJOR) return [];
+  const driverMajor = Number.parseInt(
+    resolveDriverVersion("appium-xcuitest-driver", ctx) ?? "",
+    10
+  );
+  if (!(driverMajor >= MIN_PREBUILT_WDA_DRIVER_MAJOR)) return [];
+
+  const cached = locateManagedWda({
+    ctx,
+    fs: deps.fs,
+    platform,
+    probeXcode,
+    resolveDriverVersion,
+    wdaRootDir: deps.wdaRootDir,
+    now: deps.now,
+  });
+  if (cached) return [];
+
+  const earlier = firstUseBuilds.get(scope);
+  if (earlier) return earlier.settled ? [] : earlier.warnings;
+
+  const build = async () => {
+    const logger = deps.logger ?? (() => {});
+    const warnings = [WDA_BUILDING_WARNING];
+    warn(WDA_BUILDING_WARNING);
+    let cause: string | undefined;
+    try {
+      const prebuild = await prebuildWda({
+        ctx,
+        deps: { acquire: acquireWithRefSleep, sleep: refSleep, ...deps },
+        run: deps.run ?? defaultRun,
+        logger,
+      });
+      cause = prebuild.cause;
+      // The notes carry the build output's tail. Keep it out of the warning.
+      if (cause) logger((prebuild.report.notes ?? []).join(" | "), "debug");
+    } catch (error) {
+      cause = "An unexpected error stopped the build.";
+      logger(String((error as Error)?.message ?? error), "debug");
+    }
+    if (cause) {
+      const failure = `Couldn't build WebDriverAgent before the test, so Appium builds it during the session. ${cause}`;
+      warn(failure);
+      warnings.push(failure);
+    }
+    return warnings;
+  };
+  const attempt = { warnings: build(), settled: false };
+  firstUseBuilds.set(scope, attempt);
+  try {
+    return await attempt.warnings;
+  } finally {
+    attempt.settled = true;
+  }
 }
 
 /* c8 ignore start — real spawn; unit tests inject runBuild. */
@@ -336,7 +461,7 @@ async function prebuildWda({
   deps: IOSInstallerDeps;
   run: NonNullable<IOSInstallerDeps["run"]>;
   logger: Logger;
-}): Promise<InstallReport> {
+}): Promise<WdaPrebuild> {
   const fs = deps.fs ?? (fsDefault as unknown as WdaFs);
   const runBuild = deps.runBuild ?? defaultRunBuild;
   const ensureInstalled =
@@ -352,13 +477,13 @@ async function prebuildWda({
   const now = deps.now ?? Date.now;
   const sleep = deps.sleep ?? defaultSleep;
 
-  const report = (action: string, notes: string[]): InstallReport => ({
-    kind: "ios",
-    assetId: "ios-wda",
-    action,
-    notes,
+  const report = (action: string, notes: string[]): WdaPrebuild => ({
+    report: { kind: "ios", assetId: "ios-wda", action, notes },
   });
-  const skipped = (notes: string[]) => report("skipped", notes);
+  const skipped = (cause: string, notes: string[]): WdaPrebuild => ({
+    ...report("skipped", notes),
+    cause,
+  });
 
   // Only full Xcode ships xcodebuild; the Command Line Tools alone cannot
   // build WDA (and `xcode-select -p` can't tell the two apart).
@@ -368,7 +493,7 @@ async function prebuildWda({
       ? parseXcodebuildVersion(versionProbe.stdout)
       : null;
   if (!xcode) {
-    return skipped([
+    return skipped("Full Xcode isn't installed.", [
       "full Xcode is required to prebuild WebDriverAgent (xcodebuild is unavailable — Command Line Tools alone are not enough)",
       "install Xcode from the App Store, run xcode-select -s <Xcode.app path>, then rerun: doc-detective install ios --yes",
       (versionProbe.stderr || "").trim(),
@@ -376,7 +501,7 @@ async function prebuildWda({
   }
 
   if (xcodeMajor(xcode) < MIN_XCODE_MAJOR) {
-    return skipped([
+    return skipped(`Xcode ${xcode.version} is older than Xcode ${MIN_XCODE_MAJOR}.`, [
       `Xcode ${xcode.version} is below the minimum (Xcode ${MIN_XCODE_MAJOR}) supported for the WebDriverAgent prebuild`,
       "update Xcode, then rerun: doc-detective install ios --yes",
     ]);
@@ -387,7 +512,7 @@ async function prebuildWda({
   try {
     await ensureInstalled(["appium-xcuitest-driver"], { ctx });
   } catch (error) {
-    return skipped([
+    return skipped("The `appium-xcuitest-driver` install failed.", [
       "installing appium-xcuitest-driver failed; the first iOS session will retry the install",
       String((error as Error)?.message ?? error),
     ]);
@@ -396,7 +521,7 @@ async function prebuildWda({
   const driverEntry = resolveDriverPath("appium-xcuitest-driver", ctx);
   const driverVersion = resolveDriverVersion("appium-xcuitest-driver", ctx);
   if (!driverEntry || !driverVersion) {
-    return skipped([
+    return skipped("The `appium-xcuitest-driver` package wasn't found after its install.", [
       "appium-xcuitest-driver did not resolve after install; cannot locate the WebDriverAgent source",
     ]);
   }
@@ -410,7 +535,7 @@ async function prebuildWda({
     !Number.isFinite(driverMajor) ||
     driverMajor < MIN_PREBUILT_WDA_DRIVER_MAJOR
   ) {
-    return skipped([
+    return skipped(`\`appium-xcuitest-driver\` ${driverVersion} is older than ${MIN_PREBUILT_WDA_DRIVER_MAJOR}.0.`, [
       `appium-xcuitest-driver ${driverVersion} is below the minimum (${MIN_PREBUILT_WDA_DRIVER_MAJOR}.x) supported for prebuilt-WDA consumption — sessions would ignore the products`,
       "upgrade the pinned driver (or remove the pin so doc-detective installs its declared version), then rerun: doc-detective install ios --yes",
     ]);
@@ -418,7 +543,7 @@ async function prebuildWda({
 
   const wdaSource = findWdaSource(driverEntry, fs);
   if (!wdaSource) {
-    return skipped([
+    return skipped("The WebDriverAgent source wasn't found under the installed `appium-xcuitest-driver`.", [
       "the appium-webdriveragent package (WebDriverAgent.xcodeproj) was not found under the installed driver",
     ]);
   }
@@ -443,7 +568,7 @@ async function prebuildWda({
     waitMs: WDA_LOCK_WAIT_MS,
   });
   if (!lock) {
-    return skipped([
+    return skipped("Another process held the WebDriverAgent build lock for the whole wait.", [
       "another install is currently building WebDriverAgent (lock wait elapsed); rerun later or let the concurrent build finish",
     ]);
   }
@@ -488,7 +613,7 @@ async function prebuildWda({
       // would double the worst case to ~40 minutes and blow the CI jobs'
       // budgets — and a build that needs >20 minutes isn't transient.
       if (build.timedOut) {
-        return skipped([
+        return skipped(`The build didn't finish within ${WDA_BUILD_TIMEOUT_MS / 60_000} minutes.`, [
           `the WebDriverAgent build was killed at the ${WDA_BUILD_TIMEOUT_MS} ms ceiling; the first iOS session will build WDA itself`,
           tail(failureText),
         ]);
@@ -504,7 +629,7 @@ async function prebuildWda({
         await sleep(attempt * 2000);
         continue;
       }
-      return skipped([
+      return skipped("`xcodebuild` exited with an error.", [
         "the WebDriverAgent build failed; the first iOS session will build WDA itself",
         tail(failureText),
       ]);
@@ -512,7 +637,7 @@ async function prebuildWda({
 
     const runnerApp = path.join(keyDir, RUNNER_APP_RELATIVE);
     if (!fs.existsSync(runnerApp)) {
-      return skipped([
+      return skipped("The build finished without the WebDriverAgent runner app.", [
         "the WebDriverAgent build completed but its products are missing (WebDriverAgentRunner-Runner.app not found)",
         `expected: ${runnerApp}`,
       ]);

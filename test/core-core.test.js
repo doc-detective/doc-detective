@@ -651,6 +651,51 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("DOC_DETECTIVE_NO_IOS_AUTOINSTALL never skips an ios context or warns on its own (ADR 01214)", async function () {
+    // The Android variable SKIPs the context and names itself in the reason.
+    // The iOS one only turns off the first-use WebDriverAgent build, so the
+    // context resolves exactly as it would without it. On a non-mac host that
+    // is the toolchain SKIP, with no warning. On macOS the context opens a
+    // real simulator session, which the mobile-web-ios fixture leg covers.
+    // The build decisions themselves are unit-tested in ios-installer.test.js.
+    if (process.platform === "darwin") this.skip();
+    const prevNoInstall = process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL;
+    process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL = "1";
+    const iosTest = {
+      tests: [
+        {
+          testId: "ios-no-autoinstall",
+          runOn: [{ platforms: "ios" }],
+          steps: [{ startSurface: { app: "com.apple.Preferences" } }],
+        },
+        {
+          testId: "ios-web-no-autoinstall",
+          runOn: [{ platforms: "ios", browsers: "safari" }],
+          steps: [{ goTo: "https://example.com" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-ios-no-autoinstall-test.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(iosTest, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const contexts = result.specs[0].tests.flatMap((test) => test.contexts);
+      assert.equal(contexts.length, 2, "one context per test");
+      for (const ctx of contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /macOS|Xcode|simctl/);
+        assert.doesNotMatch(ctx.resultDescription, /DOC_DETECTIVE_NO_IOS_AUTOINSTALL/);
+        assert.equal(ctx.warnings, undefined);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      if (prevNoInstall === undefined)
+        delete process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL;
+      else process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL = prevNoInstall;
+      fs.unlinkSync(tempFilePath);
+    }
+  });
+
   it("Shorthand find returns without waiting out the timeout on a hit, and FAILs after the full timeout on a miss (ADR 01130)", async () => {
     // The not-found permutation of interactions/find-shorthand.spec.json: it
     // FAILs by design, so the PASS/SKIPPED fixture gate can't carry it.
