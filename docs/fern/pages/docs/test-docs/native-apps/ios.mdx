@@ -135,7 +135,7 @@ Couldn't build WebDriverAgent before the test, so Appium builds it during the se
 
 Other failures end with a different cause, such as an `xcodebuild` error. To find out why a build failed, run with `-d`, or set `DOC_DETECTIVE_DEBUG=true` in CI, and read the build output. Debug output goes to stderr. See [Troubleshooting setup issues](/docs/troubleshooting/setup-issues). If this build fails but another Doc Detective process finishes one, the test uses that build and no warning appears.
 
-Sometimes the build succeeds, but Doc Detective can't list it in the cache's `installed.json` record. The test still uses the new build, later runs still find it, and exit codes don't change. Doc Detective warns and names the cause in the last sentence so you can fix it. For example:
+Sometimes the build succeeds, but Doc Detective can't list it in the cache's `installed.json` record. The test still uses the new build, later runs still find it, and exit codes don't change. Doc Detective warns and names the cause in the last sentence, so you know why it happened. For example:
 
 ```text
 Couldn't update the cache record after building WebDriverAgent, so `installed.json` may not list this build. The cache directory isn't writable.
