@@ -5960,8 +5960,16 @@ async function runContextWithRetries(
 
   let report: any;
   let attempt = 0;
+  // Preflight warnings from the attempts so far. A retry's preflight finds
+  // what an earlier attempt installed or built (the Android toolchain,
+  // WebDriverAgent), so it warns about nothing. The report keeps them.
+  let warnings: string[] = [];
   for (; ; attempt++) {
     report = await timedRunContext(args);
+    if (report && typeof report === "object") {
+      warnings = [...new Set([...warnings, ...(report.warnings ?? [])])];
+      if (warnings.length) report.warnings = warnings;
+    }
     const retryable = report?.result === "FAIL" && report?._sessionDied === true;
     if (!retryable || attempt >= retries) break;
     log(
