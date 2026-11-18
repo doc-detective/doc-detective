@@ -19,14 +19,15 @@ extends | string | Optional. Base template to extend. A file whose extension no 
 extensions | one of:<br/>- string<br/>- array of string | Optional. File extensions to use with type. | —
 inlineStatements | object([Inline statement definition](/reference/schemas/inline-statement-definition)) | Optional. Statements to include tests and steps inside the content of the file, such as within Markdown. | —
 markup | array of object([Markup definition](/reference/schemas/markup-definition)) | Optional. Markup definitions for the file type. | —
+includeStatements | one of:<br/>- string<br/>- array of string | Optional. Regular expressions that match include directives for this file type. Capture group 1 is the path of the file to include, and the whole file is included. With `extends`, these add to the base type's built-in include syntax. | —
 
 ## Examples
 
 ```json
 {
-  "name": "example",
   "extends": "markdown",
-  "extensions": "example",
-  "markup": []
+  "includeStatements": [
+    "\\{%\\s*include_relative\\s+(\\S+)\\s*%\\}"
+  ]
 }
 ```

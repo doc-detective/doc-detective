@@ -5377,6 +5377,10 @@ export interface SourceLocation {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface CheckLink {
   checkLink: CheckLink1;
@@ -5616,6 +5620,10 @@ export interface SourceLocation1 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface Click {
   click: Click1;
@@ -5896,6 +5904,10 @@ export interface SourceLocation2 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface Find {
   find: Find1;
@@ -6307,6 +6319,10 @@ export interface SourceLocation3 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface GoTo {
   goTo: GoTo1;
@@ -6575,6 +6591,10 @@ export interface SourceLocation4 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface HttpRequest {
   httpRequest: HttpRequest1;
@@ -6850,6 +6870,10 @@ export interface SourceLocation5 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface RunShell {
   runShell: RunShell1;
@@ -7153,6 +7177,10 @@ export interface SourceLocation6 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface RunCode {
   runCode: RunCode1;
@@ -7456,6 +7484,10 @@ export interface SourceLocation7 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface RunBrowserScript {
   runBrowserScript: RunBrowserScript1;
@@ -7754,6 +7786,10 @@ export interface SourceLocation8 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface Type {
   type: TypeKeys1;
@@ -8086,6 +8122,10 @@ export interface SourceLocation9 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface Screenshot {
   screenshot: Screenshot1;
@@ -8910,6 +8950,10 @@ export interface SourceLocation10 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface SaveCookie {
   saveCookie: SaveCookie1;
@@ -9121,6 +9165,10 @@ export interface SourceLocation11 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface Record {
   record: Record1;
@@ -9475,6 +9523,10 @@ export interface SourceLocation12 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface StopRecord {
   stopRecord: StopRecord1;
@@ -9692,6 +9744,10 @@ export interface SourceLocation13 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface CloseSurface {
   closeSurface: CloseSurface1;
@@ -10053,6 +10109,10 @@ export interface SourceLocation14 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface StartSurface {
   startSurface: StartSurface1;
@@ -10634,6 +10694,10 @@ export interface SourceLocation15 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface LoadVariables {
   loadVariables: LoadVariables1;
@@ -10845,6 +10909,10 @@ export interface SourceLocation16 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface DragAndDrop {
   dragAndDrop: DragAndDrop1;
@@ -11125,6 +11193,10 @@ export interface SourceLocation17 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface LoadCookie {
   loadCookie: LoadCookie1;
@@ -11336,6 +11408,10 @@ export interface SourceLocation18 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface Swipe {
   swipe: Swipe1;
@@ -11738,6 +11814,10 @@ export interface SourceLocation19 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface Wait {
   wait: Wait1;
@@ -11949,6 +12029,10 @@ export interface SourceLocation20 {
    * 0-indexed character offset from the start of the source file where the step ends (exclusive).
    */
   endIndex: number;
+  /**
+   * Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file.
+   */
+  file?: string;
 }
 export interface Annotate {
   annotate: Annotate1;

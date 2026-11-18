@@ -13039,6 +13039,11 @@
         "type": "boolean",
         "description": "Whether or not to run potentially unsafe steps, such as those that might modify files or system state."
       },
+      "resolveIncludes": {
+        "description": "If `true`, detection replaces each include directive in a documentation source with the included file's content before it looks for tests, and a file that another input includes runs only as part of that input.",
+        "type": "boolean",
+        "default": true
+      },
       "processDitaMaps": {
         "description": "If `true`, processes DITA maps and includes generated files as inputs.",
         "type": "boolean",
@@ -13725,6 +13730,14 @@
                   "title": "File type (custom)",
                   "type": "object",
                   "additionalProperties": false,
+                  "examples": [
+                    {
+                      "extends": "markdown",
+                      "includeStatements": [
+                        "\\{%\\s*include_relative\\s+(\\S+)\\s*%\\}"
+                      ]
+                    }
+                  ],
                   "anyOf": [
                     {
                       "required": [
@@ -14838,6 +14851,30 @@
                           }
                         ]
                       }
+                    },
+                    "includeStatements": {
+                      "description": "Regular expressions that match include directives for this file type. Capture group 1 is the path of the file to include, and the whole file is included. With `extends`, these add to the base type's built-in include syntax.",
+                      "anyOf": [
+                        {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "array",
+                              "minItems": 1,
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          ]
+                        }
+                      ],
+                      "examples": [
+                        [
+                          "\\{%\\s*include_relative\\s+(\\S+)\\s*%\\}"
+                        ]
+                      ]
                     }
                   }
                 },
@@ -34630,6 +34667,11 @@
             "type": "boolean",
             "description": "Whether or not to run potentially unsafe steps, such as those that might modify files or system state."
           },
+          "resolveIncludes": {
+            "description": "If `true`, detection replaces each include directive in a documentation source with the included file's content before it looks for tests, and a file that another input includes runs only as part of that input.",
+            "type": "boolean",
+            "default": true
+          },
           "processDitaMaps": {
             "description": "If `true`, processes DITA maps and includes generated files as inputs.",
             "type": "boolean",
@@ -35316,6 +35358,14 @@
                       "title": "File type (custom)",
                       "type": "object",
                       "additionalProperties": false,
+                      "examples": [
+                        {
+                          "extends": "markdown",
+                          "includeStatements": [
+                            "\\{%\\s*include_relative\\s+(\\S+)\\s*%\\}"
+                          ]
+                        }
+                      ],
                       "anyOf": [
                         {
                           "required": [
@@ -36429,6 +36479,30 @@
                               }
                             ]
                           }
+                        },
+                        "includeStatements": {
+                          "description": "Regular expressions that match include directives for this file type. Capture group 1 is the path of the file to include, and the whole file is included. With `extends`, these add to the base type's built-in include syntax.",
+                          "anyOf": [
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "array",
+                                  "minItems": 1,
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              ]
+                            }
+                          ],
+                          "examples": [
+                            [
+                              "\\{%\\s*include_relative\\s+(\\S+)\\s*%\\}"
+                            ]
+                          ]
                         }
                       }
                     },
@@ -41671,6 +41745,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file immediately after the `test` statement.",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the `test` statement, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -44753,6 +44831,10 @@
                                             "type": "integer",
                                             "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                             "minimum": 0
+                                          },
+                                          "file": {
+                                            "type": "string",
+                                            "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                           }
                                         },
                                         "required": [
@@ -45537,6 +45619,10 @@
                                         "type": "integer",
                                         "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                         "minimum": 0
+                                      },
+                                      "file": {
+                                        "type": "string",
+                                        "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                       }
                                     },
                                     "required": [
@@ -46319,6 +46405,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -47321,6 +47411,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -49069,6 +49163,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -60038,6 +60136,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -62229,6 +62331,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -64068,6 +64174,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -65297,6 +65407,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -66471,6 +66585,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -67724,6 +67842,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -72985,6 +73107,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -85509,6 +85635,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -86530,6 +86660,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -88219,6 +88353,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -89048,6 +89186,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -91109,6 +91251,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -93644,6 +93790,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -94431,6 +94581,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -96342,6 +96496,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -97346,6 +97504,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -99486,6 +99648,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -100306,6 +100472,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -108508,6 +108678,10 @@
                                                   "type": "integer",
                                                   "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                   "minimum": 0
+                                                },
+                                                "file": {
+                                                  "type": "string",
+                                                  "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                 }
                                               },
                                               "required": [
@@ -109292,6 +109466,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -110074,6 +110252,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -111076,6 +111258,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -112824,6 +113010,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -123793,6 +123983,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -125984,6 +126178,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -127823,6 +128021,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -129052,6 +129254,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -130226,6 +130432,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -131479,6 +131689,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -136740,6 +136954,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -149264,6 +149482,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -150285,6 +150507,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -151974,6 +152200,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -152803,6 +153033,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -154864,6 +155098,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -157399,6 +157637,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -158186,6 +158428,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -160097,6 +160343,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -161101,6 +161351,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -163241,6 +163495,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -164061,6 +164319,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -173839,6 +174101,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file immediately after the `test` statement.",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the `test` statement, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -176921,6 +177187,10 @@
                                             "type": "integer",
                                             "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                             "minimum": 0
+                                          },
+                                          "file": {
+                                            "type": "string",
+                                            "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                           }
                                         },
                                         "required": [
@@ -177705,6 +177975,10 @@
                                         "type": "integer",
                                         "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                         "minimum": 0
+                                      },
+                                      "file": {
+                                        "type": "string",
+                                        "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                       }
                                     },
                                     "required": [
@@ -178487,6 +178761,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -179489,6 +179767,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -181237,6 +181519,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -192206,6 +192492,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -194397,6 +194687,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -196236,6 +196530,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -197465,6 +197763,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -198639,6 +198941,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -199892,6 +200198,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -205153,6 +205463,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -217677,6 +217991,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -218698,6 +219016,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -220387,6 +220709,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -221216,6 +221542,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -223277,6 +223607,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -225812,6 +226146,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -226599,6 +226937,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -228510,6 +228852,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -229514,6 +229860,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -231654,6 +232004,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -232474,6 +232828,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -240676,6 +241034,10 @@
                                                   "type": "integer",
                                                   "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                   "minimum": 0
+                                                },
+                                                "file": {
+                                                  "type": "string",
+                                                  "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                 }
                                               },
                                               "required": [
@@ -241460,6 +241822,10 @@
                                               "type": "integer",
                                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                               "minimum": 0
+                                            },
+                                            "file": {
+                                              "type": "string",
+                                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                             }
                                           },
                                           "required": [
@@ -242242,6 +242608,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -243244,6 +243614,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -244992,6 +245366,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -255961,6 +256339,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -258152,6 +258534,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -259991,6 +260377,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -261220,6 +261610,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -262394,6 +262788,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -263647,6 +264045,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -268908,6 +269310,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -281432,6 +281838,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -282453,6 +282863,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -284142,6 +284556,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -284971,6 +285389,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -287032,6 +287454,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -289567,6 +289993,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -290354,6 +290784,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -292265,6 +292699,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -293269,6 +293707,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -295409,6 +295851,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -296229,6 +296675,10 @@
                                                     "type": "integer",
                                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                                     "minimum": 0
+                                                  },
+                                                  "file": {
+                                                    "type": "string",
+                                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                                   }
                                                 },
                                                 "required": [
@@ -319535,6 +319985,10 @@
                       "type": "integer",
                       "description": "0-indexed character offset from the start of the source file immediately after the `test` statement.",
                       "minimum": 0
+                    },
+                    "file": {
+                      "type": "string",
+                      "description": "Absolute path of the file that holds the `test` statement, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                     }
                   },
                   "required": [
@@ -322617,6 +323071,10 @@
                                   "type": "integer",
                                   "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                   "minimum": 0
+                                },
+                                "file": {
+                                  "type": "string",
+                                  "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                 }
                               },
                               "required": [
@@ -323401,6 +323859,10 @@
                               "type": "integer",
                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                               "minimum": 0
+                            },
+                            "file": {
+                              "type": "string",
+                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                             }
                           },
                           "required": [
@@ -324183,6 +324645,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -325185,6 +325651,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -326933,6 +327403,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -337902,6 +338376,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -340093,6 +340571,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -341932,6 +342414,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -343161,6 +343647,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -344335,6 +344825,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -345588,6 +346082,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -350849,6 +351347,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -363373,6 +363875,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -364394,6 +364900,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -366083,6 +366593,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -366912,6 +367426,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -368973,6 +369491,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -371508,6 +372030,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -372295,6 +372821,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -374206,6 +374736,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -375210,6 +375744,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -377350,6 +377888,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -378170,6 +378712,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -386372,6 +386918,10 @@
                                         "type": "integer",
                                         "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                         "minimum": 0
+                                      },
+                                      "file": {
+                                        "type": "string",
+                                        "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                       }
                                     },
                                     "required": [
@@ -387156,6 +387706,10 @@
                                     "type": "integer",
                                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                     "minimum": 0
+                                  },
+                                  "file": {
+                                    "type": "string",
+                                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                   }
                                 },
                                 "required": [
@@ -387938,6 +388492,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -388940,6 +389498,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -390688,6 +391250,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -401657,6 +402223,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -403848,6 +404418,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -405687,6 +406261,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -406916,6 +407494,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -408090,6 +408672,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -409343,6 +409929,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -414604,6 +415194,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -427128,6 +427722,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -428149,6 +428747,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -429838,6 +430440,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -430667,6 +431273,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -432728,6 +433338,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -435263,6 +435877,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -436050,6 +436668,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -437961,6 +438583,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -438965,6 +439591,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -441105,6 +441735,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -441925,6 +442559,10 @@
                                           "type": "integer",
                                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                           "minimum": 0
+                                        },
+                                        "file": {
+                                          "type": "string",
+                                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                                         }
                                       },
                                       "required": [
@@ -452211,6 +452849,10 @@
                   "type": "integer",
                   "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                   "minimum": 0
+                },
+                "file": {
+                  "type": "string",
+                  "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                 }
               },
               "required": [
@@ -452995,6 +453637,10 @@
               "type": "integer",
               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
               "minimum": 0
+            },
+            "file": {
+              "type": "string",
+              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
             }
           },
           "required": [
@@ -453777,6 +454423,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -454779,6 +455429,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -456527,6 +457181,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -467496,6 +468154,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -469687,6 +470349,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -471526,6 +472192,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -472755,6 +473425,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -473929,6 +474603,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -475182,6 +475860,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -480443,6 +481125,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -492967,6 +493653,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -493988,6 +494678,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -495677,6 +496371,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -496506,6 +497204,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -498567,6 +499269,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -501102,6 +501808,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -501889,6 +502599,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -503800,6 +504514,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -504804,6 +505522,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -506944,6 +507666,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -507764,6 +508490,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -516884,6 +517614,10 @@
             "type": "integer",
             "description": "0-indexed character offset from the start of the source file immediately after the `test` statement.",
             "minimum": 0
+          },
+          "file": {
+            "type": "string",
+            "description": "Absolute path of the file that holds the `test` statement, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
           }
         },
         "required": [
@@ -519966,6 +520700,10 @@
                         "type": "integer",
                         "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                         "minimum": 0
+                      },
+                      "file": {
+                        "type": "string",
+                        "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                       }
                     },
                     "required": [
@@ -520750,6 +521488,10 @@
                     "type": "integer",
                     "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                     "minimum": 0
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                   }
                 },
                 "required": [
@@ -521532,6 +522274,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -522534,6 +523280,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -524282,6 +525032,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -535251,6 +536005,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -537442,6 +538200,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -539281,6 +540043,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -540510,6 +541276,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -541684,6 +542454,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -542937,6 +543711,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -548198,6 +548976,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -560722,6 +561504,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -561743,6 +562529,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -563432,6 +564222,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -564261,6 +565055,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -566322,6 +567120,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -568857,6 +569659,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -569644,6 +570450,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -571555,6 +572365,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -572559,6 +573373,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -574699,6 +575517,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -575519,6 +576341,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -583721,6 +584547,10 @@
                               "type": "integer",
                               "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                               "minimum": 0
+                            },
+                            "file": {
+                              "type": "string",
+                              "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                             }
                           },
                           "required": [
@@ -584505,6 +585335,10 @@
                           "type": "integer",
                           "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                           "minimum": 0
+                        },
+                        "file": {
+                          "type": "string",
+                          "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                         }
                       },
                       "required": [
@@ -585287,6 +586121,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -586289,6 +587127,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -588037,6 +588879,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -599006,6 +599852,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -601197,6 +602047,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -603036,6 +603890,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -604265,6 +605123,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -605439,6 +606301,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -606692,6 +607558,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -611953,6 +612823,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -624477,6 +625351,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -625498,6 +626376,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -627187,6 +628069,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -628016,6 +628902,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -630077,6 +630967,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -632612,6 +633506,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -633399,6 +634297,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -635310,6 +636212,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -636314,6 +637220,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -638454,6 +639364,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [
@@ -639274,6 +640188,10 @@
                                 "type": "integer",
                                 "description": "0-indexed character offset from the start of the source file where the step ends (exclusive).",
                                 "minimum": 0
+                              },
+                              "file": {
+                                "type": "string",
+                                "description": "Absolute path of the file that holds the step, present when it came from an included file rather than the spec's `contentPath`. `line`, `startIndex`, and `endIndex` then refer to this file."
                               }
                             },
                             "required": [

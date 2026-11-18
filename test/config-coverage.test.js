@@ -914,6 +914,23 @@ describe("config.ts — setConfig", function () {
     assert.deepEqual(ft.inlineStatements.step, ["STEP (.*)"]);
   });
 
+  it("normalizes a string includeStatements to an array, with and without extends", async function () {
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: [
+          { extends: "markdown", includeStatements: "\\{% include \"([^\"]+)\" %\\}" },
+          { name: "rst", extensions: ["rst"], includeStatements: ["^\\.\\. include:: (\\S+)"] },
+        ],
+      },
+    });
+    assert.deepEqual(config.fileTypes[0].includeStatements, ['\\{% include "([^"]+)" %\\}']);
+    assert.deepEqual(config.fileTypes[1].includeStatements, ["^\\.\\. include:: (\\S+)"]);
+    assert.equal(config.resolveIncludes, true);
+  });
+
   it("extends a default definition when the extending fileType omits inlineStatements and markup", async function () {
     // Exercises the `fileType.inlineStatements === undefined` init branch and
     // the `fileType.markup = fileType.markup || []` init branch during merge.

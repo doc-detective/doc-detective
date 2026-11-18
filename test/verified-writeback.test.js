@@ -81,6 +81,14 @@ describe("Verification metadata — write-back", function () {
       }
       expect(read(f)).to.contain("\n    version: unknown\n");
     });
+    it("writes into a partial that only a step's location points at (ADR 01212)", function () {
+      const pagePath = write("a.md", "# Doc\n");
+      const partial = write("_p.md", page("test~1"));
+      const results = report(pagePath);
+      results.specs[0].tests[0].contexts = [{ steps: [{ location: { file: partial, line: 1 } }] }];
+      applyVerifiedMarkers({ config: silent, results });
+      expect(read(partial)).to.contain(`last-verified: ${TODAY}`);
+    });
     it("resolves a spec id as well as a test id", function () {
       const f = write("a.md", page("spec~1"));
       applyVerifiedMarkers({ config: silent, results: report(f) });

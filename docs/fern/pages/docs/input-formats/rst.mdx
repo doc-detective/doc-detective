@@ -169,6 +169,10 @@ Both formats work identically. Choose the format that's most readable for your t
 - Write each link with its URL inside it, as in `` `text <https://example.com>`_ ``, so Doc Detective detects it.
 - Combine inline tests with [detected tests](#detected-tests) so links, bold text, and code blocks become steps without extra comments.
 
+## Includes
+
+Doc Detective resolves `.. include::` directives before it finds tests, so a test in an included file runs inside the page that includes it. It supports `:start-line:`, `:end-line:`, `:start-after:`, `:end-before:`, and `/` paths from the folder that holds `conf.py`. An included file doesn't run on its own. See [Test pages that include other files](includes).
+
 ## Effect on your build
 
 RST test comments are standard RST comments, so Sphinx and docutils leave them out of the rendered output. Your build doesn't change, and the tests stay in the source.

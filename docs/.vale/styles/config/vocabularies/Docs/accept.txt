@@ -253,4 +253,10 @@ AXRole
 AXTitle
 AXValue
 AXDescription
+mdBook
+Mintlify
+Astro
+[Cc]onrefs?
+[Cc]onkeyrefs?
+[Kk]eyrefs?
 docutils
