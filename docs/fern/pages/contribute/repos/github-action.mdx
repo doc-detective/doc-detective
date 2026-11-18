@@ -66,7 +66,9 @@ Each commit type maps to a version bump. When a merge brings in several types, t
 |---|---|
 | `fix:`, or a commit that `git revert` writes | patch (X.Y.**Z+1**) |
 | `feat:` | minor (X.**Y+1**.0) |
-| `!` after the type, such as `feat!:`, or a `BREAKING CHANGE:` footer | major (**X+1**.0.0) |
+| Any type with `!` after it, such as `feat!:` or `docs!:`, or with a `BREAKING CHANGE:` footer | major (**X+1**.0.0) |
 | Any other type, such as `docs:`, `ci:`, `chore:`, `test:`, `refactor:`, and `perf:` | no release |
+
+When a revert and the commit it reverts land in the same release, neither one counts toward the version bump.
 
 When a merge cuts a release, the release workflow tags `vX.Y.Z` and publishes a GitHub release with generated notes. It then moves the major tag, such as `v2`, to the newest stable release in that major, and moves `latest` to the newest stable release overall. Workflows that use `doc-detective/github-action@v2` get the new release on their next run.
