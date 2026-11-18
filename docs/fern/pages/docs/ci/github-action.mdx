@@ -333,7 +333,7 @@ While caching is on, the action resolves `version` to an exact version and runs 
 The action caches the directory Doc Detective uses, and finds it the same way Doc Detective does. It checks, in order:
 
 1. `DOC_DETECTIVE_CACHE_DIR`, from the environment or a `.env` file in `working_directory`.
-2. `cacheDir` in the `DOC_DETECTIVE_CONFIG` environment variable, which holds the config itself as JSON or YAML text, not a path to a config file.
+2. `cacheDir` in the `DOC_DETECTIVE_CONFIG` environment variable, which holds the config itself as JSON text, not a path to a config file.
 3. `cacheDir` in your config file.
 4. The default [cache directory](/reference/reference/cli/install#cache-directory).
 
