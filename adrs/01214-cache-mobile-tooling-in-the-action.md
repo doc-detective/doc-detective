@@ -79,6 +79,10 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
    today. The change adds no config key or flag, and exit codes stay the same. The prebuild
    already records `ios.wdaKeys`.
 
+   The first-use build also doesn't run when `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` is set.
+   The user is then supplying their own WebDriverAgent build. That variable already suppresses
+   the managed locator (ADR 01059), so a managed build would go unused.
+
 2. **The Action caches Android and iOS tooling under its `cache` input.** Each platform gets one
    cache entry, separate from the runtime entry and with the same rules. The key comes from what
    the CLI recorded, the entry saves only when that changes, and any failure only warns.
@@ -119,6 +123,8 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
   missed or evicted platform entry didn't restore. The CLI has to trust the files over the record.
 * Neutral: the Action change doesn't wait for the CLI change. It caches `ios/wda` whenever the
   folder exists, so with an older CLI it helps runs that call `install ios`.
+* Neutral: a run that sets `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` behaves as it did before. It
+  gets no first-use build, and the Action has no `ios.wdaKeys` change to cache.
 * Neutral: the two opt-outs differ. Android's skips the context. The iOS one still runs it,
   because Appium can build WebDriverAgent itself.
 
