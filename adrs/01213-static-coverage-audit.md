@@ -219,7 +219,8 @@ class, because a block without a runnable language isn't counted at all.
 
 A file type might not read the built-in templates. Examples are custom `inlineStatements` such as
 Hugo shortcodes, or a format with no built-in parser. Then its syntax is the file type's `name`, or
-`<name>-custom` when that name is a built-in syntax's, so the two never share a key. The guidance
+`<name>-custom` when that name is a built-in syntax's. That key is numbered from `-2` when another file
+type in the run already has it, so no two syntaxes share a key. The guidance
 gives each statement's text without a wrapper, and says to wrap it in the comment form the file
 type's `inlineStatements` define.
 

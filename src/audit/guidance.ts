@@ -55,8 +55,8 @@ const KINDS = ["step", "testStart", "testEnd", "ignoreStart", "ignoreEnd", "proc
 
 /**
  * The file's syntax: a built-in name when its file type reads that syntax's
- * templates, else the file type's name, with `-custom` added when that name
- * is a built-in's, so the two never share a key.
+ * templates, else the file type's name, marked custom. `keySyntaxes` turns
+ * these into the run's unique keys.
  */
 export function syntaxFor(fileType: FileType, filePath: string): Syntax {
   const format = formatOf(fileType, filePath);
@@ -68,7 +68,28 @@ export function syntaxFor(fileType: FileType, filePath: string): Syntax {
     if (KINDS.every((kind) => types.has(kind))) return { syntax: candidate!, custom: false };
   }
   const name = fileType.name ?? fileType.extensions.join(",");
-  return { syntax: Object.hasOwn(SYNTAXES, name) ? `${name}-custom` : name, custom: true, fileType: name };
+  return { syntax: name, custom: true, fileType: name };
+}
+
+/**
+ * Gives each distinct syntax in the run its own key. Built-in syntaxes and
+ * custom names that aren't a built-in's keep their names. A custom name that
+ * is a built-in's gets `<name>-custom`, numbered from `-2` when that's taken.
+ */
+export function keySyntaxes(files: Syntax[]): Syntax[] {
+  const used = new Set(files.filter((f) => !f.custom || !Object.hasOwn(SYNTAXES, f.syntax)).map((f) => f.syntax));
+  const renamed = new Map<string, string>();
+  return files.map((file) => {
+    if (!file.custom || !Object.hasOwn(SYNTAXES, file.syntax)) return file;
+    let key = renamed.get(file.syntax);
+    if (!key) {
+      key = `${file.syntax}-custom`;
+      for (let n = 2; used.has(key); n++) key = `${file.syntax}-custom-${n}`;
+      used.add(key);
+      renamed.set(file.syntax, key);
+    }
+    return { ...file, syntax: key };
+  });
 }
 
 export interface Syntax {

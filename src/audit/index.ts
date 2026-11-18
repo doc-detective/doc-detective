@@ -10,7 +10,7 @@ import { loadProjectEnv, readStdinInputs, setConfig, discoverConfigPath, log } f
 import { setConfig as setRunConfig } from "../core/config.js";
 import { detectTests } from "../core/detectTests.js";
 import { maskDeep, maskString } from "../core/masking.js";
-import { buildGuidance, labelOf, syntaxFor, type Guidance } from "./guidance.js";
+import { buildGuidance, keySyntaxes, labelOf, syntaxFor, type Guidance } from "./guidance.js";
 import { canonicalUrl, computeCoverage, type CoverageIndex, type FileCoverage, type Item, type State } from "./coverage.js";
 
 const SPEC_EXTENSIONS = new Set(["json", "yaml", "yml"]);
@@ -101,10 +101,11 @@ export function summarize(files: Array<{ path: string; fileType?: string; syntax
       }
     }
   }
+  const keyed = keySyntaxes(files.map((file) => ({ syntax: file.syntax, custom: file.customSyntax ?? false, fileType: file.fileType })));
   return {
     summary: { procedureSteps, possibleProcedureSteps, lists, codeBlocks: { byLanguage, notRunnable }, links, images, pages },
-    files: files.map(({ path: file, fileType, syntax, measured, items }) => ({ path: file, fileType, syntax, measured, items })),
-    guidance: buildGuidance(files.map((file) => ({ syntax: file.syntax, custom: file.customSyntax ?? false, fileType: file.fileType }))),
+    files: files.map(({ path: file, fileType, measured, items }, i) => ({ path: file, fileType, syntax: keyed[i].syntax, measured, items })),
+    guidance: buildGuidance(keyed),
   };
 }
 
