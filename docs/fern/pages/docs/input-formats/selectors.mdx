@@ -6,7 +6,7 @@ description: Match links, bold text, code blocks, and comments by their structur
 
 A regex definition matches your file's raw text. That includes code samples, so a pattern for `**bold**` also matches bold syntax inside a fenced example. A selector matches what the file means instead: a link, a bold phrase, a code block, or a comment. Doc Detective parses the file, and the selector picks the nodes you name.
 
-Selectors work in custom `fileTypes` for Markdown, MDX, HTML, DITA, and AsciiDoc files. Regex definitions keep working, and one file type can use both.
+Selectors work in custom `fileTypes` for Markdown, MDX, HTML, DITA, AsciiDoc, and reStructuredText files. Regex definitions keep working, and one file type can use both.
 
 ## Write your first selector
 
@@ -77,22 +77,22 @@ A kind with `regex` limits an existing pattern to the right place. This definiti
 
 `{}` selects every node of a kind. `codeBlock` also takes a string that names one language, and `element` takes a string that names one tag. A kind a format doesn't produce matches nothing.
 
-| Kind | Markdown and MDX | HTML | DITA | AsciiDoc |
-|---|---|---|---|---|
-| `comment` | `<!-- -->` in Markdown, `[comment]: #`, and `{/* */}` | `<!-- -->` | `<!-- -->` and `<?doc-detective ?>` | `//` lines and `////` blocks |
-| `codeBlock` | Fenced code blocks | `<pre>` | `<codeblock>` | `----` and `....` blocks |
-| `link` | `[text](url)` | `<a href>` | Not produced. Select `<xref>` as an `element` | `https://...[text]` and `link:...[text]` |
-| `image` | `![alt](src)` | `<img>` | `<image>` | `image::src[alt]` and `image:src[alt]` |
-| `strong` | `**text**` and `__text__` | `<strong>` and `<b>` | `<b>` | `*text*` and `**text**` |
-| `emphasis` | `*text*` and `_text_` | `<em>` and `<i>` | `<i>` | `_text_` and `__text__` |
-| `text` | Prose outside code, links, and formatting | The same | The same | The same |
-| `element` | JSX components in MDX, and HTML tags | Other tags | Other tags | Not produced |
+| Kind | Markdown and MDX | HTML | DITA | AsciiDoc | reStructuredText |
+|---|---|---|---|---|---|
+| `comment` | `<!-- -->` in Markdown, `[comment]: #`, and `{/* */}` | `<!-- -->` | `<!-- -->` and `<?doc-detective ?>` | `//` lines and `////` blocks | `..` comments, with their indented block |
+| `codeBlock` | Fenced code blocks | `<pre>` | `<codeblock>` | `----` and `....` blocks | `code-block`, `code`, and `sourcecode` directives, and literal blocks after `::` |
+| `link` | `[text](url)` | `<a href>` | Not produced. Select `<xref>` as an `element` | `https://...[text]` and `link:...[text]` | `` `text <url>`_ ``, `` `text <url>`__ ``, and bare URLs |
+| `image` | `![alt](src)` | `<img>` | `<image>` | `image::src[alt]` and `image:src[alt]` | `image` and `figure` directives |
+| `strong` | `**text**` and `__text__` | `<strong>` and `<b>` | `<b>` | `*text*` and `**text**` | `**text**` |
+| `emphasis` | `*text*` and `_text_` | `<em>` and `<i>` | `<i>` | `_text_` and `__text__` | `*text*` |
+| `text` | Prose outside code, links, and formatting | The same | The same | The same | The same |
+| `element` | JSX components in MDX, and HTML tags | Other tags | Other tags | Not produced | Not produced |
 
 HTML inside Markdown, and lowercase JSX tags in MDX such as `<a>` and `<img>`, produce the same kinds as HTML. Text between inline HTML tags stays Markdown prose.
 
-A code block's language comes from the fence in Markdown, a `language-x` class in HTML, a `language-x` output class in DITA, and a `[source,x]` line in AsciiDoc. In AsciiDoc, the options after the language, such as `testIgnore` in `[source,bash,testIgnore]`, are its meta.
+A code block's language comes from the fence in Markdown, a `language-x` class in HTML, a `language-x` output class in DITA, and a `[source,x]` line in AsciiDoc. In reStructuredText, it's the directive's argument, as in `.. code-block:: bash`. In AsciiDoc, the options after the language, such as `testIgnore` in `[source,bash,testIgnore]`, are its meta. In reStructuredText, the directive's option lines, such as `:class: testIgnore`, are its meta. A literal block has no language.
 
-Code holds no nodes. That covers Markdown's indented code blocks and inline code, and HTML's `<pre>`, `<code>`, `<script>`, and `<style>`. It also covers DITA's `<codeblock>`, `<codeph>`, `<pre>`, `<screen>`, and `<msgblock>`, and AsciiDoc's listings, literal blocks, `++++` blocks, and indented paragraphs.
+Code holds no nodes. That covers Markdown's indented code blocks and inline code, and HTML's `<pre>`, `<code>`, `<script>`, and `<style>`. It also covers DITA's `<codeblock>`, `<codeph>`, `<pre>`, `<screen>`, and `<msgblock>`, and AsciiDoc's listings, literal blocks, `++++` blocks, and indented paragraphs. In reStructuredText, it covers code blocks, literal blocks, inline literals, interpreted text and roles, and `raw` directives.
 
 In Markdown, URLs in angle brackets such as `<https://example.com>`, and reference-style links such as `[text][ref]`, aren't links. Their text stays part of the surrounding prose.
 
@@ -111,7 +111,7 @@ All options are optional. Patterns are regular expressions, run without flags.
 | `attributes` | Object of names to patterns or `true` | Picks nodes whose attribute matches. `true` only requires the attribute |
 | `precededBy` | Pattern | Picks nodes when the source from the start of their block, such as a paragraph, matches. End it with `$` to match the words right before the node. In HTML and DITA, the source includes inline tags |
 
-Each format sets attributes its own way, and each can set `class`. In Markdown, an attribute list right after a link or image holds them, as in `![Results](results.png){.screenshot}`, and a class such as `.screenshot` sets `class`. In MDX, they're a component's props, and `className` on a lowercase tag sets `class`. A prop set with an expression, such as `count={1 + 1}`, reads as its source text, `1 + 1`, because detection doesn't run code. In HTML and DITA, they're the tag's attributes. DITA's `outputclass` also sets `class`, and an `<image>`'s `href` is its `src`. In AsciiDoc, they come from an image's attribute list, as in `image::shot.png[Results, role=screenshot]`. A role sets `class`, from `role=` or a `[.screenshot]` line above the image.
+Each format sets attributes its own way, and each can set `class`. In Markdown, an attribute list right after a link or image holds them, as in `![Results](results.png){.screenshot}`, and a class such as `.screenshot` sets `class`. In MDX, they're a component's props, and `className` on a lowercase tag sets `class`. A prop set with an expression, such as `count={1 + 1}`, reads as its source text, `1 + 1`, because detection doesn't run code. In HTML and DITA, they're the tag's attributes. DITA's `outputclass` also sets `class`, and an `<image>`'s `href` is its `src`. In AsciiDoc, they come from an image's attribute list, as in `image::shot.png[Results, role=screenshot]`. A role sets `class`, from `role=` or a `[.screenshot]` line above the image. In reStructuredText, they're an `image` or `figure` directive's options, as in `:class: screenshot`. `:alt:` sets the alt text.
 
 ## Use node fields in actions
 
@@ -180,6 +180,7 @@ The file's extension picks the parser:
 | `.html`, `.htm` | HTML |
 | `.dita`, `.ditamap`, `.xml` | DITA |
 | `.adoc`, `.asciidoc`, `.asc` | AsciiDoc |
+| `.rst` | reStructuredText |
 
 For any other extension, Doc Detective uses the format in `extends`, so a file type that extends `markdown` parses its `.txt` files as Markdown. The HTML and DITA parsers accept broken markup, so they never stop detection.
 

@@ -119,6 +119,15 @@ DITA `<data>` elements let you define inline tests using standard DITA markup:
 
 You can use single or double quotes for either attribute. Use `<data>` elements when you want tests that validate with DITA-aware tools, or when your publishing workflow filters out processing instructions.
 
+**reStructuredText files** (`.rst`):
+
+- Test comments: `.. test {"testId": "my-test-rst"}`
+- Step comments: `.. step {"goTo": "https://example.com"}`
+- Test end: `.. test end`
+- Ignore blocks: `.. test ignore start` and `.. test ignore end`
+
+Put a blank line before and after each statement. An RST statement can span lines. A comment's indented block belongs to it, so a step can continue on the lines below `.. step`. See [reStructuredText](/docs/test-docs/input-formats/rst).
+
 ## Mark a procedure
 
 A `procedure` statement, such as `<!-- procedure -->` or `{/* procedure */}`, marks the numbered list right after it as a procedure. Test runs skip it. [`doc-detective audit`](/docs/test-docs/audit-test-coverage) counts that list's items as procedure steps, even when too few of its items read as instructions. Add one when `audit` lists a real procedure under **Possible procedures**. For the statement in each format, see [Mark a list as a procedure](/docs/test-docs/audit-test-coverage#mark-a-list-as-a-procedure).
@@ -214,6 +223,29 @@ Click the *Start* button:
 // (step { "click": "Start" })
 
 // (test end)
+```
+
+{/* test ignore end */}
+
+**reStructuredText example**:
+
+{/* test ignore start */}
+
+```rst
+.. test {"testId": "doc-test"}
+
+Getting started
+===============
+
+Navigate to the application:
+
+.. step {"goTo": "https://app.example.com"}
+
+Click the **Start** button:
+
+.. step {"click": "Start"}
+
+.. test end
 ```
 
 {/* test ignore end */}

@@ -1,6 +1,6 @@
 /**
  * What `audit` tells a reader to write: per-syntax templates for covering a
- * step, flagging a false positive, and marking a missed procedure (ADR 01207).
+ * step, flagging a false positive, and marking a missed procedure (ADR 01213).
  * test/audit-guidance.test.js reads every template back through detection.
  */
 
@@ -53,18 +53,24 @@ const KINDS = ["step", "testStart", "testEnd", "ignoreStart", "ignoreEnd", "proc
 
 /**
  * The file's syntax: a built-in name when its file type reads that syntax's
- * templates, else the file type's name.
+ * templates, else the file type's name, marked custom even when that name is
+ * a built-in's.
  */
-export function syntaxFor(fileType: FileType, filePath: string): string {
+export function syntaxFor(fileType: FileType, filePath: string): Syntax {
   const format = formatOf(fileType, filePath);
   const candidate = format === "markdown" && /\.mdx$/i.test(filePath) ? "mdx" : format;
   const t = candidate ? SYNTAXES[candidate] : undefined;
   if (t) {
     const content = KINDS.map((kind) => t[kind]).join("\n\n");
     const types = new Set(collectStatements({ content, fileType, filePath, detectSteps: false, warn: () => {} }).map((s: any) => s.type));
-    if (KINDS.every((kind) => types.has(kind))) return candidate!;
+    if (KINDS.every((kind) => types.has(kind))) return { syntax: candidate!, custom: false };
   }
-  return fileType.name ?? fileType.extensions.join(",");
+  return { syntax: fileType.name ?? fileType.extensions.join(","), custom: true };
+}
+
+export interface Syntax {
+  syntax: string;
+  custom: boolean;
 }
 
 export interface Guidance {
@@ -76,11 +82,11 @@ export interface Guidance {
 }
 
 /** The report's `guidance`: shared advice, plus templates for each syntax in the run. */
-export function buildGuidance(names: string[]): Guidance {
+export function buildGuidance(files: Syntax[]): Guidance {
   const syntaxes: Guidance["syntaxes"] = {};
-  for (const syntax of names) {
+  for (const { syntax, custom } of files) {
     if (syntax in syntaxes) continue;
-    syntaxes[syntax] = SYNTAXES[syntax] ?? {
+    syntaxes[syntax] = (!custom && SYNTAXES[syntax]) || {
       custom: true,
       step: `step ${STEP}`,
       testStart: TEST,

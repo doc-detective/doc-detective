@@ -32,11 +32,7 @@ jobs:
       - uses: doc-detective/github-action@v2
 ```
 
-This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.15 or later, and GitHub-hosted runners default to an older version. On older Node.js, the action warns:
-
-```text
-Doc Detective 5 needs Node.js 24.15 or later, but this job runs <version>. Add `actions/setup-node` with `node-version: 24`.
-```
+This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. GitHub-hosted runners default to an older version. On older Node.js, the action warns you to add `actions/setup-node` with `node-version: 24`.
 
 Pin to the major version (`@v2`) to pick up fixes automatically, or pin to a full version such as `@v2.0.0` for a fixed release. Action `@v2` runs CLI 5, and `@v1` stays on CLI 4. If you're moving from `@v1`, see [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
 
@@ -339,13 +335,13 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: .doc-detective-cache
-          key: doc-detective-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: doc-detective-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             doc-detective-${{ runner.os }}-
       - uses: doc-detective/github-action@v2
 ```
 
-Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs.
+Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs. Doc Detective replaces outdated cached browsers about once a day, so use a run-scoped key, as above. A static key keeps restoring the first copy it saved, and each run downloads the newer browser again. A run-scoped key saves a new cache entry on every run. GitHub evicts entries unused for 7 days, and the oldest ones once a repository passes its cache limit.
 
 ### Pre-install assets
 
@@ -365,7 +361,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: .doc-detective-cache
-          key: doc-detective-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          key: doc-detective-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             doc-detective-${{ runner.os }}-
       - run: npm install -g doc-detective
@@ -410,7 +406,7 @@ Open a pull request that touches a documented command, screenshot, or API respon
 
 ### The job warns about the Node.js version
 
-**Cause:** Doc Detective 5 needs Node.js 24.15 or later, and the job runs an older version.
+**Cause:** Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. The job runs an older version.
 
 **Solution:** Add `actions/setup-node` with `node-version: 24` before the action. See [Step 1](#step-1-add-the-action-to-a-workflow).
 

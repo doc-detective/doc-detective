@@ -16,7 +16,95 @@ const step = (s) => JSON.stringify(shell(s));
 const fence = (lang, body) => "```" + lang + "\n" + body + "\n```";
 const md = (extra) => ({ name: "docs", extensions: ["md"], inlineStatements: { in: ["comment"] }, ...extra });
 
+// Include cases (ADR 01212) run on the case's whole folder, so a partial that
+// a page includes must not come back as a spec of its own.
+const partial = `<!-- step ${step("partial")} -->\n`;
+const page = (include) => `<!-- step ${step("before")} -->\n${include}\n<!-- step ${step("after")} -->\n`;
+const specNames = (json) => json.specs.map((s) => path.basename(s.contentPath)).sort();
+const expectSpecs = (...names) => (json) =>
+  JSON.stringify(specNames(json)) === JSON.stringify(names) ? undefined : `specs ${JSON.stringify(specNames(json))}, expected ${JSON.stringify(names)}`;
+
+const includeCases = {
+  "includes-off": {
+    file: "page.md",
+    input: ".",
+    files: { "_partial.md": partial },
+    config: { resolveIncludes: false },
+    content: page("{{#include _partial.md}}"),
+    check: expectSpecs("_partial.md", "page.md"),
+  },
+  "includes-custom": {
+    file: "page.txt",
+    files: { "_partial.txt": `.. step ${step("partial")}\n` },
+    config: {
+      fileTypes: [{ name: "plain", extensions: ["txt"], inlineStatements: { step: ["\\.\\. step (\\{.*\\})"] }, includeStatements: ["^\\.\\. include:: (\\S+)"] }],
+    },
+    content: `.. step ${step("before")}\n.. include:: _partial.txt\n.. step ${step("after")}\n`,
+    expect: [[{ runShell: "echo before" }, { runShell: "echo partial" }, { runShell: "echo after" }]],
+  },
+  "includes-extends": {
+    file: "page.md",
+    files: { "_a.md": `<!-- step ${step("liquid")} -->\n`, "_b.md": `<!-- step ${step("mdbook")} -->\n` },
+    config: { fileTypes: [{ extends: "markdown", includeStatements: ['\\{% include "([^"]+)" %\\}'] }] },
+    content: '{% include "_a.md" %}\n{{#include _b.md}}\n',
+    expect: [[shell("liquid"), shell("mdbook")]],
+  },
+  "includes-location": {
+    file: "page.md",
+    input: ".",
+    files: { "_partial.md": partial },
+    content: page("{{#include _partial.md}}"),
+    check: (json, dir) => {
+      const steps = json.specs[0].tests[0].contexts[0].steps;
+      const want = path.join(dir, "_partial.md");
+      if (specNames(json).join() !== "page.md") return `specs ${specNames(json)}`;
+      if (steps[1].location?.file !== want || steps[1].location.line !== 1) return `included step location ${JSON.stringify(steps[1].location)}`;
+      if (steps[2].location?.file !== undefined || steps[2].location.line !== 3) return `page step location ${JSON.stringify(steps[2].location)}`;
+    },
+  },
+  "includes-mintlify": {
+    file: "guides/page.mdx",
+    files: { "docs.json": "{}", "snippets/s.mdx": `{/* step ${step("snippet")} */}\n` },
+    content: `import Snippet from '/snippets/s.mdx';\n\n{/* step ${step("before")} */}\n\n<Snippet />\n`,
+    expect: [[shell("before"), shell("snippet")]],
+  },
+  "includes-cycle": {
+    file: "a.md",
+    input: ".",
+    files: { "b.md": `{{#include a.md}}\n<!-- step ${step("b")} -->\n` },
+    content: `{{#include b.md}}\n<!-- step ${step("a")} -->\n`,
+    run: true,
+    stderr: "because it includes itself:",
+    // Either file of the cycle may survive, depending on directory order. The
+    // survivor runs the other file's step first.
+    expect: [["echo a", "echo b"], ["echo b", "echo a"]],
+    check: (json) => {
+      const ran = json.specs.flatMap((s) => s.tests.flatMap((t) => t.contexts.flatMap((x) => x.steps.map((st) => st.runShell?.command ?? st.runShell))));
+      const want = { "b.md": "echo a,echo b", "a.md": "echo b,echo a" }[specNames(json).join()];
+      if (ran.join() !== want) return `specs ${specNames(json)} ran ${ran}`;
+    },
+  },
+  "includes-outside": {
+    file: "page.md",
+    // The case folder is the working directory, so its parent is outside it.
+    files: { "../outside-partial.md": partial },
+    content: page("{{#include ../outside-partial.md}}"),
+    run: true,
+    stderr: "is outside the working directory",
+    expect: ["echo before", "echo after"],
+  },
+  "includes-depth": {
+    file: "d0.md",
+    files: Object.fromEntries(Array.from({ length: 66 }, (_, i) => [`d${i + 1}.md`, i === 65 ? "" : `{{#include d${i + 2}.md}}\n`])),
+    content: `<!-- step ${step("top")} -->\n{{#include d1.md}}\n`,
+    run: true,
+    stderr: "because includes nest more than 64 levels deep.",
+    expect: ["echo top"],
+  },
+};
+
 const cases = {
+  ...includeCases,
   // Every kind Markdown produces, with both shorthands.
   "markdown-kinds": {
     file: "doc.md",
@@ -328,6 +416,106 @@ const cases = {
     ]],
   },
 
+  // reStructuredText: comments, links, formatting, images with classes, code directives, and literal blocks.
+  // Nothing from inside a code directive or a literal block.
+  "rst-kinds": {
+    file: "doc.rst",
+    config: {
+      fileTypes: [
+        {
+          name: "docs",
+          extensions: ["rst"],
+          inlineStatements: { in: ["comment"] },
+          markup: [
+            { link: { url: "^https://", precededBy: "[Gg]o to\\s+$" }, captures: ["url"], actions: ["goTo"] },
+            { strong: { precededBy: "[Cc]lick\\s+$" }, actions: ["click"] },
+            { emphasis: {}, actions: ["find"] },
+            { image: { attributes: { class: "(^|\\s)screenshot" } }, captures: ["src"], actions: ["screenshot"] },
+            { codeBlock: { language: ["bash"], metaExcludes: "testIgnore" }, actions: [{ runShell: "$1" }] },
+          ],
+        },
+      ],
+    },
+    content: [
+      "Guide",
+      "=====",
+      "",
+      `.. step ${step("comment")}`,
+      "",
+      "..",
+      `   step ${step("block")}`,
+      "",
+      "Go to `the site <https://example.com>`_, click **Search**, and see *Results*.",
+      "",
+      ".. image:: shot.png",
+      "   :class: screenshot",
+      "",
+      ".. code-block:: bash",
+      "",
+      `   .. step ${step("listing")}`,
+      "   echo rst",
+      "",
+      ".. code-block:: bash",
+      "   :class: testIgnore",
+      "",
+      "   echo skipped",
+      "",
+      "Literal::",
+      "",
+      `   .. step ${step("literal")}`,
+    ].join("\n"),
+    expect: [[
+      shell("comment"),
+      shell("block"),
+      { goTo: "https://example.com" },
+      { click: "Search" },
+      { find: "Results" },
+      { screenshot: "shot.png" },
+      { runShell: `.. step ${step("listing")}\necho rst` },
+    ]],
+  },
+
+  // An .rst file parses as reStructuredText even when its fileType extends Markdown,
+  // so a 3-space-indented directive body is code, not Markdown prose.
+  "rst-extension-picks-parser": {
+    file: "doc.rst",
+    config: { fileTypes: [{ name: "rst-as-markdown", extends: "markdown", extensions: ["rst"] }] },
+    content: "Click **Save**.\n\n.. code-block:: text\n\n   **not bold**\n",
+    expect: [[{ click: "Save" }, { find: "Save" }]],
+  },
+
+  // A file under another extension parses as reStructuredText when its fileType extends rst.
+  "extends-rst": {
+    file: "doc.txt",
+    config: { fileTypes: [{ name: "notes", extends: "rst", extensions: ["txt"] }] },
+    content: `.. step ${step("txt")}\n\nClick **Save**.\n`,
+    expect: [[shell("txt"), { click: "Save" }, { find: "Save" }]],
+  },
+
+  // RST statements run end to end: single-line and multi-line steps, and an ignore block.
+  "rst-run": {
+    file: "doc.rst",
+    run: true,
+    config: {},
+    content: [
+      '.. test {"testId": "rst-run"}',
+      "",
+      `.. step ${step("inline")}`,
+      "",
+      ".. step",
+      `   ${step("multiline")}`,
+      "",
+      ".. test ignore start",
+      "",
+      `.. step ${step("ignored")}`,
+      "",
+      ".. test ignore end",
+      "",
+      ".. test end",
+    ].join("\n"),
+    expect: ["echo inline", "echo multiline"],
+  },
+
   // HTML inside Markdown reads as HTML kinds, and lowercase JSX tags in .mdx do too.
   "embedded-html": {
     file: "doc.md",
@@ -462,7 +650,41 @@ const cases = {
     ]],
   },
 
+  "builtin-rst": {
+    file: "doc.rst",
+    config: {},
+    content: [
+      `.. step ${step("comment")}`,
+      "",
+      'Go to `the site <https://example.com>`_, click **Search**, and type "kittens".',
+      "",
+      ".. image:: results.png",
+      "   :class: screenshot",
+      "",
+      ".. code-block:: rst",
+      "",
+      `   .. step ${step("fenced")}`,
+      "   **fenced**",
+    ].join("\n"),
+    expect: [[
+      shell("comment"),
+      { goTo: "https://example.com" },
+      { checkLink: "https://example.com" },
+      { click: "Search" },
+      { find: "Search" },
+      { type: "kittens" },
+      { screenshot: "results.png" },
+    ]],
+  },
+
   // Configs the CLI must reject: exit 2, and nothing runs.
+  "reject-unknown-builtin": {
+    file: "doc.rst",
+    config: { fileTypes: ["restructuredtext"] },
+    content: "x\n",
+    exit: 2,
+    stderr: 'fileTypes[0]: must be one of markdown, asciidoc, html, dita, rst (got "restructuredtext").',
+  },
   "reject-two-kinds": {
     file: "doc.md",
     config: { fileTypes: [md({ markup: [{ link: {}, image: {}, actions: ["find"] }] })] },
@@ -497,15 +719,19 @@ const dir = path.join(root, ".tmp", "fixture-detection", name);
 fs.rmSync(dir, { recursive: true, force: true });
 fs.mkdirSync(dir, { recursive: true });
 const doc = path.join(dir, c.file);
-const cfg = path.join(dir, "config.json");
-fs.writeFileSync(doc, c.content);
+// Outside the case folder, so a case that runs the whole folder skips it.
+const cfg = `${dir}.config.json`;
+for (const [rel, text] of Object.entries({ ...c.files, [c.file]: c.content })) {
+  fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+  fs.writeFileSync(path.join(dir, rel), text);
+}
 fs.writeFileSync(cfg, JSON.stringify({ telemetry: { send: false }, detectSteps: true, ...c.config }, null, 2));
 
 const results = path.join(dir, "results.json");
 const mode = c.run ? ["--output", results] : ["--dry-run", "--json"];
 const run = spawnSync(
   process.execPath,
-  [path.join(root, "bin", "doc-detective.js"), "run", doc, "--config", cfg, ...mode, "--no-env-file"],
+  [path.join(root, "bin", "doc-detective.js"), "run", c.input ? path.join(dir, c.input) : doc, "--config", cfg, ...mode, "--no-env-file"],
   { cwd: dir, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, timeout: 120_000 }
 );
 const fail = (message) => {
@@ -520,7 +746,9 @@ if (c.run) {
   // A run compares the commands of the steps that ran, which must all pass.
   const steps = JSON.parse(fs.readFileSync(results, "utf8")).specs.flatMap((s) => s.tests.flatMap((t) => t.contexts.flatMap((x) => x.steps)));
   const ran = steps.map((s) => (s.result === "PASS" ? s.runShell?.command ?? s.runShell : `${s.result}: ${JSON.stringify(s)}`));
-  if (JSON.stringify(ran) !== JSON.stringify(c.expect)) fail(`steps differ.\nexpected: ${JSON.stringify(c.expect)}\nactual:   ${JSON.stringify(ran)}`);
+  // An array of arrays lists the accepted alternatives.
+  const accepted = Array.isArray(c.expect[0]) ? c.expect : [c.expect];
+  if (!accepted.some((e) => JSON.stringify(ran) === JSON.stringify(e))) fail(`steps differ.\nexpected: ${JSON.stringify(c.expect)}\nactual:   ${JSON.stringify(ran)}`);
 } else if (c.expect) {
   // The runner resolves screenshot paths against the document.
   const strip = ({ location, stepId, description, ...rest }) => {
@@ -531,5 +759,9 @@ if (c.run) {
   if (JSON.stringify(actual) !== JSON.stringify(c.expect)) {
     fail(`detected steps differ.\nexpected: ${JSON.stringify(c.expect)}\nactual:   ${JSON.stringify(actual)}`);
   }
+}
+if (c.check) {
+  const problem = c.check(JSON.parse(c.run ? fs.readFileSync(results, "utf8") : run.stdout), dir);
+  if (problem) fail(problem);
 }
 console.log(`Case ${name}: passed.`);

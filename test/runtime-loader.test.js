@@ -415,6 +415,32 @@ describe("runtime/loader", function () {
       expect(deps.pngjs).to.equal(declared);
     });
 
+    // ADR 01208: appium-novawindows-driver 1.x peers on Appium 3 and runs on
+    // Appium 4. npm refuses the pair with ERESOLVE unless the runtime manifest
+    // points that one peer edge at the pinned appium.
+    it("overrides the Windows driver's appium peer in the manifest npm reads (ADR 01208)", async function () {
+      const shimPkg = JSON.parse(fs.readFileSync(path.resolve("package.json"), "utf8"));
+      // A cache from an older release has a manifest with no `overrides`.
+      const pkgPath = path.join(getRuntimeDir({}), "package.json");
+      fs.mkdirSync(path.dirname(pkgPath), { recursive: true });
+      fs.writeFileSync(pkgPath, JSON.stringify({ name: "rt", private: true }));
+      let seenBySpawn;
+      await ensureRuntimeInstalled(["pngjs"], {
+        deps: {
+          spawn: makeFakeSpawner({
+            onSpawn: () => {
+              seenBySpawn = JSON.parse(fs.readFileSync(pkgPath, "utf8")).overrides;
+            },
+          }),
+          logger: () => {},
+        },
+        force: true,
+      });
+      expect(seenBySpawn).to.deep.equal({
+        "appium-novawindows-driver": { appium: shimPkg.ddRuntimeDependencies.appium },
+      });
+    });
+
     it("seeds dependencies from a pre-fix cache (installed.json + node_modules) so the first new install can't prune it (#501)", async function () {
       // Simulate a cache created before the fix: a package physically present
       // and recorded in installed.json, but absent from package.json

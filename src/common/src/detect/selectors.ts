@@ -11,6 +11,7 @@ import type { FileType } from "../fileTypes.js";
 import { parseMarkdown } from "./markdown.js";
 import { parseMarkup } from "./markup.js";
 import { parseAsciidoc } from "./asciidoc.js";
+import { parseRst } from "./rst.js";
 
 export type Kind =
   | "comment"
@@ -184,6 +185,7 @@ const FORMAT_BY_EXTENSION: Record<string, string> = {
   adoc: "asciidoc",
   asciidoc: "asciidoc",
   asc: "asciidoc",
+  rst: "rst",
 };
 
 /** The parser format for a file: its extension's, else the fileType's `extends` or `name`. */
@@ -198,6 +200,7 @@ export function parseFile(content: string, fileType: FileType, filePath: string,
   const format = formatOf(fileType, filePath);
   if (format === "html" || format === "dita") return parseMarkup(content, format);
   if (format === "asciidoc") return parseAsciidoc(content);
+  if (format === "rst") return parseRst(content);
   if (format !== "markdown") {
     const name = fileType.name ? `"${fileType.name}"` : "A fileType";
     warn(`${filePath}: ${name} uses selectors, but no parser handles .${ext}. Set "extends" to a built-in, or use regex definitions.`);

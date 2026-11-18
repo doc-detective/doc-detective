@@ -606,7 +606,7 @@ describe("config.ts — setConfig", function () {
         logLevel: "silent",
         dryRun: true,
         input: ["./README.md"],
-        fileTypes: ["markdown", "asciidoc", "html", "dita"],
+        fileTypes: ["markdown", "asciidoc", "html", "dita", "rst"],
       },
     });
     assert.deepEqual(config.fileTypes, [
@@ -614,6 +614,7 @@ describe("config.ts — setConfig", function () {
       defaultFileTypes.asciidoc,
       defaultFileTypes.html,
       defaultFileTypes.dita,
+      defaultFileTypes.rst,
     ]);
   });
 
@@ -913,6 +914,23 @@ describe("config.ts — setConfig", function () {
     assert.deepEqual(ft.inlineStatements.step, ["STEP (.*)"]);
   });
 
+  it("normalizes a string includeStatements to an array, with and without extends", async function () {
+    const config = await setConfig({
+      config: {
+        logLevel: "silent",
+        dryRun: true,
+        input: ["./README.md"],
+        fileTypes: [
+          { extends: "markdown", includeStatements: "\\{% include \"([^\"]+)\" %\\}" },
+          { name: "rst", extensions: ["rst"], includeStatements: ["^\\.\\. include:: (\\S+)"] },
+        ],
+      },
+    });
+    assert.deepEqual(config.fileTypes[0].includeStatements, ['\\{% include "([^"]+)" %\\}']);
+    assert.deepEqual(config.fileTypes[1].includeStatements, ["^\\.\\. include:: (\\S+)"]);
+    assert.equal(config.resolveIncludes, true);
+  });
+
   it("extends a default definition when the extending fileType omits inlineStatements and markup", async function () {
     // Exercises the `fileType.inlineStatements === undefined` init branch and
     // the `fileType.markup = fileType.markup || []` init branch during merge.
@@ -945,7 +963,7 @@ describe("config.ts — setConfig", function () {
             fileTypes: [{ extends: "nope-nope", extensions: ["z"] }],
           },
         }),
-      /fileTypes\[0\]\.extends: must be one of markdown, asciidoc, html, dita \(got "nope-nope"\)\./
+      /fileTypes\[0\]\.extends: must be one of markdown, asciidoc, html, dita, rst \(got "nope-nope"\)\./
     );
   });
 

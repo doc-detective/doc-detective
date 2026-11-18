@@ -1,0 +1,126 @@
+{
+  "specId": "includes",
+  "description": "Include resolution through the real CLI (ADR 01212). The pages under includes/ run directly. Each case here needs its own config or a guard path, so it runs one case of dry-run-detect.cjs, which writes its files under .tmp/fixture-detection/ and checks the detected or run steps, the specs, and stderr. No browser or network, so every case runs on Windows, macOS, and Linux.",
+  "tests": [
+    {
+      "testId": "includes-off",
+      "description": "`resolveIncludes: false`: the page keeps its directive, and the partial runs as its own spec.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs includes-off",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "includes-custom",
+      "description": "A custom fileType's `includeStatements` regex, here rST-style `.. include::`, includes the whole file in reading order.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs includes-custom",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "includes-extends",
+      "description": "`includeStatements` on a fileType that extends `markdown` adds to the built-in mdBook syntax.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs includes-extends",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "includes-location",
+      "description": "A step from an included file carries `location.file` and its own line; the page's steps don't. The partial doesn't run alone.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs includes-location",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "includes-mintlify",
+      "description": "A Mintlify `/snippets/` import resolves against the folder that holds `docs.json`.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs includes-mintlify",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "includes-cycle",
+      "description": "An include cycle warns, stops, and still runs one file of the cycle.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs includes-cycle",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "includes-outside",
+      "description": "An include outside the working directory warns and is left out; the page's own steps run.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs includes-outside",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "includes-depth",
+      "description": "Includes nested more than 64 levels deep warn and stop at the limit.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs includes-depth",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

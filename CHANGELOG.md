@@ -1,3 +1,50 @@
+# [5.4.0](https://github.com/doc-detective/doc-detective/compare/v5.3.1...v5.4.0) (2026-11-17)
+
+
+### Bug Fixes
+
+* **common:** close wrapped rst inline literals only at valid closers ([38cd627](https://github.com/doc-detective/doc-detective/commit/38cd627bbcb8fbcdf47a21288bd57bc4e5173b1a))
+* **common:** keep the rst scanner's regexes linear on long whitespace ([c939c5a](https://github.com/doc-detective/doc-detective/commit/c939c5afbba85892100f0aedcd5168b0b3dbf778))
+* **common:** read escapes, quoted literals, and wrapped inline literals in rst ([634e6e1](https://github.com/doc-detective/doc-detective/commit/634e6e12dbd7737da08346f7d278b4c979f3ce28))
+* split long ADR sentences and drop an unused variable ([0c5a92f](https://github.com/doc-detective/doc-detective/commit/0c5a92fde4b14f4f3276362e0c4808f18cf54685))
+
+
+### Features
+
+* add a built-in reStructuredText (rst) file type ([bdb2159](https://github.com/doc-detective/doc-detective/commit/bdb21598aa6de8f5c95192d375c8aad8657a06b7))
+
+## [5.3.1](https://github.com/doc-detective/doc-detective/compare/v5.3.0...v5.3.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **container:** pin the image's pre-installed browsers ([ab76c6e](https://github.com/doc-detective/doc-detective/commit/ab76c6e60cf298d4cb7588b29b58204cb9327a3a))
+* **runtime:** install the iOS driver best-effort ([077a332](https://github.com/doc-detective/doc-detective/commit/077a332bc1d5ab574e859ada7758127352a91c9a))
+
+# [5.3.0](https://github.com/doc-detective/doc-detective/compare/v5.2.1...v5.3.0) (2026-11-16)
+
+
+### Bug Fixes
+
+* **runtime:** harden browser refresh against races and failed updates ([15b9682](https://github.com/doc-detective/doc-detective/commit/15b968220a6f55826649fe2e9e95c0dba0e0a381))
+* **runtime:** hold off the retry after a failed browser update ([59e9523](https://github.com/doc-detective/doc-detective/commit/59e9523d9f64a5215b6d028ba298478d5470b769))
+* **runtime:** report outdated only when a newer build is known ([6a8c85a](https://github.com/doc-detective/doc-detective/commit/6a8c85a9bf7c1b4aaa920f60b764314a96a9be7d))
+* **runtime:** throttle a failed check of an outdated browser ([83c340c](https://github.com/doc-detective/doc-detective/commit/83c340cd22b23d3628aa9dd220c321cd2bf0941d))
+
+
+### Features
+
+* **runtime:** replace outdated cached browsers and drivers ([63398fa](https://github.com/doc-detective/doc-detective/commit/63398fa495107dd0ea4c5bed88a2476a441e9462))
+
+## [5.2.1](https://github.com/doc-detective/doc-detective/compare/v5.2.0...v5.2.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **deps:** move to Appium 4 ([a23c386](https://github.com/doc-detective/doc-detective/commit/a23c3860c345ecefb82520b4fb851d25c8b65997))
+* **deps:** update dependencies and narrow the Node range ([dd0017b](https://github.com/doc-detective/doc-detective/commit/dd0017bf6812a350e35e1c4e1da5d7a6c2ab5923))
+* state both supported Node ranges in the docs and the upgrade hint ([4e446e0](https://github.com/doc-detective/doc-detective/commit/4e446e03db6d41ce73ba67e93c5607349329d63a))
+
 # [5.2.0](https://github.com/doc-detective/doc-detective/compare/v5.1.0...v5.2.0) (2026-11-15)
 
 

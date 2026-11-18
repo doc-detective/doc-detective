@@ -1,0 +1,190 @@
+---
+title: reStructuredText input format
+sidebar-title: reStructuredText
+description: Use Doc Detective with reStructuredText files, such as Sphinx and docutils sources.
+---
+
+reStructuredText (RST) is the markup language of Sphinx and docutils projects. Doc Detective reads inline tests from RST comments and detects steps from RST syntax, with no configuration. Doc Detective parses RST itself, so you don't need Sphinx or docutils installed.
+
+## File extensions
+
+Doc Detective processes reStructuredText files with the `.rst` extension.
+
+To read files with another extension as RST, add a file type that extends `rst` to `fileTypes` in your [config file](/reference/schemas/config):
+
+```json
+{
+  "fileTypes": [
+    {
+      "name": "rst-notes",
+      "extends": "rst",
+      "extensions": ["txt"]
+    }
+  ]
+}
+```
+
+The extension picks the parser, so a `.rst` file always parses as RST, even in a file type that extends `markdown`.
+
+A `fileTypes` list in your config replaces the default list. If your config already sets `fileTypes`, add `"rst"` to it to keep reading `.rst` files.
+
+## Inline test syntax
+
+RST files use comments for inline tests. Put a blank line before and after each statement:
+
+```rst
+.. test {"testId": "my-test"}
+
+.. step {"goTo": "https://example.com"}
+
+.. test end
+```
+
+**Test start:**
+```rst
+.. test {"testId": "my-test"}
+```
+
+**Step:**
+```rst
+.. step {"goTo": "https://example.com"}
+```
+
+**Test end:**
+```rst
+.. test end
+```
+
+**Ignore blocks:**
+```rst
+.. test ignore start
+
+Content to ignore
+
+.. test ignore end
+```
+
+A comment holds its first line plus the indented block below it, so a long step can continue on the next lines:
+
+```rst
+.. step
+   {"find": "Welcome"}
+```
+
+Only comments hold statements. Directives (`.. note::`), hyperlink targets (`.. _name:`), footnotes (`.. [1]`), citations (`.. [name]`), and substitution definitions (`.. |name|`) aren't comments.
+
+## Example
+
+Here's a complete example of an RST file with inline tests:
+
+```rst
+.. test {"testId": "doc-test"}
+
+Getting started
+===============
+
+Navigate to the application:
+
+.. step {"goTo": "https://app.example.com"}
+
+Click the **Start** button:
+
+.. step {"click": "Start"}
+
+Enter your username:
+
+.. step {"type": {"keys": "testuser", "selector": "[name=username]"}}
+
+Submit the form:
+
+.. step {"click": "Submit"}
+
+.. test end
+```
+
+## Detected tests
+
+With [step detection](/docs/test-docs/detected) on, RST files detect the steps listed in [What gets detected](overview#what-gets-detected), from RST syntax:
+
+| Step | reStructuredText that matches |
+|---|---|
+| `goTo` | ``Go to `the site <https://example.com>`_``, and the other navigation verbs |
+| `checkLink` | Any embedded `http` or `https` link, such as `` `text <https://example.com>`_ `` or `` `text <https://example.com>`__ ``, and any bare `http` or `https` URL |
+| `click` | `Click **Search**`, and the other click verbs |
+| `find` | Any `**bold**` text |
+| `screenshot` | An `image` or `figure` directive with `:class: screenshot` |
+| `type` | `Type "kittens"` in prose |
+| `httpRequest` | A `code-block`, `code`, or `sourcecode` directive tagged `http`, or a literal block, that holds a request such as `GET https://example.com` |
+| `runCode` | A `code-block`, `code`, or `sourcecode` directive tagged `bash`, `python`, `py`, `javascript`, or `js`, unless it has `:class: testIgnore`. These steps are unsafe, so they run only with `allowUnsafeSteps` |
+
+A screenshot image's source is the file to save:
+
+```rst
+.. image:: results.png
+   :alt: Search results
+   :class: screenshot
+```
+
+To show a command without running it, add `:class: testIgnore`:
+
+```rst
+.. code-block:: bash
+   :class: testIgnore
+
+   rm -rf build/
+```
+
+A literal block is the indented block after a paragraph that ends in `::`. It has no language.
+
+Comments, links, and formatting inside code blocks, literal blocks, inline literals (` ``text`` `), interpreted text and roles (`` :guilabel:`Save` ``), and `raw` directives aren't read. In other directives, such as `note` and `warning`, the body is prose, but the text on the directive's own line isn't read.
+
+Doc Detective reads links whose URL sits inside the link, as in `` `text <https://example.com>`_ ``. To make a link detectable, write it that way rather than as a named reference to a `.. _name: url` target.
+
+Because roles aren't read, a UI label written as `` :guilabel:`Save` `` doesn't become a step. To act on it, add a step, such as `.. step {"click": "Save"}`. To change what's detected, see [Selectors](selectors) and [custom inputs](custom).
+
+## JSON and YAML syntax
+
+RST inline tests support both JSON and YAML syntax:
+
+**JSON syntax:**
+```rst
+.. test {"testId": "my-test"}
+
+.. step {"goTo": "https://example.com"}
+```
+
+**YAML syntax:**
+```rst
+.. test testId: my-test
+
+.. step goTo: https://example.com
+```
+
+Both formats work identically. Choose the format that's most readable for your team.
+
+## Best practices
+
+- Put a blank line before and after each statement. A `..` line that continues a paragraph is prose, not a comment.
+- Use descriptive test IDs to identify tests in results.
+- Write each link with its URL inside it, as in `` `text <https://example.com>`_ ``, so Doc Detective detects it.
+- Combine inline tests with [detected tests](#detected-tests) so links, bold text, and code blocks become steps without extra comments.
+
+## Includes
+
+Doc Detective resolves `.. include::` directives before it finds tests, so a test in an included file runs inside the page that includes it. It supports `:start-line:`, `:end-line:`, `:start-after:`, `:end-before:`, and `/` paths from the folder that holds `conf.py`. An included file doesn't run on its own. See [Test pages that include other files](includes).
+
+## Effect on your build
+
+RST test comments are standard RST comments, so Sphinx and docutils leave them out of the rendered output. Your build doesn't change, and the tests stay in the source.
+
+## "Last verified on" dates
+
+Doc Detective doesn't write verification results into `.rst` files, and it skips them without a warning. In an RST file, a `verified-by` entry, a `meta` statement, and `badge: true` on a `test` statement have no effect, and `verification.write` leaves the file unchanged.
+
+To record when an RST test last passed, give it a `testId` and name that ID in a `verified-by` entry on a page in another format. See [Show a "Last verified on" date](/docs/test-docs/last-verified-on).
+
+## Next steps
+
+- Learn about [inline tests](/docs/test-docs/inline) for manual test definition.
+- See [custom inputs](custom) to add detected test patterns for RST.
+- See [Detected tests](/docs/test-docs/detected) for how step detection works across formats.

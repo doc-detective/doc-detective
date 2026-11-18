@@ -1,4 +1,4 @@
-// Contract suite for the procedure tagger (ADR 01207). The expected values are
+// Contract suite for the procedure tagger (ADR 01213). The expected values are
 // pinned to compromise 14.19.0. A version bump that changes a result must
 // update this table on purpose, never by accident.
 import assert from "node:assert/strict";
@@ -67,6 +67,9 @@ const instructions = [
   "In the terminal, from the `charmap-docs` folder, run the test:",
   "✅ Follow your own steps exactly as written",
   "In a terminal, run `npm test`, then click **Save**.",
+  "👩‍💻 Tap **Settings**",
+  "👍🏽 Open the file",
+  "(Optional) **Create a branch**: Run `git checkout -b fix`",
 ];
 
 const notInstructions = [

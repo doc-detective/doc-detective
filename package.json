@@ -1,6 +1,6 @@
 {
   "name": "doc-detective",
-  "version": "5.2.0",
+  "version": "5.4.0",
   "description": "Treat doc content as testable assertions to validate doc accuracy and product UX.",
   "workspaces": [
     "src/common"
@@ -10,7 +10,7 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=24.15.0"
+    "node": "^24.22.1 || >=26.12.1"
   },
   "files": [
     "dist/",
@@ -78,54 +78,54 @@
   },
   "homepage": "https://github.com/doc-detective/doc-detective#readme",
   "dependencies": {
-    "@apidevtools/json-schema-ref-parser": "^16.0.5",
-    "@inquirer/prompts": "^8.7.4",
+    "@apidevtools/json-schema-ref-parser": "^16.0.8",
+    "@inquirer/prompts": "^8.8.0",
     "adm-zip": "^0.6.1",
     "ajv": "^8.20.0",
     "ajv-errors": "^3.0.0",
     "ajv-formats": "^3.0.1",
     "ajv-keywords": "^5.1.0",
-    "axios": "^1.20.0",
-    "commander": "^15.0.0",
+    "axios": "^1.21.1",
+    "commander": "^15.1.0",
     "compromise": "14.19.0",
-    "dotenv": "^18.0.9",
-    "fast-xml-parser": "^5.11.2",
+    "dotenv": "^18.0.10",
+    "fast-xml-parser": "^5.12.1",
     "htmlparser2": "^12.0.0",
     "jq-web": "^0.6.2",
-    "json-schema-faker": "^0.6.3",
+    "json-schema-faker": "^0.6.4",
     "jsonc-parser": "^3.3.1",
     "mdast-util-from-markdown": "^2.1.0",
     "mdast-util-mdx": "^3.0.0",
     "micromark-extension-mdxjs": "^3.0.0",
-    "ora": "^9.4.1",
-    "posthog-node": "^5.57.0",
+    "ora": "^10.0.0",
+    "posthog-node": "^5.74.0",
     "tree-kill": "^1.2.2",
     "vscode-languageserver": "^11.0.0",
     "vscode-languageserver-textdocument": "1.0.16",
     "yaml": "^2.9.1"
   },
   "ddRuntimeDependencies": {
-    "@appium/opencv": "5.0.2",
-    "@homebridge/node-pty-prebuilt-multiarch": "0.14.1",
-    "appium": "3.9.0",
-    "appium-chromium-driver": "3.2.0",
-    "appium-geckodriver": "3.0.18",
-    "appium-mac2-driver": "4.6.1",
+    "@appium/opencv": "6.0.0",
+    "@homebridge/node-pty-prebuilt-multiarch": "0.15.0",
+    "appium": "4.0.0",
+    "appium-chromium-driver": "4.0.2",
+    "appium-geckodriver": "4.0.2",
+    "appium-mac2-driver": "5.0.1",
     "appium-novawindows-driver": "1.5.0",
-    "appium-safari-driver": "5.0.11",
-    "appium-uiautomator2-driver": "8.7.3",
-    "appium-xcuitest-driver": "12.22.8",
+    "appium-safari-driver": "6.0.1",
+    "appium-uiautomator2-driver": "9.2.0",
+    "appium-xcuitest-driver": "13.1.1",
     "opencv-bindings": "4.5.5"
   },
   "optionalDependencies": {
     "@ffmpeg-installer/ffmpeg": "1.1.0",
-    "@puppeteer/browsers": "3.2.6",
+    "@puppeteer/browsers": "3.2.7",
     "geckodriver": "8.0.0",
     "pixelmatch": "8.0.0",
     "pngjs": "7.0.0",
     "proxy-agent": "8.0.2",
     "sharp": "0.35.5",
-    "webdriverio": "10.1.0"
+    "webdriverio": "10.2.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",
@@ -138,7 +138,7 @@
     "@semantic-release/npm": "^13.2.0",
     "@semantic-release/release-notes-generator": "^14.1.1",
     "@types/adm-zip": "^0.6.0",
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "body-parser": "^2.4.0",
     "c8": "^12.0.0",
     "chai": "^6.3.0",
@@ -150,7 +150,7 @@
     "mocha": "^12.0.3",
     "nodemon": "^3.1.14",
     "semantic-release": "^25.0.9",
-    "semver": "^7.8.5",
+    "semver": "^7.8.6",
     "sinon": "^22.1.0",
     "typescript": "^7.0.2"
   }

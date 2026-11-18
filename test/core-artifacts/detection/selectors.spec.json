@@ -183,6 +183,66 @@
       ]
     },
     {
+      "testId": "selectors-rst-kinds",
+      "description": "reStructuredText comments, links, formatting, images with classes, code directives, and literal blocks.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs rst-kinds",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-rst-extension-picks-parser",
+      "description": "An .rst file parses as reStructuredText even when its fileType extends Markdown.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs rst-extension-picks-parser",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-extends-rst",
+      "description": "A file under another extension parses as reStructuredText when its fileType extends rst.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs extends-rst",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-rst-run",
+      "description": "reStructuredText statements run end to end, with a multi-line step and an ignore block.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs rst-run",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
       "testId": "selectors-embedded-html",
       "description": "HTML inside Markdown reads as HTML kinds.",
       "steps": [
@@ -273,6 +333,21 @@
       ]
     },
     {
+      "testId": "selectors-builtin-rst",
+      "description": "The reStructuredText built-in detects the same steps as Markdown.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-rst",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
       "testId": "selectors-reject-two-kinds",
       "description": "A definition with two kinds exits 2.",
       "steps": [
@@ -309,6 +384,21 @@
         {
           "runShell": {
             "command": "node test/core-artifacts/detection/dry-run-detect.cjs reject-bad-pattern",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "selectors-reject-unknown-builtin",
+      "description": "An unknown predefined fileType name exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs reject-unknown-builtin",
             "workingDirectory": "../../..",
             "exitCodes": [
               0

@@ -214,6 +214,7 @@ Boolean variables are on for `1`, `true`, `yes`, or `on`, and off when unset, em
 | `DOC_DETECTIVE_DEBUG` | Boolean | Off | Shows debugging output, like `-d`. |
 | `DEBUG` | `1`, `true`, `*`, or a comma-separated list with `doc-detective` or `doc-detective:*` | Unset | Shows debugging output, like `-d`. A pattern for another package leaves it off. |
 | `DOC_DETECTIVE_SKIP_AUTO_UPDATE` | Boolean | Off | Sets `autoUpdate: false`. `--auto-update` beats it. |
+| `DOC_DETECTIVE_SKIP_BROWSER_UPDATE` | Boolean | Off | Keeps outdated cached browsers and drivers instead of replacing them with the latest build. A missing browser still installs, and `install browsers --force` still reinstalls. |
 | `DO_NOT_TRACK` | Any value | Unset | Sets `telemetry.send: false`. |
 | `DOC_DETECTIVE_NO_COLOR` | Boolean | Off | Turns off color, like `--no-color`. `NO_COLOR` and `FORCE_COLOR` keep their usual meaning. |
 | `DOC_DETECTIVE_NO_INPUT` | Boolean | Off | Never prompts, like `--no-input`. |

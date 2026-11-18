@@ -2579,6 +2579,9 @@
             "endIndex": {
               "type": "integer",
               "minimum": 0
+            },
+            "file": {
+              "type": "string"
             }
           },
           "required": [
@@ -4254,6 +4257,9 @@
               "endIndex": {
                 "type": "integer",
                 "minimum": 0
+              },
+              "file": {
+                "type": "string"
               }
             },
             "required": [
@@ -7730,6 +7736,10 @@
         "allowUnsafeSteps": {
           "type": "boolean"
         },
+        "resolveIncludes": {
+          "type": "boolean",
+          "default": true
+        },
         "processDitaMaps": {
           "type": "boolean",
           "default": true
@@ -7753,7 +7763,8 @@
             "markdown",
             "asciidoc",
             "html",
-            "dita"
+            "dita",
+            "rst"
           ],
           "anyOf": [
             {
@@ -7767,7 +7778,8 @@
                       "markdown",
                       "asciidoc",
                       "html",
-                      "dita"
+                      "dita",
+                      "rst"
                     ]
                   },
                   {
@@ -7795,7 +7807,8 @@
                           "markdown",
                           "asciidoc",
                           "html",
-                          "dita"
+                          "dita",
+                          "rst"
                         ]
                       },
                       "extensions": {
@@ -7813,6 +7826,13 @@
                         "items": {
                           "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupDefinition"
                         }
+                      },
+                      "includeStatements": {
+                        "anyOf": [
+                          {
+                            "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
+                          }
+                        ]
                       }
                     }
                   },
@@ -10979,6 +10999,9 @@
             "endIndex": {
               "type": "integer",
               "minimum": 0
+            },
+            "file": {
+              "type": "string"
             }
           },
           "required": [
@@ -12611,6 +12634,9 @@
               "endIndex": {
                 "type": "integer",
                 "minimum": 0
+              },
+              "file": {
+                "type": "string"
               }
             },
             "required": [
@@ -16013,6 +16039,9 @@
         "allowUnsafeSteps": {
           "type": "boolean"
         },
+        "resolveIncludes": {
+          "type": "boolean"
+        },
         "processDitaMaps": {
           "type": "boolean"
         },
@@ -16042,7 +16071,8 @@
                       "markdown",
                       "asciidoc",
                       "html",
-                      "dita"
+                      "dita",
+                      "rst"
                     ]
                   },
                   {
@@ -16070,7 +16100,8 @@
                           "markdown",
                           "asciidoc",
                           "html",
-                          "dita"
+                          "dita",
+                          "rst"
                         ]
                       },
                       "extensions": {
@@ -16088,6 +16119,13 @@
                         "items": {
                           "$ref": "config_v3.nodefaults.schema.json#/components/schemas/markupDefinition"
                         }
+                      },
+                      "includeStatements": {
+                        "anyOf": [
+                          {
+                            "$ref": "config_v3.nodefaults.schema.json#/components/schemas/stringOrArray"
+                          }
+                        ]
                       }
                     }
                   },

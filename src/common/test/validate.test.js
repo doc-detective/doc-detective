@@ -295,6 +295,59 @@ import { schemas } from "../dist/index.js";
         expect(result.object.location).to.deep.equal({ line: 5, startIndex: 10, endIndex: 40 });
       });
 
+      it("should accept location.file on a test_v3 and a step_v3 detected inside an included file", function () {
+        const location = { line: 3, startIndex: 4, endIndex: 20, file: "/repo/docs/_setup.md" };
+        const test = validate({
+          schemaKey: "test_v3",
+          object: { location, steps: [{ goTo: { url: "https://example.com" }, location }] },
+        });
+        expect(test.valid, test.errors).to.be.true;
+        expect(test.object.location.file).to.equal("/repo/docs/_setup.md");
+        expect(test.object.steps[0].location.file).to.equal("/repo/docs/_setup.md");
+      });
+
+      it("should reject a non-string location.file", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { goTo: { url: "https://example.com" }, location: { line: 1, startIndex: 0, endIndex: 1, file: { path: "x" } } },
+        });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("file");
+      });
+
+      it("should accept resolveIncludes and a custom fileType's includeStatements", function () {
+        const result = validate({
+          schemaKey: "config_v3",
+          object: {
+            resolveIncludes: false,
+            fileTypes: [
+              "markdown",
+              { name: "rst", extensions: ["rst"], includeStatements: ["^\\.\\. include:: (\\S+)"] },
+              { extends: "markdown", includeStatements: "\\{% include \"([^\"]+)\" %\\}" },
+            ],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.resolveIncludes).to.equal(false);
+      });
+
+      it("should default resolveIncludes to true", function () {
+        const result = validate({ schemaKey: "config_v3", object: {} });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.resolveIncludes).to.equal(true);
+      });
+
+      it("should reject a non-boolean resolveIncludes and a non-string includeStatements", function () {
+        const bad = validate({ schemaKey: "config_v3", object: { resolveIncludes: "yes" } });
+        expect(bad.valid).to.be.false;
+        expect(bad.errors).to.include("resolveIncludes");
+        const badPattern = validate({
+          schemaKey: "config_v3",
+          object: { fileTypes: [{ extends: "markdown", includeStatements: { regex: "x" } }] },
+        });
+        expect(badPattern.valid).to.be.false;
+      });
+
       it("should reject a test_v3 object whose location is not an object", function () {
         const result = validate({
           schemaKey: "test_v3",
@@ -3664,6 +3717,23 @@ import { schemas } from "../dist/index.js";
 
         expect(result.openApi).to.be.an("array");
         expect(result.openApi[0].name).to.equal("API");
+      });
+    });
+
+    describe("config_v3 rst fileType", function () {
+      it("accepts rst as a predefined fileType and as an extends base, and defaults to it", function () {
+        for (const fileTypes of [["rst"], [{ extends: "rst", extensions: ["txt"] }]]) {
+          const result = validate({ schemaKey: "config_v3", object: { fileTypes } });
+          expect(result.valid, result.errors).to.be.true;
+        }
+        const defaults = validate({ schemaKey: "config_v3", object: {} });
+        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst"]);
+      });
+
+      it("rejects restructuredtext as a predefined fileType or extends base", function () {
+        for (const fileTypes of [["restructuredtext"], [{ extends: "restructuredtext", extensions: ["txt"] }]]) {
+          expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
+        }
       });
     });
 

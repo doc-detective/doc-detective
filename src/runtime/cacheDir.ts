@@ -12,6 +12,9 @@ export interface InstalledBrowser {
   installedAt: string;
   latestKnownVersion?: string;
   latestCheckedAt?: string;
+  // When an update to latestKnownVersion last failed. Holds off the retry for
+  // the freshness TTL (ADR 01209).
+  updateFailedAt?: string;
 }
 
 // What `doc-detective install android` provisioned. Recorded so `install

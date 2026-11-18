@@ -1,4 +1,4 @@
-// Accuracy of the procedure tier on labeled lists (ADR 01207). The corpus is
+// Accuracy of the procedure tier on labeled lists (ADR 01213). The corpus is
 // every non-explicit ordered list in this repo's docs and the agent-tools docs,
 // each labeled by a reader who didn't see the tagger's result. A procedure's
 // `actions` labels each item as an action or not. Lists with identical items

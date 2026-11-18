@@ -1,0 +1,4 @@
+// (step {"runShell": "node -e \"process.exit(1)\""})
+// tag::install[]
+// (step {"runShell": "node -e \"process.stdout.write('tag')\"", "variables": {"INC_AD_TAG": "$$stdio.stdout"}})
+// end::install[]

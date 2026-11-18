@@ -5,7 +5,7 @@ from a rough script run on this repository's `docs/fern/pages/docs`, not from sh
 unless a section says otherwise, so "has a step" means a step exists, not that it passed.
 
 Update (2026-11-14): the static view shipped as `doc-detective audit`
-([ADR 01207](../../adrs/01207-static-coverage-audit.md)). It departs from this design in three places:
+([ADR 01213](../../adrs/01213-static-coverage-audit.md)). It departs from this design in three places:
 
 - **Procedures come in tiers instead of a verb list.** Explicit markers count first, then a grammar
   tagger reads every item, and a list counts when at least a third read as instructions. Lists the

@@ -1,0 +1,210 @@
+---
+title: Test pages that include other files
+sidebar-title: Includes
+description: Doc Detective resolves include directives before it finds tests, so tests in shared snippets run inside the pages that show them.
+---
+
+Many doc sets build pages from shared files: a setup snippet included in five tutorials, or a partial that holds one procedure. Doc Detective reads a page the way a reader sees it. Before it looks for tests, it replaces each include directive with the included file's content. As a result:
+
+- A test in a snippet runs inside each page that includes it, in reading order.
+- A test can start on the page and continue in a snippet.
+- A partial, such as `_setup.md`, doesn't run on its own, out of context.
+
+Include resolution is on by default. You don't need to configure anything for the built-in syntax below.
+
+## Supported include syntax
+
+| Format | Syntax | Selects part of a file with |
+|---|---|---|
+| AsciiDoc | `include::path[]` | `lines=`, `tag=` or `tags=`. Add `opts=optional` to skip a missing file quietly. |
+| Markdown, MDX (MkDocs) | `--8<-- "path"` | `"path:3:9"` for lines 3–9, `"path:name"` for a section. |
+| Markdown, MDX (mdBook) | `{{#include path}}` | `path:3:9`, `path:3:`, `path::9`, `path:3`, or `path:anchor`. |
+| MDX (Fern) | `<Markdown src="path" />` | n/a |
+| MDX (Docusaurus, Mintlify) | `import Setup from './setup.mdx'`, then `<Setup />` | n/a |
+| MDX (Starlight, Astro) | `import { Content } from './setup.md'`, then `<Content />` | n/a |
+| reStructuredText | `.. include:: path` | `:start-line:`, `:end-line:`, `:start-after:`, `:end-before:` |
+
+Doc Detective reads each included file with its own format's syntax, so includes can nest. A Markdown snippet can include another snippet, and so on. A file whose extension matches no file type, such as `.txt`, is read with the including file's syntax.
+
+### AsciiDoc
+
+```asciidoc
+:snippets: ../snippets
+
+include::{snippets}/install.adoc[]
+include::{snippets}/setup.adoc[lines=5..12]
+include::{snippets}/setup.adoc[tag=login]
+include::{snippets}/optional-notes.adoc[opts=optional]
+```
+
+- A path can use attributes, such as `{snippets}`, that an `:attribute:` entry defines earlier in the file.
+- `tag=login` includes the lines between `tag::login[]` and `end::login[]` in the target. `tags=login;logout` includes several regions.
+- A backslash escapes a directive: `\include::setup.adoc[]` stays as text.
+
+### MkDocs snippets
+
+````markdown
+--8<-- "snippets/install.md"
+--8<-- "snippets/setup.md:3:9"
+--8<-- "snippets/setup.md:login"
+````
+
+- A path resolves against the working directory first, then against the including file's folder, as MkDocs resolves it against its base path.
+- `"path:login"` includes the section between `--8<-- [start:login]` and `--8<-- [end:login]` in the target.
+- An indented directive indents every included line, so a snippet included inside a list item stays in the list.
+
+### mdBook
+
+````markdown
+{{#include snippets/install.md}}
+{{#include snippets/setup.md:3:9}}
+{{#include snippets/setup.md:login}}
+````
+
+- `:login` includes the lines between `ANCHOR: login` and `ANCHOR_END: login` in the target.
+- A backslash escapes a directive: `\{{#include setup.md}}` stays as text.
+
+### MDX components
+
+````mdx
+import Setup from './_setup.mdx';
+import { Content as Login } from '../shared/login.md';
+
+<Markdown src="./snippets/install.mdx" />
+
+<Setup />
+
+<Login />
+````
+
+- Docusaurus `@site/` paths resolve from the nearest folder that holds `docusaurus.config.*`.
+- Mintlify `/snippets/` paths resolve from the nearest folder that holds `docs.json` or `mint.json`.
+- Starlight and Astro `import { Content } from '...'`, `{ Content as Name }`, and `import * as Name from '...'` with `<Name.Content />` all work.
+- Package imports and path aliases, such as `~/`, aren't followed.
+- Components inside a code fence are examples, not includes, so Doc Detective leaves them alone.
+- When a Markdown (`.md`) file with HTML comments is included into an `.mdx` page, its comments become MDX comments, so [inline test statements](/docs/test-docs/inline) in it still work.
+
+### reStructuredText
+
+```rst
+.. include:: snippets/install.rst
+
+.. include:: /shared/setup.rst
+   :start-after: .. login-start
+   :end-before: .. login-end
+
+.. note::
+
+   .. include:: snippets/tip.rst
+```
+
+- A path that starts with `/` resolves from the nearest folder that holds `conf.py`, the Sphinx source folder.
+- `:start-line:` and `:end-line:` count lines from 0, as docutils does. `:start-after:` and `:end-before:` select the text between two markers.
+- An indented directive indents every included line, so a snippet included inside a directive stays in it.
+- `:literal:` and `:code:` includes, and docutils standard includes such as `<isonum.txt>`, show text rather than content, so Doc Detective leaves them alone.
+- An include inside a code block, a literal block, or a comment is an example, not an include, so Doc Detective leaves it alone.
+
+## How paths resolve
+
+A relative path resolves against the including file's folder first, then against the working directory. MkDocs snippets try the working directory first. The MDX roots above have their own rules.
+
+Every included file must be inside the working directory, after symbolic links resolve. To include a file above the current folder, run Doc Detective from a folder that contains both files.
+
+Doc Detective reads only local files. It doesn't follow includes in a remote input, or an include whose target is a URL.
+
+## Partials
+
+A file that another input includes doesn't run on its own. It runs inside each page that includes it. For example, with `--input docs/`, `docs/_setup.md` runs only as part of the pages that include it, not as a separate spec.
+
+When a partial is included by two pages, its tests run once in each page.
+
+A file listed in `beforeAll` or `afterAll` still runs in that phase, even when a page in `input` includes it. Its tests then also run inside that page.
+
+To run a partial by itself, name it alone:
+
+```bash
+npx doc-detective --input docs/_setup.md
+```
+
+## Results, badges, and verified dates
+
+Test and step `location` values in results point at the file that holds the statement. When a statement comes from an included file, `location` gains a `file` field with that file's absolute path, and `line`, `startIndex`, and `endIndex` refer to that file. The spec's `contentPath` and IDs still name the page.
+
+```json
+{
+  "location": {
+    "file": "/home/wren/docs/snippets/setup.md",
+    "line": 4,
+    "startIndex": 61,
+    "endIndex": 115
+  }
+}
+```
+
+Doc Detective writes freshness badges and verified dates from [Last verified on](/docs/test-docs/last-verified-on) into the file that holds the test statement. A test in a snippet updates the snippet.
+
+## When an include can't resolve
+
+A broken include never fails a run. Doc Detective prints a warning on stderr and keeps going. The directive stays in the page as text, except when a tag, section, anchor, or line range isn't found: then the directive includes nothing. The run's exit code doesn't change.
+
+| Cause | Warning |
+|---|---|
+| The file is missing | ``Couldn't include `<target>` from <page>:<line> because <path> doesn't exist or can't be read.`` |
+| The file is outside the working directory | ``Couldn't include `<target>` from <page>:<line> because <path> is outside the working directory <cwd>. Run Doc Detective from a directory that contains both files.`` |
+| The file includes itself | ``Couldn't include `<target>` from <page>:<line> because it includes itself: <a> → <b> → <a>.`` |
+| Includes nest too deep | ``Couldn't include `<target>` from <page>:<line> because includes nest more than 64 levels deep.`` |
+| A tag, section, anchor, or line range isn't in the file | ``Couldn't find `<name>` in <path>, included from <page>:<line>.`` The directive includes nothing. |
+| The target is a URL | ``Skipped: include `<url>` from <page>:<line>. Detection reads only local files.`` |
+
+Paths in the messages are absolute. An AsciiDoc include with `opts=optional` doesn't warn when its file is missing.
+
+To see which partials Doc Detective skipped as standalone inputs, run with `--log-level debug`.
+
+MkDocs block-form snippets and directives in a remote input stay as text. An AsciiDoc `tags=*` wildcard warns that it can't find `*`, and includes nothing.
+
+## Turn include resolution off
+
+To read each file on its own, set `resolveIncludes` to `false` in your [config](/reference/schemas/config):
+
+```json title=".doc-detective.json"
+{
+  "resolveIncludes": false
+}
+```
+
+Or set it for a single run through the environment:
+
+```bash
+DOC_DETECTIVE_CONFIG='{"resolveIncludes":false}' npx doc-detective
+```
+
+With resolution off, partials run on their own again.
+
+## Add include syntax for a custom format
+
+For syntax Doc Detective doesn't know, add `includeStatements` to a [file type](custom). Each entry is a regular expression whose first group in parentheses matches the path to include. Doc Detective includes the whole file. `^` and `$` match at line boundaries.
+
+For example, to follow Jekyll's `include_relative` tag in Markdown:
+
+```json title=".doc-detective.json"
+{
+  "fileTypes": [
+    {
+      "extends": "markdown",
+      "includeStatements": ["\\{%\\s*include_relative\\s+(\\S+)\\s*%\\}"]
+    }
+  ]
+}
+```
+
+A file type that's named after or `extends` a built-in format keeps that format's include syntax and adds yours.
+
+## DITA
+
+DITA reuse works differently. Conrefs, conkeyrefs, and keyrefs resolve when Doc Detective processes a DITA map with DITA-OT. See [DITA](dita#resolve-conrefs-and-keyrefs).
+
+## Next steps
+
+- See the [Markdown](markdown), [AsciiDoc](asciidoc), [reStructuredText](rst), and [custom](custom) input format pages.
+- See [inline tests](/docs/test-docs/inline) to put tests in your snippets.
+- See the [configuration reference](/reference/schemas/config) for `resolveIncludes` and `fileTypes`.

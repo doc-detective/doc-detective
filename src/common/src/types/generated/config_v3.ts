@@ -9,7 +9,7 @@
  */
 export type LoadVariables = string;
 export type DeviceByName = string;
-export type FileTypePredefined = "markdown" | "asciidoc" | "html" | "dita";
+export type FileTypePredefined = "markdown" | "asciidoc" | "html" | "dita" | "rst";
 export type FileTypeCustom = (
   | {
       [k: string]: unknown;
@@ -25,7 +25,7 @@ export type FileTypeCustom = (
   /**
    * Base template to extend. A file whose extension no parser handles is parsed as this format.
    */
-  extends?: "markdown" | "asciidoc" | "html" | "dita";
+  extends?: "markdown" | "asciidoc" | "html" | "dita" | "rst";
   /**
    * File extensions to use with type.
    */
@@ -35,6 +35,10 @@ export type FileTypeCustom = (
    * Markup definitions for the file type.
    */
   markup?: MarkupDefinition[];
+  /**
+   * Regular expressions that match include directives for this file type. Capture group 1 is the path of the file to include, and the whole file is included. With `extends`, these add to the base type's built-in include syntax.
+   */
+  includeStatements?: string | [string, ...string[]];
 };
 /**
  * Nodes of one selector kind to read as statements.
@@ -778,6 +782,10 @@ export interface Config {
    * Whether or not to run potentially unsafe steps, such as those that might modify files or system state.
    */
   allowUnsafeSteps?: boolean;
+  /**
+   * If `true`, detection replaces each include directive in a documentation source with the included file's content before it looks for tests, and a file that another input includes runs only as part of that input.
+   */
+  resolveIncludes?: boolean;
   /**
    * If `true`, processes DITA maps and includes generated files as inputs.
    */

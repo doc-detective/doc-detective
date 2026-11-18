@@ -1,0 +1,3 @@
+.. step {"runShell": "node -e \"process.exit(1)\""}
+.. step {"runShell": "node -e \"process.stdout.write('lines')\"", "variables": {"INC_RST_LINES": "$$stdio.stdout"}}
+.. step {"runShell": "node -e \"process.exit(1)\""}

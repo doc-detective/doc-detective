@@ -33,7 +33,7 @@ A file type needs `extensions`, `extends`, or both. A key Doc Detective doesn't 
 
 - `name`: A descriptive name for the file type.
 - `extensions`: The file extensions to process with this file type.
-- `extends`: A built-in file type to start from: `markdown`, `asciidoc`, `html`, or `dita`.
+- `extends`: A built-in file type to start from: `markdown`, `asciidoc`, `html`, `dita`, or `rst`.
 - `inlineStatements`: Regular expressions that find [inline test statements](/docs/test-docs/inline). Each statement's first capture group, or else the whole match, is the statement's content.
   - `testStart`: Starts a test.
   - `testEnd`: Ends the current test.
@@ -41,6 +41,7 @@ A file type needs `extensions`, `extends`, or both. A key Doc Detective doesn't 
   - `step`: Adds a step to the current test.
   - `in`: Reads statements from parsed nodes, such as comments, instead of raw text. See [Selectors](selectors).
 - `markup`: Definitions that detect steps from your content.
+- `includeStatements`: Regular expressions that match include directives. Capture group 1 is the path of the file to include, and Doc Detective includes the whole file before it finds tests. With `extends`, these add to the built-in format's include syntax. See [Add include syntax for a custom format](includes#add-include-syntax-for-a-custom-format).
 
 ## Adding custom markup patterns
 
