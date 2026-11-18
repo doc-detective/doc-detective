@@ -66,13 +66,20 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
    run warns in the terminal and in the report:
 
    ```text
-   No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios` ahead of time to skip the wait.
+   No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.
    ```
 
    A failed build warns, and the run falls back to Appium's own build:
 
    ```text
    Couldn't build WebDriverAgent before the test, so Appium builds it during the session. <cause in words>.
+   ```
+
+   A build can succeed while the update to `installed.json` after it fails. The session still
+   uses the build, and the run warns about the record instead:
+
+   ```text
+   Couldn't update the cache record after building WebDriverAgent, so `installed.json` may not list this build. <cause in words>.
    ```
 
    `DOC_DETECTIVE_NO_IOS_AUTOINSTALL` turns the build off. It's named after
@@ -177,6 +184,9 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
   files are missing.
 * The CLI change ships with red → green unit tests and an iOS fixture permutation. A focused
   `it(...)` in `test/core-core.test.js` covers the opt-out.
+* The macOS `mobile-web-ios` fixture leg restores and prebuilds no WebDriverAgent, so every run
+  of it proves the first-use build. The `apps-ios` leg keeps the restore and prebuild of ADR
+  01116, and proves a run that finds a cached build.
 * The Action change ships with unit tests beside its cache code. The measurement workflow runs
   twice against its branch, to compare cold and warm.
 

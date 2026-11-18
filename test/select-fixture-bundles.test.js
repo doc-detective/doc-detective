@@ -268,6 +268,61 @@ describe("select-fixture-bundles", function () {
       assert.ok(names.indexOf("Prebuild WebDriverAgent") < names.indexOf("Save WebDriverAgent products"));
     });
 
+    it("leaves one iOS leg cold, so its run builds WebDriverAgent on first use (ADR 01214)", function () {
+      // One leg proves the first-use build. The other keeps the prebuild, so
+      // it proves a cached build is used as before.
+      const firstUse = BUNDLES.filter((b) => b.wdaFirstUse);
+      assert.deepEqual(firstUse.map((b) => b.name), ["mobile-web-ios"]);
+      assert.equal(firstUse[0].prebootIos, true);
+      assert.equal(selectMatrix([]).find((b) => b.name === "mobile-web-ios").wdaFirstUse, true);
+      assert.equal(selectMatrix([]).find((b) => b.name === "apps-ios").wdaFirstUse, undefined);
+
+      // That leg skips every step that would put a build in the cache. The
+      // whole condition is compared, so an `||` can't let the leg back in.
+      const prebuilt = `${iosOnly} && !matrix.bundle.wdaFirstUse`;
+      for (const name of [
+        "Restore WebDriverAgent products",
+        "Prebuild WebDriverAgent",
+        "Key the WebDriverAgent products",
+      ]) {
+        assert.equal(byName(name).if, prebuilt, `${name} must skip the first-use leg`);
+      }
+      assert.equal(
+        byName("Save WebDriverAgent products").if,
+        `${prebuilt} && steps.wda-key.outputs.key != steps.wda-restore.outputs.cache-matched-key`
+      );
+
+      // The weekly dd-cache entry can carry a build too, so the leg clears it
+      // after that restore and before the run.
+      const all = steps();
+      const at = (find) => all.findIndex(find);
+      const clear = byName("Clear WebDriverAgent products");
+      assert.ok(clear, "the clear step exists");
+      assert.equal(clear.if, "runner.os == 'macOS' && matrix.bundle.wdaFirstUse");
+      assert.equal(clear.run.trim(), "rm -rf ~/.dd-cache/ios/wda");
+      const ddCache = at((s) => s.uses === "./.github/actions/dd-cache");
+      const cleared = at((s) => s.name === "Clear WebDriverAgent products");
+      assert.ok(ddCache >= 0, "the dd-cache step exists");
+      assert.ok(ddCache < cleared, "clear after the dd-cache restore");
+      assert.ok(
+        cleared < at((s) => s.name === "Run ${{ matrix.bundle.name }} fixtures"),
+        "clear before the fixture run"
+      );
+      // The leg's bundle-wide PASS rule would let this one spec skip, so the
+      // gate names it.
+      assert.equal(
+        byName("Gate on results").env.DD_FIXTURES_REQUIRE_PASS_SPECS,
+        "${{ matrix.os == 'macos-latest' && matrix.bundle.wdaFirstUse && 'ios-wda-first-use' || '' }}"
+      );
+      const spec = JSON.parse(
+        fs.readFileSync(
+          path.join(process.cwd(), "test", "core-artifacts", "mobile-web-ios", "wda-first-use.spec.json"),
+          "utf8"
+        )
+      );
+      assert.equal(spec.specId, "ios-wda-first-use");
+    });
+
     it("bounds the simulator boot wait without GNU timeout, which macOS runners lack", function () {
       const run = byName("Wait for pre-booted simulator").run;
       assert.doesNotMatch(run, /\btimeout\s+\d/);

@@ -175,7 +175,7 @@ jobs:
         run: echo "version=$(xcodebuild -version | tr -s ' \n' '-' | sed 's/-$//')" >> "$GITHUB_OUTPUT"
 
       - name: Restore WebDriverAgent products
-        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && !matrix.bundle.wdaFirstUse
         id: wda-restore
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -191,7 +191,7 @@ jobs:
       # inside the first XCUITest session — which is also why the action's
       # `ios` WDA cache is off below.
       - name: Prebuild WebDriverAgent
-        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && !matrix.bundle.wdaFirstUse
         run: node ./bin/doc-detective.js install ios --yes
         env:
           DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
@@ -199,18 +199,26 @@ jobs:
       # `install ios` prunes stale keys, so the product dirs left identify the
       # product set (one dir per Xcode x driver key).
       - name: Key the WebDriverAgent products
-        if: runner.os == 'macOS' && matrix.bundle.prebootIos
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && !matrix.bundle.wdaFirstUse
         id: wda-key
         shell: bash
         run: echo "key=wda-${{ runner.os }}-${{ steps.xcode.outputs.version }}-$(ls ~/.dd-cache/ios/wda | grep -v '^\.' | sort | shasum | cut -c1-16)" >> "$GITHUB_OUTPUT"
 
       - name: Save WebDriverAgent products
-        if: runner.os == 'macOS' && matrix.bundle.prebootIos && steps.wda-key.outputs.key != steps.wda-restore.outputs.cache-matched-key
+        if: runner.os == 'macOS' && matrix.bundle.prebootIos && !matrix.bundle.wdaFirstUse && steps.wda-key.outputs.key != steps.wda-restore.outputs.cache-matched-key
         continue-on-error: true
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.dd-cache/ios/wda
           key: ${{ steps.wda-key.outputs.key }}
+
+      # The first-use leg (ADR 01214) skips the four steps above. The weekly
+      # dd-cache entry can carry a build too, so clear it. The run then builds
+      # WebDriverAgent itself, before its first iOS session.
+      - name: Clear WebDriverAgent products
+        if: runner.os == 'macOS' && matrix.bundle.wdaFirstUse
+        shell: bash
+        run: rm -rf ~/.dd-cache/ios/wda
 
       # Bring up the static/echo test servers (8092 main, 8093 API) that the
       # browser and http fixtures hit. Backgrounded, then gated on readiness by
@@ -298,6 +306,9 @@ jobs:
         shell: bash
         env:
           DD_FIXTURES_REQUIRE_PASS: ${{ ((matrix.bundle.name == 'apps' && matrix.os != 'ubuntu-latest') || ((matrix.bundle.name == 'apps-ios' || matrix.bundle.name == 'mobile-web-ios') && matrix.os == 'macos-latest')) && '1' || '0' }}
+          # The first-use leg (ADR 01214) exists to prove one spec, so that spec
+          # must PASS. One PASS elsewhere in the bundle isn't enough.
+          DD_FIXTURES_REQUIRE_PASS_SPECS: ${{ matrix.os == 'macos-latest' && matrix.bundle.wdaFirstUse && 'ios-wda-first-use' || '' }}
         run: |
           cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ matrix.bundle.name }}.json"
           node scripts/check-fixture-results.cjs "dd-output-${{ matrix.bundle.name }}.json"
