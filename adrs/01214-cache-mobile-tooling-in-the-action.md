@@ -61,8 +61,9 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
 
 1. **The CLI builds the managed WebDriverAgent on first use.** On macOS, an iOS context can find no
    managed build for the current Xcode and driver. The run then calls the existing prebuild before
-   the session starts, as Android's lazy install does for its toolchain. It warns in the terminal
-   and in the report:
+   the session starts, as Android's lazy install does for its toolchain. That makes the first-use
+   build a second trigger for the managed prebuild, which ADR 01059 limited to `install ios`. The
+   run warns in the terminal and in the report:
 
    ```text
    No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios` ahead of time to skip the wait.
@@ -89,36 +90,37 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
    failure only warns.
 
    * **Android entry.** Restored when `android` is `true`, or when it's `auto` and the spec scan
-     finds an Android context. Paths: `<cacheRoot>/android-sdk`, `<cacheRoot>/jre`,
-     `$ANDROID_HOME/system-images` (or `$ANDROID_SDK_ROOT`), and `~/.android/avd`. Key:
-     `doc-detective-android-<os>-<arch>-<slot hash>`. The slot hash covers
-     `android.systemImages`, `android.avds`, and the UiAutomator2 driver version. That version is
+     finds an Android context. Paths: `<cacheDir>/android-sdk`, `<cacheDir>/jre`,
+     `$ANDROID_HOME/system-images` (or `$ANDROID_SDK_ROOT`), and `~/.android/avd`. Platform
+     prefix: `doc-detective-android-<os>-<arch>-`. The slot hash covers `android.systemImages`,
+     `android.avds`, and the UiAutomator2 driver version. That version is
      `npmPackages["appium-uiautomator2-driver"].installedVersion` in `installed.json`. It's in the
      key because the clean snapshot is retaken when it changes (ADR 01108).
    * **iOS entry.** Restored on macOS when the spec scan finds an iOS context. Path:
-     `<cacheRoot>/ios/wda`. Key: `doc-detective-ios-<os>-<arch>-<slot hash>`. The slot hash
+     `<cacheDir>/ios/wda`. Platform prefix: `doc-detective-ios-<os>-<arch>-`. The slot hash
      covers `ios.wdaKeys`.
+   * **Key.** Every entry is saved as `<platform prefix><slot hash>-<fingerprint hash>`. Both
+     hashes are always there, including on the first save.
+   * **Fingerprint.** It covers the entry's marker files: each file's path, size, and
+     modification time. For iOS, the markers are each WebDriverAgent key's `products.json`, which
+     the build writes last. For Android, they're the files of each AVD's clean snapshot, in the
+     AVD's `snapshots/doc-detective-clean` folder. With no marker files, the fingerprint hash is
+     the hash of an empty list, so the key stays stable.
    * **Restore.** Each entry restores after the runtime entry, which holds the `installed.json`
-     the slot hash comes from. The Action first looks for keys that start with the slot-hash key,
-     and the newest of those wins. Failing that, it takes the newest entry under the platform
-     prefix, `doc-detective-android-<os>-<arch>-` or `doc-detective-ios-<os>-<arch>-`.
-   * **Save.** After the run, an entry saves when its slot exists in `installed.json` and one of
-     two things holds. Its slot hash differs from the restored entry's. Or the run changed the
-     entry's contents without changing the slot hash.
-   * **Changed contents.** The Action takes a fingerprint of the entry's marker files after the
-     restore, and again after the run. The fingerprint is each file's path, size, and
-     modification time. The entry saves when the two differ. For iOS, the markers are each
-     WebDriverAgent key's `products.json`, which the build writes last. For Android, they're the
-     files of each AVD's clean snapshot, in the AVD's `snapshots/doc-detective-clean` folder. A
-     changed-contents save uses a new key under the same prefix:
-     `doc-detective-<platform>-<os>-<arch>-<slot hash>-<fingerprint hash>`. The restore then
-     picks it up as the newest.
-   * **What that covers.** An exact hit can lack its WebDriverAgent products. The run rebuilds
-     them under the same `ios.wdaKeys`, and the entry still saves. The same goes for a clean
-     snapshot that's retaken, after `install android --reset-snapshot` or after a snapshot that
-     wouldn't load. Later runs restore the new one.
+     the slot hash comes from. The Action passes `<platform prefix><slot hash>-` as the primary
+     key. No entry has exactly that key, so the cache restores the newest entry that starts with
+     the slot-hash prefix. Failing that, the Action takes the newest entry under the platform
+     prefix. The runtime entry already restores this way.
+   * **Save.** After the run, the Action computes the key again. An entry saves when its slot
+     exists in `installed.json` and that key differs from the restored key. The one comparison
+     covers a changed slot and changed contents.
+   * **What that covers.** A restored entry can lack the WebDriverAgent products its
+     `ios.wdaKeys` lists. The run rebuilds them under the same keys, and the entry still saves.
+     The same goes for a clean snapshot that's retaken, after `install android --reset-snapshot`
+     or after a snapshot that wouldn't load. Later runs restore the new one.
    * **Runtime key.** It also hashes the three fields. The runtime entry holds `installed.json`,
-     so it saves again when the mobile set changes.
+     so it saves again when the mobile set changes. This extends the runtime key that ADR 01209
+     describes, which hashes every `installedVersion`.
    * **Inputs.** None are added. `android: false` also turns off the Android cache, and
      `cache: false` caches nothing.
 
@@ -132,8 +134,8 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
    `appium-uiautomator2-driver` package, which ADR 01209's commitment covers.
 
    The fingerprint adds no field either, and needs no CLI change. It reads files the CLI already
-   writes. If the CLI moves them, both fingerprints come back empty and match. The Action then
-   saves on a slot-hash change alone.
+   writes. If the CLI moves them, the fingerprint is always that of an empty list. The key then
+   changes with the slot hash alone.
 
 ### Consequences
 
@@ -146,6 +148,8 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
 * Bad: up to three entries per OS and architecture count against the cache quota, and the Android
   entry is several gigabytes. Each changed-contents save adds another until GitHub evicts the
   old one.
+* Bad: a change to the mobile set alone also saves a new runtime entry, because `installed.json`
+  rides it. That entry counts against the quota too.
 * Bad: the Action mirrors two CLI locations outside the cache directory. If the CLI moves them,
   the Action caches an empty folder, which is a miss and not a failure.
 * Neutral: `installed.json` rides the runtime entry. It can list an image or a build whose files a
@@ -165,9 +169,10 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
   ADR with the implementation. A piece that doesn't make a warm run faster is dropped.
 * Snapshot portability decides whether AVD snapshots are cached. If a snapshot restored on a
   different runner VM doesn't load, the Android entry leaves `snapshots/` out. The Android
-  fingerprint then has no markers, and that entry saves on a slot-hash change alone.
-* The same workflow confirms a warm run that rebuilds nothing leaves both fingerprints unchanged.
-  Otherwise every run would save.
+  fingerprint then covers an empty list, and that entry's key changes with the slot hash alone.
+* The same workflow confirms a warm run that rebuilds nothing computes the key it restored. That
+  needs the cache to restore each marker file's modification time. Otherwise every run would
+  save.
 * The same workflow confirms the CLI recovers when `installed.json` lists a system image whose
   files are missing.
 * The CLI change ships with red → green unit tests and an iOS fixture permutation. A focused
