@@ -278,6 +278,10 @@ export async function installIos({
 const WDA_BUILDING_WARNING =
   "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.";
 
+// Errors thrown by the record update that follows a published build. The
+// first-use build reports those differently from a failed build.
+const recordUpdateErrors = new WeakSet<object>();
+
 // Why the cache record couldn't be written, in words.
 function recordWriteCause(error: unknown): string {
   const code = (error as NodeJS.ErrnoException)?.code;
@@ -383,6 +387,9 @@ export async function ensureManagedWda({
         deps: { acquire: acquireWithRefSleep, sleep: refSleep, ...deps },
         run: deps.run ?? defaultRun,
         logger,
+        // Already checked above. A second probe could time out and read as
+        // "no Xcode".
+        xcode,
       });
       cause = prebuild.cause;
       // The notes carry the build output's tail. Keep it out of the warning.
@@ -393,18 +400,18 @@ export async function ensureManagedWda({
       logger(String((error as Error)?.message ?? error), "debug");
     }
     if (!cause) return warnings;
-    if (!locate()) {
-      warnAlso(
-        `Couldn't build WebDriverAgent before the test, so Appium builds it during the session. ${cause}`
-      );
-    } else if (thrown) {
-      // The products are published, and the session uses them. Only the
-      // steps after the marker can still throw: the record and the prune.
+    if (typeof thrown === "object" && thrown && recordUpdateErrors.has(thrown)) {
+      // This build is published, and the session uses it.
       warnAlso(
         `Couldn't update the cache record after building WebDriverAgent, so \`installed.json\` may not list this build. ${recordWriteCause(thrown)}`
       );
+    } else if (!locate()) {
+      warnAlso(
+        `Couldn't build WebDriverAgent before the test, so Appium builds it during the session. ${cause}`
+      );
     }
-    // Otherwise another process finished the build while this one waited.
+    // Otherwise another process published a build while this one waited or
+    // failed, and the session uses that.
     return warnings;
   };
   const attempt = { warnings: build(), settled: false };
@@ -489,11 +496,14 @@ async function prebuildWda({
   deps,
   run,
   logger,
+  xcode: knownXcode,
 }: {
   ctx: CacheDirContext;
   deps: IOSInstallerDeps;
   run: NonNullable<IOSInstallerDeps["run"]>;
   logger: Logger;
+  /** The Xcode version, when the caller has already probed it. */
+  xcode?: XcodeVersion;
 }): Promise<WdaPrebuild> {
   const fs = deps.fs ?? (fsDefault as unknown as WdaFs);
   const runBuild = deps.runBuild ?? defaultRunBuild;
@@ -520,16 +530,17 @@ async function prebuildWda({
 
   // Only full Xcode ships xcodebuild; the Command Line Tools alone cannot
   // build WDA (and `xcode-select -p` can't tell the two apart).
-  const versionProbe = run("xcodebuild", ["-version"]);
+  const versionProbe = knownXcode ? undefined : run("xcodebuild", ["-version"]);
   const xcode =
-    versionProbe.status === 0
+    knownXcode ??
+    (versionProbe?.status === 0
       ? parseXcodebuildVersion(versionProbe.stdout)
-      : null;
+      : null);
   if (!xcode) {
     return skipped("Full Xcode isn't installed.", [
       "full Xcode is required to prebuild WebDriverAgent (xcodebuild is unavailable — Command Line Tools alone are not enough)",
       "install Xcode from the App Store, run xcode-select -s <Xcode.app path>, then rerun: doc-detective install ios --yes",
-      (versionProbe.stderr || "").trim(),
+      (versionProbe?.stderr || "").trim(),
     ].filter(Boolean));
   }
 
@@ -701,14 +712,20 @@ async function prebuildWda({
     // Record + prune in the same pass so installed.json never references a
     // deleted key. Keys are additive subdirs: "updated" means the current
     // toolchain moved to a new key, never a rebuild in place.
-    const record = readRecord(ctx);
-    const previousKeys = record.ios?.wdaKeys ?? [];
-    const survivors = pruneStaleKeys({ wdaRoot, keepKey: key, fs, now });
-    record.ios = {
-      wdaKeys: survivors,
-      updatedAt: new Date(now()).toISOString(),
-    };
-    writeRecord(record, ctx);
+    let previousKeys: string[];
+    try {
+      const record = readRecord(ctx);
+      previousKeys = record.ios?.wdaKeys ?? [];
+      const survivors = pruneStaleKeys({ wdaRoot, keepKey: key, fs, now });
+      record.ios = {
+        wdaKeys: survivors,
+        updatedAt: new Date(now()).toISOString(),
+      };
+      writeRecord(record, ctx);
+    } catch (error) {
+      if (typeof error === "object" && error) recordUpdateErrors.add(error);
+      throw error;
+    }
 
     const action =
       previousKeys.length > 0 && !previousKeys.includes(key)

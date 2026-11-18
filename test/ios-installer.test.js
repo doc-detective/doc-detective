@@ -729,6 +729,28 @@ describe("first-use WebDriverAgent build (ADR 01214)", function () {
     }
   });
 
+  it("doesn't blame the record when the build failed earlier and another process published it", async function () {
+    const env = makeFirstUseEnv();
+    env.deps.acquire = async () => {
+      // This process can't take the lock, and a process that can has built.
+      env.seedMarker();
+      throw Object.assign(new Error("EACCES: permission denied, mkdir"), { code: "EACCES" });
+    };
+
+    expect(await env.ensure()).to.deep.equal([BUILDING]);
+    expectManaged(env, sessionCapabilities(env));
+  });
+
+  it("builds with the Xcode version it already checked, without asking again", async function () {
+    const env = makeFirstUseEnv();
+    // A second `xcodebuild -version` that fails must not read as "no Xcode".
+    env.deps.run = probeRun({ xcodebuildVersion: null });
+
+    expect(await env.ensure()).to.deep.equal([BUILDING]);
+    expect(env.builds).to.have.length(1);
+    expect(env.locate().key).to.equal(env.key);
+  });
+
   it("tries again in the same run after an Xcode probe that didn't answer", async function () {
     const env = makeFirstUseEnv();
     let answers = false;
