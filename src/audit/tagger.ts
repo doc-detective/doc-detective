@@ -37,7 +37,8 @@ function readings(text: string): string[] {
     .trim();
   // A sequence word or a negation before the verb, as in "Then click Save" or
   // "Don't close the window".
-  const lead = plain.replace(/^(?:then|now|next|finally|lastly|please|just|simply|also|do not|don't|never),?\s+/i, "");
+  const SEQUENCE = /^(?:then|now|next|finally|lastly|please|just|simply|also|do not|don't|never),?\s+/i;
+  const lead = plain.replace(SEQUENCE, "");
   // Up to two short openers before a comma, as in "In a terminal, from the
   // repo folder, run it". Each step is its own reading, so "In a terminal, run
   // it, then click Save" keeps "run it, then click Save".
@@ -46,7 +47,8 @@ function readings(text: string): string[] {
   for (let i = 0; i < 2; i++) {
     const opener = /^([^,.:;]{1,60}),\s+/.exec(rest);
     if (!opener || opener[1].split(" ").length > 5) break;
-    rest = rest.slice(opener[0].length);
+    // An opener can hide a sequence word, as in "In a terminal, then run it".
+    rest = rest.slice(opener[0].length).replace(SEQUENCE, "");
     out.push(rest);
   }
   // A leading word ending in "ly", for an adverb as in "Briefly state the

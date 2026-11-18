@@ -23,8 +23,9 @@ describe("audit tagger accuracy", function () {
       else if (predicted) fp++;
       else if (procedure) fn++;
     }
-    const precision = tp / (tp + fp);
-    const recall = tp / (tp + fn);
+    // 0, not NaN, when a corpus has no predictions or no procedures.
+    const precision = tp + fp ? tp / (tp + fp) : 0;
+    const recall = tp + fn ? tp / (tp + fn) : 0;
     const summary = `${lists.length} lists: precision ${precision.toFixed(3)}, recall ${recall.toFixed(3)} (${fp} false positives, ${fn} misses)`;
     assert.ok(precision >= PRECISION_FLOOR && recall >= RECALL_FLOOR, summary);
   });

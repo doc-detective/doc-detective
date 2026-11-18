@@ -67,6 +67,7 @@ const instructions = [
   "In the terminal, from the `charmap-docs` folder, run the test:",
   "✅ Follow your own steps exactly as written",
   "In a terminal, run `npm test`, then click **Save**.",
+  "In a terminal, then run `npm test`",
   "👩‍💻 Tap **Settings**",
   "👍🏽 Open the file",
   "(Optional) **Create a branch**: Run `git checkout -b fix`",
