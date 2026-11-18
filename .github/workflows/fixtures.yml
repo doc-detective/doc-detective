@@ -378,6 +378,9 @@ jobs:
         shell: bash
         env:
           DD_FIXTURES_REQUIRE_PASS: ${{ ((matrix.bundle.name == 'apps' && matrix.os != 'ubuntu-latest') || ((matrix.bundle.name == 'apps-ios' || matrix.bundle.name == 'mobile-web-ios') && matrix.os == 'macos-latest')) && '1' || '0' }}
+          # The first-use leg (ADR 01214) exists to prove one spec, so that spec
+          # must PASS. One PASS elsewhere in the bundle isn't enough.
+          DD_FIXTURES_REQUIRE_PASS_SPECS: ${{ matrix.os == 'macos-latest' && matrix.bundle.wdaFirstUse && 'ios-wda-first-use' || '' }}
         run: |
           cp "$RUNNER_TEMP/doc-detective-output.json" "dd-output-${{ matrix.bundle.name }}.json"
           node scripts/check-fixture-results.cjs "dd-output-${{ matrix.bundle.name }}.json"

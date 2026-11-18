@@ -308,10 +308,19 @@ describe("select-fixture-bundles", function () {
         cleared < at((s) => s.name === "Run ${{ matrix.bundle.name }} fixtures"),
         "clear before the fixture run"
       );
-      // The session locator's Xcode probe allows 15 s, and the first
-      // `xcodebuild -version` on a fresh image can take longer. This step runs
-      // it first, on both iOS legs.
-      assert.equal(byName("Read the Xcode version").if, iosOnly);
+      // The leg's bundle-wide PASS rule would let this one spec skip, so the
+      // gate names it.
+      assert.equal(
+        byName("Gate on results").env.DD_FIXTURES_REQUIRE_PASS_SPECS,
+        "${{ matrix.os == 'macos-latest' && matrix.bundle.wdaFirstUse && 'ios-wda-first-use' || '' }}"
+      );
+      const spec = JSON.parse(
+        fs.readFileSync(
+          path.join(process.cwd(), "test", "core-artifacts", "mobile-web-ios", "wda-first-use.spec.json"),
+          "utf8"
+        )
+      );
+      assert.equal(spec.specId, "ios-wda-first-use");
     });
 
     it("bounds the simulator boot wait without GNU timeout, which macOS runners lack", function () {
