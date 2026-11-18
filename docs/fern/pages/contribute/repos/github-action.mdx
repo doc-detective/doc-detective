@@ -58,7 +58,7 @@ Action `@v2` renamed `integrations` to `issue_mentions` and `prompt` to `issue_p
 
 Merging a pull request to `main` can release a new version of the action, and the commit types decide whether it does. Write every commit in the [Conventional Commits](https://www.conventionalcommits.org/) format. Pull requests merge with merge commits, so every commit in a pull request reaches `main` and counts toward the release.
 
-A `commitlint` check runs on each pull request and checks every commit in it. No author is exempt, including Dependabot. If the check fails, reword the commit with `git rebase -i` and force-push your branch.
+A `commitlint` check runs on each pull request and checks its commits. It skips merge commits and the commits `git revert` writes, but no author is exempt, including Dependabot. If the check fails, reword the commit with `git rebase -i` and force-push your branch.
 
 Each commit type maps to a version bump. When a merge brings in several types, the largest bump wins:
 
