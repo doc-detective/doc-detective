@@ -260,8 +260,8 @@ If audit missed a procedure, put a procedure statement before the list:
 More: https://docs.doc-detective.com/docs/test-docs/audit-test-coverage
 ```
 
-A custom syntax prints under its key with the bare statement, followed by its `note`. Flags, exit
-codes, and usage errors don't change.
+A custom syntax prints under its key with the bare statement. Its `note` prints once, at the top of
+the block, because it applies to every section. Flags, exit codes, and usage errors don't change.
 
 ### Placement
 
