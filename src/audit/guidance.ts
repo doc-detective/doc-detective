@@ -61,6 +61,17 @@ const KINDS = ["step", "testStart", "testEnd", "ignoreStart", "ignoreEnd", "proc
 export function syntaxFor(fileType: FileType, filePath: string): Syntax {
   const format = formatOf(fileType, filePath);
   const candidate = format === "markdown" && /\.mdx$/i.test(filePath) ? "mdx" : format;
+  // The check depends only on the file type and format, so it runs once per pair.
+  let byFormat = checked.get(fileType);
+  if (!byFormat) checked.set(fileType, (byFormat = new Map()));
+  let syntax = byFormat.get(candidate);
+  if (!syntax) byFormat.set(candidate, (syntax = check(fileType, filePath, candidate)));
+  return syntax;
+}
+
+const checked = new WeakMap<FileType, Map<string | undefined, Syntax>>();
+
+function check(fileType: FileType, filePath: string, candidate: string | undefined): Syntax {
   const t = candidate ? SYNTAXES[candidate] : undefined;
   if (t) {
     const content = KINDS.map((kind) => t[kind]).join("\n\n");

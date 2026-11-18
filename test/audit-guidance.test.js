@@ -83,6 +83,10 @@ describe("audit guidance", function () {
       },
     };
 
+    it("checks the templates once per file type and format", function () {
+      assert.equal(syntaxFor(hugo, path.join(root, "a.md")), syntaxFor(hugo, path.join(root, "b.md")));
+    });
+
     it("takes the file type's name as its syntax", function () {
       assert.deepEqual(syntaxFor(hugo, path.join(root, "page.md")), { syntax: "hugo", custom: true, fileType: "hugo" });
     });

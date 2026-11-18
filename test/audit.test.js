@@ -146,6 +146,22 @@ describe("audit command", function () {
       assert.doesNotMatch(text, /To cover a step|To flag a list/);
     });
 
+    it("prints a custom file type's note once, before every section", function () {
+      const possible = { kind: "procedureStep", source: "possible", line: 1, text: "Release notes", state: "untested" };
+      const report = summarize([{
+        path: "/a.md", fileType: "hugo", syntax: "hugo", customSyntax: true, measured: true, items: [possible],
+        lists: { explicit: 0, tagged: 0, possible: 1 }, notRunnable: 0, linksTotal: 0, hasAuthoredStep: false,
+      }]);
+      const block = renderText(report).split("\n").slice(-5);
+      assert.deepEqual(block, [
+        "Wrap each statement in the comment form that the `hugo` file type's `inlineStatements` define.",
+        "If audit missed a procedure, put a procedure statement before the list:",
+        "  hugo       procedure",
+        "More: https://docs.doc-detective.com/docs/test-docs/audit-test-coverage",
+        "",
+      ]);
+    });
+
     it("widens the label column for a long custom file type name", function () {
       const untested = { kind: "procedureStep", source: "explicit", line: 1, text: "Open it.", state: "untested" };
       const file = (name, syntax, customSyntax) => ({

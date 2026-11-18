@@ -117,15 +117,12 @@ function renderGuidance(report: AuditReport): string[] {
   const syntaxes = Object.entries(report.guidance.syntaxes).map(([name, t]) => ["custom" in t ? name : labelOf(name), t] as const);
   const width = Math.max(11, ...syntaxes.map(([label]) => label.length + 2));
   const rows = (pick: (t: any) => string) => syntaxes.map(([label, t]) => `  ${label.padEnd(width)}${pick(t)}`);
-  const lines = [""];
+  // A custom syntax's note covers every section, so it comes first.
+  const lines = ["", ...syntaxes.flatMap(([, t]) => ("custom" in t ? [t.note] : []))];
   // Covering and ignoring advice is for untested steps. A possible procedure
   // only needs the procedure statement.
   if (procedureSteps.untested) {
-    lines.push("To cover a step, put a step statement inside the item, on the line after the sentence it tests:");
-    for (const [label, t] of syntaxes) {
-      lines.push(`  ${label.padEnd(width)}${t.step}`);
-      if ("custom" in t) lines.push(`  ${t.note}`);
-    }
+    lines.push("To cover a step, put a step statement inside the item, on the line after the sentence it tests:", ...rows((t) => t.step));
     lines.push("Or wrap the procedure in a test with at least one step:", ...rows((t) => `${t.testStart}  …  ${t.testEnd}`));
     lines.push("To flag a list that isn't a procedure, wrap it in ignore statements:", ...rows((t) => `${t.ignoreStart}  …  ${t.ignoreEnd}`));
   }
