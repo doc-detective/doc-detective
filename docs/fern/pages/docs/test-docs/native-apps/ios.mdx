@@ -127,6 +127,8 @@ No WebDriverAgent build is cached for this Xcode version, so Doc Detective is bu
 
 Later runs reuse the build until Xcode or the driver changes. To build it ahead of time, for example when you prepare a CI image, run `doc-detective install ios --yes`.
 
+To find the matching build, Doc Detective first checks the Xcode version. On a cold Mac, such as a fresh CI runner, that check can take up to 2 minutes for a run's first iOS test. The wait adds to any build time, and it ends before the test's steps run, so don't cancel the run.
+
 If the build fails, the test still runs, and Appium builds WebDriverAgent during the session instead. Doc Detective warns and names the cause in the last sentence. For example, a build that runs too long warns:
 
 ```text
