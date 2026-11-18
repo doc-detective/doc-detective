@@ -348,7 +348,11 @@ The action logs what it did with each platform's cache:
 - `No cached Android system images and emulators, so this run installs and caches them.`
 - `Cached the Android system images and emulators (<key>).`
 
-The iOS lines are the same, but name the WebDriverAgent build instead of the Android system images and emulators.
+For iOS, the lines are:
+
+- `Restored the WebDriverAgent build from the cache (<key>).`
+- `No cached WebDriverAgent build, so this run builds and caches it.`
+- `Cached the WebDriverAgent build (<key>).`
 
 ### Cache with `actions/cache`
 

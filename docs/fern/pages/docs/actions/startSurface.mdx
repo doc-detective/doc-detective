@@ -448,7 +448,7 @@ This example targets the `android` platform and launches the Settings app by its
 
 ### Launch an iOS app on a simulator
 
-This example targets the `ios` platform and launches the Settings app by its bundle ID on the context's default simulator. It waits until the app's content is on screen, takes a screenshot of the window, and closes the surface. Give the first surface a generous `timeout` so a cold simulator boot fits inside it.
+This example targets the `ios` platform and launches the Settings app by its bundle ID on the context's default simulator. It waits until the app's content is on screen, takes a screenshot of the window, and closes the surface. Give the first surface a generous `timeout` so a cold simulator boot fits inside it. A [first-use WebDriverAgent build](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use) runs before the test starts, so it doesn't count toward `timeout`. If that build fails or is turned off, Appium builds WebDriverAgent during the session, and the step needs more time.
 
 ```json
 {
