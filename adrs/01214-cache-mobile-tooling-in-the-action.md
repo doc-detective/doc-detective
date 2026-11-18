@@ -177,6 +177,9 @@ Xcode and driver versions are known, and the Action caches only what the CLI rec
   files are missing.
 * The CLI change ships with red → green unit tests and an iOS fixture permutation. A focused
   `it(...)` in `test/core-core.test.js` covers the opt-out.
+* The macOS `mobile-web-ios` fixture leg restores and prebuilds no WebDriverAgent, so every run
+  of it proves the first-use build. The `apps-ios` leg keeps the restore and prebuild of ADR
+  01116, and proves a run that finds a cached build.
 * The Action change ships with unit tests beside its cache code. The measurement workflow runs
   twice against its branch, to compare cold and warm.
 

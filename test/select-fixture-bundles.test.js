@@ -268,6 +268,44 @@ describe("select-fixture-bundles", function () {
       assert.ok(names.indexOf("Prebuild WebDriverAgent") < names.indexOf("Save WebDriverAgent products"));
     });
 
+    it("leaves one iOS leg cold, so its run builds WebDriverAgent on first use (ADR 01214)", function () {
+      // One leg proves the first-use build. The other keeps the prebuild, so
+      // it proves a cached build is used as before.
+      const firstUse = BUNDLES.filter((b) => b.wdaFirstUse);
+      assert.deepEqual(firstUse.map((b) => b.name), ["mobile-web-ios"]);
+      assert.equal(firstUse[0].prebootIos, true);
+      assert.equal(selectMatrix([]).find((b) => b.name === "mobile-web-ios").wdaFirstUse, true);
+      assert.equal(selectMatrix([]).find((b) => b.name === "apps-ios").wdaFirstUse, undefined);
+
+      // That leg skips every step that would put a build in the cache.
+      for (const name of [
+        "Restore WebDriverAgent products",
+        "Prebuild WebDriverAgent",
+        "Key the WebDriverAgent products",
+        "Save WebDriverAgent products",
+      ]) {
+        assert.ok(
+          byName(name).if.startsWith(`${iosOnly} && !matrix.bundle.wdaFirstUse`),
+          `${name} must skip the first-use leg`
+        );
+      }
+
+      // The weekly dd-cache entry can carry a build too, so the leg clears it.
+      const names = steps().map((s) => s.name);
+      const clear = byName("Clear WebDriverAgent products");
+      assert.ok(clear, "the clear step exists");
+      assert.equal(clear.if, "runner.os == 'macOS' && matrix.bundle.wdaFirstUse");
+      assert.match(clear.run, /rm -rf ~\/\.dd-cache\/ios\/wda\b/);
+      assert.ok(
+        names.indexOf("Clear WebDriverAgent products") <
+          names.indexOf("Run ${{ matrix.bundle.name }} fixtures")
+      );
+      // The session locator's Xcode probe allows 15 s, and the first
+      // `xcodebuild -version` on a fresh image can take longer. This step runs
+      // it first, on both iOS legs.
+      assert.equal(byName("Read the Xcode version").if, iosOnly);
+    });
+
     it("bounds the simulator boot wait without GNU timeout, which macOS runners lack", function () {
       const run = byName("Wait for pre-booted simulator").run;
       assert.doesNotMatch(run, /\btimeout\s+\d/);
