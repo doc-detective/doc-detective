@@ -243,8 +243,9 @@ syntax in `files`, or `{}` when no file was audited:
 ```
 
 In text, a guidance block follows the untested list when a procedure step is untested or a list is a
-possible procedure. It lists only the syntaxes in the run. `-q` never prints it. The `procedure`
-lines print only when a list is a possible procedure.
+possible procedure. It lists only the syntaxes in the run. `-q` never prints it. The step, test,
+and ignore lines print only when a procedure step is untested. The `procedure` lines print only when
+a list is a possible procedure.
 
 ```text
 To cover a step, put a step statement inside the item, on the line after the sentence it tests:
