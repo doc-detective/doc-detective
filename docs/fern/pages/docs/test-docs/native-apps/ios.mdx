@@ -127,21 +127,21 @@ No WebDriverAgent build is cached for this Xcode version, so Doc Detective is bu
 
 Later runs reuse the build until Xcode or the driver changes. To build it ahead of time, for example when you prepare a CI image, run `doc-detective install ios --yes`.
 
-If the build fails, the test still runs. Doc Detective warns with the cause, and Appium builds WebDriverAgent during the session instead:
+If the build fails, the test still runs, and Appium builds WebDriverAgent during the session instead. Doc Detective warns and names the cause in the last sentence. For example, a build that runs too long warns:
 
 ```text
-Couldn't build WebDriverAgent before the test, so Appium builds it during the session. <cause>
+Couldn't build WebDriverAgent before the test, so Appium builds it during the session. The build didn't finish within 20 minutes.
 ```
 
-In place of `<cause>`, the warning names what went wrong in a sentence. For example, a build that runs too long ends with `The build didn't finish within 20 minutes.` To see the build output, run with `-d`, or set `DOC_DETECTIVE_DEBUG=true` in CI. Debug output goes to stderr. See [Troubleshooting setup issues](/docs/troubleshooting/setup-issues). If this build fails but another Doc Detective process finishes one, the test uses that build and no warning appears.
+Other failures end with a different cause, such as an `xcodebuild` error. To find out why a build failed, run with `-d`, or set `DOC_DETECTIVE_DEBUG=true` in CI, and read the build output. Debug output goes to stderr. See [Troubleshooting setup issues](/docs/troubleshooting/setup-issues). If this build fails but another Doc Detective process finishes one, the test uses that build and no warning appears.
 
-Sometimes the build succeeds, but Doc Detective can't list it in the cache's `installed.json` record. The test still uses the new build, later runs still find it, and exit codes don't change. Doc Detective warns with the cause so you can fix it:
+Sometimes the build succeeds, but Doc Detective can't list it in the cache's `installed.json` record. The test still uses the new build, later runs still find it, and exit codes don't change. Doc Detective warns and names the cause in the last sentence so you can fix it. For example:
 
 ```text
-Couldn't update the cache record after building WebDriverAgent, so `installed.json` may not list this build. <cause>
+Couldn't update the cache record after building WebDriverAgent, so `installed.json` may not list this build. The cache directory isn't writable.
 ```
 
-In place of `<cause>`, the warning says `The cache directory isn't writable.`, `The disk is full.`, or `An unexpected error stopped the update.`
+The cause can also be `The disk is full.` or `An unexpected error stopped the update.`
 
 To turn off the first-use build, set `DOC_DETECTIVE_NO_IOS_AUTOINSTALL=1`. The test still runs, and Appium builds WebDriverAgent during the session, outside the cache directory. Setting `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` to the DerivedData directory of your own WebDriverAgent build also turns it off.
 
