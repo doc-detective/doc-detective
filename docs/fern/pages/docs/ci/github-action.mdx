@@ -4,7 +4,7 @@ sidebar-title: GitHub Action
 description: Add the Doc Detective GitHub Action to a workflow, gate pull requests on the results, and open PRs or issues automatically.
 ---
 
-The [Doc Detective GitHub Action](https://github.com/doc-detective/github-action) runs your tests inside a GitHub Actions workflow. It's the recommended way to run Doc Detective in CI. It installs Doc Detective for you and fails the job when tests fail. It can also open a pull request or file an issue when a run finds a problem. This guide covers adding the action to a workflow, failing the build on test failures, and wiring up the pull request and issue features.
+The [Doc Detective GitHub Action](https://github.com/doc-detective/github-action) runs your tests inside a GitHub Actions workflow. It's the recommended way to run Doc Detective in CI. It installs Doc Detective for you, caches it between runs, and fails the job when tests fail. It can also open a pull request or file an issue when a run finds a problem. This guide covers adding the action to a workflow, failing the build on test failures, and wiring up the pull request and issue features.
 
 For the full list of inputs and outputs, see the [action's README](https://github.com/doc-detective/github-action).
 
@@ -34,7 +34,7 @@ jobs:
 
 This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. GitHub-hosted runners default to an older version. On older Node.js, the action warns you to add `actions/setup-node` with `node-version: 24`.
 
-Pin to the major version (`@v2`) to pick up fixes automatically, or pin to a full version such as `@v2.0.0` for a fixed release. Action `@v2` runs CLI 5, and `@v1` stays on CLI 4. If you're moving from `@v1`, see [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
+Pin to the major version (`@v2`) to pick up fixes automatically, or pin to a full version such as `@v2.1.0` for a fixed release. Action `@v2` runs CLI 5, and `@v1` stays on CLI 4. If you're moving from `@v1`, see [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
 
 ## Step 2: Point the action at your tests
 
@@ -54,9 +54,10 @@ By default, the action runs from the repository root and uses the config file Do
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
 | `config` | None | Path to a configuration file, relative to `working_directory`. |
 | `input` | None | Path to an input file or directory, relative to `working_directory`. Overrides the `input` field in the config file. |
+| `cache` | `true` | Cache the `doc-detective` package, and the runtime and browsers it installs, between runs. Set to `false` to install everything on every run. See [Runtime caching](#runtime-caching). |
 
 <Note>
-Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package. The action expects version 5's exit codes, so the local build must be version 5 or later.
+Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package. The action expects version 5's exit codes, so the local build must be version 5 or later. In this mode, the action doesn't cache anything. To cache the runtime yourself, see [Cache with `actions/cache`](#cache-with-actionscache).
 </Note>
 
 ## Step 3: Fail the build when tests fail
@@ -315,11 +316,34 @@ Use a rotating key (`github.run_id`) with `restore-keys` rather than a static ke
 
 ## Runtime caching
 
-Doc Detective installs heavy runtime assets on first use, including browsers, drivers, and npm packages. To speed up CI, cache them between runs.
+Doc Detective installs heavy runtime assets on first use, including browsers, drivers, and npm packages. The action caches them between runs, so later runs start without downloading them again.
 
 ### Cache the runtime directory
 
-Point `DOC_DETECTIVE_CACHE_DIR` at a path under the workspace, then use GitHub's cache action to persist it between runs:
+The action caches by default, with no extra steps. It caches the `doc-detective` package that `npx` installs, and the runtime and browsers Doc Detective installs on first use. Later runs restore them from the [GitHub Actions cache](https://docs.github.com/actions/using-workflows/caching-dependencies-to-speed-up-workflows). The first run in a repository installs everything and saves it.
+
+Each run restores the newest cache saved for the same runner OS, CPU architecture, and Node.js major version. After the run, the action saves a new cache entry only if the run installed or updated something. For example, the run installed a new Doc Detective version or updated a browser. If the cache misses or a restore or save fails, the action logs a message. The run then continues.
+
+Doc Detective 5.3.0 and later replace outdated cached browsers about once a day, and the action saves the new browser. With an earlier Doc Detective version, the action starts a new cache each week, so cached browsers are at most a week old.
+
+The action caches the directory Doc Detective uses, and finds it the same way Doc Detective does. It checks, in order:
+
+1. `DOC_DETECTIVE_CACHE_DIR`, from the environment or a `.env` file in `working_directory`.
+2. `cacheDir` in `DOC_DETECTIVE_CONFIG`.
+3. `cacheDir` in your config file.
+4. The default [cache directory](/reference/reference/cli/install#cache-directory).
+
+The action skips caching when `version` is empty. To cache the runtime in that case, see [Cache with `actions/cache`](#cache-with-actionscache). To install everything on every run, set `cache` to `false`:
+
+```yaml
+- uses: doc-detective/github-action@v2
+  with:
+    cache: false
+```
+
+### Cache with `actions/cache`
+
+When `version` is empty or `cache` is `false`, the action doesn't cache the runtime. If a workflow already caches the runtime with `actions/cache`, set `cache: false` on the action step so the runtime isn't cached twice. To cache it yourself, point `DOC_DETECTIVE_CACHE_DIR` at a path under the workspace, then use GitHub's cache action to persist it between runs:
 
 ```yaml
 jobs:
@@ -339,6 +363,8 @@ jobs:
           restore-keys: |
             doc-detective-${{ runner.os }}-
       - uses: doc-detective/github-action@v2
+        with:
+          cache: false
 ```
 
 Because `DOC_DETECTIVE_CACHE_DIR` points to a path under `${{ github.workspace }}`, the cache action can store and restore those assets across runs. Doc Detective 5.3.0 and later replace outdated cached browsers about once a day. The action's default `version`, `5`, installs one of those releases, so use a run-scoped key, as above. A static key keeps restoring the first copy it saved, and each run downloads the newer browser again. A run-scoped key saves a new cache entry on every run. GitHub evicts entries unused for 7 days, and the oldest ones once a repository passes its cache limit.
@@ -367,15 +393,18 @@ jobs:
       - run: npm install -g doc-detective
       - run: doc-detective install all --yes
       - uses: doc-detective/github-action@v2
+        with:
+          cache: false
 ```
 
-Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every step, so the pre-install step and the action share the same cached directory.
+Setting `env` at the job level makes `DOC_DETECTIVE_CACHE_DIR` visible to every step, so the pre-install step and the action share the same cached directory. `cache: false` turns off the built-in cache, so the runtime isn't cached twice.
 
 ## Verify it works
 
 Open a pull request that touches a documented command, screenshot, or API response, then confirm:
 
 - The `doc-detective` job runs and its log shows the terminal summary.
+- On a later run, the log shows that the action restored `doc-detective` and its runtime from the cache.
 - A failing test fails the job and blocks the pull request, unless you set `exit_on_fail: false`.
 - With `create_pr_on_change: true`, a run that changes files opens a pull request, or updates the open one.
 - With `create_issue_on_fail: true`, a run with failing tests opens an issue, or updates the open one.
@@ -418,9 +447,9 @@ Open a pull request that touches a documented command, screenshot, or API respon
 
 ### Runs are slow because assets download every time
 
-**Cause:** The runtime cache isn't persisted between runs.
+**Cause:** The action isn't caching the runtime, because the step sets `cache: false` or an empty `version`. A run also downloads everything when no cache matches its runner OS, CPU architecture, and Node.js major version. That happens on the first run after you change one of them.
 
-**Solution:** Set `DOC_DETECTIVE_CACHE_DIR` to a cached workspace path and pre-install assets. See [Runtime caching](#runtime-caching).
+**Solution:** Remove `cache: false` from the step. With an empty `version`, cache the runtime yourself. A cache miss fills on the next run. See [Runtime caching](#runtime-caching).
 
 ## What's next
 
