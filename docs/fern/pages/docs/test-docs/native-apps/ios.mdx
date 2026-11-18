@@ -122,7 +122,7 @@ On a host that isn't macOS, the test skips with a reason rather than failing. Se
 Doc Detective keeps WebDriverAgent builds in its [cache directory](/reference/reference/cli/install#cache-directory), one for each Xcode version and driver. When an iOS test finds no build for the current pair, Doc Detective builds one before the test starts. The run then pauses for about 10 minutes, which is expected. It warns in the terminal and the report, and exit codes don't change:
 
 ```text
-No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios` ahead of time to skip the wait.
+No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.
 ```
 
 Later runs reuse the build until Xcode or the driver changes. To build it ahead of time, for example when you prepare a CI image, run `doc-detective install ios --yes`.
@@ -134,6 +134,12 @@ Couldn't build WebDriverAgent before the test, so Appium builds it during the se
 ```
 
 The cause names what went wrong. For example, a build that runs too long ends with `The build didn't finish within 20 minutes.` To see the build output, run with `-d`, or set `DOC_DETECTIVE_DEBUG=true` in CI. Debug output goes to stderr. See [Troubleshooting setup issues](/docs/troubleshooting/setup-issues).
+
+Sometimes the build succeeds, but Doc Detective can't list it in the cache's `installed.json` record. The test still uses the new build, later runs still find it, and exit codes don't change. Doc Detective warns with the cause, such as a cache directory that isn't writable or a full disk, so you can fix it:
+
+```text
+Couldn't update the cache record after building WebDriverAgent, so `installed.json` may not list this build. <cause>.
+```
 
 To turn off the first-use build, set `DOC_DETECTIVE_NO_IOS_AUTOINSTALL=1`. The test still runs, and Appium builds WebDriverAgent during the session, outside the cache directory. Setting `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` to the DerivedData directory of your own WebDriverAgent build also turns it off.
 
