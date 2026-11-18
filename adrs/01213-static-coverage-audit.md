@@ -218,9 +218,11 @@ DITA, which would drop its steps. The HTML and DITA code-block templates keep th
 class, because a block without a runnable language isn't counted at all.
 
 A file type might not read the built-in templates. Examples are custom `inlineStatements` such as
-Hugo shortcodes, or a format with no built-in parser. Then its syntax is the file type's `name`. The
-guidance gives each statement's text without a wrapper, and says to wrap it in the comment form the
-file type's `inlineStatements` define.
+Hugo shortcodes, or a format with no built-in parser. Then its syntax is the file type's `name`, or
+`<name>-custom` when that name is a built-in syntax's. That key is numbered from `-2` when another file
+type in the run already has it, so no two syntaxes share a key. The guidance
+gives each statement's text without a wrapper, and says to wrap it in the comment form the file
+type's `inlineStatements` define.
 
 The `procedure` statement is the manual fix for a false negative: a real procedure that `audit`
 leaves in "possible procedures".
@@ -242,8 +244,9 @@ syntax in `files`, or `{}` when no file was audited:
 ```
 
 In text, a guidance block follows the untested list when a procedure step is untested or a list is a
-possible procedure. It lists only the syntaxes in the run. `-q` never prints it. The `procedure`
-lines print only when a list is a possible procedure.
+possible procedure. It lists only the syntaxes in the run. `-q` never prints it. The step, test,
+and ignore lines print only when a procedure step is untested. The `procedure` lines print only when
+a list is a possible procedure.
 
 ```text
 To cover a step, put a step statement inside the item, on the line after the sentence it tests:
@@ -257,9 +260,8 @@ If audit missed a procedure, put a procedure statement before the list:
 More: https://docs.doc-detective.com/docs/test-docs/audit-test-coverage
 ```
 
-A custom syntax prints under its file type's name with the bare statement, followed by
-``(wrap it in the comment form `<name>`'s `inlineStatements` define)``. Flags, exit codes, and
-usage errors don't change.
+A custom syntax prints under its key with the bare statement, followed by its `note`. Flags, exit
+codes, and usage errors don't change.
 
 ### Placement
 

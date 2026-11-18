@@ -142,7 +142,7 @@ A standalone spec then credits the block through the step's `stepId`:
 
 ## Act on the report
 
-The text report can end with the statements to write for each format in the run. It does when a procedure step is untested, or when a list lands in **Possible procedures**. With `--json`, the same guidance is in the `guidance` object, and each file's `syntax` says which templates apply to it.
+The text report can end with the statements to write for each format in the run. An untested procedure step brings the step, test, and ignore statements. A list in **Possible procedures** brings the `procedure` statement. With `--json`, the same guidance is in the `guidance` object, and each file's `syntax` says which templates apply to it.
 
 ### Cover a step
 
@@ -176,7 +176,7 @@ If `audit` puts a real procedure in **Possible procedures**, put a `procedure` s
 
 ### Custom file types
 
-The guidance checks each template against the file's own file type. A custom file type that reads the built-in statements, such as one that extends Markdown, gets the built-in templates. A file type with its own `inlineStatements` gets the bare statement text, such as `step {"click": "Save"}`. A note says to wrap it in that file type's comment form.
+The guidance checks each template against the file's own file type. A custom file type that reads the built-in statements, such as one that extends Markdown, gets the built-in templates. A file type with its own `inlineStatements` gets the bare statement text, such as `step {"click": "Save"}`. A note says to wrap it in that file type's comment form. Its key in `guidance.syntaxes` is the file type's `name`, or `<name>-custom` when that name is a built-in syntax's, such as `markdown`. If another file type in the run already has that key, it's numbered from `-2`.
 
 ### The `guidance` object
 

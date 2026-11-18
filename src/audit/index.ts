@@ -10,7 +10,7 @@ import { loadProjectEnv, readStdinInputs, setConfig, discoverConfigPath, log } f
 import { setConfig as setRunConfig } from "../core/config.js";
 import { detectTests } from "../core/detectTests.js";
 import { maskDeep, maskString } from "../core/masking.js";
-import { buildGuidance, labelOf, syntaxFor, type Guidance } from "./guidance.js";
+import { buildGuidance, keySyntaxes, labelOf, syntaxFor, type Guidance } from "./guidance.js";
 import { canonicalUrl, computeCoverage, type CoverageIndex, type FileCoverage, type Item, type State } from "./coverage.js";
 
 const SPEC_EXTENSIONS = new Set(["json", "yaml", "yml"]);
@@ -101,10 +101,11 @@ export function summarize(files: Array<{ path: string; fileType?: string; syntax
       }
     }
   }
+  const keyed = keySyntaxes(files.map((file) => ({ syntax: file.syntax, custom: file.customSyntax ?? false, fileType: file.fileType })));
   return {
     summary: { procedureSteps, possibleProcedureSteps, lists, codeBlocks: { byLanguage, notRunnable }, links, images, pages },
-    files: files.map(({ path: file, fileType, syntax, measured, items }) => ({ path: file, fileType, syntax, measured, items })),
-    guidance: buildGuidance(files.map((file) => ({ syntax: file.syntax, custom: file.customSyntax ?? false }))),
+    files: files.map(({ path: file, fileType, measured, items }, i) => ({ path: file, fileType, syntax: keyed[i].syntax, measured, items })),
+    guidance: buildGuidance(keyed),
   };
 }
 
@@ -112,17 +113,22 @@ export function summarize(files: Array<{ path: string; fileType?: string; syntax
 function renderGuidance(report: AuditReport): string[] {
   const { procedureSteps, lists } = report.summary;
   if (!procedureSteps.untested && !lists.possible) return [];
-  const syntaxes = Object.entries(report.guidance.syntaxes);
-  // A custom file type shows its own name, even when it's a built-in's.
-  const label = (name: string, t: object) => ("custom" in t ? name : labelOf(name)).padEnd(11);
-  const rows = (pick: (t: any) => string) => syntaxes.map(([name, t]) => `  ${label(name, t)}${pick(t)}`);
-  const lines = ["", "To cover a step, put a step statement inside the item, on the line after the sentence it tests:"];
-  for (const [name, t] of syntaxes) {
-    lines.push(`  ${label(name, t)}${t.step}`);
-    if ("custom" in t) lines.push(`  (wrap it in the comment form \`${name}\`'s \`inlineStatements\` define)`);
+  // A custom file type shows its syntax key, never a built-in's label.
+  const syntaxes = Object.entries(report.guidance.syntaxes).map(([name, t]) => ["custom" in t ? name : labelOf(name), t] as const);
+  const width = Math.max(11, ...syntaxes.map(([label]) => label.length + 2));
+  const rows = (pick: (t: any) => string) => syntaxes.map(([label, t]) => `  ${label.padEnd(width)}${pick(t)}`);
+  const lines = [""];
+  // Covering and ignoring advice is for untested steps. A possible procedure
+  // only needs the procedure statement.
+  if (procedureSteps.untested) {
+    lines.push("To cover a step, put a step statement inside the item, on the line after the sentence it tests:");
+    for (const [label, t] of syntaxes) {
+      lines.push(`  ${label.padEnd(width)}${t.step}`);
+      if ("custom" in t) lines.push(`  ${t.note}`);
+    }
+    lines.push("Or wrap the procedure in a test with at least one step:", ...rows((t) => `${t.testStart}  …  ${t.testEnd}`));
+    lines.push("To flag a list that isn't a procedure, wrap it in ignore statements:", ...rows((t) => `${t.ignoreStart}  …  ${t.ignoreEnd}`));
   }
-  lines.push("Or wrap the procedure in a test with at least one step:", ...rows((t) => `${t.testStart}  …  ${t.testEnd}`));
-  lines.push("To flag a list that isn't a procedure, wrap it in ignore statements:", ...rows((t) => `${t.ignoreStart}  …  ${t.ignoreEnd}`));
   if (lists.possible) lines.push("If audit missed a procedure, put a procedure statement before the list:", ...rows((t) => t.procedure));
   lines.push(`More: ${report.guidance.docs}`);
   return lines;

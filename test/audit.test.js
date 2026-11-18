@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import sinon from "sinon";
 import { auditHandler } from "../dist/audit/command.js";
+import { renderText, summarize } from "../dist/audit/index.js";
 
 const page = [
   "# Install",
@@ -138,10 +139,23 @@ describe("audit command", function () {
       assert.doesNotMatch(text, /MDX/);
     });
 
-    it("adds the procedure lines when a list is a possible procedure", async function () {
+    it("prints only the procedure lines when a possible procedure is all it found", async function () {
       fs.writeFileSync(path.join(dir, "notes.md"), "1. Release notes\n2. Bug fixes\n");
       const text = await run({ input: dir });
       assert.match(text, /If audit missed a procedure, put a procedure statement before the list:\n {2}Markdown {3}<!-- procedure -->\n/);
+      assert.doesNotMatch(text, /To cover a step|To flag a list/);
+    });
+
+    it("widens the label column for a long custom file type name", function () {
+      const untested = { kind: "procedureStep", source: "explicit", line: 1, text: "Open it.", state: "untested" };
+      const file = (name, syntax, customSyntax) => ({
+        path: `/${name}`, syntax, customSyntax, measured: true, items: [untested],
+        lists: { explicit: 1, tagged: 0, possible: 0 }, notRunnable: 0, linksTotal: 0, hasAuthoredStep: false,
+      });
+      const text = renderText(summarize([file("a.md", "markdown", false), file("b.md", "hugo-shortcodes", true)]));
+      const rows = text.split("\n").filter((line) => /^ {2}(Markdown|hugo-shortcodes)/.test(line));
+      assert.equal(rows.length, 6, text);
+      assert.equal(new Set(rows.map((line) => line.search(/<!--|step |test /))).size, 1, rows.join("\n"));
     });
 
     it("prints no guidance when nothing is untested or possible, or with --quiet", async function () {

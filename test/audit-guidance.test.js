@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { computeCoverage } from "../dist/audit/coverage.js";
-import { SYNTAXES, syntaxFor, buildGuidance } from "../dist/audit/guidance.js";
+import { SYNTAXES, syntaxFor, buildGuidance, keySyntaxes } from "../dist/audit/guidance.js";
 import { detectTests } from "../dist/common/src/detectTests.js";
 import { defaultFileTypes } from "../dist/common/src/fileTypes.js";
 
@@ -84,14 +84,35 @@ describe("audit guidance", function () {
     };
 
     it("takes the file type's name as its syntax", function () {
-      assert.deepEqual(syntaxFor(hugo, path.join(root, "page.md")), { syntax: "hugo", custom: true });
+      assert.deepEqual(syntaxFor(hugo, path.join(root, "page.md")), { syntax: "hugo", custom: true, fileType: "hugo" });
     });
 
-    it("gets the bare statements even when it's named like a built-in", function () {
-      const named = { ...hugo, name: "markdown" };
-      const { syntax, custom } = syntaxFor(named, path.join(root, "page.md"));
-      assert.deepEqual({ syntax, custom }, { syntax: "markdown", custom: true });
-      assert.equal(buildGuidance([{ syntax, custom }]).syntaxes.markdown.custom, true);
+    it("gets its own key, apart from the built-in, when it's named like one", function () {
+      const named = syntaxFor({ ...hugo, name: "markdown" }, path.join(root, "page.md"));
+      assert.deepEqual(named, { syntax: "markdown", custom: true, fileType: "markdown" });
+      const keyed = keySyntaxes([{ syntax: "markdown", custom: false }, named]);
+      assert.deepEqual(keyed.map((s) => s.syntax), ["markdown", "markdown-custom"]);
+      const { syntaxes } = buildGuidance(keyed);
+      assert.deepEqual(syntaxes.markdown, SYNTAXES.markdown);
+      assert.equal(syntaxes["markdown-custom"].custom, true);
+      assert.match(syntaxes["markdown-custom"].note, /the `markdown` file type's/);
+    });
+
+    it("gets a key no other file type in the run has", function () {
+      const custom = (name) => ({ syntax: name, custom: true, fileType: name });
+      const keyed = keySyntaxes([custom("markdown"), custom("markdown-custom"), custom("markdown"), { syntax: "markdown", custom: false }]);
+      assert.deepEqual(keyed.map((s) => s.syntax), ["markdown-custom-2", "markdown-custom", "markdown-custom-2", "markdown"]);
+      const { syntaxes } = buildGuidance(keyed);
+      assert.match(syntaxes["markdown-custom-2"].note, /the `markdown` file type's/);
+      assert.match(syntaxes["markdown-custom"].note, /the `markdown-custom` file type's/);
+    });
+
+    it("gets templates when it's named like an Object property", function () {
+      for (const name of ["constructor", "toString", "__proto__"]) {
+        const { syntaxes } = buildGuidance([syntaxFor({ ...hugo, name }, path.join(root, "page.md"))]);
+        assert.deepEqual(Object.keys(syntaxes), [name]);
+        assert.equal(syntaxes[name].custom, true);
+      }
     });
 
     it("gets the bare statements and a note", function () {

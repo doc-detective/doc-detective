@@ -49,12 +49,14 @@ const LABELS: Record<string, string> = { markdown: "Markdown", mdx: "MDX", ascii
 export const labelOf = (syntax: string) => LABELS[syntax] ?? syntax;
 
 // Template keys, which are also the statement types they produce.
+// `ignoreCodeBlock` is a code-block attribute, not a statement, so
+// test/audit-guidance.test.js checks it end to end instead.
 const KINDS = ["step", "testStart", "testEnd", "ignoreStart", "ignoreEnd", "procedure"] as const;
 
 /**
  * The file's syntax: a built-in name when its file type reads that syntax's
- * templates, else the file type's name, marked custom even when that name is
- * a built-in's.
+ * templates, else the file type's name, marked custom. `keySyntaxes` turns
+ * these into the run's unique keys.
  */
 export function syntaxFor(fileType: FileType, filePath: string): Syntax {
   const format = formatOf(fileType, filePath);
@@ -62,15 +64,39 @@ export function syntaxFor(fileType: FileType, filePath: string): Syntax {
   const t = candidate ? SYNTAXES[candidate] : undefined;
   if (t) {
     const content = KINDS.map((kind) => t[kind]).join("\n\n");
-    const types = new Set(collectStatements({ content, fileType, filePath, detectSteps: false, warn: () => {} }).map((s: any) => s.type));
+    const types = new Set(collectStatements({ content, fileType, filePath, detectSteps: false, warn: () => {} }).map((s) => s.type));
     if (KINDS.every((kind) => types.has(kind))) return { syntax: candidate!, custom: false };
   }
-  return { syntax: fileType.name ?? fileType.extensions.join(","), custom: true };
+  const name = fileType.name ?? fileType.extensions.join(",");
+  return { syntax: name, custom: true, fileType: name };
+}
+
+/**
+ * Gives each distinct syntax in the run its own key. Built-in syntaxes and
+ * custom names that aren't a built-in's keep their names. A custom name that
+ * is a built-in's gets `<name>-custom`, numbered from `-2` when that's taken.
+ */
+export function keySyntaxes(files: Syntax[]): Syntax[] {
+  const used = new Set(files.filter((f) => !f.custom || !Object.hasOwn(SYNTAXES, f.syntax)).map((f) => f.syntax));
+  const renamed = new Map<string, string>();
+  return files.map((file) => {
+    if (!file.custom || !Object.hasOwn(SYNTAXES, file.syntax)) return file;
+    let key = renamed.get(file.syntax);
+    if (!key) {
+      key = `${file.syntax}-custom`;
+      for (let n = 2; used.has(key); n++) key = `${file.syntax}-custom-${n}`;
+      used.add(key);
+      renamed.set(file.syntax, key);
+    }
+    return { ...file, syntax: key };
+  });
 }
 
 export interface Syntax {
   syntax: string;
   custom: boolean;
+  /** A custom syntax's file type name, for its note. */
+  fileType?: string;
 }
 
 export interface Guidance {
@@ -83,10 +109,11 @@ export interface Guidance {
 
 /** The report's `guidance`: shared advice, plus templates for each syntax in the run. */
 export function buildGuidance(files: Syntax[]): Guidance {
-  const syntaxes: Guidance["syntaxes"] = {};
-  for (const { syntax, custom } of files) {
-    if (syntax in syntaxes) continue;
-    syntaxes[syntax] = (!custom && SYNTAXES[syntax]) || {
+  // A Map, so a file type named `constructor` or `__proto__` is a key like any other.
+  const syntaxes = new Map<string, Guidance["syntaxes"][string]>();
+  for (const { syntax, custom, fileType = syntax } of files) {
+    if (syntaxes.has(syntax)) continue;
+    syntaxes.set(syntax, (!custom && SYNTAXES[syntax]) || {
       custom: true,
       step: `step ${STEP}`,
       testStart: TEST,
@@ -94,8 +121,8 @@ export function buildGuidance(files: Syntax[]): Guidance {
       ignoreStart: "test ignore start",
       ignoreEnd: "test ignore end",
       procedure: "procedure",
-      note: `Wrap each statement in the comment form that the \`${syntax}\` file type's \`inlineStatements\` define.`,
-    };
+      note: `Wrap each statement in the comment form that the \`${fileType}\` file type's \`inlineStatements\` define.`,
+    });
   }
   return {
     docs: "https://docs.doc-detective.com/docs/test-docs/audit-test-coverage",
@@ -104,6 +131,6 @@ export function buildGuidance(files: Syntax[]): Guidance {
     flagFalsePositive:
       "Wrap a list that isn't a procedure, or an item you won't test, in `test ignore start` and `test ignore end`. Its items then count as ignored. Tag a code block you won't run with `testIgnore`.",
     markProcedure: "If `audit` misses a procedure and puts it in Possible procedures, put a `procedure` statement directly before the list.",
-    syntaxes,
+    syntaxes: Object.fromEntries(syntaxes),
   };
 }
