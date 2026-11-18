@@ -349,7 +349,7 @@ The action skips caching when `version` is empty. To cache the runtime in that c
 
 ### Cache with `actions/cache`
 
-When `version` is empty or `cache` is `false`, the action doesn't cache the runtime. If a workflow already caches the runtime with `actions/cache`, set `cache: false` on the action step so the runtime isn't cached twice. To cache it yourself, point `DOC_DETECTIVE_CACHE_DIR` at a path under the workspace, then use GitHub's cache action to persist it between runs:
+To cache the runtime yourself, point `DOC_DETECTIVE_CACHE_DIR` at a path under the workspace and use `actions/cache` to persist it between runs. This is how to cache when `version` is empty, because the action's built-in cache doesn't run then. When `version` has a value, including the default `5` this example uses, also set `cache: false` on the action step so the runtime isn't cached twice:
 
 ```yaml
 jobs:
