@@ -49,6 +49,8 @@ const LABELS: Record<string, string> = { markdown: "Markdown", mdx: "MDX", ascii
 export const labelOf = (syntax: string) => LABELS[syntax] ?? syntax;
 
 // Template keys, which are also the statement types they produce.
+// `ignoreCodeBlock` is a code-block attribute, not a statement, so
+// test/audit-guidance.test.js checks it end to end instead.
 const KINDS = ["step", "testStart", "testEnd", "ignoreStart", "ignoreEnd", "procedure"] as const;
 
 /**
@@ -62,7 +64,7 @@ export function syntaxFor(fileType: FileType, filePath: string): Syntax {
   const t = candidate ? SYNTAXES[candidate] : undefined;
   if (t) {
     const content = KINDS.map((kind) => t[kind]).join("\n\n");
-    const types = new Set(collectStatements({ content, fileType, filePath, detectSteps: false, warn: () => {} }).map((s: any) => s.type));
+    const types = new Set(collectStatements({ content, fileType, filePath, detectSteps: false, warn: () => {} }).map((s) => s.type));
     if (KINDS.every((kind) => types.has(kind))) return { syntax: candidate!, custom: false };
   }
   const name = fileType.name ?? fileType.extensions.join(",");

@@ -69,6 +69,17 @@ describe("audit coverage", function () {
       assert.deepEqual(states(procedureSteps(result)), ["inTest", "inTest"]);
     });
 
+    it("gives no credit for own steps when the test's location doesn't match its statement", async function () {
+      // The match is by offset. A mismatch fails safe: no credit, never false credit.
+      const content = region("1. Open the app.\n2. Close it.", '<!-- test {"steps": [{"click": "Save"}]} -->');
+      const fileType = structuredClone(defaultFileTypes.markdown);
+      const filePath = path.join(root, "page.md");
+      const tests = await detectTests({ content, filePath, fileType, config: { detectSteps: true } });
+      for (const test of tests) if (test.location) test.location.startIndex += 1;
+      const result = computeCoverage({ content, fileType, filePath, steps: [], tests, index: emptyIndex() });
+      assert.deepEqual(states(procedureSteps(result)), ["untested", "untested"]);
+    });
+
     it("credits them for a detected step when detectSteps is on, and not when it's off", async function () {
       const content = region("1. Open the app.\n2. Go to [the site](https://example.com).");
       assert.equal(procedureSteps(await audit(content))[0].state, "inTest");
