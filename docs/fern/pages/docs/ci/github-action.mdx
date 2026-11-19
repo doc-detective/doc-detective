@@ -341,7 +341,7 @@ jobs:
           key: dd-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             dd-cache-${{ runner.os }}-
-      - run: npx doc-detective@5.5.0 install ios --yes  # Replace with your version
+      - run: npx doc-detective@5.5.0 install ios --yes  # Replace with your version. Remove this step with 5.6.0 or later.
       - uses: doc-detective/github-action@v2
         with:
           version: 5.5.0  # Replace with your version
@@ -366,7 +366,11 @@ Doc Detective 5.3.0 and later replace outdated cached browsers about once a day,
 
 While caching is on, the action resolves `version` to an exact version and runs that version, so the cached package matches the one that runs. Each run resolves `version` again, so `version: 5` picks up new 5.x releases, and the log shows a command such as `npx doc-detective@5.5.0`. To run the same release every time, set `version` to an exact version.
 
-From Doc Detective's cache directory, the action caches the `runtime`, `browsers`, and `chromedriver-mobile` folders and the `installed.json` record. Action v2.2.0 added `chromedriver-mobile`, the ChromeDriver for mobile web views. Because the list of cached folders changed, a runtime cache that v2.1.x saved doesn't restore. The first run on v2.2.0 or later installs everything and saves a new entry.
+From Doc Detective's cache directory, the action caches the `runtime`, `browsers`, and `chromedriver-mobile` folders and the `installed.json` record. Action v2.2.0 added `chromedriver-mobile`, the ChromeDriver for mobile web views.
+
+<Note>
+Because the list of cached folders changed in v2.2.0, a runtime cache that v2.1.x saved doesn't restore. The first run on v2.2.0 or later installs everything and saves a new entry.
+</Note>
 
 The action finds that directory the same way Doc Detective does. It checks, in order:
 
