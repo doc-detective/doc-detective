@@ -288,7 +288,7 @@ See [Docker and headless](/docs/ci/docker-and-headless) for how headless environ
 
 ## Speed up iOS tests on macOS
 
-Tests against the `ios` platform run on macOS runners. They drive the simulator through WebDriverAgent, which Doc Detective builds for the runner's Xcode and driver versions. With Doc Detective 5.6.0 or later, the first iOS test on a runner [builds WebDriverAgent](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use), and the action's `cache` input saves that build. Later runs restore it instead of building it again. On GitHub-hosted `macos-latest` runners, the build takes about 2 to 3 minutes, and a restore takes a few seconds. Doc Detective's warning during the build gives a longer estimate, which covers slower machines. The workflow needs no extra steps:
+Tests against the `ios` platform run on macOS runners. They drive the simulator through WebDriverAgent, which Doc Detective builds for the runner's Xcode and driver versions. With Doc Detective 5.6.0 or later, the first iOS test on a runner [builds WebDriverAgent](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use). Action v2.2.0 or later (`@v2`) saves that build through its `cache` input. Later runs restore it instead of building it again. On GitHub-hosted `macos-latest` runners, the build takes about 2 to 3 minutes, and a restore takes a few seconds. Doc Detective's warning during the build gives a longer estimate, which covers slower machines. The workflow needs no extra steps:
 
 ```yaml
 jobs:

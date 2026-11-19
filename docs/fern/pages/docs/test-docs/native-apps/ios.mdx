@@ -149,7 +149,7 @@ The cause can also be `The disk is full.` or `An unexpected error stopped the up
 
 To turn off the first-use build, set `DOC_DETECTIVE_NO_IOS_AUTOINSTALL=1`. The test still runs, and Appium builds WebDriverAgent during the session, outside the cache directory. Setting `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` to the DerivedData directory of your own WebDriverAgent build also turns it off.
 
-In GitHub Actions, the Doc Detective action caches the build between runs, so later runs restore it instead of building it. See [Speed up iOS tests on macOS](/docs/ci/github-action#speed-up-ios-tests-on-macos).
+In GitHub Actions, the Doc Detective action v2.2.0 or later (`@v2`) caches the build between runs. Later runs restore it instead of building it. See [Speed up iOS tests on macOS](/docs/ci/github-action#speed-up-ios-tests-on-macos).
 
 ## Troubleshooting
 
