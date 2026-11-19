@@ -54,8 +54,8 @@ By default, the action runs from the repository root and uses the config file Do
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
 | `config` | None | Path to a configuration file, relative to `working_directory`. |
 | `input` | None | Path to an input file or directory, relative to `working_directory`. Overrides the `input` field in the config file. |
-| `cache` | `true` | Cache the `doc-detective` package, the runtime and browsers it installs, and Android and iOS tooling between runs. Set to `false` to install everything on every run. See [Runtime caching](#runtime-caching). |
-| `android` | `auto` | Prepare Android tests. On Linux runners, the action grants the KVM access the emulator needs. On any runner, it caches Android tooling unless `cache` is `false`. `auto` does this only when your specs target Android, `true` always does, and `false` never does. See [Cache Android and iOS tooling](#cache-android-and-ios-tooling). |
+| `cache` | `true` | Cache the `doc-detective` package, and the runtime and browsers it installs, between runs. On macOS runners, it also caches the WebDriverAgent build for iOS tests. Set to `false` to install everything on every run. See [Runtime caching](#runtime-caching). |
+| `android` | `auto` | Set up Android tests on Linux runners by granting the KVM access the emulator needs. `auto` does this only when your specs target Android, `true` always does, and `false` never does. It has no effect on macOS or Windows runners. |
 
 <Note>
 Leave `version` empty to skip the registry install and run whatever `doc-detective` is already resolvable in the working directory. One example is a local build you exposed with `npm link` in an earlier step. This lets a repository test the action against its own build under review rather than the published package. The action expects version 5's exit codes, so the local build must be version 5 or later. In this mode, the action doesn't cache anything. To cache the runtime yourself, see [Cache with `actions/cache`](#cache-with-actionscache).
@@ -317,12 +317,13 @@ The action skips caching when `version` is empty. To cache the runtime in that c
     cache: false
 ```
 
-### Cache Android and iOS tooling
+### Cache the iOS WebDriverAgent build
 
-Tests that run a mobile app need large tooling that Doc Detective installs on first use. That's the Android system images and emulators, or the iOS WebDriverAgent build. The `cache` input caches this tooling too, with no extra inputs or steps. Each platform gets its own cache entry, separate from the runtime cache, so a browser update doesn't upload the Android tooling again. Like the runtime cache, an entry saves only when what's installed changes, and a cache failure logs a warning without failing the job.
+iOS tests need a WebDriverAgent build, which Doc Detective [builds on first use](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use). On macOS runners, when your specs target iOS, the `cache` input caches that build too, with no extra inputs or steps. Later runs restore it instead of building it again. On GitHub-hosted `macos-latest` runners with Xcode 26.6, the cached build is about 68 MiB, and restoring it takes about 5 seconds. The WebDriverAgent setup then takes about 9 seconds instead of about 100.
 
-- **Android:** The action caches the system images and the emulators (AVDs). If the runner has no Android SDK and Doc Detective installs its own SDK and Java runtime, the action caches those too. The action restores this cache when `android` is `true`, or `auto` and your specs target Android. Setting `android` to `false` turns off both this cache and the KVM setup on Linux runners.
-- **iOS:** On macOS runners, when your specs target iOS, the action caches the WebDriverAgent build. Doc Detective [builds WebDriverAgent on first use](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use), and later runs restore it instead of spending about 10 minutes building it again. The action has no input to force the iOS cache. If it doesn't detect your iOS tests, cache the whole cache directory yourself, as in [Cache with `actions/cache`](#cache-with-actionscache).
+The build gets its own cache entry, separate from the runtime cache, so a browser update doesn't upload it again. Like the runtime cache, the entry saves only when the build changes, and a cache failure logs a warning without failing the job. Setting `cache` to `false` turns it off.
+
+To find iOS tests, the action scans `working_directory`, `input`, and `config` for a context whose `platforms` include `ios`. The action has no input to force the iOS cache. If your tests set the platform another way, such as in `DOC_DETECTIVE_CONFIG`, cache the whole cache directory yourself, as in [Cache with `actions/cache`](#cache-with-actionscache).
 
 The default workflow is enough, with no separate `doc-detective install ios` step. When your specs target iOS, this job caches the WebDriverAgent build:
 
@@ -338,21 +339,7 @@ jobs:
       - uses: doc-detective/github-action@v2
 ```
 
-To find Android tests, the action scans `working_directory`, `input`, and `config` for a context whose `platforms` include `android`. If your tests set the platform another way, such as in `DOC_DETECTIVE_CONFIG`, set `android` to `true` so the action restores and saves the Android cache anyway:
-
-```yaml
-- uses: doc-detective/github-action@v2
-  with:
-    android: true
-```
-
-The action logs what it did with each platform's cache:
-
-- `Restored the Android system images and emulators from the cache (<key>).`
-- `No cached Android system images and emulators, so this run installs and caches them.`
-- `Cached the Android system images and emulators (<key>).`
-
-For iOS, the lines are:
+The action logs what it did with the build:
 
 - `Restored the WebDriverAgent build from the cache (<key>).`
 - `No cached WebDriverAgent build, so this run builds and caches it.`
