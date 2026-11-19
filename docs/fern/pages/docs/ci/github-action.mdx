@@ -341,10 +341,10 @@ jobs:
           key: dd-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             dd-cache-${{ runner.os }}-
-      - run: npx doc-detective@5.5.0 install ios --yes  # Your pre-5.6.0 version; match the action's version input
+      - run: npx doc-detective@5.5.0 install ios --yes  # Replace with your version
       - uses: doc-detective/github-action@v2
         with:
-          version: 5.5.0  # Replace with your pre-5.6.0 version
+          version: 5.5.0  # Replace with your version
           cache: false
 ```
 
