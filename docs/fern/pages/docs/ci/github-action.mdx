@@ -324,7 +324,7 @@ Use these steps when the action doesn't cache the WebDriverAgent build. That hap
 
 Doc Detective versions before 5.6.0 build WebDriverAgent into the cache directory only when you run [`doc-detective install ios --yes`](/reference/reference/cli/install#install-ios). To keep that build between runs, persist Doc Detective's [cache directory](/reference/reference/cli/install#cache-directory) with `actions/cache` and build before the action step. Doc Detective keys the build by your Xcode **and** XCUITest driver versions. Test sessions use it automatically and read-only, which is safe to share across parallel jobs. With Doc Detective 5.6.0 or later and `cache: false`, use the same `actions/cache` step but leave out the `install ios` step. The first iOS test builds WebDriverAgent into the cached directory.
 
-The example pins `5.5.0` in two places. Replace both with the version you run.
+For Doc Detective before 5.6.0, the example pins `5.5.0` in two places. Replace both with the version you run.
 
 ```yaml
 jobs:
@@ -349,6 +349,30 @@ jobs:
       - uses: doc-detective/github-action@v2
         with:
           version: 5.5.0  # Replace with your version.
+          cache: false
+```
+
+With Doc Detective 5.6.0 or later and `cache: false`, keep the `actions/cache` step and leave out the `install ios` step:
+
+```yaml
+jobs:
+  doc-tests:
+    runs-on: macos-latest
+    env:
+      DOC_DETECTIVE_CACHE_DIR: ${{ github.workspace }}/.dd-cache
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.DOC_DETECTIVE_CACHE_DIR }}
+          key: dd-cache-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            dd-cache-${{ runner.os }}-
+      - uses: doc-detective/github-action@v2
+        with:
           cache: false
 ```
 
