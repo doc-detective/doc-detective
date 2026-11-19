@@ -45,18 +45,56 @@ A list's tier is the first that matches:
 
 1. **Explicit.** DITA `<steps>`, an MDX `<Steps>` component, or a list right after a `procedure`
    statement. `procedure` is a new inline statement keyword. The runner and the LSP skip it.
-2. **Tagger.** An ordered list whose first item reads as an instruction. compromise 14.19.0 tags the
-   item. It's lexicon-based and pinned exactly. Before tagging, the item loses its markup. The tagger
-   reads it as is, and again without an opener of up to five words before a comma. A third reading
-   also drops a leading adverb such as "Briefly". Any reading counts. So "Apply the patch" and "Open the
-   file, then save it" keep their verb. The item is an
-   instruction when its first word is an imperative or infinitive verb with a complement after it.
-   A complement is a determiner, pronoun, preposition, particle, UI label, value, or adjective. A
-   bare noun after the verb reads as a noun phrase, as in "Release notes". That choice trades a few
-   misses ("Open settings") for a cleaner headline. An item that opens with a bold term, such as
-   "**Exact match** - …", defines the term, so it's never an instruction. Four UI verbs the lexicon
-   misreads (hover, tap, select, preview) are corrected. `test/audit-tagger.test.js` pins the
-   expected result for every contract case.
+2. **Tagger.** An ordered list where at least a third of the items read as instructions. With a
+   vote, one odd first item can't sink a procedure. "Install prerequisites" is one such item. The
+   tagger misses about one real step in five, so the bar sits below half. The tagger, compromise
+   14.19.0, reads each item. It's lexicon-based and pinned exactly. Before tagging, the item
+   loses its markup. The tagger reads it as is. It reads it again without a leading emoji,
+   "(Optional)", or a sequence word or negation ("Then", "Now", "Please", "Don't"). A third reading
+   also drops up to two openers of up to five words before a comma. A last reading also drops a
+   leading adverb such as "Briefly". Any reading counts. So "Apply the patch" and "Then click Save"
+   keep their verb, and so does "In the terminal, from the repo folder, run it". The item is an
+   instruction when its first word is an imperative or infinitive verb with a complement after it. A complement is a determiner, pronoun, preposition,
+   particle, UI label, value, or adjective. A bare noun after the verb reads as a noun phrase, as in
+   "Release notes". That choice trades a few misses ("Open settings") for a cleaner headline. A bold
+   lead-in of two or more words is read alone. So "**Create a branch**: …" is the step, and
+   "**Exact match** - …" is a term the item defines. A one-word lead-in labels the step, as in
+   "**Commit**:" or "**Optional:**". So the text after it is read. Four UI
+   verbs the lexicon misreads (hover, tap, select, preview) are corrected.
+   `test/audit-tagger.test.js` pins the expected result for every contract case.
+
+   Accuracy is measured on a labeled corpus, `test/audit-tagger-corpus.json`. It holds every
+   non-explicit ordered list in this repository's docs and the agent-tools docs, 233 lists, 130 with
+   distinct items. Each was labeled by a reader who didn't see the tagger's result.
+   Each procedure also labels every item as an action or not. `test/audit-tagger-corpus.test.js`
+   fails when precision or recall drops below its floor. Scores on the 130 distinct lists:
+
+   - First item decides: 0.983 precision, 0.713 recall (1 false positive, 23 misses).
+   - Half the items decide: 0.947 precision, 0.887 recall (4 false positives, 9 misses).
+   - A third of the items decide, the chosen rule: 0.938 precision, 0.950 recall (5 false
+     positives, 4 misses). It wins in both doc sets.
+
+   The false positives are imperative advice and overview lists, such as "**Explain your
+   reasoning**" and "**Bring your docs.**". They read as instructions but aren't a sequence. The
+   threshold was chosen on the same corpus it's scored on, so expect lower figures on other docs.
+
+   These variants were measured and rejected:
+
+   - **Structure.** A colon line before the list predicts a procedure only half the time (37 of 76
+     lists). A how-to heading above the list recovers 1 more list than the vote alone, and needs a
+     heading reader per format.
+   - **Verb with a bare noun in a bold lead-in.** Accepting "**Edit files**:" adds 4 false positives
+     for every 4 misses it recovers, through terms such as "**Automated checks**".
+   - **Scoring items, not only lists.** Only 4 of 272 items in procedures aren't actions, such as
+     "The console shows all matching elements". The tagger rejects 58 of the 268 that are. So
+     moving rejected items out of the headline drops far more steps than it cleans.
+   - **Other taggers.** Each was swapped in behind the same readings and vote. At the one-third rule,
+     the en-pos 1.0.16 tagger scores 0.900 and 0.900. The wink-nlp 2.4.0 tagger trails at the half
+     rule, 0.859 and 0.688, because it reads "click" as a noun. A list of 264 doc verbs, written
+     without the corpus, scores 0.974 and 0.950 with no dependency. It ties compromise on recall. Its
+     precision edge comes from 3 advice lists whose verbs ("explain", "comment", "bring") aren't on
+     its list. The compromise tagger stays, because it reads verbs that no list anticipates. It costs
+     4.2 MB and about 300 ms on first use.
 3. **Possible.** Any other ordered list, including one the tagger can't read. These are counted, but
    kept out of the headline.
 
@@ -124,6 +162,7 @@ nothing in those formats, and now it can.
 ### Confirmation
 
 - `test/audit-tagger.test.js`, `test/audit-coverage.test.js`, and `test/audit.test.js`.
+- `test/audit-tagger-corpus.test.js`, which holds the tagger to its precision and recall floors.
 - The `test/core-artifacts/audit/` fixtures, which run every tier, format, credit rule, state, and
   output mode through the real CLI.
 
@@ -133,7 +172,12 @@ nothing in those formats, and now it can.
 
 - Good, because it's simple and configurable.
 - Bad, because many verbs are also nouns ("Set of rules", "Update frequency"), so false positives
-  rise as the list grows.
+  rise as the list grows. The tagger shares part of this weakness. A verb-like noun before a
+  preposition reads as an instruction, as in "Access to the API" or "Support for MDX". Voting
+  across a list's items keeps one such item from deciding the list.
+- Neutral, because on the labeled corpus a 264-verb list ties the tagger on recall. Its misses are
+  verbs it doesn't list, such as "propose", "suggest", and "analyze", and they grow with each new
+  doc set.
 
 ### Every numbered list
 

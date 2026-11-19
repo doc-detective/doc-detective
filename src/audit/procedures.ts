@@ -5,7 +5,7 @@
  * Tiers, first match wins:
  * 1. explicit: DITA `<steps>`, MDX `<Steps>`, or a list right after a
  *    `procedure` statement.
- * 2. tagger: an ordered list whose first item reads as an instruction.
+ * 2. tagger: an ordered list where at least a third of the items read as instructions.
  * 3. possible: any other ordered list.
  *
  * Only top-level items count. A nested list belongs to its parent item.
@@ -15,7 +15,7 @@ import { fromMarkdown } from "mdast-util-from-markdown";
 import { mdxjs } from "micromark-extension-mdxjs";
 import { mdxFromMarkdown } from "mdast-util-mdx";
 import { Parser } from "htmlparser2";
-import { isInstruction } from "./tagger.js";
+import { readsAsProcedure } from "./tagger.js";
 
 export type Source = "explicit" | "tagger" | "possible";
 
@@ -79,7 +79,7 @@ export function findProcedures(content: string, format: string | undefined, { md
     // A DITA processing instruction's span stops before its closing `>`.
     const marked = markers.some((end) => end <= list.startIndex && content.slice(end, list.startIndex).replace(/^>/, "").trim() === "");
     const source: Source =
-      list.explicit || marked ? "explicit" : items.length && isInstruction(items[0].text) ? "tagger" : "possible";
+      list.explicit || marked ? "explicit" : readsAsProcedure(items.map((item) => item.text)) ? "tagger" : "possible";
     return { source, startIndex: list.startIndex, endIndex: list.endIndex, items };
   });
 }
