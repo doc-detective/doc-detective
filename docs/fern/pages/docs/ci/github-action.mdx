@@ -32,7 +32,7 @@ jobs:
       - uses: doc-detective/github-action@v2
 ```
 
-This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. GitHub-hosted runners default to an older version. On older Node.js, the action warns you to add `actions/setup-node` with `node-version: 24`.
+This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. GitHub-hosted runners default to an older version. The action checks the job's Node.js when `version` can install Doc Detective 5, as the default `5` and `latest` can. An empty `version`, or one that stays on 4, skips the check. On older Node.js, the action warns you to add `actions/setup-node` with `node-version: 24`, and runs anyway.
 
 Pin to the major version (`@v2`) to pick up fixes automatically, or pin to a full version such as `@v2.1.0` for a fixed release. Action `@v2` runs CLI 5, and `@v1` stays on CLI 4. If you're moving from `@v1`, see [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
 
@@ -305,7 +305,7 @@ The runtime cache also holds the `chromedriver-mobile` folder from the cache dir
 The action caches the directory Doc Detective uses, and finds it the same way Doc Detective does. It checks, in order:
 
 1. `DOC_DETECTIVE_CACHE_DIR`, from the environment or a `.env` file in `working_directory`.
-2. `cacheDir` in the `DOC_DETECTIVE_CONFIG` environment variable, which holds the config itself as JSON or YAML text, not a path to a config file.
+2. `cacheDir` in the `DOC_DETECTIVE_CONFIG` environment variable, which holds the config itself as JSON text, not a path to a config file.
 3. `cacheDir` in your config file.
 4. The default [cache directory](/reference/reference/cli/install#cache-directory).
 
@@ -356,7 +356,7 @@ The error text varies with what failed. To find these warnings in a log, match t
 
 ### Cache with `actions/cache`
 
-When `version` is empty or `cache` is `false`, the action doesn't cache the runtime. If a workflow already caches the runtime with `actions/cache`, set `cache: false` on the action step so the runtime isn't cached twice. To cache it yourself, point `DOC_DETECTIVE_CACHE_DIR` at a path under the workspace, then use GitHub's cache action to persist it between runs:
+To cache the runtime yourself, point `DOC_DETECTIVE_CACHE_DIR` at a path under the workspace and use `actions/cache` to persist it between runs. This is how to cache when `version` is empty, because the action's built-in cache doesn't run then. When `version` has a value, including the default `5` this example uses, also set `cache: false` on the action step so the runtime isn't cached twice:
 
 ```yaml
 jobs:
