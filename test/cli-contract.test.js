@@ -671,6 +671,26 @@ describe("CLI contract", function () {
       expect(r.stdout + r.stderr).to.equal("");
     });
 
+    it("prints JSON from `audit --json`", function () {
+      fs.writeFileSync(path.join(cwd, "page.md"), "1. Open the app.\n");
+      const r = run(["audit", "--json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).summary).to.have.keys(["procedureSteps", "possibleProcedureSteps", "lists", "codeBlocks", "links", "images", "pages"]);
+    });
+
+    it("audits a document from stdin with `audit -`", function () {
+      const r = run(["audit", "-", "--json"], { input: "1. Open the app.\n" });
+      expect(r.status, r.stderr).to.equal(0);
+      expect(JSON.parse(r.stdout).summary.procedureSteps.total).to.equal(1);
+      expect(fs.readdirSync(cwd).filter((f) => f.startsWith("stdin"))).to.deep.equal([]);
+    });
+
+    it("rejects run flags on `audit`", function () {
+      const r = run(["audit", "--plain"]);
+      expect(r.status).to.equal(2);
+      expect(r.stderr).to.include("unknown option '--plain'");
+    });
+
     it("prints JSON from `debug --json`", function () {
       const r = run(["debug", "--json"]);
       expect(r.status, r.stderr).to.equal(0);
@@ -761,6 +781,7 @@ describe("CLI contract", function () {
       ["debug"],
       ["validate"],
       ["lsp"],
+      ["audit"],
     ];
     for (const path of commands) {
       const name = ["doc-detective", ...path].join(" ");
@@ -776,7 +797,7 @@ describe("CLI contract", function () {
     }
 
     it("keeps each subcommand's help focused", function () {
-      for (const path of [["debug"], ["validate"], ["lsp"], ["install", "status"], ["install", "agents"]]) {
+      for (const path of [["debug"], ["validate"], ["lsp"], ["audit"], ["install", "status"], ["install", "agents"]]) {
         const help = run([...path, "--help"]).stdout;
         expect(help, path.join(" ")).to.not.include("--reporters");
         expect(help.length, path.join(" ")).to.be.lessThan(2500);

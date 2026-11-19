@@ -32,12 +32,12 @@ export interface Item {
 
 /** What every spec in the audited inputs can credit, across files. */
 export interface CoverageIndex {
-  /** Authored `stepId` values. The runner derives the rest at run time. */
-  stepIds: Set<string>;
-  /** `goTo` and `checkLink` targets, through `canonicalUrl`. */
-  linkTargets: Set<string>;
-  /** Absolute paths that `screenshot` steps write. */
-  screenshotFiles: Set<string>;
+  /** Steps by authored `stepId`. The runner derives the rest at run time. */
+  stepIds: Map<string, any[]>;
+  /** `goTo` and `checkLink` steps by target, through `canonicalUrl`. */
+  linkTargets: Map<string, any[]>;
+  /** `screenshot` steps by the absolute path they write. */
+  screenshotFiles: Map<string, any[]>;
 }
 
 export interface FileCoverage {
@@ -99,7 +99,9 @@ export function computeCoverage({ content, fileType, filePath, steps, index, ori
   }
   if (open !== null) ignored.push([open, content.length]);
   const isIgnored = (start: number, end: number) => ignored.some(([a, b]) => start < b && a < end);
-  const authored = statements.filter((s) => s.type === "step" && !isIgnored(s._startIndex, s._endIndex));
+  const authored = statements
+    .filter((s) => s.type === "step" && !isIgnored(s._startIndex, s._endIndex))
+    .sort((a, b) => a._startIndex - b._startIndex);
   const markers = statements.filter((s) => s.type === "procedure").map((s) => s._endIndex);
 
   const located = steps.filter((step) => typeof step.location?.startIndex === "number");
@@ -135,12 +137,16 @@ export function computeCoverage({ content, fileType, filePath, steps, index, ori
       const classes = classesOf(node);
       const language = (node.language ?? "").toLowerCase();
       // An authored step right after the block, with only whitespace between.
-      const following = authored.find((s) => s._startIndex >= end && content.slice(end, s._startIndex).trim() === "");
-      const own = [...stepsIn(start, end), ...(following ? located.filter((step) => step.location.startIndex === following._startIndex) : [])];
+      const next = authored.find((s) => s._startIndex >= end);
+      const following = next && content.slice(end, next._startIndex).trim() === "" ? next : undefined;
       const id = node.attributes?.id;
-      const byId = typeof id === "string" && index.stepIds.has(id);
+      const own = [
+        ...stepsIn(start, end),
+        ...(following ? located.filter((step) => step.location.startIndex === following._startIndex) : []),
+        ...((typeof id === "string" && index.stepIds.get(id)) || []),
+      ];
       const testIgnore = /\btestIgnore\b/.test(node.meta ?? "") || classes.includes("testIgnore");
-      const result: Pick<Item, "state" | "navigationOnly"> = byId ? { state: "hasStep" } : stateOf(own, start, end, testIgnore);
+      const result = stateOf(own, start, end, testIgnore);
       if (classes.includes("procedure") && !inList(start)) {
         items.push({ kind: "procedureStep", source: "explicit", line: lineOf(start), text: itemText(node), state: result.state });
       }
@@ -150,13 +156,13 @@ export function computeCoverage({ content, fileType, filePath, steps, index, ori
       linksTotal++;
       const target = canonicalUrl(node.url, origin);
       if (!target) continue;
-      const own = stepsIn(start, end).filter((step) => NAVIGATION.has(actionOf(step) ?? ""));
-      const state = index.linkTargets.has(target) ? "hasStep" : stateOf(own, start, end).state;
+      const own = [...stepsIn(start, end).filter((step) => NAVIGATION.has(actionOf(step) ?? "")), ...(index.linkTargets.get(target) ?? [])];
+      const { state } = stateOf(own, start, end);
       items.push({ kind: "link", url: node.url, line: lineOf(start), state });
     } else if (node.kind === "image" && node.src) {
-      const own = stepsIn(start, end).filter((step) => actionOf(step) === "screenshot");
       const file = canonicalUrl(node.src) ? null : path.resolve(path.dirname(filePath), node.src);
-      const state = file && index.screenshotFiles.has(file) ? "hasStep" : stateOf(own, start, end).state;
+      const own = [...stepsIn(start, end).filter((step) => actionOf(step) === "screenshot"), ...((file && index.screenshotFiles.get(file)) || [])];
+      const { state } = stateOf(own, start, end);
       items.push({ kind: "image", src: node.src, line: lineOf(start), state });
     }
   }

@@ -126,6 +126,22 @@ Examples:
   doc-detective install status --json`,
     after: `Docs: ${DOCS}/install#install-status`,
   },
+  audit: {
+    usage: "[inputs...] [options]",
+    description: `Report which procedure steps, code blocks, links, and images in your docs have
+a test step. It runs no tests.
+
+Examples:
+  doc-detective audit                   Audit the configured inputs
+  doc-detective audit docs/             Audit one folder
+  doc-detective audit docs/ --json      Print the report as JSON
+  doc-detective audit docs/ -q          Print only the procedure-steps line`,
+    after: `Exit codes:
+  0  Report printed, whatever the coverage
+  2  Bad usage, bad config, or no files to audit
+
+Docs: ${DOCS}#audit`,
+  },
   debug: {
     description: `Print diagnostics about your system, install, and config, without running
 tests. Secrets are redacted on a best-effort basis, so review the output before
@@ -171,6 +187,7 @@ Examples:
 // The summary shown for a command in its parent's list.
 const SUMMARIES: Record<string, string> = {
   run: "Run tests on specific files or folders",
+  audit: "Report which docs content has a test step",
   install: "Install browsers, runtimes, and agent tools",
   debug: "Print diagnostics for a bug report",
   validate: "Check test files without running them",

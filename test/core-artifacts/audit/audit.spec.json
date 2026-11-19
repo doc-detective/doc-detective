@@ -1,0 +1,381 @@
+{
+  "specId": "audit",
+  "description": "`doc-detective audit` through the real CLI (ADR 01213). Each test runs one case of audit-check.cjs, which writes documents and a config under .tmp/fixture-audit/, runs `audit`, and checks the report and exit code. No browser or network, so every case runs on Windows, macOS, and Linux.",
+  "tests": [
+    {
+      "testId": "audit-tier-marker",
+      "description": "A list after a procedure comment is explicit, whatever its first item says.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs tier-marker",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-tier-mdx-steps",
+      "description": "Each Step in MDX Steps is an explicit procedure step.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs tier-mdx-steps",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-tier-dita-steps",
+      "description": "Each step in DITA steps is an explicit procedure step.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs tier-dita-steps",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-tier-tagger",
+      "description": "A list whose first item is an instruction counts through the tagger.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs tier-tagger",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-tier-opener",
+      "description": "A short opener before a comma doesn't hide the instruction.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs tier-opener",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-tier-possible",
+      "description": "A list the tagger rejects lands in possible procedures, out of the headline.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs tier-possible",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-tier-non-english",
+      "description": "A list the tagger can't read lands in possible procedures.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs tier-non-english",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-format-html",
+      "description": "HTML ordered lists, with a detected click step crediting its item.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs format-html",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-format-asciidoc",
+      "description": "AsciiDoc dot lists count top-level items only.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs format-asciidoc",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-format-dita-marker",
+      "description": "A DITA processing-instruction marker makes an ol explicit.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs format-dita-marker",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-code-location",
+      "description": "A detected step inside a code block credits it when unsafe steps are allowed.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs code-location",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-code-following-step",
+      "description": "An authored step right after a code block credits it.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs code-following-step",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-code-stepid-spec",
+      "description": "A code block's id credits it through a spec file's authored stepId. Spec files aren't pages.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs code-stepid-spec",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-code-procedure-tag",
+      "description": "A code block tagged procedure counts as an explicit procedure step.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs code-procedure-tag",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-code-test-ignore",
+      "description": "A testIgnore code block is ignored.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs code-test-ignore",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-code-not-runnable-and-unsafe",
+      "description": "Other languages are not runnable; a detected unsafe block is skipped.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs code-not-runnable-and-unsafe",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-state-ignored",
+      "description": "An item overlapping a test ignore region is ignored.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs state-ignored",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-state-unsafe-skipped",
+      "description": "An item whose only step is unsafe is skipped.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs state-unsafe-skipped",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-state-navigation-only",
+      "description": "An item covered only by a goTo or checkLink is counted as navigation-only.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs state-navigation-only",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-state-nested",
+      "description": "A nested list's step credits its top-level parent item.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs state-nested",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-detect-steps-false",
+      "description": "detectSteps false keeps the inventory but drops detected credit.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs detect-steps-false",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-unmeasured-file-type",
+      "description": "A file type with no list parser is reported as not measured.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs unmeasured-file-type",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-output-text",
+      "description": "The text report leads with the procedure steps line.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs output-text",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-output-quiet",
+      "description": "-q prints only the procedure steps line.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs output-quiet",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-no-files",
+      "description": "No files to audit exits 2 with a message on stderr.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs no-files",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

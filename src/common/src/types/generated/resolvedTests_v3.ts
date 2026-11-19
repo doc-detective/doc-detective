@@ -15494,7 +15494,7 @@ export interface DeviceDescriptor {
  */
 export interface InlineStatementDefinition {
   /**
-   * Nodes to read as statements. Each node's text must start with `test`, `test start`, `test end`, `test ignore start`, `test ignore end`, or `step`. `"comment"` reads every comment.
+   * Nodes to read as statements. Each node's text must start with `test`, `test start`, `test end`, `test ignore start`, `test ignore end`, or `step`, or be `procedure`, which marks the next list as a procedure for `audit`. `"comment"` reads every comment.
    *
    * @minItems 1
    */
