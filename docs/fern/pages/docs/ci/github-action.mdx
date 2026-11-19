@@ -300,6 +300,8 @@ Doc Detective 5.3.0 and later replace outdated cached browsers about once a day,
 
 While caching is on, the action resolves `version` to an exact version and runs that version, so the cached package matches the one that runs. Each run resolves `version` again, so `version: 5` picks up new 5.x releases, and the log shows a command such as `npx doc-detective@5.5.0`. To run the same release every time, set `version` to an exact version.
 
+The runtime cache also holds the `chromedriver-mobile` folder from the cache directory. A runtime cache saved by an action release that left this folder out doesn't restore. After you upgrade, each repository's first run installs the runtime again and saves a new cache. Later runs restore that cache as before, with no change to your workflow.
+
 The action caches the directory Doc Detective uses, and finds it the same way Doc Detective does. It checks, in order:
 
 1. `DOC_DETECTIVE_CACHE_DIR`, from the environment or a `.env` file in `working_directory`.
@@ -321,9 +323,9 @@ The action skips caching when `version` is empty. To cache the runtime in that c
 
 iOS tests need a WebDriverAgent build, which Doc Detective [builds on first use](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use). On macOS runners, when your specs target iOS, the `cache` input caches that build too, with no extra inputs or steps. Later runs restore it instead of building it again. On GitHub-hosted `macos-latest` runners with Xcode 26.6, the cached build is about 68 MiB, and restoring it takes about 5 seconds. The WebDriverAgent setup then takes about 9 seconds instead of about 100.
 
-The build gets its own cache entry, separate from the runtime cache, so a browser update doesn't upload it again. Like the runtime cache, the entry saves only when the build changes, and a cache failure logs a warning without failing the job. Setting `cache` to `false` turns it off.
+The build gets its own cache entry, separate from the runtime cache, so a browser update doesn't upload it again. Like the runtime cache, the entry saves only when the build changes, and a cache failure logs a warning without failing the job. Setting `cache` to `false`, or leaving `version` empty, turns it off.
 
-To find iOS tests, the action scans `working_directory`, `input`, and `config` for a context whose `platforms` include `ios`. The action has no input to force the iOS cache. If your tests set the platform another way, such as in `DOC_DETECTIVE_CONFIG`, cache the whole cache directory yourself, as in [Cache with `actions/cache`](#cache-with-actionscache).
+To find iOS tests, the action scans `working_directory`, `input`, and `config` for a spec or config that sets `ios` as a `platform` or `platforms` value. It reads JSON, YAML, and Markdown files, including inline tests, and skips `node_modules`, `.git`, and `.github`. The action has no input to force the iOS cache. If your tests set the platform another way, such as in `DOC_DETECTIVE_CONFIG`, cache the whole cache directory yourself, as in [Cache with `actions/cache`](#cache-with-actionscache).
 
 The default workflow is enough, with no separate `doc-detective install ios` step. When your specs target iOS, this job caches the WebDriverAgent build:
 
@@ -344,6 +346,11 @@ The action logs what it did with the build:
 - `Restored the WebDriverAgent build from the cache (<key>).`
 - `No cached WebDriverAgent build, so this run builds and caches it.`
 - `Cached the WebDriverAgent build (<key>).`
+
+If a restore or save fails, the action logs one of these warnings instead, and the run continues:
+
+- `Couldn't restore the WebDriverAgent cache, so this run builds it. <cause>.`
+- `Couldn't cache the WebDriverAgent build. <cause>.`
 
 ### Cache with `actions/cache`
 
