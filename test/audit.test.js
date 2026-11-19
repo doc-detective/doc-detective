@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import sinon from "sinon";
 import { auditHandler } from "../dist/audit/command.js";
+import { renderText, summarize } from "../dist/audit/index.js";
 
 const page = [
   "# Install",
@@ -87,6 +88,98 @@ describe("audit command", function () {
     }
   });
 
+  const wrapped = '<!-- test start -->\n1. Open the app.\n   <!-- step {"click": "Save"} -->\n2. Close it.\n3. Log out.\n<!-- test end -->\n';
+
+  it("counts steps inside a test apart in the headline, and leaves them out of the untested list", async function () {
+    fs.writeFileSync(path.join(dir, "wrapped.md"), wrapped);
+    const text = await run({ input: dir });
+    assert.match(text, /^Procedure steps {6}1 of 3 have a step, 2 more are inside a test\n/);
+    assert.doesNotMatch(text, /Untested procedure steps:/);
+  });
+
+  it("reports inTest in JSON", async function () {
+    fs.writeFileSync(path.join(dir, "wrapped.md"), wrapped);
+    const report = JSON.parse(await run({ input: dir, json: true }));
+    assert.equal(report.summary.procedureSteps.inTest, 2);
+    assert.deepEqual(report.files[0].items.filter((i) => i.kind === "procedureStep").map((i) => i.state), ["hasStep", "inTest", "inTest"]);
+  });
+
+  it("keeps the inside-a-test clause with --quiet", async function () {
+    fs.writeFileSync(path.join(dir, "wrapped.md"), wrapped.replace("3. Log out.\n", ""));
+    assert.equal(await run({ input: dir, quiet: true }), "Procedure steps      1 of 2 have a step, 1 more is inside a test\n");
+  });
+
+  describe("guidance", function () {
+    it("names each file's syntax and gives templates once per syntax in JSON", async function () {
+      fs.writeFileSync(path.join(dir, "a.md"), page);
+      fs.writeFileSync(path.join(dir, "b.md"), page);
+      fs.writeFileSync(path.join(dir, "c.mdx"), "1. Open the app.\n2. Close it.\n");
+      const report = JSON.parse(await run({ input: dir, json: true }));
+      assert.deepEqual(report.files.map((f) => [path.basename(f.path), f.syntax]), [["a.md", "markdown"], ["b.md", "markdown"], ["c.mdx", "mdx"]]);
+      assert.deepEqual(Object.keys(report.guidance.syntaxes), ["markdown", "mdx"]);
+      assert.equal(report.guidance.syntaxes.mdx.step, '{/* step {"click": "Save"} */}');
+      assert.match(report.guidance.coverStep, /on the line after the sentence it tests/);
+    });
+
+    it("prints the guidance block after the untested list, for the syntaxes in the run", async function () {
+      fs.writeFileSync(path.join(dir, "install.md"), page);
+      const text = await run({ input: dir });
+      const block = [
+        "",
+        "To cover a step, put a step statement inside the item, on the line after the sentence it tests:",
+        '  Markdown   <!-- step {"click": "Save"} -->',
+        "Or wrap the procedure in a test with at least one step:",
+        '  Markdown   <!-- test {"testId": "my-test"} -->  …  <!-- test end -->',
+        "To flag a list that isn't a procedure, wrap it in ignore statements:",
+        "  Markdown   <!-- test ignore start -->  …  <!-- test ignore end -->",
+        "More: https://docs.doc-detective.com/docs/test-docs/audit-test-coverage",
+        "",
+      ].join("\n");
+      assert.ok(text.endsWith(block), text);
+      assert.doesNotMatch(text, /MDX/);
+    });
+
+    it("prints only the procedure lines when a possible procedure is all it found", async function () {
+      fs.writeFileSync(path.join(dir, "notes.md"), "1. Release notes\n2. Bug fixes\n");
+      const text = await run({ input: dir });
+      assert.match(text, /If audit missed a procedure, put a procedure statement before the list:\n {2}Markdown {3}<!-- procedure -->\n/);
+      assert.doesNotMatch(text, /To cover a step|To flag a list/);
+    });
+
+    it("prints a custom file type's note once, before every section", function () {
+      const possible = { kind: "procedureStep", source: "possible", line: 1, text: "Release notes", state: "untested" };
+      const report = summarize([{
+        path: "/a.md", fileType: "hugo", syntax: "hugo", customSyntax: true, measured: true, items: [possible],
+        lists: { explicit: 0, tagged: 0, possible: 1 }, notRunnable: 0, linksTotal: 0, hasAuthoredStep: false,
+      }]);
+      const block = renderText(report).split("\n").slice(-5);
+      assert.deepEqual(block, [
+        "Wrap each statement in the comment form that the `hugo` file type's `inlineStatements` define.",
+        "If audit missed a procedure, put a procedure statement before the list:",
+        "  hugo       procedure",
+        "More: https://docs.doc-detective.com/docs/test-docs/audit-test-coverage",
+        "",
+      ]);
+    });
+
+    it("widens the label column for a long custom file type name", function () {
+      const untested = { kind: "procedureStep", source: "explicit", line: 1, text: "Open it.", state: "untested" };
+      const file = (name, syntax, customSyntax) => ({
+        path: `/${name}`, syntax, customSyntax, measured: true, items: [untested],
+        lists: { explicit: 1, tagged: 0, possible: 0 }, notRunnable: 0, linksTotal: 0, hasAuthoredStep: false,
+      });
+      const text = renderText(summarize([file("a.md", "markdown", false), file("b.md", "hugo-shortcodes", true)]));
+      const rows = text.split("\n").filter((line) => /^ {2}(Markdown|hugo-shortcodes)/.test(line));
+      assert.equal(rows.length, 6, text);
+      assert.equal(new Set(rows.map((line) => line.search(/<!--|step |test /))).size, 1, rows.join("\n"));
+    });
+
+    it("prints no guidance when nothing is untested or possible, or with --quiet", async function () {
+      fs.writeFileSync(path.join(dir, "wrapped.md"), wrapped);
+      assert.doesNotMatch(await run({ input: dir }), /To cover a step/);
+    });
+  });
+
   it("prints only the first line with --quiet", async function () {
     fs.writeFileSync(path.join(dir, "install.md"), page);
     const text = await run({ input: dir, quiet: true });
@@ -100,7 +193,7 @@ describe("audit command", function () {
       JSON.stringify({ tests: [{ steps: [{ stepId: "install", runShell: "npm i -g doc-detective" }] }] })
     );
     const report = JSON.parse(await run({ input: dir, json: true }));
-    assert.deepEqual(report.summary.procedureSteps, { total: 3, hasStep: 0, ignored: 0, skipped: 1, untested: 2, navigationOnly: 0 });
+    assert.deepEqual(report.summary.procedureSteps, { total: 3, hasStep: 0, ignored: 0, inTest: 0, skipped: 1, untested: 2, navigationOnly: 0 });
     assert.deepEqual(report.summary.codeBlocks, { byLanguage: { bash: { total: 1, hasStep: 1, ignored: 0, skipped: 0, untested: 0 } }, notRunnable: 0 });
     assert.equal(report.summary.pages.total, 1);
     assert.equal(report.files[0].path, path.join(dir, "install.md"));

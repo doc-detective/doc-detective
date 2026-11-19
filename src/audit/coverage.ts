@@ -16,7 +16,7 @@ const NON_CHECKING = new Set(["wait", "loadVariables", "saveCookie", "loadCookie
 const NAVIGATION = new Set(["goTo", "checkLink"]);
 export const RUNNABLE_LANGUAGES = new Set(["bash", "sh", "shell", "console", "zsh", "powershell", "pwsh", "python", "py", "javascript", "js", "http"]);
 
-export type State = "hasStep" | "ignored" | "skipped" | "untested";
+export type State = "hasStep" | "ignored" | "inTest" | "skipped" | "untested";
 
 export interface Item {
   kind: "procedureStep" | "codeBlock" | "link" | "image";
@@ -55,6 +55,8 @@ export interface CoverageInput {
   filePath: string;
   /** Steps of the tests detected in this file, with their `location`. */
   steps: any[];
+  /** The tests detected in this file, with their `location` and `steps`. */
+  tests?: any[];
   index: CoverageIndex;
   origin?: string;
   allowUnsafe?: boolean;
@@ -81,7 +83,7 @@ export const actionOf = (step: any): string | undefined => stepActions.find((act
 
 const classesOf = (node: Node): string[] => String(node.attributes?.class ?? "").split(/\s+/).filter(Boolean);
 
-export function computeCoverage({ content, fileType, filePath, steps, index, origin, allowUnsafe = false }: CoverageInput): FileCoverage {
+export function computeCoverage({ content, fileType, filePath, steps, tests = [], index, origin, allowUnsafe = false }: CoverageInput): FileCoverage {
   const lineStarts = getLineStarts(content);
   const lineOf = (offset: number) => getLineNumber(content, offset, lineStarts);
   const format = formatOf(fileType, filePath);
@@ -108,13 +110,35 @@ export function computeCoverage({ content, fileType, filePath, steps, index, ori
   const stepsIn = (start: number, end: number) =>
     located.filter((step) => step.location.startIndex >= start && step.location.startIndex < end);
 
+  const counting = (own: any[]) => own.filter((step) => !NON_CHECKING.has(actionOf(step) ?? ""));
+  const running = (own: any[]) => counting(own).filter((step) => allowUnsafe || !step.unsafe);
+
+  // A test region runs from a test statement to the next `test end`, else to
+  // the next test statement or the end of the file. It counts when a step in
+  // it, or in the statement's own `steps`, would run. Detection's implicit
+  // whole-file test opens no region.
+  const testRegions: Array<[number, number]> = [];
+  const testStatements = statements.filter((s) => s.type === "testStart" || s.type === "testEnd");
+  testStatements.forEach((s, i) => {
+    if (s.type !== "testStart") return;
+    const next = testStatements[i + 1];
+    const end = !next ? content.length : next.type === "testEnd" ? next._endIndex : next._startIndex;
+    // Detection sets a test's `location` from this same `collectStatements`
+    // pass over the same content, so the offsets match by construction. A
+    // statement with no test (a bare `test start`, or one detection skipped)
+    // has no own steps. test/audit-coverage.test.js guards the match.
+    const own = tests.find((test) => test.location?.startIndex === s._startIndex)?.steps ?? [];
+    if (running([...stepsIn(s._startIndex, end), ...own]).length) testRegions.push([s._startIndex, end]);
+  });
+  const isInTest = (start: number, end: number) => testRegions.some(([a, b]) => start < b && a < end);
+
   /** The state of an item that `own` steps belong to. */
-  const stateOf = (own: any[], start: number, end: number, forceIgnored = false): Pick<Item, "state" | "navigationOnly"> => {
-    const counting = own.filter((step) => !NON_CHECKING.has(actionOf(step) ?? ""));
-    const runs = counting.filter((step) => allowUnsafe || !step.unsafe);
+  const stateOf = (own: any[], start: number, end: number, forceIgnored = false, procedure = false): Pick<Item, "state" | "navigationOnly"> => {
+    const runs = running(own);
     if (runs.length) return runs.every((step) => NAVIGATION.has(actionOf(step) ?? "")) ? { state: "hasStep", navigationOnly: true } : { state: "hasStep" };
     if (forceIgnored || isIgnored(start, end)) return { state: "ignored" };
-    return { state: counting.length ? "skipped" : "untested" };
+    if (procedure && isInTest(start, end)) return { state: "inTest" };
+    return { state: counting(own).length ? "skipped" : "untested" };
   };
 
   const items: Item[] = [];
@@ -123,7 +147,7 @@ export function computeCoverage({ content, fileType, filePath, steps, index, ori
   for (const list of lists ?? []) {
     tally[list.source === "tagger" ? "tagged" : list.source]++;
     for (const item of list.items) {
-      const { state, navigationOnly } = stateOf(stepsIn(item.startIndex, item.endIndex), item.startIndex, item.endIndex);
+      const { state, navigationOnly } = stateOf(stepsIn(item.startIndex, item.endIndex), item.startIndex, item.endIndex, false, true);
       items.push({ kind: "procedureStep", source: list.source, line: lineOf(item.startIndex), text: item.text, state, ...(navigationOnly && { navigationOnly }) });
     }
   }
@@ -148,7 +172,8 @@ export function computeCoverage({ content, fileType, filePath, steps, index, ori
       const testIgnore = /\btestIgnore\b/.test(node.meta ?? "") || classes.includes("testIgnore");
       const result = stateOf(own, start, end, testIgnore);
       if (classes.includes("procedure") && !inList(start)) {
-        items.push({ kind: "procedureStep", source: "explicit", line: lineOf(start), text: itemText(node), state: result.state });
+        // As a procedure step it can be inTest, which the code-block `result` can't.
+        items.push({ kind: "procedureStep", source: "explicit", line: lineOf(start), text: itemText(node), state: stateOf(own, start, end, testIgnore, true).state });
       }
       if (RUNNABLE_LANGUAGES.has(language)) items.push({ kind: "codeBlock", language, line: lineOf(start), state: result.state });
       else notRunnable++;

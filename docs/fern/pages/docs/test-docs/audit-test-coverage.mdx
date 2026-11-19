@@ -11,8 +11,8 @@ npx doc-detective audit docs/
 ```
 
 ```text
-Procedure steps      8 of 42 have a step (3 only by navigation or a link check)
-                     27 untested, 5 ignored, 2 skipped as unsafe
+Procedure steps      8 of 42 have a step, 6 more are inside a test (3 only by navigation or a link check)
+                     21 untested, 5 ignored, 2 skipped as unsafe
 Possible procedures  31 items in 10 lists, 4 have a step
 Code blocks          bash 61 (12 have a step), python 22 (0 have a step); 455 not runnable
 Links                32 of 750 testable, 32 have a step
@@ -22,6 +22,16 @@ Pages                48 of 71 have an authored step
 Untested procedure steps:
   /home/wren/docs/get-started/first-test.md
       42  Paste the code into the file.
+
+To cover a step, put a step statement inside the item, on the line after the sentence it tests:
+  Markdown   <!-- step {"click": "Save"} -->
+Or wrap the procedure in a test with at least one step:
+  Markdown   <!-- test {"testId": "my-test"} -->  …  <!-- test end -->
+To flag a list that isn't a procedure, wrap it in ignore statements:
+  Markdown   <!-- test ignore start -->  …  <!-- test ignore end -->
+If audit missed a procedure, put a procedure statement before the list:
+  Markdown   <!-- procedure -->
+More: https://docs.doc-detective.com/docs/test-docs/audit-test-coverage
 ```
 
 The report leads with procedure steps, because those are what readers follow. There's no single percentage: each kind of content gets its own count.
@@ -43,7 +53,7 @@ The report leads with procedure steps, because those are what readers follow. Th
 
 2. Read the **Untested procedure steps** list. Each entry is a file, a line number, and the step's text.
 
-3. Add a test for a step, then run `audit` again to see the count change. See [Inline tests](/docs/test-docs/inline) and [Standalone tests](/docs/test-docs/standalone).
+3. Add a test for a step, then run `audit` again to see the count change. The report ends with the statements to write for each format in the run. See [Act on the report](#act-on-the-report).
 
 To get the full report as JSON, for a script or a CI summary, add `--json`. To print only the first line, add `-q`.
 
@@ -71,7 +81,7 @@ Put a `procedure` statement directly before the list, with nothing but blank lin
 | MDX | `{/* procedure */}` |
 | AsciiDoc | `// (procedure)` |
 | HTML | `<!-- procedure -->` |
-| DITA | `<?doc-detective procedure?>` |
+| DITA | `<data name="doc-detective" value="procedure"/>` |
 
 ```markdown
 <!-- procedure -->
@@ -87,10 +97,11 @@ Each item gets one state:
 |---|---|
 | Has a step | A step belongs to the item. The report counts separately the items covered only by a `goTo` or `checkLink` step. |
 | Ignored | The item overlaps a `test ignore` block, or its code block carries the `testIgnore` tag. |
+| Inside a test | A procedure step sits inside a test, between a `test` statement and `test end`, and that test has a step that runs. The report counts these apart from steps that have their own step. |
 | Skipped as unsafe | The item's only steps are unsafe, such as a detected code block, and `allowUnsafeSteps` is off. |
 | Untested | No step belongs to the item. |
 
-- **Procedure steps.** A step belongs to the item it sits in. An item runs from its marker to the next item, so put a step statement after the sentence it tests. A test wrapped around a whole list gives its items no credit. Steps that check nothing, such as `wait` and `loadVariables`, don't count.
+- **Procedure steps.** A step belongs to the item it sits in. An item runs from its marker to the next item, so put a step statement on the line after the sentence it tests. A test wrapped around a list puts its other items inside a test, but only when the test has a step that runs. An empty test, or one with only `wait`, gives no credit. A test is a region that starts at a `test` statement and ends at `test end`, or at the next `test` statement. Steps that check nothing, such as `wait` and `loadVariables`, don't count.
 - **Code blocks.** Only runnable languages count: shell (`bash`, `sh`, `shell`, `console`, `zsh`, `powershell`, `pwsh`), Python, JavaScript, and `http`. A block has a step when detection finds a step inside it, when a step statement directly follows it, or when its `id` matches an authored `stepId`.
 - **Links.** Absolute links count, and relative links count when you set `origin`. A link has a step when any `goTo` or `checkLink` step targets the same URL. The comparison ignores fragments and trailing slashes.
 - **Images.** An image has a step when detection finds a `screenshot` step on it, or when a `screenshot` step writes to the same file.
@@ -124,6 +135,52 @@ A standalone spec then credits the block through the step's `stepId`:
   ]
 }
 ```
+
+## Act on the report
+
+The text report can end with the statements to write for each format in the run. An untested procedure step brings the step, test, and ignore statements. A list in **Possible procedures** brings the `procedure` statement. With `--json`, the same guidance is in the `guidance` object, and each file's `syntax` says which templates apply to it.
+
+### Cover a step
+
+Put a step statement inside the item, on the line after the sentence it tests. Or wrap the procedure in a test with at least one step, and its other items count as inside a test.
+
+| Format | Step | Test |
+|---|---|---|
+| Markdown and HTML | `<!-- step {"click": "Save"} -->` | `<!-- test {"testId": "my-test"} -->` … `<!-- test end -->` |
+| MDX | `{/* step {"click": "Save"} */}` | `{/* test {"testId": "my-test"} */}` … `{/* test end */}` |
+| AsciiDoc | `// (step {"click": "Save"})` | `// (test {"testId": "my-test"})` … `// (test end)` |
+| DITA | `<data name="doc-detective" value="step click='Save'"/>` | `<data name="doc-detective" value="test testId='my-test'"/>` … `<data name="doc-detective" value="test end"/>` |
+
+DITA uses the `<data>` element, which survives every DITA-OT build.
+
+### Flag a false positive
+
+Wrap a list that isn't a procedure, or an item you won't test, in `test ignore start` and `test ignore end`. Its items then count as ignored.
+
+| Format | Ignore statements |
+|---|---|
+| Markdown and HTML | `<!-- test ignore start -->` … `<!-- test ignore end -->` |
+| MDX | `{/* test ignore start */}` … `{/* test ignore end */}` |
+| AsciiDoc | `// (test ignore start)` … `// (test ignore end)` |
+| DITA | `<data name="doc-detective" value="test ignore start"/>` … `<data name="doc-detective" value="test ignore end"/>` |
+
+To skip a code block you won't run, tag it `testIgnore`. See [Tag a code block](#tag-a-code-block).
+
+### Fix a false negative
+
+If `audit` puts a real procedure in **Possible procedures**, put a `procedure` statement directly before the list. See [Mark a list as a procedure](#mark-a-list-as-a-procedure).
+
+### Custom file types
+
+The guidance checks each template against the file's own file type. A custom file type that reads the built-in statements, such as one that extends Markdown, gets the built-in templates. A file type with its own `inlineStatements` gets the bare statement text, such as `step {"click": "Save"}`. A note says to wrap it in that file type's comment form. Its key in `guidance.syntaxes` is the file type's `name`, or `<name>-custom` when that name is a built-in syntax's, such as `markdown`. If another file type in the run already has that key, it's numbered from `-2`.
+
+### The `guidance` object
+
+| Key | Value |
+|---|---|
+| `docs` | A link to this page. |
+| `coverStep`, `flagFalsePositive`, `markProcedure` | One sentence each on what to write. |
+| `syntaxes` | One entry per syntax in the run. The key is `markdown`, `mdx`, `asciidoc`, `html`, `dita`, or a custom file type's name. Each has `step`, `testStart`, `testEnd`, `ignoreStart`, `ignoreEnd`, and `procedure`. A built-in syntax also has `ignoreCodeBlock`. A custom one has `custom: true` and a `note`. |
 
 ## Related
 
