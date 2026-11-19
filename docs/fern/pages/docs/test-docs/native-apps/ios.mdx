@@ -90,7 +90,7 @@ doc-detective --input ios-app.spec.json
 
 A few things to notice:
 
-- The generous `timeout` (180,000 ms) leaves room for a cold simulator boot. A [first-use WebDriverAgent build](#webdriveragent-builds-on-first-use) adds about 10 minutes to a run that finds no cached build for your Xcode version and driver. It runs before the steps and doesn't count toward `timeout`. Run `doc-detective install ios --yes` beforehand to keep that build out of the test run.
+- The generous `timeout` (180,000 ms) leaves room for a cold simulator boot. A [first-use WebDriverAgent build](#webdriveragent-builds-on-first-use) runs when no cached build matches your Xcode version and driver. It can add up to about 10 minutes. It runs before the steps and doesn't count toward `timeout`. Run `doc-detective install ios --yes` beforehand to keep that build out of the test run.
 - `waitUntil.find` gates readiness. The step holds until an element with the text `Settings` exists. The next step then never runs against a screen that hasn't drawn its controls.
 - The app that `startSurface` opens becomes the active surface, so the later steps act on it with no `surface` field. Pass an explicit `surface` on a step, such as `{ "app": "Preferences" }`, to switch to a different surface. That switch sticks for the surface-less steps that follow. `closeSurface` still names the surface to close (`{ "app": "Preferences" }`) because it's a lifecycle step, not an interaction on the active surface. Doc Detective derives the default name `Preferences` from the final dot-segment of the bundle ID. Pass a `name` on `startSurface` to choose your own. See [Target an app surface](/docs/actions/startsurface#target-an-app-surface).
 - The [`screenshot`](/docs/actions/screenshot) step takes a fresh screenshot of the app every run, so the picture never drifts out of sync with the current build.
@@ -119,11 +119,13 @@ On a host that isn't macOS, the test skips with a reason rather than failing. Se
 
 ## WebDriverAgent builds on first use
 
-Doc Detective keeps WebDriverAgent builds in its [cache directory](/reference/reference/cli/install#cache-directory), one for each Xcode version and driver. In Doc Detective 5.6.0 and later, an iOS test that finds no build for the current pair builds one before it starts. The build adds about 10 minutes to that run, so don't cancel it. Doc Detective warns in the terminal and the report, and exit codes don't change:
+Doc Detective keeps WebDriverAgent builds in its [cache directory](/reference/reference/cli/install#cache-directory), one for each Xcode version and driver. In Doc Detective 5.6.0 and later, an iOS test that finds no build for the current pair builds one before it starts. The build can add up to about 10 minutes to that run, so don't cancel it. Doc Detective warns in the terminal and the report, and exit codes don't change:
 
 ```text
 No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.
 ```
+
+The warning's estimate covers slower machines. On GitHub-hosted `macos-latest` runners, the build takes about 2 to 3 minutes.
 
 Later runs reuse the build until Xcode or the driver changes. To build it ahead of time, for example when you prepare a CI image, run `doc-detective install ios --yes`.
 
@@ -147,13 +149,13 @@ The cause can also be `The disk is full.` or `An unexpected error stopped the up
 
 To turn off the first-use build, set `DOC_DETECTIVE_NO_IOS_AUTOINSTALL=1`. The test still runs, and Appium builds WebDriverAgent during the session, outside the cache directory. Setting `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` to the DerivedData directory of your own WebDriverAgent build also turns it off.
 
-In GitHub Actions, persist the cache directory between runs so later runs reuse the build. See [Speed up iOS tests on macOS](/docs/ci/github-action#speed-up-ios-tests-on-macos).
+In GitHub Actions, the Doc Detective action caches the build between runs, so later runs restore it instead of building it. See [Speed up iOS tests on macOS](/docs/ci/github-action#speed-up-ios-tests-on-macos).
 
 ## Troubleshooting
 
 **The first app launch is slow**
 
-- **Cause:** No WebDriverAgent build is cached for your Xcode version and driver, so the first iOS test builds one, which takes about 10 minutes. See [WebDriverAgent builds on first use](#webdriveragent-builds-on-first-use).
+- **Cause:** No WebDriverAgent build is cached for your Xcode version and driver, so the first iOS test builds one. That can take up to about 10 minutes. See [WebDriverAgent builds on first use](#webdriveragent-builds-on-first-use).
 - **Solution:** Run [`doc-detective install ios --yes`](/reference/reference/cli/install#install-ios) beforehand, so the build happens before the test run. If the build fails and Appium builds WebDriverAgent during the session instead, give the first surface a generous `timeout`.
 
 **Element not found**
