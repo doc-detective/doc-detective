@@ -1,3 +1,17 @@
+# [5.6.0](https://github.com/doc-detective/doc-detective/compare/v5.5.0...v5.6.0) (2026-11-19)
+
+
+### Bug Fixes
+
+* **ios:** harden the first-use WebDriverAgent build ([d5d312c](https://github.com/doc-detective/doc-detective/commit/d5d312c6b3de123b7f45b28979744490aec313e9))
+* **ios:** report a record failure only from the record update ([ca9e4a9](https://github.com/doc-detective/doc-detective/commit/ca9e4a999e7b503d7ab2815cd06de15d95314cd1))
+* keep preflight warnings when a context retries ([27d0bfd](https://github.com/doc-detective/doc-detective/commit/27d0bfdcd7142d3acf85acaa07b27a380855302a))
+
+
+### Features
+
+* **ios:** build WebDriverAgent on first use ([6a3b266](https://github.com/doc-detective/doc-detective/commit/6a3b266215d175a1a9f7f649c678e90c2a27ddb5))
+
 # [5.5.0](https://github.com/doc-detective/doc-detective/compare/v5.4.0...v5.5.0) (2026-11-18)
 
 
