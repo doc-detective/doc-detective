@@ -53,7 +53,11 @@ jobs:
           # (doc updates) and claude[bot] (the actor agent-authored branches
           # push under). Without the bot in this list the action hard-fails
           # with "Workflow initiated by non-human actor" instead of reviewing.
-          # A posted review is not a push/synchronize event, so this can't loop.
+          # A posted review is not a push/synchronize event, but on Promptless
+          # PRs it can still loop: Promptless answers an @Promptless tag with a
+          # fix push, and that push triggers the next review. The prompt below
+          # tags @Promptless only for Blocking or Important items, which is
+          # what stops the loop.
           allowed_bots: 'promptless[bot],claude[bot]'
           # Keep bot chatter out of the assembled prompt. `track_progress`
           # runs this in tag mode, which preserves GitHub context: the PR
@@ -120,10 +124,12 @@ jobs:
               - If no issues: confirm PR looks good.
 
             If PR AUTHOR is `promptless[bot]`, this PR was opened by Promptless, which only
-            responds to review feedback when it is explicitly mentioned. You MUST include the
-            literal trigger text `@Promptless` in the review body (e.g. address the summary to
-            "@Promptless" so it picks up your feedback). Without that trigger text Promptless will
-            not respond, so do not omit it for Promptless-authored PRs.
+            responds to review feedback when it is explicitly mentioned, and answers by pushing
+            a fix that triggers another review. If your review lists at least one **Blocking** or
+            **Important** item, you MUST include the literal trigger text `@Promptless` in the
+            review body (e.g. address the summary to "@Promptless" so it picks up your feedback).
+            If it lists only **Nit** items or no issues, do not write `@Promptless` anywhere in
+            the review or its comments, so Promptless doesn't push again for nits alone.
 
             Prefer the pending-review flow over create_issue_comment / inline_comment tools — we want a single cohesive review on the PR, not scattered comments.
           claude_args: |
