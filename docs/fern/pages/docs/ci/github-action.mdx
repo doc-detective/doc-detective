@@ -348,7 +348,7 @@ jobs:
       - run: npx doc-detective@5.5.0 install ios --yes
       - uses: doc-detective/github-action@v2
         with:
-          version: 5.5.0  # Replace with your version.
+          version: 5.5.0  # Replace 5.5.0 with your version.
           cache: false
 ```
 
@@ -373,6 +373,7 @@ jobs:
             dd-cache-${{ runner.os }}-
       - uses: doc-detective/github-action@v2
         with:
+          # version defaults to 5, which runs the latest 5.x release. Set it to pin one.
           cache: false
 ```
 
