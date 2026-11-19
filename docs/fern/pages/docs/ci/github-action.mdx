@@ -347,10 +347,12 @@ The action logs what it did with the build:
 - `No cached WebDriverAgent build, so this run builds and caches it.`
 - `Cached the WebDriverAgent build (<key>).`
 
-If a restore or save fails, the action logs one of these warnings instead, and the run continues:
+If a restore or save fails, the action logs a warning instead, and the run continues. The warning starts with one of these sentences and ends with the error that the cache operation reported:
 
-- `Couldn't restore the WebDriverAgent cache, so this run builds it. <cause>.`
-- `Couldn't cache the WebDriverAgent build. <cause>.`
+- `Couldn't restore the WebDriverAgent cache, so this run builds it.`
+- `Couldn't cache the WebDriverAgent build.`
+
+The error text varies with what failed. To find these warnings in a log, match the sentence before it.
 
 ### Cache with `actions/cache`
 
