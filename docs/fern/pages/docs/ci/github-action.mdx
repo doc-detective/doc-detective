@@ -288,7 +288,7 @@ See [Docker and headless](/docs/ci/docker-and-headless) for how headless environ
 
 ## Speed up iOS tests on macOS
 
-Tests against the `ios` platform run on macOS runners. They drive the simulator through WebDriverAgent, which Doc Detective builds for the runner's Xcode and driver versions. With Doc Detective 5.6.0 or later, the first iOS test on a runner [builds WebDriverAgent](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use). Action v2.2.0 or later (`@v2`) saves that build through its `cache` input. Later runs restore it instead of building it again. On GitHub-hosted `macos-latest` runners, the build takes about 2 to 3 minutes, and a restore takes a few seconds. Doc Detective's warning during the build gives a longer estimate, which covers slower machines. The workflow needs no extra steps:
+Tests against the `ios` platform run on macOS runners. They drive the simulator through WebDriverAgent, which Doc Detective builds for the runner's Xcode and driver versions. With Doc Detective 5.6.0 or later, the first iOS test on a runner [builds WebDriverAgent](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use). Action v2.2.0 or later (`@v2`) saves that build through its `cache` input. Later runs restore it instead of building it again. On GitHub-hosted `macos-latest` runners, the build takes about 2 to 3 minutes, and a restore takes a few seconds. The warning Doc Detective shows during the build estimates about 10 minutes, because it allows for slower machines. The workflow needs no extra steps:
 
 ```yaml
 jobs:
@@ -308,7 +308,7 @@ The action caches the build when all of these are true:
 - `cache` is on and `version` has a value, which is the default. An empty `version` runs a local build, which the action doesn't cache.
 - A file in `input`, `config`, or `working_directory` sets `ios` as a `platform` or `platforms` value. The action searches subdirectories and reads JSON and YAML files, and Markdown and MDX files with inline tests. With only `working_directory` set, the action scans that directory.
 
-The build gets its own cache entry of about 68 MiB, which doesn't hold the runtime or browsers. After the first save, the action saves the entry again only when a run builds WebDriverAgent, for example after an Xcode or driver update. The job log shows one of these lines, where `<key>` is the cache key:
+The build gets its own cache entry of about 68 MiB, which doesn't hold the runtime or browsers. After the first save, the action saves the entry again only when a run builds WebDriverAgent, for example after an Xcode or driver update. Before the tests, the job log shows the first or second of these lines. After the tests, a run that built WebDriverAgent also shows the third. `<key>` is the cache key:
 
 ```text
 Restored the WebDriverAgent build from the cache (<key>).
@@ -341,7 +341,7 @@ jobs:
           key: dd-cache-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             dd-cache-${{ runner.os }}-
-      - run: npx doc-detective@5.5.0 install ios --yes  # Remove this step with 5.6.0 or later.
+      - run: npx doc-detective@5.5.0 install ios --yes  # Replace 5.5.0 with your version. Remove this step with 5.6.0 or later.
       - uses: doc-detective/github-action@v2
         with:
           version: 5.5.0  # Replace with your version
