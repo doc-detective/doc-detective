@@ -308,7 +308,7 @@ The action caches the build when all of these are true:
 - `cache` is on and `version` has a value, which is the default. An empty `version` runs a local build, which the action doesn't cache.
 - A file in `input`, `config`, or `working_directory` sets `ios` as a `platform` or `platforms` value. The action searches subdirectories and reads JSON and YAML files, and Markdown and MDX files with inline tests. With only `working_directory` set, the action scans that directory. The scan reads up to six directory levels deep and skips `node_modules`, `.git`, and `.github`. If your iOS specs sit deeper or in a skipped directory, run `doc-detective install ios --yes` before the action to pre-build WebDriverAgent. You can also accept the first-use build on each run.
 
-The build gets its own cache entry of about 68 MiB, which doesn't hold the runtime or browsers. After the first save, the action saves the entry again only when a run builds WebDriverAgent, for example after an Xcode or driver update. Before the tests, the job log shows the first or second of these lines. After the tests, a run that built WebDriverAgent also shows the third. `<key>` is the cache key:
+The build gets its own cache entry of about 68 MiB, which doesn't hold the runtime or browsers. After the first save, the action saves the entry again only when a run builds WebDriverAgent, for example after an Xcode or driver update. Before the tests, the job log shows either the `Restored` line or the `No cached` line. After the tests, a run that built WebDriverAgent also shows the `Cached` line. `<key>` is the cache key:
 
 ```text
 Restored the WebDriverAgent build from the cache (<key>).
