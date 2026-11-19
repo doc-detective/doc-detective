@@ -320,6 +320,8 @@ If a restore or save fails, the action logs a warning and the run continues. A r
 
 ### Earlier Doc Detective versions or `cache: false`
 
+Use these steps when the action doesn't cache the WebDriverAgent build. That happens with Doc Detective before 5.6.0, the action before v2.2.0, or `cache: false`. Before 5.6.0, add an `actions/cache` step and an `install ios` step. With 5.6.0 or later, add only the `actions/cache` step.
+
 Doc Detective versions before 5.6.0 build WebDriverAgent into the cache directory only when you run [`doc-detective install ios --yes`](/reference/reference/cli/install#install-ios). To keep that build between runs, persist Doc Detective's [cache directory](/reference/reference/cli/install#cache-directory) with `actions/cache` and build before the action step. Doc Detective keys the build by your Xcode **and** XCUITest driver versions. Test sessions use it automatically and read-only, which is safe to share across parallel jobs. With Doc Detective 5.6.0 or later and `cache: false`, use the same `actions/cache` step but leave out the `install ios` step. The first iOS test builds WebDriverAgent into the cached directory.
 
 The example pins `5.5.0` in two places. Replace both with the version you run.
