@@ -340,6 +340,7 @@ The "source of truth" for those rows is the schema; the page is an artifact.
 | CLI commands & flags (`cli.mdx`) | yes (`buildCliReference.js`) | [`src/cliOptions.ts`](../../src/cliOptions.ts), the command tree in [`src/cliProgram.ts`](../../src/cliProgram.ts), and `config_v3` for defaults |
 | Action prose pages (`docs/actions/*.mdx`) | no (hand-written) | [`src/core/tests/`](../../src/core/tests/) + the action schema |
 | Reporters & artifacts | no (hand-written) | [`src/reporters/`](../../src/reporters/) |
+| GitHub Action (`docs/ci/github-action.mdx`) | no (hand-written) | [`action.yml`](https://github.com/doc-detective/github-action/blob/v2/action.yml) in doc-detective/github-action, at the `v2` tag the docs pin |
 
 ---
 

@@ -56,7 +56,7 @@ Each run front-loads whatever the cache is missing. Before executing tests, Doc 
 `docdetective/docdetective:linux` is a multi-arch image covering `linux/amd64` and `linux/arm64`. Chrome and ChromeDriver have no native `linux/arm64` build upstream, because Google's Chrome for Testing only publishes x64 binaries. On the `linux/arm64` variant, Chrome and ChromeDriver pre-warming is skipped rather than failing the image. To run Chrome-driven tests on arm64 hosts, run the `linux/amd64` variant under emulation, or use Firefox instead. Firefox and GeckoDriver both ship in the image for arm64 and run natively, so a Firefox context needs no extra setup.
 </Note>
 
-For a GitHub Actions caching recipe, see [Runtime caching](/docs/ci/github-action#runtime-caching).
+On GitHub Actions, the Doc Detective action caches these assets between runs by default. See [Runtime caching](/docs/ci/github-action#runtime-caching).
 
 ## Step 4: Run headless in CI
 
@@ -121,7 +121,7 @@ On a runner that executes specs you don't control, set `DOC_DETECTIVE_BLOCK_LOCA
 
 **Cause:** The runtime cache isn't persisted between runs.
 
-**Solution:** Set `DOC_DETECTIVE_CACHE_DIR` to a path your CI caches, and pre-install with `doc-detective install all --yes`. See [Runtime caching](/docs/ci/github-action#runtime-caching).
+**Solution:** Set `DOC_DETECTIVE_CACHE_DIR` to a path your CI caches, and pre-install with `doc-detective install all --yes`. On GitHub Actions, the action caches these assets by default. See [Runtime caching](/docs/ci/github-action#runtime-caching).
 
 ## What's next
 
