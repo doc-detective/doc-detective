@@ -185,7 +185,7 @@ jobs:
 
       - name: Upload logs on failure
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: install-agents-logs-${{ matrix.agent }}
           path: |
