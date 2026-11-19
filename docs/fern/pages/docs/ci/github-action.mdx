@@ -34,7 +34,7 @@ jobs:
 
 This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. GitHub-hosted runners default to an older version. The action checks the job's Node.js when `version` can install Doc Detective 5, as the default `5` and `latest` can. An empty `version`, or one that stays on 4, skips the check. On older Node.js, the action warns you to add `actions/setup-node` with `node-version: 24`, and runs anyway.
 
-Pin to the major version (`@v2`) to pick up fixes automatically, or pin to a full version such as `@v2.1.0` for a fixed release. Action `@v2` runs CLI 5, and `@v1` stays on CLI 4. If you're moving from `@v1`, see [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
+Pin to the major version (`@v2`) to pick up fixes automatically, or pin to a full version such as `@v2.2.0` for a fixed release. Action `@v2` runs CLI 5, and `@v1` stays on CLI 4. If you're moving from `@v1`, see [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
 
 ## Step 2: Point the action at your tests
 
@@ -306,7 +306,7 @@ The action caches the build when all of these are true:
 
 - The job runs on a macOS runner.
 - `cache` is on and `version` has a value, which is the default. An empty `version` runs a local build, which the action doesn't cache.
-- A file in `input`, `config`, or `working_directory` sets `ios` as a `platform` or `platforms` value. The action searches subdirectories and reads JSON and YAML files, and Markdown and MDX files with inline tests. With only `working_directory` set, the action scans that directory.
+- A file in `input`, `config`, or `working_directory` sets `ios` as a `platform` or `platforms` value. The action searches subdirectories and reads JSON and YAML files, and Markdown and MDX files with inline tests. With only `working_directory` set, the action scans that directory. The scan reads up to six directory levels deep and skips `node_modules`, `.git`, and `.github`. If your iOS specs sit deeper or in a skipped directory, run `doc-detective install ios --yes` before the action to pre-build WebDriverAgent. You can also accept the first-use build on each run.
 
 The build gets its own cache entry of about 68 MiB, which doesn't hold the runtime or browsers. After the first save, the action saves the entry again only when a run builds WebDriverAgent, for example after an Xcode or driver update. Before the tests, the job log shows the first or second of these lines. After the tests, a run that built WebDriverAgent also shows the third. `<key>` is the cache key:
 
