@@ -1,3 +1,14 @@
+## [5.6.3](https://github.com/doc-detective/doc-detective/compare/v5.6.2...v5.6.3) (2026-11-20)
+
+### Bug Fixes
+
+* **ios:** hard-code the xcodebuild command at the spawn site ([0b3812d](https://github.com/doc-detective/doc-detective/commit/0b3812de1223fad5a85739f3e413e8e07555ed23))
+* **ios:** open no iOS session once an interrupt has stopped the builds ([3e491d3](https://github.com/doc-detective/doc-detective/commit/3e491d39a6577fc8a8bd66ad41778ba371382435))
+* **ios:** open no session after an interrupted WebDriverAgent build ([08d510e](https://github.com/doc-detective/doc-detective/commit/08d510e37d1ad8d23b790638e4963f706a3ed599))
+* **ios:** report a stopped build even when the lock release throws ([acb8940](https://github.com/doc-detective/doc-detective/commit/acb89407377b87143668135523338c3be02dbdbb))
+* **ios:** start no WebDriverAgent build after an interrupt ([c222cb8](https://github.com/doc-detective/doc-detective/commit/c222cb80e8dff1f2a1e5697777dbaa9ee7577ecc))
+* **ios:** stop xcodebuild when a WebDriverAgent build is interrupted ([8b9cafa](https://github.com/doc-detective/doc-detective/commit/8b9cafaea7fe0362ae9d5152e18507efaeb3c505)), closes [#1005](https://github.com/doc-detective/doc-detective/issues/1005)
+
 ## [5.6.2](https://github.com/doc-detective/doc-detective/compare/v5.6.1...v5.6.2) (2026-11-20)
 
 ### Bug Fixes
