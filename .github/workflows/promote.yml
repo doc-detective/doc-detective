@@ -63,7 +63,8 @@ jobs:
   smoke-test:
     name: Smoke-test staged release
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Two 10-minute registry waits, then the action itself.
+    timeout-minutes: 30
     outputs:
       action_version: ${{ steps.resolve.outputs.action_version }}
     steps:
@@ -111,6 +112,32 @@ jobs:
             echo "ERROR: Timed out waiting for doc-detective@$VERSION to resolve (staging or plain)." >&2
             exit 1
           fi
+          # The packument can list a version before its tarball downloads, and
+          # the registry's CDN caches a tarball 404 for up to five minutes. So
+          # poll a cache-busted URL until the tarball exists, and only then the
+          # plain URL npx fetches, so this step never seeds that 404 itself.
+          http_code() { curl -sI -o /dev/null -w '%{http_code}' --max-time 15 "$1" || true; }
+          DEADLINE=$(( SECONDS + ${TARBALL_TIMEOUT_SECONDS:-600} ))
+          for PKG in doc-detective doc-detective-common; do
+            URL=""
+            FOUND=""
+            while :; do
+              [ -n "$URL" ] || URL=$(npm view "$PKG@$VERSION" dist.tarball 2>/dev/null || true)
+              if [ -n "$URL" ] && [ -z "$FOUND" ] && [ "$(http_code "$URL?nocache=$RANDOM$SECONDS")" = 200 ]; then
+                FOUND=1
+              fi
+              if [ -n "$FOUND" ] && [ "$(http_code "$URL")" = 200 ]; then
+                echo "$PKG@$VERSION tarball downloads."
+                break
+              fi
+              if [ "$SECONDS" -ge "$DEADLINE" ]; then
+                echo "ERROR: Timed out waiting for $PKG@$VERSION's tarball to download." >&2
+                exit 1
+              fi
+              echo "$PKG@$VERSION tarball doesn't download yet. Waiting 10s..."
+              sleep 10
+            done
+          done
           echo "action_version=$ACTION_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Start local test server
