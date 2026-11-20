@@ -233,15 +233,17 @@ async function readLegacyEnvConfig() {
 
 // A relative path resolves against the source that set it: a config file's
 // folder, or the working directory for the environment and flags (ADR 01165,
-// ADR 01192). `output` and `cacheDir` resolve here, with `path.join`, so `-`
+// ADR 01192). `output`, `cacheDir`, and `compareTo` resolve here, with `path.join`, so `-`
 // stays stdout and `output: "x/"` still reads as a folder. resolvePaths does
 // the rest, nested keys such as a credential file included. Returns a copy;
 // the input is left as it was.
 async function anchorPaths(config: any, base: string) {
   const anchored = structuredClone(config);
-  for (const key of ["output", "cacheDir"]) {
+  for (const key of ["output", "cacheDir", "compareTo"]) {
     const value = anchored[key];
-    if (typeof value === "string" && value !== "-" && !path.isAbsolute(value) && !/^https?:\/\//.test(value)) {
+    // `-` is stdout for `output`; `previous` is a keyword for `compareTo`.
+    const keyword = key === "compareTo" ? value === "previous" : value === "-";
+    if (typeof value === "string" && !keyword && !path.isAbsolute(value) && !/^https?:\/\//.test(value)) {
       anchored[key] = path.join(base, value);
     }
   }
@@ -560,6 +562,17 @@ async function setConfig({
     ];
     const other = modes.find(([on]) => on)?.[1];
     if (other) throw new Error(`set \`${other}\` or \`--plain\`, not both.`);
+  }
+  // Comparison with an earlier run (ADR 01216). The flag resolves against the
+  // working directory; `previous` stays a keyword.
+  if (args.compareToConflict) throw new Error("set `--compare-to` or `--no-compare-to`, not both.");
+  if (typeof args.compareTo === "string") {
+    const target = args.compareTo.trim();
+    if (!target) throw new Error("`--compare-to` needs a path or `previous`.");
+    if (config.dryRun) throw new Error("set `--dry-run` or `--compare-to`, not both.");
+    config.compareTo = target === "previous" ? target : path.resolve(target);
+  } else if (args.compareTo === false) {
+    config.compareTo = false;
   }
   // The CLI's list flags are one comma-separated value each (ADR 01166).
   for (const [flag, key] of [

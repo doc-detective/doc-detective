@@ -21,6 +21,7 @@ import {
   flushRunTelemetry as awaitTelemetryFlush,
 } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
+import { compareWithEarlierRun } from "./compareRuns.js";
 import { displayPath } from "../cliOutput.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
@@ -453,6 +454,9 @@ async function runTestsAndReport(config: any, options: any) {
     // Run test specs locally
     results = await runSpecs({ resolvedTests });
   }
+  // Compare with an earlier run before any reporter reads the results (ADR
+  // 01216). A run that matched nothing has no runId and nothing to compare.
+  if (results?.runId) compareWithEarlierRun(resolvedTests.config ?? config, results);
   // The full results tree is a debug-only dump — the reporters (terminal
   // summary, json/runFolder files) already render results for the user, and at
   // the default `info` level this pretty-printed tree floods the terminal with
