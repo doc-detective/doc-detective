@@ -15,7 +15,7 @@ import {
 } from "./core/utils.js";
 import { checkEnvAliases, envFlag, isDebugRequested, setEnvWarningSink, warnOnce } from "./envFlag.js";
 import { REPORTER_NAMES, splitList } from "./cliOptions.js";
-import { environmentLine, nonPassItems, writeReport } from "./reporters/model.js";
+import { FAILURE_TAGS, comparisonLine, environmentLine, fixedPaths, nonPassItems, writeReport } from "./reporters/model.js";
 import path from "node:path";
 import fs from "node:fs";
 import { spawn } from "node:child_process";
@@ -872,16 +872,20 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
 
       // The same items, in the same order, as every other reporter (ADR 01180).
       const items = nonPassItems(results);
-      for (const [status, heading, color] of [
-        ["FAIL", "Failed", colors.red],
-        ["WARNING", "Warnings", colors.yellow],
-        ["SKIPPED", "Skipped", colors.yellow],
-      ]) {
-        const listed = items.filter((item) => item.status === status);
+      const withStatus = (status: string) => items.filter((item) => item.status === status);
+      // What an earlier run failed and this one passed (ADR 01216).
+      const fixed = fixedPaths(results).map((idPath) => ({ idPath }));
+      for (const [listed, heading, color] of [
+        [withStatus("FAIL"), "Failed", colors.red],
+        [fixed, "Fixed", colors.green],
+        [withStatus("WARNING"), "Warnings", colors.yellow],
+        [withStatus("SKIPPED"), "Skipped", colors.yellow],
+      ] as [any[], string, string][]) {
         if (listed.length === 0) continue;
         console.log(`\n${colors.bold}${color}${heading} (${listed.length}):${colors.reset}`);
         listed.forEach((item, index) => {
-          console.log(`${color}${index + 1}. ${item.idPath}${item.description ? ` — ${item.description}` : ""}${colors.reset}`);
+          const tag = item.failureStatus ? `[${FAILURE_TAGS[item.failureStatus]}] ` : "";
+          console.log(`${color}${index + 1}. ${tag}${item.idPath}${item.description ? ` — ${item.description}` : ""}${colors.reset}`);
           const details = [
             item.reason,
             item.hint && `Hint: ${item.hint}`,
@@ -893,6 +897,8 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
         });
       }
 
+      const compared = comparisonLine(results);
+      if (compared) console.log(`\n${compared}`);
       const footer = environmentLine(results);
       if (footer) console.log(`\n${footer}`);
     } else {

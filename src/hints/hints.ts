@@ -454,6 +454,26 @@ export const HINTS: Hint[] = [
   },
 
   // ------------------------------------------------------------------
+  // setStableTestIds (current-run problems)
+  // ------------------------------------------------------------------
+  {
+    id: "setStableTestIds",
+    priority: 20,
+    markdown: [
+      "A failure in this run reads as new, but its test has no `testId`. Doc Detective generates that test's ID from its content, so editing the test changes the ID, and the comparison with the earlier run can't match its history.",
+      "",
+      "Set `testId` to keep the test's history across edits, in a spec file or in an inline test comment:",
+      "",
+      "```json",
+      '{ "testId": "install-the-cli", "steps": [{ "runShell": "npm i -g doc-detective" }] }',
+      "```",
+      "",
+      "More: [Compare with an earlier run](https://docs.doc-detective.com/docs/ci/reporters-and-artifacts#compare-with-an-earlier-run)",
+    ].join("\n"),
+    when: (ctx) => ctx.newFailureWithGeneratedTestId,
+  },
+
+  // ------------------------------------------------------------------
   // sponsorProject (community)
   // ------------------------------------------------------------------
   {
