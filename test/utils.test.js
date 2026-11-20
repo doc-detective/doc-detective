@@ -233,6 +233,44 @@ describe("Util tests", function () {
     expect(configAbsent.dryRun).to.equal(false);
   });
 
+  it("CLI parses --compare-to and --no-compare-to", function () {
+    expect(setArgs(["node", "x", "--compare-to", "previous"]).compareTo).to.equal("previous");
+    expect(setArgs(["node", "x", "--no-compare-to"]).compareTo).to.equal(false);
+    expect(setArgs(["node", "x", "--input", "."]).compareTo).to.equal(undefined);
+    expect(setArgs(["node", "x", "--compare-to", "a", "--no-compare-to"]).compareToConflict).to.equal(true);
+    expect(setArgs(["node", "x", "--compare-to", "a"]).compareToConflict).to.equal(undefined);
+  });
+
+  it("setConfig stores --compare-to on config.compareTo, resolved from the working directory", async function () {
+    this.timeout(5000);
+    const set = (...flags) => setConfig({ configPath: null, args: setArgs(["node", "x", ...flags]) });
+    expect((await set("--compare-to", "previous")).compareTo).to.equal("previous");
+    expect((await set("--compare-to", "old/results.json")).compareTo).to.equal(path.resolve("old/results.json"));
+    expect((await set("--no-compare-to")).compareTo).to.equal(false);
+    expect((await set("--input", ".")).compareTo).to.equal(undefined);
+  });
+
+  it("setConfig refuses a blank --compare-to, both forms, and --dry-run with --compare-to", async function () {
+    this.timeout(5000);
+    for (const [flags, message] of [
+      [["--compare-to", ""], "`--compare-to` needs a path or `previous`."],
+      [["--compare-to", "  "], "`--compare-to` needs a path or `previous`."],
+      [["--compare-to", "a", "--no-compare-to"], "set `--compare-to` or `--no-compare-to`, not both."],
+      [["--no-compare-to", "--compare-to", "a"], "set `--compare-to` or `--no-compare-to`, not both."],
+      [["--dry-run", "--compare-to", "a"], "set `--dry-run` or `--compare-to`, not both."],
+    ]) {
+      let error;
+      try {
+        await setConfig({ configPath: null, args: setArgs(["node", "x", ...flags]) });
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error?.message, flags.join(" ")).to.equal(message);
+    }
+    // A dry run with no comparison flag is fine: the default isn't explicit.
+    expect((await setConfig({ configPath: null, args: setArgs(["node", "x", "--dry-run"]) })).dryRun).to.equal(true);
+  });
+
   it("isDebugRequested: returns true only for truthy DOC_DETECTIVE_DEBUG values", async function () {
     const { isDebugRequested } = await import("../dist/utils.js");
     const prev = process.env.DOC_DETECTIVE_DEBUG;

@@ -286,6 +286,7 @@ These parts of the results are a stable contract for scripts. A change to any of
 - `durationMs` on the run and on every spec, test, context, and step.
 - `autoRecording.result` on every context Doc Detective tried to record automatically, and `autoRecording.recordingPath`, relative to `runDir`, when it saved a video. See [Where the recording shows up](/docs/test-docs/automatic-recording#where-the-recording-shows-up).
 - `runId` and `runDir`, except when a filter matches nothing. That run has no run folder, and `specs` is empty.
+- `comparison.summary` with `new`, `existing`, and `fixed` counts, and `failureStatus` on contexts, when Doc Detective compared the run with an earlier one. See [Compare with an earlier run](#compare-with-an-earlier-run).
 - The four `--plain` columns, in order. New columns only go at the end.
 
 Doc Detective can add new fields at any time, so ignore the ones you don't recognize. The [`report_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/report_v3.schema.json) defines the full shape. Every results file validates against it, including a run that skipped everything or found no tests. A skipped context has an empty `steps` list. A run with no tests still has `startedAt`, `environment`, and `durationMs`. The `--dry-run` plan validates against the [`resolvedTests_v3` schema](https://github.com/doc-detective/doc-detective/blob/main/src/common/src/schemas/src_schemas/resolvedTests_v3.schema.json).
@@ -428,6 +429,66 @@ Run folders add up: Doc Detective keeps every one and never deletes them. Keep t
 ```bash
 echo ".doc-detective/" >> .gitignore
 ```
+
+### Compare with an earlier run
+
+Each run compares its results with the newest earlier run folder in the same `outputDir`. A failure that the earlier run also had is already failing, and any other failure is new. So in a project with a few known failures, you can tell whether a change broke something. A test that passes now but failed in the earlier run reads as fixed. The comparison never changes the exit code.
+
+After a comparison, the terminal log has one line like this:
+
+```text
+Compared with run `2026-11-06T02-33-28-631Z`: 1 new, 2 already failing, 0 fixed.
+```
+
+A fresh checkout or a CI runner without a cached `outputDir` has no earlier run. Then Doc Detective compares nothing, and the run looks the same as before. To compare across CI jobs, keep `outputDir` between jobs with your CI system's cache, or point `compareTo` at a results file you download.
+
+Choose what to compare with in `compareTo`, or with `--compare-to` and `--no-compare-to`:
+
+| `compareTo` | Compares with |
+|---|---|
+| `previous` (default) | The newest other run folder under `<outputDir>/.doc-detective/runs/` that has `testResults.json`. |
+| A file path | That results JSON file, such as a `testResults.json` from another job. |
+| A folder path | The `testResults.json` in that folder, such as a run folder. |
+| `false` | Nothing. |
+
+```bash
+doc-detective --compare-to baseline/testResults.json
+```
+
+A relative path in a config file resolves against the config file's folder. On the command line, it resolves against the current directory. `--dry-run` doesn't take `--compare-to`, because a dry run has no results.
+
+When you set `compareTo` yourself, Doc Detective warns when it can't compare, and names why. The path might not exist, or the folder might have no `testResults.json`. The file might not be valid JSON or Doc Detective results. Or the results might come from a different major version. With the default, those cases stay quiet unless you run with `--debug`.
+
+Doc Detective matches a failure on its spec ID, test ID, and context ID together, so the same test in the same browser and platform. When a test has no `testId`, Doc Detective derives one from its content. Editing the test then gives it a new ID, and its failure reads as new. Set `testId` and `specId` on the tests whose history you care about:
+
+```json
+{
+  "specId": "install-guide",
+  "tests": [{ "testId": "install-cli", "steps": [{ "runShell": "npm i -g doc-detective" }] }]
+}
+```
+
+A test that a `goToTest` route runs more than once counts as failed when any of its runs failed. A failure from the earlier run whose test isn't in this run isn't counted as fixed.
+
+The results show the comparison in two places:
+
+```json
+{
+  "comparison": {
+    "previous": {
+      "runId": "2026-11-06T02-33-28-631Z",
+      "startedAt": "2026-11-06T02:33:28.631Z",
+      "docDetectiveVersion": "5.6.0",
+      "path": "/repo/.doc-detective/runs/2026-11-06T02-33-28-631Z/testResults.json"
+    },
+    "summary": { "new": 1, "existing": 2, "fixed": 0 }
+  },
+  "specs": [{ "tests": [{ "contexts": [{ "result": "FAIL", "failureStatus": "new" }] }] }]
+}
+```
+
+- `comparison` names the earlier results and counts the contexts by status. It's there only when a comparison happened.
+- `failureStatus` on a context is `new` or `existing` when its `result` is `FAIL`, and `fixed` when it's `PASS` and failed in the earlier run. Other contexts don't have it.
 
 ## Step 6: Fail CI when tests fail
 

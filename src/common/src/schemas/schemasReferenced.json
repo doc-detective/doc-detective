@@ -2696,6 +2696,15 @@
                 "type": "string",
                 "readOnly": true
               },
+              "failureStatus": {
+                "type": "string",
+                "enum": [
+                  "new",
+                  "existing",
+                  "fixed"
+                ],
+                "readOnly": true
+              },
               "durationMs": {
                 "type": "integer",
                 "minimum": 0,
@@ -7884,6 +7893,61 @@
             }
           }
         },
+        "comparison": {
+          "type": "object",
+          "readOnly": true,
+          "additionalProperties": false,
+          "required": [
+            "previous",
+            "summary"
+          ],
+          "properties": {
+            "previous": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "runId": {
+                  "type": "string"
+                },
+                "startedAt": {
+                  "type": "string"
+                },
+                "docDetectiveVersion": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                }
+              }
+            },
+            "summary": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "new",
+                "existing",
+                "fixed"
+              ],
+              "properties": {
+                "new": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "existing": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "fixed": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
         "specs": {
           "type": "array",
           "items": {
@@ -8032,6 +8096,21 @@
         "outputDir": {
           "type": "string",
           "default": "."
+        },
+        "compareTo": {
+          "not": {
+            "const": true
+          },
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          ]
         },
         "reporters": {
           "type": "array",
@@ -11540,6 +11619,15 @@
               },
               "resultDescription": {
                 "type": "string",
+                "readOnly": true
+              },
+              "failureStatus": {
+                "type": "string",
+                "enum": [
+                  "new",
+                  "existing",
+                  "fixed"
+                ],
                 "readOnly": true
               },
               "durationMs": {
@@ -16623,6 +16711,61 @@
             }
           }
         },
+        "comparison": {
+          "type": "object",
+          "readOnly": true,
+          "additionalProperties": false,
+          "required": [
+            "previous",
+            "summary"
+          ],
+          "properties": {
+            "previous": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "runId": {
+                  "type": "string"
+                },
+                "startedAt": {
+                  "type": "string"
+                },
+                "docDetectiveVersion": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                }
+              }
+            },
+            "summary": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "new",
+                "existing",
+                "fixed"
+              ],
+              "properties": {
+                "new": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "existing": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "fixed": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
         "specs": {
           "type": "array",
           "items": {
@@ -16766,6 +16909,21 @@
         },
         "outputDir": {
           "type": "string"
+        },
+        "compareTo": {
+          "not": {
+            "const": true
+          },
+          "anyOf": [
+            {
+              "const": false
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          ]
         },
         "reporters": {
           "type": "array",
