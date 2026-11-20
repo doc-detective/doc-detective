@@ -797,9 +797,13 @@ async function prebuildWda({
       `products: ${runnerApp}`,
     ]);
   } finally {
-    lock.release();
-    buildsInFlight.delete(inFlight);
-    finished();
+    try {
+      lock.release();
+    } finally {
+      // Even when the release throws: `stopWdaBuilds` is waiting on this.
+      buildsInFlight.delete(inFlight);
+      finished();
+    }
   }
 }
 

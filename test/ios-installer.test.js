@@ -464,6 +464,30 @@ describe("interrupting a WebDriverAgent build", function () {
     expect(env.lock.released).to.equal(true);
   });
 
+  it("still resolves when releasing the lock throws", async function () {
+    const env = makeWdaEnv();
+    env.deps.acquire = async () => ({
+      release: () => {
+        throw new Error("EPERM: the lock directory can't be removed");
+      },
+    });
+    buildUntilStopped(env);
+    const install = installIos({ yes: true, deps: env.deps });
+    await nextTurn();
+
+    // An interrupt handler waits on this. A build that never reports back
+    // would hold the process until the handler's deadline.
+    const outcome = await Promise.race([
+      stopWdaBuilds().then(() => "stopped"),
+      new Promise((resolve) => setTimeout(() => resolve("still waiting"), 500)),
+    ]);
+    expect(outcome).to.equal("stopped");
+    expect(wdaRow(await install).action, "the throw still reaches the caller").to.equal("skipped");
+
+    // The build is forgotten, so a later stop has nothing to wait for.
+    await stopWdaBuilds();
+  });
+
   it("resolves at once with nothing to stop, and forgets a build that finished", async function () {
     await stopWdaBuilds();
 
