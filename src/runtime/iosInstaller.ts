@@ -443,9 +443,11 @@ const BUILD_OUTPUT_TAIL_BYTES = 64 * 1024;
 /**
  * Run one `xcodebuild` attempt. The timeout ceiling and an abort of `signal`
  * both kill its whole process group. `effects` are for tests.
+ *
+ * The command is fixed and the arguments go as a list, with no shell, so no
+ * path in them is ever read as shell syntax.
  */
-export function defaultRunBuild(
-  command: string,
+export function runXcodebuild(
   args: string[],
   opts: { timeoutMs?: number; signal?: AbortSignal } = {},
   effects: { spawn?: typeof spawn; kill?: typeof process.kill } = {}
@@ -463,7 +465,7 @@ export function defaultRunBuild(
     // XCBBuildService/clang children too — an orphaned build service holding
     // the DerivedData would poison the keyed dir. A terminal's Ctrl-C doesn't
     // reach that group, so `signal` is the only way an interrupt stops it.
-    const child = spawnChild(command, args, { windowsHide: true, detached: true });
+    const child = spawnChild("xcodebuild", args, { windowsHide: true, detached: true });
     let stdout = "";
     let stderr = "";
     let timedOut = false;
@@ -561,7 +563,10 @@ async function prebuildWda({
   xcode?: XcodeVersion;
 }): Promise<WdaPrebuild> {
   const fs = deps.fs ?? (fsDefault as unknown as WdaFs);
-  const runBuild = deps.runBuild ?? defaultRunBuild;
+  const runBuild =
+    deps.runBuild ??
+    ((_command: string, args: string[], opts?: { timeoutMs?: number; signal?: AbortSignal }) =>
+      runXcodebuild(args, opts));
   const ensureInstalled =
     deps.ensureInstalled ??
     ((packages: string[], options?: { ctx?: CacheDirContext }) =>
@@ -685,7 +690,11 @@ async function prebuildWda({
   // The interrupt came while this call waited for the lock, or before the
   // call. `stopWdaBuilds` has already looked for builds to stop.
   if (stopping) {
-    lock.release();
+    try {
+      lock.release();
+    } catch {
+      // Best effort. A later build takes over a lock whose holder is gone.
+    }
     return interrupted();
   }
 

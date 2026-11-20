@@ -3,9 +3,9 @@ import { EventEmitter } from "node:events";
 import path from "node:path";
 import {
   _resetWdaStopForTests,
-  defaultRunBuild,
   ensureManagedWda,
   installIos,
+  runXcodebuild,
   stopWdaBuilds,
 } from "../dist/runtime/iosInstaller.js";
 import { installSubcommands } from "../dist/runtime/installCommand.js";
@@ -414,10 +414,15 @@ function buildUntilStopped(env, result = { status: null, stdout: "", stderr: "" 
   };
 }
 const nextTurn = () => new Promise((resolve) => setImmediate(resolve));
+// Stop a build that a failed test left running. Then forget the stop: it's
+// final in the CLI, which exits right after it, but a test process goes on.
+async function stopAndForget() {
+  await stopWdaBuilds();
+  _resetWdaStopForTests();
+}
 
 describe("interrupting a WebDriverAgent build", function () {
-  // A stop is final in the CLI, which exits right after it. A test process goes on.
-  afterEach(_resetWdaStopForTests);
+  afterEach(stopAndForget);
 
   it("stops the build in flight, and resolves only after the lock is released", async function () {
     const env = makeWdaEnv();
@@ -513,6 +518,21 @@ describe("interrupting a WebDriverAgent build", function () {
     expect(late.lock.released).to.equal(true);
   });
 
+  it("reports the interrupt, not a failure, when giving the lock back throws", async function () {
+    const env = makeWdaEnv();
+    env.deps.acquire = async () => ({
+      release: () => {
+        throw new Error("EPERM: the lock directory can't be removed");
+      },
+    });
+    await stopWdaBuilds();
+
+    const row = wdaRow(await installIos({ yes: true, deps: env.deps }));
+    expect(row.action).to.equal("skipped");
+    expect(row.notes.join(" ")).to.match(/interrupted/).and.not.match(/EPERM|failed unexpectedly/);
+    expect(env.builds).to.have.length(0);
+  });
+
   it("forgets a build that finished", async function () {
     const env = makeWdaEnv();
     const build = env.deps.runBuild;
@@ -585,7 +605,7 @@ describe("xcodebuild runner (the spawn site)", function () {
     const child = fakeChild();
     const kills = [];
     const spawned = [];
-    const result = defaultRunBuild("xcodebuild", ["build-for-testing"], opts, {
+    const result = runXcodebuild(["build-for-testing"], opts, {
       spawn: (command, args, options) => {
         spawned.push({ command, args, options });
         return child;
@@ -594,6 +614,13 @@ describe("xcodebuild runner (the spawn site)", function () {
     });
     return { child, kills, spawned, result };
   }
+
+  it("runs `xcodebuild` itself, never a shell, with its arguments as a list", function () {
+    const { spawned } = start();
+    expect(spawned[0].command).to.equal("xcodebuild");
+    expect(spawned[0].args).to.deep.equal(["build-for-testing"]);
+    expect(spawned[0].options.shell, "no path can reach a shell").to.equal(undefined);
+  });
 
   it("gives xcodebuild its own process group, and reports how it closed", async function () {
     const { child, kills, spawned, result } = start();
@@ -666,13 +693,12 @@ describe("xcodebuild runner (the spawn site)", function () {
     if (process.platform === "win32") this.skip();
     const stop = new AbortController();
     let child;
-    // The shell starts a background `sleep`, which inherits the output pipes.
-    const result = defaultRunBuild(
-      "sh",
-      ["-c", "sleep 30 & echo started; wait"],
-      { signal: stop.signal },
-      { spawn: (...args) => (child = spawn(...args)) }
-    );
+    // Stands in for xcodebuild: a shell that starts a background `sleep`,
+    // which inherits the output pipes. The runner's own options apply.
+    const result = runXcodebuild([], { signal: stop.signal }, {
+      spawn: (command, args, options) =>
+        (child = spawn("sh", ["-c", "sleep 30 & echo started; wait"], options)),
+    });
     await new Promise((resolve) => child.stdout.once("data", resolve));
 
     stop.abort();
@@ -887,7 +913,7 @@ describe("Xcode version probe", function () {
 // --- first-use build during a test run (ADR 01214) ---
 
 describe("first-use WebDriverAgent build (ADR 01214)", function () {
-  afterEach(_resetWdaStopForTests);
+  afterEach(stopAndForget);
 
   const BUILDING =
     "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.";
