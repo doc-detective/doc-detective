@@ -91,8 +91,9 @@ changes the exit code, and the report gets no `comparison`.
 
 The same-major gate exists because ID derivation may change across majors. A results file from an
 older major, or one without `environment.docDetectiveVersion`, isn't compared rather than compared
-wrongly. On success, an `info` line on stderr: ``Compared with run `<runId>`: <n> new, <n> already
-failing, <n> fixed.`` stdout keeps carrying results only (ADR 01146).
+wrongly. On success, the human reports print ``Compared with run `<runId>`: <n> new, <n> already
+failing, <n> fixed.`` (see Presentation), and the core logs the same line at `debug` on stderr only,
+so the terminal doesn't show it twice. stdout keeps carrying results only (ADR 01146).
 
 ### Output
 
@@ -115,6 +116,22 @@ the JSON results, the run folder, and the JavaScript API's `runTests()` all carr
 A later ADR adds `failOn`, which can gate the exit code on new failures. This one deliberately
 doesn't.
 
+### Presentation
+
+The human reports show the marks only when `comparison` is present. Without it, their output is
+byte-identical to before. The shared model (`src/reporters/model.ts`, ADR 01180) carries a FAIL
+item's `failureStatus`, lists the fixed contexts by ID path, and builds the sentence once.
+
+* Terminal and Markdown: each failed item reads `[new]` or `[already failing]` before its ID path.
+  A `Fixed (n):` list (terminal) or `## Fixed` list (Markdown) follows the failures when n > 0. The
+  sentence closes the terminal lists, and sits under the Markdown counts table.
+* HTML: each context shows a `new`, `already failing`, or `fixed` tag beside its result badge. The
+  sentence and the fixed list sit under the verdict.
+* `--plain` and JUnit don't change. Their columns are a contract.
+* The `setStableTestIds` hint fires when a `new` failure belongs to a test whose `testId` was
+  generated (`<specId>~<hash>`). It says that setting `testId` keeps the test's history across
+  edits.
+
 ### Consequences
 
 * Good: a reader sees new vs. inherited failures with no setup, locally and in CI with a cached
@@ -131,7 +148,11 @@ doesn't.
 * `src/common/test/validate.test.js` covers `compareTo`, `comparison`, and `failureStatus`.
 * `test/utils.test.js`, `test/config-precedence.test.js`, and `test/cli-contract.test.js` cover the
   flags, the path rule, and the usage errors.
-* `test/core-artifacts/cli/compare-runs.spec.json` runs every permutation through the real CLI.
+* `test/core-artifacts/cli/compare-runs.spec.json` runs every permutation through the real CLI,
+  and checks the tags and Fixed list on stdout and in the run folder's `testResults.md`.
+* `test/reporters-model.test.js`, `test/utils-coverage.test.js`,
+  `test/reporters-junit-markdown.test.js`, `test/htmlReporter.test.js`, and `test/hints.test.js`
+  cover the presentation, including the unchanged output without a comparison.
 
 ## Pros and Cons of the Options
 
