@@ -128,6 +128,10 @@ You can use single or double quotes for either attribute. Use `<data>` elements 
 
 Put a blank line before and after each statement. An RST statement can span lines. A comment's indented block belongs to it, so a step can continue on the lines below `.. step`. See [reStructuredText](/docs/test-docs/input-formats/rst).
 
+## Mark a procedure
+
+A `procedure` statement, such as `<!-- procedure -->` or `{/* procedure */}`, marks the numbered list right after it as a procedure. Test runs skip it. [`doc-detective audit`](/docs/test-docs/audit-test-coverage) counts that list's items as procedure steps, even when too few of its items read as instructions. Add one when `audit` lists a real procedure under **Possible procedures**. For the statement in each format, see [Mark a list as a procedure](/docs/test-docs/audit-test-coverage#mark-a-list-as-a-procedure).
+
 ## Examples
 
 {/* The examples below document inline-test syntax; they aren't runnable tests (they navigate real
