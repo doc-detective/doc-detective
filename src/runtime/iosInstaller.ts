@@ -55,7 +55,8 @@ export interface IOSInstallerDeps {
   runBuild?: (
     command: string,
     args: string[],
-    opts?: { timeoutMs?: number }
+    /** `signal` aborts when an interrupt stops the build. */
+    opts?: { timeoutMs?: number; signal?: AbortSignal }
   ) => Promise<{
     status: number | null;
     stdout?: string;
@@ -86,6 +87,8 @@ export interface IOSInstallerDeps {
 /** A prebuild's report row, plus why it built nothing. */
 interface WdaPrebuild {
   report: InstallReport;
+  /** An interrupt stopped the build, so the process is about to exit. */
+  interrupted?: true;
   /**
    * Set only on a skipped build: the reason, as a sentence. `installIos`
    * ignores it. `ensureManagedWda` puts it in the run's warning.
@@ -391,6 +394,8 @@ export async function ensureManagedWda({
         // "no Xcode".
         xcode,
       });
+      // No session follows an interrupt, so there's no fallback to warn about.
+      if (prebuild.interrupted) return warnings;
       cause = prebuild.cause;
       // The notes carry the build output's tail. Keep it out of the warning.
       if (cause) logger((prebuild.report.notes ?? []).join(" | "), "debug");
@@ -423,27 +428,35 @@ export async function ensureManagedWda({
   }
 }
 
-/* c8 ignore start — real spawn; unit tests inject runBuild. */
 // Keep only the tail of each output stream: the transient-signature scan and
 // the reported failure tail both live at the end, and a cold WDA build can
 // emit tens of MB that would otherwise sit in memory for ~20 minutes.
 const BUILD_OUTPUT_TAIL_BYTES = 64 * 1024;
 
-function defaultRunBuild(
+/**
+ * Run one `xcodebuild` attempt. The timeout ceiling and an abort of `signal`
+ * both kill its whole process group. `effects` are for tests.
+ */
+export function defaultRunBuild(
   command: string,
   args: string[],
-  opts: { timeoutMs?: number } = {}
+  opts: { timeoutMs?: number; signal?: AbortSignal } = {},
+  effects: { spawn?: typeof spawn; kill?: typeof process.kill } = {}
 ): Promise<{
   status: number | null;
   stdout: string;
   stderr: string;
   timedOut: boolean;
 }> {
+  const spawnChild = effects.spawn ?? spawn;
+  const kill =
+    effects.kill ?? ((pid: number, signal: NodeJS.Signals) => process.kill(pid, signal));
   return new Promise((resolve, reject) => {
-    // detached: give xcodebuild its own process group so a ceiling kill can
-    // take down XCBBuildService/clang children too — an orphaned build
-    // service holding the DerivedData would poison the keyed dir.
-    const child = spawn(command, args, { windowsHide: true, detached: true });
+    // detached: give xcodebuild its own process group so a kill can take down
+    // XCBBuildService/clang children too — an orphaned build service holding
+    // the DerivedData would poison the keyed dir. A terminal's Ctrl-C doesn't
+    // reach that group, so `signal` is the only way an interrupt stops it.
+    const child = spawnChild(command, args, { windowsHide: true, detached: true });
     let stdout = "";
     let stderr = "";
     let timedOut = false;
@@ -451,31 +464,42 @@ function defaultRunBuild(
       (buf + d).slice(-BUILD_OUTPUT_TAIL_BYTES);
     child.stdout?.on("data", (d) => (stdout = append(stdout, d)));
     child.stderr?.on("data", (d) => (stderr = append(stderr, d)));
+    const killGroup = () => {
+      try {
+        if (child.pid) kill(-child.pid, "SIGKILL");
+        else child.kill("SIGKILL");
+      } catch {
+        child.kill("SIGKILL");
+      }
+    };
     let timer: NodeJS.Timeout | undefined;
     if (opts.timeoutMs) {
       timer = setTimeout(() => {
         timedOut = true;
         stderr += `\nxcodebuild killed at the ${opts.timeoutMs} ms ceiling`;
-        try {
-          if (child.pid) process.kill(-child.pid, "SIGKILL");
-          else child.kill("SIGKILL");
-        } catch {
-          child.kill("SIGKILL");
-        }
+        killGroup();
       }, opts.timeoutMs);
       timer.unref?.();
     }
-    child.on("error", (err) => {
+    opts.signal?.addEventListener("abort", killGroup, { once: true });
+    if (opts.signal?.aborted) killGroup();
+    // Once it's over, the pid can belong to another process.
+    const settle = () => {
       if (timer) clearTimeout(timer);
+      opts.signal?.removeEventListener("abort", killGroup);
+    };
+    child.on("error", (err) => {
+      settle();
       reject(err);
     });
     child.on("close", (status) => {
-      if (timer) clearTimeout(timer);
+      settle();
       resolve({ status, stdout, stderr, timedOut });
     });
   });
 }
 
+/* c8 ignore start — a real timer; unit tests inject sleep. */
 function defaultSleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     const timer = setTimeout(resolve, ms);
@@ -490,6 +514,20 @@ function defaultSleep(ms: number): Promise<void> {
 // guidance; `install ios` never exits non-zero because a prebuild couldn't
 // happen (the session-time fallback is today's behavior — WDA builds inside
 // the first XCUITest session).
+
+// The builds this process is running, from lock to release.
+const buildsInFlight = new Set<{ stop: AbortController; done: Promise<void> }>();
+
+/**
+ * Stop every WebDriverAgent build this process is running: kill `xcodebuild`
+ * and what it spawned, then wait until each build has released its lock. An
+ * interrupt handler calls this before it exits. Never rejects.
+ */
+export async function stopWdaBuilds(): Promise<void> {
+  const builds = [...buildsInFlight];
+  for (const build of builds) build.stop.abort();
+  await Promise.all(builds.map((build) => build.done));
+}
 
 async function prebuildWda({
   ctx,
@@ -621,6 +659,20 @@ async function prebuildWda({
     ]);
   }
 
+  // From here until the lock's release, `stopWdaBuilds` can stop this build.
+  const stop = new AbortController();
+  let finished!: () => void;
+  const inFlight = { stop, done: new Promise<void>((resolve) => (finished = resolve)) };
+  buildsInFlight.add(inFlight);
+  // The half-built directory stays without its marker, so nothing uses it.
+  // The next build for this key picks up where this one stopped.
+  const interrupted = (): WdaPrebuild => ({
+    ...skipped("An interrupt stopped the build.", [
+      "the WebDriverAgent build was interrupted; rerun: doc-detective install ios --yes",
+    ]),
+    interrupted: true,
+  });
+
   try {
     // Re-check under the lock: a contender that waited out a concurrent
     // build finds the now-valid marker and must not build again (the
@@ -652,10 +704,16 @@ async function prebuildWda({
     ];
 
     for (let attempt = 1; attempt <= WDA_BUILD_MAX_ATTEMPTS; attempt++) {
+      // An interrupt during the retry backoff starts no second build.
+      if (stop.signal.aborted) return interrupted();
       const build = await runBuild("xcodebuild", buildArgs, {
         timeoutMs: WDA_BUILD_TIMEOUT_MS,
+        signal: stop.signal,
       });
       if (build.status === 0) break;
+      // A killed build can look transient. It's never retried: a second
+      // `xcodebuild` would outlive the process.
+      if (stop.signal.aborted) return interrupted();
       const failureText = `${build.stderr ?? ""}\n${build.stdout ?? ""}`;
       // A ceiling kill is never retried: a second ceiling-length attempt
       // would double the worst case to ~40 minutes and blow the CI jobs'
@@ -738,6 +796,8 @@ async function prebuildWda({
     ]);
   } finally {
     lock.release();
+    buildsInFlight.delete(inFlight);
+    finished();
   }
 }
 

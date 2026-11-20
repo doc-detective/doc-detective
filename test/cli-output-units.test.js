@@ -430,6 +430,25 @@ describe("createInterruptHandler", function () {
     expect(lines[1]).to.match(/may still be running/);
   });
 
+  it("names what may still be running, when told", async function () {
+    const lines = [];
+    const options = {
+      cleanup: () => new Promise(() => {}),
+      exit: () => {},
+      print: (line) => lines.push(line),
+      stragglers: "`xcodebuild`",
+      deadlineMs: 5,
+    };
+    const handler = createInterruptHandler(options);
+    handler("SIGINT");
+    handler("SIGINT");
+    expect(lines[1]).to.equal("Stopping now. `xcodebuild` may still be running.");
+
+    createInterruptHandler(options)("SIGTERM");
+    await flush();
+    expect(lines.at(-1)).to.equal("Cleanup didn't finish in time. `xcodebuild` may still be running.");
+  });
+
   it("gives up on cleanup at the deadline", async function () {
     const exits = [];
     const lines = [];

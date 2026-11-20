@@ -153,7 +153,7 @@ import {
   listInstalledSystemImages,
   installAndroid,
 } from "../runtime/androidInstaller.js";
-import { ensureManagedWda } from "../runtime/iosInstaller.js";
+import { ensureManagedWda, stopWdaBuilds } from "../runtime/iosInstaller.js";
 import {
   buildAcquireDeviceDeps,
   findUia2Helpers,
@@ -2167,6 +2167,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // handler awaits the tree-kills before exiting so children don't outlive it.
   const onSignal = createInterruptHandler({
     cleanup: async () => {
+      // A first-use WebDriverAgent build (ADR 01214) runs `xcodebuild` in its
+      // own process group, which a terminal's Ctrl-C doesn't reach.
+      const wdaBuildsStopped = stopWdaBuilds();
       await killAllRegistered();
       await Promise.all(
         [...appiumServers, ...appServerPool.drain()].map((server) =>
@@ -2180,6 +2183,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // best-effort
         }
       }
+      await wdaBuildsStopped;
     },
   });
   process.on("SIGINT", onSignal);
