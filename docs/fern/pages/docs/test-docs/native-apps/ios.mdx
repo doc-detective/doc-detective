@@ -131,7 +131,7 @@ To find the matching build, Doc Detective first checks the Xcode version. On a c
 
 Later runs reuse the build until Xcode or the driver changes. To build it ahead of time, for example when you prepare a CI image, run `doc-detective install ios --yes`.
 
-If you press `Ctrl+C` or Doc Detective receives `SIGTERM` while WebDriverAgent builds, Doc Detective stops `xcodebuild` and then exits. That holds in a test run and in `install ios`. Nothing uses the partial build. The next build for the same Xcode version and driver continues from it.
+If you press `Ctrl+C` or Doc Detective receives `SIGTERM` while WebDriverAgent builds, Doc Detective stops `xcodebuild` and then exits with code `130` for `Ctrl+C` or `143` for `SIGTERM`. That holds in a test run and in `install ios`. A test run starts no iOS test after the interrupt. No test uses the unfinished build, but the next build for the same Xcode version and driver continues from it. A second `Ctrl+C`, or a stop that takes longer than 5 seconds, makes Doc Detective exit at once. `xcodebuild` may then keep running.
 
 If the build fails, the test still runs, and Appium builds WebDriverAgent during the session instead. Doc Detective warns and names the cause in the last sentence. For example, a build that runs too long warns:
 

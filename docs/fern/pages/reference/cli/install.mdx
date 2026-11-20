@@ -186,7 +186,7 @@ Preview the plan on any host (including Windows/Linux, where it reports that iOS
 doc-detective install ios --dry-run
 ```
 
-To stop the command, press `Ctrl+C` or send it `SIGTERM`. Doc Detective stops the WebDriverAgent build and then exits, so `xcodebuild` doesn't keep running in the background. The next `install ios` or test run continues the build from where it stopped.
+To stop the command, press `Ctrl+C` or send it `SIGTERM`. Doc Detective prints `Stopping… Press Ctrl-C again to stop immediately.`, stops the WebDriverAgent build, and exits with code `130` for `Ctrl+C` or `143` for `SIGTERM`. The next `install ios` or test run continues the build from where it stopped. A second `Ctrl+C`, or a stop that takes longer than 5 seconds, makes Doc Detective exit at once. `xcodebuild` may then keep running in the background.
 
 <Note>
 
