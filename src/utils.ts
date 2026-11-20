@@ -574,6 +574,11 @@ async function setConfig({
   } else if (args.compareTo === false) {
     config.compareTo = false;
   }
+  // ADR 01217.
+  if (typeof args.failOn === "string") config.failOn = args.failOn;
+  if (config.failOn === "new" && config.compareTo === false) {
+    throw new Error("`failOn: new` needs a comparison. Remove `compareTo: false` or `--no-compare-to`.");
+  }
   // The CLI's list flags are one comma-separated value each (ADR 01166).
   for (const [flag, key] of [
     ["reporters", "reporters"],
