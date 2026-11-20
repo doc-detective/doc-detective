@@ -1,4 +1,4 @@
-// Run comparison permutations (ADR 01244), run by compare-runs.spec.json in
+// Run comparison and `failOn` permutations (ADRs 01233 and 01217), run by compare-runs.spec.json in
 // this directory.
 //
 //   node test/core-artifacts/cli/compare-runs.cjs <case>
@@ -23,7 +23,9 @@ const run = (files, args = [], checks = {}) => ({ files, args: ["-i", "s.spec.js
 const NOT_COMPARED = { compared: false, stderrExcludes: "Couldn't compare" };
 const warning = (text) => ({ exit: 1, compared: false, stderr: [`Warning: Couldn't compare with an earlier run: ${text}`] });
 const usage = (args, line) => ({ files: FAIL, args: ["-i", "s.spec.json", ...args], exit: 2, stderrEquals: `Error: ${line}\n` });
-const v4 = { environment: { docDetectiveVersion: "4.9.0" }, specs: [] };
+const NO_NEW = "No new failures:";
+const FAIL_ON_NEEDS_COMPARISON = "`failOn: new` needs a comparison. Remove `compareTo: false` or `--no-compare-to`.";
+const v4 ={ environment: { docDetectiveVersion: "4.9.0" }, specs: [] };
 
 const cases = {
   "default-no-earlier-run": [run(FAIL, [], { exit: 1, ...NOT_COMPARED })],
@@ -88,6 +90,41 @@ const cases = {
   "usage-blank": [usage(["--compare-to", ""], "`--compare-to` needs a path or `previous`.")],
   "usage-both": [usage(["--compare-to", "x", "--no-compare-to"], "set `--compare-to` or `--no-compare-to`, not both.")],
   "usage-dry-run": [usage(["--dry-run", "--compare-to", "x"], "set `--dry-run` or `--compare-to`, not both.")],
+  // `failOn: new` (ADR 01217).
+  "fail-on-existing": [
+    run(FAIL, [], { exit: 1 }),
+    run(FAIL, ["--fail-on", "new"], {
+      exit: 0,
+      status: "existing",
+      summary: [0, 1, 0],
+      stderr: ["No new failures: 1 failure was already failing, so the run exits 0 (`failOn: new`)."],
+    }),
+  ],
+  "fail-on-new": [
+    run(PASS),
+    run(FAIL, ["--fail-on", "new"], { exit: 1, status: "new", summary: [1, 0, 0], stderrExcludes: NO_NEW }),
+  ],
+  "fail-on-no-earlier-run": [run(FAIL, ["--fail-on", "new"], { exit: 1, ...NOT_COMPARED, stderrExcludes: NO_NEW })],
+  "fail-on-no-exit-on-fail": [
+    run(PASS),
+    run(FAIL, ["--fail-on", "new", "--no-exit-on-fail"], { exit: 0, status: "new", summary: [1, 0, 0], stderrExcludes: NO_NEW }),
+  ],
+  "fail-on-config": [
+    run({ ...FAIL, "dd.json": { failOn: "new" } }, ["-c", "dd.json"], { exit: 1 }),
+    run(FAIL, ["-c", "dd.json"], { exit: 0, status: "existing", summary: [0, 1, 0], stderr: [NO_NEW] }),
+  ],
+  "fail-on-flag-beats-config": [
+    run({ ...FAIL, "dd.json": { failOn: "new" } }, ["-c", "dd.json"], { exit: 1 }),
+    run(FAIL, ["-c", "dd.json", "--fail-on", "any"], { exit: 1, status: "existing", summary: [0, 1, 0], stderrExcludes: NO_NEW }),
+  ],
+  "fail-on-usage-no-compare-to": [usage(["--fail-on", "new", "--no-compare-to"], FAIL_ON_NEEDS_COMPARISON)],
+  "fail-on-usage-config": [
+    {
+      ...usage(["-c", "dd.json"], FAIL_ON_NEEDS_COMPARISON),
+      files: { ...FAIL, "dd.json": { failOn: "new", compareTo: false } },
+    },
+  ],
+  "fail-on-usage-bogus": [{ files: FAIL, args: ["-i", "s.spec.json", "--fail-on", "bogus"], exit: 2, stderr: ["--fail-on", "any, new"] }],
 };
 
 const name = process.argv[2];

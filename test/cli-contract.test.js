@@ -299,6 +299,36 @@ describe("CLI contract", function () {
       });
     }
 
+    // ADR 01217.
+    const failOnNeedsComparison = "`failOn: new` needs a comparison. Remove `compareTo: false` or `--no-compare-to`.";
+    for (const { name, args, config } of [
+      { name: "--fail-on new --no-compare-to", args: ["--fail-on", "new", "--no-compare-to"] },
+      { name: "config `failOn: new` with --no-compare-to", args: ["--no-compare-to"], config: { failOn: "new" } },
+      { name: "--fail-on new with config `compareTo: false`", args: ["--fail-on", "new"], config: { compareTo: false } },
+    ]) {
+      it(`refuses ${name} with one line and exit 2`, function () {
+        if (config) writeConfig(config);
+        const r = run(["-i", "pass.spec.json", ...args]);
+        expect(r.status, r.stdout + r.stderr).to.equal(2);
+        expect(r.stderr).to.equal(`Error: ${failOnNeedsComparison}\n`);
+        expect(r.stdout).to.equal("");
+      });
+    }
+
+    it("refuses --fail-on bogus with exit 2", function () {
+      const r = run(["-i", "pass.spec.json", "--fail-on", "bogus"]);
+      expect(r.status, r.stdout + r.stderr).to.equal(2);
+      expect(r.stderr).to.include("--fail-on");
+      expect(r.stderr).to.include("any, new");
+    });
+
+    it("refuses config `failOn: \"x\"` with exit 2", function () {
+      writeConfig({ failOn: "x" });
+      const r = run(["-i", "pass.spec.json"]);
+      expect(r.status, r.stdout + r.stderr).to.equal(2);
+      expect(r.stderr).to.include("failOn");
+    });
+
     it("lets --no-dry-run --plain beat a config `dryRun`", function () {
       writeConfig({ dryRun: true });
       const r = run(["-i", "pass.spec.json", "--no-dry-run", "--plain"]);
