@@ -599,7 +599,7 @@ describe("Xcode version probe", function () {
 
 describe("first-use WebDriverAgent build (ADR 01214)", function () {
   const BUILDING =
-    "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.";
+    "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build can take several minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.";
   const UNRECORDED =
     "Couldn't update the cache record after building WebDriverAgent, so `installed.json` may not list this build.";
   const FAILED =
@@ -696,6 +696,17 @@ describe("first-use WebDriverAgent build (ADR 01214)", function () {
 
     // Both kinds of iOS session then start on the managed build.
     expectManaged(env, sessionCapabilities(env));
+  });
+
+  // Hosted macOS runners build in two to three minutes, and slow hosts take longer.
+  it("promises no build time in minutes (#1008)", async function () {
+    const env = makeFirstUseEnv();
+    const logged = [];
+    env.deps.logger = (message) => logged.push(message);
+
+    const said = [...(await env.ensure()), ...logged].join("\n");
+    expect(said).to.match(/Prebuilding WebDriverAgent for \S+ \(the first build can take several minutes\)…/);
+    expect(said).to.not.match(/\d+ minutes/);
   });
 
   it("doesn't call a build failed when another process finished it during the lock wait", async function () {
