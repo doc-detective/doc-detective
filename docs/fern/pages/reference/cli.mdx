@@ -36,6 +36,7 @@ The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, an
 | `--test` | `-t` | string |  | Run only tests whose testId matches the given regex (case-insensitive). Give one comma-separated list of patterns, once; a test passes if any pattern matches. |
 | `--spec` | `-s` | string |  | Run only specs whose specId matches the given regex (case-insensitive). Give one comma-separated list of patterns, once; a spec passes if any pattern matches. |
 | `--dry-run` | `-n` | boolean | `false` | Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps. |
+| `--compare-to` |  | string |  | The earlier run's results to compare failures with: `previous` (the default, the newest other run folder under `<outputDir>/.doc-detective/runs/`), a results JSON file, or a folder that holds `testResults.json`. A relative path resolves against the current directory. Beats config `compareTo`. `--no-compare-to` turns comparison off. Not with `--dry-run`. |
 | `--plain` |  | boolean |  | Print one line per test context, with four tab-separated columns: result, spec ID, test ID, and platform and browser, such as `linux/chrome`. |
 | `--no-exit-on-fail` |  | boolean |  | Exit `0` even when tests fail or nothing was tested, including when every spec skipped, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. |
 | `--allow-unsafe` |  | boolean |  | Allow execution of potentially unsafe tests |

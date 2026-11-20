@@ -268,6 +268,37 @@ describe("CLI contract", function () {
       });
     }
 
+    // ADR 01216.
+    for (const { name, args, line } of [
+      { name: '--compare-to ""', args: ["--compare-to", ""], line: "`--compare-to` needs a path or `previous`." },
+      {
+        name: "--compare-to x --no-compare-to",
+        args: ["--compare-to", "x", "--no-compare-to"],
+        line: "set `--compare-to` or `--no-compare-to`, not both.",
+      },
+      {
+        name: "--dry-run --compare-to x",
+        args: ["--dry-run", "--compare-to", "x"],
+        line: "set `--dry-run` or `--compare-to`, not both.",
+      },
+    ]) {
+      it(`refuses ${name} with one line and exit 2`, function () {
+        const r = run(["-i", "pass.spec.json", ...args]);
+        expect(r.status, r.stdout + r.stderr).to.equal(2);
+        expect(r.stderr).to.equal(`Error: ${line}\n`);
+        expect(r.stdout).to.equal("");
+      });
+    }
+
+    for (const value of [true, ""]) {
+      it(`refuses config \`compareTo: ${JSON.stringify(value)}\` with exit 2`, function () {
+        writeConfig({ compareTo: value });
+        const r = run(["-i", "pass.spec.json"]);
+        expect(r.status, r.stdout + r.stderr).to.equal(2);
+        expect(r.stderr).to.include("compareTo");
+      });
+    }
+
     it("lets --no-dry-run --plain beat a config `dryRun`", function () {
       writeConfig({ dryRun: true });
       const r = run(["-i", "pass.spec.json", "--no-dry-run", "--plain"]);
