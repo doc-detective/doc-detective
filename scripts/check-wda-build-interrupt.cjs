@@ -60,23 +60,31 @@ const inGroup = (pgid) => lines("pgrep", ["-g", pgid]);
   // Let the build get going, so there's more to stop than xcodebuild itself.
   await sleep(5000);
   console.log(`[interrupt check] sending ${signal}; the build runs as pids ${buildProcesses().join(", ")}`);
+  const signaled = Date.now();
+  const since = () => `${((Date.now() - signaled) / 1000).toFixed(1)} s`;
   cli.kill(signal);
   const status = await exited;
+  const exitedAfterMs = Date.now() - signaled;
+  console.log(`[interrupt check] the CLI ended with ${status}, ${since()} after the signal`);
 
   const failures = [];
   if (status !== EXIT_CODES[signal]) {
     failures.push(`the CLI ended with ${status}, not exit code ${EXIT_CODES[signal]}`);
   }
+  // The interrupt handler gives its cleanup 5 seconds.
+  if (exitedAfterMs > 10_000) failures.push(`the CLI took ${since()} to exit`);
   // Killed processes can take a moment to be reaped. A build that was left
   // running stays for minutes.
+  const named = (pids) => pids.map((pid) => `${pid} (${lines("ps", ["-o", "comm=", "-p", pid]).join("")})`);
   let left = buildProcesses();
   for (let waited = 0; left.length > 0 && waited < 5; waited++) {
+    console.log(`[interrupt check] ${since()} after the signal, still running: ${named(left).join(", ")}`);
     await sleep(1000);
     left = buildProcesses();
   }
+  console.log(`[interrupt check] ${since()} after the signal, the build's processes were checked`);
   if (left.length > 0) {
-    const commands = left.map((pid) => `${pid} (${lines("ps", ["-o", "comm=", "-p", pid]).join("")})`);
-    failures.push(`the build outlived the CLI: ${commands.join(", ")}`);
+    failures.push(`the build outlived the CLI: ${named(left).join(", ")}`);
     spawnSync("pkill", ["-KILL", "-g", build]);
     spawnSync("pkill", ["-KILL", "-f", keyDir]);
   }
