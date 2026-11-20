@@ -18,10 +18,13 @@ existing entry for that OS until the next save.
   producer and consumer key drift is structurally impossible. **Never
   hand-copy the key template into a workflow.**
 - **The key rotates on ISO week on purpose.** Browser channels float, at
-  `stable` or `latest`. A present-but-outdated browser is warn-only and never
-  re-downloads. An entry restored across weeks would therefore pin old
-  browsers forever. Weekly cold refresh is the mechanism that keeps browsers
-  current.
+  `stable` or `latest`. The CLI replaces an outdated cached browser once its
+  daily channel check is due. See
+  [ADR 01209](../../adrs/01209-replace-outdated-cached-browsers.md). A saved
+  cache entry is immutable, though. A job that hits the week's key exactly
+  saves nothing back. Every job after a channel release therefore downloads
+  the new build again. The weekly key is what puts current browsers into the
+  entry.
 - **The warmer removes the weekly cold window.** `Cache Warmer` runs Sunday
   23:47 UTC and computes the key for now+2h (`weekOffsetHours: '2'`). Next
   week's entry therefore exists *before* the key rolls over at Monday 00:00
