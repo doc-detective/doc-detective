@@ -25,6 +25,20 @@ When you declare a step, you can specify any of the properties of the action you
 
 If you declare a step without declaring a test, Doc Detective automatically creates a test to contain the step.
 
+## Check inline tests without running them
+
+To catch a mistake in a statement before a run, such as a misspelled action or a missing field, use `validate`. It checks the inline tests and [spec files](/docs/test-docs/standalone#check-specs-without-running-them) in the files and folders you name, and runs nothing.
+
+{/* test ignore start */}
+
+```bash
+npx doc-detective validate docs/
+```
+
+{/* test ignore end */}
+
+For each file with an invalid test, the output names the file and each problem. A page with no tests in it isn't reported. `validate` exits `0` when every test is valid and `1` when any is invalid, so you can run it in CI or before you commit. It exits `2` when it finds no tests at all, or on a usage error or invalid config. For JSON output, see [`validate`](/reference/reference/cli#validate).
+
 ## Benefits of inline tests
 
 Inline tests offer several advantages:

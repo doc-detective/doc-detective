@@ -1,3 +1,43 @@
+# [5.6.0](https://github.com/doc-detective/doc-detective/compare/v5.5.0...v5.6.0) (2026-11-19)
+
+
+### Bug Fixes
+
+* **ios:** harden the first-use WebDriverAgent build ([d5d312c](https://github.com/doc-detective/doc-detective/commit/d5d312c6b3de123b7f45b28979744490aec313e9))
+* **ios:** report a record failure only from the record update ([ca9e4a9](https://github.com/doc-detective/doc-detective/commit/ca9e4a999e7b503d7ab2815cd06de15d95314cd1))
+* keep preflight warnings when a context retries ([27d0bfd](https://github.com/doc-detective/doc-detective/commit/27d0bfdcd7142d3acf85acaa07b27a380855302a))
+
+
+### Features
+
+* **ios:** build WebDriverAgent on first use ([6a3b266](https://github.com/doc-detective/doc-detective/commit/6a3b266215d175a1a9f7f649c678e90c2a27ddb5))
+
+# [5.5.0](https://github.com/doc-detective/doc-detective/compare/v5.4.0...v5.5.0) (2026-11-18)
+
+
+### Bug Fixes
+
+* **detect:** address include review findings ([8736261](https://github.com/doc-detective/doc-detective/commit/8736261d440bb0edd45c7df4cc35560c0f48fbcb))
+* **detect:** close fences only on spaces and tabs ([4b42ef9](https://github.com/doc-detective/doc-detective/commit/4b42ef948ceba66a80bc6f4bc9f22ced2aa35eb8))
+* **detect:** keep lifecycle files in their phase and skip components in code ([d11085f](https://github.com/doc-detective/doc-detective/commit/d11085f93b5a38382e74959e818731f9db88e7a3))
+* **detect:** keep MDX comment offsets exact and guard partial realpath ([f5ab422](https://github.com/doc-detective/doc-detective/commit/f5ab422077517d8df74dc314bb6d5c0955879449))
+* **detect:** read AsciiDoc lines=N.. as running to the last line ([fe9ed79](https://github.com/doc-detective/doc-detective/commit/fe9ed796116d6c5a824679f03b0f8cd6d7bb4f77))
+* **detect:** read MDX imports from the whole included file ([d09c5ad](https://github.com/doc-detective/doc-detective/commit/d09c5ad3fc502e4fb80c6a7ff13a8b46cb1309f5))
+* **detect:** skip rST includes in code, literal blocks, and comments ([a984b82](https://github.com/doc-detective/doc-detective/commit/a984b82d754e0730824545063172d34cc2efc385))
+* **detect:** warn on an empty rST line option ([d5c3925](https://github.com/doc-detective/doc-detective/commit/d5c39259ffaf7bdaddde9dd2d8d0b0a63dc54f34))
+* **detect:** warn on an rST line option that isn't a whole number ([3279799](https://github.com/doc-detective/doc-detective/commit/327979963c803216caf6652baf2fdfd00efb56f7))
+* **detect:** warn when an include's line range selects nothing ([df29cf1](https://github.com/doc-detective/doc-detective/commit/df29cf1f5c635964870d3e293267631129c6c383))
+
+
+### Features
+
+* **detect:** resolve includes during detection ([6f53ca9](https://github.com/doc-detective/doc-detective/commit/6f53ca9260e4b83bdc9aaa96bbe4c327a3013778))
+
+
+### Performance Improvements
+
+* **detect:** resolve an includer's realpath only after the set lookup ([92ab6ca](https://github.com/doc-detective/doc-detective/commit/92ab6ca2a9d370b3534429853b66018402b31b62))
+
 # [5.4.0](https://github.com/doc-detective/doc-detective/compare/v5.3.1...v5.4.0) (2026-11-17)
 
 

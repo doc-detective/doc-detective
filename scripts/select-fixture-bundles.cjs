@@ -61,7 +61,16 @@ const BUNDLES = [
   // would pay the ~10-minute in-session WDA compile and likely blow the
   // default 20-minute timeout.
   { name: "apps-ios", dirs: ["apps-ios"], timeout: 55, prebootIos: true },
-  { name: "mobile-web-ios", dirs: ["mobile-web-ios"], timeout: 55, prebootIos: true },
+  // wdaFirstUse (ADR 01214): this leg restores and prebuilds no WebDriverAgent,
+  // so its run builds one on first use. apps-ios keeps the prebuild, and so
+  // covers a run that finds a cached build.
+  {
+    name: "mobile-web-ios",
+    dirs: ["mobile-web-ios"],
+    timeout: 55,
+    prebootIos: true,
+    wdaFirstUse: true,
+  },
 ];
 
 const GROUP_TO_BUNDLE = new Map();
@@ -76,6 +85,7 @@ function toMatrixEntry(b) {
   if (b.timeout) entry.timeout = b.timeout;
   if (b.android) entry.android = true;
   if (b.prebootIos) entry.prebootIos = true;
+  if (b.wdaFirstUse) entry.wdaFirstUse = true;
   return entry;
 }
 

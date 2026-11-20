@@ -12,9 +12,10 @@ The GitHub Action can automatically create GitHub issues when tests fail. Set `c
 
 ### Basic issue configuration
 
-- `create_issue_on_fail`: Creates a GitHub issue when any test fails.
+- `create_issue_on_fail`: Creates a GitHub issue when any test fails. If an open issue has the same `issue_title` and the first label in `issue_labels`, the action updates that issue instead.
 - `issue_title`: Title of the created issue. Default: `"Doc Detective Failure"`.
-- `issue_body`: Body of the issue. Supports these variables:
+- `issue_body`: Body of the issue. Default: `A Doc Detective run ($RUN_URL) failed:`, a blank line, then `$SUMMARY`. Supports these variables:
+  - `$SUMMARY`: Markdown summary of the run, from the run folder's `testResults.md`. See [Find reports and the run folder](/docs/ci/github-action#find-reports-and-the-run-folder).
   - `$RUN_URL`: URL of the workflow run that created the issue.
   - `$RESULTS`: Test results as a JSON code block.
   - `$PROMPT`: The prompt text (see below).
@@ -53,3 +54,22 @@ Mention AI assistants in created issues to help investigate and fix failures fas
 Action `@v2` renamed `integrations` to `issue_mentions` and `prompt` to `issue_prompt`. The old names still work as deprecated aliases that log a warning, and setting both an old and a new name fails the job. For the user-facing guide, see [AI issue mentions](/docs/ci/issue-mentions).
 
 `claude` needs `token`, because GitHub doesn't start Claude Code's workflow for an issue that the default `GITHUB_TOKEN` opens. See [Hand off test failures to an AI agent](/ai/ai-agents/hand-off-failures).
+
+## Commits and releases
+
+Merging a pull request to `main` can release a new version of the action, and the commit types decide whether it does. Write every commit in the [Conventional Commits](https://www.conventionalcommits.org/) format. Pull requests merge with merge commits, so every commit in a pull request reaches `main` and counts toward the release.
+
+A `commitlint` check runs on each pull request and checks its commits. It skips merge commits and the commits `git revert` writes, but no author is exempt, including Dependabot. For a revert commit, that skip covers only the format check. The release workflow still counts the commit, so merging it cuts a patch release. If the check fails, reword the commit with `git rebase -i` and force-push your branch.
+
+Each commit type maps to a version bump. When a merge brings in several types, the largest bump wins:
+
+| Commit type | Version bump |
+|---|---|
+| `fix:`, or a commit that `git revert` writes | patch (X.Y.**Z+1**) |
+| `feat:` | minor (X.**Y+1**.0) |
+| Any type with `!` after it, such as `feat!:` or `docs!:`, or with a `BREAKING CHANGE:` footer | major (**X+1**.0.0) |
+| Any other type, such as `docs:`, `ci:`, `chore:`, `test:`, `refactor:`, and `perf:` | no release |
+
+When a revert and the commit it reverts land in the same release, neither one counts toward the version bump.
+
+When a merge cuts a release, the release workflow tags `vX.Y.Z` and publishes a GitHub release with generated notes. It then moves the major tag, such as `v2`, to the newest stable release in that major, and moves `latest` to the newest stable release overall. Workflows that use `doc-detective/github-action@v2` get the new release on their next run.
