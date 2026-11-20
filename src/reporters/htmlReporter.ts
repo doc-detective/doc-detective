@@ -2,7 +2,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { reportOutputDir, timestamp } from "../core/utils.js";
 import { stepActions } from "../common/src/stepActions.js";
-import { mediaPath, verdict, writeReport } from "./model.js";
+import { comparisonLine, fixedPaths, mediaPath, verdict, writeReport } from "./model.js";
 
 export async function htmlReporter(
   config: any = {},
@@ -63,7 +63,12 @@ export function buildHtml(results: any, htmlFile?: string): string {
       .replace(/\u2028/g, "\\u2028")
       .replace(/\u2029/g, "\\u2029");
   const reportJson = safeJson(results ?? null, 2);
-  const viewJson = safeJson({ verdict: verdict(results?.summary), hrefs: mediaHrefs(results, htmlFile) });
+  const compared = comparisonLine(results);
+  const viewJson = safeJson({
+    verdict: verdict(results?.summary),
+    hrefs: mediaHrefs(results, htmlFile),
+    ...(compared ? { comparison: { line: compared, fixed: fixedPaths(results) } } : {}),
+  });
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -1042,6 +1047,21 @@ function badge(status) {
 
 function tag(text) { return '<span class="tag">' + esc(text) + '</span>'; }
 
+// How a context reads against an earlier run (ADR 01216).
+// Extracted by test/htmlReporter.test.js, like mediaHref.
+function failureTag(ctx) {
+  var tags = { new: "new", existing: "already failing", fixed: "fixed" };
+  return Object.prototype.hasOwnProperty.call(tags, ctx.failureStatus) ? tag(tags[ctx.failureStatus]) : "";
+}
+
+// What the comparison found, under the verdict. Extracted like failureTag.
+function comparisonNote() {
+  var c = VIEW.comparison;
+  if (!c) return "";
+  return '<div class="note">' + esc(c.line) + '</div>' +
+    (c.fixed.length ? '<div class="note">Fixed (' + c.fixed.length + '): ' + esc(c.fixed.join(", ")) + '</div>' : "");
+}
+
 function metric(slug, n, label) {
   if (!n) return "";
   return '<span class="m ' + slug + '"><span class="dot" style="display:inline-block;width:6px;height:6px;border-radius:999px;background:var(--dd-' + slug + ')"></span>' + n + (label ? " " + label : "") + '</span>';
@@ -1224,7 +1244,7 @@ function buildVerdict() {
 
   var card = el("div", "verdict-card " + slug);
   card.innerHTML = '<div class="vk">Overall verdict</div>' +
-    '<div class="vv"><div class="big">' + esc(v.label) + '</div><div class="note">' + esc(v.text) + '</div></div>' +
+    '<div class="vv"><div class="big">' + esc(v.label) + '</div><div class="note">' + esc(v.text) + '</div>' + comparisonNote() + '</div>' +
     '<div class="vbar" style="grid-template-columns:' + counts.map(function(n) { return pct(n) + '%'; }).join(' ') + '">' +
     '<span class="pass"></span><span class="fail"></span><span class="warn"></span><span class="skip"></span></div>';
   return card;
@@ -1375,7 +1395,7 @@ function buildContext(ctx) {
   head.innerHTML = ICON.chip +
     '<span class="what">' + esc(label) + '</span>' +
     '<span class="meta">' + ICON.finger + ' ' + esc((ctx.contextId || "").slice(0, 8)) + '</span>' +
-    badge(ctx.result);
+    badge(ctx.result) + failureTag(ctx);
   block.appendChild(head);
 
   // The context's automatic recording shows above its steps.

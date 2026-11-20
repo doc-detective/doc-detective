@@ -1,6 +1,6 @@
 {
   "specId": "cli-compare-runs",
-  "description": "Each run compares with an earlier one and marks failures new, existing, or fixed (ADR 01233), through the real CLI. Each test runs one case of compare-runs.cjs, which sets up a folder under .tmp/fixture-compare-runs/, runs doc-detective there once or twice, and checks the exit codes, stderr, and results JSON. No browser or network.",
+  "description": "Each run compares with an earlier one and marks failures new, existing, or fixed (ADR 01233), through the real CLI. Each test runs one case of compare-runs.cjs, which sets up a folder under .tmp/fixture-compare-runs/, runs doc-detective there once or twice, and checks the exit codes, stdout, stderr, results JSON, and testResults.md. No browser or network.",
   "tests": [
     {
       "testId": "compare-default-no-earlier-run",
@@ -16,7 +16,7 @@
     },
     {
       "testId": "compare-default-existing",
-      "description": "By default, a failure the previous run also had reads as existing.",
+      "description": "By default, a failure the previous run also had reads as existing, tagged `[already failing]` in the terminal summary and testResults.md.",
       "steps": [
         {
           "runShell": {
@@ -28,7 +28,7 @@
     },
     {
       "testId": "compare-default-new",
-      "description": "By default, a failure the previous run didn't have reads as new.",
+      "description": "By default, a failure the previous run didn't have reads as new, tagged `[new]` in the terminal summary and testResults.md.",
       "steps": [
         {
           "runShell": {
@@ -40,7 +40,7 @@
     },
     {
       "testId": "compare-default-fixed",
-      "description": "By default, a pass that failed in the previous run reads as fixed.",
+      "description": "By default, a pass that failed in the previous run reads as fixed, under `Fixed (1):` in the terminal summary and `## Fixed` in testResults.md.",
       "steps": [
         {
           "runShell": {
