@@ -183,6 +183,7 @@ describe("config precedence", function () {
     const keys = [
       { key: "input", set: (p) => ({ input: p }), get: read((c) => c.input) },
       { key: "outputDir", set: (p) => ({ outputDir: p }), get: read((c) => c.outputDir) },
+      { key: "compareTo", set: (p) => ({ compareTo: p }), get: read((c) => c.compareTo) },
       { key: "loadVariables", set: (p) => ({ loadVariables: p }), get: read((c) => c.loadVariables) },
       { key: "beforeAll", set: (p) => ({ beforeAll: p }), get: read((c) => c.beforeAll) },
       { key: "beforeAny", set: (p) => ({ beforeAny: p }), get: read((c) => c.beforeAll) },
@@ -250,6 +251,11 @@ describe("config precedence", function () {
         });
       }
     }
+
+    it("keeps compareTo `previous` and `false` as they are", async function () {
+      expect((await setConfig({ configPath: project({ compareTo: "previous" }), args: {} })).compareTo).to.equal("previous");
+      expect((await setConfig({ configPath: project({ compareTo: false }), args: {} })).compareTo).to.equal(false);
+    });
 
     it('resolves the user config against its folder, even with `relativePathBase: "cwd"`', async function () {
       user({ input: "rel", cacheDir: "c", relativePathBase: "cwd" });
