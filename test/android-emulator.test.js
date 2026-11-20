@@ -597,6 +597,7 @@ describe("androidEmulator: planAndroidToolchain (lazy-install decision)", functi
   const base = {
     capable: true,
     sdkPresent: true,
+    emulatorPresent: true,
     requiredOsVersions: [],
     installedImages: ["system-images;android-34;google_apis;x86_64"],
     abi: "x86_64",
@@ -642,6 +643,39 @@ describe("androidEmulator: planAndroidToolchain (lazy-install decision)", functi
       capable: false,
       sdkPresent: false,
       installedImages: [],
+    });
+    expect(plan.action).to.equal("skip");
+  });
+
+  // Issue #1006: a CI cache restored `system-images/` into an SDK that has
+  // platform-tools but no emulator package. `avdmanager create` refuses there.
+  it("INSTALLs when the image is installed but the emulator package is missing", function () {
+    const plan = planAndroidToolchain({ ...base, emulatorPresent: false });
+    expect(plan.action).to.equal("install");
+    // The image is already there, so the installer isn't pointed at a version.
+    expect(plan.osVersion).to.equal(undefined);
+    expect(plan.reason).to.match(/emulator package/);
+    expect(plan.reason).to.match(/install android/);
+    // Only the emulator downloads, so the multi-GB warning would be wrong.
+    expect(plan.reason).to.not.match(/multi-GB/);
+  });
+
+  it("still names the missing image version when the emulator is missing too", function () {
+    const plan = planAndroidToolchain({
+      ...base,
+      emulatorPresent: false,
+      requiredOsVersions: ["14", "13"],
+    });
+    expect(plan.action).to.equal("install");
+    expect(plan.osVersion).to.equal("13");
+    expect(plan.reason).to.match(/multi-GB/);
+  });
+
+  it("never installs the emulator package on an incapable host", function () {
+    const plan = planAndroidToolchain({
+      ...base,
+      capable: false,
+      emulatorPresent: false,
     });
     expect(plan.action).to.equal("skip");
   });

@@ -279,18 +279,21 @@ type ToolchainPlan =
 //
 // - Not capable (no hardware acceleration) -> SKIP; never install on a host
 //   that couldn't use the emulator anyway (don't waste a multi-GB download).
-// - Capable but the SDK is absent, or an image for a requested version is
-//   missing -> INSTALL (the caller warns loudly and runs the installer).
+// - Capable but the SDK is absent, an image for a requested version is
+//   missing, or the SDK has no emulator package -> INSTALL (the caller warns
+//   loudly and runs the installer).
 // - Otherwise -> READY.
 function planAndroidToolchain({
   capable,
   sdkPresent,
+  emulatorPresent,
   requiredOsVersions,
   installedImages,
   abi,
 }: {
   capable: boolean;
   sdkPresent: boolean;
+  emulatorPresent: boolean;
   requiredOsVersions: (string | undefined)[];
   installedImages: string[];
   abi: string;
@@ -318,6 +321,17 @@ function planAndroidToolchain({
       action: "install",
       osVersion: missingVersion,
       reason: `Android tests require the Android SDK toolchain and a system image, which aren't fully installed. Doc Detective is installing them now — this is a one-time, multi-GB download. Pre-install with \`doc-detective install android\` to avoid this delay at test time.`,
+    };
+  }
+  // An SDK can hold the images without the emulator package: `detectAndroidSdk`
+  // accepts platform-tools alone, and a CI cache can restore `system-images/`
+  // on its own. `avdmanager create` refuses there, so the emulator counts as
+  // toolchain too (ADR 01215, issue #1006). Only it downloads, so the reason
+  // doesn't warn about a multi-GB download.
+  if (!emulatorPresent) {
+    return {
+      action: "install",
+      reason: `Android tests require the Android SDK's emulator package, which isn't installed. Doc Detective is installing it now. Pre-install with \`doc-detective install android\` to avoid this delay at test time.`,
     };
   }
   return { action: "ready" };
