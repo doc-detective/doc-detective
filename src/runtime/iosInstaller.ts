@@ -51,11 +51,13 @@ export interface IOSInstallerDeps {
     args: string[]
   ) => { status: number | null; stderr?: string; stdout?: string };
   // --- WDA prebuild effects (all injectable for hermetic tests) ---
-  /** Long-running async spawn for xcodebuild (async so the lock heartbeat can fire). */
+  /**
+   * Long-running async spawn for xcodebuild (async so the lock heartbeat can
+   * fire). `opts.signal` aborts when an interrupt stops the build.
+   */
   runBuild?: (
     command: string,
     args: string[],
-    /** `signal` aborts when an interrupt stops the build. */
     opts?: { timeoutMs?: number; signal?: AbortSignal }
   ) => Promise<{
     status: number | null;

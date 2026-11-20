@@ -2,8 +2,8 @@
 // Run on a Mac by the first-use fixture leg (ADR 01214): prove that an
 // interrupt stops a WebDriverAgent build. Starts a doc-detective command that
 // builds WebDriverAgent, signals it once `xcodebuild` is running, and fails
-// unless the CLI exits with the signal's code, every process in xcodebuild's
-// group is gone, the build lock is released, and no `products.json` marks the
+// unless the CLI exits with the signal's code, every process of the build is
+// gone, the build lock is released, and no `products.json` marks the
 // half-built directory as complete.
 //
 //   node scripts/check-wda-build-interrupt.cjs SIGINT install ios --yes
@@ -45,9 +45,16 @@ const inGroup = (pgid) => lines("pgrep", ["-g", pgid]);
   if (!derivedData) throw new Error(`couldn't read the build directory from: ${command}`);
   const keyDir = path.dirname(derivedData);
 
-  // Let the build start its own children, so the group has more than a leader.
+  // The build's processes: xcodebuild's group, plus anything else whose
+  // command line names the build directory, such as a compiler that the build
+  // service started outside that group.
+  const buildProcesses = () => [
+    ...new Set([...inGroup(build), ...lines("pgrep", ["-f", keyDir])]),
+  ];
+
+  // Let the build get going, so there's more to stop than xcodebuild itself.
   await sleep(5000);
-  console.log(`[interrupt check] sending ${signal}; xcodebuild's group holds pids ${inGroup(build).join(", ")}`);
+  console.log(`[interrupt check] sending ${signal}; the build runs as pids ${buildProcesses().join(", ")}`);
   cli.kill(signal);
   const status = await exited;
 
@@ -57,14 +64,16 @@ const inGroup = (pgid) => lines("pgrep", ["-g", pgid]);
   }
   // Killed processes can take a moment to be reaped. A build that was left
   // running stays for minutes.
-  let left = inGroup(build);
+  let left = buildProcesses();
   for (let waited = 0; left.length > 0 && waited < 5; waited++) {
     await sleep(1000);
-    left = inGroup(build);
+    left = buildProcesses();
   }
   if (left.length > 0) {
-    failures.push(`xcodebuild's process group outlived the CLI: pids ${left.join(", ")}`);
+    const commands = left.map((pid) => `${pid} (${lines("ps", ["-o", "comm=", "-p", pid]).join("")})`);
+    failures.push(`the build outlived the CLI: ${commands.join(", ")}`);
     spawnSync("pkill", ["-KILL", "-g", build]);
+    spawnSync("pkill", ["-KILL", "-f", keyDir]);
   }
   if (fs.existsSync(path.join(path.dirname(keyDir), ".lock"))) {
     failures.push("the build lock wasn't released");
