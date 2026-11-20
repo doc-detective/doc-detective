@@ -1,3 +1,9 @@
+## [5.6.2](https://github.com/doc-detective/doc-detective/compare/v5.6.1...v5.6.2) (2026-11-20)
+
+### Bug Fixes
+
+* **recording:** keep the restored cursor inside the viewport ([2a54478](https://github.com/doc-detective/doc-detective/commit/2a54478e920d1d9fd24b4adc761eebff2196eeb0))
+
 ## [5.6.1](https://github.com/doc-detective/doc-detective/compare/v5.6.0...v5.6.1) (2026-11-20)
 
 ### Bug Fixes
