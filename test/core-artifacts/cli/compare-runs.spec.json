@@ -1,6 +1,6 @@
 {
   "specId": "cli-compare-runs",
-  "description": "Each run compares with an earlier one and marks failures new, existing, or fixed (ADR 01216), through the real CLI. Each test runs one case of compare-runs.cjs, which sets up a folder under .tmp/fixture-compare-runs/, runs doc-detective there once or twice, and checks the exit codes, stdout, stderr, results JSON, and testResults.md. No browser or network.",
+  "description": "Each run compares with an earlier one and marks failures new, existing, or fixed (ADR 01216), and `failOn: new` exits 1 only for a new failure (ADR 01217), through the real CLI. Each test runs one case of compare-runs.cjs, which sets up a folder under .tmp/fixture-compare-runs/, runs doc-detective there once or twice, and checks the exit codes, stdout, stderr, results JSON, and testResults.md. No browser or network.",
   "tests": [
     {
       "testId": "compare-default-no-earlier-run",
@@ -225,6 +225,114 @@
         {
           "runShell": {
             "command": "node test/core-artifacts/cli/compare-runs.cjs usage-dry-run",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "compare-fail-on-existing",
+      "description": "--fail-on new with only already-failing failures exits 0, and stderr says why.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/compare-runs.cjs fail-on-existing",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "compare-fail-on-new",
+      "description": "--fail-on new with a new failure exits 1.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/compare-runs.cjs fail-on-new",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "compare-fail-on-no-earlier-run",
+      "description": "--fail-on new with no earlier run counts every failure as new and exits 1.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/compare-runs.cjs fail-on-no-earlier-run",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "compare-fail-on-no-exit-on-fail",
+      "description": "--no-exit-on-fail beats --fail-on new: a new failure exits 0.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/compare-runs.cjs fail-on-no-exit-on-fail",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "compare-fail-on-config",
+      "description": "Config `failOn: new` with only already-failing failures exits 0.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/compare-runs.cjs fail-on-config",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "compare-fail-on-flag-beats-config",
+      "description": "--fail-on any beats config `failOn: new`: an already-failing failure exits 1.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/compare-runs.cjs fail-on-flag-beats-config",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "compare-fail-on-usage-no-compare-to",
+      "description": "--fail-on new with --no-compare-to exits 2 with one line.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/compare-runs.cjs fail-on-usage-no-compare-to",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "compare-fail-on-usage-config",
+      "description": "Config `failOn: new` with `compareTo: false` exits 2 with one line.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/compare-runs.cjs fail-on-usage-config",
+            "workingDirectory": "../../.."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "compare-fail-on-usage-bogus",
+      "description": "--fail-on with a value other than any or new exits 2.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/compare-runs.cjs fail-on-usage-bogus",
             "workingDirectory": "../../.."
           }
         }

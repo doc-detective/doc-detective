@@ -8157,6 +8157,14 @@
           "type": "boolean",
           "default": true
         },
+        "failOn": {
+          "type": "string",
+          "enum": [
+            "any",
+            "new"
+          ],
+          "default": "any"
+        },
         "shell": {
           "type": "string",
           "enum": [
@@ -16510,6 +16518,13 @@
         },
         "exitOnFail": {
           "type": "boolean"
+        },
+        "failOn": {
+          "type": "string",
+          "enum": [
+            "any",
+            "new"
+          ]
         },
         "shell": {
           "type": "string",
