@@ -1163,16 +1163,22 @@ describe("first-use WebDriverAgent build (ADR 01214)", function () {
     }
   });
 
-  it("adds no fallback warning when an interrupt stops the build", async function () {
+  it("tells every context to start no session when an interrupt stops the build", async function () {
     const env = makeFirstUseEnv();
     buildUntilStopped(env);
-    const ensuring = env.ensure();
+    const first = env.ensure();
+    const second = env.ensure();
     await nextTurn();
 
     await stopWdaBuilds();
-    expect(await ensuring, "the run is stopping, so no session follows").to.deep.equal([BUILDING]);
-    expect(env.warned).to.deep.equal([BUILDING]);
-    expect(env.locate(), "and no session would take the half-built directory").to.equal(null);
+    // The interrupt's cleanup has already closed the run's Appium servers. A
+    // context that went on to open a session would start one that outlives it.
+    expect(await first, "null, not warnings: the run is stopping").to.equal(null);
+    expect(await second, "a context that waited on the same build").to.equal(null);
+    expect(await env.ensure(), "a context that arrives during the shutdown").to.equal(null);
+    expect(env.warned, "no fallback warning, since no session follows").to.deep.equal([BUILDING]);
+    expect(env.builds, "nothing builds again").to.have.length(1);
+    expect(env.locate(), "and nothing would take the half-built directory").to.equal(null);
     expect(env.lock.released).to.equal(true);
   });
 

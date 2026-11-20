@@ -148,6 +148,14 @@ Action caches only what the CLI recorded. The iOS entry is 68 MiB compressed, an
    cache entry takes the half-built directory. It stays in the cache, and the next build for the
    same key continues from it.
 
+   In a run, every context that needed the build is skipped, and opens no session. The
+   interrupt has already closed the run's Appium servers, so a session would start one that
+   outlives the run. The skip reason is:
+
+   ```text
+   Skipped: an interrupt stopped the WebDriverAgent build.
+   ```
+
 ### Consequences
 
 * Good: a warm iOS run restores the WebDriverAgent build in seconds and builds nothing.

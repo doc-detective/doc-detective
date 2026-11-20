@@ -298,10 +298,11 @@ function recordWriteCause(error: unknown): string {
 }
 
 // One build attempt per run. `settled` tells a context that waited on the
-// build (it reports the warnings) from one that arrived afterwards.
+// build (it reports the warnings) from one that arrived afterwards. The
+// warnings are `null` when an interrupt stopped the build.
 const firstUseBuilds = new WeakMap<
   object,
-  { warnings: Promise<string[]>; settled: boolean }
+  { warnings: Promise<string[] | null>; settled: boolean }
 >();
 
 /* c8 ignore start — real timers; unit tests inject acquire and sleep. */
@@ -319,6 +320,9 @@ const acquireWithRefSleep = (options: AcquireLockOptions) =>
  * none for this Xcode and driver, so the session uses it. `install ios` runs
  * the same build ahead of time. Returns the warnings for the context's report.
  * It never throws: after a failed build, Appium builds WebDriverAgent itself.
+ *
+ * Returns `null` when an interrupt stopped the build. The run is shutting
+ * down and has closed its Appium servers, so the caller must start no session.
  *
  * Builds nothing off macOS, when `DOC_DETECTIVE_NO_IOS_AUTOINSTALL` is on,
  * when `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` supplies a build, or when
@@ -338,7 +342,7 @@ export async function ensureManagedWda({
   warn?: (message: string) => void;
   env?: NodeJS.ProcessEnv;
   deps?: IOSInstallerDeps;
-}): Promise<string[]> {
+}): Promise<string[] | null> {
   const platform = deps.platform ?? process.platform;
   if (platform !== "darwin") return [];
   if (envFlag("DOC_DETECTIVE_NO_IOS_AUTOINSTALL", env)) return [];
@@ -372,9 +376,13 @@ export async function ensureManagedWda({
 
   // This run already tried. A build still running: wait on it and report its
   // warnings. A build that failed (a miss after it settled): don't try again
-  // and don't warn again. Appium builds WebDriverAgent for this session.
+  // and don't warn again. Appium builds WebDriverAgent for this session. A
+  // build that an interrupt stopped: this context starts no session either.
   const earlier = firstUseBuilds.get(scope);
-  if (earlier) return earlier.settled ? [] : earlier.warnings;
+  if (earlier) {
+    if (!earlier.settled) return earlier.warnings;
+    return (await earlier.warnings) === null ? null : [];
+  }
 
   const build = async () => {
     const logger = deps.logger ?? (() => {});
@@ -397,7 +405,7 @@ export async function ensureManagedWda({
         xcode,
       });
       // No session follows an interrupt, so there's no fallback to warn about.
-      if (prebuild.interrupted) return warnings;
+      if (prebuild.interrupted) return null;
       cause = prebuild.cause;
       // The notes carry the build output's tail. Keep it out of the warning.
       if (cause) logger((prebuild.report.notes ?? []).join(" | "), "debug");

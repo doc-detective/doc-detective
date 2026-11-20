@@ -1198,6 +1198,15 @@ async function iosContextPreflight({
           deps: { logger: (m: string) => clog("debug", m) },
         })
       : [];
+  // An interrupt stopped the build. Its cleanup has closed the run's Appium
+  // servers, so a session opened now would start one that outlives the run.
+  if (!warnings) {
+    return {
+      ok: false,
+      level: "info",
+      reason: "Skipped: an interrupt stopped the WebDriverAgent build.",
+    };
+  }
   return {
     ok: true,
     appiumEntry: pre.appiumEntry,
