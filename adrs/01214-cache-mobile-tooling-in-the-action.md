@@ -168,8 +168,8 @@ Action caches only what the CLI recorded. The iOS entry is 68 MiB compressed, an
 * Neutral: the two opt-outs differ. Android's skips the context. The iOS one still runs it,
   because Appium can build WebDriverAgent itself.
 * Good: an interrupted build leaves no `xcodebuild` running and no build lock behind.
-* Neutral: an interrupted build's files stay in the cache until a build for that key finishes
-  them, or a finished build for another key prunes them.
+* Neutral: an interrupted build's files stay in the cache. A build for that key finishes them,
+  or a finished build for another key prunes them.
 
 ### Confirmation
 
