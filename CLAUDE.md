@@ -360,8 +360,8 @@ Versions and releases are fully automated by **semantic-release** based on commi
 |---|---|
 | `fix:` | patch (X.Y.**Z+1**) |
 | `feat:` | minor (X.**Y+1**.0) |
-| Any type with `!` before the colon (e.g. `feat!:`, `refactor(agents)!:`) or a `BREAKING CHANGE:` footer | major (**X+1**.0.0) |
-| `chore:`, `docs:`, `ci:`, `style:`, `test:`, `refactor:`, `build:`, `perf:`, with no `!` and no `BREAKING CHANGE:` footer | no release |
+| `feat!:` / `BREAKING CHANGE:` | major (**X+1**.0.0) |
+| `chore:`, `docs:`, `ci:`, `style:`, `test:`, `refactor:`, `build:`, `perf:` | no release |
 
 Pick the commit type deliberately. It is the **only** signal that decides whether a release is cut, and how.
 
