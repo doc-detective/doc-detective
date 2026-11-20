@@ -135,6 +135,27 @@ Unset is the normal state. Prerelease channels are exempt.
 - **Stray `BREAKING CHANGE:` footer or `!`:** `git revert` the commit on main. The next release is then
   an ordinary patch.
 
+### What marks a breaking commit
+
+Either marker cuts a major, on any commit type: a `!` before the colon in the header (`feat!:`,
+`refactor(agents)!:`), or a `BREAKING CHANGE:` footer. Two settings in `.releaserc.json` make that
+true. Keep both.
+
+- **`"preset": "conventionalcommits"`, at the top level.** semantic-release's default parser can't
+  read the `!`. Under that parser, a `feat!:` header with no footer matched no rule and cut no
+  release at all. The key sits at the top level so the notes generator parses commits the same way.
+- **`{ "breaking": true, "release": "major" }`, in `releaseRules`.** When a custom rule matches a
+  commit, the analyzer skips its default rules, the breaking rule among them. The `perf` rule
+  alone therefore turned a breaking `perf` commit into no release. The rule's position in the
+  list doesn't matter, because the highest matching release type wins.
+
+The preset is the `conventional-changelog-conventionalcommits` devDependency. Keep it on major 9.
+Major 10 needs `conventional-changelog-writer` 9, and the notes generator ships writer 8, so the
+release fails while it writes the notes. Move to 10 only with a notes generator that ships writer 9.
+
+`test/release-config.test.js` runs the analyzer and the notes generator against `.releaserc.json`,
+so it fails on any of these mistakes.
+
 ## Roll back a major release
 
 Fix forward first. Land a `fix:` on main, and the normal pipeline ships a 5.0.x and promotes it.
