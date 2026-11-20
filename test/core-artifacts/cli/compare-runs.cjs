@@ -6,7 +6,8 @@
 // Each case sets up .tmp/fixture-compare-runs/<case>/, outside
 // test/core-artifacts/ so its files never run as fixtures themselves. It then
 // runs the real CLI there once per entry in `runs`, in order, and checks each
-// run's exit code, stderr, and results JSON. Exits 1 on any mismatch.
+// run's exit code, stdout, stderr, results JSON, and testResults.md. Exits 1
+// on any mismatch.
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
@@ -26,9 +27,32 @@ const v4 = { environment: { docDetectiveVersion: "4.9.0" }, specs: [] };
 
 const cases = {
   "default-no-earlier-run": [run(FAIL, [], { exit: 1, ...NOT_COMPARED })],
-  "default-existing": [run(FAIL, [], { exit: 1 }), run(FAIL, [], { exit: 1, status: "existing", summary: [0, 1, 0], stderr: ["0 new, 1 already failing, 0 fixed."] })],
-  "default-new": [run(PASS), run(FAIL, [], { exit: 1, status: "new", summary: [1, 0, 0] })],
-  "default-fixed": [run(FAIL, [], { exit: 1 }), run(PASS, [], { status: "fixed", summary: [0, 0, 1] })],
+  // The terminal summary (stdout) and the run folder's testResults.md show the
+  // marks; stderr doesn't repeat the counts.
+  "default-existing": [
+    run(FAIL, [], { exit: 1 }),
+    run(FAIL, [], {
+      exit: 1,
+      status: "existing",
+      summary: [0, 1, 0],
+      stdout: ["1. [already failing] compare › a › ", "Compared with run `", "`: 0 new, 1 already failing, 0 fixed."],
+      stderrExcludes: "Compared with run",
+      markdown: ["| [already failing] `compare › a › ", "Compared with run `"],
+    }),
+  ],
+  "default-new": [
+    run(PASS),
+    run(FAIL, [], { exit: 1, status: "new", summary: [1, 0, 0], stdout: ["1. [new] compare › a › "], markdown: ["| [new] `compare › a › "] }),
+  ],
+  "default-fixed": [
+    run(FAIL, [], { exit: 1 }),
+    run(PASS, [], {
+      status: "fixed",
+      summary: [0, 0, 1],
+      stdout: ["Fixed (1):", "1. compare › a › ", "0 new, 0 already failing, 1 fixed."],
+      markdown: ["## Fixed", "- `compare › a › "],
+    }),
+  ],
   "explicit-file": [
     run(FAIL, ["--output-dir", "first", "-o", "base.json"], { exit: 1 }),
     run(FAIL, ["--output-dir", "second", "--compare-to", "base.json"], { exit: 1, status: "existing", summary: [0, 1, 0] }),
@@ -113,6 +137,14 @@ runs.forEach((c, index) => {
   if (c.stderrEquals !== undefined && result.stderr !== c.stderrEquals) fail(`stderr isn't ${JSON.stringify(c.stderrEquals)}.`);
   for (const value of c.stderr ?? []) if (!result.stderr.includes(text(value))) fail(`stderr doesn't include ${JSON.stringify(text(value))}.`);
   if (c.stderrExcludes && result.stderr.includes(c.stderrExcludes)) fail(`stderr includes ${JSON.stringify(c.stderrExcludes)}.`);
+  for (const value of c.stdout ?? []) if (!result.stdout.includes(value)) fail(`stdout doesn't include ${JSON.stringify(value)}. stdout: ${result.stdout}`);
+  if (c.markdown) {
+    // The newest run folder's summary.
+    const runsDir = path.join(dir, ".doc-detective", "runs");
+    const newest = fs.readdirSync(runsDir).sort().pop();
+    const md = fs.readFileSync(path.join(runsDir, newest, "testResults.md"), "utf8");
+    for (const value of c.markdown) if (!md.includes(value)) fail(`testResults.md doesn't include ${JSON.stringify(value)}:\n${md}`);
+  }
   if (c.compared === undefined && c.status === undefined) return;
   const report = JSON.parse(fs.readFileSync(path.join(dir, "results.json"), "utf8"));
   const context = report.specs[0].tests[0].contexts.find(Boolean);

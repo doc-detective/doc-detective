@@ -283,7 +283,7 @@ Doc Detective 5.0.0 · Node.js 24.15.0 · linux 6.8.0-1017-azure (x64) · Starte
 1 of 4 tests failed (1 with warnings, 1 skipped).
 ```
 
-See [What every reporter lists](#what-every-reporter-lists) for what each line means. When an empty input or a filter means no tests run, the verdict is `No tests ran`, and the CLI exits `2`. An empty run therefore never looks like a green run.
+See [What every reporter lists](#what-every-reporter-lists) for what each line means. When the run compares with an earlier run, the summary also marks each failure new or already failing and lists what's fixed. See [Compare with an earlier run](#compare-with-an-earlier-run). When an empty input or a filter means no tests run, the verdict is `No tests ran`, and the CLI exits `2`. An empty run therefore never looks like a green run.
 
 Logs, warnings, and progress go to stderr, so you can pipe stdout without filtering. These flags change what you see:
 
@@ -474,11 +474,22 @@ echo ".doc-detective/" >> .gitignore
 
 Each run compares its results with the newest earlier run folder in the same `outputDir`. A failure that the earlier run also had is already failing, and any other failure is new. So in a project with a few known failures, you can tell whether a change broke something. A test that passes now but failed in the earlier run reads as fixed. The comparison never changes the exit code.
 
-After a comparison, the terminal log has one line like this:
+After a comparison, the terminal summary tags each failure `[new]` or `[already failing]`, lists the fixed tests under `Fixed`, and adds one line with the counts:
 
 ```text
-Compared with run `2026-11-06T02-33-28-631Z`: 1 new, 2 already failing, 0 fixed.
+Failed (2):
+1. [new] install-guide › install › linux-chrome › click-save — Click Save
+   Element not found within timeout
+2. [already failing] install-guide › upgrade › linux-chrome › check-version
+   Expected `5.6.0`, got `5.5.0`.
+
+Fixed (1):
+1. install-guide › verify › linux-chrome
+
+Compared with run `2026-11-06T02-33-28-631Z`: 1 new, 1 already failing, 1 fixed.
 ```
+
+The Markdown summary shows the same tags in its Failures table, a Fixed list, and the same line under the counts. The HTML report shows the line and the fixed tests under the verdict, and tags each context. `--plain` output and the `junit` report don't change.
 
 A fresh checkout or a CI runner without a cached `outputDir` has no earlier run. Then Doc Detective compares nothing, and the run looks the same as before. To compare across CI jobs, keep `outputDir` between jobs with your CI system's cache, or point `compareTo` at a results file you download.
 

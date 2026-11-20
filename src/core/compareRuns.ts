@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { log } from "./utils.js";
+import { comparisonLine } from "../reporters/model.js";
 
 const PREFIX = "Couldn't compare with an earlier run:";
 
@@ -110,11 +111,7 @@ export function compareWithEarlierRun(config: any, report: any) {
     return report;
   }
   compareRuns(report, loaded.previous, loaded.path);
-  const { summary } = report.comparison;
-  log(
-    config,
-    "info",
-    `Compared with run \`${loaded.previous.runId ?? loaded.path}\`: ${summary.new} new, ${summary.existing} already failing, ${summary.fixed} fixed.`
-  );
+  // The terminal summary closes with this sentence, so it's debug here.
+  log(config, "debug", comparisonLine(report));
   return report;
 }
