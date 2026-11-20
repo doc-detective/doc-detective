@@ -16754,6 +16754,15 @@
         "type": "boolean",
         "default": true
       },
+      "failOn": {
+        "description": "Which failures make the CLI exit `1`. `any`: any failed spec exits `1`. `new`: the run exits `1` only when a failure is new since the run it was compared with (see `compareTo`). With no comparison, every failure counts as new. `exitOnFail: false` still wins. The report lists every failure either way.",
+        "type": "string",
+        "enum": [
+          "any",
+          "new"
+        ],
+        "default": "any"
+      },
       "shell": {
         "description": "Default shell for `runShell` steps (and `runCode`'s shell-based execution). `runShell` steps can override this value with their own `shell` field. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.",
         "type": "string",
@@ -38989,6 +38998,15 @@
             "description": "If `true`, the CLI exits `1` when any spec's result is `FAIL`, and `2` when nothing valid was tested. If `false`, those outcomes exit `0`. It also decides what an invalid spec does, in the CLI and in `runTests()`. If `true`, nothing runs. If `false`, the invalid spec is skipped with a warning, and the rest run. Usage errors, invalid config, and crashes always exit `2`. `WARNING` and `SKIPPED` results never fail a run.",
             "type": "boolean",
             "default": true
+          },
+          "failOn": {
+            "description": "Which failures make the CLI exit `1`. `any`: any failed spec exits `1`. `new`: the run exits `1` only when a failure is new since the run it was compared with (see `compareTo`). With no comparison, every failure counts as new. `exitOnFail: false` still wins. The report lists every failure either way.",
+            "type": "string",
+            "enum": [
+              "any",
+              "new"
+            ],
+            "default": "any"
           },
           "shell": {
             "description": "Default shell for `runShell` steps (and `runCode`'s shell-based execution). `runShell` steps can override this value with their own `shell` field. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.",
