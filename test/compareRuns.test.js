@@ -212,14 +212,18 @@ describe("compareWithEarlierRun", function () {
     assert.deepEqual(lines, []);
   });
 
-  it("compares and logs the counts", async function () {
+  // The terminal summary prints the counts, so the log is debug only.
+  it("compares and logs the counts at debug", async function () {
     const dir = path.join(tmp, ".doc-detective", "runs", "2026-01-01T00-00-00-000Z");
     fs.mkdirSync(dir, { recursive: true });
     const previous = { ...reportOf({ s: { t: { a: "FAIL" } } }), runId: "2026-01-01T00-00-00-000Z" };
     fs.writeFileSync(path.join(dir, "testResults.json"), JSON.stringify(previous));
     const report = current();
-    const { lines } = await captureConsoleError(() => compareWithEarlierRun({ outputDir: tmp, logLevel: "info" }, report));
+    const quiet = await captureConsoleError(() => compareWithEarlierRun({ outputDir: tmp, logLevel: "info" }, report));
     assert.deepEqual(report.comparison.summary, { new: 0, existing: 1, fixed: 0 });
-    assert.deepEqual(lines, ["Compared with run `2026-01-01T00-00-00-000Z`: 0 new, 1 already failing, 0 fixed."]);
+    assert.deepEqual(quiet.lines, []);
+    const loud = await captureConsoleError(() => compareWithEarlierRun({ outputDir: tmp, logLevel: "debug" }, current()));
+    assert.equal(loud.lines.length, 1);
+    assert.match(loud.lines[0], /\(DEBUG\) Compared with run `2026-01-01T00-00-00-000Z`: 0 new, 1 already failing, 0 fixed\.$/);
   });
 });

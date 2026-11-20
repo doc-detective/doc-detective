@@ -244,6 +244,14 @@ export interface HintContext {
    */
   viewportFloored: boolean;
   /**
+   * True if the comparison with an earlier run (ADR 01216) marked a context
+   * `failureStatus: "new"` in a test whose `testId` was generated
+   * (`<specId>~<hash>`, so it contains `~`). Editing such a test changes its
+   * ID, so its failure reads as new. Powers `setStableTestIds`. Sourced from
+   * the `walkResults` context pass.
+   */
+  newFailureWithGeneratedTestId: boolean;
+  /**
    * True if any context in this run resolved to a mobile device
    * (`context.device.platform` of `android` or `ios`) — i.e. the user already
    * tests on a real mobile screen. Gates `useMobilePlatforms` off. Sourced from
