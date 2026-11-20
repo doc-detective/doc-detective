@@ -177,6 +177,12 @@
             "description": "Why this context had its outcome. Doc Detective populates it. You never set it yourself.",
             "readOnly": true
           },
+          "failureStatus": {
+            "type": "string",
+            "enum": ["new", "existing", "fixed"],
+            "description": "How this context's result compares with the earlier run named in the report's `comparison`. `new` is a failure the earlier run didn't have, `existing` is a failure the earlier run also had, and `fixed` is a pass that failed in the earlier run. The same spec ID, test ID, and context ID identify a context across runs. Present only in test results that were compared with an earlier run, and only on `FAIL` contexts and on fixed `PASS` contexts. System-populated.",
+            "readOnly": true
+          },
           "durationMs": {
             "type": "integer",
             "minimum": 0,

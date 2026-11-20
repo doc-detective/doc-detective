@@ -171,6 +171,22 @@ export function addRunOptions(command: Command): Command {
     "Print the resolved test plan as JSON and stop",
     "--no-dry-run"
   );
+  addBooleanPair(
+    command,
+    RUN_GROUP,
+    "--compare-to <path>",
+    "Compare failures with an earlier run's results: a file, a run folder, or previous [previous]",
+    "--no-compare-to"
+  );
+  // Commander keeps only the last of the pair, so setConfig can't see both
+  // without this mark.
+  const compareForms = new Set<string>();
+  for (const form of ["compare-to", "no-compare-to"]) {
+    command.on(`option:${form}`, () => {
+      compareForms.add(form);
+      if (compareForms.size === 2) command.setOptionValue("compareToConflict", true);
+    });
+  }
   command.addOption(grouped(RUN_GROUP, "--plain", "Print one tab-separated line per test context"));
   command.addOption(grouped(RUN_GROUP, "--no-exit-on-fail", "Exit 0 even when tests fail"));
 
