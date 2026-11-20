@@ -1767,6 +1767,7 @@ function fakeCtx(partial = {}) {
     hasStaleRecordings: false,
     viewportFloored: false,
     ranMobileContexts: false,
+    newFailureWithGeneratedTestId: false,
     ...partial,
   };
 }
@@ -1980,6 +1981,42 @@ describe("useMobilePlatforms hint", function () {
     // runner warned.
     const { VIEWPORT_TOLERANCE_PX } = await import("../dist/core/utils.js");
     expect(VIEWPORT_FLOOR_TOLERANCE_PX).to.equal(VIEWPORT_TOLERANCE_PX);
+  });
+});
+
+// ADR 01216: editing a test without a `testId` changes its generated ID, so the
+// comparison reads its failure as new.
+describe("setStableTestIds hint", function () {
+  const run = (testId, failureStatus) => ({
+    specs: [{ specId: "s", tests: [{ testId, contexts: [null, { contextId: "c", result: "FAIL", failureStatus }] }] }],
+  });
+
+  it("walkResults flags a new failure only on a generated test ID", function () {
+    expect(walkResults(run("s~1a2b3c4d", "new")).newFailureWithGeneratedTestId).to.equal(true);
+    expect(walkResults(run("install", "new")).newFailureWithGeneratedTestId).to.equal(false);
+    expect(walkResults(run("s~1a2b3c4d", "existing")).newFailureWithGeneratedTestId).to.equal(false);
+    expect(walkResults(run("s~1a2b3c4d", undefined)).newFailureWithGeneratedTestId).to.equal(false);
+    expect(walkResults({ specs: [{ tests: [{ contexts: [{ failureStatus: "new" }] }] }] }).newFailureWithGeneratedTestId).to.equal(false);
+  });
+
+  it("buildHintContext carries the signal", async function () {
+    const ctx = await buildHintContext({ results: run("s~1a2b3c4d", "new"), adapters: [] });
+    expect(ctx.newFailureWithGeneratedTestId).to.equal(true);
+  });
+
+  it("fires on the signal, and not without it", function () {
+    const hint = findHint("setStableTestIds");
+    expect(hint.when(fakeCtx({ newFailureWithGeneratedTestId: true }))).to.equal(true);
+    expect(hint.when(fakeCtx({ newFailureWithGeneratedTestId: false }))).to.equal(false);
+  });
+
+  it("is a current-run-problem hint (priority 20) that names `testId` and links the docs", function () {
+    const hint = findHint("setStableTestIds");
+    expect(hint.priority).to.equal(20);
+    expect(hint.markdown).to.include("`testId`");
+    expect(hint.markdown).to.include(
+      "https://docs.doc-detective.com/docs/ci/reporters-and-artifacts#compare-with-an-earlier-run"
+    );
   });
 });
 
