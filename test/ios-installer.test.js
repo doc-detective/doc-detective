@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
 import path from "node:path";
 import {
+  _resetWdaStopForTests,
   defaultRunBuild,
   ensureManagedWda,
   installIos,
@@ -415,6 +416,9 @@ function buildUntilStopped(env, result = { status: null, stdout: "", stderr: "" 
 const nextTurn = () => new Promise((resolve) => setImmediate(resolve));
 
 describe("interrupting a WebDriverAgent build", function () {
+  // A stop is final in the CLI, which exits right after it. A test process goes on.
+  afterEach(_resetWdaStopForTests);
+
   it("stops the build in flight, and resolves only after the lock is released", async function () {
     const env = makeWdaEnv();
     buildUntilStopped(env);
@@ -488,9 +492,28 @@ describe("interrupting a WebDriverAgent build", function () {
     await stopWdaBuilds();
   });
 
-  it("resolves at once with nothing to stop, and forgets a build that finished", async function () {
-    await stopWdaBuilds();
+  it("starts no build once stopped: not from a call that waited on the lock, nor from a later one", async function () {
+    const env = makeWdaEnv();
+    let grant;
+    env.deps.acquire = () => new Promise((resolve) => (grant = resolve));
+    const waiting = installIos({ yes: true, deps: env.deps });
+    await nextTurn();
 
+    // Nothing is building yet, so there's nothing to stop or to wait for.
+    await stopWdaBuilds();
+    // The lock's holder lets go while this process is still cleaning up.
+    grant({ release: () => (env.lock.released = true) });
+    expect(wdaRow(await waiting).action).to.equal("skipped");
+    expect(env.builds, "its xcodebuild would outlive the process").to.have.length(0);
+    expect(env.lock.released, "and it gives the lock straight back").to.equal(true);
+
+    const late = makeWdaEnv();
+    expect(wdaRow(await installIos({ yes: true, deps: late.deps })).action).to.equal("skipped");
+    expect(late.builds).to.have.length(0);
+    expect(late.lock.released).to.equal(true);
+  });
+
+  it("forgets a build that finished", async function () {
     const env = makeWdaEnv();
     const build = env.deps.runBuild;
     let signal;
@@ -864,6 +887,8 @@ describe("Xcode version probe", function () {
 // --- first-use build during a test run (ADR 01214) ---
 
 describe("first-use WebDriverAgent build (ADR 01214)", function () {
+  afterEach(_resetWdaStopForTests);
+
   const BUILDING =
     "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.";
   const UNRECORDED =
@@ -1180,6 +1205,26 @@ describe("first-use WebDriverAgent build (ADR 01214)", function () {
     expect(env.builds, "nothing builds again").to.have.length(1);
     expect(env.locate(), "and nothing would take the half-built directory").to.equal(null);
     expect(env.lock.released).to.equal(true);
+  });
+
+  it("keeps a build that finished as the interrupt landed, and still starts no session", async function () {
+    const env = makeFirstUseEnv();
+    env.deps.runBuild = (command, args, opts) => {
+      env.builds.push([command, args]);
+      return new Promise((resolve) =>
+        opts.signal.addEventListener("abort", () => {
+          // xcodebuild had already exited with 0 when the kill went out.
+          env.fs.files.set(env.runnerApp, "<app>");
+          resolve({ status: 0, stdout: "", stderr: "" });
+        })
+      );
+    };
+    const ensuring = env.ensure();
+    await nextTurn();
+
+    await stopWdaBuilds();
+    expect(await ensuring, "the run is stopping").to.equal(null);
+    expect(env.locate(), "the finished build is there for the next run").to.not.equal(null);
   });
 
   it("builds once per run: concurrent contexts share the build, later ones don't retry a failure", async function () {

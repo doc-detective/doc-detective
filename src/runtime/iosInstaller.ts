@@ -89,8 +89,6 @@ export interface IOSInstallerDeps {
 /** A prebuild's report row, plus why it built nothing. */
 interface WdaPrebuild {
   report: InstallReport;
-  /** An interrupt stopped the build, so the process is about to exit. */
-  interrupted?: true;
   /**
    * Set only on a skipped build: the reason, as a sentence. `installIos`
    * ignores it. `ensureManagedWda` puts it in the run's warning.
@@ -376,13 +374,11 @@ export async function ensureManagedWda({
 
   // This run already tried. A build still running: wait on it and report its
   // warnings. A build that failed (a miss after it settled): don't try again
-  // and don't warn again. Appium builds WebDriverAgent for this session. A
-  // build that an interrupt stopped: this context starts no session either.
+  // and don't warn again. Appium builds WebDriverAgent for this session.
+  // After an interrupt, this context starts no session either.
+  if (stopping) return null;
   const earlier = firstUseBuilds.get(scope);
-  if (earlier) {
-    if (!earlier.settled) return earlier.warnings;
-    return (await earlier.warnings) === null ? null : [];
-  }
+  if (earlier) return earlier.settled ? [] : earlier.warnings;
 
   const build = async () => {
     const logger = deps.logger ?? (() => {});
@@ -404,8 +400,6 @@ export async function ensureManagedWda({
         // "no Xcode".
         xcode,
       });
-      // No session follows an interrupt, so there's no fallback to warn about.
-      if (prebuild.interrupted) return null;
       cause = prebuild.cause;
       // The notes carry the build output's tail. Keep it out of the warning.
       if (cause) logger((prebuild.report.notes ?? []).join(" | "), "debug");
@@ -414,6 +408,9 @@ export async function ensureManagedWda({
       cause = "An unexpected error stopped the build.";
       logger(String((error as Error)?.message ?? error), "debug");
     }
+    // An interrupt stopped the build, or landed just as it finished. Either
+    // way no session follows, so there's no fallback to warn about.
+    if (stopping) return null;
     if (!cause) return warnings;
     if (typeof thrown === "object" && thrown && recordUpdateErrors.has(thrown)) {
       // This build is published, and the session uses it.
@@ -528,12 +525,22 @@ function defaultSleep(ms: number): Promise<void> {
 // The builds this process is running, from lock to release.
 const buildsInFlight = new Set<{ stop: AbortController; done: Promise<void> }>();
 
+// Set by the first `stopWdaBuilds`. The process is exiting, so from then on no
+// build may start: its `xcodebuild` would outlive the process.
+let stopping = false;
+
+/** For tests, whose process goes on after a stop. */
+export function _resetWdaStopForTests(): void {
+  stopping = false;
+}
+
 /**
  * Stop every WebDriverAgent build this process is running: kill `xcodebuild`
  * and what it spawned, then wait until each build has released its lock. An
  * interrupt handler calls this before it exits. Never rejects.
  */
 export async function stopWdaBuilds(): Promise<void> {
+  stopping = true;
   const builds = [...buildsInFlight];
   for (const build of builds) build.stop.abort();
   await Promise.all(builds.map((build) => build.done));
@@ -669,19 +676,24 @@ async function prebuildWda({
     ]);
   }
 
+  // The half-built directory stays without its marker, so nothing uses it.
+  // The next build for this key picks up where this one stopped.
+  const interrupted = () =>
+    skipped("An interrupt stopped the build.", [
+      "the WebDriverAgent build was interrupted; rerun: doc-detective install ios --yes",
+    ]);
+  // The interrupt came while this call waited for the lock, or before the
+  // call. `stopWdaBuilds` has already looked for builds to stop.
+  if (stopping) {
+    lock.release();
+    return interrupted();
+  }
+
   // From here until the lock's release, `stopWdaBuilds` can stop this build.
   const stop = new AbortController();
   let finished!: () => void;
   const inFlight = { stop, done: new Promise<void>((resolve) => (finished = resolve)) };
   buildsInFlight.add(inFlight);
-  // The half-built directory stays without its marker, so nothing uses it.
-  // The next build for this key picks up where this one stopped.
-  const interrupted = (): WdaPrebuild => ({
-    ...skipped("An interrupt stopped the build.", [
-      "the WebDriverAgent build was interrupted; rerun: doc-detective install ios --yes",
-    ]),
-    interrupted: true,
-  });
 
   try {
     // Re-check under the lock: a contender that waited out a concurrent

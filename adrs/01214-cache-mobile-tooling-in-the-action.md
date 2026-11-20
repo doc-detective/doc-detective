@@ -146,7 +146,11 @@ Action caches only what the CLI recorded. The iOS entry is 68 MiB compressed, an
 
    An interrupted build is never retried, and it writes no `products.json`. No session and no
    cache entry takes the half-built directory. It stays in the cache, and the next build for the
-   same key continues from it.
+   same key continues from it. A build that finished just as the interrupt landed is complete, so
+   it keeps its `products.json`.
+
+   After the interrupt, the process starts no other build. That includes a build that was
+   waiting for the lock when the lock comes free.
 
    In a run, every context that needed the build is skipped, and opens no session. The
    interrupt has already closed the run's Appium servers, so a session would start one that
