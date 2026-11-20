@@ -1,0 +1,6 @@
+## v4.37.2
+
+### Bug fixes
+
+- [`find`](/docs/actions/find) with `timeout: 0` on a browser surface now checks once, immediately. Previously, Doc Detective replaced `0` with the 5-second default.
+- When [`startSurface`](/docs/actions/startsurface) with an array of descriptors can't make a surface active again, the step now fails and names the surface. Previously, later steps without a `surface` could act on the wrong browser.

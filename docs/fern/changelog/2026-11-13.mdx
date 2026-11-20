@@ -1,0 +1,58 @@
+## v5.0.0
+
+Doc Detective 5 makes a failed test fail the run, separates results from logs, and checks specs strictly. Before you upgrade, read [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5). It lists every breaking change and what to do about each one. To stay on version 4 for now, pin it, as in `npx doc-detective@4`.
+
+To migrate from Doc Detective 4:
+
+1. Move to a supported Node.js version, and set `node-version` explicitly in CI.
+2. In GitHub Actions workflows, switch to `doc-detective/github-action@v2`.
+3. Run your suite once with `--no-exit-on-fail`, so the job stays green while you read the results.
+4. Fix the invalid specs and failures the run reports.
+5. Update scripts that read the terminal output, report fields, or results paths.
+6. If an AI agent runs your tests, update its tools with `npx doc-detective@5 install agents`.
+7. Add `.doc-detective/` to `.gitignore`, and remove `--no-exit-on-fail` to turn the gate on.
+
+### Breaking changes
+
+- **Node.js:** Version 5.0.0 dropped Node.js 22, which version 4 supported, and needed Node.js 24.15 or later. Starting with v5.2.1, Doc Detective needs Node.js 24.22.1 or later on the 24 line. On the 26 line, it needs 26.12.1 or later. That release also stopped supporting Node.js 25, which the v5.0.0 range allowed. Move to a supported Node.js version first, and set `node-version` explicitly in CI, because GitHub-hosted runners default to Node.js 22.
+- **Exit codes:** A failed test exits `1`. A run that tests nothing valid exits `2`, including an empty run, a run where every test skipped, and a run with an invalid spec. An interrupted run exits `130` or `143`. Let the exit code decide pass or fail, and pass `--no-exit-on-fail` or set `exitOnFail: false` to keep a job green while you triage.
+- **Strict specs:** An invalid spec stops the run before any test runs, instead of being skipped with a warning. Unknown keys on specs, steps, and custom file types make them invalid, and the error suggests the closest valid key. Keys that never did anything, such as `crawl`, `breakpoint`, and an app's `workingDirectory`, are rejected too. Fix or delete each key the error names.
+- **Checks that used to pass:** A broken or empty `jq()` query and a condition that's only text, such as an unset `$VARIABLE`, now evaluate to false. Object-shaped `assertions` fail the step. A step with two actions, a duplicate `testId`, and a missing `before` or `after` file make the spec invalid. Run your suite and fix what it reports.
+- **Routing handlers:** A routing entry that names an action Doc Detective can't perform at that scope makes the spec invalid. On a step, use `stop: "test"`. To skip a spec's remaining tests, move the handler to the test and use `stop: "spec"`.
+- **Step values:** Timeouts that limit how long an operation runs start at `1`, and waits can't be negative. `"browser": "edge"` and the device fields `orientation`, `udid`, and `provider` are rejected. URLs must start with a variable, `http://`, `https://`, or `/`, and request header values must be strings. `"click": true` is invalid, so quote text you want to click, and a `find.click` object takes only `button` and `duration`. Fix each step the error names.
+- **Test detection:** Doc Detective parses each file before it detects tests. With step detection on, AsciiDoc and HTML detect steps the way Markdown does, and DITA detects more step types. Markdown code blocks tagged `py` or `js` become `runCode` steps, and capitalized typing instructions such as `Type "kittens"` become `type` steps. Code samples and `json` code blocks no longer produce steps. Compare `--dry-run` output from version 4 and version 5, or set `detectSteps: false` to turn off step detection.
+- **Results and logs:** Only results go to stdout. Logs, warnings, hints, and report notices go to stderr without level labels such as `(INFO)`, and the terminal summary has a new format. Read results with `--json`, `--plain`, or `--output` instead of parsing the summary, and redirect with `2>&1` to collect both streams.
+- **Report contents:** JUnit test cases are named after test and context IDs, so your CI's test history restarts once. The Markdown and HTML verdicts count tests, and failure and skip messages are reworded. Each step in the results shows its effective object form, so read `goTo.url` instead of `goTo`. Some names changed with no alias, such as `$$stdioMatched` to `$$stdioMatches` and a step's `autoScreenshot` to `autoScreenshotPath`. Update scripts and outputs that read these values.
+- **Output paths:** `--output` and `output` always name the JSON results file. Use the new `--output-dir` flag or `outputDir` key for a folder. A run no longer writes `testResults-<timestamp>.json` to the current directory. Read `.doc-detective/runs/<runId>/testResults.json` instead.
+- **Screenshots and recordings by default:** `autoScreenshot` and `autoRecord` are on unless you set them to `false`, so every run writes a run folder. To keep version 4's behavior, set both to `false` or pass `--no-auto-screenshot --no-auto-record`. Add `.doc-detective/` to `.gitignore`.
+- **Capture locations:** `screenshot: true`, `screenshot: {}`, and `record: true` write to `outputDir` instead of the current folder. Move existing reference images to `outputDir`, or give the step a `path`.
+- **Chrome by default:** A context that names no browser runs Chrome first, and a `record` context with no browser runs headless Chrome. To keep a context on Firefox, name `firefox` in its `runOn` entry, and refresh reference images taken in another browser.
+- **Masked environment variables:** Logs, reports, results, and saved step output show environment variable values as `***NAME***`. Browser screenshots blur elements that show a secret, and fields that receive a typed secret show dots. List variables that aren't secret in `publicVariables`. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
+- **CLI flags:** List flags such as `--reporters` and `--input` take one comma-separated value, given once. `--concurrent-runners` needs a value, invalid flag values exit `2`, and each subcommand accepts only its own flags. Config `reporters` accepts only exact reporter names, and an empty list means no reporters.
+- **Removed commands and flags:** The `doc-detective-lsp` and `doc-detective-runner` bins and the `install-agents` alias are gone. Use `doc-detective lsp`, `doc-detective runner`, and `doc-detective install agents`. `install agents` drops `-a` and `-s`, so use `--agent` and `--scope`. `install` drops `--silent`, so use `-q` or `--log-level silent`.
+- **Config and environment:** Doc Detective loads `.env` from the current directory, and shell variables win over it. Pass `--no-env-file` to skip it. Flags, the environment, `.env`, the project config, and the user config layer in one precedence order. New installs cache under XDG paths instead of `~/.doc-detective`, though an existing `~/.doc-detective` keeps working. Update CI cache paths, or set `DOC_DETECTIVE_CACHE_DIR`.
+- **Environment variable values:** `DOC_DETECTIVE_*` on-or-off variables read `0`, `false`, `no`, and `off` as off. `DOC_DETECTIVE_DEBUG` now adds debug output to a run, so use `doc-detective debug` for the diagnostic dump. The telemetry notice prints once per machine on stderr.
+- **Deprecations:** The `runTests` command, `--logLevel`, `--exit-on-fail`, `DOC_DETECTIVE`, `DOC_DETECTIVE_RUNTIME_DEBUG`, and the `beforeAny` config key still work with a warning. Replace them with `run`, `--log-level`, nothing, `DOC_DETECTIVE_CONFIG`, `DOC_DETECTIVE_DEBUG`, and `beforeAll`. Setting both an old and a new name exits `2`.
+- **Agent tools:** Agent tools installed for version 4 don't handle the new exit codes and `--output`. When a test fails, they can treat the exit code as a broken runner instead of reading the results. Update them with `npx doc-detective@5 install agents` after you upgrade. Reinstall Gemini CLI and Qwen Code extensions.
+- **JavaScript API:** The package exports only `runTests` and `getRunner`. It no longer exports `detectTests`, `detectAndResolveTests`, `resolveTests`, `readFile`, or `resolvePaths`, and the `doc-detective/cli` path is gone. `runTests()` rejects invalid specs and returns an empty report instead of `null` when it finds no tests. Use `doc-detective --dry-run` or `doc-detective-common` in place of the removed exports.
+- **GitHub Action:** Use `doc-detective/github-action@v2` to run CLI 5. The `@v1` tag stays on CLI 4. See [Run in CI with the GitHub Action](/docs/ci/github-action).
+
+### New features
+
+- Added the `run` command, which takes files and folders as arguments, as in `doc-detective run ./docs`.
+- Added output flags: `--json` prints one JSON document, `--plain` prints one tab-separated line per test context, and `-q` or `--quiet` shows only errors and a one-line verdict. `--no-color` and `NO_COLOR` turn off color, and `--no-input` turns off every prompt.
+- Added a user config file, `.env` loading, and file-based credentials through `apiKeyFile`, `apiTokenFile`, and `DOC_DETECTIVE_API_FILE`. See the [CLI reference](/reference/reference/cli).
+- Every failed step reports a `resultCode` of `environment`, `drift`, or `assertion`. A browser step that misses its element lists the closest elements in `outputs.nearMatches` and names them in `resultHint`. See [Troubleshoot a failing or flaky test](/docs/troubleshoot/overview).
+- The run folder includes a Markdown summary, `testResults.md`, beside the JSON and HTML results. The HTML report shows automatic screenshots and recordings.
+- Custom file types can use [selectors](/docs/test-docs/input-formats/selectors) to match parsed nodes, such as links, comments, and bold text, in Markdown, MDX, HTML, DITA, and AsciiDoc. A selector skips code samples, which regex patterns can't.
+- `runCode` accepts `py` and `js` as languages.
+- Pressing Ctrl+C says the run is stopping and caps cleanup at five seconds. A second Ctrl+C stops at once.
+- The Linux Docker image includes Xvfb, so automatic recording can record headless Firefox.
+- The language server reads inline statements the way a run does, including ignore blocks and custom file types' statements.
+
+### Bug fixes
+
+- Fixed the HTML report header, which showed a dash for every field. It now shows the run's start time, ID, environment, and duration.
+- Fixed detected HTTP requests that ended their headers at a header value with a space, such as `Content-Type: application/json; charset=utf-8`.
+- Fixed DITA tests that detected two `goTo` and two `checkLink` steps from one external link.
+- A command that can't start, for example because its `workingDirectory` doesn't exist, says so instead of reporting exit code `-2`.

@@ -1,0 +1,7 @@
+## v4.19.0
+
+### New features
+
+- A context can now run several browsers at once. To open another browser, set `surface` on [`goTo`](/docs/actions/goto) to an engine keyword such as `"firefox"`, or to an object with `browser` and `name`. Steps find a browser by name first, then a window or tab within it.
+- [`closeSurface`](/docs/actions/closesurface) can close a whole browser. Focus moves to a browser that's still open, and closing one that's already closed succeeds.
+- Surface names must be unique across browsers and background processes, and you can't name a browser after another engine keyword. Steps without `surface` behave as before.

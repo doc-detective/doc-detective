@@ -1,0 +1,7 @@
+## v4.36.0
+
+### New features
+
+- Steps without a `surface`, such as `find`, `click`, `type`, `screenshot`, and `swipe`, now act on the most recently active browser, app, or process surface. You no longer need to repeat `surface` on every step of an app walkthrough. A step with an explicit `surface` makes that surface active for the steps that follow. Background processes that `runShell` or `runCode` start don't become active.
+- Specs that only use app or process surfaces no longer start a browser.
+- A step that targets a surface that can't perform its action, such as `find` on a process, fails with a clear error.

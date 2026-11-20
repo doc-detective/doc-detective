@@ -1,0 +1,34 @@
+## v4.0.1
+
+### Bug fixes
+
+- Fixed `npm install` failing because the published package didn't include the `scripts/` directory that its post-install step runs.
+
+## v4.0.0
+
+Doc Detective 4 bundles the test runner, previously published as `doc-detective-core`, into the `doc-detective` package. Both `doc-detective` and the shared schemas package, `doc-detective-common`, are now ES modules written in TypeScript. Their source moved into the `doc-detective` repository. See the [`doc-detective` repository guide](/contribute/contribute/repos/doc-detective) if you contribute.
+
+### Breaking changes
+
+- The `doc-detective` package no longer depends on `doc-detective-core`. The runner ships inside `doc-detective`, and the package now exports `runTests`, `getRunner`, `detectTests`, `detectAndResolveTests`, `resolveTests`, `readFile`, and `resolvePaths`. Version 5 removes every export except `runTests` and `getRunner`.
+- Importing `doc-detective` now loads that programmatic API instead of running the CLI. The CLI entry point moved to `bin/doc-detective.js` and is also exported as `doc-detective/cli`.
+- The package is now an ES module with an `exports` map, so imports of files inside the package (such as `doc-detective/src/index.js`) no longer resolve. Both `import` and `require()` work for the package's main entry point.
+- `doc-detective-common` v4 no longer exports `resolvePaths` or `readFile`. It still exports `schemas`, `validate`, `transformToSchemaKey`, and `detectTests`.
+
+To migrate from Doc Detective 3:
+
+1. If you run tests from the command line with `npx doc-detective`, no change is needed. Your config files and test specs work as before.
+2. If you import `runTests` or `getRunner` from `doc-detective-core`, install `doc-detective` and import them from `doc-detective` instead.
+3. If you import `resolvePaths` or `readFile` from `doc-detective-common`, import them from `doc-detective` instead.
+4. If a script runs a file inside the package directly, run the `doc-detective` command instead.
+
+### New features
+
+- Added a `--version` flag that prints the installed version. See the [CLI reference](/reference/reference/cli).
+- Detected steps now include a read-only [`location`](/reference/schemas/source-location) object with the line number and character offsets where the step appears in its source file.
+- The packages ship TypeScript type definitions. `doc-detective-common` exports the `Specification`, `Test`, `Step`, `Context`, `Config`, and `Report` types.
+- When you call `detectTests` from `doc-detective-common` without a file type, it picks one from the file extension or the content. The package also exports the built-in file type definitions as `defaultFileTypes`.
+
+### Bug fixes
+
+- Fixed screen recording on macOS. When Chrome can't start a screen capture, the [`record`](/docs/actions/record) step now fails with an explanation instead of hanging. On macOS, the explanation points to Chrome's screen recording permission. A `stopRecord` step without an active recording now fails cleanly.

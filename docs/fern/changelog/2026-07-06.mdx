@@ -1,0 +1,24 @@
+## v4.23.0
+
+### New features
+
+- You can now test web pages in mobile browsers: Chrome on a managed Android emulator and Safari on a managed iOS simulator. `goTo`, `find`, `click`, and `screenshot` work as they do on desktop. See [Platforms and browsers](/docs/test-docs/platforms-and-browsers).
+- Other browser and mobile platform combinations are skipped with a reason that names the supported browser. Contexts that mix native app steps and web steps are also skipped.
+- Setting `headless: false`, `window`, or `viewport` for a mobile browser fails, because the device determines them.
+
+### Behavior changes
+
+- On the `android` and `ios` platforms, `safari` refers to the device browser. On desktop platforms, `safari` is still an alias for `webkit`.
+
+### Bug fixes
+
+- Fixed runs freezing on Windows when a `runShell` step with a pseudo-terminal (`tty`) followed a native app context. Installing a driver during a run no longer removes other packages from the runtime cache.
+- Before starting a pseudo-terminal, Doc Detective reinstalls the terminal backend if it's missing from the cache.
+
+## v4.22.0
+
+### New features
+
+- You can now test iOS apps (experimental) on a managed simulator on macOS hosts. Doc Detective reuses a booted simulator or boots or creates one, and shuts down simulators it booted when the run ends. See [Test iOS apps](/docs/test-docs/ios-apps).
+- By default, iOS contexts use the newest iPhone simulator. Name a device to reuse, boot, or create a simulator with that name. You can run several apps on one simulator.
+- The `headless` setting has no effect on iOS.

@@ -1,0 +1,6 @@
+## v4.17.0
+
+### Behavior changes
+
+- The `runFolder` reporter now saves each run as a nested tree: `.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/`. Each context's screenshots and recordings are stored in that context's folder. Previously, a run used a single `.doc-detective/run-<runId>/` folder with separate `screenshots/` and `recordings/` trees. If your scripts read artifacts by path, update them for the new layout. See [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+- Folder names for IDs longer than 32 characters are shortened, with a deterministic hash that keeps them unique.

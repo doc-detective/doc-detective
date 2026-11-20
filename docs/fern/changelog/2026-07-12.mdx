@@ -1,0 +1,12 @@
+## v4.26.8
+
+### Bug fixes
+
+- Fixed `oneOf` array literals with bare words, such as `$$value oneOf [linux, mac, windows]`, which always evaluated to false. See [expressions](/reference/reference/expressions).
+
+## v4.26.7
+
+### Bug fixes
+
+- The string shorthand for [`screenshot`](/docs/actions/screenshot) and [`record`](/docs/actions/record) paths now resolves relative to `relativePathBase`, like the object form. Previously, it resolved relative to the current working directory.
+- [`httpRequest`](/docs/actions/httprequest) no longer checks the response body when you don't set `response.body`. Previously, non-JSON responses, such as plain text, HTML, or an empty `204` response, failed the step.

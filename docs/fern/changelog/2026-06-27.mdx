@@ -1,0 +1,28 @@
+## v4.15.1
+
+### Bug fixes
+
+- Fixed conditions and custom assertions that compare a multi-line step output, which always failed. Comparisons with strings that contain quotes or `@` also work now.
+- [`type`](/docs/actions/type) steps now honor an `inputDelay` of `0` instead of replacing it with the 100-millisecond default.
+- A custom assertion that references `$$steps` now logs a warning that explains why it fails. Custom assertions can't reference other steps' results.
+
+## v4.15.0
+
+### New features
+
+- Added conditional execution. Set `if` on a spec, test, or step to a [condition expression](/reference/reference/expressions), or a list of conditions that must all be true. A unit whose condition is false is skipped without running.
+- Added custom assertions. A step's `assertions` field lists expressions that Doc Detective checks against the step's outputs after the action runs. A failing assertion fails a passing step, but assertions never turn a failed or skipped step into a pass. See [`assertion`](/reference/schemas/assertion).
+- Added [routing](/reference/schemas/routing) handlers. A step's `onPass`, `onFail`, `onWarning`, and `onSkip` handlers decide what happens next: `continue`, `stop`, `retry` with a `limit`, `delay`, and `backoff`, or `goToStep` to jump to another step. Tests support the same handlers with `continue`, `stop`, and `goToTest`. Without handlers, runs behave as before.
+- [`runShell`](/docs/actions/runshell) and [`runCode`](/docs/actions/runcode) steps can start a long-running background process, such as a dev server or a database, with the `background` field. Give the process a `name`, and use `waitUntil` to wait for a port, an output pattern, an HTTP response, or a delay before the step continues. Set `background.tty` to run the process in a pseudo-terminal for full-screen interactive programs. See [Run shell commands and code](/docs/test-docs/run-shell-and-code).
+- Added the [`closeSurface`](/docs/actions/closesurface) action, which stops background processes by name. Doc Detective also stops any remaining background processes when the run ends.
+- [`type`](/docs/actions/type) steps can send keystrokes to a background process with the `surface` field, then wait for its output with `waitUntil`.
+- Each action's built-in checks now run as expressions. The values they check are available as step outputs that you can use in conditions and custom assertions. Step results are unchanged.
+- Added post-run hints that suggest custom assertions and suggest `retry` for requests that fail with `429` or `5xx` responses.
+
+### Behavior changes
+
+- With more than one runner, a shared-display `ffmpeg` recording no longer forces the whole run onto one runner. Other browser contexts wait for the display, and contexts that don't use a browser, such as HTTP and shell tests, keep running in parallel.
+
+### Bug fixes
+
+- Stopping a run with Ctrl+C now stops background processes, Appium, and Xvfb displays instead of leaving them running.

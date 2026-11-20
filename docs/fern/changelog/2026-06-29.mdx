@@ -1,0 +1,11 @@
+## v4.16.0
+
+### New features
+
+- Doc Detective now validates browser drivers by running them, not only by checking that they exist. A broken driver, such as a partially downloaded `geckodriver`, is quarantined and downloaded again once.
+- Added the `browserFallback` option, which controls whether a context falls back to another browser. Set it in the [config](/reference/schemas/config), on a context, or with the `--browser-fallback` CLI flag. Accepted values are `auto` (default), `explicit`, and `off`. See [Platforms and browsers](/docs/test-docs/platforms-and-browsers).
+
+### Behavior changes
+
+- When a context's browser can't start a driver session, Doc Detective first tries to repair the browser's components. If that fails, it falls back to another available browser instead of skipping the context.
+- A fallback away from a browser you requested explicitly reports the context as `WARNING` instead of `PASS`. Set `browserFallback` to `explicit` to skip such contexts with a diagnostic reason, or to `off` to never fall back.

@@ -1,0 +1,23 @@
+## v4.26.5
+
+### Bug fixes
+
+- Fixed legacy v2 [inline steps](/docs/test-docs/inline) in Markdown and AsciiDoc, which test detection dropped. They're upgraded and run again.
+
+## v4.26.4
+
+### Bug fixes
+
+- On Windows, a background process surface that crashes while several processes start at once is now retried. This applies to processes started by `startSurface` and by `runShell` or `runCode` with `background`.
+- When a background process fails to become ready, the step now reports the readiness error instead of a cleanup error.
+- Fixed intermittent `No elements matched` failures for `find` right after `goTo` in Android and iOS device browsers. `goTo` now waits briefly for the page's elements to become available.
+
+## v4.26.3
+
+Maintenance release; no user-facing changes.
+
+## v4.26.2
+
+### Bug fixes
+
+- Fixed runs started from the doc-detective.com platform that couldn't fetch their spec. When the request for the spec failed at the network level, the runner crashed without finalizing, and the run stayed at `starting` indefinitely. The runner now reports the failure and finalizes the run as failed.

@@ -1,0 +1,10 @@
+## v4.40.2
+
+### Behavior changes
+
+- iOS tests start faster:
+  - With version 12 or later of the XCUITest driver on an iOS 17 or later simulator, Doc Detective launches the prebuilt WebDriverAgent from `doc-detective install ios` directly, without `xcodebuild`.
+  - Doc Detective opens the Simulator window before the first session, so the driver no longer reboots the simulator.
+  - Sequential iOS contexts in a run share one Appium server.
+- iOS sessions no longer capture the simulator's crash and system logs, which Doc Detective doesn't read. To turn capture back on for an app surface, set `"appium:skipLogCapture": false` in its `driverOptions`.
+- When Doc Detective retries a session start that timed out, it now logs a warning with the error.

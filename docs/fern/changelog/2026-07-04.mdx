@@ -1,0 +1,8 @@
+## v4.20.0
+
+### New features
+
+- You can now test native Windows desktop apps (experimental). The new [`startSurface`](/docs/actions/startsurface) action launches an app, `find`, `click`, and `type` act on it, and [`closeSurface`](/docs/actions/closesurface) closes it. Locate elements with the usual fields, such as `elementText`, or with a native selector. See [Test native Windows apps](/docs/test-docs/native-windows-apps).
+- Tests that only target apps no longer start a browser.
+- Added `requires` to contexts, which declares the commands, files, and environment variables a context needs. Use a string, an array, or an object with `commands`, `files`, and `env`. If any requirement is unmet, the context is `SKIPPED` with a reason that names each missing item. See the [requirements reference](/reference/schemas/requirements).
+- `runOn` entries can omit `platforms` and `browsers`, so a context can be gated by `requires` alone.

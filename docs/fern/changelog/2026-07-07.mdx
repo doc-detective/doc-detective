@@ -1,0 +1,31 @@
+## v4.25.1
+
+### Bug fixes
+
+These fixes apply when `concurrentRunners` is greater than 1:
+
+- Fixed `ECONNREFUSED 127.0.0.1:9515` errors when several Chrome contexts ran at the same time. Each Chrome session now gets its own `chromedriver` port.
+- Native app contexts on macOS, Windows, and iOS now run one at a time, including contexts that record. Previously, concurrent contexts could crash the shared app driver.
+
+## v4.25.0
+
+### New features
+
+- [`record`](/docs/actions/record) now accepts app surfaces. Doc Detective records a desktop app's window with `ffmpeg`, cropped to the window. On Android and iOS, it records the device screen.
+- For app surfaces, the recording `target` defaults to `window`. Other recordings still default to `display`.
+
+## v4.24.0
+
+### New features
+
+- Added the [`swipe`](/docs/actions/swipe) action, which swipes or scrolls a browser or app surface. Use a direction such as `"up"`, a direction with a `distance`, or `from` and `to` pixel coordinates.
+- Added `duration` to [`click`](/docs/actions/click) for a long press, on app and browser surfaces.
+- On mobile app surfaces, [`type`](/docs/actions/type) sends device keys, such as `$HOME$` and, on Android, `$BACK$`. On Android, `type` without element criteria types into the focused element.
+- On mobile app surfaces, [`find`](/docs/actions/find) scrolls down to look for an element that's off screen. `click` and `type` on an element scroll the same way.
+
+### Bug fixes
+
+- Fixed the first iOS session failing when building WebDriverAgent outlasted the startup timeout. Doc Detective now retries the session.
+- Bulk runtime installs, such as `doc-detective install all` during package installation, now have 9 minutes to finish instead of 5.
+- Fixed `Appium server ... failed to start` errors after an interrupted install. The next install now keeps and repairs the packages that were already extracted instead of removing them.
+- `doc-detective install android` retries transient SDK download failures and reinstalls an incomplete system image once.

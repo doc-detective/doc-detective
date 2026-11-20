@@ -1,0 +1,22 @@
+## v4.41.4
+
+Maintenance release; no user-facing changes.
+
+## v4.41.3
+
+### Bug fixes
+
+- Fixed the Doc Detective logo in the HTML report, which showed a diagonal slash instead of a rounded corner.
+
+## v4.41.2
+
+### Behavior changes
+
+- A screenshot and its reference image can differ in size because the environment rendered the browser differently. Doc Detective now resizes the window to match the reference. It then captures again, compares, and restores the window when the step ends. See [screenshot visual regression](/docs/test-docs/screenshot-visual-regression).
+  - If you set a `viewport` or `window` that no longer matches the reference, Doc Detective leaves it alone, so an intentional change isn't reverted.
+  - Doc Detective doesn't retake crops, app captures, screenshots with `overwrite: "true"`, or screenshots taken while a recording runs.
+- Desktop browser sessions without a size now get a 1200x800 viewport.
+
+### Bug fixes
+
+- The `size` field on a [`startSurface`](/docs/actions/startsurface) browser descriptor now takes effect. A `size` with no positive dimension counts as unset.

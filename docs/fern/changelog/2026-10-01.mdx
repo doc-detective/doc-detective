@@ -1,0 +1,6 @@
+## v4.38.6
+
+### Bug fixes
+
+- URLs in diagnostic messages no longer include a user name or password. Previously, a `https://user:pass@host` URL kept its password in some messages.
+- Navigations on a browser session from the `getRunner()` API now check that the page left its blank starting page. If the page is still blank after one retry, the navigation throws an error that says so.

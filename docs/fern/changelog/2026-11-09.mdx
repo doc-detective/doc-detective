@@ -1,0 +1,13 @@
+## v4.43.0
+
+### New features
+
+- Config files, specs, and tests accept `publicVariables`, a list of environment variable names. Doc Detective 5 masks environment variable values in output, and `publicVariables` lists the exceptions. Version 4 doesn't mask values, so you can add the key before you upgrade. See [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
+
+### Behavior changes
+
+- After a local run, Doc Detective now warns on stderr when the run relies on a default that changes in Doc Detective 5:
+  - A context that names no browser ran on Firefox. Version 5 uses Chrome first. To stay on Firefox, name `firefox` in the context's `runOn` entry.
+  - `autoScreenshot` or `autoRecord` is unset, and a step drove a browser, app, or device. Version 5 saves screenshots and recordings by default. Set the field to `false` or `true` to keep your choice and silence the warning.
+  - The run used variables, and `publicVariables` is unset. Version 5 masks environment variable values in output. Setting `publicVariables`, even to an empty list, silences the warning.
+- Each warning prints once and links to the upgrade guide. The warnings don't print at the `silent` log level or in the GitHub Action.

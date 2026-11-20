@@ -1,0 +1,12 @@
+## v4.38.4
+
+### Bug fixes
+
+- Firefox now works in the official Docker image on both `linux/amd64` and `linux/arm64`. Previously, `doc-detective install browsers` skipped `geckodriver` in the image even though the download succeeded.
+
+## v4.38.3
+
+### Bug fixes
+
+- On ARM64 Linux, Doc Detective no longer runs a driver binary built for another architecture, such as the x86-64 ChromeDriver. Previously, running it could create stray files in your working directory and stop the run with an `ENOENT` error.
+- One unreadable entry in your input files no longer stops the whole run.

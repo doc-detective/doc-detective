@@ -1,0 +1,7 @@
+## v3.5.1
+
+### Bug fixes
+
+- Fixed `recursive` and `detectSteps` being treated as `true` when your config sets them to `false`.
+- Fixed `goTo` rejecting `null` for `waitUntil.networkIdleTime` and `waitUntil.domIdleTime`. Set either to `null` to skip that check.
+- Reduced browser driver logging to errors only.

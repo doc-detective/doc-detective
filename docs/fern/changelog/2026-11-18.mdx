@@ -1,0 +1,12 @@
+## v5.5.0
+
+### New features
+
+- Doc Detective resolves include directives by default before it looks for tests. A test in a shared snippet runs inside each page that includes it, in reading order. It reads AsciiDoc `include::`, MkDocs snippets, mdBook `{{#include}}`, Fern `<Markdown src>`, MDX snippet imports for Docusaurus, Mintlify, Starlight, and Astro, and reStructuredText `.. include::`. See [Includes](/docs/test-docs/input-formats/includes).
+- A `fileTypes` entry accepts `includeStatements`, a list of regular expressions for include syntax that Doc Detective doesn't know. See [Includes](/docs/test-docs/input-formats/includes#add-include-syntax-for-a-custom-format).
+
+### Behavior changes
+
+- A file that another input includes, such as `_setup.md`, no longer runs as its own spec. Its tests run once in each page that includes it, so spec and test counts in results can change. A file listed in `beforeAll` or `afterAll` still runs in that phase. To run a partial alone, pass it as the only `--input`. To read every file on its own as before, set `resolveIncludes` to `false` in your config.
+- When a test statement comes from an included file, its `location` in results gains a `file` field with that file's absolute path. Freshness badges and verified dates are written into the included file.
+- An included file must be inside the working directory. A missing, outside, or circular include prints a warning on stderr and doesn't change the exit code.

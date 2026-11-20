@@ -1,0 +1,13 @@
+## v4.29.0
+
+### New features
+
+- Before tests start, each run now prepares what its contexts need, such as browser and driver installs and device boots, and overlaps that work. Previously, this ran only for concurrent runs. A failed preparation task logs a warning and doesn't fail the run.
+- Run reports include a `warm` object with the duration and tasks of that preparation phase.
+
+## v4.28.0
+
+### New features
+
+- `doc-detective install ios` now prebuilds WebDriverAgent for the iOS Simulator, and iOS sessions use the prebuilt copy instead of compiling their own. The prebuild requires Xcode 14 or later. If it can't run, the command reports a skipped row and doesn't fail. See [`install`](/reference/reference/cli/install) and [iOS apps](/docs/test-docs/ios-apps).
+- `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` still takes precedence over the managed prebuild when you set it.

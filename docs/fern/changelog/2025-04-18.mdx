@@ -1,0 +1,40 @@
+## v3.0.0
+
+Doc Detective 3 introduces a new format for configs, specs, tests, and steps. It also adds YAML support and expressions, and changes the license to AGPL-3.0.
+
+### Breaking changes
+
+- Steps use the action name as the key instead of an `action` field. For example, `{ "action": "goTo", "url": "https://example.com" }` becomes `{ "goTo": "https://example.com" }`. Most actions accept a string shorthand or a detailed object. See the [step reference](/reference/schemas/step).
+- Several actions have new names. `saveScreenshot` is now [`screenshot`](/docs/actions/screenshot), `typeKeys` is now [`type`](/docs/actions/type), and `setVariables` is now [`loadVariables`](/docs/actions/loadvariables). `startRecording` is now [`record`](/docs/actions/record), and `stopRecording` is now [`stopRecord`](/docs/actions/stoprecord).
+- Contexts list `platforms` and `browsers` instead of an `app` object. Name a browser (`chrome`, `firefox`, `safari`, or `webkit`), or describe it with `name`, `headless`, `window`, and `viewport`. Configs, specs, and tests set contexts with `runOn`. See the [context reference](/reference/schemas/context).
+- Removed Microsoft Edge support, including the Edge driver installation. Contexts converted from the v2 format that name Edge run in Chrome instead.
+- Removed the `runCoverage` and `suggestTests` commands. The CLI no longer takes a command name or prompts you to choose one: run `npx doc-detective` to run tests.
+- Removed the `--setup`, `--cleanup`, and `--recursive` flags. Set `beforeAny`, `afterAll`, and `recursive` in your config instead.
+- `relativePathBase` now defaults to `file`, so relative paths resolve from the file that contains them. In v2, the default was `cwd`, the current working directory.
+- `maxVariation` on `screenshot`, `runShell`, `runCode`, and `httpRequest` is now a fraction from `0` to `1` instead of a percentage. The `byVariation` value of `overwrite` is now `aboveVariation`.
+- The license changed from MIT to AGPL-3.0.
+
+To migrate from Doc Detective 2:
+
+1. Doc Detective 3 still accepts v2 configs, specs, and tests. It converts them to the v3 format when it loads them, including Edge contexts and `maxVariation` percentages.
+2. In scripts and CI jobs, replace `npx doc-detective runTests` with `npx doc-detective`. Move any `--setup` and `--cleanup` values to `beforeAny` and `afterAll` in your config.
+3. If your relative paths assume the current working directory, set `"relativePathBase": "cwd"` in your config.
+4. To move a config to the v3 format, rename `envVariables` to `loadVariables`. Move `runTests.input`, `runTests.output`, `runTests.recursive`, and `runTests.detectSteps` to the top level. Rename `runTests.setup` to `beforeAny`, `runTests.cleanup` to `afterAll`, and `runTests.contexts` to `runOn`. Remove `defaultCommand`, `runCoverage`, and `suggestTests`.
+5. In specs and tests, rename `id` to `specId` or `testId`, `file` to `contentPath`, and `contexts` to `runOn`. In tests, rename `setup` to `before` and `cleanup` to `after`.
+6. In steps, rename `id` to `stepId`, and move each action's settings under its action key. The following fields also changed:
+   - `httpRequest`: `requestData`, `requestHeaders`, and `requestParams` became `request.body`, `request.headers`, and `request.parameters`. `responseData` and `responseHeaders` became `response.body` and `response.headers`. `savePath` and `saveDirectory` became `path` and `directory`.
+   - `runShell` and `runCode`: `output` became `stdio`, and `savePath` and `saveDirectory` became `path` and `directory`.
+   - `type`: `delay` became `inputDelay`.
+   - `find`: `matchText` became `elementText`, and `typeKeys` became `type`.
+   - Divide each `maxVariation` value by 100.
+7. Replace `setVariables` captures on `find`, `runShell`, and `runCode`, and `envsFromResponseData` on `httpRequest`, with the step's `variables` map. For example, set a variable to `extract($$stdio.stdout, "pattern")` or `jq($$response.body, ".id")`.
+8. In custom `fileTypes`, list extensions without the leading period, and replace the statement open and close strings with `inlineStatements` regular expressions.
+
+### New features
+
+- You can write configs and test specs in YAML as well as JSON. When you don't pass `--config`, Doc Detective loads `.doc-detective.json`, `.doc-detective.yaml`, or `.doc-detective.yml` from the current directory. Inline test and step statements accept YAML too.
+- Steps can set environment variables from their results with the `variables` map and [expressions](/reference/reference/expressions). Expressions read output values such as `$$element.text`, `$$stdio.stdout`, and `$$response.body`, and support the `extract()` and `jq()` functions.
+- Added the [`click`](/docs/actions/click) action, which clicks an element that you identify by selector or display text.
+- [`find`](/docs/actions/find) matches `elementText` as a regular expression when you write it as `/pattern/`.
+- `fileTypes` includes built-in `markdown`, `asciidoc`, and `html` definitions that you can reference by name. In Markdown, inline statements can be HTML comments (`<!-- test -->`), MDX comments (`{/* test */}`), or CommonMark comments (`[comment]: # (test)`). AsciiDoc statements use `// (test)` comments.
+- After a run, the terminal shows how many specs, tests, contexts, and steps passed, failed, warned, or were skipped. A list of failed items follows.
