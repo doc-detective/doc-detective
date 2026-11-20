@@ -117,17 +117,19 @@ jobs:
           # poll a cache-busted URL until the tarball exists, and only then the
           # plain URL npx fetches, so this step never seeds that 404 itself.
           http_code() { curl -sI -o /dev/null -w '%{http_code}' --max-time 15 "$1" || true; }
+          # One budget for both packages: they publish together, and the job's
+          # timeout-minutes counts on this wait taking 10 minutes at most.
           DEADLINE=$(( SECONDS + ${TARBALL_TIMEOUT_SECONDS:-600} ))
           for PKG in doc-detective doc-detective-common; do
             URL=""
             FOUND=""
             while :; do
-              [ -n "$URL" ] || URL=$(npm view "$PKG@$VERSION" dist.tarball 2>/dev/null || true)
+              [ -n "$URL" ] || URL=$(timeout 30 npm view "$PKG@$VERSION" dist.tarball 2>/dev/null || true)
               if [ -n "$URL" ] && [ -z "$FOUND" ] && [ "$(http_code "$URL?nocache=$RANDOM$SECONDS")" = 200 ]; then
                 FOUND=1
               fi
               if [ -n "$FOUND" ] && [ "$(http_code "$URL")" = 200 ]; then
-                echo "$PKG@$VERSION tarball downloads."
+                echo "$PKG@$VERSION tarball is downloadable."
                 break
               fi
               if [ "$SECONDS" -ge "$DEADLINE" ]; then
