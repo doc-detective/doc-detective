@@ -32,7 +32,7 @@ jobs:
       - uses: doc-detective/github-action@v2
 ```
 
-This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. GitHub-hosted runners default to an older version. The action checks the job's Node.js when `version` can install Doc Detective 5, as the default `5` and `latest` can. An empty `version`, or one that stays on 4, skips the check. On older Node.js, the action warns you to add `actions/setup-node` with `node-version: 24`, and runs anyway.
+This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. GitHub-hosted runners default to an older version. The action checks the job's Node.js when `version` can install Doc Detective 5, as the default `5` and `latest` can. An empty `version`, or one that stays on 4, skips the check. The action warns when the job's Node.js isn't supported, for example Node.js 25 or 24.18. The warning asks you to add `actions/setup-node` with `node-version: 24`, and the run continues.
 
 Pin to the major version (`@v2`) to pick up fixes automatically, or pin to a full version such as `@v2.2.0` for a fixed release. Action `@v2` runs CLI 5, and `@v1` stays on CLI 4. If you're moving from `@v1`, see [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
 
@@ -513,7 +513,7 @@ Open a pull request that touches a documented command, screenshot, or API respon
 
 ### The job warns about the Node.js version
 
-**Cause:** Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. The job runs an older version.
+**Cause:** Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. The job runs a version outside that range, such as Node.js 25 or 24.18.
 
 **Solution:** Add `actions/setup-node` with `node-version: 24` before the action. See [Step 1](#step-1-add-the-action-to-a-workflow).
 
