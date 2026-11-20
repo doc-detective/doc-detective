@@ -292,6 +292,19 @@ jobs:
         shell: bash
         run: rm -rf ~/.dd-cache/ios/wda
 
+      # The first-use leg also proves that an interrupt stops the build (#1005),
+      # once from `install ios` and once from a test run. Each is signaled as
+      # soon as `xcodebuild` is running. The half-built directory stays in the
+      # cache without its marker, and the fixture run below finishes the build.
+      - name: Interrupt a WebDriverAgent build
+        if: runner.os == 'macOS' && matrix.bundle.wdaFirstUse
+        shell: bash
+        run: |
+          node scripts/check-wda-build-interrupt.cjs SIGINT install ios --yes
+          node scripts/check-wda-build-interrupt.cjs SIGTERM --config test/core-artifacts/config.groups.json --input test/core-artifacts/mobile-web-ios/wda-first-use.spec.json --output-dir "$RUNNER_TEMP/interrupted-run"
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
       # Bring up the static/echo test servers (8092 main, 8093 API) that the
       # browser and http fixtures hit. Backgrounded, then gated on readiness by
       # a dependency-free poll. Groups that don't touch the servers just ignore
@@ -347,7 +360,7 @@ jobs:
       # $RUNNER_TEMP/doc-detective-output.json. We gate on that file ourselves
       # (rather than exit_on_fail) so an empty / mis-pointed run also fails.
       - name: Run ${{ matrix.bundle.name }} fixtures
-        uses: doc-detective/github-action@d4754e923691878e777b1266ccb65260bc559bdc # v2.0.0
+        uses: doc-detective/github-action@55ba39bc460e809c279179421fb26a8c76fc2539 # v2.2.0
         # The general matrix only asserts the SKIP paths. Disable the android
         # lazy-install here so no general leg ever triggers a multi-GB SDK
         # download, and turn OFF the action's KVM setup (`android: false`) — the
@@ -702,7 +715,7 @@ jobs:
       - name: Run apps-android via the action (auto-KVM + lazy bootstrap)
         id: android-action
         continue-on-error: true
-        uses: doc-detective/github-action@d4754e923691878e777b1266ccb65260bc559bdc # v2.0.0
+        uses: doc-detective/github-action@55ba39bc460e809c279179421fb26a8c76fc2539 # v2.2.0
         with:
           version: ''
           working_directory: .
@@ -713,7 +726,7 @@ jobs:
 
       - name: Retry apps-android via the action
         if: steps.android-action.outcome == 'failure'
-        uses: doc-detective/github-action@d4754e923691878e777b1266ccb65260bc559bdc # v2.0.0
+        uses: doc-detective/github-action@55ba39bc460e809c279179421fb26a8c76fc2539 # v2.2.0
         with:
           version: ''
           working_directory: .

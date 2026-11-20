@@ -315,6 +315,67 @@ describe("instantiateCursor (coverage)", function () {
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /Couldn't wait for page to load/);
   });
+
+  // A driver that refuses a pointer move outside the viewport, as the WebDriver
+  // spec requires ("move target out of bounds"). `viewport` is mutable, so a
+  // test can change it between calls, as a navigation does.
+  function makeBoundedDriver(viewport, state = {}) {
+    const moves = [];
+    const driver = makeDriver({
+      state,
+      performActionsImpl: async ([{ actions: [move] }]) => {
+        if (
+          move.x < 0 ||
+          move.x > viewport.innerWidth ||
+          move.y < 0 ||
+          move.y > viewport.innerHeight
+        ) {
+          throw new Error("move target out of bounds");
+        }
+        moves.push({ x: move.x, y: move.y });
+      },
+    });
+    driver.execute = async (fn, ...args) => {
+      installDomStub(viewport);
+      try {
+        return await fn(...args);
+      } finally {
+        delete global.document;
+        delete global.window;
+      }
+    };
+    return { driver, moves };
+  }
+
+  // An Android mobile-web context with `autoRecord`: the cursor first lands on
+  // the blank start page, which Chrome lays out 980 px wide. The first `goTo`
+  // to a page with a mobile viewport meta narrows the viewport, and the new
+  // document gets the cursor back at its saved position.
+  it("keeps a restored cursor inside a viewport that narrowed since it was saved", async () => {
+    const viewport = { innerWidth: 980, innerHeight: 1494 };
+    const { driver, moves } = makeBoundedDriver(viewport);
+    await instantiateCursor(driver);
+    assert.deepEqual(moves, [{ x: 490, y: 747 }]);
+
+    viewport.innerWidth = 412;
+    viewport.innerHeight = 732;
+    const result = await instantiateCursor(driver);
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(moves[1], { x: 411, y: 731 });
+    assert.deepEqual({ x: driver.state.x, y: driver.state.y }, { x: 411, y: 731 });
+  });
+
+  // `find` with `moveTo` saves the element's position even when the move
+  // itself was refused, such as for an element below the fold.
+  it("clamps a saved position that lies past either edge of the viewport", async () => {
+    const { driver, moves } = makeBoundedDriver(
+      { innerWidth: 800, innerHeight: 600 },
+      { x: -5, y: 3100 }
+    );
+    const result = await instantiateCursor(driver);
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(moves, [{ x: 0, y: 599 }]);
+  });
 });
 
 // ---------------------------------------------------------------------------

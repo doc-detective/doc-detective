@@ -419,6 +419,47 @@ describe("android installer: installAndroid orchestration", function () {
     });
   });
 
+  // The Android preflight's emulator repair (ADR 01215): the SDK has adb and
+  // two images but no emulator package. `toolsOnly` installs the package and
+  // stops, so no image downloads and no AVD is created or replaced.
+  it("toolsOnly installs the missing emulator package and nothing else", async function () {
+    await withTmpCache(async (tmpRoot) => {
+      const runCalls = [];
+      const reports = await installAndroid({
+        yes: true,
+        toolsOnly: true,
+        deps: {
+          detect: () => ({ ...detectedSdk, emulator: null }),
+          arch: "x64",
+          javaPresent: () => true,
+          fs: {
+            existsSync: (p) => p.replace(/\\/g, "/").endsWith("system-images"),
+            readdirSync: (p) => {
+              const norm = p.replace(/\\/g, "/");
+              if (norm.endsWith("system-images")) return ["android-34", "android-35"];
+              if (/android-3[45]$/.test(norm)) return ["google_apis"];
+              if (norm.endsWith("google_apis")) return ["x86_64"];
+              return [];
+            },
+          },
+          run: (command, args) => {
+            runCalls.push({ command, args });
+            return Promise.resolve("");
+          },
+        },
+      });
+      const sdkmanagerArgs = runCalls.map((c) => c.args.slice(1).join(" "));
+      expect(sdkmanagerArgs).to.deep.equal(["--licenses", "emulator"]);
+      expect(runCalls.every((c) => /sdkmanager/.test(c.command))).to.equal(true);
+      expect(reports.map((r) => `${r.assetId}:${r.action}`)).to.deep.equal([
+        "licenses:accepted",
+        "emulator:installed",
+      ]);
+      // Nothing to record: no image or AVD came from this install.
+      expect(fs.existsSync(path.join(tmpRoot, "installed.json"))).to.equal(false);
+    });
+  });
+
   it("queries `sdkmanager --list` and installs a missing image before the AVD", async function () {
     await withTmpCache(async () => {
       const runCalls = [];

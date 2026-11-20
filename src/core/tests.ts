@@ -153,7 +153,7 @@ import {
   listInstalledSystemImages,
   installAndroid,
 } from "../runtime/androidInstaller.js";
-import { ensureManagedWda } from "../runtime/iosInstaller.js";
+import { ensureManagedWda, stopWdaBuilds } from "../runtime/iosInstaller.js";
 import {
   buildAcquireDeviceDeps,
   findUia2Helpers,
@@ -292,6 +292,7 @@ export {
   mergeAutoRecording,
   contextResultSources,
   runContext,
+  runStep,
   stopAllRecordings,
   specIsRouted,
   killTree,
@@ -984,6 +985,7 @@ async function androidContextPreflight({
   const toolchain = planAndroidToolchain({
     capable,
     sdkPresent: sdk !== null,
+    emulatorPresent: Boolean(sdk?.emulator),
     requiredOsVersions,
     installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
     abi,
@@ -1011,6 +1013,7 @@ async function androidContextPreflight({
       reports = await installAndroid({
         yes: true,
         osVersion: toolchain.osVersion,
+        toolsOnly: toolchain.toolsOnly,
         ctx: { cacheDir: config.cacheDir },
         deps: { logger: (m: string) => clog("debug", m) },
       });
@@ -1044,6 +1047,7 @@ async function androidContextPreflight({
     const recheck = planAndroidToolchain({
       capable: true,
       sdkPresent: sdk !== null,
+      emulatorPresent: Boolean(sdk?.emulator),
       requiredOsVersions,
       installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
       abi,
@@ -1198,6 +1202,15 @@ async function iosContextPreflight({
           deps: { logger: (m: string) => clog("debug", m) },
         })
       : [];
+  // The run was interrupted. The interrupt's cleanup has closed the run's
+  // Appium servers, so a session opened now would start one that outlives it.
+  if (!warnings) {
+    return {
+      ok: false,
+      level: "info",
+      reason: "Skipped: the run was interrupted.",
+    };
+  }
   return {
     ok: true,
     appiumEntry: pre.appiumEntry,
@@ -2167,6 +2180,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // handler awaits the tree-kills before exiting so children don't outlive it.
   const onSignal = createInterruptHandler({
     cleanup: async () => {
+      // A first-use WebDriverAgent build (ADR 01214) runs `xcodebuild` in its
+      // own process group, which a terminal's Ctrl-C doesn't reach.
+      const wdaBuildsStopped = stopWdaBuilds();
       await killAllRegistered();
       await Promise.all(
         [...appiumServers, ...appServerPool.drain()].map((server) =>
@@ -2180,6 +2196,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // best-effort
         }
       }
+      await wdaBuildsStopped;
     },
   });
   process.on("SIGINT", onSignal);
@@ -6293,6 +6310,11 @@ async function runStep({
         }
       }
       recordingHost.state.recordings.push(handle);
+      // The host owns the live handle now. Take it off the result, which the
+      // step loop logs as JSON and reports: a device handle holds its driver,
+      // and on a mobile-web context that driver is this host, so the two
+      // point at each other (issue #1007). Like `rawElement` below.
+      delete actionResult.recording;
     }
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config: config, step: step, driver, processRegistry });

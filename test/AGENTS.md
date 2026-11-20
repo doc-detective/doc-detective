@@ -190,6 +190,10 @@ Known flake signatures and dispositions:
   stderr are both captured.
 - **Non-skip Android runs happen only on Linux with KVM**; mac/win/no-KVM legs capability-SKIP by
   design.
+- **The hosted `ubuntu-latest` SDK has `platform-tools` but no `emulator` package.** A cache step
+  that restores `$ANDROID_HOME/system-images` alone leaves an SDK with images and no emulator. The
+  Android preflight installs the package there (ADR 01215). Before that fix the context skipped with
+  `avdmanager create exited 1: Error: "emulator" package must be installed!`.
 
 ## CodeQL false positives on managed-tool execution
 

@@ -1,0 +1,64 @@
+{
+  "specId": "mobile-web-android-recording",
+  "description": "Recording on an Android mobile-web context (issue #1007). The device browser session is both the recorder and the host that tracks the recording, so the recording handle and the session point at each other. The fixture jobs run at `logLevel: debug`, where the runner logs every step result as JSON, so a handle left on the step result crashed the context with a circular-structure error. One test per way a recording starts: an authored `record` step, and `autoRecord`. On every incapable host the android preflight lands the context SKIPPED. The pages are served by the job's test server on the HOST at port 8092; from the emulator the host loopback is 10.0.2.2.",
+  "tests": [
+    {
+      "testId": "android-chrome-record-step",
+      "description": "An authored `record` step records the device screen around a click, and `stopRecord` saves it.",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://10.0.2.2:8092/click-shorthand.html"
+        },
+        {
+          "record": {
+            "path": "android-chrome-mobile-web.mp4",
+            "overwrite": "true"
+          }
+        },
+        {
+          "click": "Reveal by text"
+        },
+        {
+          "find": "Text click landed"
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    },
+    {
+      "testId": "android-chrome-autorecord",
+      "description": "`autoRecord` starts the device recording before the first authored step, and the end-of-context sweep saves it. While a recording runs, each navigation puts the synthetic cursor back at its saved position. The cursor first lands on the blank start page, which Chrome lays out 980 px wide. The first page here has a mobile viewport meta, so the viewport narrows and the saved position lies outside it: the restore has to stay inside the viewport instead of crashing the context with `move target out of bounds`. The second page has no viewport meta, so the viewport widens again.",
+      "autoRecord": true,
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://10.0.2.2:8092/click-shorthand.html"
+        },
+        {
+          "click": "Reveal by text"
+        },
+        {
+          "find": "Text click landed"
+        },
+        {
+          "goTo": "http://10.0.2.2:8092/find-image.html"
+        },
+        {
+          "find": {
+            "selector": "#status"
+          }
+        }
+      ]
+    }
+  ]
+}
