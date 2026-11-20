@@ -22,9 +22,10 @@ existing entry for that OS until the next save.
   daily channel check is due. See
   [ADR 01209](../../adrs/01209-replace-outdated-cached-browsers.md). A saved
   cache entry is immutable, though. A job that hits the week's key exactly
-  saves nothing back. Every job after a channel release therefore downloads
-  the new build again. The weekly key is what puts current browsers into the
-  entry.
+  saves nothing back. Once the entry's recorded check is a day old, every job
+  that needs a browser checks its channel again. If the channel has a newer
+  build, each of those jobs downloads it. The weekly key is what puts current
+  browsers into the entry.
 - **The warmer removes the weekly cold window.** `Cache Warmer` runs Sunday
   23:47 UTC and computes the key for now+2h (`weekOffsetHours: '2'`). Next
   week's entry therefore exists *before* the key rolls over at Monday 00:00
