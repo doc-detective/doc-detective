@@ -1,5 +1,10 @@
 export { moveTo, instantiateCursor };
 
+// The nearest coordinate to `value` on a viewport axis `size` px long.
+function clampToViewport(value: number, size: number): number {
+  return Math.max(0, Math.min(value, size - 1));
+}
+
 async function instantiateCursor(driver: any, options: any = { position: "current" }) {
   const result: any = { status: "PASS", description: "Instantiated cursor." };
 
@@ -26,19 +31,25 @@ async function instantiateCursor(driver: any, options: any = { position: "curren
 
   // Instantiate cursor if not already instantiated
   if (!cursor.elementId) {
+    // Get viewport size
+    const viewport = await driver.execute(() => {
+      return {
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        mouseX: (window as any).mouseX,
+        mouseY: (window as any).mouseY,
+      };
+    });
     if (options.position === "center" || driver.state.x == null) {
-      // Get viewport size
-      const viewport = await driver.execute(() => {
-        return {
-          innerWidth: window.innerWidth,
-          innerHeight: window.innerHeight,
-          mouseX: (window as any).mouseX,
-          mouseY: (window as any).mouseY,
-        };
-      });
       driver.state.x = Math.round(viewport.innerWidth / 2);
       driver.state.y = Math.round(viewport.innerHeight / 2);
     }
+    // A saved position can lie outside this document's viewport: the viewport
+    // narrowed since (a mobile page after the 980 px blank start page, a
+    // resized window), or `moveTo` saved a target the driver refused. The
+    // driver rejects a pointer move there, so bring the position inside.
+    driver.state.x = clampToViewport(driver.state.x, viewport.innerWidth);
+    driver.state.y = clampToViewport(driver.state.y, viewport.innerHeight);
 
     // Add cursor to DOM
     await driver.execute(() => {
