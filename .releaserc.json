@@ -9,11 +9,13 @@
       "prerelease": "${name.replace(/^feat\\//, '').replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase()}"
     }
   ],
+  "preset": "conventionalcommits",
   "plugins": [
     [
       "@semantic-release/commit-analyzer",
       {
         "releaseRules": [
+          { "breaking": true, "release": "major" },
           { "type": "perf", "release": false }
         ]
       }
