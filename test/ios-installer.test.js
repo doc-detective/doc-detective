@@ -680,6 +680,20 @@ describe("xcodebuild runner (the spawn site)", function () {
     expect(child.killed).to.deep.equal(["SIGKILL"]);
   });
 
+  it("doesn't throw from the abort when the child is gone too", async function () {
+    const stop = new AbortController();
+    const gone = () => {
+      throw Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
+    };
+    const { child } = start({ signal: stop.signal }, gone);
+    child.kill = gone;
+
+    // A throw from an abort listener is an uncaught exception: it would crash
+    // the CLI in the middle of its interrupt cleanup. Mocha fails this test on one.
+    stop.abort();
+    await nextTurn();
+  });
+
   it("rejects when xcodebuild can't start", async function () {
     const { child, result } = start();
     child.emit("error", new Error("spawn xcodebuild ENOENT"));
@@ -1262,6 +1276,12 @@ describe("first-use WebDriverAgent build (ADR 01214)", function () {
     await stopWdaBuilds();
     expect(await ensuring, "the run is stopping").to.equal(null);
     expect(env.locate(), "the finished build is there for the next run").to.not.equal(null);
+    // A later context finds that build in the cache. It opens no session either.
+    expect(await env.ensure(), "a cache hit during the shutdown").to.equal(null);
+    expect(await env.ensure({ scope: {} }), "in any run of this process").to.equal(null);
+
+    _resetWdaStopForTests();
+    expect(await env.ensure({ scope: {} }), "an uninterrupted cache hit").to.deep.equal([]);
   });
 
   it("builds once per run: concurrent contexts share the build, later ones don't retry a failure", async function () {

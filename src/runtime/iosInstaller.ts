@@ -322,8 +322,9 @@ const acquireWithRefSleep = (options: AcquireLockOptions) =>
  * the same build ahead of time. Returns the warnings for the context's report.
  * It never throws: after a failed build, Appium builds WebDriverAgent itself.
  *
- * Returns `null` when an interrupt stopped the build. The run is shutting
- * down and has closed its Appium servers, so the caller must start no session.
+ * Returns `null` once an interrupt has stopped this process's builds. The run
+ * is shutting down and has closed its Appium servers, so the caller must start
+ * no session.
  *
  * Builds nothing off macOS, when `DOC_DETECTIVE_NO_IOS_AUTOINSTALL` is on,
  * when `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` supplies a build, or when
@@ -346,6 +347,9 @@ export async function ensureManagedWda({
 }): Promise<string[] | null> {
   const platform = deps.platform ?? process.platform;
   if (platform !== "darwin") return [];
+  // First, before the cache: a build that finished as the interrupt landed is
+  // in the cache, and a context that found it would open a session.
+  if (stopping) return null;
   if (envFlag("DOC_DETECTIVE_NO_IOS_AUTOINSTALL", env)) return [];
   if (env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH?.trim()) return [];
 
@@ -378,8 +382,6 @@ export async function ensureManagedWda({
   // This run already tried. A build still running: wait on it and report its
   // warnings. A build that failed (a miss after it settled): don't try again
   // and don't warn again. Appium builds WebDriverAgent for this session.
-  // After an interrupt, this context starts no session either.
-  if (stopping) return null;
   const earlier = firstUseBuilds.get(scope);
   if (earlier) return earlier.settled ? [] : earlier.warnings;
 
@@ -481,7 +483,11 @@ export function runXcodebuild(
         if (child.pid) kill(-child.pid, "SIGKILL");
         else child.kill("SIGKILL");
       } catch {
-        child.kill("SIGKILL");
+        try {
+          child.kill("SIGKILL");
+        } catch {
+          // Already gone. A throw from the abort listener would crash the CLI.
+        }
       }
     };
     let timer: NodeJS.Timeout | undefined;
@@ -534,7 +540,10 @@ const buildsInFlight = new Set<{ stop: AbortController; done: Promise<void> }>()
 // build may start: its `xcodebuild` would outlive the process.
 let stopping = false;
 
-/** For tests, whose process goes on after a stop. */
+/**
+ * For tests, whose process goes on after a stop. `buildsInFlight` needs no
+ * reset: `stopWdaBuilds` resolves only once every build has left it.
+ */
 export function _resetWdaStopForTests(): void {
   stopping = false;
 }
@@ -566,6 +575,8 @@ async function prebuildWda({
   xcode?: XcodeVersion;
 }): Promise<WdaPrebuild> {
   const fs = deps.fs ?? (fsDefault as unknown as WdaFs);
+  // The injected runner takes a command so tests can assert it. The real one
+  // ignores it: `runXcodebuild` hard-codes the command.
   const runBuild =
     deps.runBuild ??
     ((_command: string, args: string[], opts?: { timeoutMs?: number; signal?: AbortSignal }) =>

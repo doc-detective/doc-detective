@@ -152,12 +152,13 @@ Action caches only what the CLI recorded. The iOS entry is 68 MiB compressed, an
    After the interrupt, the process starts no other build. That includes a build that was
    waiting for the lock when the lock comes free.
 
-   In a run, every context that needed the build is skipped, and opens no session. The
-   interrupt has already closed the run's Appium servers, so a session would start one that
-   outlives the run. The skip reason is:
+   In a run, an iOS context that reaches its preflight after the interrupt is skipped, and opens
+   no session. That holds whether it needed the build or found one in the cache. The interrupt
+   has already closed the run's Appium servers, so a session would start one that outlives the
+   run. The skip reason is:
 
    ```text
-   Skipped: an interrupt stopped the WebDriverAgent build.
+   Skipped: the run was interrupted.
    ```
 
 ### Consequences
