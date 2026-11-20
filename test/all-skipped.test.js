@@ -31,6 +31,23 @@ describe("runExitCode", function () {
     });
   }
 
+  // ADR 01217: failOn new exits 1 only for a new failure.
+  const compared = (specs, summary) => ({ ...results(specs), comparison: { summary } });
+  const onlyExisting = { new: 0, existing: 2, fixed: 0 };
+  for (const [name, res, config, expected] of [
+    ["failOn any, only already failing", compared({ fail: 1 }, onlyExisting), { failOn: "any" }, 1],
+    ["failOn new, only already failing", compared({ fail: 1 }, onlyExisting), { failOn: "new" }, 0],
+    ["failOn new, a new failure", compared({ fail: 1 }, { new: 1, existing: 2, fixed: 0 }), { failOn: "new" }, 1],
+    ["failOn new, no comparison", results({ fail: 1 }), { failOn: "new" }, 1],
+    ["failOn new, a new failure, relaxed", compared({ fail: 1 }, { new: 1, existing: 0, fixed: 0 }), { failOn: "new", exitOnFail: false }, 0],
+    ["failOn new, all skipped", compared({ skipped: 1 }, onlyExisting), { failOn: "new" }, 2],
+    ["failOn new, all passed", compared({ pass: 1 }, { new: 0, existing: 0, fixed: 1 }), { failOn: "new" }, 0],
+  ]) {
+    it(`${name} exits ${expected}`, function () {
+      assert.equal(runExitCode(res, config), expected);
+    });
+  }
+
   it("exits 2 with no results at all", function () {
     assert.equal(runExitCode(null, {}), 2);
   });

@@ -3374,6 +3374,29 @@ import { schemas } from "../dist/index.js";
       });
     });
 
+    describe("config_v3 failOn", function () {
+      for (const value of ["any", "new"]) {
+        it(`should accept failOn ${JSON.stringify(value)}`, function () {
+          const result = validate({ schemaKey: "config_v3", object: { failOn: value } });
+          expect(result.valid, result.errors).to.be.true;
+          expect(result.object.failOn).to.equal(value);
+        });
+      }
+
+      for (const value of ["x", true]) {
+        it(`should reject failOn ${JSON.stringify(value)}`, function () {
+          const result = validate({ schemaKey: "config_v3", object: { failOn: value } });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("failOn");
+        });
+      }
+
+      it("should default failOn to any", function () {
+        const result = validate({ schemaKey: "config_v3", object: {} });
+        expect(result.object.failOn).to.equal("any");
+      });
+    });
+
     describe("report_v3 comparison", function () {
       const comparedReport = () => ({
         comparison: {

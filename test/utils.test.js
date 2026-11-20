@@ -271,6 +271,36 @@ describe("Util tests", function () {
     expect((await setConfig({ configPath: null, args: setArgs(["node", "x", "--dry-run"]) })).dryRun).to.equal(true);
   });
 
+  it("CLI parses --fail-on and refuses other values", function () {
+    expect(setArgs(["node", "x", "--fail-on", "new"]).failOn).to.equal("new");
+    expect(setArgs(["node", "x", "--fail-on", "any"]).failOn).to.equal("any");
+    expect(setArgs(["node", "x", "--input", "."]).failOn).to.equal(undefined);
+  });
+
+  it("setConfig stores --fail-on on config.failOn, over config, defaulting to any", async function () {
+    this.timeout(5000);
+    const set = (...flags) => setConfig({ configPath: null, args: setArgs(["node", "x", ...flags]) });
+    expect((await set("--fail-on", "new")).failOn).to.equal("new");
+    expect((await set("--fail-on", "any")).failOn).to.equal("any");
+    expect((await set("--input", ".")).failOn).to.equal("any");
+  });
+
+  it("setConfig refuses failOn new without a comparison", async function () {
+    this.timeout(5000);
+    let error;
+    try {
+      await setConfig({ configPath: null, args: setArgs(["node", "x", "--fail-on", "new", "--no-compare-to"]) });
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error?.message).to.equal(
+      "`failOn: new` needs a comparison. Remove `compareTo: false` or `--no-compare-to`."
+    );
+    // --fail-on any with no comparison is fine.
+    const config = await setConfig({ configPath: null, args: setArgs(["node", "x", "--fail-on", "any", "--no-compare-to"]) });
+    expect(config.failOn).to.equal("any");
+  });
+
   it("isDebugRequested: returns true only for truthy DOC_DETECTIVE_DEBUG values", async function () {
     const { isDebugRequested } = await import("../dist/utils.js");
     const prev = process.env.DOC_DETECTIVE_DEBUG;
