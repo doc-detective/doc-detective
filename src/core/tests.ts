@@ -985,6 +985,7 @@ async function androidContextPreflight({
   const toolchain = planAndroidToolchain({
     capable,
     sdkPresent: sdk !== null,
+    emulatorPresent: Boolean(sdk?.emulator),
     requiredOsVersions,
     installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
     abi,
@@ -1012,6 +1013,7 @@ async function androidContextPreflight({
       reports = await installAndroid({
         yes: true,
         osVersion: toolchain.osVersion,
+        toolsOnly: toolchain.toolsOnly,
         ctx: { cacheDir: config.cacheDir },
         deps: { logger: (m: string) => clog("debug", m) },
       });
@@ -1045,6 +1047,7 @@ async function androidContextPreflight({
     const recheck = planAndroidToolchain({
       capable: true,
       sdkPresent: sdk !== null,
+      emulatorPresent: Boolean(sdk?.emulator),
       requiredOsVersions,
       installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
       abi,
