@@ -239,6 +239,10 @@ passes. If that job fails, the version is published to `staging-<version>` (and 
   `gh workflow run promote.yml -f version=5.0.0-v5-rc.12`. Only the smoke test runs. The promote and
   Docker jobs skip for any version that contains a `-`, so an RC never reaches `@latest` or Docker's
   floating tags.
+- `E404` on `doc-detective-<version>.tgz` in the action's `npx` step, right after a publish, means
+  npm listed the version before its tarball downloaded. The registry's CDN then caches that 404
+  for up to five minutes. 5.6.1 hit this. The smoke test now waits until both packages' tarballs
+  download before it runs the action. If it recurs, re-run the promote workflow after five minutes.
 - One historical example: a committed screenshot baseline (`reference.png`) drifted from what
   headless Chrome captures on CI, and blocked two releases. It was removed in #395. Keep smoke-test
   fixtures baseline-free. The smoke test's purpose is exercising the action end-to-end, not visual
