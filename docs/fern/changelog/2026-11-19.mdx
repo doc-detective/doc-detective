@@ -1,0 +1,13 @@
+## v5.6.0
+
+### New features
+
+- iOS tests on macOS now build WebDriverAgent on first use. If no cached build matches the current Xcode version and driver, the test builds one before it starts. The build goes into the cache. Previously, only `doc-detective install ios --yes` filled the cache, and otherwise Appium compiled its own copy during the session. The first-use build can take about 10 minutes, and Doc Detective warns in the terminal and the report while it runs. If the build fails, the test still runs and Appium builds WebDriverAgent during the session. To keep the build out of test runs, such as in a CI setup step, run `doc-detective install ios --yes` beforehand. To turn off the first-use build, set the `DOC_DETECTIVE_NO_IOS_AUTOINSTALL` environment variable to `1`. See [WebDriverAgent builds on first use](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use).
+
+### Bug fixes
+
+- Fixed cases where Doc Detective turned off the WebDriverAgent build or reported it as failed:
+  - A slow Xcode version check no longer turns off managed WebDriverAgent builds for the rest of the run.
+  - A build that another Doc Detective process finishes while this one waits no longer counts as a failure.
+  - When the build succeeds but the cache's `installed.json` record can't be updated, Doc Detective warns about the record instead of reporting a failed build. It shows that warning only when the record update itself fails, not for an earlier problem such as a cache lock it can't take.
+- Fixed reports that dropped warnings from earlier attempts when Doc Detective ran a context again after its session died. The report now keeps warnings such as an Android toolchain install or a WebDriverAgent build.

@@ -18,4 +18,6 @@ Maintenance release; no user-facing changes.
 
 ## v4.26.2
 
-Maintenance release; no user-facing changes.
+### Bug fixes
+
+- Fixed runs started from the doc-detective.com platform that couldn't fetch their spec. When the request for the spec failed at the network level, the runner crashed without finalizing, and the run stayed at `starting` indefinitely. The runner now reports the failure and finalizes the run as failed.
