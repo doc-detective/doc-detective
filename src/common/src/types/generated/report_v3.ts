@@ -14467,6 +14467,49 @@ export interface Report {
     steps: ResultCounts3;
   };
   /**
+   * The earlier run this run was compared with, and how many failures are new, already failing, or fixed. Each context in `specs` then carries a `failureStatus`. Present only when a comparison happened, which `compareTo` controls. System-populated.
+   */
+  comparison?: {
+    /**
+     * The earlier run's results this run was compared with.
+     */
+    previous: {
+      /**
+       * The earlier run's `runId`.
+       */
+      runId?: string;
+      /**
+       * The earlier run's `startedAt`.
+       */
+      startedAt?: string;
+      /**
+       * The Doc Detective version that produced the earlier run.
+       */
+      docDetectiveVersion?: string;
+      /**
+       * Absolute path to the earlier run's results file.
+       */
+      path: string;
+    };
+    /**
+     * Counts of contexts by `failureStatus`.
+     */
+    summary: {
+      /**
+       * Failing contexts that the earlier run didn't fail.
+       */
+      new: number;
+      /**
+       * Failing contexts that the earlier run also failed.
+       */
+      existing: number;
+      /**
+       * Passing contexts that the earlier run failed.
+       */
+      fixed: number;
+    };
+  };
+  /**
    * Test specifications that were performed. Empty when a filter matched nothing.
    */
   specs: Specification[];
@@ -23546,6 +23589,10 @@ export interface ResolvedContext {
    * Why this context had its outcome. Doc Detective populates it. You never set it yourself.
    */
   resultDescription?: string;
+  /**
+   * How this context's result compares with the earlier run named in the report's `comparison`. `new` is a failure the earlier run didn't have, `existing` is a failure the earlier run also had, and `fixed` is a pass that failed in the earlier run. The same spec ID, test ID, and context ID identify a context across runs. Present only in test results that were compared with an earlier run, and only on `FAIL` contexts and on fixed `PASS` contexts. System-populated.
+   */
+  failureStatus?: "new" | "existing" | "fixed";
   /**
    * Wall-clock duration of this context in milliseconds, covering preflight, driver startup, every step, and teardown. When the `retries` policy re-ran the context, this is the FINAL attempt's elapsed time — the attempt the reported `result` describes — not the sum across attempts. Present only in test results. System-populated.
    */
