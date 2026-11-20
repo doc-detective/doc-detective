@@ -66,7 +66,7 @@ Action caches only what the CLI recorded. The iOS entry is 68 MiB compressed, an
    run warns in the terminal and in the report:
 
    ```text
-   No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.
+   No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build can take several minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.
    ```
 
    A failed build warns, and the run falls back to Appium's own build:

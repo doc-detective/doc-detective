@@ -126,9 +126,14 @@ jobs:
       - name: Run github-action
         # Pinned to a commit, because tags move. v1 refuses CLI 5, so 5.x
         # releases need the v2 action.
-        uses: doc-detective/github-action@d4754e923691878e777b1266ccb65260bc559bdc # v2.0.0
+        uses: doc-detective/github-action@55ba39bc460e809c279179421fb26a8c76fc2539 # v2.2.0
         with:
           version: ${{ steps.resolve.outputs.action_version }}
+          # A smoke test proves a clean install. The action's cache (on by
+          # default since v2.1.0) would restore the last release's runtime and
+          # browsers, and its entries would share the repo's cache quota with
+          # dd-cache.
+          cache: "false"
           config: ./test/artifacts/config.json
           input: ./test/artifacts/doc-content.md
           exit_on_fail: "true"
