@@ -292,6 +292,19 @@ jobs:
         shell: bash
         run: rm -rf ~/.dd-cache/ios/wda
 
+      # The first-use leg also proves that an interrupt stops the build (#1005),
+      # once from `install ios` and once from a test run. Each is signaled as
+      # soon as `xcodebuild` is running. The half-built directory stays in the
+      # cache without its marker, and the fixture run below finishes the build.
+      - name: Interrupt a WebDriverAgent build
+        if: runner.os == 'macOS' && matrix.bundle.wdaFirstUse
+        shell: bash
+        run: |
+          node scripts/check-wda-build-interrupt.cjs SIGINT install ios --yes
+          node scripts/check-wda-build-interrupt.cjs SIGTERM --config test/core-artifacts/config.groups.json --input test/core-artifacts/mobile-web-ios/wda-first-use.spec.json --output-dir "$RUNNER_TEMP/interrupted-run"
+        env:
+          DOC_DETECTIVE_SKIP_AUTO_UPDATE: '1'
+
       # Bring up the static/echo test servers (8092 main, 8093 API) that the
       # browser and http fixtures hit. Backgrounded, then gated on readiness by
       # a dependency-free poll. Groups that don't touch the servers just ignore

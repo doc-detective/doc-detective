@@ -1,5 +1,14 @@
+import { spawn } from "node:child_process";
+import { EventEmitter } from "node:events";
 import path from "node:path";
-import { ensureManagedWda, installIos } from "../dist/runtime/iosInstaller.js";
+import {
+  _resetWdaStopForTests,
+  ensureManagedWda,
+  installIos,
+  runXcodebuild,
+  stopWdaBuilds,
+} from "../dist/runtime/iosInstaller.js";
+import { installSubcommands } from "../dist/runtime/installCommand.js";
 import { locateManagedWda, makeXcodeProbe } from "../dist/runtime/wdaProducts.js";
 import { APP_DRIVER_PLATFORMS } from "../dist/core/tests/appSurface.js";
 import { buildMobileBrowserCapabilities } from "../dist/core/tests/mobileBrowser.js";
@@ -393,6 +402,326 @@ describe("install ios: WebDriverAgent prebuild", function () {
   });
 });
 
+// --- interrupts (#1005) ---
+
+// A build that runs until its signal aborts, as a killed xcodebuild does.
+function buildUntilStopped(env, result = { status: null, stdout: "", stderr: "" }) {
+  env.deps.runBuild = (command, args, opts) => {
+    env.builds.push([command, args]);
+    return new Promise((resolve) =>
+      opts.signal.addEventListener("abort", () => resolve(result))
+    );
+  };
+}
+const nextTurn = () => new Promise((resolve) => setImmediate(resolve));
+// Stop a build that a failed test left running. Then forget the stop: it's
+// final in the CLI, which exits right after it, but a test process goes on.
+async function stopAndForget() {
+  await stopWdaBuilds();
+  _resetWdaStopForTests();
+}
+
+describe("interrupting a WebDriverAgent build", function () {
+  afterEach(stopAndForget);
+
+  it("stops the build in flight, and resolves only after the lock is released", async function () {
+    const env = makeWdaEnv();
+    buildUntilStopped(env);
+    const install = installIos({ yes: true, deps: env.deps });
+    await nextTurn();
+    expect(env.builds).to.have.length(1);
+    expect(env.lock.released).to.equal(false);
+
+    await stopWdaBuilds();
+    expect(env.lock.released, "released before the process may exit").to.equal(true);
+    expect(wdaRow(await install).action).to.equal("skipped");
+    expect(
+      env.fs.files.has(path.join(env.keyDir, "products.json")),
+      "a half-built directory gets no completeness marker"
+    ).to.equal(false);
+    expect(env.written, "installed.json doesn't record it").to.have.length(0);
+  });
+
+  it("never retries an interrupted build, even when its output looks transient", async function () {
+    const env = makeWdaEnv();
+    env.deps.sleep = async () => {};
+    buildUntilStopped(env, { status: null, stdout: "", stderr: "Build service unexpectedly quit" });
+    const install = installIos({ yes: true, deps: env.deps });
+    await nextTurn();
+
+    await stopWdaBuilds();
+    await install;
+    expect(env.builds, "a second xcodebuild would outlive the process").to.have.length(1);
+  });
+
+  it("starts no second attempt when the interrupt lands during the retry backoff", async function () {
+    const env = makeWdaEnv();
+    let wake;
+    env.deps.sleep = () => new Promise((resolve) => (wake = resolve));
+    env.deps.runBuild = async (command, args) => {
+      env.builds.push([command, args]);
+      return { status: 65, stdout: "", stderr: "Build service could not create build operation" };
+    };
+    const install = installIos({ yes: true, deps: env.deps });
+    await nextTurn();
+
+    const stopped = stopWdaBuilds();
+    wake();
+    await stopped;
+    expect(wdaRow(await install).action).to.equal("skipped");
+    expect(env.builds).to.have.length(1);
+    expect(env.lock.released).to.equal(true);
+  });
+
+  it("still resolves when releasing the lock throws", async function () {
+    const env = makeWdaEnv();
+    env.deps.acquire = async () => ({
+      release: () => {
+        throw new Error("EPERM: the lock directory can't be removed");
+      },
+    });
+    buildUntilStopped(env);
+    const install = installIos({ yes: true, deps: env.deps });
+    await nextTurn();
+
+    // An interrupt handler waits on this. A build that never reports back
+    // would hold the process until the handler's deadline.
+    const outcome = await Promise.race([
+      stopWdaBuilds().then(() => "stopped"),
+      new Promise((resolve) => setTimeout(() => resolve("still waiting"), 500)),
+    ]);
+    expect(outcome).to.equal("stopped");
+    expect(wdaRow(await install).action, "the throw still reaches the caller").to.equal("skipped");
+
+    // The build is forgotten, so a later stop has nothing to wait for.
+    await stopWdaBuilds();
+  });
+
+  it("starts no build once stopped: not from a call that waited on the lock, nor from a later one", async function () {
+    const env = makeWdaEnv();
+    let grant;
+    env.deps.acquire = () => new Promise((resolve) => (grant = resolve));
+    const waiting = installIos({ yes: true, deps: env.deps });
+    await nextTurn();
+
+    // Nothing is building yet, so there's nothing to stop or to wait for.
+    await stopWdaBuilds();
+    // The lock's holder lets go while this process is still cleaning up.
+    grant({ release: () => (env.lock.released = true) });
+    expect(wdaRow(await waiting).action).to.equal("skipped");
+    expect(env.builds, "its xcodebuild would outlive the process").to.have.length(0);
+    expect(env.lock.released, "and it gives the lock straight back").to.equal(true);
+
+    const late = makeWdaEnv();
+    expect(wdaRow(await installIos({ yes: true, deps: late.deps })).action).to.equal("skipped");
+    expect(late.builds).to.have.length(0);
+    expect(late.lock.released).to.equal(true);
+  });
+
+  it("reports the interrupt, not a failure, when giving the lock back throws", async function () {
+    const env = makeWdaEnv();
+    env.deps.acquire = async () => ({
+      release: () => {
+        throw new Error("EPERM: the lock directory can't be removed");
+      },
+    });
+    await stopWdaBuilds();
+
+    const row = wdaRow(await installIos({ yes: true, deps: env.deps }));
+    expect(row.action).to.equal("skipped");
+    expect(row.notes.join(" ")).to.match(/interrupted/).and.not.match(/EPERM|failed unexpectedly/);
+    expect(env.builds).to.have.length(0);
+  });
+
+  it("forgets a build that finished", async function () {
+    const env = makeWdaEnv();
+    const build = env.deps.runBuild;
+    let signal;
+    env.deps.runBuild = (command, args, opts) => {
+      signal = opts.signal;
+      return build(command, args);
+    };
+    expect(wdaRow(await installIos({ yes: true, deps: env.deps })).action).to.equal("installed");
+    await stopWdaBuilds();
+    expect(signal.aborted, "a finished build is no longer stopped").to.equal(false);
+  });
+
+  it("`install ios` stops the build on an interrupt, then exits with the signal's code", async function () {
+    // The command's interrupt handler, captured while a dry run has it registered.
+    const before = process.listeners("SIGINT");
+    const beforeTerm = process.listenerCount("SIGTERM");
+    let onSignal;
+    let termDuring;
+    const log = console.log;
+    console.log = () => {
+      onSignal ??= process.listeners("SIGINT").find((listener) => !before.includes(listener));
+      termDuring = process.listenerCount("SIGTERM");
+    };
+    try {
+      await installSubcommands.ios.handler({ "dry-run": true });
+    } finally {
+      console.log = log;
+    }
+    expect(onSignal, "registered while the command runs").to.be.a("function");
+    expect(termDuring, "for SIGTERM too").to.equal(beforeTerm + 1);
+    expect(process.listeners("SIGINT"), "and removed when it returns").to.deep.equal(before);
+    expect(process.listenerCount("SIGTERM")).to.equal(beforeTerm);
+
+    const env = makeWdaEnv();
+    buildUntilStopped(env);
+    const install = installIos({ yes: true, deps: env.deps });
+    await nextTurn();
+    const exits = [];
+    const lines = [];
+    const exit = process.exit;
+    const error = console.error;
+    process.exit = (code) => exits.push({ code, lockReleased: env.lock.released });
+    console.error = (line) => lines.push(line);
+    try {
+      onSignal("SIGINT");
+      await install;
+      await nextTurn();
+    } finally {
+      process.exit = exit;
+      console.error = error;
+    }
+    expect(lines[0]).to.match(/^Stopping/);
+    expect(exits).to.deep.equal([{ code: 130, lockReleased: true }]);
+  });
+});
+
+describe("xcodebuild runner (the spawn site)", function () {
+  // A child process that does only what the test tells it to.
+  function fakeChild() {
+    const child = new EventEmitter();
+    child.pid = 4242;
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.killed = [];
+    child.kill = (signal) => child.killed.push(signal);
+    return child;
+  }
+  function start(opts, kill) {
+    const child = fakeChild();
+    const kills = [];
+    const spawned = [];
+    const result = runXcodebuild(["build-for-testing"], opts, {
+      spawn: (command, args, options) => {
+        spawned.push({ command, args, options });
+        return child;
+      },
+      kill: kill ?? ((pid, signal) => kills.push([pid, signal])),
+    });
+    return { child, kills, spawned, result };
+  }
+
+  it("runs `xcodebuild` itself, never a shell, with its arguments as a list", function () {
+    const { spawned } = start();
+    expect(spawned[0].command).to.equal("xcodebuild");
+    expect(spawned[0].args).to.deep.equal(["build-for-testing"]);
+    expect(spawned[0].options.shell, "no path can reach a shell").to.equal(undefined);
+  });
+
+  it("gives xcodebuild its own process group, and reports how it closed", async function () {
+    const { child, kills, spawned, result } = start();
+    expect(spawned[0].options.detached).to.equal(true);
+    child.stdout.emit("data", "out");
+    child.stderr.emit("data", "err");
+    child.emit("close", 0);
+
+    expect(await result).to.deep.equal({ status: 0, stdout: "out", stderr: "err", timedOut: false });
+    expect(kills).to.deep.equal([]);
+  });
+
+  it("kills the whole process group when its signal aborts", async function () {
+    const stop = new AbortController();
+    const { child, kills, result } = start({ signal: stop.signal });
+    expect(kills).to.deep.equal([]);
+
+    stop.abort();
+    expect(kills, "a negative pid addresses the group").to.deep.equal([[-4242, "SIGKILL"]]);
+    child.emit("close", null);
+    expect(await result).to.include({ status: null, timedOut: false });
+  });
+
+  it("kills at once when the signal aborted before the spawn", function () {
+    const stop = new AbortController();
+    stop.abort();
+    expect(start({ signal: stop.signal }).kills).to.deep.equal([[-4242, "SIGKILL"]]);
+  });
+
+  it("stops listening for the abort once the build has closed", async function () {
+    const stop = new AbortController();
+    const { child, kills, result } = start({ signal: stop.signal });
+    child.emit("close", 0);
+    await result;
+
+    stop.abort();
+    expect(kills, "the pid may belong to another process by now").to.deep.equal([]);
+  });
+
+  it("still kills the group at the timeout ceiling", async function () {
+    const { child, kills, result } = start({ timeoutMs: 5 });
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(kills).to.deep.equal([[-4242, "SIGKILL"]]);
+    child.emit("close", null);
+
+    const build = await result;
+    expect(build.timedOut).to.equal(true);
+    expect(build.stderr).to.match(/5 ms ceiling/);
+  });
+
+  it("kills the child alone when the group can't be signaled", function () {
+    const stop = new AbortController();
+    const { child } = start({ signal: stop.signal }, () => {
+      throw Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
+    });
+    stop.abort();
+    expect(child.killed).to.deep.equal(["SIGKILL"]);
+  });
+
+  it("doesn't throw from the abort when the child is gone too", async function () {
+    const stop = new AbortController();
+    const gone = () => {
+      throw Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
+    };
+    const { child } = start({ signal: stop.signal }, gone);
+    child.kill = gone;
+
+    // A throw from an abort listener is an uncaught exception: it would crash
+    // the CLI in the middle of its interrupt cleanup. Mocha fails this test on one.
+    stop.abort();
+    await nextTurn();
+  });
+
+  it("rejects when xcodebuild can't start", async function () {
+    const { child, result } = start();
+    child.emit("error", new Error("spawn xcodebuild ENOENT"));
+    let thrown;
+    await result.catch((error) => (thrown = error));
+    expect(thrown?.message).to.match(/ENOENT/);
+  });
+
+  it("takes down what the build spawned, with real processes", async function () {
+    // Windows has no process groups, and the build runs only on macOS.
+    if (process.platform === "win32") this.skip();
+    const stop = new AbortController();
+    let child;
+    // Stands in for xcodebuild: a shell that starts a background `sleep`,
+    // which inherits the output pipes. The runner's own options apply.
+    const result = runXcodebuild([], { signal: stop.signal }, {
+      spawn: (command, args, options) =>
+        (child = spawn("sh", ["-c", "sleep 30 & echo started; wait"], options)),
+    });
+    await new Promise((resolve) => child.stdout.once("data", resolve));
+
+    stop.abort();
+    // The build closes once every holder of its output pipes is gone. Killing
+    // the shell alone would leave `sleep` holding them until this test timed out.
+    expect(await result).to.include({ status: null, stdout: "started\n" });
+  });
+});
+
 // --- session-time managed-products locator (design phase 3) ---
 
 describe("managed WDA locator (session consumption)", function () {
@@ -598,6 +927,8 @@ describe("Xcode version probe", function () {
 // --- first-use build during a test run (ADR 01214) ---
 
 describe("first-use WebDriverAgent build (ADR 01214)", function () {
+  afterEach(stopAndForget);
+
   const BUILDING =
     "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build can take several minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.";
   const UNRECORDED =
@@ -906,6 +1237,51 @@ describe("first-use WebDriverAgent build (ADR 01214)", function () {
 
       expect(await env.ensure(), cause).to.deep.equal([BUILDING, `${FAILED} ${cause}`]);
     }
+  });
+
+  it("tells every context to start no session when an interrupt stops the build", async function () {
+    const env = makeFirstUseEnv();
+    buildUntilStopped(env);
+    const first = env.ensure();
+    const second = env.ensure();
+    await nextTurn();
+
+    await stopWdaBuilds();
+    // The interrupt's cleanup has already closed the run's Appium servers. A
+    // context that went on to open a session would start one that outlives it.
+    expect(await first, "null, not warnings: the run is stopping").to.equal(null);
+    expect(await second, "a context that waited on the same build").to.equal(null);
+    expect(await env.ensure(), "a context that arrives during the shutdown").to.equal(null);
+    expect(env.warned, "no fallback warning, since no session follows").to.deep.equal([BUILDING]);
+    expect(env.builds, "nothing builds again").to.have.length(1);
+    expect(env.locate(), "and nothing would take the half-built directory").to.equal(null);
+    expect(env.lock.released).to.equal(true);
+  });
+
+  it("keeps a build that finished as the interrupt landed, and still starts no session", async function () {
+    const env = makeFirstUseEnv();
+    env.deps.runBuild = (command, args, opts) => {
+      env.builds.push([command, args]);
+      return new Promise((resolve) =>
+        opts.signal.addEventListener("abort", () => {
+          // xcodebuild had already exited with 0 when the kill went out.
+          env.fs.files.set(env.runnerApp, "<app>");
+          resolve({ status: 0, stdout: "", stderr: "" });
+        })
+      );
+    };
+    const ensuring = env.ensure();
+    await nextTurn();
+
+    await stopWdaBuilds();
+    expect(await ensuring, "the run is stopping").to.equal(null);
+    expect(env.locate(), "the finished build is there for the next run").to.not.equal(null);
+    // A later context finds that build in the cache. It opens no session either.
+    expect(await env.ensure(), "a cache hit during the shutdown").to.equal(null);
+    expect(await env.ensure({ scope: {} }), "in any run of this process").to.equal(null);
+
+    _resetWdaStopForTests();
+    expect(await env.ensure({ scope: {} }), "an uninterrupted cache hit").to.deep.equal([]);
   });
 
   it("builds once per run: concurrent contexts share the build, later ones don't retry a failure", async function () {

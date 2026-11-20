@@ -308,6 +308,17 @@ describe("select-fixture-bundles", function () {
         cleared < at((s) => s.name === "Run ${{ matrix.bundle.name }} fixtures"),
         "clear before the fixture run"
       );
+      // With the cache clear, the leg interrupts a build (#1005). The fixture
+      // run after it then has to finish the half-built directory.
+      const interrupt = byName("Interrupt a WebDriverAgent build");
+      assert.equal(interrupt.if, clear.if);
+      assert.match(interrupt.run, /check-wda-build-interrupt\.cjs SIGINT install ios --yes/);
+      assert.match(interrupt.run, /check-wda-build-interrupt\.cjs SIGTERM .*--input /);
+      assert.equal(
+        at((s) => s.name === "Interrupt a WebDriverAgent build"),
+        cleared + 1,
+        "interrupt right after the clear"
+      );
       // The leg's bundle-wide PASS rule would let this one spec skip, so the
       // gate names it.
       assert.equal(
