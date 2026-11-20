@@ -144,9 +144,10 @@ true. Keep both.
 - **`"preset": "conventionalcommits"`, at the top level.** semantic-release's default parser can't
   read the `!`. Under that parser, a `feat!:` header with no footer matched no rule and cut no
   release at all. The key sits at the top level so the notes generator parses commits the same way.
-- **`{ "breaking": true, "release": "major" }`, first in `releaseRules`.** When a custom rule
-  matches a commit, the analyzer skips its default rules, the breaking rule among them. The
-  `perf` rule alone therefore turned a breaking `perf` commit into no release.
+- **`{ "breaking": true, "release": "major" }`, in `releaseRules`.** When a custom rule matches a
+  commit, the analyzer skips its default rules, the breaking rule among them. The `perf` rule
+  alone therefore turned a breaking `perf` commit into no release. The rule's position in the
+  list doesn't matter, because the highest matching release type wins.
 
 The preset is the `conventional-changelog-conventionalcommits` devDependency. Keep it on major 9.
 Major 10 needs `conventional-changelog-writer` 9, and the notes generator ships writer 8, so the
