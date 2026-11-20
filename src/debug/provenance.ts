@@ -97,6 +97,7 @@ const OVERRIDE_SPECS: Array<{
     configKey: "compareTo",
     present: (a) => a.compareTo === false || (typeof a.compareTo === "string" && a.compareTo.trim().length > 0),
   },
+  { flag: "fail-on", argKey: "failOn", configKey: "failOn", present: (a) => typeof a.failOn === "string" },
   { flag: "reporters", argKey: "reporters", configKey: "reporters", present: (a) => reportersPresent(a.reporters) },
   { flag: "test", argKey: "test", configKey: "testFilter", present: (a) => commaListPresent(a.test) },
   { flag: "spec", argKey: "spec", configKey: "specFilter", present: (a) => commaListPresent(a.spec) },

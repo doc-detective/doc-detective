@@ -187,7 +187,10 @@ export function addRunOptions(command: Command): Command {
       if (compareForms.size === 2) command.setOptionValue("compareToConflict", true);
     });
   }
-  command.addOption(grouped(RUN_GROUP, "--plain", "Print one tab-separated line per test context"));
+  command.addOption(
+    grouped(RUN_GROUP, "--fail-on <which>", "Exit 1 on any failure, or only on new ones [any]").choices(["any", "new"])
+  );
+  command.addOption(grouped(RUN_GROUP, "--plain","Print one tab-separated line per test context"));
   command.addOption(grouped(RUN_GROUP, "--no-exit-on-fail", "Exit 0 even when tests fail"));
 
   addBooleanPair(

@@ -15297,6 +15297,10 @@ export interface Config {
    */
   exitOnFail?: boolean;
   /**
+   * Which failures make the CLI exit `1`. `any`: any failed spec exits `1`. `new`: the run exits `1` only when a failure is new since the run it was compared with (see `compareTo`). With no comparison, every failure counts as new. `exitOnFail: false` still wins. The report lists every failure either way.
+   */
+  failOn?: "any" | "new";
+  /**
    * Default shell for `runShell` steps (and `runCode`'s shell-based execution). `runShell` steps can override this value with their own `shell` field. `cmd` and `powershell` are only supported on Windows. On Windows, `bash` resolves to Git Bash, which Doc Detective installs automatically if it isn't present.
    */
   shell?: "bash" | "cmd" | "powershell";
