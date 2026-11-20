@@ -292,6 +292,7 @@ export {
   mergeAutoRecording,
   contextResultSources,
   runContext,
+  runStep,
   stopAllRecordings,
   specIsRouted,
   killTree,
@@ -6293,6 +6294,11 @@ async function runStep({
         }
       }
       recordingHost.state.recordings.push(handle);
+      // The host owns the live handle now. Take it off the result, which the
+      // step loop logs as JSON and reports: a device handle holds its driver,
+      // and on a mobile-web context that driver is this host, so the two
+      // point at each other (issue #1007). Like `rawElement` below.
+      delete actionResult.recording;
     }
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config: config, step: step, driver, processRegistry });

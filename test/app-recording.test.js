@@ -11,6 +11,7 @@ import { spawn } from "node:child_process";
 
 import { startRecording } from "../dist/core/tests/startRecording.js";
 import { stopRecording } from "../dist/core/tests/stopRecording.js";
+import { runStep } from "../dist/core/tests.js";
 import { getFfmpegPath } from "../dist/core/tests/ffmpegRecorder.js";
 
 // Read a video's frame size by parsing `ffmpeg -i` stderr (the bundled
@@ -1096,5 +1097,41 @@ describe("stopRecording: device (appium) handles", function () {
     assert.deepEqual(fs.readFileSync(target), payload);
     // Only the named appium handle was stopped; the ffmpeg one is untouched.
     assert.deepEqual(host.state.recordings, [ffmpegHandle]);
+  });
+});
+
+// Issue #1007: on a mobile-web context the device browser driver is both the
+// recorder (`handle.driver`) and the host that tracks the handle
+// (`driver.state.recordings`), so the two point at each other. The step loop
+// logs every step result as JSON at debug level, and the result becomes the
+// step's report. The handle must leave the result once the host has it.
+describe("runStep: a started recording's handle", function () {
+  this.timeout(15000);
+  let tmpDir;
+
+  beforeEach(function () {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-recstep-"));
+  });
+  afterEach(function () {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("stays on its host and off the step result, so the result serializes", async function () {
+    const driver = { state: {}, startRecordingScreen: async () => {} };
+    const result = await runStep({
+      config: { logLevel: "silent" },
+      context: { platform: "android", browser: { name: "chrome" } },
+      step: { stepId: "x", record: { path: path.join(tmpDir, "a.mp4") } },
+      driver,
+    });
+    assert.equal(result.status, "PASS");
+    // The host owns the handle, and the handle points back at the host.
+    assert.equal(driver.state.recordings.length, 1);
+    assert.equal(driver.state.recordings[0].type, "appium");
+    assert.equal(driver.state.recordings[0].driver, driver);
+    assert.equal(typeof driver.state.recordings[0].id, "string");
+    // What the debug log and the report serialize.
+    assert.doesNotThrow(() => JSON.stringify(result, null, 2));
+    assert.equal("recording" in result, false);
   });
 });
