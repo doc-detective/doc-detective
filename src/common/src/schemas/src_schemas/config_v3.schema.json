@@ -46,6 +46,14 @@
       "type": "string",
       "default": "."
     },
+    "compareTo": {
+      "description": "The earlier run's results to compare this run's with, so each failing context reads as new or already failing, and each passing context that failed before reads as fixed. `previous` compares with the newest other run folder under `<outputDir>/.doc-detective/runs/` that holds `testResults.json`. A path names a results JSON file, or a folder that holds `testResults.json`. `false` turns comparison off. Contexts match by spec ID, test ID, and context ID, and only between runs of the same Doc Detective major version. Defaults to `previous`.",
+      "not": { "const": true },
+      "anyOf": [
+        { "const": false },
+        { "type": "string", "minLength": 1, "pattern": "\\S" }
+      ]
+    },
     "reporters": {
       "description": "Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), and `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.",
       "type": "array",

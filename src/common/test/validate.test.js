@@ -2861,6 +2861,85 @@ import { schemas } from "../dist/index.js";
       }
     });
 
+    describe("config_v3 compareTo", function () {
+      for (const value of ["previous", "./results/testResults.json", false]) {
+        it(`should accept compareTo ${JSON.stringify(value)}`, function () {
+          const result = validate({ schemaKey: "config_v3", object: { compareTo: value } });
+          expect(result.valid, result.errors).to.be.true;
+          expect(result.object.compareTo).to.equal(value);
+        });
+      }
+
+      for (const value of [true, "", "  "]) {
+        it(`should reject compareTo ${JSON.stringify(value)}`, function () {
+          const result = validate({ schemaKey: "config_v3", object: { compareTo: value } });
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("compareTo");
+        });
+      }
+
+      it("should leave compareTo unset when it's absent", function () {
+        const result = validate({ schemaKey: "config_v3", object: {} });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object).to.not.have.property("compareTo");
+      });
+    });
+
+    describe("report_v3 comparison", function () {
+      const comparedReport = () => ({
+        comparison: {
+          previous: {
+            runId: "2026-11-06T02-33-28-631Z",
+            startedAt: "2026-11-06T02:33:28.631Z",
+            docDetectiveVersion: "5.4.0",
+            path: "/repo/.doc-detective/runs/2026-11-06T02-33-28-631Z/testResults.json",
+          },
+          summary: { new: 1, existing: 0, fixed: 1 },
+        },
+        summary: Object.fromEntries(
+          ["specs", "tests", "contexts", "steps"].map((level) => [
+            level,
+            { pass: 1, fail: 1, warning: 0, skipped: 0 },
+          ])
+        ),
+        specs: [
+          {
+            tests: [
+              {
+                contexts: [
+                  { contextId: "a", result: "FAIL", failureStatus: "new", steps: [{ runShell: "exit 1" }] },
+                  { contextId: "b", result: "PASS", failureStatus: "fixed", steps: [{ runShell: "exit 0" }] },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      it("should validate a comparison and each context's failureStatus", function () {
+        const result = validate({ schemaKey: "report_v3", object: comparedReport() });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.comparison.summary).to.deep.equal({ new: 1, existing: 0, fixed: 1 });
+        expect(result.object.specs[0].tests[0].contexts[1].failureStatus).to.equal("fixed");
+      });
+
+      it("should reject an unknown failureStatus", function () {
+        const object = comparedReport();
+        object.specs[0].tests[0].contexts[0].failureStatus = "flaky";
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("failureStatus");
+      });
+
+      it("should reject a comparison without a summary", function () {
+        const object = comparedReport();
+        delete object.comparison.summary;
+        const result = validate({ schemaKey: "report_v3", object });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("summary");
+      });
+    });
+
     describe("report_v3 run metadata", function () {
       // The run environment and start times (ADR 01163). System-populated
       // output, never authored.
