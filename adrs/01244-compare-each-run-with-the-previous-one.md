@@ -92,7 +92,7 @@ changes the exit code, and the report gets no `comparison`.
 The same-major gate exists because ID derivation may change across majors. A results file from an
 older major, or one without `environment.docDetectiveVersion`, isn't compared rather than compared
 wrongly. On success, the human reports print ``Compared with run `<runId>`: <n> new, <n> already
-failing, <n> fixed.`` (see Presentation), and the core logs the same line at `debug` on stderr only,
+failing, <n> fixed.`` (see Presentation). The core logs the same line at `debug` on stderr only,
 so the terminal doesn't show it twice. stdout keeps carrying results only (ADR 01146).
 
 ### Output
