@@ -285,7 +285,7 @@ export const HINTS: Hint[] = [
     id: "prebuildWebDriverAgent",
     priority: 50,
     markdown: [
-      "This run drove an iOS simulator. The first iOS session on a cold environment compiles WebDriverAgent with `xcodebuild` — around 10 minutes. Prebuild it once and every later run (and every parallel job sharing the cache) skips that cost:",
+      "This run drove an iOS simulator. The first iOS session on a cold environment compiles WebDriverAgent with `xcodebuild`, which can take several minutes. Prebuild it once and every later run (and every parallel job sharing the cache) skips that cost:",
       "",
       "```bash",
       "doc-detective install ios --yes",

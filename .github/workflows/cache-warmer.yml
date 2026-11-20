@@ -1,9 +1,10 @@
 # Weekly Doc Detective cache warmer. The dd-cache key rotates on ISO week BY
-# DESIGN (browser channels float and a present-but-outdated browser is
-# warn-only — it never re-downloads — so a cache restored across weeks would
-# pin old browsers forever; see .github/actions/dd-cache/action.yml). The cost
-# of that design is that the first run of each week pays the full cold install
-# on every OS — and without this workflow, that run is some human's PR.
+# DESIGN (browser channels float, and a saved entry is immutable: the CLI
+# replaces an outdated cached browser at run time, ADR 01209, but a job can't
+# save that back into the week's entry, so a new key each week is what puts
+# current browsers in the cache; see .github/actions/dd-cache/action.yml). The
+# cost of that design is that the first run of each week pays the full cold
+# install on every OS — and without this workflow, that run is some human's PR.
 #
 # This cron runs SUNDAY 23:47 UTC and computes the key for NOW+2h (the
 # dd-cache action's weekOffsetHours input), so it installs into — and saves —

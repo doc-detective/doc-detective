@@ -8,16 +8,17 @@ decision-makers: hawkeyexl
 
 ## Context and Problem Statement
 
-A failing run tells a reader what's broken, but not what broke *now*. On a docs repository with a
-handful of long-standing failures, a pull request that adds one more failure looks the same as one
-that adds none. Users have asked for this from both ends. The GitHub Action wants to tell a new
-failure from an inherited one (github-action#98), and doc-detective#960 asks for the same in the
-CLI. The v5 rollout plan names it as item 5.4, "compare runs through the existing run folder", and
-the Action's v2.3 plan builds on it.
+A failing run tells a reader what's broken, but not what broke *now*. Take a docs repository with a
+handful of long-standing failures. There, a pull request that adds one more failure looks the same
+as one that adds none. Users have asked for this from both ends. The GitHub Action wants to tell a
+new failure from an inherited one (github-action#98). doc-detective#960 asks for the same in the
+CLI. The v5 rollout plan names it as item 5.4, "compare runs through the existing run folder." The
+Action's v2.3 plan builds on it.
 
-Every run already archives its results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`
-(the `runFolder` reporter), and the IDs in those results are stable: spec and test IDs are authored
-or derived from content, and context IDs derive from platform and browser (`deriveContextId`). So
+The `runFolder` reporter already archives every run's results as
+`<outputDir>/.doc-detective/runs/<runId>/testResults.json`. The IDs in those results are stable.
+Spec and test IDs are authored or derived from content. Context IDs derive from platform and
+browser (`deriveContextId`). So
 the history needed for a comparison is already on disk. How should a run use it?
 
 ## Decision Drivers
@@ -91,7 +92,7 @@ changes the exit code, and the report gets no `comparison`.
 The same-major gate exists because ID derivation may change across majors. A results file from an
 older major, or one without `environment.docDetectiveVersion`, isn't compared rather than compared
 wrongly. On success, the human reports print ``Compared with run `<runId>`: <n> new, <n> already
-failing, <n> fixed.`` (see Presentation), and the core logs the same line at `debug` on stderr only,
+failing, <n> fixed.`` (see Presentation). The core logs the same line at `debug` on stderr only,
 so the terminal doesn't show it twice. stdout keeps carrying results only (ADR 01146).
 
 ### Output
@@ -108,7 +109,7 @@ Only when a comparison happened, declared in `report_v3` (ADR 01186):
 }
 ```
 
-The comparison runs in the core, after the report is final and before any reporter reads it, so
+The comparison runs in the core, after the report is final and before any reporter reads it. So
 the JSON results, the run folder, and the JavaScript API's `runTests()` all carry it. It reads
 `config.compareTo` only. A run whose filters matched nothing has no run ID and isn't compared.
 
@@ -166,7 +167,7 @@ item's `failureStatus`, lists the fixed contexts by ID path, and builds the sent
 
 * Location (file and line): breaks on any edit above the test.
 * Fuzzy similarity: guesses, and a wrong guess hides a new failure as "existing".
-* Exact IDs (chosen): predictable, and authors can make it robust with `testId`.
+* Exact IDs (chosen): predictable, and authors can make it hold across edits with `testId`.
 
 ### A `compare` subcommand vs. run time
 

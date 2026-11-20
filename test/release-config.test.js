@@ -67,6 +67,69 @@ describe(".releaserc.json branches", function () {
   });
 });
 
+describe(".releaserc.json release types", function () {
+  const rc = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, ".releaserc.json"), "utf8"));
+  // semantic-release hands each plugin the top-level options overlaid with its own.
+  const optionsOf = (name) => {
+    const { plugins, ...shared } = rc;
+    const entry = plugins.find((p) => (Array.isArray(p) ? p[0] : p) === name);
+    return { ...shared, ...(Array.isArray(entry) ? entry[1] : {}) };
+  };
+  const context = (messages) => ({
+    commits: messages.map((message, i) => ({ hash: `${i}`.padStart(40, "a"), message })),
+    logger: { log() {} },
+    cwd: REPO_ROOT,
+  });
+  const releaseType = async (...messages) => {
+    const { analyzeCommits } = await import("@semantic-release/commit-analyzer");
+    return analyzeCommits(optionsOf("@semantic-release/commit-analyzer"), context(messages));
+  };
+
+  it("cuts a major for a `!` header with no BREAKING CHANGE footer", async function () {
+    // The default (angular) parser can't read the `!`, so the header matched no
+    // rule at all and `feat!:` cut no release.
+    for (const message of ["feat!: x", "refactor(agents)!: x", "chore!: x", "perf!: x"]) {
+      expect(await releaseType(message), message).to.equal("major");
+    }
+  });
+
+  it("cuts a major for a BREAKING CHANGE footer, whatever the type", async function () {
+    // A custom rule that matches hides the default breaking rule, so the perf
+    // rule turned a breaking perf commit into no release.
+    for (const type of ["feat", "fix", "perf", "docs"]) {
+      expect(await releaseType(`${type}: x\n\nBREAKING CHANGE: y`), type).to.equal("major");
+    }
+  });
+
+  it("keeps the release type of every other commit", async function () {
+    expect(await releaseType("feat: x")).to.equal("minor");
+    expect(await releaseType("fix: x")).to.equal("patch");
+    for (const type of ["perf", "docs", "chore", "ci", "build", "style", "test", "refactor"]) {
+      expect(await releaseType(`${type}: x`), type).to.equal(null);
+    }
+  });
+
+  it("cuts nothing for a breaking commit that a later commit reverts", async function () {
+    // Newest first, as semantic-release lists them.
+    const reverted = "1".padStart(40, "a");
+    expect(await releaseType(`Revert "feat!: x"\n\nThis reverts commit ${reverted}.`, "feat!: x")).to.equal(null);
+  });
+
+  it("writes notes that list a `!` header as a breaking change", async function () {
+    // Also guards the preset's major: one built for a newer
+    // conventional-changelog-writer than the notes generator ships throws here.
+    const { generateNotes } = await import("@semantic-release/release-notes-generator");
+    const notes = await generateNotes(optionsOf("@semantic-release/release-notes-generator"), {
+      ...context(["feat!: drop the old flag", "fix: y"]),
+      lastRelease: { gitTag: "v1.0.0" },
+      nextRelease: { gitTag: "v2.0.0", version: "2.0.0" },
+      options: { repositoryUrl: "https://github.com/doc-detective/doc-detective" },
+    });
+    expect(notes).to.match(/BREAKING CHANGES\n+\* drop the old flag/);
+    expect(notes).to.match(/### Bug Fixes\n+\* y /);
+  });
+});
+
 describe("major-release guard", function () {
   const script = path.join(REPO_ROOT, "scripts/verify-major-release.js");
   const guard = (args, allow) => {

@@ -93,7 +93,10 @@ interface WdaPrebuild {
   cause?: string;
 }
 
-/** Ceiling for one xcodebuild build-for-testing attempt (~10 min typical cold). */
+/**
+ * Ceiling for one xcodebuild build-for-testing attempt. A cold build took
+ * 100–185 s on GitHub-hosted macOS runners (ADR 01214), and slower hosts take longer.
+ */
 export const WDA_BUILD_TIMEOUT_MS = 20 * 60_000;
 
 /** Total attempts for a transient xcodebuild failure (20-min ops — retry once). */
@@ -276,7 +279,7 @@ export async function installIos({
 // --- first-use build during a test run (ADR 01214) ---
 
 const WDA_BUILDING_WARNING =
-  "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build takes about 10 minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.";
+  "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build can take several minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.";
 
 // Errors thrown by the record update that follows a published build. The
 // first-use build reports those differently from a failed build.
@@ -633,7 +636,7 @@ async function prebuildWda({
     }
 
     logger(
-      `Prebuilding WebDriverAgent for ${key} (first build takes ~10 minutes)…`,
+      `Prebuilding WebDriverAgent for ${key} (the first build can take several minutes)…`,
       "info"
     );
     const derivedDataPath = path.join(keyDir, "DerivedData");

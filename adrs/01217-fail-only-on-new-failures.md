@@ -10,7 +10,7 @@ decision-makers: hawkeyexl
 
 ADR 01216 compares each run with an earlier one and marks each failure `new` or `existing`
 (already failing), but leaves the exit code alone. In a docs repository with a few long-standing
-failures, every pull request still exits `1`, so the gate is either always red or turned off with
+failures, every pull request still exits `1`. So the gate is either always red or turned off with
 `exitOnFail: false`. Maintainers want an opt-in gate that blocks a change only when it adds a
 failure. The GitHub Action's v2.3 plan (github-action#98) exposes the same choice as its `fail_on`
 input. How should the CLI let a run fail only on new failures?
