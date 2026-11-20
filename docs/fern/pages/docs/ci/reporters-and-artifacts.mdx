@@ -432,7 +432,7 @@ echo ".doc-detective/" >> .gitignore
 
 ### Compare with an earlier run
 
-Each run compares its results with the newest earlier run folder in the same `outputDir`. A failure that the earlier run also had is already failing, and any other failure is new. So in a project with a few known failures, you can tell whether a change broke something. A test that passes now but failed in the earlier run reads as fixed. The comparison never changes the exit code.
+Each run compares its results with the newest earlier run folder in the same `outputDir`. A failure that the earlier run also had is already failing, and any other failure is new. So in a project with a few known failures, you can tell whether a change broke something. A test that passes now but failed in the earlier run reads as fixed. On its own, the comparison doesn't change the exit code. To fail only on new failures, see [Fail only on new failures](#fail-only-on-new-failures).
 
 After a comparison, the terminal summary tags each failure `[new]` or `[already failing]`, lists the fixed tests under `Fixed`, and adds one line with the counts:
 
@@ -501,6 +501,24 @@ The results show the comparison in two places:
 - `comparison` names the earlier results and counts the contexts by status. It's there only when a comparison happened.
 - `failureStatus` on a context is `new` or `existing` when its `result` is `FAIL`, and `fixed` when it's `PASS` and failed in the earlier run. Other contexts don't have it.
 
+### Fail only on new failures
+
+In a project with known failures, you might want a change to fail CI only when it breaks something new. Pass `--fail-on new`, or set `failOn` in your config:
+
+```json
+{ "failOn": "new" }
+```
+
+The run then exits `1` only when a failure is new. When every failure was already failing, it exits `0` and says so on stderr:
+
+```text
+No new failures: 2 failures were already failing, so the run exits 0 (`failOn: new`).
+```
+
+When there's no earlier run to compare with, every failure counts as new, so the run exits `1` as usual. The report still lists every failure, and `summary` still counts them. `--fail-on any`, the default, fails on any failure, and beats a config `failOn` of `new`. `--no-exit-on-fail` or `exitOnFail: false` still exits `0`.
+
+`failOn: new` needs a comparison. With `--no-compare-to` or `compareTo: false`, the run exits `2` with ``Error: `failOn: new` needs a comparison. Remove `compareTo: false` or `--no-compare-to`.``
+
 ## Step 6: Fail CI when tests fail
 
 The exit code from the CLI gates your build, so most pipelines need nothing extra:
@@ -508,15 +526,16 @@ The exit code from the CLI gates your build, so most pipelines need nothing extr
 | Code | Meaning |
 |---|---|
 | `0` | No test failed, and at least one passed or warned. |
-| `1` | At least one test failed. |
+| `1` | At least one test failed. With `failOn: new`, at least one failure is new. |
 | `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, every test skipped, an invalid spec, a declined install, or a crash. |
 | `130`, `143` | The run was interrupted by SIGINT or SIGTERM. |
 
 A `WARNING` result never fails a run. Neither does a `SKIPPED` result, unless every spec skipped, because then nothing was tested. If a suite only applies to one platform, run that job only on that platform.
 
-If you want different behavior, you have two options:
+If you want different behavior, you have three options:
 
 - **Report without failing.** Pass `--no-exit-on-fail`, or set `exitOnFail: false` in your config. Failed, empty, and all-skipped runs then exit `0`, and invalid specs are skipped with a warning. Usage errors, invalid config, and crashes still exit `2`. This suits triaging an existing suite before you turn on the gate.
+- **Fail only on new failures.** Pass `--fail-on new`, or set `failOn: "new"`. Failures that the earlier run also had then don't fail the run. See [Fail only on new failures](#fail-only-on-new-failures).
 - **Apply your own logic.** Read the `summary` object from the results file and decide for yourself. This example tolerates up to two failing specs:
 
 ```bash
