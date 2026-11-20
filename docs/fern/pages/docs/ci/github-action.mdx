@@ -19,7 +19,10 @@ Create a workflow file in `.github/workflows/`. Check out the repository first s
 
 ```yaml title=".github/workflows/doc-detective.yml"
 name: doc-detective
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches: [main]  # Saves a cache that every pull request can restore.
 
 jobs:
   doc-tests:
@@ -32,7 +35,7 @@ jobs:
       - uses: doc-detective/github-action@v2
 ```
 
-This runs Doc Detective on every pull request. Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. GitHub-hosted runners default to an older version. The action checks the job's Node.js when `version` can install Doc Detective 5, as the default `5` and `latest` can. An empty `version`, or one that stays on 4, skips the check. The action warns when the job's Node.js isn't supported, for example Node.js 25 or 24.18. The warning asks you to add `actions/setup-node` with `node-version: 24`, and the run continues.
+This runs Doc Detective on every pull request and on every push to `main`. Doc Detective 5 needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later. GitHub-hosted runners default to an older version. The action checks the job's Node.js when `version` can install Doc Detective 5, as the default `5` and `latest` can. An empty `version`, or one that stays on 4, skips the check. The action warns when the job's Node.js isn't supported, for example Node.js 25 or 24.18. The warning asks you to add `actions/setup-node` with `node-version: 24`, and the run continues.
 
 Pin to the major version (`@v2`) to pick up fixes automatically, or pin to a full version such as `@v2.2.0` for a fixed release. Action `@v2` runs CLI 5, and `@v1` stays on CLI 4. If you're moving from `@v1`, see [Upgrade to Doc Detective 5](/docs/ci/upgrade-to-v5).
 
@@ -54,7 +57,7 @@ By default, the action runs from the repository root and uses the config file Do
 | `working_directory` | `.` | Directory to run in, relative to the repository root. |
 | `config` | None | Path to a configuration file, relative to `working_directory`. |
 | `input` | None | Path to an input file or directory, relative to `working_directory`. Overrides the `input` field in the config file. |
-| `cache` | `true` | Cache the `doc-detective` package, and the runtime and browsers it installs, between runs. On macOS runs that test iOS, also cache the WebDriverAgent build. Set to `false` to install everything on every run. See [Runtime caching](#runtime-caching). |
+| `cache` | `true` | Cache the `doc-detective` package, and the runtime and browsers it installs, between runs. On macOS runs that test iOS, also cache the WebDriverAgent build. Set to `false` to skip the action's cache restore and save. See [Runtime caching](#runtime-caching). |
 | `android` | `auto` | Set up Android tests on Linux runners by granting the KVM access the emulator needs. `auto` does this only when your specs target Android, `true` always does, and `false` never does. It has no effect on macOS or Windows runners. |
 
 <Note>
@@ -306,9 +309,9 @@ The action caches the build when all of these are true:
 
 - The job runs on a macOS runner.
 - `cache` is on and `version` has a value, which is the default. An empty `version` runs a local build, which the action doesn't cache.
-- A file in `input`, `config`, or `working_directory` sets `ios` as a `platform` or `platforms` value. The action searches subdirectories and reads JSON and YAML files, and Markdown and MDX files with inline tests. With only `working_directory` set, the action scans that directory. The scan reads up to six directory levels deep and skips `node_modules`, `.git`, and `.github`. If your iOS specs sit deeper or in a skipped directory, run `doc-detective install ios --yes` before the action to pre-build WebDriverAgent. You can also accept the first-use build on each run.
+- A file in `input`, `config`, or `working_directory` sets `ios` as a `platform` or `platforms` value. The action searches subdirectories and reads JSON and YAML files, and Markdown and MDX files with inline tests. With only `working_directory` set, the action scans that directory. The scan reads up to six directory levels deep and skips subdirectories named `node_modules`, `.git`, and `.github`. A path that points straight into one of them, such as an `input` of `.github/ios`, is still scanned. If your iOS specs sit deeper or in a skipped directory, run `doc-detective install ios --yes` before the action. You can instead let the first-use build run on every job that misses the cache.
 
-The build gets its own cache entry of about 68 MiB, which doesn't hold the runtime or browsers. After the first save, the action saves the entry again only when a run builds WebDriverAgent, for example after an Xcode or driver update. Before the tests, the job log shows either the `Restored` line or the `No cached` line. After the tests, a run that built WebDriverAgent also shows the `Cached` line. `<key>` is the cache key:
+The build gets its own cache entry of about 68 MiB, which doesn't hold the runtime or browsers. After the first save, the action saves the entry again only when a run builds WebDriverAgent, for example after an Xcode or driver update. Before the tests, the job log shows either the `Restored` line or the `No cached` line. After the tests, a run that built WebDriverAgent also shows the `Cached` line. These lines appear only when the action caches the build for the run. That means `cache` is on, `version` isn't an empty string, the runner is macOS, and the scan finds iOS specs. `<key>` is the cache key:
 
 ```text
 Restored the WebDriverAgent build from the cache (<key>).
@@ -387,7 +390,7 @@ Doc Detective installs heavy runtime assets on first use, including browsers, dr
 
 ### Cache the runtime directory
 
-The action caches by default, with no extra steps. It caches the `doc-detective` package that `npx` installs, and the runtime and browsers Doc Detective installs on first use. Later runs restore them from the [GitHub Actions cache](https://docs.github.com/actions/using-workflows/caching-dependencies-to-speed-up-workflows). The first run in a repository installs everything and saves it. On macOS runs that test iOS, the action also caches the WebDriverAgent build in a separate entry. See [Speed up iOS tests on macOS](#speed-up-ios-tests-on-macos).
+The action caches by default, with no extra steps. It caches the `doc-detective` package that `npx` installs, and the runtime and browsers Doc Detective installs on first use. Later runs restore them from the [GitHub Actions cache](https://docs.github.com/actions/using-workflows/caching-dependencies-to-speed-up-workflows). The first run in a repository installs everything and saves it. GitHub scopes a cache that a `pull_request` run saves to that pull request. A workflow that triggers only on `pull_request` therefore starts each new pull request with a cold cache. A run on the default branch saves an entry that every pull request can restore. On macOS runs that test iOS, the action also caches the WebDriverAgent build in a separate entry. See [Speed up iOS tests on macOS](#speed-up-ios-tests-on-macos).
 
 Each run restores a cache saved for the same runner OS, CPU architecture, and Node.js major version. It prefers the newest cache that the same Doc Detective version saved, and otherwise restores the newest cache that any Doc Detective version saved. After the run, the action saves a new cache entry only if the run installed or updated something. For example, the run installed a new Doc Detective version or updated a browser. If the cache misses or a restore or save fails, the action logs a message. The run then continues.
 
@@ -396,10 +399,6 @@ Doc Detective 5.3.0 and later replace outdated cached browsers about once a day,
 While caching is on, the action resolves `version` to an exact version and runs that version, so the cached package matches the one that runs. Each run resolves `version` again, so `version: 5` picks up new 5.x releases, and the log shows a command such as `npx doc-detective@5.5.0`. To run the same release every time, set `version` to an exact version.
 
 From Doc Detective's cache directory, the action caches the `runtime`, `browsers`, and `chromedriver-mobile` folders and the `installed.json` record. Action v2.2.0 added `chromedriver-mobile`, the ChromeDriver for mobile web views.
-
-<Note>
-Because the list of cached folders changed in v2.2.0, a runtime cache that v2.1.x saved doesn't restore. The first run on v2.2.0 or later installs everything and saves a new entry.
-</Note>
 
 The action finds that directory the same way Doc Detective does. It checks, in order:
 
@@ -410,7 +409,7 @@ The action finds that directory the same way Doc Detective does. It checks, in o
 
 The action doesn't read your [user config](/reference/reference/cli#configuration-precedence) or a `config` input given as a URL, so it doesn't follow a `cacheDir` set only there. In that case, set `DOC_DETECTIVE_CACHE_DIR` on the job instead.
 
-The action skips caching when `version` is empty. To cache the runtime in that case, see [Cache with `actions/cache`](#cache-with-actionscache). To install everything on every run, set `cache` to `false`:
+The action skips caching when `version` is empty. To cache the runtime in that case, see [Cache with `actions/cache`](#cache-with-actionscache). To turn off the action's cache restore and save, set `cache` to `false`. Doc Detective still reuses a cache directory that another step restores, such as `actions/cache`:
 
 ```yaml
 - uses: doc-detective/github-action@v2
