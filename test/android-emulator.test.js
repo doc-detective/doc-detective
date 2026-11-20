@@ -660,6 +660,36 @@ describe("androidEmulator: planAndroidToolchain (lazy-install decision)", functi
     expect(plan.reason).to.not.match(/multi-GB/);
   });
 
+  // The installer's default AVD comes from the newest image, and device
+  // acquisition boots an existing default AVD whatever version was asked for.
+  // So the emulator repair installs SDK tools only, and leaves the image and
+  // AVD choice to device acquisition.
+  it("repairs a missing emulator with tools only, whichever images are installed", function () {
+    const plan = planAndroidToolchain({
+      ...base,
+      emulatorPresent: false,
+      requiredOsVersions: ["14"],
+      installedImages: [
+        "system-images;android-34;google_apis;x86_64",
+        "system-images;android-35;google_apis;x86_64",
+      ],
+    });
+    expect(plan.action).to.equal("install");
+    expect(plan.toolsOnly).to.equal(true);
+    expect(plan.osVersion).to.equal(undefined);
+  });
+
+  it("runs the full install, not tools only, when an image is missing", function () {
+    const plan = planAndroidToolchain({
+      ...base,
+      emulatorPresent: false,
+      requiredOsVersions: ["13"],
+    });
+    expect(plan.action).to.equal("install");
+    expect(plan.osVersion).to.equal("13");
+    expect(plan.toolsOnly).to.not.equal(true);
+  });
+
   it("still names the missing image version when the emulator is missing too", function () {
     const plan = planAndroidToolchain({
       ...base,

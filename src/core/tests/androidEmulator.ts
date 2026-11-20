@@ -271,7 +271,8 @@ function effectiveHeadless(desc: DeviceDescriptor): boolean {
 type ToolchainPlan =
   | { action: "ready" }
   | { action: "skip"; reason: string }
-  | { action: "install"; osVersion?: string; reason: string };
+  // `toolsOnly`: install the SDK tools and stop, with no image and no AVD.
+  | { action: "install"; osVersion?: string; toolsOnly?: boolean; reason: string };
 
 // Decide whether an android run's toolchain is ready, needs a lazy install, or
 // the host simply can't run the emulator. `requiredOsVersions` are the versions
@@ -328,9 +329,15 @@ function planAndroidToolchain({
   // on its own. `avdmanager create` refuses there, so the emulator counts as
   // toolchain too (ADR 01215, issue #1006). Only it downloads, so the reason
   // doesn't warn about a multi-GB download.
+  //
+  // `toolsOnly` keeps the installer away from its default AVD. It would build
+  // that AVD from the newest image, replacing one that exists, and device
+  // acquisition boots an existing default AVD whatever version the test asked
+  // for. Every requested image is here, so acquisition picks the right one.
   if (!emulatorPresent) {
     return {
       action: "install",
+      toolsOnly: true,
       reason: `Android tests require the Android SDK's emulator package, which isn't installed. Doc Detective is installing it now. Pre-install with \`doc-detective install android\` to avoid this delay at test time.`,
     };
   }

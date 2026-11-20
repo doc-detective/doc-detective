@@ -1012,6 +1012,7 @@ async function androidContextPreflight({
       reports = await installAndroid({
         yes: true,
         osVersion: toolchain.osVersion,
+        toolsOnly: toolchain.toolsOnly,
         ctx: { cacheDir: config.cacheDir },
         deps: { logger: (m: string) => clog("debug", m) },
       });

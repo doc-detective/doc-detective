@@ -53,6 +53,14 @@ the detected SDK's `emulator` path. On a capable host:
 * With `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL` set, the context skips with the existing
   ``Skipped: the Android toolchain isn't fully installed, …`` reason.
 
+The emulator repair installs SDK tools only. `installAndroid` takes `toolsOnly` and stops after
+`platform-tools` and the emulator. It installs no system image, creates no AVD, and records nothing
+in `installed.json`. The full install ends by creating the default `doc-detective` AVD from the
+newest image, replacing one that exists. Device acquisition boots an existing default AVD without
+checking its Android version. A context that asked for Android 14, on an SDK that also has an
+Android 15 image, would then run on 15. Every requested image is already installed in this state, so
+device acquisition creates the AVD from the right one.
+
 The check after the install uses the same plan, so an install that leaves the emulator missing
 skips with the existing "still incomplete" reason.
 
@@ -66,17 +74,23 @@ hosts that run today.
 * Good: the install lands in the SDK the run detected, where `avdmanager` looks for it.
 * Bad: a run can now download the emulator package (about 320 MiB compressed) where it used to
   skip. The warning in the terminal and in the report says so.
-* Neutral: the install also creates the default `doc-detective` AVD, as every lazy install does.
-* Neutral: on macOS and Windows the preflight still skips before the plan when the SDK has no
-  emulator, because it can't probe hardware acceleration without the emulator binary. Its reason
-  points at `doc-detective install android`, which installs the package.
+* Good: the repair leaves existing AVDs and their clean snapshots alone.
+* Neutral: on macOS and Windows, an SDK with no emulator still skips before the plan. The preflight
+  can't probe hardware acceleration there without the emulator binary. Its reason points at
+  `doc-detective install android`, which installs the package.
 
 ### Confirmation
 
-`test/android-emulator.test.js` covers the plan: an installed image with no emulator package plans
-an install with no `osVersion` and the emulator warning, a missing image still wins and names its
-version, and an incapable host skips. The preflight that calls the plan is effectful and isn't unit
-tested. No fixture covers it either: it needs a KVM host whose SDK has an image and no emulator.
+`test/android-emulator.test.js` covers the plan:
+
+* An installed image with no emulator package plans a tools-only install with the emulator warning.
+* That holds with two images installed and the older one requested.
+* A missing image still wins, names its version, and plans the full install.
+* An incapable host skips.
+
+`test/android-installer.test.js` checks that `toolsOnly` runs `sdkmanager` for the licenses and the
+emulator package only. The preflight that calls the plan is effectful and isn't unit tested. No
+fixture covers it either: it needs a KVM host whose SDK has an image and no emulator.
 
 ## Pros and Cons of the Options
 
