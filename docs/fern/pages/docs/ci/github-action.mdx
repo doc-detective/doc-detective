@@ -87,7 +87,7 @@ The job also fails when the CLI writes no results file, whatever `exit_on_fail` 
 
 When the CLI does write results, the action sets the `results` output and runs the issue and pull request steps before it fails the job.
 
-`exit_on_fail` acts only on exit code `1`. If a test fails but the CLI exits `0`, the job passes and the action logs a warning. The CLI exits `0` on a failing test when your config sets `exitOnFail: false`, or when `version` runs a CLI older than 5. To stay on CLI 4, use `doc-detective/github-action@v1`.
+`exit_on_fail` acts only on exit code `1`. If a test fails but the CLI exits `0`, the job passes and the action logs a warning. The CLI exits `0` on a failing test when your config sets `exitOnFail: false`, or when `version` runs a CLI older than 5. It also exits `0` when your config sets [`failOn: new`](/docs/ci/reporters-and-artifacts#fail-only-on-new-failures) and every failure was already failing in the earlier run. A new runner has no earlier run, so every failure counts as new. The action's `cache` input doesn't keep `outputDir`. To compare across jobs, see [Compare with an earlier run](/docs/ci/reporters-and-artifacts#compare-with-an-earlier-run). To stay on CLI 4, use `doc-detective/github-action@v1`.
 
 See [Reporters and artifacts](/docs/ci/reporters-and-artifacts#step-6-fail-ci-when-tests-fail) for the exit codes in detail.
 
@@ -495,8 +495,9 @@ Open a pull request that touches a documented command, screenshot, or API respon
 - The step sets `exit_on_fail: false`.
 - The workflow still uses `@v1`, where `exit_on_fail` defaults to `false`.
 - Your config sets `exitOnFail: false`, or `version` runs a CLI older than 5. The CLI then exits `0` when a test fails, and the job log shows a warning.
+- Your config sets `failOn: new`, and every failure was already failing in the earlier run. The CLI then exits `0`, and the job log shows `No new failures:` before the action's warning.
 
-**Solution:** Use `@v2`, remove `exit_on_fail: false` from the step and `exitOnFail: false` from your config, and remove any `version` value below 5. See [Step 3](#step-3-fail-the-build-when-tests-fail).
+**Solution:** Use `@v2`, remove `exit_on_fail: false` from the step and `exitOnFail: false` from your config, and remove any `version` value below 5. To fail on every failure, not only new ones, remove `failOn: new` from your config. See [Step 3](#step-3-fail-the-build-when-tests-fail).
 
 ### Reports or the run folder aren't where you expect
 

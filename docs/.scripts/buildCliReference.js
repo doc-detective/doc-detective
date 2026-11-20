@@ -468,11 +468,11 @@ function buildPage(data) {
     "| Code | Meaning |",
     "|------|---------|",
     "| `0` | No spec failed, and at least one passed or warned |",
-    "| `1` | At least one spec failed |",
+    "| `1` | At least one spec failed. With [`failOn: new`](/docs/ci/reporters-and-artifacts#fail-only-on-new-failures), at least one failure is new |",
     "| `2` | Nothing valid was tested, or the CLI couldn't proceed: a usage error, invalid config, no specs, every spec skipped, an invalid spec, a declined install, or a crash |",
     "| `130`, `143` | Interrupted by `SIGINT` or `SIGTERM` |",
     "",
-    "`--no-exit-on-fail` and `exitOnFail: false` turn failed, empty, and all-skipped runs into `0`, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. A `WARNING` result never fails a run. Neither does a `SKIPPED` result, unless every spec skipped, which exits `2` without these options.",
+    "`--no-exit-on-fail` and `exitOnFail: false` turn failed, empty, and all-skipped runs into `0`, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. A `WARNING` result never fails a run. Neither does a `SKIPPED` result, unless every spec skipped, which exits `2` without these options. `--fail-on new` and `failOn: new` exit `0` when every failure was already failing in the run this one was compared with. With no comparison, every failure counts as new.",
     ""
   );
 
