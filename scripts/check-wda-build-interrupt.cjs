@@ -28,13 +28,18 @@ const inGroup = (pgid) => lines("pgrep", ["-g", pgid]);
 (async () => {
   const cli = spawn(process.execPath, [path.join(__dirname, "..", "bin", "doc-detective.js"), ...cliArgs], {
     stdio: "inherit",
+    // An auto-update would hand the work to a child process, and the build
+    // would then not be this process's child.
+    env: { ...process.env, DOC_DETECTIVE_SKIP_AUTO_UPDATE: "1" },
   });
   const exited = new Promise((resolve) => cli.on("exit", (code, killedBy) => resolve(code ?? killedBy)));
 
+  // Only a build this CLI started: the host may be running others, and the
+  // checks below read this build's directory and can kill its processes.
   let build;
   for (let waited = 0; !build && waited < 600 && cli.exitCode === null && cli.signalCode === null; waited++) {
     await sleep(1000);
-    [build] = lines("pgrep", ["-f", "xcodebuild build-for-testing .*WebDriverAgent"]);
+    [build] = lines("pgrep", ["-P", String(cli.pid), "-f", "xcodebuild build-for-testing .*WebDriverAgent"]);
   }
   if (!build) {
     cli.kill("SIGKILL");
