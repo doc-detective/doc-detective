@@ -63,7 +63,19 @@ const inGroup = (pgid) => lines("pgrep", ["-g", pgid]);
   const signaled = Date.now();
   const since = () => `${((Date.now() - signaled) / 1000).toFixed(1)} s`;
   cli.kill(signal);
+  // A CLI that is slow to exit: print what its threads are doing.
+  const slow = setTimeout(() => {
+    const report = path.join(require("node:os").tmpdir(), `dd-cli-${cli.pid}.sample.txt`);
+    for (const command of [["sample"], ["sudo", "-n", "sample"]]) {
+      spawnSync(command[0], [...command.slice(1), String(cli.pid), "2", "-mayDie", "-file", report]);
+      if (fs.existsSync(report)) break;
+    }
+    const text = fs.existsSync(report) ? fs.readFileSync(report, "utf8") : "(sample wrote no report)";
+    console.log(`[interrupt check] the CLI is still running ${since()} after the signal:
+${text.slice(0, 20000)}`);
+  }, 3000);
   const status = await exited;
+  clearTimeout(slow);
   const exitedAfterMs = Date.now() - signaled;
   console.log(`[interrupt check] the CLI ended with ${status}, ${since()} after the signal`);
 
