@@ -1,3 +1,12 @@
+## [5.6.1](https://github.com/doc-detective/doc-detective/compare/v5.6.0...v5.6.1) (2026-11-20)
+
+### Bug Fixes
+
+* **android:** install a missing emulator package on first use ([23fe202](https://github.com/doc-detective/doc-detective/commit/23fe2026d491abc9476acba6083c823476ca44d4)), closes [#1006](https://github.com/doc-detective/doc-detective/issues/1006)
+* **android:** repair a missing emulator with SDK tools only ([6f50752](https://github.com/doc-detective/doc-detective/commit/6f50752dba4b646cc700b3e7b41e0dc44778c6ee))
+* **ios:** stop promising a 10-minute WebDriverAgent build ([c89fd73](https://github.com/doc-detective/doc-detective/commit/c89fd73d64e6978bc68b350f8595120b1bea9eba)), closes [#1008](https://github.com/doc-detective/doc-detective/issues/1008)
+* **recording:** keep the live recording handle off the step result ([75fd9b2](https://github.com/doc-detective/doc-detective/commit/75fd9b24208cda85e936cbcf2d128caefb305332)), closes [#1007](https://github.com/doc-detective/doc-detective/issues/1007)
+
 # [5.6.0](https://github.com/doc-detective/doc-detective/compare/v5.5.0...v5.6.0) (2026-11-19)
 
 
