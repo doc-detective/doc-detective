@@ -289,6 +289,26 @@ jobs:
 
 See [Docker and headless](/docs/ci/docker-and-headless) for how headless environments affect a run.
 
+## Run Android tests on Linux
+
+Tests against the `android` platform run in the Android emulator, which needs hardware acceleration. On Linux runners, the action grants the emulator access to KVM with a `udev` rule. It does this when the [`android` input](#step-2-point-the-action-at-your-tests) is `true`, or when it's `auto`, the default, and your specs target the `android` platform. `auto` uses the same scan as the [iOS check](#speed-up-ios-tests-on-macos). The workflow needs no extra steps:
+
+```yaml
+jobs:
+  doc-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: doc-detective/github-action@v2
+```
+
+The first Android test on a runner sets up the rest. Doc Detective installs the Android SDK, emulator, system image, and UiAutomator2 driver, and creates an Android Virtual Device (AVD). If the runner has no Java runtime, Doc Detective also downloads a portable Temurin JRE 17 into its cache. The action's cache doesn't keep any of these, so each job on a fresh runner downloads them again.
+
+A failed KVM setup doesn't fail the run. When the runner has no `/dev/kvm` or the action can't apply the `udev` rule, it logs a warning and continues. Android contexts then skip with `Skipped: this host can't run the Android emulator ...` instead of failing. A skipped context doesn't fail the job, so the job can pass with no Android tests run. If every test skips, the job fails, as [Step 3](#step-3-fail-the-build-when-tests-fail) describes. On macOS and Windows runners, the `android` input has no effect.
+
 ## Speed up iOS tests on macOS
 
 Tests against the `ios` platform run on macOS runners. They drive the simulator through WebDriverAgent, which Doc Detective builds for the runner's Xcode and driver versions. With Doc Detective 5.6.0 or later, the first iOS test on a runner [builds WebDriverAgent](/docs/test-docs/ios-apps#webdriveragent-builds-on-first-use). Action v2.2.0 or later (`@v2`) saves that build through its `cache` input. Later runs restore it instead of building it again. On GitHub-hosted `macos-latest` runners, the build takes about 2 to 3 minutes, and a restore takes a few seconds. The workflow needs no extra steps:
