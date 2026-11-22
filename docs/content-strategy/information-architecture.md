@@ -148,7 +148,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Track overview / start here | W1, D1 | ★ | Frames the one job, routes by surface (UI vs. CLI/code/API). |
 | Inline tests | W2 | ★ | Tests embedded in a doc source file. |
 | Detected tests | W2 | ★ | Tests inferred from prose. |
-| Standalone test specs | W1, D1 | ★ | `*.spec.json` files kept beside the docs, a valid authoring choice for any surface. |
+| Standalone test specs | W1, D1 | ★ | `*.spec.json` files kept beside the docs, a valid authoring choice for any surface. Includes checking specs with `doc-detective validate` before a run. |
 | Last verified on | W2 | | `verified-by` write-back in front matter and manni `meta` statements, plus the `badge: true` test flag. Records when a test last passed. |
 
 **UI procedures: Wren**
@@ -156,6 +156,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Page | CUJ | ★ | Notes |
 |---|---|---|---|
 | Fill fields & UI flows | W2 | | `find`/`click`/`type`/`dragAndDrop`. |
+| Find elements by image | W2 | | Authored: `/docs/test-docs/find-elements-by-image`. `elementImage` for canvases and custom-drawn controls that selectors can't reach. Its claims are pinned with `manni cite`. |
 | Capture screenshots | W2 | ★ | Authored: `/docs/test-docs/capture-screenshots-guide`. Lead guide for the Screenshots sub-section: a single `screenshot` capture (full viewport, cropped element, padding). The topic split into a Screenshots sub-section. Visual regression, automatic screenshots, and annotations each moved to their own guide (below). |
 | Screenshot visual regression | W2 | ★ | Authored: `/docs/test-docs/screenshot-visual-regression`. Compare a capture against a committed reference image with `maxVariation`; cloud-storage references and the SSRF guard. |
 | Automatic screenshots | W2 | ★ | Authored: `/docs/test-docs/automatic-screenshots`. `autoScreenshot` captures an image after every browser-driven step; artifact paths. |
@@ -187,7 +188,8 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 
 | Page | CUJ | ★ | Notes |
 |---|---|---|---|
-| Input formats (overview + Markdown/DITA/AsciiDoc/HTML/Custom) | W3 | ★ | Applies to every surface. |
+| Input formats (overview + Markdown/DITA/AsciiDoc/HTML/reStructuredText/Custom) | W3 | ★ | Applies to every surface. |
+| Includes (`input-formats/includes`) | W3, W1 | | Authored: `/docs/test-docs/input-formats/includes`. Include resolution during detection (AsciiDoc, MkDocs, mdBook, Fern, MDX imports, reStructuredText, custom `includeStatements`), partials, `location.file`, guard warnings, `resolveIncludes` opt-out. DITA reuse links to the DITA page. Behavior: ADR 01212. |
 | Selectors (`input-formats/selectors`) | W3 | | Structure-aware `markup` definitions and `inlineStatements.in`; deep-links to the `fileTypes` reference. |
 | Test across platforms & browsers | W3 | ★ | contexts / `runOn`; links to Reference. |
 | Heretto integration | W3 | | |
@@ -338,6 +340,7 @@ The "source of truth" for those rows is the schema; the page is an artifact.
 | CLI commands & flags (`cli.mdx`) | yes (`buildCliReference.js`) | [`src/cliOptions.ts`](../../src/cliOptions.ts), the command tree in [`src/cliProgram.ts`](../../src/cliProgram.ts), and `config_v3` for defaults |
 | Action prose pages (`docs/actions/*.mdx`) | no (hand-written) | [`src/core/tests/`](../../src/core/tests/) + the action schema |
 | Reporters & artifacts | no (hand-written) | [`src/reporters/`](../../src/reporters/) |
+| GitHub Action (`docs/ci/github-action.mdx`) | no (hand-written) | [`action.yml`](https://github.com/doc-detective/github-action/blob/v2/action.yml) in doc-detective/github-action, at the `v2` tag the docs pin |
 
 ---
 

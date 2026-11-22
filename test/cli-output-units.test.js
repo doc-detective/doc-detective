@@ -190,7 +190,7 @@ describe("summarizeSchemaErrors", function () {
 
   it("drops a branch's missing key when another branch went deeper", function () {
     expect(summarize({ fileTypes: [{ extends: "nope" }] }, "config_v3")).to.equal(
-      'fileTypes[0].extends: must be one of markdown, asciidoc, html, dita (got "nope").'
+      'fileTypes[0].extends: must be one of markdown, asciidoc, html, dita, rst (got "nope").'
     );
   });
 
@@ -428,6 +428,25 @@ describe("createInterruptHandler", function () {
     handler("SIGINT");
     expect(exits).to.deep.equal([130]);
     expect(lines[1]).to.match(/may still be running/);
+  });
+
+  it("names what may still be running, when told", async function () {
+    const lines = [];
+    const options = {
+      cleanup: () => new Promise(() => {}),
+      exit: () => {},
+      print: (line) => lines.push(line),
+      stragglers: "`xcodebuild`",
+      deadlineMs: 5,
+    };
+    const handler = createInterruptHandler(options);
+    handler("SIGINT");
+    handler("SIGINT");
+    expect(lines[1]).to.equal("Stopping now. `xcodebuild` may still be running.");
+
+    createInterruptHandler(options)("SIGTERM");
+    await flush();
+    expect(lines.at(-1)).to.equal("Cleanup didn't finish in time. `xcodebuild` may still be running.");
   });
 
   it("gives up on cleanup at the deadline", async function () {

@@ -330,6 +330,65 @@ describe("CLI contract", function () {
     });
   });
 
+  // ADR 01206: check test files without running them.
+  describe("validate", function () {
+    const writeInvalid = () =>
+      fs.writeFileSync(path.join(cwd, "invalid.spec.json"), JSON.stringify({ tests: [{ steps: [{ clik: "x" }] }] }));
+
+    it("exits 0 and runs nothing when every test is valid", function () {
+      writeSpec("marks.spec.json", { runShell: "echo ran > ran.txt" });
+      const r = run(["validate", "pass.spec.json", "marks.spec.json"]);
+      expect(r.status, r.stderr).to.equal(0);
+      expect(r.stdout).to.include("Checked 2 files: 2 valid, 0 invalid.");
+      expect(fs.existsSync(path.join(cwd, "ran.txt"))).to.equal(false);
+    });
+
+    it("exits 1 and names the file and key for an invalid spec", function () {
+      writeInvalid();
+      const r = run(["validate", "invalid.spec.json", "-i", "pass.spec.json"]);
+      expect(r.status, r.stderr).to.equal(1);
+      expect(r.stdout).to.include(`Couldn't validate \`${path.join(fs.realpathSync(cwd), "invalid.spec.json")}\`.`);
+      expect(r.stdout).to.include("clik");
+      expect(r.stdout).to.include("Checked 2 files: 1 valid, 1 invalid.");
+    });
+
+    it("exits 1 for an invalid inline test in Markdown", function () {
+      fs.writeFileSync(path.join(cwd, "doc.md"), '# Doc\n\n<!-- test\ntestId: t\n-->\n\n<!-- step clik: "x" -->\n');
+      const r = run(["validate", "doc.md"]);
+      expect(r.status, r.stdout + r.stderr).to.equal(1);
+      expect(r.stdout).to.include(path.join(cwd, "doc.md"));
+      expect(r.stdout).to.include("Checked 1 file: 0 valid, 1 invalid.");
+    });
+
+    it("exits 2 when no tests are found", function () {
+      fs.writeFileSync(path.join(cwd, "empty.md"), "# Nothing to test\n");
+      const r = run(["validate", "empty.md"]);
+      expect(r.status, r.stdout + r.stderr).to.equal(2);
+      expect(r.stdout).to.equal("");
+      expect(r.stderr).to.include("Couldn't find tests in");
+      expect(r.stderr).to.not.include("Warning");
+    });
+
+    it("exits 2 for a bad config or an unknown flag", function () {
+      expect(run(["validate", "-c", "nope.json"]).status).to.equal(2);
+      expect(run(["validate", "--reporters", "json"]).status).to.equal(2);
+    });
+
+    it("prints one JSON document with --json", function () {
+      writeInvalid();
+      const r = run(["validate", "--json", "pass.spec.json", "invalid.spec.json"]);
+      expect(r.status, r.stderr).to.equal(1);
+      const out = JSON.parse(r.stdout);
+      expect(out.valid).to.equal(false);
+      expect(out.files).to.have.lengthOf(2);
+      const bad = out.files.find((f) => f.path === path.join(fs.realpathSync(cwd), "invalid.spec.json"));
+      expect(bad.valid).to.equal(false);
+      expect(bad.errors.join("\n")).to.include("clik");
+      const good = out.files.find((f) => f.path === path.join(fs.realpathSync(cwd), "pass.spec.json"));
+      expect(good).to.deep.equal({ path: good.path, valid: true, errors: [] });
+    });
+  });
+
   describe("streams", function () {
     it("keeps logs off stdout", function () {
       const r = run(["-i", "pass.spec.json"]);
@@ -700,6 +759,7 @@ describe("CLI contract", function () {
       ["install", "agents"],
       ["install", "status"],
       ["debug"],
+      ["validate"],
       ["lsp"],
     ];
     for (const path of commands) {
@@ -716,7 +776,7 @@ describe("CLI contract", function () {
     }
 
     it("keeps each subcommand's help focused", function () {
-      for (const path of [["debug"], ["lsp"], ["install", "status"], ["install", "agents"]]) {
+      for (const path of [["debug"], ["validate"], ["lsp"], ["install", "status"], ["install", "agents"]]) {
         const help = run([...path, "--help"]).stdout;
         expect(help, path.join(" ")).to.not.include("--reporters");
         expect(help.length, path.join(" ")).to.be.lessThan(2500);
@@ -1373,6 +1433,16 @@ describe("CLI contract", function () {
       });
       expect(result.status, result.stderr).to.equal(0);
       expect(result.stdout).to.include(SECRET).and.not.include(DOTENV);
+    });
+
+    it("masks values in validate's output", function () {
+      fs.writeFileSync(path.join(cwd, `${DOTENV}.spec.json`), JSON.stringify({ tests: [{ steps: [{ clik: DOTENV }] }] }));
+      for (const args of [[], ["--json"]]) {
+        const r = run(["validate", ...args, `${DOTENV}.spec.json`]);
+        expect(r.status, r.stderr).to.equal(1);
+        expect(r.stdout).to.not.include(DOTENV);
+        expect(r.stdout).to.include("***DD_DOTENV_VALUE***");
+      }
     });
 
     it("exits 0 on an all-passing run when a secret's value is `pass`", function () {

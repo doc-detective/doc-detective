@@ -317,7 +317,7 @@ function buildPage(data) {
     "npx doc-detective [command] [options]",
     "```",
     "",
-    "A bare invocation with no command runs tests; the available commands are `run`, `install`, `lsp`, `debug`, and `help`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. For one command's usage, add `--help` after it or name it after `help`, including nested commands (for example, `npx doc-detective help install browsers`). The CLI is strict: unknown flags cause an error instead of being ignored.",
+    "A bare invocation with no command runs tests; the available commands are `run`, `install`, `validate`, `lsp`, `debug`, and `help`. Use `--version` to print the installed version, and `--help` or `-h` to print usage. For one command's usage, add `--help` after it or name it after `help`, including nested commands (for example, `npx doc-detective help install browsers`). The CLI is strict: unknown flags cause an error instead of being ignored.",
     ""
   );
 
@@ -436,9 +436,32 @@ function buildPage(data) {
     ""
   );
 
+  // validate.
+  parts.push(
+    "### validate",
+    "",
+    "Check that spec files and inline tests are valid, without running them. `validate` finds files the same way a run does, from positional inputs, `--input`, and `--config`, and also accepts the global flags.",
+    "",
+    "For each invalid file, stdout names the file and each problem. The last line counts the files checked. With `--json`, stdout carries one JSON document instead: `valid`, and a `files` array of `{ path, valid, errors }`.",
+    "",
+    "| Code | Meaning |",
+    "|------|---------|",
+    "| `0` | At least one test was found, and every test is valid |",
+    "| `1` | At least one spec or inline test is invalid |",
+    "| `2` | A usage error, invalid config, or no tests found |",
+    "",
+    "```bash",
+    "npx doc-detective validate docs/",
+    "npx doc-detective validate --json docs/ tests/login.spec.json",
+    "```",
+    ""
+  );
+
   // Exit codes.
   parts.push(
     "## Exit codes",
+    "",
+    "A test run exits with these codes. `validate` has its own codes, listed under [`validate`](#validate).",
     "",
     "| Code | Meaning |",
     "|------|---------|",
@@ -500,6 +523,7 @@ function buildPage(data) {
     "| `DOC_DETECTIVE_DEBUG` | Boolean | Off | Shows debugging output, like `-d`. |",
     "| `DEBUG` | `1`, `true`, `*`, or a comma-separated list with `doc-detective` or `doc-detective:*` | Unset | Shows debugging output, like `-d`. A pattern for another package leaves it off. |",
     "| `DOC_DETECTIVE_SKIP_AUTO_UPDATE` | Boolean | Off | Sets `autoUpdate: false`. `--auto-update` beats it. |",
+    "| `DOC_DETECTIVE_SKIP_BROWSER_UPDATE` | Boolean | Off | Keeps outdated cached browsers and drivers instead of replacing them with the latest build. A missing browser still installs, and `install browsers --force` still reinstalls. |",
     "| `DO_NOT_TRACK` | Any value | Unset | Sets `telemetry.send: false`. |",
     "| `DOC_DETECTIVE_NO_COLOR` | Boolean | Off | Turns off color, like `--no-color`. `NO_COLOR` and `FORCE_COLOR` keep their usual meaning. |",
     "| `DOC_DETECTIVE_NO_INPUT` | Boolean | Off | Never prompts, like `--no-input`. |",
@@ -507,6 +531,8 @@ function buildPage(data) {
     "| `DOC_DETECTIVE_BLOCK_LOCAL_URLS` | Boolean | Off | Refuses every private and loopback address for screenshot reference images and OpenAPI `$ref`s, including direct ones. For shared runners. |",
     "| `DOC_DETECTIVE_REUSE_APPIUM` | Boolean | Off | Keeps the Appium server running after a run, so the next run with the same setup skips its startup. |",
     "| `DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL` | Boolean | Off | Skips an Android context instead of installing the Android toolchain on first use. |",
+    "| `DOC_DETECTIVE_NO_IOS_AUTOINSTALL` | Boolean | Off | Leaves the WebDriverAgent build to Appium during the session instead of building it into the cache on first use. The iOS context still runs. |",
+    "| `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` | A path | Unset | Uses the WebDriverAgent build in this DerivedData directory instead of the managed build, and turns off the first-use build. |",
     "| `DOC_DETECTIVE_AUTOINSTALL` | Boolean | On | Off stops `npm install` from also installing browsers and runtime dependencies. |",
     "| `DOC_DETECTIVE_SKIP_AGENT_PROMPT` | Boolean | Off | Stops `npm install` from asking to install agent tools. |",
     "| `XDG_CONFIG_HOME`, `XDG_CACHE_HOME` | Paths | Platform defaults | Where the user config and the cache live. |",

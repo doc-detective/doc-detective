@@ -21,6 +21,7 @@ import {
   flushRunTelemetry as awaitTelemetryFlush,
 } from "./telemLite.js";
 import { readFile, resolvePaths } from "./files.js";
+import { displayPath } from "../cliOutput.js";
 
 export { runTests, getRunner, detectTests, detectAndResolveTests, resolveTests, readFile, resolvePaths, awaitTelemetryFlush };
 
@@ -45,7 +46,9 @@ async function detectAndResolveFromConfig(config: any, { strictSpecs = false } =
   const detectedTests = await detectTests({ config });
   if (strictSpecs && config._invalidSpecs?.length) {
     throw new Error(
-      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs.join("\n")}\nFix them, or skip them with \`--no-exit-on-fail\` or \`exitOnFail: false\`.`
+      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs
+        .map(({ path, reason }: { path: string; reason: string }) => `${displayPath(path)}\n${reason}`)
+        .join("\n")}\nFix them, or skip them with \`--no-exit-on-fail\` or \`exitOnFail: false\`.`
     );
   }
   if (!detectedTests || detectedTests.length === 0) {
@@ -296,10 +299,14 @@ async function runTestsAndReport(config: any, options: any) {
     /* c8 ignore start */
     if (needs.browsers.size > 0) {
       try {
-        const { getAvailableApps, patchAppCache } = await import("./config.js");
-        const { ensureBrowserInstalled, requiredBrowserAssets } = await import(
-          "../runtime/browsers.js"
-        );
+        const { getAvailableApps, patchAppCache, clearAppCache } = await import("./config.js");
+        const {
+          ensureBrowserInstalled,
+          requiredBrowserAssets,
+          browserRefreshDue,
+          getInstalledBrowsers,
+        } =
+          await import("../runtime/browsers.js");
         const available = await getAvailableApps({ config });
         const availableNames = new Set(available.map((a: any) => a.name));
         const installedDescriptors: {
@@ -308,8 +315,29 @@ async function runTestsAndReport(config: any, options: any) {
           path?: string;
           driverPath?: string;
         }[] = [];
+        let refreshed = false;
+        const installedBefore = getInstalledBrowsers(ctx);
         for (const browser of needs.browsers) {
-          if (availableNames.has(browser)) continue;
+          if (availableNames.has(browser)) {
+            // Replace an outdated cached build once its daily check is due
+            // (ADR 01209). Checking installed.json first keeps this offline
+            // and free on most runs.
+            for (const asset of requiredBrowserAssets(browser)) {
+              if (!browserRefreshDue(asset, ctx)) continue;
+              const before = installedBefore.find((b) => b.name === asset)?.installedVersion;
+              const result = await ensureBrowserInstalled(asset, {
+                ctx,
+                deps: { logger: preflightLogger },
+              });
+              if (result.version !== before) {
+                // The old build is gone. Drop the cached app paths now, so a
+                // later failure in this loop can't leave them pointing at it.
+                refreshed = true;
+                clearAppCache(config);
+              }
+            }
+            continue;
+          }
           // requiredBrowserAssets returns [] for safari (ships with the OS)
           // and any unknown name, so the loop body simply no-ops for those.
           const assets = requiredBrowserAssets(browser);
@@ -354,7 +382,9 @@ async function runTestsAndReport(config: any, options: any) {
         // rebuilds each descriptor from the install results and still runs the
         // functional verifyDriverBinary gate. Fail-open: it invalidates the
         // entry on any error, so a downstream re-probe is still the safety net.
-        if (installedDescriptors.length > 0) {
+        // After a replacement the cache was dropped: let the next lookup
+        // re-probe rather than patch a partial entry.
+        if (!refreshed && installedDescriptors.length > 0) {
           await patchAppCache(config, installedDescriptors);
         }
       } catch (browserErr: any) {

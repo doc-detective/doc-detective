@@ -3,6 +3,7 @@ import sinon from "sinon";
 import { detectTests } from "../dist/index.js";
 import { parseMarkup } from "../dist/detect/markup.js";
 import { parseAsciidoc } from "../dist/detect/asciidoc.js";
+import { parseRst } from "../dist/detect/rst.js";
 import { parseMarkdown } from "../dist/detect/markdown.js";
 
 // Runs detection on a string with one custom fileType, collecting warnings.
@@ -245,6 +246,161 @@ describe("formats", function () {
     });
   });
 
+  describe("reStructuredText", function () {
+    const rst = [
+      "Title",
+      "=====",
+      "",
+      ":orphan:",
+      "",
+      '.. test {"testId": "rst"}',
+      "",
+      "Go to `the site <https://x.com>`_ or https://y.com, then click **Save** and *Keep*.",
+      "See ``**code**``, `interpreted *x*`, :guilabel:`Role`, 2*3*4, and snake_case.",
+      "",
+      "..",
+      '   step {"find": "block"}',
+      "",
+      ".. note:: Directive **argument**",
+      "",
+      "   Body with **inside**.",
+      "",
+      ".. code-block:: python",
+      "   :class: testIgnore",
+      "   :linenos:",
+      "",
+      '   .. step {"find": "no"}',
+      "   print(1)",
+      "",
+      "Literal follows::",
+      "",
+      "   literal **no**",
+      "",
+      ".. image:: a.png",
+      "   :alt: Alt A",
+      "   :class: screenshot wide",
+      "",
+      ".. figure:: b.png",
+      "",
+      "   Caption with **caption**.",
+      "",
+      ".. _target: https://z.com",
+      ".. [1] A footnote with **no**.",
+      ".. |sub| image:: s.png",
+      "",
+      ".. raw:: html",
+      "",
+      '   <!-- step {"find": "no"} -->',
+      "",
+      "* list item with **bold**",
+    ].join("\n");
+    const nodes = parseRst(rst);
+
+    it("reads comments, single-line and as an indented block, but not targets, footnotes, or substitutions", function () {
+      expect(pick(nodes, "comment").map((c) => c.content)).to.deep.equal(['test {"testId": "rst"}', 'step {"find": "block"}']);
+      expect(sourceOf(rst, pick(nodes, "comment")[0])).to.equal('.. test {"testId": "rst"}');
+    });
+
+    it("reads embedded and bare links", function () {
+      expect(pick(nodes, "link").map((n) => [n.url, n.text, n.before])).to.deep.equal([
+        ["https://x.com", "the site", "Go to "],
+        ["https://y.com", "https://y.com", "Go to `the site <https://x.com>`_ or "],
+      ]);
+    });
+
+    it("reads strong and emphasis, but not literals, interpreted text, roles, or words", function () {
+      expect(pick(nodes, "strong").map((n) => n.text)).to.deep.equal(["Save", "inside", "caption", "bold"]);
+      expect(pick(nodes, "emphasis").map((n) => n.text)).to.deep.equal(["Keep"]);
+    });
+
+    it("reads code directives with language and options, and literal blocks", function () {
+      expect(pick(nodes, "codeBlock").map((b) => [b.language, b.meta, b.content])).to.deep.equal([
+        ["python", ":class: testIgnore :linenos:", '.. step {"find": "no"}\nprint(1)'],
+        ["", "", "literal **no**"],
+      ]);
+    });
+
+    it("reads image and figure directives, with classes and alt text", function () {
+      expect(pick(nodes, "image").map((n) => [n.src, n.alt, n.attributes?.class])).to.deep.equal([
+        ["a.png", "Alt A", "screenshot wide"],
+        ["b.png", "", undefined],
+      ]);
+    });
+
+    it("keeps text spans exact, and skips adornments and raw blocks", function () {
+      const texts = pick(nodes, "text").map((n) => n.text);
+      expect(texts.some((t) => t.includes("====") || t.includes("<!--"))).to.equal(false);
+      expect(texts.join("|")).to.include("Literal follows::");
+      for (const n of pick(nodes, "text")) expect(sourceOf(rst, n)).to.equal(n.text);
+    });
+
+    it("reads code directives with no language, and the code alias", function () {
+      const blocks = pick(parseRst(".. code-block::\n\n   x\n\n.. code:: bash\n\n   y\n\n.. sourcecode:: js\n\n   z\n"), "codeBlock");
+      expect(blocks.map((b) => [b.language, b.content])).to.deep.equal([["", "x"], ["bash", "y"], ["js", "z"]]);
+    });
+
+    it("scans long runs of tabs in comments, directives, and options in linear time", function () {
+      const tabs = "\t".repeat(40000);
+      for (const content of [`..${tabs}x`, `.. 0::${tabs}x`, `.. code-block:: bash\n   :a:${tabs}x\n\n   y`, `See \`${tabs}x`]) {
+        const started = performance.now();
+        parseRst(content);
+        expect(performance.now() - started, JSON.stringify(content.slice(0, 20))).to.be.below(500);
+      }
+    });
+
+    it("scans many unclosed strong openers on one line in linear time", function () {
+      const started = performance.now();
+      parseRst("**x ".repeat(40000));
+      expect(performance.now() - started).to.be.below(500);
+    });
+
+    it("skips escaped formatting delimiters", function () {
+      const nodes = parseRst("See \\**Save** and \\*Keep*, but **Bold** and \\\\*Em*.");
+      expect(pick(nodes, "strong").map((n) => n.text)).to.deep.equal(["Bold"]);
+      expect(pick(nodes, "emphasis").map((n) => n.text)).to.deep.equal(["Em"]);
+    });
+
+    it("reads a quoted literal block after `::`", function () {
+      const nodes = parseRst("Example::\n\n> **Delete**\n> rm x\n\nAfter **Keep**.\n");
+      expect(pick(nodes, "codeBlock").map((b) => b.content)).to.deep.equal(["> **Delete**\n> rm x"]);
+      expect(pick(nodes, "strong").map((n) => n.text)).to.deep.equal(["Keep"]);
+    });
+
+    it("keeps an inline literal open across line breaks", function () {
+      const rst = "Example ``literal\nClick **Delete**\nend`` then **Keep**.\n\n``open\n\nNew **para**.\n";
+      const nodes = parseRst(rst);
+      expect(pick(nodes, "strong").map((n) => n.text)).to.deep.equal(["Keep", "para"]);
+      for (const n of pick(nodes, "text")) expect(n.text).to.not.include("Delete");
+    });
+
+    it("closes a wrapped inline literal only at a valid closer, past adornment-shaped lines", function () {
+      const strong = (rst) => pick(parseRst(rst), "strong").map((n) => n.text);
+      // An adornment-shaped line inside the literal is literal text, not a title underline.
+      expect(strong("Example ``literal\n---\n**Delete**\nend``.\n")).to.deep.equal([]);
+      // A `` after whitespace can't close the literal.
+      expect(strong("Example ``literal\nstill `` inside **Delete**\nend`` then **Keep**.\n")).to.deep.equal(["Keep"]);
+      // After the closer, the rest of the line scans from there, so a second literal pairs up.
+      expect(strong("Example ``first\nend`` and ``second`` then **Keep**.\nNext **Also**.\n")).to.deep.equal(["Keep", "Also"]);
+    });
+
+    it("handles an empty code directive, a link with no text, and an open literal before markup", function () {
+      const nodes = parseRst(".. code-block:: bash\n\nSee `<https://x.com>`_ and ``open **no**\nstill **no** end`` then **yes**.\n");
+      expect(pick(nodes, "codeBlock")[0]).to.include({ language: "bash", content: "" });
+      expect(pick(nodes, "link")[0]).to.include({ url: "https://x.com", text: "https://x.com" });
+      expect(pick(nodes, "strong").map((n) => n.text)).to.deep.equal(["yes"]);
+    });
+
+    it("handles CRLF, a body that runs to the end, an empty comment, and an expanded literal marker", function () {
+      const crlf = parseRst(".. step {}\r\n\r\n.. code-block:: bash\r\n\r\n   open");
+      expect(pick(crlf, "comment")[0]).to.include({ content: "step {}", endIndex: 10 });
+      expect(pick(crlf, "codeBlock")[0]).to.include({ content: "open" });
+      const empty = parseRst("..\n\n   A quote with **bold**.\n\n::\n\n   lit\n");
+      expect(pick(empty, "comment")).to.deep.equal([]);
+      expect(pick(empty, "strong").map((n) => n.text)).to.deep.equal(["bold"]);
+      expect(pick(empty, "codeBlock").map((b) => b.content)).to.deep.equal(["lit"]);
+    });
+  });
+
   describe("Markdown attribute lists", function () {
     it("reads a link's or image's trailing attribute list, up to the first closing brace", function () {
       const md = '[a](b){.x #y k="v"} [c](d){title="y{z"} ![i](s){width=3}\n[e](f){a}{b} [g](h) {.no}';
@@ -310,6 +466,7 @@ describe("formats", function () {
         ["doc.html", ["html"], '<!-- step {"goTo": "https://h.com"} -->\n<p><b>a</b></p>'],
         ["doc.dita", ["dita"], '<topic><body><?doc-detective step {"goTo": "https://d.com"} ?><p><b>a</b></p></body></topic>'],
         ["doc.adoc", ["adoc"], '// step {"goTo": "https://a.com"}\n\n*a*'],
+        ["doc.rst", ["rst"], '.. step {"goTo": "https://r.com"}\n\n**a**'],
       ];
       for (const [file, exts, content] of cases) {
         const { steps, warnings } = await detect(content, fileType(exts), file);
@@ -322,6 +479,8 @@ describe("formats", function () {
     it("parses by extends when the extension isn't known", async function () {
       const fileType = { name: "x", extends: "dita", extensions: ["xmlx"], markup: [{ element: "uicontrol", actions: ["click"] }] };
       expect((await detect("<p><uicontrol>Go</uicontrol></p>", fileType, "doc.xmlx")).steps).to.deep.equal([{ click: "Go" }]);
+      const rst = { name: "y", extends: "rst", extensions: ["txt"], inlineStatements: { in: ["comment"] }, markup: [{ strong: {}, actions: ["find"] }] };
+      expect((await detect('.. step {"find": "a"}\n\n**b**\n', rst, "doc.txt")).steps).to.deep.equal([{ find: "a" }, { find: "b" }]);
     });
   });
 });

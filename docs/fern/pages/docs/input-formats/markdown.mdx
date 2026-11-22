@@ -298,6 +298,10 @@ In this example:
 - Specific form field typing is defined inline for precise control
 - `detectSteps: true` enables detection within the test block
 
+## Includes
+
+Doc Detective resolves includes before it finds tests, so a test in a shared snippet runs inside each page that includes it. It supports MkDocs snippets (`--8<--`), mdBook `{{#include}}`, Fern `<Markdown src>`, and MDX imports rendered as components, as in Docusaurus, Mintlify, Starlight, and Astro. An included file doesn't run on its own. See [Test pages that include other files](includes).
+
 ## Next steps
 
 - Learn about [inline tests](/docs/test-docs/inline) for manual test definition

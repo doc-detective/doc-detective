@@ -410,3 +410,192 @@ describe("screenshot annotations", function () {
     assert.equal(result.outputs.annotationTargetsFound, undefined);
   });
 });
+
+// 2px black-and-white columns: the sharpest content there is, so any blur over
+// it shows as a collapse in horizontal contrast.
+async function makeStripedPng(width, height) {
+  const raw = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      raw.fill(Math.floor(x / 2) % 2 ? 255 : 0, (y * width + x) * 3, (y * width + x + 1) * 3);
+    }
+  }
+  return sharp(raw, { raw: { width, height, channels: 3 } }).png().toBuffer();
+}
+
+// Mean absolute difference between horizontal neighbors, in grey levels.
+// Stripes read about 127; a blurred region reads near 0.
+async function sharpness(file, { x0, y0, x1, y1 }) {
+  const { data, info } = await sharp(file)
+    .greyscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let sum = 0;
+  let count = 0;
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1 - 1; x++) {
+      sum += Math.abs(data[y * info.width + x + 1] - data[y * info.width + x]);
+      count++;
+    }
+  }
+  return sum / count;
+}
+
+// A page with a live `annotate` blur up. The layer draws blurs with CSS
+// `backdrop-filter`, which Firefox leaves out of WebDriver screenshots, so the
+// capture comes back unblurred, the way Firefox returns it. With `navigates`,
+// the page loads a new document between the capture and the read.
+function liveBlurDriver(buffer, { innerWidth, regions, fail = false, navigates = false }) {
+  const driver = fakeDriver(buffer, { innerWidth });
+  const execute = driver.execute;
+  driver.state = { annotations: [{ id: "redact", spec: { blur: "#secret" } }] };
+  driver.execute = async (fn, ...args) => {
+    const source = String(fn);
+    if (source.includes("dd-blur")) {
+      if (fail) throw new Error("no such window");
+      if (source.includes("requestAnimationFrame")) return true;
+      if (navigates) return { viewportWidth: innerWidth, regions: [], watched: false };
+      return { viewportWidth: innerWidth, regions, watched: true };
+    }
+    return execute(fn, ...args);
+  };
+  return driver;
+}
+
+describe("live annotate blurs in a screenshot", function () {
+  this.timeout(20000);
+
+  let dir;
+  beforeEach(function () {
+    if (!sharp) this.skip();
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-live-blur-"));
+  });
+  afterEach(function () {
+    if (dir) fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("burns the layer's blurs into the capture, scaled to its pixels", async function () {
+    // An 800px capture of a 400px viewport is 2x, so the CSS rect (50, 50,
+    // 100×100) covers image pixels 100–300, and (250, 200, 50×50) covers
+    // 500–600 across and 400–500 down.
+    const capture = await makeStripedPng(800, 600);
+    const driver = liveBlurDriver(capture, {
+      innerWidth: 400,
+      regions: [
+        { x: 50, y: 50, width: 100, height: 100, intensity: 14 },
+        { x: 250, y: 200, width: 50, height: 50, intensity: 14 },
+      ],
+    });
+    const file = path.join(dir, "live-blur.png");
+    const result = await saveScreenshot({
+      config: {},
+      step: { stepId: "live1", screenshot: { path: file, overwrite: "true" } },
+      driver,
+    });
+
+    assert.equal(result.status, "PASS", result.description);
+    const under = await sharpness(file, { x0: 120, y0: 120, x1: 280, y1: 280 });
+    const underSecond = await sharpness(file, { x0: 515, y0: 415, x1: 585, y1: 485 });
+    const beside = await sharpness(file, { x0: 420, y0: 120, x1: 780, y1: 280 });
+    assert.ok(under < 5, `the region under the live blur reads ${under.toFixed(2)}, so it wasn't blurred`);
+    assert.ok(underSecond < 5, `the region under the second blur reads ${underSecond.toFixed(2)}, so it wasn't blurred`);
+    assert.ok(beside > 120, `the region beside the blur reads ${beside.toFixed(2)}, so the blur spread past its rect`);
+  });
+
+  it("keeps the stronger blur where a weaker one overlaps it", async function () {
+    // A weak blur listed after a strong one, and spread over it, as a tracked
+    // blur that moved during the capture is.
+    const capture = await makeStripedPng(400, 300);
+    const driver = liveBlurDriver(capture, {
+      innerWidth: 400,
+      regions: [
+        { x: 150, y: 50, width: 100, height: 100, intensity: 14 },
+        { x: 0, y: 50, width: 400, height: 100, intensity: 1 },
+      ],
+    });
+    const file = path.join(dir, "overlap.png");
+    const result = await saveScreenshot({
+      config: {},
+      step: { stepId: "live4", screenshot: { path: file, overwrite: "true" } },
+      driver,
+    });
+
+    assert.equal(result.status, "PASS", result.description);
+    const overlap = await sharpness(file, { x0: 170, y0: 70, x1: 230, y1: 130 });
+    assert.ok(overlap < 5, `the overlap reads ${overlap.toFixed(2)}, so the weaker blur replaced the stronger one`);
+  });
+
+  it("reads every place a tracked blur was drawn since the watch, even one it left", async function () {
+    // Runs the real page code against a stand-in page. The blur is drawn at
+    // x 50–150, moves to x 250–350 for one frame, and is back before the read,
+    // so a screenshot in that frame shows it at x 250–350.
+    const { watchBlurRegions, readBlurRegions } = await import("../dist/core/annotations/domAdapter.js");
+    let left = 50;
+    const blur = {
+      getBoundingClientRect: () => ({ left, top: 50, right: left + 100, bottom: 150 }),
+      getAttribute: () => "14",
+    };
+    const layer = { isConnected: true, shadowRoot: { querySelectorAll: () => [blur] } };
+    const frames = [];
+    const saved = ["document", "window", "requestAnimationFrame", "cancelAnimationFrame"].map((key) => [key, global[key]]);
+    Object.assign(global, {
+      document: { querySelector: () => layer },
+      window: { innerWidth: 400 },
+      requestAnimationFrame: (fn) => frames.push(fn),
+      cancelAnimationFrame: () => frames.splice(0),
+    });
+    const driver = { execute: async (fn, ...args) => fn(...args) };
+    try {
+      assert.equal(await watchBlurRegions(driver), true);
+      left = 250;
+      frames.shift()();
+      left = 50;
+      frames.shift()();
+      const page = await readBlurRegions(driver);
+      assert.deepEqual(page.regions, [{ x: 50, y: 50, width: 300, height: 100, intensity: 14 }]);
+      assert.equal(page.watched, true);
+      assert.equal(frames.length, 0, "the read must stop the watch");
+
+      // A new document's layer has no watch on it.
+      const fresh = { isConnected: true, shadowRoot: { querySelectorAll: () => [] } };
+      global.document = { querySelector: () => fresh };
+      assert.equal((await readBlurRegions(driver)).watched, false);
+    } finally {
+      for (const [key, value] of saved) global[key] = value;
+    }
+  });
+
+  it("FAILs rather than save the capture unblurred when the page changes before the read", async function () {
+    const capture = await makeStripedPng(400, 300);
+    const driver = liveBlurDriver(capture, {
+      innerWidth: 400,
+      regions: [{ x: 50, y: 50, width: 100, height: 100, intensity: 14 }],
+      navigates: true,
+    });
+    const file = path.join(dir, "navigated.png");
+    const result = await saveScreenshot({
+      config: {},
+      step: { stepId: "live5", screenshot: { path: file, overwrite: "true" } },
+      driver,
+    });
+
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Couldn't read where the live `blur` annotations are on the page\. The page changed during the screenshot\./);
+    assert.equal(fs.existsSync(file), false);
+  });
+
+  it("FAILs rather than save the capture unblurred when the page won't report its blurs", async function () {
+    const capture = await makeStripedPng(400, 300);
+    const driver = liveBlurDriver(capture, { innerWidth: 400, regions: [], fail: true });
+    const file = path.join(dir, "unreadable.png");
+    const result = await saveScreenshot({
+      config: {},
+      step: { stepId: "live2", screenshot: { path: file, overwrite: "true" } },
+      driver,
+    });
+
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Couldn't read where the live `blur` annotations are on the page\. \S/);
+    assert.equal(fs.existsSync(file), false);
+  });
+});

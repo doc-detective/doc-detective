@@ -205,6 +205,14 @@ Other elements, such as `<menucascade>`, `<systemoutput>`, and `<cmdname>`, don'
 
 The `Press <shortcut>Enter</shortcut>` step has no default definition. To type it, add an inline step, or a [selector](selectors) for `<shortcut>`.
 
+## Resolve conrefs and keyrefs
+
+When an input is a `.ditamap` file, Doc Detective runs DITA-OT on it (`dita -i <map> -f dita`) and tests the resolved topics it outputs. Conrefs, conkeyrefs, and keyrefs are resolved in that output, so a test sees the reused content a reader sees. This needs the `dita` command on your `PATH`.
+
+A standalone topic given as an input isn't processed by DITA-OT, so its conrefs and keyrefs stay unresolved. To test reused content, pass the map that references the topic.
+
+Map processing is on by default. To turn it off, set [`processDitaMaps`](/reference/schemas/config) to `false`.
+
 ## Loading DITA content from Heretto
 
 If you manage your DITA content in Heretto, Doc Detective can load it directly from your Heretto CCMS. See [Heretto integration](/docs/test-docs/heretto) for configuration details.

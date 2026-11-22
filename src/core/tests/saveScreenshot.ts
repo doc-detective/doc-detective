@@ -15,10 +15,12 @@ import { resolveTheme, resolveAnnotation } from "../annotations/model.js";
 import { annotationsToSvg } from "../annotations/svg.js";
 import {
   computeScale,
+  toCanvasRect,
   appWindowOrigin,
   resolveAnnotationRects,
 } from "../annotations/geometry.js";
 import { compositeAnnotations } from "../annotations/composite.js";
+import { watchBlurRegions, readBlurRegions } from "../annotations/domAdapter.js";
 import {
   log,
   fetchFile,
@@ -44,6 +46,7 @@ import {
 } from "../routing.js";
 import type { ImplicitAssertionSpec } from "../routing.js";
 import { RENDER_SETTLE_MS } from "./timing.js";
+import { isVisualMatch, visualRect } from "./visualMatch.js";
 
 // pngjs, sharp, and pixelmatch are all heavy runtime deps. Lazy-load each
 // the first time a screenshot step needs it. Use `typeof import('…')`
@@ -178,14 +181,59 @@ function referenceViewport({
 }
 
 // A browser capture with every element that shows a secret blurred, and the
-// blur removed after (ADR 01178).
-async function takeBrowserScreenshot(driver: any): Promise<Buffer> {
+// blur removed after (ADR 01178), and the live annotate blurs burned in.
+async function takeBrowserScreenshot(driver: any, sharp: any): Promise<Buffer> {
+  // A tracked blur can move during the capture, so the page notes every place
+  // each blur is drawn from here until the read after it.
+  const watching = await liveBlurs(driver, watchBlurRegions);
   const unblur = await blurSecretsForCapture(driver);
+  let buffer: Buffer;
   try {
-    return Buffer.from(await driver.takeScreenshot(), "base64");
+    buffer = Buffer.from(await driver.takeScreenshot(), "base64");
   } finally {
     await unblur();
   }
+  const page = await liveBlurs(driver, readBlurRegions);
+  // A watch that's gone means a new document, which can't say where the
+  // captured frame's blurs were.
+  if (watching && !page?.watched) {
+    throw new Error("Couldn't read where the live `blur` annotations are on the page. The page changed during the screenshot.");
+  }
+  return await burnInLiveBlurs(sharp, buffer, page);
+}
+
+async function liveBlurs(driver: any, call: (driver: any) => Promise<any>): Promise<any> {
+  if (!(driver?.state?.annotations?.length > 0)) return undefined;
+  try {
+    return await call(driver);
+  } catch (error: any) {
+    throw new Error(`Couldn't read where the live \`blur\` annotations are on the page. ${error?.message ?? error}`);
+  }
+}
+
+// The annotate layer draws its blurs with CSS `backdrop-filter`, which Firefox
+// leaves out of WebDriver screenshots, so blur the same regions in the capture
+// (ADR 01202). Chrome's capture already shows them, so there they're blurred
+// twice: stronger, never weaker. Hiding the layer's blurs for the capture would
+// avoid that, but a running recording would catch the page unblurred. Fails
+// closed, like the secret blur: no capture beats an unredacted one.
+async function burnInLiveBlurs(sharp: any, buffer: Buffer, page: any): Promise<Buffer> {
+  // Weakest first: where blurs overlap, the last one composited is what shows.
+  const regions: any[] = Array.isArray(page?.regions)
+    ? [...page.regions].sort((a, b) => a.intensity - b.intensity)
+    : [];
+  if (regions.length === 0) return buffer;
+  const meta = await sharp(buffer).metadata();
+  const scale = computeScale(meta.width, page.viewportWidth);
+  const { blurRegions } = annotationsToSvg(
+    regions.map((region) => ({
+      type: "blur",
+      rect: toCanvasRect(region, scale),
+      style: { intensity: region.intensity * scale },
+    })) as any,
+    { width: meta.width, height: meta.height }
+  );
+  return await compositeAnnotations({ sharp, buffer, svg: "", blurRegions });
 }
 
 // Resize the window so the viewport matches the reference and capture again.
@@ -252,7 +300,7 @@ async function retakeAtReferenceSize({
   let got: string;
   try {
     await realizeViewport(driver, wanted, config, label, "debug");
-    const buffer = await takeBrowserScreenshot(driver);
+    const buffer = await takeBrowserScreenshot(driver, sharp);
     const retaken = await sharp(buffer).metadata();
     if (
       retaken.width === reference.width &&
@@ -652,6 +700,7 @@ async function captureScreenshot({
           elementClass: step.screenshot.crop?.elementClass,
           elementAttribute: step.screenshot.crop?.elementAttribute,
           elementAria: step.screenshot.crop?.elementAria,
+          elementImage: step.screenshot.crop?.elementImage,
           timeout: step.screenshot.crop?.timeout,
         },
       };
@@ -676,7 +725,7 @@ async function captureScreenshot({
         statement: `$$outputs.cropElementFound == true`,
         severity: "fail",
       });
-      result.description = `Couldn't find element to crop.`;
+      result.description = `Couldn't find element to crop. ${findResult.description}`;
       return await evaluateApplicable();
     }
     result.outputs.cropElementFound = true;
@@ -725,22 +774,25 @@ async function captureScreenshot({
       return await evaluateApplicable();
     }
 
-    // Scroll element into view at top-left with padding
-    await driver.execute(
-      (el: any, pad: any) => {
+    // Scroll the element to the center of the viewport. At the top edge a
+    // fixed or sticky header covers it, and the crop shows the header (#145).
+    // The padded rect fits the viewport (checked above), so centered it's
+    // fully in view. A match on screen is already in view, and scrolling would
+    // move it away from its rect.
+    // ponytail: a fixed header taller than half the viewport can still cover
+    // a centered element; detect occlusion with elementFromPoint if that bites.
+    if (!isVisualMatch(element)) {
+      await driver.execute((el: any) => {
         el.scrollIntoView({
-          block: "start",
-          inline: "start",
+          block: "center",
+          inline: "center",
           behavior: "instant",
         });
-        window.scrollBy(-pad.left, -pad.top);
-      },
-      element,
-      padding
-    );
+      }, element);
 
-    // Wait for scroll to complete
-    await driver.pause(RENDER_SETTLE_MS);
+      // Wait for scroll to complete
+      await driver.pause(RENDER_SETTLE_MS);
+    }
   }
 
   // Hide the synthetic cursor during capture so it isn't baked into the image,
@@ -781,7 +833,7 @@ async function captureScreenshot({
       await appWindowScreenshot(appEntry, appWindowTarget, appScratchPath);
       captureBuffer = fs.readFileSync(appScratchPath);
     } else {
-      captureBuffer = await takeBrowserScreenshot(captureDriver);
+      captureBuffer = await takeBrowserScreenshot(captureDriver, sharp);
     }
   } catch (error) {
     // Couldn't capture screenshot
@@ -870,15 +922,17 @@ async function captureScreenshot({
     const pixelDensity = await driver.execute(() => window.devicePixelRatio);
 
     // Get the bounding rectangle of the element relative to the viewport after scroll
-    const rect = await driver.execute((el: any) => {
-      const bounds = el.getBoundingClientRect();
-      return {
-        x: bounds.left,
-        y: bounds.top,
-        width: bounds.width,
-        height: bounds.height,
-      };
-    }, element);
+    const rect = isVisualMatch(element)
+      ? { ...visualRect(element) }
+      : await driver.execute((el: any) => {
+          const bounds = el.getBoundingClientRect();
+          return {
+            x: bounds.left,
+            y: bounds.top,
+            width: bounds.width,
+            height: bounds.height,
+          };
+        }, element);
     log(config, "debug", { rect });
 
     // Calculate the padding based on the provided padding values
@@ -1160,14 +1214,26 @@ async function captureScreenshot({
         return await evaluateApplicable();
       }
 
-      // Resize images to a common size. Stay in sharp's raw pipeline (RGBA in →
-      // RGBA out) instead of round-tripping PNG→buffer→PNG: PNG is lossless, so
-      // the resized pixels are identical to the prior encode/decode path, and
-      // pixelmatch consumes raw RGBA directly.
-      if (img1.width !== img2.width || img1.height !== img2.height) {
-        const width = Math.min(img1.width, img2.width);
-        const height = Math.min(img1.height, img2.height);
-
+      // Bring the images to a common size (ADR 01205). At the same scale (each
+      // side within 5%, such as a viewport a pixel shorter) compare the common
+      // top-left region: resampling would smear every row into false drift.
+      // A larger uniform scale is a devicePixelRatio difference, so resample.
+      const width = Math.min(img1.width, img2.width);
+      const height = Math.min(img1.height, img2.height);
+      const sameScale =
+        width / Math.max(img1.width, img2.width) >= 0.95 &&
+        height / Math.max(img1.height, img2.height) >= 0.95;
+      if (sameScale) {
+        for (const img of [img1, img2]) {
+          if (img.width === width && img.height === height) continue;
+          const cropped = Buffer.alloc(width * height * 4);
+          for (let y = 0; y < height; y++)
+            img.data.copy(cropped, y * width * 4, y * img.width * 4, (y * img.width + width) * 4);
+          img.data = cropped;
+        }
+      } else {
+        // Stay in sharp's raw pipeline (RGBA in → RGBA out); pixelmatch
+        // consumes raw RGBA directly.
         const img1ResizedBuffer = await sharp(img1.data, {
           raw: { width: img1.width, height: img1.height, channels: 4 },
         })
@@ -1183,11 +1249,8 @@ async function captureScreenshot({
 
         img1.data = img1ResizedBuffer;
         img2.data = img2ResizedBuffer;
-        img1.width = width;
-        img1.height = height;
       }
 
-      const { width, height } = img1;
       let pixelmatchFn: any;
       try {
         pixelmatchFn = await getPixelmatch(loadCtx);

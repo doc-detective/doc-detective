@@ -24,7 +24,7 @@ The `-v .:/app` flag mounts your current directory to `/app` inside the containe
 Inside the official image, unsafe steps run automatically without `--allow-unsafe`. Those include `runCode` snippets detected from Markdown code fences. The image sets `"allowUnsafeSteps": true` in a user config at `/etc/doc-detective-xdg/doc-detective/config.json`, and points `XDG_CONFIG_HOME` at it. A user config is the lowest config layer, so your project config, `DOC_DETECTIVE_CONFIG`, or `--no-allow-unsafe` overrides it. To opt out, set `allowUnsafeSteps` to `false` in your config. See [Configuration precedence](/reference/reference/cli#configuration-precedence).
 </Note>
 
-The image also sets `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`, where its browsers are pre-installed, and `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1`, because the image tag sets the version. For every variable Doc Detective reads, see [Environment variables](/reference/reference/cli#environment-variables).
+The image also sets `DOC_DETECTIVE_CACHE_DIR=/opt/doc-detective`, where its browsers are pre-installed, `DOC_DETECTIVE_SKIP_AUTO_UPDATE=1`, and `DOC_DETECTIVE_SKIP_BROWSER_UPDATE=1`, because the image tag sets the version of Doc Detective and of its browsers. For every variable Doc Detective reads, see [Environment variables](/reference/reference/cli#environment-variables).
 
 ## Step 2: Understand headless behavior
 
@@ -46,6 +46,8 @@ export DOC_DETECTIVE_CACHE_DIR="$PWD/.doc-detective-cache"
 doc-detective install all --yes
 ```
 
+Doc Detective checks cached browsers and drivers once a day and replaces outdated ones, so a persisted cache stays current. To pin the cached builds, set `DOC_DETECTIVE_SKIP_BROWSER_UPDATE=1`, as the official image does.
+
 On a fresh `npm install`, Doc Detective also pre-warms these assets automatically. To skip that step, set `DOC_DETECTIVE_AUTOINSTALL=0`. That's useful when you want to control exactly when assets download in CI. The official container ships with assets already warmed, so you don't need this step inside it.
 
 Each run front-loads whatever the cache is missing. Before executing tests, Doc Detective plans the installs, device boots, and downloads its tests need, then runs them concurrently as a warm phase. With a persisted cache the phase completes in milliseconds. On a cold cache it overlaps the downloads instead of paying them one test at a time. The per-task timings land in the JSON results. See [Read the warm-phase timings](/docs/ci/reporters-and-artifacts#read-the-warm-phase-timings).
@@ -54,7 +56,7 @@ Each run front-loads whatever the cache is missing. Before executing tests, Doc 
 `docdetective/docdetective:linux` is a multi-arch image covering `linux/amd64` and `linux/arm64`. Chrome and ChromeDriver have no native `linux/arm64` build upstream, because Google's Chrome for Testing only publishes x64 binaries. On the `linux/arm64` variant, Chrome and ChromeDriver pre-warming is skipped rather than failing the image. To run Chrome-driven tests on arm64 hosts, run the `linux/amd64` variant under emulation, or use Firefox instead. Firefox and GeckoDriver both ship in the image for arm64 and run natively, so a Firefox context needs no extra setup.
 </Note>
 
-For a GitHub Actions caching recipe, see [Runtime caching](/docs/ci/github-action#runtime-caching).
+On GitHub Actions, the Doc Detective action caches these assets between runs by default. See [Runtime caching](/docs/ci/github-action#runtime-caching).
 
 ## Step 4: Run headless in CI
 
@@ -119,7 +121,7 @@ On a runner that executes specs you don't control, set `DOC_DETECTIVE_BLOCK_LOCA
 
 **Cause:** The runtime cache isn't persisted between runs.
 
-**Solution:** Set `DOC_DETECTIVE_CACHE_DIR` to a path your CI caches, and pre-install with `doc-detective install all --yes`. See [Runtime caching](/docs/ci/github-action#runtime-caching).
+**Solution:** Set `DOC_DETECTIVE_CACHE_DIR` to a path your CI caches, and pre-install with `doc-detective install all --yes`. On GitHub Actions, the action caches these assets by default. See [Runtime caching](/docs/ci/github-action#runtime-caching).
 
 ## What's next
 

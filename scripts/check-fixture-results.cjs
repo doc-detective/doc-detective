@@ -61,6 +61,24 @@ if (process.env.DD_FIXTURES_REQUIRE_PASS === "1" && passed === 0) {
   process.exit(1);
 }
 
+// Opt-in (DD_FIXTURES_REQUIRE_PASS_SPECS=<specId>,<specId>): each named spec
+// must PASS. The rule above is met by one PASS anywhere in the bundle, so a
+// leg that exists to prove one spec names it here. A skip of that spec then
+// fails the job.
+const mustPass = (process.env.DD_FIXTURES_REQUIRE_PASS_SPECS || "")
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
+const notPassed = mustPass.filter(
+  (id) => !specs.some((s) => s.specId === id && s.result === "PASS")
+);
+if (notPassed.length > 0) {
+  console.error(
+    `This leg requires these spec(s) to PASS (DD_FIXTURES_REQUIRE_PASS_SPECS), and they skipped or didn't run: ${notPassed.join(", ")}. Read the skip reasons in ${resultsPath}.`
+  );
+  process.exit(1);
+}
+
 console.log(
   `All ${specs.length} spec(s) passed or skipped (${passed} passed, ${skipped} skipped).`
 );

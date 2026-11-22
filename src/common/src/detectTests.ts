@@ -128,7 +128,9 @@ export function parseXmlAttributes({ stringifiedObject }: { stringifiedObject: s
 
   // Parse XML-style attributes
   const result: Record<string, any> = {};
-  const attrRegex = /([\w.]+)=(?:"([^"]*)"|'([^']*)'|(\S+))/g;
+  // The lookbehind starts a key only at the start of a `[\w.]` run, so a long
+  // run with no `=` is scanned once rather than from every position in it.
+  const attrRegex = /(?<![\w.])([\w.]+)=(?:"([^"]*)"|'([^']*)'|(\S+))/g;
   let match;
   let hasMatches = false;
 

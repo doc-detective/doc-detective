@@ -153,6 +153,7 @@ import {
   listInstalledSystemImages,
   installAndroid,
 } from "../runtime/androidInstaller.js";
+import { ensureManagedWda, stopWdaBuilds } from "../runtime/iosInstaller.js";
 import {
   buildAcquireDeviceDeps,
   findUia2Helpers,
@@ -291,6 +292,7 @@ export {
   mergeAutoRecording,
   contextResultSources,
   runContext,
+  runStep,
   stopAllRecordings,
   specIsRouted,
   killTree,
@@ -983,6 +985,7 @@ async function androidContextPreflight({
   const toolchain = planAndroidToolchain({
     capable,
     sdkPresent: sdk !== null,
+    emulatorPresent: Boolean(sdk?.emulator),
     requiredOsVersions,
     installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
     abi,
@@ -1010,6 +1013,7 @@ async function androidContextPreflight({
       reports = await installAndroid({
         yes: true,
         osVersion: toolchain.osVersion,
+        toolsOnly: toolchain.toolsOnly,
         ctx: { cacheDir: config.cacheDir },
         deps: { logger: (m: string) => clog("debug", m) },
       });
@@ -1043,6 +1047,7 @@ async function androidContextPreflight({
     const recheck = planAndroidToolchain({
       capable: true,
       sdkPresent: sdk !== null,
+      emulatorPresent: Boolean(sdk?.emulator),
       requiredOsVersions,
       installedImages: sdk ? listInstalledSystemImages(sdk.sdkRoot) : [],
       abi,
@@ -1115,29 +1120,33 @@ async function androidContextPreflight({
 // capability/toolchain probes via appSurfacePreflight, then validation that
 // the context's default simulator can be resolved (booted/created) via
 // simctl. On success return the appium entry/home, the injected simctl effect
-// bundle for the run's acquireSimulator closure, and the device browser (if
-// any) to open a session for.
+// bundle for the run's acquireSimulator closure, the device browser (if
+// any) to open a session for, and any warnings for the context report.
 async function iosContextPreflight({
   config,
   context,
+  clog,
 }: {
   config: any;
   context: any;
+  clog: (level: string, msg: string) => void;
 }): Promise<
   | {
       ok: true;
       appiumEntry: string;
       appiumHome: string;
       simulatorDeps: any;
+      warnings: string[];
       mobileWebBrowserName: string | null;
     }
   | { ok: false; level: "warning" | "info"; reason: string; fail?: boolean }
 > {
+  const hasAppStep = isAppDriverRequired({ test: context });
   const gate = mobileBrowserGate({
     platform: "ios",
     browser: context.browser,
     hasBrowserStep: isBrowserRequired({ test: context }),
-    hasAppStep: isAppDriverRequired({ test: context }),
+    hasAppStep,
   });
   if (gate.action === "skip") {
     return { ok: false, level: gate.level, reason: gate.reason };
@@ -1179,11 +1188,35 @@ async function iosContextPreflight({
       reason: `Skipped: couldn't probe the iOS simulator environment (${error?.message ?? error}). Check Xcode / simctl, or run \`doc-detective install ios --yes\`.`,
     };
   }
+  // First use (ADR 01214): a context about to open a session builds the
+  // managed WebDriverAgent when the cache has none, as the Android preflight
+  // installs its toolchain. App and mobile-web sessions both pass through
+  // here, and both then find the build with locateManagedWda. `config` is the
+  // run's one config object, so the run builds at most once.
+  const warnings =
+    hasAppStep || gate.browserName
+      ? await ensureManagedWda({
+          scope: config,
+          ctx: { cacheDir: config?.cacheDir },
+          warn: (m) => clog("warning", m),
+          deps: { logger: (m: string) => clog("debug", m) },
+        })
+      : [];
+  // The run was interrupted. The interrupt's cleanup has closed the run's
+  // Appium servers, so a session opened now would start one that outlives it.
+  if (!warnings) {
+    return {
+      ok: false,
+      level: "info",
+      reason: "Skipped: the run was interrupted.",
+    };
+  }
   return {
     ok: true,
     appiumEntry: pre.appiumEntry,
     appiumHome: pre.appiumHome,
     simulatorDeps,
+    warnings,
     mobileWebBrowserName: gate.browserName,
   };
   /* c8 ignore stop */
@@ -2147,6 +2180,9 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   // handler awaits the tree-kills before exiting so children don't outlive it.
   const onSignal = createInterruptHandler({
     cleanup: async () => {
+      // A first-use WebDriverAgent build (ADR 01214) runs `xcodebuild` in its
+      // own process group, which a terminal's Ctrl-C doesn't reach.
+      const wdaBuildsStopped = stopWdaBuilds();
       await killAllRegistered();
       await Promise.all(
         [...appiumServers, ...appServerPool.drain()].map((server) =>
@@ -2160,6 +2196,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           // best-effort
         }
       }
+      await wdaBuildsStopped;
     },
   });
   process.on("SIGINT", onSignal);
@@ -4519,7 +4556,7 @@ async function runContext({
       /* c8 ignore stop */
     } else {
       // iOS (phase A4): on ok, prime the app session with the simulator layer.
-      const pre = await iosContextPreflight({ config, context });
+      const pre = await iosContextPreflight({ config, context, clog });
       if (!pre.ok) return gateOutcome(pre);
       /* c8 ignore start */
       // The ok path only runs on a capable macOS host (CI fixture legs).
@@ -4529,6 +4566,9 @@ async function runContext({
       appSession.iosSimulatorRegistry = simulatorRegistry;
       appSession.iosSimulatorDeps = pre.simulatorDeps;
       appSession.appServerPool = appServerPool;
+      // A first-use WebDriverAgent build goes in the report too (ADR 01214).
+      // Contexts that waited on one build share its array, so copy it.
+      if (pre.warnings.length) contextReport.warnings = [...pre.warnings];
       gateBrowserName = pre.mobileWebBrowserName;
       /* c8 ignore stop */
     }
@@ -5937,8 +5977,16 @@ async function runContextWithRetries(
 
   let report: any;
   let attempt = 0;
+  // Preflight warnings from the attempts so far. A retry's preflight finds
+  // what an earlier attempt installed or built (the Android toolchain,
+  // WebDriverAgent), so it warns about nothing. The report keeps them.
+  let warnings: string[] = [];
   for (; ; attempt++) {
     report = await timedRunContext(args);
+    if (report && typeof report === "object") {
+      warnings = [...new Set([...warnings, ...(report.warnings ?? [])])];
+      if (warnings.length) report.warnings = warnings;
+    }
     const retryable = report?.result === "FAIL" && report?._sessionDied === true;
     if (!retryable || attempt >= retries) break;
     log(
@@ -6262,6 +6310,11 @@ async function runStep({
         }
       }
       recordingHost.state.recordings.push(handle);
+      // The host owns the live handle now. Take it off the result, which the
+      // step loop logs as JSON and reports: a device handle holds its driver,
+      // and on a mobile-web context that driver is this host, so the two
+      // point at each other (issue #1007). Like `rawElement` below.
+      delete actionResult.recording;
     }
   } else if (typeof step.runCode !== "undefined") {
     actionResult = await runCode({ config: config, step: step, driver, processRegistry });

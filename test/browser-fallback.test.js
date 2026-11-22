@@ -259,6 +259,43 @@ describe("runContextWithRetries (mid-run session-death retry)", function () {
     assert.equal(report.retries, 1, "recovered report should record 1 retry");
   });
 
+  it("keeps an earlier attempt's preflight warnings on the report of the retry", async function () {
+    // The first attempt installs or builds something and warns. The retry's
+    // preflight finds it ready, so its own report has no warnings.
+    const built = "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one.";
+    for (const [retryWarnings, expected] of [
+      [undefined, [built]],
+      [[built, "another"], [built, "another"]],
+    ]) {
+      let calls = 0;
+      const fn = async () => {
+        calls++;
+        if (calls === 1) {
+          const report = { result: "FAIL", steps: [], warnings: [built] };
+          Object.defineProperty(report, "_sessionDied", { value: true, enumerable: false });
+          return report;
+        }
+        return { result: "PASS", steps: [], ...(retryWarnings ? { warnings: retryWarnings } : {}) };
+      };
+      const report = await runContextWithRetries(
+        { context: { contextId: "c1" }, config: { retries: 1 } },
+        fn,
+        noDelay
+      );
+      assert.equal(report.result, "PASS");
+      assert.deepEqual(report.warnings, expected);
+    }
+  });
+
+  it("adds no warnings field to a retried report that never had any", async function () {
+    const report = await runContextWithRetries(
+      { context: { contextId: "c1" }, config: { retries: 1 } },
+      fakeRunContext({ failTimes: 1 }),
+      noDelay
+    );
+    assert.equal("warnings" in report, false);
+  });
+
   it("does NOT retry a live-session FAIL (no _sessionDied) — a real bug still fails", async function () {
     const fn = fakeRunContext({ failTimes: 1, died: false });
     const report = await runContextWithRetries(

@@ -1269,7 +1269,7 @@ export async function downloadAndExtractOutput(
 
   const tempDir = path.join(os.tmpdir(), "doc-detective");
   const hash = crypto
-    .createHash("md5")
+    .createHash("sha256")
     .update(`${herettoName}_${jobId}`)
     .digest("hex");
 

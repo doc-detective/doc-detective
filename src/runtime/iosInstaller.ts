@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import fsDefault from "node:fs";
 import path from "node:path";
+import { envFlag } from "../envFlag.js";
 import {
   readInstalledRecord,
   writeInstalledRecord,
@@ -19,9 +20,11 @@ import {
   findWdaSource,
   getWdaRoot,
   LAST_USED_STAMP,
+  locateManagedWda,
   MIN_PREBUILT_WDA_DRIVER_MAJOR,
   MIN_XCODE_MAJOR,
   parseXcodebuildVersion,
+  probeXcodeVersionCached,
   PRODUCTS_MARKER,
   readProductsMarker,
   RUNNER_APP_RELATIVE,
@@ -48,11 +51,14 @@ export interface IOSInstallerDeps {
     args: string[]
   ) => { status: number | null; stderr?: string; stdout?: string };
   // --- WDA prebuild effects (all injectable for hermetic tests) ---
-  /** Long-running async spawn for xcodebuild (async so the lock heartbeat can fire). */
+  /**
+   * Long-running async spawn for xcodebuild (async so the lock heartbeat can
+   * fire). `opts.signal` aborts when an interrupt stops the build.
+   */
   runBuild?: (
     command: string,
     args: string[],
-    opts?: { timeoutMs?: number }
+    opts?: { timeoutMs?: number; signal?: AbortSignal }
   ) => Promise<{
     status: number | null;
     stdout?: string;
@@ -76,9 +82,24 @@ export interface IOSInstallerDeps {
   now?: () => number;
   /** Inter-attempt backoff for the transient-build retry; no-op in tests. */
   sleep?: (ms: number) => Promise<void>;
+  /** The session locator's Xcode probe, for the first-use build's checks. */
+  probeXcode?: () => XcodeVersion | null;
 }
 
-/** Ceiling for one xcodebuild build-for-testing attempt (~10 min typical cold). */
+/** A prebuild's report row, plus why it built nothing. */
+interface WdaPrebuild {
+  report: InstallReport;
+  /**
+   * Set only on a skipped build: the reason, as a sentence. `installIos`
+   * ignores it. `ensureManagedWda` puts it in the run's warning.
+   */
+  cause?: string;
+}
+
+/**
+ * Ceiling for one xcodebuild build-for-testing attempt. A cold build took
+ * 100–185 s on GitHub-hosted macOS runners (ADR 01214), and slower hosts take longer.
+ */
 export const WDA_BUILD_TIMEOUT_MS = 20 * 60_000;
 
 /** Total attempts for a transient xcodebuild failure (20-min ops — retry once). */
@@ -243,7 +264,7 @@ export async function installIos({
   // happen, and a plain `run:` step in CI must not fail the job over it.
   let wdaReport: InstallReport;
   try {
-    wdaReport = await prebuildWda({ ctx, deps, run, logger });
+    wdaReport = (await prebuildWda({ ctx, deps, run, logger })).report;
   } catch (error) {
     wdaReport = {
       kind: "ios",
@@ -258,27 +279,198 @@ export async function installIos({
   return [toolchainReport, wdaReport];
 }
 
-/* c8 ignore start — real spawn; unit tests inject runBuild. */
+// --- first-use build during a test run (ADR 01214) ---
+
+const WDA_BUILDING_WARNING =
+  "No WebDriverAgent build is cached for this Xcode version, so Doc Detective is building one. The first build can take several minutes. Run `doc-detective install ios --yes` ahead of time to skip the wait.";
+
+// Errors thrown by the record update that follows a published build. The
+// first-use build reports those differently from a failed build.
+const recordUpdateErrors = new WeakSet<object>();
+
+// Why the cache record couldn't be written, in words.
+function recordWriteCause(error: unknown): string {
+  const code = (error as NodeJS.ErrnoException)?.code;
+  if (code === "EACCES" || code === "EPERM" || code === "EROFS") {
+    return "The cache directory isn't writable.";
+  }
+  if (code === "ENOSPC") return "The disk is full.";
+  return "An unexpected error stopped the update.";
+}
+
+// One build attempt per run. `settled` tells a context that waited on the
+// build (it reports the warnings) from one that arrived afterwards. The
+// warnings are `null` when an interrupt stopped the build.
+const firstUseBuilds = new WeakMap<
+  object,
+  { warnings: Promise<string[] | null>; settled: boolean }
+>();
+
+/* c8 ignore start — real timers; unit tests inject acquire and sleep. */
+// A run waiting on the lock or a retry can have nothing else pending. The
+// installer's waits are unref'd, so the process would exit mid-wait with code
+// 0. These keep it alive.
+const refSleep = (ms: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
+const acquireWithRefSleep = (options: AcquireLockOptions) =>
+  acquireLock({ ...options, deps: { ...options.deps, sleep: refSleep } });
+/* c8 ignore stop */
+
+/**
+ * Before an iOS session: build the managed WebDriverAgent when the cache has
+ * none for this Xcode and driver, so the session uses it. `install ios` runs
+ * the same build ahead of time. Returns the warnings for the context's report.
+ * It never throws: after a failed build, Appium builds WebDriverAgent itself.
+ *
+ * Returns `null` once an interrupt has stopped this process's builds. The run
+ * is shutting down and has closed its Appium servers, so the caller must start
+ * no session.
+ *
+ * Builds nothing off macOS, when `DOC_DETECTIVE_NO_IOS_AUTOINSTALL` is on,
+ * when `DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH` supplies a build, or when
+ * Xcode or the driver is too old for a managed build.
+ *
+ * `scope` is any object that lives for one run. A run builds at most once.
+ */
+export async function ensureManagedWda({
+  scope,
+  ctx = {},
+  warn = () => {},
+  env = process.env,
+  deps = {},
+}: {
+  scope: object;
+  ctx?: CacheDirContext;
+  warn?: (message: string) => void;
+  env?: NodeJS.ProcessEnv;
+  deps?: IOSInstallerDeps;
+}): Promise<string[] | null> {
+  const platform = deps.platform ?? process.platform;
+  if (platform !== "darwin") return [];
+  // First, before the cache: a build that finished as the interrupt landed is
+  // in the cache, and a context that found it would open a session.
+  if (stopping) return null;
+  if (envFlag("DOC_DETECTIVE_NO_IOS_AUTOINSTALL", env)) return [];
+  if (env.DOC_DETECTIVE_IOS_WDA_DERIVED_DATA_PATH?.trim()) return [];
+
+  // The same probes the session locator uses, so the two always agree on
+  // whether this host can use a managed build.
+  const probeXcode = deps.probeXcode ?? probeXcodeVersionCached;
+  const resolveDriverVersion =
+    deps.resolveDriverVersion ?? resolveHeavyDepVersion;
+  const xcode = probeXcode();
+  if (!xcode || xcodeMajor(xcode) < MIN_XCODE_MAJOR) return [];
+  const driverMajor = Number.parseInt(
+    resolveDriverVersion("appium-xcuitest-driver", ctx) ?? "",
+    10
+  );
+  if (!(driverMajor >= MIN_PREBUILT_WDA_DRIVER_MAJOR)) return [];
+
+  // What a session will find, now and again after the build.
+  const locate = () =>
+    locateManagedWda({
+      ctx,
+      fs: deps.fs,
+      platform,
+      probeXcode,
+      resolveDriverVersion,
+      wdaRootDir: deps.wdaRootDir,
+      now: deps.now,
+    });
+  if (locate()) return [];
+
+  // This run already tried. A build still running: wait on it and report its
+  // warnings. A build that failed (a miss after it settled): don't try again
+  // and don't warn again. Appium builds WebDriverAgent for this session.
+  const earlier = firstUseBuilds.get(scope);
+  if (earlier) return earlier.settled ? [] : earlier.warnings;
+
+  const build = async () => {
+    const logger = deps.logger ?? (() => {});
+    const warnings = [WDA_BUILDING_WARNING];
+    warn(WDA_BUILDING_WARNING);
+    const warnAlso = (message: string) => {
+      warn(message);
+      warnings.push(message);
+    };
+    let cause: string | undefined;
+    let thrown: unknown;
+    try {
+      const prebuild = await prebuildWda({
+        ctx,
+        deps: { acquire: acquireWithRefSleep, sleep: refSleep, ...deps },
+        run: deps.run ?? defaultRun,
+        logger,
+        // Already checked above. A second probe could time out and read as
+        // "no Xcode".
+        xcode,
+      });
+      cause = prebuild.cause;
+      // The notes carry the build output's tail. Keep it out of the warning.
+      if (cause) logger((prebuild.report.notes ?? []).join(" | "), "debug");
+    } catch (error) {
+      thrown = error;
+      cause = "An unexpected error stopped the build.";
+      logger(String((error as Error)?.message ?? error), "debug");
+    }
+    // An interrupt stopped the build, or landed just as it finished. Either
+    // way no session follows, so there's no fallback to warn about.
+    if (stopping) return null;
+    if (!cause) return warnings;
+    if (typeof thrown === "object" && thrown && recordUpdateErrors.has(thrown)) {
+      // This build is published, and the session uses it.
+      warnAlso(
+        `Couldn't update the cache record after building WebDriverAgent, so \`installed.json\` may not list this build. ${recordWriteCause(thrown)}`
+      );
+    } else if (!locate()) {
+      warnAlso(
+        `Couldn't build WebDriverAgent before the test, so Appium builds it during the session. ${cause}`
+      );
+    }
+    // Otherwise another process published a build while this one waited or
+    // failed, and the session uses that.
+    return warnings;
+  };
+  const attempt = { warnings: build(), settled: false };
+  firstUseBuilds.set(scope, attempt);
+  try {
+    return await attempt.warnings;
+  } finally {
+    attempt.settled = true;
+  }
+}
+
 // Keep only the tail of each output stream: the transient-signature scan and
 // the reported failure tail both live at the end, and a cold WDA build can
 // emit tens of MB that would otherwise sit in memory for ~20 minutes.
 const BUILD_OUTPUT_TAIL_BYTES = 64 * 1024;
 
-function defaultRunBuild(
-  command: string,
+/**
+ * Run one `xcodebuild` attempt. The timeout ceiling and an abort of `signal`
+ * both kill its whole process group. `effects` are for tests.
+ *
+ * The command is fixed and the arguments go as a list, with no shell, so no
+ * path in them is ever read as shell syntax.
+ */
+export function runXcodebuild(
   args: string[],
-  opts: { timeoutMs?: number } = {}
+  opts: { timeoutMs?: number; signal?: AbortSignal } = {},
+  effects: { spawn?: typeof spawn; kill?: typeof process.kill } = {}
 ): Promise<{
   status: number | null;
   stdout: string;
   stderr: string;
   timedOut: boolean;
 }> {
+  const spawnChild = effects.spawn ?? spawn;
+  const kill =
+    effects.kill ?? ((pid: number, signal: NodeJS.Signals) => process.kill(pid, signal));
   return new Promise((resolve, reject) => {
-    // detached: give xcodebuild its own process group so a ceiling kill can
-    // take down XCBBuildService/clang children too — an orphaned build
-    // service holding the DerivedData would poison the keyed dir.
-    const child = spawn(command, args, { windowsHide: true, detached: true });
+    // detached: give xcodebuild its own process group so a kill can take down
+    // XCBBuildService/clang children too — an orphaned build service holding
+    // the DerivedData would poison the keyed dir. A terminal's Ctrl-C doesn't
+    // reach that group, so `signal` is the only way an interrupt stops it.
+    const child = spawnChild("xcodebuild", args, { windowsHide: true, detached: true });
     let stdout = "";
     let stderr = "";
     let timedOut = false;
@@ -286,31 +478,46 @@ function defaultRunBuild(
       (buf + d).slice(-BUILD_OUTPUT_TAIL_BYTES);
     child.stdout?.on("data", (d) => (stdout = append(stdout, d)));
     child.stderr?.on("data", (d) => (stderr = append(stderr, d)));
+    const killGroup = () => {
+      try {
+        if (child.pid) kill(-child.pid, "SIGKILL");
+        else child.kill("SIGKILL");
+      } catch {
+        try {
+          child.kill("SIGKILL");
+        } catch {
+          // Already gone. A throw from the abort listener would crash the CLI.
+        }
+      }
+    };
     let timer: NodeJS.Timeout | undefined;
     if (opts.timeoutMs) {
       timer = setTimeout(() => {
         timedOut = true;
         stderr += `\nxcodebuild killed at the ${opts.timeoutMs} ms ceiling`;
-        try {
-          if (child.pid) process.kill(-child.pid, "SIGKILL");
-          else child.kill("SIGKILL");
-        } catch {
-          child.kill("SIGKILL");
-        }
+        killGroup();
       }, opts.timeoutMs);
       timer.unref?.();
     }
-    child.on("error", (err) => {
+    opts.signal?.addEventListener("abort", killGroup, { once: true });
+    if (opts.signal?.aborted) killGroup();
+    // Once it's over, the pid can belong to another process.
+    const settle = () => {
       if (timer) clearTimeout(timer);
+      opts.signal?.removeEventListener("abort", killGroup);
+    };
+    child.on("error", (err) => {
+      settle();
       reject(err);
     });
     child.on("close", (status) => {
-      if (timer) clearTimeout(timer);
+      settle();
       resolve({ status, stdout, stderr, timedOut });
     });
   });
 }
 
+/* c8 ignore start — a real timer; unit tests inject sleep. */
 function defaultSleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     const timer = setTimeout(resolve, ms);
@@ -326,19 +533,54 @@ function defaultSleep(ms: number): Promise<void> {
 // happen (the session-time fallback is today's behavior — WDA builds inside
 // the first XCUITest session).
 
+// The builds this process is running, from lock to release.
+const buildsInFlight = new Set<{ stop: AbortController; done: Promise<void> }>();
+
+// Set by the first `stopWdaBuilds`. The process is exiting, so from then on no
+// build may start: its `xcodebuild` would outlive the process.
+let stopping = false;
+
+/**
+ * For tests, whose process goes on after a stop. `buildsInFlight` needs no
+ * reset: `stopWdaBuilds` resolves only once every build has left it.
+ */
+export function _resetWdaStopForTests(): void {
+  stopping = false;
+}
+
+/**
+ * Stop every WebDriverAgent build this process is running: kill `xcodebuild`
+ * and what it spawned, then wait until each build has released its lock. An
+ * interrupt handler calls this before it exits. Never rejects.
+ */
+export async function stopWdaBuilds(): Promise<void> {
+  stopping = true;
+  const builds = [...buildsInFlight];
+  for (const build of builds) build.stop.abort();
+  await Promise.all(builds.map((build) => build.done));
+}
+
 async function prebuildWda({
   ctx,
   deps,
   run,
   logger,
+  xcode: knownXcode,
 }: {
   ctx: CacheDirContext;
   deps: IOSInstallerDeps;
   run: NonNullable<IOSInstallerDeps["run"]>;
   logger: Logger;
-}): Promise<InstallReport> {
+  /** The Xcode version, when the caller has already probed it. */
+  xcode?: XcodeVersion;
+}): Promise<WdaPrebuild> {
   const fs = deps.fs ?? (fsDefault as unknown as WdaFs);
-  const runBuild = deps.runBuild ?? defaultRunBuild;
+  // The injected runner takes a command so tests can assert it. The real one
+  // ignores it: `runXcodebuild` hard-codes the command.
+  const runBuild =
+    deps.runBuild ??
+    ((_command: string, args: string[], opts?: { timeoutMs?: number; signal?: AbortSignal }) =>
+      runXcodebuild(args, opts));
   const ensureInstalled =
     deps.ensureInstalled ??
     ((packages: string[], options?: { ctx?: CacheDirContext }) =>
@@ -352,31 +594,32 @@ async function prebuildWda({
   const now = deps.now ?? Date.now;
   const sleep = deps.sleep ?? defaultSleep;
 
-  const report = (action: string, notes: string[]): InstallReport => ({
-    kind: "ios",
-    assetId: "ios-wda",
-    action,
-    notes,
+  const report = (action: string, notes: string[]): WdaPrebuild => ({
+    report: { kind: "ios", assetId: "ios-wda", action, notes },
   });
-  const skipped = (notes: string[]) => report("skipped", notes);
+  const skipped = (cause: string, notes: string[]): WdaPrebuild => ({
+    ...report("skipped", notes),
+    cause,
+  });
 
   // Only full Xcode ships xcodebuild; the Command Line Tools alone cannot
   // build WDA (and `xcode-select -p` can't tell the two apart).
-  const versionProbe = run("xcodebuild", ["-version"]);
+  const versionProbe = knownXcode ? undefined : run("xcodebuild", ["-version"]);
   const xcode =
-    versionProbe.status === 0
+    knownXcode ??
+    (versionProbe?.status === 0
       ? parseXcodebuildVersion(versionProbe.stdout)
-      : null;
+      : null);
   if (!xcode) {
-    return skipped([
+    return skipped("Full Xcode isn't installed.", [
       "full Xcode is required to prebuild WebDriverAgent (xcodebuild is unavailable — Command Line Tools alone are not enough)",
       "install Xcode from the App Store, run xcode-select -s <Xcode.app path>, then rerun: doc-detective install ios --yes",
-      (versionProbe.stderr || "").trim(),
+      (versionProbe?.stderr || "").trim(),
     ].filter(Boolean));
   }
 
   if (xcodeMajor(xcode) < MIN_XCODE_MAJOR) {
-    return skipped([
+    return skipped(`Xcode ${xcode.version} is older than Xcode ${MIN_XCODE_MAJOR}.`, [
       `Xcode ${xcode.version} is below the minimum (Xcode ${MIN_XCODE_MAJOR}) supported for the WebDriverAgent prebuild`,
       "update Xcode, then rerun: doc-detective install ios --yes",
     ]);
@@ -387,7 +630,7 @@ async function prebuildWda({
   try {
     await ensureInstalled(["appium-xcuitest-driver"], { ctx });
   } catch (error) {
-    return skipped([
+    return skipped("The `appium-xcuitest-driver` install failed.", [
       "installing appium-xcuitest-driver failed; the first iOS session will retry the install",
       String((error as Error)?.message ?? error),
     ]);
@@ -396,7 +639,7 @@ async function prebuildWda({
   const driverEntry = resolveDriverPath("appium-xcuitest-driver", ctx);
   const driverVersion = resolveDriverVersion("appium-xcuitest-driver", ctx);
   if (!driverEntry || !driverVersion) {
-    return skipped([
+    return skipped("The `appium-xcuitest-driver` package wasn't found after its install.", [
       "appium-xcuitest-driver did not resolve after install; cannot locate the WebDriverAgent source",
     ]);
   }
@@ -410,7 +653,7 @@ async function prebuildWda({
     !Number.isFinite(driverMajor) ||
     driverMajor < MIN_PREBUILT_WDA_DRIVER_MAJOR
   ) {
-    return skipped([
+    return skipped(`\`appium-xcuitest-driver\` ${driverVersion} is older than ${MIN_PREBUILT_WDA_DRIVER_MAJOR}.0.`, [
       `appium-xcuitest-driver ${driverVersion} is below the minimum (${MIN_PREBUILT_WDA_DRIVER_MAJOR}.x) supported for prebuilt-WDA consumption — sessions would ignore the products`,
       "upgrade the pinned driver (or remove the pin so doc-detective installs its declared version), then rerun: doc-detective install ios --yes",
     ]);
@@ -418,7 +661,7 @@ async function prebuildWda({
 
   const wdaSource = findWdaSource(driverEntry, fs);
   if (!wdaSource) {
-    return skipped([
+    return skipped("The WebDriverAgent source wasn't found under the installed `appium-xcuitest-driver`.", [
       "the appium-webdriveragent package (WebDriverAgent.xcodeproj) was not found under the installed driver",
     ]);
   }
@@ -430,8 +673,12 @@ async function prebuildWda({
   const key = computeWdaKey(xcode, driverVersion);
   const keyDir = path.join(wdaRoot, key);
 
+  // The session locator's test, so the two never disagree: a marker that
+  // names another key is a miss there, and must be one here.
+  const built = () => readProductsMarker(keyDir, fs)?.key === key;
+
   // Pre-lock fast path: a completed build for this exact toolchain.
-  if (readProductsMarker(keyDir, fs)) {
+  if (built()) {
     touchLastUsed(keyDir, fs, now);
     return report("already-up-to-date", [
       `WebDriverAgent build products present for ${key}`,
@@ -443,16 +690,39 @@ async function prebuildWda({
     waitMs: WDA_LOCK_WAIT_MS,
   });
   if (!lock) {
-    return skipped([
+    return skipped("Another process held the WebDriverAgent build lock for the whole wait.", [
       "another install is currently building WebDriverAgent (lock wait elapsed); rerun later or let the concurrent build finish",
     ]);
   }
+
+  // The half-built directory stays without its marker, so nothing uses it.
+  // The next build for this key picks up where this one stopped.
+  const interrupted = () =>
+    skipped("An interrupt stopped the build.", [
+      "the WebDriverAgent build was interrupted; rerun: doc-detective install ios --yes",
+    ]);
+  // The interrupt came while this call waited for the lock, or before the
+  // call. `stopWdaBuilds` has already looked for builds to stop.
+  if (stopping) {
+    try {
+      lock.release();
+    } catch {
+      // Best effort. A later build takes over a lock whose holder is gone.
+    }
+    return interrupted();
+  }
+
+  // From here until the lock's release, `stopWdaBuilds` can stop this build.
+  const stop = new AbortController();
+  let finished!: () => void;
+  const inFlight = { stop, done: new Promise<void>((resolve) => (finished = resolve)) };
+  buildsInFlight.add(inFlight);
 
   try {
     // Re-check under the lock: a contender that waited out a concurrent
     // build finds the now-valid marker and must not build again (the
     // check-then-lock TOCTOU close from the design doc).
-    if (readProductsMarker(keyDir, fs)) {
+    if (built()) {
       touchLastUsed(keyDir, fs, now);
       return report("already-up-to-date", [
         `WebDriverAgent build products present for ${key} (built concurrently)`,
@@ -460,7 +730,7 @@ async function prebuildWda({
     }
 
     logger(
-      `Prebuilding WebDriverAgent for ${key} (first build takes ~10 minutes)…`,
+      `Prebuilding WebDriverAgent for ${key} (the first build can take several minutes)…`,
       "info"
     );
     const derivedDataPath = path.join(keyDir, "DerivedData");
@@ -479,16 +749,22 @@ async function prebuildWda({
     ];
 
     for (let attempt = 1; attempt <= WDA_BUILD_MAX_ATTEMPTS; attempt++) {
+      // An interrupt during the retry backoff starts no second build.
+      if (stop.signal.aborted) return interrupted();
       const build = await runBuild("xcodebuild", buildArgs, {
         timeoutMs: WDA_BUILD_TIMEOUT_MS,
+        signal: stop.signal,
       });
       if (build.status === 0) break;
+      // A killed build can look transient. It's never retried: a second
+      // `xcodebuild` would outlive the process.
+      if (stop.signal.aborted) return interrupted();
       const failureText = `${build.stderr ?? ""}\n${build.stdout ?? ""}`;
       // A ceiling kill is never retried: a second ceiling-length attempt
       // would double the worst case to ~40 minutes and blow the CI jobs'
       // budgets — and a build that needs >20 minutes isn't transient.
       if (build.timedOut) {
-        return skipped([
+        return skipped(`The build didn't finish within ${WDA_BUILD_TIMEOUT_MS / 60_000} minutes.`, [
           `the WebDriverAgent build was killed at the ${WDA_BUILD_TIMEOUT_MS} ms ceiling; the first iOS session will build WDA itself`,
           tail(failureText),
         ]);
@@ -504,7 +780,7 @@ async function prebuildWda({
         await sleep(attempt * 2000);
         continue;
       }
-      return skipped([
+      return skipped("`xcodebuild` exited with an error.", [
         "the WebDriverAgent build failed; the first iOS session will build WDA itself",
         tail(failureText),
       ]);
@@ -512,7 +788,7 @@ async function prebuildWda({
 
     const runnerApp = path.join(keyDir, RUNNER_APP_RELATIVE);
     if (!fs.existsSync(runnerApp)) {
-      return skipped([
+      return skipped("The build finished without the WebDriverAgent runner app.", [
         "the WebDriverAgent build completed but its products are missing (WebDriverAgentRunner-Runner.app not found)",
         `expected: ${runnerApp}`,
       ]);
@@ -539,14 +815,20 @@ async function prebuildWda({
     // Record + prune in the same pass so installed.json never references a
     // deleted key. Keys are additive subdirs: "updated" means the current
     // toolchain moved to a new key, never a rebuild in place.
-    const record = readRecord(ctx);
-    const previousKeys = record.ios?.wdaKeys ?? [];
-    const survivors = pruneStaleKeys({ wdaRoot, keepKey: key, fs, now });
-    record.ios = {
-      wdaKeys: survivors,
-      updatedAt: new Date(now()).toISOString(),
-    };
-    writeRecord(record, ctx);
+    let previousKeys: string[];
+    try {
+      const record = readRecord(ctx);
+      previousKeys = record.ios?.wdaKeys ?? [];
+      const survivors = pruneStaleKeys({ wdaRoot, keepKey: key, fs, now });
+      record.ios = {
+        wdaKeys: survivors,
+        updatedAt: new Date(now()).toISOString(),
+      };
+      writeRecord(record, ctx);
+    } catch (error) {
+      if (typeof error === "object" && error) recordUpdateErrors.add(error);
+      throw error;
+    }
 
     const action =
       previousKeys.length > 0 && !previousKeys.includes(key)
@@ -558,7 +840,13 @@ async function prebuildWda({
       `products: ${runnerApp}`,
     ]);
   } finally {
-    lock.release();
+    try {
+      lock.release();
+    } finally {
+      // Even when the release throws: `stopWdaBuilds` is waiting on this.
+      buildsInFlight.delete(inFlight);
+      finished();
+    }
   }
 }
 

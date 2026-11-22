@@ -141,7 +141,8 @@ describe("runtime helpers extra coverage", function () {
       expect(threw).to.equal(true);
     });
 
-    it("ensureBrowserInstalled fast-path: fresh record whose latestKnownVersion differs warns and reports outdated (no resolveBuildId)", async function () {
+    it("ensureBrowserInstalled fast-path: with updates off, a fresh record whose latestKnownVersion differs warns and reports outdated (no resolveBuildId)", async function () {
+      process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE = "1";
       let resolveCalled = false;
       writeInstalledRecord(
         {
@@ -163,14 +164,19 @@ describe("runtime helpers extra coverage", function () {
         return "999.0.0";
       };
       const warnings = [];
-      const result = await ensureBrowserInstalled("chrome", {
-        deps: {
-          browsersModule,
-          logger: (msg, level) => {
-            if (level === "warning") warnings.push(msg);
+      let result;
+      try {
+        result = await ensureBrowserInstalled("chrome", {
+          deps: {
+            browsersModule,
+            logger: (msg, level) => {
+              if (level === "warning") warnings.push(msg);
+            },
           },
-        },
-      });
+        });
+      } finally {
+        delete process.env.DOC_DETECTIVE_SKIP_BROWSER_UPDATE;
+      }
       expect(result.version).to.equal("100.0.0");
       expect(result.outdated).to.equal(true);
       expect(resolveCalled, "fast path must not resolve the channel").to.equal(false);
@@ -1059,8 +1065,10 @@ describe("runtime helpers extra coverage", function () {
         child.stderr = new EventEmitter();
         child.kill = () => {
           killed = true;
+          // A killed child exits; the install settles on its close.
+          setImmediate(() => child.emit("close", null));
         };
-        // deliberately never emit close/error
+        // never emits close/error on its own
         return child;
       };
       let threw = false;

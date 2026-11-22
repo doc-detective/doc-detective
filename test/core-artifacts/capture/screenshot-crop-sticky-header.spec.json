@@ -1,0 +1,110 @@
+{
+  "specId": "screenshot-crop-sticky-header",
+  "description": "Crops elements that sit below a fixed header on a page that has to scroll to reach them (#145). The crop scrolls each element to the center of the viewport, so the header doesn't cover it. One test per browser engine; the pixel assertion (no header in the crop) lives in test/core-core.test.js.",
+  "tests": [
+    {
+      "testId": "crop-sticky-header-chrome",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "viewport": {
+              "width": 1200,
+              "height": 900
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/crop-sticky-header.html"
+        },
+        {
+          "screenshot": {
+            "path": "crop-sticky-get-started-chrome.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": {
+              "elementText": "Get started",
+              "padding": 5
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Learn more",
+            "moveTo": true
+          }
+        },
+        {
+          "screenshot": {
+            "path": "crop-sticky-learn-more-chrome.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": {
+              "elementText": "Learn more",
+              "padding": 10
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "crop-sticky-header-firefox",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "viewport": {
+              "width": 1200,
+              "height": 900
+            }
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/crop-sticky-header.html"
+        },
+        {
+          "screenshot": {
+            "path": "crop-sticky-get-started-firefox.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": {
+              "elementText": "Get started",
+              "padding": 5
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Learn more",
+            "moveTo": true
+          }
+        },
+        {
+          "screenshot": {
+            "path": "crop-sticky-learn-more-firefox.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": {
+              "elementText": "Learn more",
+              "padding": 10
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

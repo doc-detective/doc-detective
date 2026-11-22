@@ -1042,7 +1042,8 @@ function buildAppLocator(
   },
   platform?: string
 ): { strategy: string; value: string } | { error: string } {
-  if (typeof criteria.selector === "string") {
+  // An image can't be matched here, and a native selector beside it mustn't hide that.
+  if (typeof criteria.selector === "string" && criteria.elementImage === undefined) {
     const kind = classifyNativeSelector(criteria.selector);
     if (kind === "xpath") return { strategy: "xpath", value: criteria.selector };
     if (kind === "accessibilityId")
@@ -1054,7 +1055,7 @@ function buildAppLocator(
       error: `CSS selectors are browser-only. On app surfaces, use the semantic fields (elementText, elementId, elementAria) or a native locator: an XPath (//Button[@Name="Save"]) or an accessibility id (~SaveButton).`,
     };
   }
-  const unsupported = ["elementClass", "elementAttribute"].filter(
+  const unsupported = ["elementClass", "elementAttribute", "elementImage"].filter(
     (field) => criteria[field] !== undefined
   );
   if (unsupported.length) {

@@ -22,6 +22,10 @@ export const HEAVY_NPM_DEPS = [
   // prebuild and ships a non-executable macOS spawn-helper, so it can't be relied
   // on across the CI matrix; the fork can.
   "@homebridge/node-pty-prebuilt-multiarch",
+  // The image matcher behind `elementImage`. WebAssembly, so nothing native to
+  // install. Declared in ddRuntimeDependencies: few runs need it, and it's 8 MB.
+  "@appium/opencv",
+  "opencv-bindings",
 ] as const;
 
 export type HeavyDepName = (typeof HEAVY_NPM_DEPS)[number];
@@ -39,6 +43,11 @@ export type HeavyDepName = (typeof HEAVY_NPM_DEPS)[number];
 // HEAVY_NPM_DEPS) is a compile error.
 export const BEST_EFFORT_NPM_DEPS: ReadonlySet<string> = new Set<HeavyDepName>([
   "@homebridge/node-pty-prebuilt-multiarch",
+  // Pulls in appium-ios-tuntap, a native addon whose Linux prebuild needs
+  // glibc 2.38. On older hosts without a C toolchain and OpenSSL headers (such
+  // as node:24-slim) the build fails, and iOS needs a macOS host anyway, so it
+  // must not take the rest of Appium down with it (ADR 01210).
+  "appium-xcuitest-driver",
 ]);
 
 /**

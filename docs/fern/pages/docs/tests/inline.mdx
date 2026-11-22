@@ -25,6 +25,20 @@ When you declare a step, you can specify any of the properties of the action you
 
 If you declare a step without declaring a test, Doc Detective automatically creates a test to contain the step.
 
+## Check inline tests without running them
+
+To catch a mistake in a statement before a run, such as a misspelled action or a missing field, use `validate`. It checks the inline tests and [spec files](/docs/test-docs/standalone#check-specs-without-running-them) in the files and folders you name, and runs nothing.
+
+{/* test ignore start */}
+
+```bash
+npx doc-detective validate docs/
+```
+
+{/* test ignore end */}
+
+For each file with an invalid test, the output names the file and each problem. A page with no tests in it isn't reported. `validate` exits `0` when every test is valid and `1` when any is invalid, so you can run it in CI or before you commit. It exits `2` when it finds no tests at all, or on a usage error or invalid config. For JSON output, see [`validate`](/reference/reference/cli#validate).
+
 ## Benefits of inline tests
 
 Inline tests offer several advantages:
@@ -119,6 +133,15 @@ DITA `<data>` elements let you define inline tests using standard DITA markup:
 
 You can use single or double quotes for either attribute. Use `<data>` elements when you want tests that validate with DITA-aware tools, or when your publishing workflow filters out processing instructions.
 
+**reStructuredText files** (`.rst`):
+
+- Test comments: `.. test {"testId": "my-test-rst"}`
+- Step comments: `.. step {"goTo": "https://example.com"}`
+- Test end: `.. test end`
+- Ignore blocks: `.. test ignore start` and `.. test ignore end`
+
+Put a blank line before and after each statement. An RST statement can span lines. A comment's indented block belongs to it, so a step can continue on the lines below `.. step`. See [reStructuredText](/docs/test-docs/input-formats/rst).
+
 ## Examples
 
 {/* The examples below document inline-test syntax; they aren't runnable tests (they navigate real
@@ -210,6 +233,29 @@ Click the *Start* button:
 // (step { "click": "Start" })
 
 // (test end)
+```
+
+{/* test ignore end */}
+
+**reStructuredText example**:
+
+{/* test ignore start */}
+
+```rst
+.. test {"testId": "doc-test"}
+
+Getting started
+===============
+
+Navigate to the application:
+
+.. step {"goTo": "https://app.example.com"}
+
+Click the **Start** button:
+
+.. step {"click": "Start"}
+
+.. test end
 ```
 
 {/* test ignore end */}

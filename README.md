@@ -22,7 +22,7 @@ Doc Detective has multiple components to integrate with your workflows as you ne
 
 1. Install prerequisites:
 
-   - [Node.js](https://nodejs.org/) v24.15 or later (tested on v24 and v26)
+   - [Node.js](https://nodejs.org/) v24.22.1 or later on the 24 line, or v26.12.1 or later
 
 1. In a terminal, install Doc Detective globally:
 

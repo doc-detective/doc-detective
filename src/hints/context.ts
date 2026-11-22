@@ -93,7 +93,6 @@ export async function buildHintContext(
     hasPackageJson && hasDocDetectiveScriptInPackageJson(packageJsonPath);
   const outputDirGitignored = detectOutputDirGitignored(cwd, config.outputDir);
   const nodeMajor = parseNodeMajor(process.versions.node);
-  const hasRstFiles = detectRstFiles(cwd);
 
   return {
     config,
@@ -134,7 +133,6 @@ export async function buildHintContext(
     hasDocDetectiveNpmScript,
     outputDirGitignored,
     nodeMajor,
-    hasRstFiles,
     // Set by the runner on the results object when it serialized the run's
     // ffmpeg recordings on the shared display (other contexts still ran in
     // parallel). Defensive read — results may be partial/absent.
@@ -762,9 +760,9 @@ function inspectStep(step: any, data: WalkData): void {
 function inspectFindShape(find: any, data: WalkData): void {
   if (!find || typeof find !== "object" || Array.isArray(find)) return;
   if (typeof find.selector === "string" && find.selector.length > 0) {
-    const hasStableSibling = STABLE_FIND_KEYS.some(
-      (k) => typeof find[k] === "string" && find[k].length > 0
-    );
+    const hasStableSibling =
+      !!find.elementImage ||
+      STABLE_FIND_KEYS.some((k) => typeof find[k] === "string" && find[k].length > 0);
     if (!hasStableSibling) data.usedSelectorOnlyFinds = true;
   }
 }
@@ -1065,74 +1063,3 @@ export function parseNodeMajor(versionString: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-// ---------------------------------------------------------------------
-// RST file presence (powers useFileTypesForRst)
-//
-// `.mdx` and `.adoc` are intentionally NOT scanned here: both are
-// already covered by the default `markdown` and `asciidoc` file-type
-// templates in `src/core/config.ts` (extensions `mdx`, `adoc`,
-// `asciidoc`, `asc`). Suggesting users extend `fileTypes` for those
-// would be wrong. `.rst` is the only common documentation extension
-// that doesn't have a default template.
-// ---------------------------------------------------------------------
-
-/** Single source of truth for the RST extension(s) we scan and refer to. */
-export const RST_EXTENSIONS = [".rst"];
-const RST_FILE_SCAN_LIMIT = 100;
-
-/**
- * Returns true if any file under the repo root (or `cwd` if no
- * `.git` directory is found in any parent) ends with a `.rst`
- * suffix. Walks up from `cwd` to locate `.git`, then scans
- * downward from that directory. This keeps the probe consistent
- * with `detectDocDetectiveWorkflow` and `findPackageJsonUpward` —
- * doc-detective run from a monorepo subdirectory still sees `.rst`
- * files in sibling packages. Caps at 100 file inspections to bound
- * the worst case on huge monorepos. Skips dotted entries and
- * `node_modules`. Failures are caught and treated as "not found"
- * so a permission error never breaks the post-run summary.
- */
-export function detectRstFiles(cwd: string): boolean {
-  let scanned = 0;
-  try {
-    // Find the repo root (the directory containing `.git`). Fall
-    // back to cwd if we're not inside a git repo.
-    const gitDir = findUpward(cwd, ".git");
-    const scanRoot = gitDir !== null ? path.dirname(gitDir) : cwd;
-    return scanForExtensions(scanRoot, RST_EXTENSIONS, () => {
-      scanned += 1;
-      return scanned >= RST_FILE_SCAN_LIMIT;
-    });
-  } catch {
-    return false;
-  }
-}
-
-function scanForExtensions(
-  dir: string,
-  extensions: string[],
-  isOverBudget: () => boolean
-): boolean {
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return false;
-  }
-  // Tick the budget per entry inspected, not per recursive call — that
-  // way a single flat directory of N files can never bypass the cap.
-  // The closure-held `scanned` counter (in `detectRstFiles`) increments
-  // exactly once per dirent considered here.
-  for (const entry of entries) {
-    if (isOverBudget()) return false;
-    if (entry.name.startsWith(".") || entry.name === "node_modules") continue;
-    const full = path.join(dir, entry.name);
-    if (entry.isFile()) {
-      const lower = entry.name.toLowerCase();
-      if (extensions.some((ext) => lower.endsWith(ext))) return true;
-    } else if (entry.isDirectory()) {
-      if (scanForExtensions(full, extensions, isOverBudget)) return true;
-    }
-  }
-  return false;
-}

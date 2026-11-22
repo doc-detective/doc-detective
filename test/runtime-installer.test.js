@@ -124,7 +124,9 @@ describe("runtime/installer", function () {
         const child = new EventEmitter();
         child.stdout = new EventEmitter();
         child.stderr = new EventEmitter();
-        return child; // never emits 'close'
+        // Never exits on its own; exits once killed, as a real child does.
+        child.kill = () => setImmediate(() => child.emit("close", null));
+        return child;
       };
       try {
         await installRuntime({
@@ -249,6 +251,35 @@ describe("runtime/installer", function () {
       const byId = Object.fromEntries(reports.map((r) => [r.assetId, r]));
       expect(byId[PTY].action).to.equal("skipped");
       expect(byId.pngjs, "core dep still reported").to.exist;
+    });
+
+    it("an iOS driver that fails to build does not abort the core Appium batch", async function () {
+      // appium-xcuitest-driver pulls in a native addon whose Linux prebuild
+      // needs glibc 2.38; older hosts without a C toolchain can't build it.
+      // That must not take appium and the other drivers down with it.
+      const XCUI = "appium-xcuitest-driver";
+      const batches = [];
+      const spawner = (cmd, args) => {
+        const pkgs = args.filter((a) => typeof a === "string" && /^(appium|pngjs)/.test(a));
+        batches.push(pkgs);
+        const failing = pkgs.some((a) => a.startsWith(XCUI));
+        const child = new EventEmitter();
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        setImmediate(() => child.emit("close", failing ? 1 : 0));
+        return child;
+      };
+      const reports = await installRuntime({
+        packages: ["appium", XCUI],
+        force: true,
+        deps: { spawn: spawner, logger: () => {} },
+      });
+      const byId = Object.fromEntries(reports.map((r) => [r.assetId, r]));
+      expect(byId[XCUI].action).to.equal("skipped");
+      expect(byId.appium.action).to.not.equal("skipped");
+      // The driver installs on its own, never in the core batch.
+      const core = batches.find((b) => b.some((a) => a.startsWith("appium@")));
+      expect(core.some((a) => a.startsWith(XCUI))).to.equal(false);
     });
   });
 

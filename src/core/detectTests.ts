@@ -12,9 +12,10 @@ import { validate } from "../common/src/validate.js";
 import { getLineNumber, getLineStarts, contentHash } from "../common/src/textUtils.js";
 import { readFile, resolvePaths } from "./files.js";
 import { log, fetchFile, spawnCommand, runConcurrent, summarizeSchemaErrors, shortJson } from "./utils.js";
-import { diag, displayPath } from "../cliOutput.js";
+import { diag } from "../cliOutput.js";
 import { loadHerettoContent, createApiClient, createRestApiClient, findScenario, getResourceDependencies, DEFAULT_SCENARIO_NAME } from "./integrations/heretto.js";
 import { requireYaml } from "./lazyYaml.js";
+import { expandIncludes, remapLocations, realpath } from "./includes.js";
 
 // common's parseContent pulls in the yaml parser, so it loads on the first file
 // that needs it, once per process, instead of at module load.
@@ -116,7 +117,7 @@ function noteInvalidSpec(config: any, source: string, reason = "It isn't valid J
   if (!config._invalidSpecs) {
     Object.defineProperty(config, "_invalidSpecs", { value: [], enumerable: false });
   }
-  config._invalidSpecs.push(`${displayPath(source)}\n${reason}`);
+  config._invalidSpecs.push({ path: source, reason });
 }
 
 // Skip a spec that failed its schema check, and say why once: a strict run's
@@ -256,7 +257,7 @@ async function isValidSourceFile({ config, files, source, allowedExtensions }: {
  * @returns {Promise<string|null>} Path to output directory or null on failure
  */
 async function processDitaMap({ config, source }: { config: any; source: string }) {
-  const hash = crypto.createHash("md5").update(source).digest("hex");
+  const hash = crypto.createHash("sha256").update(source).digest("hex");
   const tmpBase = path.join(os.tmpdir(), "doc-detective");
   const outputDir = path.join(tmpBase, `ditamap_${hash}`);
   if (!fs.existsSync(tmpBase)) {
@@ -561,7 +562,46 @@ async function qualifyFiles({ config }: { config: any }) {
  * @param {Array<string>} options.files - Array of file paths to parse
  * @returns {Promise<Array>} Array of test specifications
  */
+// Expands the includes in every local documentation source (ADR 01212). A
+// remote file has no folder of its own to resolve includes against.
+function expandAll(config: any, files: string[]) {
+  const expansions = new Map<string, ReturnType<typeof expandIncludes>>();
+  if (config.resolveIncludes === false) return expansions;
+  for (const file of files) {
+    const fileType = config.fileTypes?.find((ft: any) => ft.extensions?.includes(path.extname(file).slice(1)));
+    if (!fileType || fileType.runShell || config._remoteFiles?.has(path.resolve(file))) continue;
+    let content: string;
+    try {
+      content = fs.readFileSync(file, "utf8");
+    } catch {
+      continue; // parseOneFile reports the unreadable file.
+    }
+    expansions.set(file, expandIncludes({ content, filePath: file, fileType, config }));
+  }
+  return expansions;
+}
+
 async function parseTests({ config, files }: { config: any; files: string[] }) {
+  const expansions = expandAll(config, files);
+  // A file another input includes runs inside that input, not on its own.
+  // Inputs are checked in order, so one file of an include cycle still runs.
+  const kept = new Set(expansions.keys());
+  for (const [file] of expansions) {
+    const real = realpath(file);
+    // Only an includer in the same phase absorbs the file, so a beforeAll or
+    // afterAll file still runs as a barrier.
+    const phase = (f: string) => config._phaseByFile?.get(path.resolve(f)) ?? "main";
+    const includer = [...kept].find(
+      // The set lookup goes first, so realpath runs only for actual includers.
+      (other) => expansions.get(other)!.included.has(real) && phase(other) === phase(file) && realpath(other) !== real
+    );
+    if (includer) {
+      kept.delete(file);
+      log(config, "debug", `Skipped: ${path.resolve(file)} runs inside the files that include it.`);
+    }
+  }
+  files = files.filter((file) => !expansions.has(file) || kept.has(file));
+
   // Per-file parsing extracted so it can run concurrently. Returns the parsed
   // spec, or null when the file yields no valid spec (the old `continue` cases).
   const parseOneFile = async (file: string): Promise<any | null> => {
@@ -946,9 +986,10 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       // Parse content using common's detectTests. testIdBase keys generated
       // testIds to the spec's stable path-derived ID instead of the absolute
       // file path.
+      const expansion = expansions.get(file);
       const tests = await (await loadParseContent())({
         config: config,
-        content: content,
+        content: expansion?.content ?? content,
         fileType: fileType,
         filePath: file,
         testIdBase: id,
@@ -961,6 +1002,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           noteInvalidSpec(config, file, summary ? `${shortJson(details?.object)}: ${summary}` : reason);
         },
       });
+      if (expansion?.included.size) remapLocations(tests, expansion, file);
       spec.tests.push(...tests);
 
       // Remove tests with no steps
@@ -978,7 +1020,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
       if (!validation.valid) {
         const message = `Tests from ${file} don't create a valid test specification. Skipping.`;
         // A document with no tests in it is just a document: no reason to give.
-        if (spec.tests.length === 0) log(config, "warning", message);
+        if (spec.tests.length === 0) log(config, "debug", message);
         else skipInvalidSpec(config, file, message, validation, spec);
       } else {
         spec = await resolvePaths({

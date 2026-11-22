@@ -651,6 +651,52 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("DOC_DETECTIVE_NO_IOS_AUTOINSTALL never skips an ios context or warns on its own (ADR 01214)", async function () {
+    // The Android variable SKIPs the context and names itself in the reason.
+    // The iOS one only turns off the first-use WebDriverAgent build, so the
+    // context resolves exactly as it would without it. On a non-mac host that
+    // is the toolchain SKIP, with no warning. On macOS the context opens a
+    // real simulator session, which the mobile-web-ios fixture leg covers.
+    // The build decisions themselves are unit-tested in ios-installer.test.js.
+    if (process.platform === "darwin") this.skip();
+    const prevNoInstall = process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL;
+    const iosTest = {
+      tests: [
+        {
+          testId: "ios-no-autoinstall",
+          runOn: [{ platforms: "ios" }],
+          steps: [{ startSurface: { app: "com.apple.Preferences" } }],
+        },
+        {
+          testId: "ios-web-no-autoinstall",
+          runOn: [{ platforms: "ios", browsers: "safari" }],
+          steps: [{ goTo: "https://example.com" }],
+        },
+      ],
+    };
+    const tempFilePath = path.resolve("./test/temp-ios-no-autoinstall-test.json");
+    try {
+      // Inside the try, so a failed write can't leave the variable set.
+      process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL = "1";
+      fs.writeFileSync(tempFilePath, JSON.stringify(iosTest, null, 2));
+      const result = await runTests({ input: tempFilePath, logLevel: "debug" });
+      const contexts = result.specs[0].tests.flatMap((test) => test.contexts);
+      assert.equal(contexts.length, 2, "one context per test");
+      for (const ctx of contexts) {
+        assert.equal(ctx.result, "SKIPPED");
+        assert.match(ctx.resultDescription, /macOS|Xcode|simctl/);
+        assert.doesNotMatch(ctx.resultDescription, /DOC_DETECTIVE_NO_IOS_AUTOINSTALL/);
+        assert.equal(ctx.warnings, undefined);
+      }
+      assert.equal(result.summary.specs.fail, 0);
+    } finally {
+      if (prevNoInstall === undefined)
+        delete process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL;
+      else process.env.DOC_DETECTIVE_NO_IOS_AUTOINSTALL = prevNoInstall;
+      fs.rmSync(tempFilePath, { force: true });
+    }
+  });
+
   it("Shorthand find returns without waiting out the timeout on a hit, and FAILs after the full timeout on a miss (ADR 01130)", async () => {
     // The not-found permutation of interactions/find-shorthand.spec.json: it
     // FAILs by design, so the PASS/SKIPPED fixture gate can't carry it.
@@ -693,6 +739,51 @@ describe("Run tests successfully", function () {
         miss.durationMs >= 5000,
         `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
       );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("A cropped screenshot shows the element, not a fixed header that overlaps it (#145)", async () => {
+    // The page's red fixed header covers the top of the viewport. Scrolling the
+    // crop target to the top edge put it under the header, so the crop showed
+    // the banner instead of the blue button.
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "crop-sticky-"));
+    const crop = (text, file) => ({
+      screenshot: { path: file, directory: tempDir, crop: { elementText: text, padding: 5 } },
+    });
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/crop-sticky-header.html" },
+            crop("Get started", "get-started.png"),
+            { find: { elementText: "Learn more", moveTo: true } },
+            crop("Learn more", "learn-more.png"),
+          ],
+        },
+      ],
+    };
+    const tempFilePath = path.join(tempDir, "crop-sticky.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "silent", ...NO_AUTO_CAPTURE });
+      const context = result.specs[0].tests[0].contexts.find((c) => c.steps && c.steps.length);
+      assert.ok(context, "expected a context that ran steps");
+      for (const step of context.steps) assert.equal(step.result, "PASS", step.resultDescription);
+      const { PNG } = await loadHeavyDep("pngjs");
+      for (const file of ["get-started.png", "learn-more.png"]) {
+        const png = PNG.sync.read(fs.readFileSync(path.join(tempDir, file)));
+        let red = 0;
+        let blue = 0;
+        for (let i = 0; i < png.data.length; i += 4) {
+          const [r, g, b] = png.data.subarray(i, i + 3);
+          if (r > 200 && g < 60 && b < 60) red++;
+          if (b > 200 && r < 60 && g < 60) blue++;
+        }
+        assert.equal(red, 0, `${file} shows the red header`);
+        assert.ok(blue > 0, `${file} doesn't show the blue button`);
+      }
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -1250,7 +1341,15 @@ describe("Run tests successfully", function () {
     const config = { input: tempFilePath, logLevel: "silent", autoRecord: true };
     try {
       const result = await runTests(config);
-      assert.equal(result.summary.specs.fail, 0);
+      // Explicit `autoRecord: true` is strict: a recording this host can't
+      // start or save FAILs the context. That's host-dependent (#955) and
+      // pinned elsewhere, so gate on the authored steps, not the spec result.
+      const context = result.specs?.[0]?.tests?.[0]?.contexts?.[0];
+      assert.deepEqual(
+        context?.steps?.map((s) => s.result),
+        ["PASS", "PASS"],
+        JSON.stringify({ steps: context?.steps?.map((s) => s.resultDescription), autoRecording: context?.autoRecording })
+      );
       assert.ok(
         hasSyntheticRecord(result),
         "config-level autoRecord should inject the synthetic recording step"

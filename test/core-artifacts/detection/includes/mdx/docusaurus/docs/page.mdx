@@ -1,0 +1,14 @@
+import Relative from './_relative.mdx';
+import Site from '@site/docs/_site.mdx';
+
+# Includes: Docusaurus MDX imports
+
+{/* test {"testId": "includes-docusaurus", "description": "Docusaurus default imports, relative and @site/ (ADR 01212)."} */}
+
+<Relative />
+
+<Site />
+
+{/* step {"runShell": "node -e \"process.exit(process.env.INC_DOCU_REL === 'rel' && process.env.INC_DOCU_SITE === 'site' ? 0 : 1)\""} */}
+
+{/* test end */}
