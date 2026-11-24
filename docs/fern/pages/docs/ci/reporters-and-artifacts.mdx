@@ -525,7 +525,7 @@ The exit code from the CLI gates your build, so most pipelines need nothing extr
 
 | Code | Meaning |
 |---|---|
-| `0` | No test failed, and at least one passed or warned. |
+| `0` | No test failed, and at least one test ran. With `failOn: new`, failures are allowed if none is new. |
 | `1` | At least one test failed. With `failOn: new`, at least one failure is new. |
 | `2` | Nothing valid was tested. Causes include bad usage, bad config, no tests found, every test skipped, an invalid spec, a declined install, or a crash. |
 | `130`, `143` | The run was interrupted by SIGINT or SIGTERM. |

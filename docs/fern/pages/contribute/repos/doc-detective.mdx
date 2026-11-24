@@ -32,14 +32,15 @@ A husky commit-msg hook validates commit messages locally, and GitHub Actions va
 |---|---|
 | `fix:` | patch (X.Y.**Z+1**) |
 | `feat:` | minor (X.**Y+1**.0) |
-| `feat!:` or `BREAKING CHANGE:` footer | major (**X+1**.0.0) |
-| `chore:`, `docs:`, `ci:`, `style:`, `test:`, `refactor:`, `build:`, `perf:` | no release |
+| Any type with `!` before the colon, such as `feat!:` or `refactor(agents)!:`, or with a `BREAKING CHANGE:` footer | major (**X+1**.0.0) |
+| `chore:`, `docs:`, `ci:`, `style:`, `test:`, `refactor:`, `build:`, `perf:`, with no `!` and no `BREAKING CHANGE:` footer | no release |
 
 ### Examples
 
 ```
 fix(parser): handle empty input gracefully
 feat(actions): add screenshot cropping support
+refactor(agents)!: rename the agent output directory
 feat!: remove deprecated --legacy flag
 
 BREAKING CHANGE: The --legacy flag is no longer supported.

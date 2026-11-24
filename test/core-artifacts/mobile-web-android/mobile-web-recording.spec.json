@@ -33,7 +33,7 @@
     },
     {
       "testId": "android-chrome-autorecord",
-      "description": "`autoRecord` starts the device recording before the first authored step, and the end-of-context sweep saves it. The page has no viewport meta on purpose. While a recording runs, a navigation re-injects the synthetic cursor at its earlier position, and on a page that narrows the viewport that pointer move lands out of bounds and crashes the context. That's a separate bug from #1007.",
+      "description": "`autoRecord` starts the device recording before the first authored step, and the end-of-context sweep saves it. While a recording runs, each navigation puts the synthetic cursor back at its saved position. The cursor first lands on the blank start page, which Chrome lays out 980 px wide. The first page here has a mobile viewport meta, so the viewport narrows and the saved position lies outside it: the restore has to stay inside the viewport instead of crashing the context with `move target out of bounds`. The second page has no viewport meta, so the viewport widens again.",
       "autoRecord": true,
       "runOn": [
         {
@@ -41,6 +41,15 @@
         }
       ],
       "steps": [
+        {
+          "goTo": "http://10.0.2.2:8092/click-shorthand.html"
+        },
+        {
+          "click": "Reveal by text"
+        },
+        {
+          "find": "Text click landed"
+        },
         {
           "goTo": "http://10.0.2.2:8092/find-image.html"
         },

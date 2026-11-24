@@ -247,14 +247,28 @@ const iosSubcommand: InstallSubcommand = {
   command: "ios",
   handler: async (argv: any) => {
     const logger = makeLogger(pickLogLevel(argv));
-    const { installIos } = await import("./iosInstaller.js");
-    const reports = await installIos({
-      yes: Boolean(argv.yes),
-      dryRun: Boolean(argv["dry-run"]),
-      ctx: ctxFromArgv(argv),
-      deps: { logger },
+    const { installIos, stopWdaBuilds } = await import("./iosInstaller.js");
+    const { createInterruptHandler } = await import("../core/signals.js");
+    // Ctrl-C doesn't reach `xcodebuild`, which runs in its own process group.
+    // Stop the WebDriverAgent build before exiting, as a run does (#1005).
+    const onSignal = createInterruptHandler({
+      cleanup: stopWdaBuilds,
+      stragglers: "`xcodebuild`",
     });
-    printReports(reports, logger);
+    process.on("SIGINT", onSignal);
+    process.on("SIGTERM", onSignal);
+    try {
+      const reports = await installIos({
+        yes: Boolean(argv.yes),
+        dryRun: Boolean(argv["dry-run"]),
+        ctx: ctxFromArgv(argv),
+        deps: { logger },
+      });
+      printReports(reports, logger);
+    } finally {
+      process.off("SIGINT", onSignal);
+      process.off("SIGTERM", onSignal);
+    }
   },
 };
 

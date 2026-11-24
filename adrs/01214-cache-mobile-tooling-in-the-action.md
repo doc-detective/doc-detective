@@ -128,6 +128,39 @@ Action caches only what the CLI recorded. The iOS entry is 68 MiB compressed, an
    `ios.wdaKeys` changes only when the set of WebDriverAgent builds changes. ADR 01209 makes the
    same commitment for `installedVersion`.
 
+4. **An interrupt stops the build.** `xcodebuild` runs in its own process group, so a terminal's
+   Ctrl-C doesn't reach it (#1005). On SIGINT or SIGTERM, a run and `install ios` both kill that
+   whole group, wait for it to close, and release the build lock before they exit. `install ios`
+   handles the two signals as a run does (ADR 01146). It prints this line, and exits `130` for
+   SIGINT or `143` for SIGTERM:
+
+   ```text
+   Stopping… Press Ctrl-C again to stop immediately.
+   ```
+
+   A second signal exits at once, without waiting:
+
+   ```text
+   Stopping now. `xcodebuild` may still be running.
+   ```
+
+   An interrupted build is never retried, and it writes no `products.json`. No session and no
+   cache entry takes the half-built directory. It stays in the cache, and the next build for the
+   same key continues from it. A build that finished just as the interrupt landed is complete, so
+   it keeps its `products.json`.
+
+   After the interrupt, the process starts no other build. That includes a build that was
+   waiting for the lock when the lock comes free.
+
+   In a run, an iOS context that reaches its preflight after the interrupt is skipped, and opens
+   no session. That holds whether it needed the build or found one in the cache. The interrupt
+   has already closed the run's Appium servers, so a session would start one that outlives the
+   run. The skip reason is:
+
+   ```text
+   Skipped: the run was interrupted.
+   ```
+
 ### Consequences
 
 * Good: a warm iOS run restores the WebDriverAgent build in seconds and builds nothing.
@@ -147,6 +180,9 @@ Action caches only what the CLI recorded. The iOS entry is 68 MiB compressed, an
   first-use build, it helps runs that call `install ios`.
 * Neutral: the two opt-outs differ. Android's skips the context. The iOS one still runs it,
   because Appium can build WebDriverAgent itself.
+* Good: an interrupted build leaves no `xcodebuild` running and no build lock behind.
+* Neutral: an interrupted build's files stay in the cache. A build for that key finishes them,
+  or a finished build for another key prunes them.
 
 ### Confirmation
 
@@ -166,6 +202,12 @@ The iOS numbers come from two fresh GitHub-hosted `macos-latest` VMs with Xcode 
   `apps-ios` leg keeps the restore and prebuild of ADR 01116, and proves a run that finds a
   cached build.
 * The Action change ships with unit tests beside its cache code.
+* The interrupt handling has unit tests in `test/ios-installer.test.js`. They inject the spawn and
+  kill functions, and one kills a real process group on Linux and macOS. On the macOS
+  `mobile-web-ios` leg, `scripts/check-wda-build-interrupt.cjs` signals `install ios` and a test
+  run while `xcodebuild` is running. It requires the signal's exit code, an empty process group,
+  a released lock, and no `products.json`. The leg's fixture run then finishes the half-built
+  directory.
 
 ## Pros and Cons of the Options
 
