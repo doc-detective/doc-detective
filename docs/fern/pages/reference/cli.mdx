@@ -37,7 +37,7 @@ The global flags `--quiet`, `--debug`, `--log-level`, `--json`, `--no-color`, an
 | `--spec` | `-s` | string |  | Run only specs whose specId matches the given regex (case-insensitive). Give one comma-separated list of patterns, once; a spec passes if any pattern matches. |
 | `--dry-run` | `-n` | boolean | `false` | Resolve tests fully (file detection, inline-test extraction, config merge) and emit the resolved test plan as JSON, but do not execute any steps. |
 | `--compare-to` |  | string |  | The earlier run's results to compare failures with: `previous` (the default, the newest other run folder under `<outputDir>/.doc-detective/runs/`), a results JSON file, or a folder that holds `testResults.json`. A relative path resolves against the current directory. Beats config `compareTo`. `--no-compare-to` turns comparison off. Not with `--dry-run`. |
-| `--fail-on` |  | string | `any` | Which failures exit `1`: `any` (the default) or `new`, only failures that weren't failing in the run this one was compared with. With no comparison, every failure counts as new. `--no-exit-on-fail` still wins. Beats config `failOn`. Not with `--no-compare-to`. |
+| `--fail-on` |  | string | `any` | Which failures exit `1`: `any` (the default) or `new`, only failures that weren't failing in the run this one was compared with. With no comparison, every failure counts as new. `--no-exit-on-fail` still wins. Beats config `failOn`. `--fail-on new` needs a comparison, so it doesn't combine with `--no-compare-to`. |
 | `--plain` |  | boolean |  | Print one line per test context, with four tab-separated columns: result, spec ID, test ID, and platform and browser, such as `linux/chrome`. |
 | `--no-exit-on-fail` |  | boolean |  | Exit `0` even when tests fail or nothing was tested, including when every spec skipped, and skip invalid specs with a warning. Usage errors, invalid config, and crashes still exit `2`. |
 | `--allow-unsafe` |  | boolean |  | Allow execution of potentially unsafe tests |
@@ -154,8 +154,8 @@ A test run exits with these codes. `validate` has its own codes, listed under [`
 
 | Code | Meaning |
 |------|---------|
-| `0` | No spec failed, and at least one passed or warned |
-| `1` | At least one spec failed |
+| `0` | No spec failed (with `--fail-on new`, no failure is new), and at least one spec ran |
+| `1` | At least one spec failed (with `--fail-on new`, at least one failure is new) |
 | `2` | Nothing valid was tested, or the CLI couldn't proceed: a usage error, invalid config, no specs, every spec skipped, an invalid spec, a declined install, or a crash |
 | `130`, `143` | Interrupted by `SIGINT` or `SIGTERM` |
 
