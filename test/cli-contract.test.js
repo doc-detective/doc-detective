@@ -851,7 +851,8 @@ describe("CLI contract", function () {
     it("explains exit codes for runs", function () {
       const help = run(["--help"]).stdout;
       expect(help).to.include("Exit codes:");
-      expect(help).to.include("0  No test failed, and at least one passed or warned\n");
+      expect(help).to.include("0  No test failed (with --fail-on new, no failure is new), and at least one test ran\n");
+      expect(help).to.include("1  At least one test failed (with --fail-on new, at least one failure is new)\n");
     });
 
     it("lists every asset under install", function () {
