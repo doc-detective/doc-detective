@@ -4,10 +4,11 @@ date: 2026-11-25
 decision-makers: hawkeyexl
 ---
 
-# Open the BiDi socket on every session of a go browser, Chrome first
+# Run every session of a go browser on BiDi, Chrome first
 
 Supersedes the rejection in [ADR 01072](01072-bidi-socket-for-chrome-viewport-emulation.md).
-Keeps [ADR 00132](00132-wdio-v9-bidi-attempt-and-classic-revert.md)'s classic element commands.
+Supersedes [ADR 00132](00132-wdio-v9-bidi-attempt-and-classic-revert.md) for Chrome: Chrome runs fully
+on BiDi. Firefox and Safari keep ADR 00132's classic commands.
 
 ## Context and Problem Statement
 
@@ -30,7 +31,8 @@ webdriverio 10.2.0 and Appium 4.0.0, and for which browsers?
 * Session starts stay reliable: 20 starts in a row succeed.
 * No fixture is more than 10% slower.
 * Each browser is judged on its own evidence.
-* Elements stay on classic WebDriver, so ADR 00132's element instability can't return.
+* ADR 00132's element regressions (visibility, cookie `sameSite`, find timing) must not return.
+* The simplest stack wins: one protocol per browser.
 
 ## Findings
 
@@ -105,9 +107,49 @@ Firefox context that also opens Chrome) crashed before its first step with
 `switchToWindow`. That is Marionette reporting it has no connection. Three reruns with the socket
 on all passed, so it's intermittent, and the cause isn't known yet.
 
+### Full BiDi for Chrome: `enforceWebDriverClassic: false`
+
+**What the flag does in webdriverio 10.2.0.** It doesn't pick the protocol for each command.
+Commands branch on `browser.isBidi`, which is `true` whenever the socket is connected.
+`startWebDriverSession()` reads the flag in one place. When it's `false`, it adds
+`webSocketUrl: true` and `unhandledPromptBehavior: "ignore"`.
+
+So once the socket was on, every webdriverio command with a BiDi path already used it. That
+includes `setCookies`, `getCookies` and `isDisplayed`. Flipping the flag adds only the prompt
+behavior. Doc Detective has no dialog handling, and no fixture opens a dialog.
+
+**Measured.** The three bundles ran again with Chrome on `enforceWebDriverClassic: false`. The
+baseline was the socket-on classic run above, compared context by context.
+
+| Bundle | Contexts | Changed with full BiDi |
+|---|---|---|
+| `general` | 1103 | none worse (the Firefox cross-engine context passed this time) |
+| `recording` | 102 | none worse (2 ffmpeg contexts that flaked before passed) |
+| `recording-2` | 79 | none |
+
+Session starts: 20 of 20 headed Chrome.
+
+Bundle sums of Chrome context time came out 18–33% higher in that single pass. Three of the most
+affected specs then ran three times each, alternating the two setups. Medians with full BiDi:
+`screenshot-crop-variation` −9.8%, `type-secret` −4.9%, `recording-headless-chrome` −8.2%. None
+failed. The single-pass gap was run-to-run noise, not the protocol.
+
+**ADR 00132's three regressions, rechecked:**
+
+* **Visibility.** `findStrategies.ts` collects `isDisplayed()` and
+  `isDisplayed({ withinViewport: true })` for element outputs. No find, click or visibility fixture
+  changed result.
+* **Cookie `sameSite` case.** webdriverio 10 now converts the case itself. `toClassicCookie()` maps
+  to `Strict`/`Lax`/`None`. `toBidiCookie()` passes the value through, and a BiDi error falls back
+  to classic. `cookie-test` and `cookie-paths` passed on full BiDi with no fallback warning.
+  `loadCookie.ts` needs no change.
+* **`findElement` timing.** ADR 00132's polling `findElement` still covers it. No find fixture timed
+  out.
+
 ### Verdict
 
-* **Chrome: go.** Green bundles with recording, 20 of 20 starts, no fixture more than 10% slower.
+* **Chrome: go, fully on BiDi.** Green bundles with recording, 20 of 20 starts, no fixture more than
+  10% slower, with the socket alone and with full BiDi.
 * **Firefox: no-go for now.** The one socket-only crash in the cross-engine fixture is unexplained.
   Headed Firefox starts weren't measured.
 * **Safari: not evaluated.** It needs macOS.
@@ -116,14 +158,16 @@ macOS and Linux are confirmed in CI, not on this machine.
 
 ## Considered Options
 
-1. **Make `driver.state` non-enumerable; open the socket on every session of a go browser**
+1. **Make `driver.state` non-enumerable; run every session of a go browser fully on BiDi**
    (chosen).
-5. **Open the socket per context, only when a feature needs it.** Rejected: it adds a switch
-   between two stacks in one browser for no measured gain.
 2. **Hide `_bidiHandler` from webdriverio's clone** by redefining it non-enumerable on
    `__propertiesObject__`. Smaller graph per `$()`, but it edits webdriverio's private object.
 3. **Patch webdriverio** (patch-package) so `elementProperties()` skips non-plain values.
 4. **Keep the ADR 01072 rejection.**
+5. **Open the socket per context, only when a feature needs it.** Rejected: it adds a switch
+   between two stacks in one browser for no measured gain.
+6. **Socket on, `enforceWebDriverClassic: true`.** Rejected: in webdriverio 10 it already sends
+   commands over BiDi, so the flag only misstates the stack.
 
 ## Decision Outcome
 
@@ -136,9 +180,8 @@ Chosen option 1.
   `webSocketUrl: true` to every session of that browser, and to no other browser.
 * `hasBidi(browserName)` reports whether a browser's sessions have the socket. A feature that needs
   BiDi runs where it's `true` and is SKIPPED everywhere else. Its name is stable.
-* `wdio:enforceWebDriverClassic` stays `true`, so element commands stay classic. Only the socket
-  was validated. The spike's 1,284-context comparison already ran with the socket on for every
-  Chrome context.
+* `wdio:enforceWebDriverClassic` is `!hasBidi(name)`. Chrome runs fully on BiDi; Firefox and
+  Safari stay classic with no socket. Both 1,284-context comparisons ran with this setup on Chrome.
 
 There's no user-facing interface: no keys, flags or messages. A BiDi start failure surfaces
 through the existing context-start FAIL and its headless retry.
@@ -157,8 +200,9 @@ through the existing context-start FAIL and its headless retry.
 
 * `test/driver-start-retry.test.js`: `driver.state` isn't an enumerable key, before or after it's
   reassigned.
-* `test/context-resolution.test.js`: every Chrome session gets `webSocketUrl`; Firefox and Safari
-  never do; `hasBidi()` is `true` only for Chrome.
+* `test/context-resolution.test.js`: every Chrome session gets `webSocketUrl` and
+  `enforceWebDriverClassic: false`. Firefox and Safari get neither. `hasBidi()` is `true` only for
+  Chrome.
 * CI's fixture matrix on Windows, macOS and Linux confirms the other platforms on this PR.
 
 ## Pros and Cons of the Options
@@ -182,6 +226,10 @@ through the existing context-start FAIL and its headless retry.
 ### Option 5: socket per context, only when needed
 * Good: contexts that don't need BiDi keep the exact classic stack.
 * Bad: two stacks per browser to reason about, and a gate every feature must extend.
+
+### Option 6: socket on, classic flag kept
+* Good: keeps webdriverio's default prompt handling, which Doc Detective doesn't use.
+* Bad: the flag suggests classic commands while BiDi-capable commands already use the socket.
 
 ## More Information
 

@@ -2515,8 +2515,9 @@ export async function applyBrowserSize(
 }
 
 // Browsers that passed the BiDi socket go/no-go (ADR 01219). Every session of
-// one of these opens the socket; element commands stay classic. Add a browser
-// only with its own spike evidence in an ADR. Re-exported from tests.ts.
+// one of these runs fully on BiDi (webSocketUrl: true, enforceWebDriverClassic:
+// false). Add a browser only with its own spike evidence in an ADR. Re-exported
+// from tests.ts.
 export const BIDI_BROWSERS: ReadonlySet<string> = new Set(["chrome"]);
 
 // Whether a browser's sessions have the BiDi socket. A feature that needs BiDi
