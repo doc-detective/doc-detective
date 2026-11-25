@@ -98,6 +98,8 @@ function fakeDriver({
   rect = { x: 100, y: 100, width: 200, height: 50 },
   // Where the element is while animations are frozen, when that differs.
   frozenRect,
+  // A rect that follows the viewport, like a responsive layout.
+  rectAt,
   throwOnCapture = false,
   // Throws on the nth page-extent read (1-based).
   throwOnExtentRead,
@@ -164,7 +166,7 @@ function fakeDriver({
     },
     async execute(fn, ...args) {
       const source = String(fn);
-      calls.push({ kind: "execute", source, args, frozen });
+      calls.push({ kind: "execute", source, args, frozen, viewport: viewport() });
       if (source.includes("getAnimations") && source.includes("finish")) {
         frozen = true;
         return undefined;
@@ -192,7 +194,7 @@ function fakeDriver({
       if (liveBlur && source.includes("requestAnimationFrame(note)")) return true;
       if (liveBlur && source.includes("__ddNote")) return { watched: true, viewportWidth: viewport().width, regions: [liveBlur] };
       if (source.includes("getBoundingClientRect")) {
-        const at = frozen && frozenRect ? frozenRect : rect;
+        const at = rectAt ? rectAt(viewport()) : frozen && frozenRect ? frozenRect : rect;
         return { ...at, y: at.y - scroll.y };
       }
       if (source.includes("innerHeight")) return viewport();
@@ -451,6 +453,31 @@ describe("screenshot fullPage and animations", function () {
     const reads = driver.calls.filter((c) => c.kind === "execute" && c.source.includes("getBoundingClientRect"));
     assert.ok(reads.length > 0 && reads.every((c) => c.frozen), "every rect read happens while frozen");
     assert.equal(driver.frozen, false, "thawed when the step ends");
+  });
+
+  it("reads mask geometry at the capture size, then restores the window", async function () {
+    // A responsive date: at y 300 in the grown 1600px viewport the capture
+    // shows, at y 100 once the window is back at 600px.
+    const target = path.join(dir, "page.png");
+    fs.writeFileSync(target, await makePng(800, 1600));
+    const capture = await makePng(800, 1600, { x: 100, y: 300, width: 200, height: 50 });
+    const driver = fakeDriver({
+      viewportCapture,
+      pageCapture: capture,
+      rectAt: (vp) => ({ x: 100, y: vp.height >= 1600 ? 300 : 100, width: 200, height: 50 }),
+    });
+    const result = await saveScreenshot({
+      config: {},
+      step: {
+        stepId: "f5",
+        screenshot: { path: target, maxVariation: 0.001, overwrite: "aboveVariation", fullPage: true, mask: ["#date"] },
+      },
+      driver,
+    });
+    assert.equal(result.status, "PASS", result.description);
+    const reads = driver.calls.filter((c) => c.kind === "execute" && c.source.includes("getBoundingClientRect"));
+    assert.ok(reads.length > 0 && reads.every((c) => c.viewport.height === 1600), "every rect read is at the capture size");
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
   });
 
   it("scales live blurs on a whole-page image by the pixel density, not the viewport width", async function () {

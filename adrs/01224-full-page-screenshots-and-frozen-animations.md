@@ -53,7 +53,9 @@ report.
   `origin: "document"`.
 * **Anything else, including Chrome today and Safari:** grow the window until the viewport is as
   tall as the page's `scrollHeight` and as wide as its `scrollWidth`. Capture, then put the window
-  size and scroll position back. The resize uses `realizeViewport`. A page that already fits the
+  size and scroll position back when the step ends. The window stays at the capture size until
+  annotation and mask geometry is read, so a responsive layout can't move a target away from its
+  blur. The resize uses `realizeViewport`. A page that already fits the
   viewport isn't resized. After the resize the page is measured again, because a `vh` layout grows
   with the viewport.
 * **The screen caps the window:** a headed browser can't grow past the display. When the viewport

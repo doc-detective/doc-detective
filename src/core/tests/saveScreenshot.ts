@@ -308,10 +308,9 @@ class CaptureSkipped extends Error {}
 type Point = { x: number; y: number };
 type FullPage = {
   capture: () => Promise<Buffer>;
-  // The page's scroll, which element rects add to land on the whole-page image.
+  // The scroll while capturing, which element rects add to land on the
+  // whole-page image: zero when the window grew to fit the page.
   scroll: Point;
-  // The scroll while capturing: zero when the window grew to fit the page.
-  captureScroll: Point;
   restore: () => Promise<void>;
 };
 
@@ -322,6 +321,10 @@ type CaptureOptions = {
   animations?: string;
   config?: any;
   label?: string;
+  // Takes a grown window's restore, so the caller can read element geometry
+  // at the capture size first and restore in its own `finally`. Without it,
+  // the window is restored right after the capture.
+  holdRestore?: (restore: () => Promise<void>) => void;
 };
 
 // `fullPage` (ADR 01224). Firefox has a whole-page command and a BiDi session
@@ -331,7 +334,7 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
   const page = await driver.execute(readPageExtent);
   const scroll = { x: Number(page?.x) || 0, y: Number(page?.y) || 0 };
   const browser = String(driver.capabilities?.browserName ?? "").toLowerCase();
-  const kept = { scroll, captureScroll: scroll, restore: async () => {} };
+  const kept = { scroll, restore: async () => {} };
   if (browser === "firefox") {
     return { ...kept, capture: async () => Buffer.from(await driver.fullPageScreenshot(), "base64") };
   }
@@ -372,7 +375,7 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
     await restore();
     throw new CaptureSkipped(`Skipped: \`${browser || "this browser"}\` can't capture a page larger than the screen.`);
   }
-  return { scroll, captureScroll: { x: 0, y: 0 }, restore, capture: viewportCapture };
+  return { scroll: { x: 0, y: 0 }, restore, capture: viewportCapture };
 }
 
 // A browser capture with every element that shows a secret blurred, and the
@@ -402,7 +405,10 @@ async function takeBrowserScreenshot(
     } catch {
       // A page that can't report its fonts is captured as it is.
     }
-    if (options.fullPage) fullPage = await fullPageCapture(driver, options);
+    if (options.fullPage) {
+      fullPage = await fullPageCapture(driver, options);
+      options.holdRestore?.(fullPage.restore);
+    }
     try {
       // After the fonts and the resize, so an animation either starts is
       // frozen too. The caller thaws, once it has read where elements are.
@@ -426,11 +432,7 @@ async function takeBrowserScreenshot(
         await unblur();
       }
     } finally {
-      try {
-        await fullPage?.restore();
-      } catch (error: any) {
-        log(options.config ?? {}, "warning", `Couldn't restore the window size after the \`fullPage\` screenshot: ${error?.message ?? error}`);
-      }
+      if (!options.holdRestore) await restoreFullPage(fullPage?.restore, options.config);
     }
   } finally {
     if (options.style) {
@@ -453,10 +455,18 @@ async function takeBrowserScreenshot(
   const dpr =
     fullPage && page?.regions?.length > 0 ? Number(await driver.execute(() => window.devicePixelRatio)) : NaN;
   return {
-    buffer: await burnInLiveBlurs(sharp, buffer, page, fullPage?.captureScroll, dpr > 0 ? dpr : undefined),
+    buffer: await burnInLiveBlurs(sharp, buffer, page, fullPage?.scroll, dpr > 0 ? dpr : undefined),
     stable: captured!.stable,
     scroll: fullPage?.scroll,
   };
+}
+
+async function restoreFullPage(restore: (() => Promise<void>) | undefined, config: any): Promise<void> {
+  try {
+    await restore?.();
+  } catch (error: any) {
+    log(config ?? {}, "warning", `Couldn't restore the window size after the \`fullPage\` screenshot: ${error?.message ?? error}`);
+  }
 }
 
 async function liveBlurs(driver: any, call: (driver: any) => Promise<any>): Promise<any> {
@@ -612,9 +622,13 @@ function diffArtifactPaths(dir: string, name: string): { diffPath: string; previ
 // Window restoration lives out here rather than in the body: annotations
 // resolve against the live page after capture, so a resize for the reference
 // must hold until the step is done, whichever return the body takes. So must
-// `animations: disabled`, so annotations and masks land where the capture
-// shows the elements (ADR 01224).
-type CaptureSession = { restoreWindow?: () => Promise<void>; thaw?: () => Promise<void> };
+// a `fullPage` window grown to the page and `animations: disabled`, so
+// annotations and masks land where the capture shows the elements (ADR 01224).
+type CaptureSession = {
+  restoreWindow?: () => Promise<void>;
+  restorePage?: () => Promise<void>;
+  thaw?: () => Promise<void>;
+};
 async function saveScreenshot(
   args: Parameters<typeof captureScreenshot>[0]
 ) {
@@ -631,6 +645,7 @@ async function saveScreenshot(
         `Couldn't restore the window size after resizing for a screenshot reference: ${error?.message ?? error}`
       );
     }
+    await restoreFullPage(session.restorePage, args.config);
     try {
       await session.thaw?.();
     } catch {
@@ -1163,7 +1178,13 @@ async function captureScreenshot({
         buffer: captureBuffer,
         stable: captureStable,
         scroll: fullPageScroll,
-      } = await takeBrowserScreenshot(captureDriver, sharp, captureOptions));
+      } = await takeBrowserScreenshot(captureDriver, sharp, {
+        ...captureOptions,
+        // A grown window stays until geometry is read, like the freeze.
+        holdRestore: (restore) => {
+          session.restorePage = restore;
+        },
+      }));
     }
   } catch (error) {
     if (error instanceof CaptureSkipped) {
