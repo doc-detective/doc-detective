@@ -63805,7 +63805,17 @@
                   "required": [
                     "path"
                   ],
-                  "title": "Save state (detailed)"
+                  "title": "Save state (detailed)",
+                  "examples": [
+                    {
+                      "path": "auth.json"
+                    },
+                    {
+                      "path": "auth.json",
+                      "directory": "../.auth",
+                      "overwrite": true
+                    }
+                  ]
                 }
               ],
               "components": {
@@ -63852,7 +63862,17 @@
                     "required": [
                       "path"
                     ],
-                    "title": "Save state (detailed)"
+                    "title": "Save state (detailed)",
+                    "examples": [
+                      {
+                        "path": "auth.json"
+                      },
+                      {
+                        "path": "auth.json",
+                        "directory": "../.auth",
+                        "overwrite": true
+                      }
+                    ]
                   }
                 }
               },
@@ -64688,7 +64708,16 @@
                   "required": [
                     "path"
                   ],
-                  "title": "Load state (detailed)"
+                  "title": "Load state (detailed)",
+                  "examples": [
+                    {
+                      "path": "auth.json"
+                    },
+                    {
+                      "path": "auth.json",
+                      "directory": "../.auth"
+                    }
+                  ]
                 }
               ],
               "components": {
@@ -64729,7 +64758,16 @@
                     "required": [
                       "path"
                     ],
-                    "title": "Load state (detailed)"
+                    "title": "Load state (detailed)",
+                    "examples": [
+                      {
+                        "path": "auth.json"
+                      },
+                      {
+                        "path": "auth.json",
+                        "directory": "../.auth"
+                      }
+                    ]
                   }
                 }
               },

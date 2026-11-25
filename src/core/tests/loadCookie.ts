@@ -108,6 +108,12 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
       return result;
     }
 
+    if (targetCookie.expiry && targetCookie.expiry <= Math.floor(Date.now() / 1000)) {
+      result.status = "FAIL";
+      result.description = `Couldn't load cookie: \`${targetCookie.name}\` has expired.`;
+      return result;
+    }
+
     // Set the cookie, if its domain fits the open page
     const currentUrl = await driver.getUrl();
     const applied = await applyCookies(driver, [targetCookie], currentUrl);

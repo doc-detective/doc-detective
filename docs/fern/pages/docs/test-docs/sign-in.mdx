@@ -47,7 +47,7 @@ The state file holds live session cookies and tokens. Add `.auth/` to `.gitignor
 
 ### 2. Load the state in each test
 
-Open the site, load the state, and open the page again so the app reads it:
+Open the site, load the state, open the page again so the app reads it, and check that you're signed in:
 
 ```json title="billing.spec.json"
 {
@@ -57,6 +57,7 @@ Open the site, load the state, and open the page again so the app reads it:
         { "goTo": "https://app.example.com" },
         { "loadState": { "path": "auth.json", "directory": "../.auth" } },
         { "goTo": "https://app.example.com/billing" },
+        { "find": "Sign out" },
         { "screenshot": "billing.png" }
       ]
     }
@@ -64,7 +65,7 @@ Open the site, load the state, and open the page again so the app reads it:
 }
 ```
 
-`loadState` applies the cookies whose domain fits the open host and the `localStorage` saved for the open origin. It fails if the file has nothing for the open site, so a test can't quietly run signed out.
+`loadState` applies the cookies whose domain fits the open host and the `localStorage` saved for the open origin. It fails when the file has nothing for the open site. It can't tell whether the app still accepts the session, because a session can expire or be revoked on the server. The `find` for an element that only a signed-in reader sees catches that, so the test fails instead of capturing the sign-in page.
 
 ## Limits
 

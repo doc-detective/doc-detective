@@ -94,9 +94,10 @@ ${formatCookieForNetscape(targetCookie)}
  * @returns {string} Formatted cookie string.
  */
 function formatCookieForNetscape(cookie: any) {
-  // Netscape format: domain, flag, path, secure, expiration, name, value, then
-  // httpOnly and sameSite, which parseNetscapeCookieFile reads back. An
-  // httpOnly cookie also gets curl's `#HttpOnly_` prefix.
+  // Netscape format: domain, flag, path, secure, expiration, name, value. Seven
+  // columns, so curl reads the file. httpOnly rides on curl's `#HttpOnly_`
+  // domain prefix, which parseNetscapeCookieFile reads back. The format has no
+  // standard place for sameSite, so it isn't written; saveState's JSON keeps it.
   const domain = cookie.domain || '';
   // The flag indicates if the domain applies to all subdomains
   // TRUE if domain starts with '.' (applies to subdomains), FALSE for exact domain match
@@ -107,9 +108,7 @@ function formatCookieForNetscape(cookie: any) {
   const expiry = cookie.expiry ? cookie.expiry.toString() : '0';
   const name = cookie.name || '';
   const value = cookie.value || '';
-  const httpOnly = cookie.httpOnly ? 'TRUE' : 'FALSE';
-  const sameSite = cookie.sameSite || 'Lax';
   const prefix = cookie.httpOnly ? '#HttpOnly_' : '';
 
-  return `${prefix}${domain}\t${flag}\t${cookiePath}\t${secure}\t${expiry}\t${name}\t${value}\t${httpOnly}\t${sameSite}`;
+  return `${prefix}${domain}\t${flag}\t${cookiePath}\t${secure}\t${expiry}\t${name}\t${value}`;
 }

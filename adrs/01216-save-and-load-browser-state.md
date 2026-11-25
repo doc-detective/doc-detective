@@ -77,6 +77,21 @@ Chosen option: **A**.
 | The file is missing | FAIL | ``Couldn't load state: `/abs/auth.json` doesn't exist.`` |
 | The file isn't JSON with a `cookies` or `origins` list | FAIL | ``Couldn't load state: `/abs/auth.json` isn't a valid state file.`` |
 | Nothing in the file fits the open page | FAIL | ``Couldn't load state: `/abs/auth.json` has no data for `https://app.example.com`. Use `goTo` to open that site first.`` |
+| The page leaves the origin before storage is written | FAIL | ``Couldn't load state: the page left `https://app.example.com` before its storage was restored.`` |
+| The page leaves the origin while state is read | FAIL | ``Couldn't save state: the page left `https://app.example.com` while its state was read.`` |
+
+Robustness rules:
+
+* `loadState` validates every record before it touches the browser: each cookie and each
+  `localStorage` entry has a string `name` and `value`, and each origin has a string `origin` and a
+  `localStorage` list. A file with only cookies, or only origins, is valid.
+* The `localStorage` script takes the expected origin and checks `location.origin` itself, so a page
+  that navigated away gets nothing. Storage is written before cookies, so that failure sets neither.
+* `saveState` reads the origin and `localStorage` in one script, and fails if that origin isn't the
+  one it read first.
+* `saveState` writes with the `wx` flag unless `overwrite` is `true`, so an existing file can't be
+  replaced between a check and the write. The file is created with mode `0600`, because it holds
+  live session tokens.
 
 ### Shared code path
 
@@ -88,8 +103,13 @@ environment-variable form.
 
 ### Cookie fixes on the shared path
 
-* The Netscape writer now writes `httpOnly` (curl's `#HttpOnly_` prefix and the 8th column) and
-  `sameSite` (the 9th column), so a save-then-load round trip keeps both.
+* The Netscape writer now marks an `httpOnly` cookie with curl's `#HttpOnly_` domain prefix, so a
+  save-then-load round trip keeps it. The file stays at the standard 7 columns, because curl
+  rejects a row with more. The format has no standard place for `sameSite`, so a cookie file
+  doesn't keep it, and a loaded cookie gets the default `Lax`. A `saveState` file keeps `sameSite`.
+* An expired cookie is skipped on load, never set as a session cookie. `loadCookie` fails with
+  ``Couldn't load cookie: `sid` has expired.``, and `loadState` doesn't apply it, as the Netscape
+  reader already did.
 * The cookie messages follow the message style, for example
   ``Couldn't load cookie: `/abs/session.txt` doesn't exist.``. No status changes.
 
@@ -101,8 +121,9 @@ environment-variable form.
 * Neutral, because the post-run hint for repeated sign-ins now points at `saveState`/`loadState`.
 * Bad, because a sign-in that spans several sites (SSO) needs one `goTo` and one `saveState` per
   site. Only the open site's state is visible over classic WebDriver.
-* Bad, because tools that parse the 7-column Netscape format strictly may not expect the two extra
-  columns. curl and the Doc Detective reader accept them.
+* Bad, because a cookie file loses `sameSite`. Use `saveState` when it matters.
+* Neutral, because `loadState` restores what the file holds but can't tell whether the server still
+  accepts the session. A test checks it with a `find` for something only a signed-in reader sees.
 
 ### Confirmation
 

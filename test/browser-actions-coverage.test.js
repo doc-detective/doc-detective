@@ -732,6 +732,23 @@ describe("loadCookie action (coverage)", function () {
     assert.equal(setCookies.callCount, 1);
   });
 
+  it("expired env cookie → FAIL, not set as a session cookie", async () => {
+    setEnv(
+      "DD_EXPIRED_COOKIE",
+      JSON.stringify({ name: "sid", value: "v", domain: "example.com", expiry: 1 })
+    );
+    const setCookies = sinon.spy(async () => {});
+    const driver = makeDriver({ setCookiesImpl: setCookies });
+    const result = await loadCookie({
+      config,
+      step: { loadCookie: "DD_EXPIRED_COOKIE" },
+      driver,
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, "Couldn't load cookie: `sid` has expired.");
+    assert.equal(setCookies.callCount, 0);
+  });
+
   it("file not found → FAIL", async () => {
     const driver = makeDriver();
     const result = await loadCookie({
@@ -1266,9 +1283,8 @@ describe("saveCookie action (coverage)", function () {
     });
     assert.equal(result.status, "PASS");
     const written = fs.readFileSync(file, "utf8");
-    // Empty domain → leading tab; flag FALSE; default path '/'; expiry 0;
-    // httpOnly FALSE; sameSite Lax.
-    assert.match(written, /^\tFALSE\t\/\tFALSE\t0\tsid\tv\tFALSE\tLax$/m);
+    // Empty domain → leading tab; flag FALSE; default path '/'; expiry 0.
+    assert.match(written, /^\tFALSE\t\/\tFALSE\t0\tsid\tv$/m);
   });
 
   it("cookie with empty value → [EMPTY] log + value fallback, PASS", async () => {
@@ -1285,8 +1301,8 @@ describe("saveCookie action (coverage)", function () {
     });
     assert.equal(result.status, "PASS");
     const written = fs.readFileSync(file, "utf8");
-    // Empty value → an empty column between the name and httpOnly.
-    assert.match(written, /example\.com\tFALSE\t\/\tFALSE\t0\tsid\t\tFALSE\tLax$/m);
+    // Trailing empty value → line ends right after the name + tab.
+    assert.match(written, /example\.com\tFALSE\t\/\tFALSE\t0\tsid\t$/m);
   });
 
   it("getCookies throwing → catch FAIL", async () => {

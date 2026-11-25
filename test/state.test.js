@@ -11,7 +11,9 @@ import { resolvePaths } from "../dist/core/files.js";
 const future = Math.floor(Date.now() / 1000) + 3600;
 
 // A fake browser: one page URL, a cookie jar, and localStorage per origin.
-function fakeDriver({ url = "http://localhost:8092/app", cookies = [], storage = {} } = {}) {
+// `scriptUrl` is where the page is when a script runs, to simulate a page that
+// navigates away after `getUrl`.
+function fakeDriver({ url = "http://localhost:8092/app", scriptUrl = url, cookies = [], storage = {} } = {}) {
   const set = [];
   const driver = {
     set,
@@ -19,14 +21,15 @@ function fakeDriver({ url = "http://localhost:8092/app", cookies = [], storage =
     getUrl: async () => url,
     getCookies: async () => cookies,
     setCookies: async (cookie) => set.push(cookie),
-    execute: async (script, entries) => {
-      const origin = new URL(url).origin;
+    execute: async (script, expectedOrigin, entries) => {
+      const origin = new URL(scriptUrl).origin;
       if (script.includes("setItem")) {
+        if (origin !== expectedOrigin) return false;
         storage[origin] = { ...storage[origin] };
         for (const { name, value } of entries) storage[origin][name] = value;
-        return null;
+        return true;
       }
-      return Object.entries(storage[origin] || {}).map(([name, value]) => ({ name, value }));
+      return { origin, entries: Object.entries(storage[origin] || {}).map(([name, value]) => ({ name, value })) };
     },
   };
   return driver;
@@ -97,6 +100,20 @@ describe("saveState and loadState", function () {
         assert.ok(!fs.existsSync(path.join(outputDir, "auth.json")));
       });
     }
+
+    it("creates the file readable by its owner only", async function () {
+      if (process.platform === "win32") this.skip();
+      const result = await saveState({ config: config(), step: { saveState: "auth.json" }, driver: fakeDriver() });
+      assert.equal(fs.statSync(result.outputs.path).mode & 0o777, 0o600);
+    });
+
+    it("fails, and writes nothing, when the page changes origin while it saves", async function () {
+      const driver = fakeDriver({ scriptUrl: "https://other.org/", storage: { "https://other.org": { a: "1" } } });
+      const result = await saveState({ config: config(), step: { saveState: "auth.json" }, driver });
+      assert.equal(result.status, "FAIL");
+      assert.equal(result.description, "Couldn't save state: the page left `http://localhost:8092` while its state was read.");
+      assert.ok(!fs.existsSync(path.join(outputDir, "auth.json")));
+    });
 
     it("fails on an invalid step", async function () {
       const result = await saveState({ config: config(), step: { saveState: "auth.txt" }, driver: fakeDriver() });
@@ -216,6 +233,30 @@ describe("saveState and loadState", function () {
         result.description,
         `Couldn't load state: \`${file}\` has no data for \`https://app.example.com\`. Use \`goTo\` to open that site first.`
       );
+      assert.equal(driver.set.length, 0);
+    });
+
+    it("fails, and restores nothing, when the page leaves the origin before storage is restored", async function () {
+      write("auth.json", {
+        cookies: [{ name: "sid", value: "1", domain: "localhost", path: "/" }],
+        origins: [{ origin: "http://localhost:8092", localStorage: [{ name: "a", value: "1" }] }],
+      });
+      const driver = fakeDriver({ scriptUrl: "https://other.org/" });
+      const result = await loadState({ config: config(), step: { loadState: "auth.json" }, driver });
+      assert.equal(result.status, "FAIL");
+      assert.equal(result.description, "Couldn't load state: the page left `http://localhost:8092` before its storage was restored.");
+      assert.deepEqual(driver.storage, {});
+      assert.equal(driver.set.length, 0);
+    });
+
+    it("fails on a file with a malformed entry, before changing the browser", async function () {
+      const file = write("auth.json", {
+        cookies: [{ name: "sid", value: "1", domain: "localhost", path: "/" }],
+        origins: [{ origin: "http://localhost:8092", localStorage: [{ name: "a", value: 1 }] }],
+      });
+      const driver = fakeDriver();
+      const result = await loadState({ config: config(), step: { loadState: "auth.json" }, driver });
+      assert.equal(result.description, `Couldn't load state: \`${file}\` isn't a valid state file.`);
       assert.equal(driver.set.length, 0);
     });
 

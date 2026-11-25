@@ -7,6 +7,7 @@ export {
   readCookies,
   toDriverCookie,
   applyCookies,
+  cookiesFor,
   matchesDomain,
   isDomainCompatible,
   isLocalOrPrivateNetwork,
@@ -28,19 +29,28 @@ function siteOrigin(url: string): string | null {
 }
 
 /** The open page's `localStorage`, as `{ name, value }` entries. */
-async function readLocalStorage(driver: any): Promise<{ name: string; value: string }[]> {
-  const entries = await driver.execute(
-    "return Object.keys(window.localStorage).map(function (name) { return { name: name, value: window.localStorage.getItem(name) }; });"
+// Read in one script with the page's origin, so the entries can't come from a
+// page the browser navigated to after the caller read the URL.
+async function readLocalStorage(driver: any): Promise<{ origin: string; entries: { name: string; value: string }[] }> {
+  const { origin, entries } = await driver.execute(
+    "return { origin: window.location.origin, entries: Object.keys(window.localStorage).map(function (name) { return { name: name, value: window.localStorage.getItem(name) }; }) };"
   );
-  return entries || [];
+  return { origin, entries: entries || [] };
 }
 
-/** Sets each `{ name, value }` entry in the open page's `localStorage`. */
-async function applyLocalStorage(driver: any, entries: { name: string; value: string }[]) {
-  if (entries.length === 0) return;
-  await driver.execute(
-    "arguments[0].forEach(function (entry) { window.localStorage.setItem(entry.name, entry.value); });",
-    entries
+/**
+ * Sets each `{ name, value }` entry in the open page's `localStorage`, only if
+ * the page is still on `origin`. Returns false, having written nothing, when it
+ * isn't.
+ */
+async function applyLocalStorage(driver: any, origin: string, entries: { name: string; value: string }[]) {
+  if (entries.length === 0) return true;
+  return (
+    (await driver.execute(
+      "if (window.location.origin !== arguments[0]) return false; arguments[1].forEach(function (entry) { window.localStorage.setItem(entry.name, entry.value); }); return true;",
+      origin,
+      entries
+    )) === true
   );
 }
 
@@ -81,6 +91,21 @@ function parseStateFile(text: string): { cookies: any[]; origins: { origin: stri
   const { cookies, origins } = state;
   if (cookies === undefined && origins === undefined) return null;
   if ((cookies !== undefined && !Array.isArray(cookies)) || (origins !== undefined && !Array.isArray(origins))) return null;
+  // Every record is checked before anything touches the browser.
+  const isObject = (value: any) => !!value && typeof value === "object" && !Array.isArray(value);
+  const isEntry = (entry: any) => isObject(entry) && typeof entry.name === "string" && typeof entry.value === "string";
+  const optional = (value: any, type: string) => value === undefined || typeof value === type;
+  const validCookie = (cookie: any) =>
+    isEntry(cookie) &&
+    optional(cookie.domain, "string") &&
+    optional(cookie.path, "string") &&
+    optional(cookie.expires, "number") &&
+    optional(cookie.httpOnly, "boolean") &&
+    optional(cookie.secure, "boolean") &&
+    optional(cookie.sameSite, "string");
+  const validOrigin = (entry: any) =>
+    isObject(entry) && typeof entry.origin === "string" && Array.isArray(entry.localStorage) && entry.localStorage.every(isEntry);
+  if (!(cookies || []).every(validCookie) || !(origins || []).every(validOrigin)) return null;
   return {
     cookies: (cookies || []).map(({ expires, ...cookie }: any) => (expires > 0 ? { ...cookie, expiry: expires } : cookie)),
     origins: origins || [],
@@ -152,12 +177,23 @@ function normalizeSameSite(sameSite: unknown) {
 }
 
 /**
- * Sets each cookie whose domain fits the page at `currentUrl`, and returns the
- * ones it set.
+ * The cookies the page at `currentUrl` can take: an unexpired cookie whose
+ * domain is the page's host or a parent of it. An expired cookie is skipped,
+ * not set as a session cookie, as parseNetscapeCookieFile does.
+ */
+function cookiesFor(cookies: any[], currentUrl: string) {
+  const host = new URL(currentUrl).hostname;
+  const now = Math.floor(Date.now() / 1000);
+  return cookies.filter(
+    (cookie) => !(cookie.expiry && cookie.expiry <= now) && (!cookie.domain || isDomainCompatible(host, cookie.domain))
+  );
+}
+
+/**
+ * Sets each cookie `cookiesFor` keeps, and returns the ones it set.
  */
 async function applyCookies(driver: any, cookies: any[], currentUrl: string) {
-  const host = new URL(currentUrl).hostname;
-  const applied = cookies.filter((cookie) => !cookie.domain || isDomainCompatible(host, cookie.domain));
+  const applied = cookiesFor(cookies, currentUrl);
   for (const cookie of applied) {
     await driver.setCookies(toDriverCookie(cookie, currentUrl));
   }

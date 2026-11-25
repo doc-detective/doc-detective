@@ -7,6 +7,7 @@ import {
   readCookies,
   toDriverCookie,
   applyCookies,
+  parseStateFile,
 } from "../dist/core/tests/browserState.js";
 import { formatCookieForNetscape } from "../dist/core/tests/saveCookie.js";
 import { parseNetscapeCookieFile } from "../dist/core/tests/loadCookie.js";
@@ -76,9 +77,9 @@ describe("browser state helpers", function () {
       assert.equal(toDriverCookie({ name: "n", domain: "8.8.8.8" }, "http://8.8.8.8/").domain, "8.8.8.8");
     });
 
-    it("keeps a future expiry and drops a past one", function () {
+    it("keeps a future expiry, and leaves a session cookie without one", function () {
       assert.equal(toDriverCookie({ name: "n", expiry: future }, "http://x.com/").expiry, future);
-      assert.equal(toDriverCookie({ name: "n", expiry: past }, "http://x.com/").expiry, undefined);
+      assert.equal(toDriverCookie({ name: "n" }, "http://x.com/").expiry, undefined);
     });
 
     it("defaults path to / and httpOnly to false", function () {
@@ -106,16 +107,60 @@ describe("browser state helpers", function () {
       assert.deepEqual(applied.map((c) => c.name), ["parent", "host", "none"]);
       assert.deepEqual(set.map((c) => c.name), ["parent", "host", "none"]);
     });
+
+    it("skips an expired cookie instead of setting it as a session cookie", async function () {
+      const set = [];
+      const driver = { setCookies: async (c) => set.push(c) };
+      const applied = await applyCookies(
+        driver,
+        [
+          { name: "expired", domain: "x.com", expiry: past },
+          { name: "live", domain: "x.com", expiry: future },
+          { name: "session", domain: "x.com" },
+        ],
+        "https://x.com/"
+      );
+      assert.deepEqual(applied.map((c) => c.name), ["live", "session"]);
+      assert.deepEqual(set.map((c) => [c.name, c.expiry]), [["live", future], ["session", undefined]]);
+    });
+  });
+
+  describe("parseStateFile", function () {
+    it("accepts cookie-only and localStorage-only files", function () {
+      assert.ok(parseStateFile(JSON.stringify({ cookies: [{ name: "a", value: "1", domain: "x.com" }] })));
+      assert.ok(parseStateFile(JSON.stringify({ origins: [{ origin: "https://x.com", localStorage: [{ name: "a", value: "1" }] }] })));
+    });
+
+    for (const [label, state] of [
+      ["a cookie that isn't an object", { cookies: ["a"] }],
+      ["a cookie without a string name", { cookies: [{ value: "1" }] }],
+      ["a cookie without a string value", { cookies: [{ name: "a", value: 1 }] }],
+      ["a cookie with a non-string domain", { cookies: [{ name: "a", value: "1", domain: 5 }] }],
+      ["an origin that isn't an object", { origins: [null] }],
+      ["an origin without a string origin", { origins: [{ localStorage: [] }] }],
+      ["an origin whose localStorage isn't a list", { origins: [{ origin: "https://x.com", localStorage: {} }] }],
+      ["a localStorage entry without a string value", { origins: [{ origin: "https://x.com", localStorage: [{ name: "a", value: 1 }] }] }],
+    ]) {
+      it(`rejects ${label}`, function () {
+        assert.equal(parseStateFile(JSON.stringify(state)), null);
+      });
+    }
   });
 
   describe("Netscape cookie file", function () {
-    it("round-trips httpOnly and sameSite", function () {
+    // The standard 7 columns, so curl reads the file. httpOnly survives through
+    // curl's `#HttpOnly_` prefix. The format has no place for sameSite, so it
+    // comes back as the default, Lax.
+    it("writes 7 columns and round-trips httpOnly", function () {
       for (const cookie of [
         { name: "a", value: "1", domain: ".example.com", path: "/", secure: true, httpOnly: true, sameSite: "Strict", expiry: future },
         { name: "b", value: "2", domain: "example.com", path: "/app", secure: false, httpOnly: false, sameSite: "None", expiry: future },
       ]) {
-        const [parsed] = parseNetscapeCookieFile(formatCookieForNetscape(cookie) + "\n");
-        assert.deepEqual(parsed, cookie);
+        const line = formatCookieForNetscape(cookie);
+        assert.equal(line.replace(/^#HttpOnly_/, "").split("\t").length, 7, line);
+        assert.equal(line.startsWith("#HttpOnly_"), cookie.httpOnly);
+        const [parsed] = parseNetscapeCookieFile(line + "\n");
+        assert.deepEqual(parsed, { ...cookie, sameSite: "Lax" });
       }
     });
   });

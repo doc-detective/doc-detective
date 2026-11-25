@@ -1,6 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { log, invalidStepMessage } from "../utils.js";
-import { applyCookies, applyLocalStorage, parseStateFile, resolveStatePath, siteOrigin } from "./browserState.js";
+import { applyCookies, applyLocalStorage, cookiesFor, parseStateFile, resolveStatePath, siteOrigin } from "./browserState.js";
 import fs from "node:fs";
 
 export { loadState };
@@ -42,14 +42,21 @@ async function loadState({ config, step, driver }: { config: any; step: any; dri
       return result;
     }
 
-    const cookies = await applyCookies(driver, state.cookies, currentUrl);
+    const fitting = cookiesFor(state.cookies, currentUrl);
     const entries = state.origins.find((entry) => entry.origin === origin)?.localStorage || [];
-    if (cookies.length === 0 && entries.length === 0) {
+    if (fitting.length === 0 && entries.length === 0) {
       result.status = "FAIL";
       result.description = `Couldn't load state: \`${fullPath}\` has no data for \`${origin}\`. Use \`goTo\` to open that site first.`;
       return result;
     }
-    await applyLocalStorage(driver, entries);
+    // Storage first: the script writes only if the page is still on `origin`,
+    // so a page that navigated away gets neither storage nor cookies.
+    if (!(await applyLocalStorage(driver, origin, entries))) {
+      result.status = "FAIL";
+      result.description = `Couldn't load state: the page left \`${origin}\` before its storage was restored.`;
+      return result;
+    }
+    const cookies = await applyCookies(driver, fitting, currentUrl);
 
     result.description = `Loaded state from \`${fullPath}\`.`;
     result.outputs = { path: fullPath, cookies: cookies.length, localStorage: entries.length };
