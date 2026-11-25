@@ -180,6 +180,23 @@ describe("screenshot tolerance and diff images (ADR 01220)", function () {
     ]);
   });
 
+  it("keeps each pair when the same step runs twice", async function () {
+    const first = await compare({ maxVariation: 0.0001 }, changed(), { screenshotsDir: () => runDir });
+    // The first run overwrote the reference; restore it so the rerun drifts too.
+    fs.writeFileSync(target, png());
+    const second = await compare({ maxVariation: 0.0001 }, changed(), { screenshotsDir: () => runDir });
+    assert.equal(first.outputs.diffPath, path.join(runDir, "shot-t.diff.png"));
+    assert.equal(first.outputs.previousPath, path.join(runDir, "shot-t.previous.png"));
+    assert.equal(second.outputs.diffPath, path.join(runDir, "shot-t-2.diff.png"));
+    assert.equal(second.outputs.previousPath, path.join(runDir, "shot-t-2.previous.png"));
+    assert.deepEqual(fs.readdirSync(runDir).sort(), [
+      "shot-t-2.diff.png",
+      "shot-t-2.previous.png",
+      "shot-t.diff.png",
+      "shot-t.previous.png",
+    ]);
+  });
+
   it("falls back to the run folder's screenshots folder without `screenshotsDir`", async function () {
     const config = { outputDir: tmpDir };
     const result = await saveScreenshot({
