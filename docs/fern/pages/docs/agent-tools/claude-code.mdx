@@ -65,7 +65,8 @@ The bootstrapping process:
 1. Detects documentation files (`.md`, `.mdx`, `.adoc`, `.rst`, `.html`, `.dita`)
 2. Generates a `.doc-detective.json` configuration file
 3. Creates test specifications for procedures with step-by-step instructions
-4. Runs the tests and fixes failures
+4. Runs the tests and tries to fix any test that doesn't match its doc
+5. Reports each test's result, and flags any doc that no longer matches the product, with a proposed edit
 
 ## Generate tests for existing pages
 
