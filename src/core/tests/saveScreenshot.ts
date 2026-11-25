@@ -93,7 +93,7 @@ export { saveScreenshot, clampCropRect, aspectRatiosMatch, referenceViewport, ca
 type Rect = { x: number; y: number; width: number; height: number };
 
 // Fill `rect` (in capture pixels, scaled by sx/sy) with opaque magenta in a raw
-// RGBA buffer of width x height, clipped to the buffer (ADR 01216).
+// RGBA buffer of width x height, clipped to the buffer (ADR 01218).
 // A resampled image (sx/sy != 1) smears each edge outward, so the mask grows
 // there to cover the bleed.
 // ponytail: fixed 3px pad matches sharp's default lanczos3 kernel; derive it
@@ -1286,7 +1286,7 @@ async function captureScreenshot({
   // the page: that keeps the page under test untouched, works identically on
   // app surfaces, and can't flash into a recording that's running concurrently.
   // How element rects map onto the final canvas, shared by annotations and
-  // masks (ADR 01216) so both land in the same place. Computed once, on first
+  // masks (ADR 01218) so both land in the same place. Computed once, on first
   // use. Neither changes the canvas size, so it stays valid after annotating.
   let geometry:
     | { canvas: { width: number; height: number }; scale: number; windowOrigin: { x: number; y: number }; logicalWidth: unknown }
@@ -1531,7 +1531,7 @@ async function captureScreenshot({
         return await evaluateApplicable();
       }
 
-      // Masks (ADR 01216): areas whose pixels don't count toward the
+      // Masks (ADR 01218): areas whose pixels don't count toward the
       // comparison. Resolved only here, where a comparison actually runs, in
       // the capture's canvas pixels; painted onto both images further down.
       const maskTargets = Array.isArray(step.screenshot.mask) ? step.screenshot.mask : [];
