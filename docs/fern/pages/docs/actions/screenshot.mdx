@@ -17,9 +17,11 @@ You can specify the screenshot action in several ways:
   - `threshold`: (Optional) How different two pixels' colors must be, from `0` to `1`, before the pixel counts as changed (default: `0.1`). Higher numbers ignore anti-aliasing and font-smoothing noise. `0` counts any color change.
   - `maxDiffPixels`: (Optional) The most changed pixels allowed, as a whole number. It applies alongside `maxVariation`: when both are set, both must hold, or the step returns WARNING. For example: ``Screenshot differs from the reference by 412 pixels, more than `maxDiffPixels` (150).``
   - `overwrite`: (Optional) Controls when to overwrite the reference image. Ignored when `path` is a URL (remote storage is never mutated). Options:
-    - `"false"`: Never overwrite the reference image.
+    - `"false"`: Never overwrite the reference image. If the reference image exists, the step returns `SKIPPED` before it takes a screenshot or compares.
     - `"true"`: Always overwrite the reference image with the new capture.
     - `"aboveVariation"`: Overwrite only if the visual difference exceeds `maxVariation`, or `maxDiffPixels` when it's set (default).
+
+    The `overwriteScreenshots` config key and the `--overwrite-screenshots` CLI flag replace this value on every step in a run. The flag beats the config key.
   - `crop`: (Optional) Crop the screenshot to a specific element. Provide a CSS/XPath selector string (for example, `"#myElement"`) or an object with at least one element-finding field:
     - `selector`: (Optional, one of several element-finding fields) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to crop to.
     - `elementText`: (Optional) Display text of the element. Doc Detective matches it against the element's full visible text with whitespace normalized. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression.
@@ -414,6 +416,8 @@ Numbers the fields of a form and redacts an email address, all as part of the ca
 ### Overwrite the reference image
 
 `overwrite` controls when a comparison refreshes the reference image. `"true"` rewrites the reference on every run, which disables drift detection. Use it to seed a new reference image or reset an existing one, not in a gating run. To gate a run on drift instead, use `"aboveVariation"` with `maxVariation` or `maxDiffPixels` (see [Full viewport screenshot with visual comparison](#full-viewport-screenshot-with-visual-comparison-object-format)).
+
+To refresh every reference image at once, such as after a redesign, run with `--overwrite-screenshots` instead of editing each step. See [Accept a redesign in one run](/docs/test-docs/screenshot-visual-regression#accept-a-redesign-in-one-run).
 
 ```json
 {
