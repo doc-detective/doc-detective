@@ -576,6 +576,17 @@ async function retakeAtReferenceSize({
   return null;
 }
 
+// The first free `<name>[-N].diff.png`/`.previous.png` pair in `dir`. A taken
+// name is an earlier run of the same step (a `goToStep` loop), so it's kept.
+function diffArtifactPaths(dir: string, name: string): { diffPath: string; previousPath: string } {
+  for (let n = 1; ; n++) {
+    const stem = path.join(dir, n === 1 ? name : `${name}-${n}`);
+    const diffPath = `${stem}.diff.png`;
+    const previousPath = `${stem}.previous.png`;
+    if (!fs.existsSync(diffPath) && !fs.existsSync(previousPath)) return { diffPath, previousPath };
+  }
+}
+
 // Window restoration lives out here rather than in the body: annotations
 // resolve against the live page after capture, so a resize for the reference
 // must hold until the step is done, whichever return the body takes.
@@ -1695,8 +1706,7 @@ async function captureScreenshot({
           fs.mkdirSync(outDir, { recursive: true });
           const base = path.basename(filePath, path.extname(filePath));
           const name = sanitizeFilesystemName([base, step.stepId].filter(Boolean).join("-"), base);
-          const diffPath = path.join(outDir, `${name}.diff.png`);
-          const previousPath = path.join(outDir, `${name}.previous.png`);
+          const { diffPath, previousPath } = diffArtifactPaths(outDir, name);
           fs.writeFileSync(diffPath, PNG.sync.write({ width, height, data: diffImage } as any));
           fs.copyFileSync(existFilePath, previousPath);
           result.outputs.diffPath = diffPath;
