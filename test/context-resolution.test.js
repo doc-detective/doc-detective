@@ -9,6 +9,8 @@ import {
   contextRequirementsSkipMessage,
   prepareContextSlot,
   forcedHeadedMessage,
+  BIDI_BROWSERS,
+  needsBidi,
 } from "../dist/core/tests.js";
 import {
   GECKODRIVER_EXECUTABLE_ARGS,
@@ -620,9 +622,8 @@ describe("getDriverCapabilities", function () {
     assert.ok(args.includes("--auto-select-desktop-capture-source=T"));
   });
 
-  it("keeps chrome on classic WebDriver with no BiDi socket", function () {
-    // ADR 01072 (rejected): a BiDi `webSocketUrl` socket for viewport emulation
-    // crashed headed recording contexts, so chrome stays classic with no socket.
+  it("keeps chrome on classic WebDriver with no BiDi socket by default", function () {
+    // ADR 01216: the socket opens only for a context that needs it.
     const caps = getDriverCapabilities({
       runnerDetails: baseRunner,
       name: "chrome",
@@ -630,6 +631,33 @@ describe("getDriverCapabilities", function () {
     });
     assert.equal(caps["wdio:enforceWebDriverClassic"], true);
     assert.equal(caps["webSocketUrl"], undefined);
+  });
+
+  // ADR 01216: the socket opens only when a context needs it, only on a
+  // browser in BIDI_BROWSERS, and elements stay on classic WebDriver.
+  it("opens a BiDi socket on chrome when the context needs it", function () {
+    const caps = getDriverCapabilities({
+      runnerDetails: baseRunner,
+      name: "chrome",
+      options: { ...options, bidi: true },
+    });
+    assert.equal(caps["webSocketUrl"], true);
+    assert.equal(caps["wdio:enforceWebDriverClassic"], true);
+  });
+
+  it("never opens a BiDi socket on a browser outside BIDI_BROWSERS", function () {
+    const caps = getDriverCapabilities({
+      runnerDetails: baseRunner,
+      name: "webkit",
+      options: { ...options, bidi: true },
+    });
+    assert.ok(!BIDI_BROWSERS.has("webkit"));
+    assert.equal(caps["webSocketUrl"], undefined);
+  });
+
+  it("needsBidi is false for every context until a feature needs the socket", function () {
+    assert.equal(needsBidi({ browser: { name: "chrome" } }, [{ goTo: "x" }]), false);
+    assert.equal(needsBidi({ browser: { name: "chrome" } }, undefined), false);
   });
 
   it("builds safari capabilities for the webkit alias", function () {

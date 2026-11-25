@@ -1,5 +1,5 @@
 ---
-status: rejected
+status: superseded by ADR 01216
 date: 2026-07-15
 decision-makers: doc-detective maintainers
 ---

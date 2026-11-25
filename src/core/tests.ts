@@ -304,11 +304,25 @@ export {
   appiumIsReady,
   APPIUM_READY_POLL_MS,
   driverStart,
+  BIDI_BROWSERS,
+  needsBidi,
 };
 
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
 // rewritten to `webkit` during context resolution, so both appear here.
 const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
+
+// Browsers that passed the BiDi socket go/no-go (ADR 01216). A BiDi feature
+// checks this set and falls back, or skips, everywhere else. Add a browser
+// only with its own spike evidence in an ADR.
+const BIDI_BROWSERS: ReadonlySet<string> = new Set(["chrome"]);
+
+// Whether a context needs the BiDi socket. Features that need it (timezone,
+// clock, full-page capture, request mocking) add their check here; every other
+// context keeps classic WebDriver with no socket.
+function needsBidi(_context: any, _steps: any[] | undefined): boolean {
+  return false;
+}
 
 // Tree-kill a pid and resolve only once the target process is actually gone.
 // `tree-kill` is asynchronous (it shells out to `taskkill /T /F` on Windows,
@@ -456,7 +470,10 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         "appium:automationName": "Gecko",
         "appium:newCommandTimeout": 600, // 10 minutes
         browserName: "MozillaFirefox",
-        "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
+        "wdio:enforceWebDriverClassic": true, // Classic elements (ADR 00132)
+        ...(options.bidi && BIDI_BROWSERS.has(name)
+          ? { webSocketUrl: true }
+          : {}),
         // Pin the geckodriver Doc Detective manages. appium-geckodriver
         // resolves its binary from this capability or `which geckodriver` and
         // nothing else, so without it the managed install in the browsers cache
@@ -499,7 +516,10 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:automationName": "Safari",
           "appium:newCommandTimeout": 600, // 10 minutes
           browserName: "Safari",
-          "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
+          "wdio:enforceWebDriverClassic": true, // Classic elements (ADR 00132)
+          ...(options.bidi && BIDI_BROWSERS.has(name)
+            ? { webSocketUrl: true }
+            : {}),
         };
       }
       break;
@@ -548,11 +568,12 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:newCommandTimeout": 600, // 10 minutes
           "appium:executable": chromium.driver,
           browserName: "chrome",
-          // Classic WebDriver, no BiDi socket. Enabling `webSocketUrl` for
-          // viewport emulation (driver.setViewport) crashed headed recording
-          // contexts with a stack overflow and can't be gated off recording
-          // (viewport+recording is a supported combo) — see ADR 01072 (rejected).
-          "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
+          // Elements stay on classic WebDriver (ADR 00132). The BiDi socket
+          // opens only for a context that needs it (ADR 01216).
+          "wdio:enforceWebDriverClassic": true,
+          ...(options.bidi && BIDI_BROWSERS.has(name)
+            ? { webSocketUrl: true }
+            : {}),
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
@@ -5003,6 +5024,7 @@ async function runContext({
             options: {
               headless,
               ...recordOptions,
+              bidi: needsBidi(context, context.steps),
             },
           });
           // Merge the authored escape hatch, minus the capabilities that are
@@ -6809,7 +6831,16 @@ async function driverStart(
       // stack of active recording handles (LIFO) so several can overlap within
       // one context (e.g. an autoRecord full-context capture plus an explicit
       // record/stopRecord sub-section).
-      driver.state = { url: "", x: null, y: null, recordings: [] };
+      //
+      // Non-enumerable: with a BiDi socket open, webdriverio deep-clones the
+      // live Browser on every `$` (via `_bidiHandler.client`), and this graph
+      // (session registry, recording handles) overflows the stack (ADR 01216).
+      Object.defineProperty(driver, "state", {
+        value: { url: "", x: null, y: null, recordings: [] },
+        writable: true,
+        configurable: true,
+        enumerable: false,
+      });
       return driver;
     } catch (err: any) {
       lastError = err;
