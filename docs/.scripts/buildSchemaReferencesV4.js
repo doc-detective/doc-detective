@@ -647,6 +647,7 @@ async function main() {
     "httpRequest_v3",
     "loadCookie_v3",
     "loadVariables_v3",
+    "mockRequest_v3",
     "openApi_v3",
     "record_v3",
     "runBrowserScript_v3",

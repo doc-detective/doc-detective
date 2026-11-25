@@ -157,7 +157,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 |---|---|---|---|
 | Fill fields & UI flows | W2 | | `find`/`click`/`type`/`dragAndDrop`. |
 | Find elements by image | W2 | | Authored: `/docs/test-docs/find-elements-by-image`. `elementImage` for canvases and custom-drawn controls that selectors can't reach. Its claims are pinned with `manni cite`. |
-| Capture screenshots | W2 | ★ | Authored: `/docs/test-docs/capture-screenshots-guide`. Lead guide for the Screenshots sub-section: a single `screenshot` capture (full viewport, cropped element, padding). The topic split into a Screenshots sub-section. Visual regression, automatic screenshots, and annotations each moved to their own guide (below). |
+| Capture screenshots | W2 | ★ | Authored: `/docs/test-docs/capture-screenshots-guide`. Lead guide for the Screenshots sub-section: a single `screenshot` capture (full viewport, cropped element, padding). The topic split into a Screenshots sub-section. Visual regression, automatic screenshots, and annotations each moved to their own guide (below). Its "Show stable data in screenshots" section uses `mockRequest` to fix changing data. |
 | Screenshot visual regression | W2 | ★ | Authored: `/docs/test-docs/screenshot-visual-regression`. Compare a capture against a committed reference image with `maxVariation`; cloud-storage references and the SSRF guard. |
 | Automatic screenshots | W2 | ★ | Authored: `/docs/test-docs/automatic-screenshots`. `autoScreenshot` captures an image after every browser-driven step; artifact paths. |
 | Annotate screenshots | W2 | ★ | Authored: `/docs/test-docs/annotate-screenshots`. `screenshot.annotations` types, targets, and the `annotationDefaults` theme. |
@@ -180,6 +180,7 @@ One track for the whole doc-testing job, subdivided by the interface the documen
 | Run shell & code steps | D1 | ★ | `runShell` / `runCode` / `runBrowserScript`, outputs. |
 | HTTP & API testing | D2 | ★ | `httpRequest`, `checkLink`. |
 | Cookies & variables | D2 | | `saveCookie` / `loadCookie` / `loadVariables` / outputs. |
+| mockRequest action | D2, W2 | | Authored: `/docs/actions/mockrequest`. Answer browser requests with a fixed response, for stable screenshots and error states. Chrome only; Firefox and Safari skip. |
 | Generate tests from OpenAPI | D3 | | `openApi` integration. |
 
 **Formats and surfaces, cross-surface (W3 anchor)**

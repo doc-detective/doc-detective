@@ -1,0 +1,144 @@
+---
+title: mockRequest
+description: Answer matching browser requests with a fixed response until the test ends.
+---
+
+The `mockRequest` action answers matching browser requests with a fixed response. The request never reaches the server. Use it to show stable data in screenshots, such as a fixed date or balance. You can also test how a page handles an error response.
+
+A mock starts at its step and lasts until the test ends. Doc Detective then removes every mock the test set.
+
+> `mockRequest` needs WebDriver BiDi, which Doc Detective turns on in Chrome only. In Firefox and Safari, the step reports `SKIPPED` with a message such as ``Skipped: `firefox` can't mock requests.``
+
+Set `mockRequest` to an object with these fields:
+
+- `url`: (Required) A glob for the request URLs to answer. `*` matches any characters.
+  - A pattern that starts with `http` matches the whole URL, such as `https://api.example.com/user`.
+  - Any other pattern matches the URL's path, such as `**/api/invoices*`.
+- `method`: (Optional) The HTTP method to answer, such as `GET` or `POST`. Omit it to answer every method.
+- `response`: (Optional) The response to send. Omit it to send an empty `200` response.
+  - `statusCode`: The HTTP status code. Defaults to `200`.
+  - `headers`: Response headers, as header names and string values.
+  - `body`: The response body. A string goes as is. An object or array goes as JSON.
+  - `bodyPath`: A file to send as the body, relative to the spec file. Binary files work too.
+
+Set `body` or `bodyPath`, not both. Setting both is a validation error.
+
+A later `mockRequest` for the same `url` and `method` replaces the earlier one. A mock with a different `url` or `method` runs alongside it.
+
+**Outputs.** The step sets `outputs.matched`. It's the number of requests already answered for that `url` and `method`, counting the mocks it replaced. To reuse it, set the step's `variables` object to `$$matched`.
+
+**Failures.** A `bodyPath` that Doc Detective can't read fails the step. For example: ``Couldn't read `bodyPath` `/abs/fixtures/user.json`.``
+
+> For every field, see the [`mockRequest`](/reference/schemas/mockrequest) reference.
+
+## Examples
+
+The docs tests run the first two examples in headless Chrome against a local test page.
+
+### Answer with a JSON body
+
+This example answers every request whose path starts with `/api/invoices`. The page then shows the same invoice date on every run.
+
+{/* test {"testId":"mockrequest-json-body","detectSteps":false,"runOn":[{"platforms":["linux","windows","mac"],"browsers":[{"name":"chrome","headless":true}]}]} */}
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Answer invoice requests with a fixed date.",
+          "mockRequest": {
+            "url": "**/api/invoices*",
+            "response": { "body": { "next": "2026-12-03" } }
+          }
+        },
+        {
+          "description": "Open the billing page.",
+          "goTo": "https://example.com/billing"
+        }
+      ]
+    }
+  ]
+}
+```
+
+{/* step {"stepId":"mockrequest-json-mock","description":"Answer invoice requests with a fixed date","mockRequest":{"url":"**/api/invoices*","response":{"body":{"next":"2026-12-03"}}}} */}
+{/* step {"stepId":"mockrequest-json-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"mockrequest-json-check","description":"Fetch an invoice and check the mocked date","runBrowserScript":{"script":"return fetch('/api/invoices?page=1').then((r) => r.text());","output":"2026-12-03"}} */}
+{/* test end */}
+
+### Answer one method with an error
+
+This example answers `POST` requests with a `503` error and lets every other method through. Use it to capture a page's error state.
+
+{/* test {"testId":"mockrequest-method-error","detectSteps":false,"runOn":[{"platforms":["linux","windows","mac"],"browsers":[{"name":"chrome","headless":true}]}]} */}
+
+```json
+{
+  "description": "Fail every order submission.",
+  "mockRequest": {
+    "url": "**/api/orders",
+    "method": "POST",
+    "response": {
+      "statusCode": 503,
+      "headers": { "content-type": "text/plain" },
+      "body": "Service unavailable"
+    }
+  }
+}
+```
+
+{/* step {"stepId":"mockrequest-method-mock","description":"Fail every order submission","mockRequest":{"url":"**/api/orders","method":"POST","response":{"statusCode":503,"headers":{"content-type":"text/plain"},"body":"Service unavailable"}}} */}
+{/* step {"stepId":"mockrequest-method-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"mockrequest-method-check","description":"POST gets the mocked error and GET reaches the server","runBrowserScript":{"script":"const u = '/api/orders'; return Promise.all([fetch(u, { method: 'POST' }).then((r) => r.status), fetch(u).then((r) => r.status)]).then((s) => s.join(' '));","output":"503 200"}} */}
+{/* test end */}
+
+### Send a file as the body
+
+This example sends `fixtures/user.json` as the body of one exact URL. The path resolves against the spec file.
+
+```json
+{
+  "description": "Answer the user request from a file.",
+  "mockRequest": {
+    "url": "https://api.example.com/user",
+    "method": "GET",
+    "response": {
+      "headers": { "content-type": "application/json" },
+      "bodyPath": "fixtures/user.json"
+    }
+  }
+}
+```
+
+### Replace a mock and read its count
+
+The second step replaces the first, because both have the same `url` and no `method`. It saves the first mock's count in `INVOICE_CALLS`.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "**/api/invoices*",
+            "response": { "body": { "next": "2026-12-03" } }
+          }
+        },
+        {
+          "goTo": "https://example.com/billing"
+        },
+        {
+          "mockRequest": {
+            "url": "**/api/invoices*",
+            "response": { "statusCode": 404 }
+          },
+          "variables": { "INVOICE_CALLS": "$$matched" }
+        }
+      ]
+    }
+  ]
+}
+```
