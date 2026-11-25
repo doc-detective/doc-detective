@@ -1,0 +1,46 @@
+{
+  "specId": "totp",
+  "description": "The totp() expression (ADR 01216) with no live authenticator: it returns a 6-digit code, two calls in the same window return the same code, $VAR substitution reaches the secret inside {{...}}, and a bad secret keeps the {{...}} text verbatim. Shell-only, so it runs on every OS.",
+  "tests": [
+    {
+      "testId": "totp-shape-and-same-window",
+      "description": "A braced and a bare totp() call in one step resolve in the same window, so they match and are each 6 digits.",
+      "steps": [
+        {
+          "description": "Export the RFC 6238 test secret, standing in for a CI secret.",
+          "runShell": "echo secret",
+          "variables": {
+            "TOTP_FIXTURE_SECRET": "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+          }
+        },
+        {
+          "description": "Generate two codes from the secret through $VAR substitution.",
+          "runShell": "echo codes",
+          "variables": {
+            "TOTP_FIXTURE_A": "{{totp(\"$TOTP_FIXTURE_SECRET\")}}",
+            "TOTP_FIXTURE_B": "totp(\"$TOTP_FIXTURE_SECRET\")"
+          }
+        },
+        {
+          "description": "Both codes are 6 digits and equal.",
+          "runShell": "node -e \"const a = process.env.TOTP_FIXTURE_A, b = process.env.TOTP_FIXTURE_B; if (!/^[0-9]{6}$/.test(a) || a !== b) { console.error('bad codes:', a, b); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "totp-bad-secret-kept-verbatim",
+      "description": "A secret that isn't base32 leaves the {{...}} text in place and logs a warning.",
+      "steps": [
+        {
+          "runShell": "echo bad",
+          "variables": {
+            "TOTP_FIXTURE_BAD": "{{totp(\"not-base32!\")}}"
+          }
+        },
+        {
+          "runShell": "node -e \"const v = process.env.TOTP_FIXTURE_BAD; if (!v.startsWith('{{totp(') || !v.endsWith(')}}')) { console.error('not verbatim:', v); process.exit(1) }\""
+        }
+      ]
+    }
+  ]
+}
