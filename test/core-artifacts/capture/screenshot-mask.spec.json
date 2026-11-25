@@ -1,0 +1,211 @@
+{
+  "specId": "screenshot-mask",
+  "description": "Screenshot masks end to end (ADR 01216). mask.html writes an ISO timestamp plus a random suffix into `#clock` and two `.stamp` elements at load, so captures from two page loads differ by far more than maxVariation 0.001 unless every changing area is masked. Each test seeds its own reference (overwrite true, so masks are skipped and the saved PNG is untouched), reloads the page, then compares a second capture with masks and asserts the comparison ran, stayed within maxVariation, and masked the expected number of areas. The first test also pins, with an unmasked maxVariation 1 comparison, that the reload really changed more than 0.001 of the pixels. Permutations: string masks (first match), an element-object mask (every match), and a mask inside a crop. Headless Chrome and Firefox on every platform. The FAIL path (missing target) and the out-of-frame WARNING are pinned in test/screenshot-mask.test.js.",
+  "tests": [
+    {
+      "testId": "mask-string",
+      "description": "Two string masks, each covering the first match: `#clock` and the `#stamps` block.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            },
+            {
+              "name": "firefox",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/mask.html"
+        },
+        {
+          "stepId": "mask-string-seed",
+          "screenshot": {
+            "path": "mask-string.png",
+            "directory": "static/images",
+            "overwrite": "true"
+          }
+        },
+        {
+          "description": "Reload, so every timestamp changes.",
+          "goTo": "http://localhost:8092/mask.html"
+        },
+        {
+          "stepId": "mask-string-unmasked",
+          "description": "Unmasked control: the reload changed the page by more than 0.001. maxVariation 1 keeps it a PASS and leaves the reference alone.",
+          "screenshot": {
+            "path": "mask-string.png",
+            "directory": "static/images",
+            "maxVariation": 1,
+            "overwrite": "aboveVariation"
+          },
+          "variables": {
+            "UNMASKED_VARIATION": "$$variation"
+          }
+        },
+        {
+          "description": "Assert the unmasked comparison saw more than 0.001 of the pixels change.",
+          "runShell": "node -e \"const v = process.env.UNMASKED_VARIATION; if (!(Number(v) > 0.001)) { console.error(v); process.exit(1) }\""
+        },
+        {
+          "stepId": "mask-string-compare",
+          "screenshot": {
+            "path": "mask-string.png",
+            "directory": "static/images",
+            "maxVariation": 0.001,
+            "overwrite": "aboveVariation",
+            "mask": [
+              "#clock",
+              "#stamps"
+            ]
+          },
+          "variables": {
+            "MASK_STRING_VARIATION": "$$variation",
+            "MASK_STRING_REGIONS": "$$maskedRegions"
+          }
+        },
+        {
+          "description": "Assert the comparison ran within maxVariation and masked two areas.",
+          "runShell": "node -e \"const e = { v: process.env.MASK_STRING_VARIATION, r: process.env.MASK_STRING_REGIONS }; const ok = e.v !== '' && Number(e.v) <= 0.001 && Number(e.r) === 2; if (!ok) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "mask-object-every-match",
+      "description": "An element object `{ selector: \".stamp\" }` masks both `.stamp` elements, alongside a string mask for `#clock`.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            },
+            {
+              "name": "firefox",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/mask.html"
+        },
+        {
+          "stepId": "mask-object-seed",
+          "screenshot": {
+            "path": "mask-object.png",
+            "directory": "static/images",
+            "overwrite": "true"
+          }
+        },
+        {
+          "description": "Reload, so every timestamp changes.",
+          "goTo": "http://localhost:8092/mask.html"
+        },
+        {
+          "stepId": "mask-object-compare",
+          "screenshot": {
+            "path": "mask-object.png",
+            "directory": "static/images",
+            "maxVariation": 0.001,
+            "overwrite": "aboveVariation",
+            "mask": [
+              {
+                "selector": ".stamp"
+              },
+              "#clock"
+            ]
+          },
+          "variables": {
+            "MASK_OBJECT_VARIATION": "$$variation",
+            "MASK_OBJECT_REGIONS": "$$maskedRegions",
+            "MASK_OBJECT_FOUND": "$$maskTargetsFound"
+          }
+        },
+        {
+          "description": "Assert both stamps and the clock were masked (three areas) and the comparison stayed within maxVariation.",
+          "runShell": "node -e \"const e = { v: process.env.MASK_OBJECT_VARIATION, r: process.env.MASK_OBJECT_REGIONS, f: process.env.MASK_OBJECT_FOUND }; const ok = e.v !== '' && Number(e.v) <= 0.001 && Number(e.r) === 3 && e.f === 'true'; if (!ok) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "mask-with-crop",
+      "description": "Crop to `#panel` and mask `#clock` inside it: the mask follows the crop origin, and the stamps outside the crop don't matter.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            },
+            {
+              "name": "firefox",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/mask.html"
+        },
+        {
+          "stepId": "mask-crop-seed",
+          "screenshot": {
+            "path": "mask-crop.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#panel"
+          }
+        },
+        {
+          "description": "Reload, so every timestamp changes.",
+          "goTo": "http://localhost:8092/mask.html"
+        },
+        {
+          "stepId": "mask-crop-compare",
+          "screenshot": {
+            "path": "mask-crop.png",
+            "directory": "static/images",
+            "maxVariation": 0.001,
+            "overwrite": "aboveVariation",
+            "crop": "#panel",
+            "mask": [
+              "#clock"
+            ]
+          },
+          "variables": {
+            "MASK_CROP_VARIATION": "$$variation",
+            "MASK_CROP_REGIONS": "$$maskedRegions",
+            "MASK_CROP_IN_BOUNDS": "$$masksInBounds"
+          }
+        },
+        {
+          "description": "Assert the clock mask landed inside the crop and the comparison stayed within maxVariation.",
+          "runShell": "node -e \"const e = { v: process.env.MASK_CROP_VARIATION, r: process.env.MASK_CROP_REGIONS, b: process.env.MASK_CROP_IN_BOUNDS }; const ok = e.v !== '' && Number(e.v) <= 0.001 && Number(e.r) === 1 && e.b === 'true'; if (!ok) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
+    }
+  ]
+}

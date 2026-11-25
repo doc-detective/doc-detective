@@ -70,6 +70,30 @@ Each resize costs a second screenshot. If `$$resizedToReference` shows up on eve
 
 The reference URL can also be on a local development server or a private network, such as `http://localhost:8080/home.png`, with no setting. To guard against server-side request forgery (SSRF), Doc Detective refuses a public host's redirect to a private address. That includes loopback and link-local addresses, such as the `169.254.169.254` cloud-metadata endpoint.
 
+### Ignore parts that change
+
+Some pages show values that differ on every run, such as a date, a counter, or a relative time like "2 minutes ago." Those pixels count as drift, so the comparison warns even when nothing broke. Raising `maxVariation` to absorb them also hides real regressions. Instead, list the changing areas in `mask`:
+
+```json
+{
+  "description": "Compare the billing page, ignoring the next invoice date.",
+  "screenshot": {
+    "path": "./reference/billing.png",
+    "maxVariation": 0.01,
+    "mask": ["#next-invoice-date", { "selector": ".relative-time" }]
+  }
+}
+```
+
+Doc Detective paints the same solid block over each masked area on both the reference image and the new capture, then compares them. Changes inside a mask never count toward `maxVariation`. The saved screenshot keeps the real content, so your docs still show the actual date. Masks apply only when a comparison runs. Without a reference image, or with `"overwrite": "true"`, Doc Detective doesn't look them up.
+
+Each item is one of two kinds:
+
+- **A string**, a selector or display text, the same as `crop` accepts. It masks the first matching element.
+- **An element object**, with the same element-finding fields as `crop`, such as `selector`, `elementText`, or `elementClass`. It masks every matching element. Use it when the changing value appears in several places.
+
+A mask must find its element. If it can't, the step fails with `Couldn't find every mask target.`, rather than comparing with nothing masked. If a string mask's element lies entirely outside the capture or the crop, the step returns `WARNING`. The `$$maskTargetsFound`, `$$masksInBounds`, and `$$maskedRegions` outputs report each check.
+
 ## Verify it works
 
 - A comparison that stays within `maxVariation` reports `PASS`.

@@ -28,6 +28,7 @@ You can specify the screenshot action in several ways:
     - `elementAria`: (Optional) Computed accessible name of the element per the ARIA specification. Supports exact match or a `/pattern/` regex.
     - `elementImage`: (Optional) A picture of the area to crop to. Unlike the other fields, it doesn't scroll first. See [Find elements by image](/docs/test-docs/find-elements-by-image).
     - `padding`: (Optional) Add padding around the element before cropping. Can be a single number (all sides) or an object `{ top, right, bottom, left }`.
+  - `mask`: (Optional) A list of areas to ignore when comparing against a reference image, such as a date that changes every run. Doc Detective paints each area the same solid color on both images before comparing, so changes inside a mask don't count toward `maxVariation`. The saved screenshot isn't changed. A string item, a selector or display text, masks the first match. An object item takes the element-finding fields `crop` takes, except `padding`, and masks every match. Masks apply only when a comparison runs. The step fails if Doc Detective can't find a mask's element. See [Ignore parts that change](/docs/test-docs/screenshot-visual-regression#ignore-parts-that-change).
   - `surface`: (Optional) The browser session, window, or tab to capture, such as `{ "browser": "chrome", "tab": "cart" }`. It can also be the [native app surface](/docs/actions/startsurface) to capture, such as `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": -1 }`. On macOS the capture is that window element, and on Windows the switched window. Omit it to capture the active surface, the most recently opened, focused, or explicitly targeted one, whether a browser tab or an app window. Specifying a surface switches the active surface for the steps that follow. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](find#app-windows).
   - `annotations`: (Optional) A list of visual annotations to draw onto the screenshot. See [Annotations](#annotations).
 
@@ -166,6 +167,9 @@ URL paths must end in `.png` (or `.PNG`) and can include query strings for signe
 - `$$annotationsInBounds`: whether every annotation landed inside the image (when `annotations` is set). The step returns WARNING if one falls outside, which usually means the crop left it out of frame.
 - `$$aspectRatioMatches`: whether the new capture and the reference image share an aspect ratio (when comparing against a reference image).
 - `$$variation`: the fractional difference between the new capture and the reference image (when comparing against a reference image).
+- `$$maskTargetsFound`: whether Doc Detective found every mask's element (when a comparison runs with `mask`). The step fails if one is missing.
+- `$$masksInBounds`: whether every string mask landed inside the image (when a comparison runs with `mask`). The step returns WARNING if one falls outside.
+- `$$maskedRegions`: the number of masked areas inside the image (when a comparison runs with `mask`).
 - `$$resizedToReference`: the pixel sizes of the first screenshot (`from`) and the reference image (`to`), when Doc Detective resized the window to match the reference image. See **Size mismatches**.
 
 > For comprehensive options, see the [`screenshot`](/reference/schemas/screenshot) reference.

@@ -23,6 +23,7 @@ maxVariation | number | Optional. Allowed variation as a fraction (0 to 1) of pi
 overwrite | string | Optional. If `true`, overwrites the existing screenshot at `path` if it exists.<br/>If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.<br/><br/>Accepted values: `true`, `false`, `aboveVariation` | `aboveVariation`
 crop | one of:<br/>- string<br/>- object([Crop by element (detailed)](/reference/schemas/crop-by-element-detailed)) | Optional. No description provided. | —
 annotations | array of unknown | Optional. Visual annotations to draw onto the screenshot. Annotations are composited into the image and never touch the page, so they can't disturb the page under test or appear in a recording that's running at the same time. Each annotation is resolved against the capture after any `crop`. To keep annotations on screen across steps and in recordings, use an `annotate` step instead. | —
+mask | array of one of: string, object([Target by element (detailed)](/reference/schemas/target-by-element-detailed)) | Optional. Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails. | —
 sourceIntegration | object([sourceIntegration](/reference/schemas/sourceintegration)) | Optional. Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations. | —
 
 ## Examples
@@ -36,6 +37,7 @@ sourceIntegration | object([sourceIntegration](/reference/schemas/sourceintegrat
   "overwrite": "aboveVariation",
   "crop": "example",
   "annotations": [],
+  "mask": [],
   "sourceIntegration": {
     "type": "heretto",
     "integrationName": "example"
