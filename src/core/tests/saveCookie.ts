@@ -1,9 +1,10 @@
 import { validate } from "../../common/src/validate.js";
 import { log, invalidStepMessage } from "../utils.js";
+import { readCookies, resolveStatePath } from "./browserState.js";
 import path from "node:path";
 import fs from "node:fs";
 
-export { saveCookie };
+export { saveCookie, formatCookieForNetscape };
 
 /**
  * Save a specific browser cookie to a file or environment variable for later reuse.
@@ -40,31 +41,14 @@ async function saveCookie({ config, step, driver }: { config: any; step: any; dr
   } = step.saveCookie;
 
   try {
-    // Get all cookies from the browser
-    const allCookies = await driver.getCookies();
-    log(config, "debug", `Retrieved ${allCookies.length} cookies from browser`);
-
-    // Find the specific cookie
-    let targetCookie = null;
-    if (cookieName) {
-      targetCookie = allCookies.find((cookie: any) => {
-        const nameMatches = cookie.name === cookieName;
-        const domainMatches = !domain || (cookie.domain && (
-          cookie.domain === domain ||
-          cookie.domain === '.' + domain ||
-          cookie.domain.endsWith('.' + domain)
-        ));
-        return nameMatches && domainMatches;
-      });
-
-      if (!targetCookie) {
-        result.status = "FAIL";
-        result.description = `Cookie '${cookieName}' not found${domain ? ` for domain '${domain}'` : ''}`;
-        return result;
-      }
-
-      log(config, "debug", `Found cookie '${cookieName}' with value: ${targetCookie.value ? '[REDACTED]' : '[EMPTY]'}`);
+    // Find the specific cookie. The schema requires `name`.
+    const [targetCookie] = await readCookies(driver, { name: cookieName, domain });
+    if (!targetCookie) {
+      result.status = "FAIL";
+      result.description = `Cookie '${cookieName}' not found${domain ? ` for domain '${domain}'` : ''}`;
+      return result;
     }
+    log(config, "debug", `Found cookie '${cookieName}' with value: ${targetCookie.value ? '[REDACTED]' : '[EMPTY]'}`);
 
     if (variable) {
       // Save cookie to environment variable as JSON
@@ -76,8 +60,7 @@ async function saveCookie({ config, step, driver }: { config: any; step: any; dr
 
     if (filePath) {
       // Resolve file path
-      const outputDirectory = directory || config.outputDir || process.cwd();
-      const fullPath = path.resolve(outputDirectory, filePath);
+      const fullPath = resolveStatePath(config, { path: filePath, directory });
 
       // Check if file exists and handle overwrite
       // `overwrite` is a boolean; validation coerces "true" to true.
