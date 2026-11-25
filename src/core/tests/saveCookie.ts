@@ -45,63 +45,43 @@ async function saveCookie({ config, step, driver }: { config: any; step: any; dr
     const [targetCookie] = await readCookies(driver, { name: cookieName, domain });
     if (!targetCookie) {
       result.status = "FAIL";
-      result.description = `Cookie '${cookieName}' not found${domain ? ` for domain '${domain}'` : ''}`;
+      result.description = `Couldn't save cookie: no cookie named \`${cookieName}\` is set${domain ? ` for \`${domain}\`` : ""}.`;
       return result;
     }
     log(config, "debug", `Found cookie '${cookieName}' with value: ${targetCookie.value ? '[REDACTED]' : '[EMPTY]'}`);
 
     if (variable) {
       // Save cookie to environment variable as JSON
-      const cookieData = targetCookie ? JSON.stringify(targetCookie) : "";
-      process.env[variable] = cookieData;
-      result.description = `Saved cookie to environment variable '${variable}'.`;
+      process.env[variable] = JSON.stringify(targetCookie);
+      result.description = `Saved cookie \`${cookieName}\` to environment variable \`${variable}\`.`;
       log(config, "debug", `Saved cookie to environment variable '${variable}'`);
     }
 
     if (filePath) {
-      // Resolve file path
       const fullPath = resolveStatePath(config, { path: filePath, directory });
 
-      // Check if file exists and handle overwrite
       // `overwrite` is a boolean; validation coerces "true" to true.
       if (fs.existsSync(fullPath) && overwrite !== true) {
         result.status = "FAIL";
-        result.description = `File '${fullPath}' already exists and overwrite is not enabled.`;
+        result.description = `Couldn't save cookie: \`${fullPath}\` exists. Set \`overwrite\` to \`true\` to replace it.`;
         return result;
       }
 
-      // Ensure directory exists
-      const dir = path.dirname(fullPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
-      if (targetCookie) {
-        // Convert single cookie to Netscape format
-        const netscapeCookie = formatCookieForNetscape(targetCookie);
-
-        // Write Netscape format header and cookie
-        const content = `# Netscape HTTP Cookie File
+      fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+      const content = `# Netscape HTTP Cookie File
 # This is a cookie file saved by Doc Detective
-${netscapeCookie}
+${formatCookieForNetscape(targetCookie)}
 `;
-
-        fs.writeFileSync(fullPath, content, 'utf8');
-        result.description = `Saved cookie '${cookieName}' to '${fullPath}'.`;
-        log(config, "debug", `Saved cookie '${cookieName}' to file: ${fullPath}`);
-      } else {
-        // Create empty file if no cookie found but file path specified
-        fs.writeFileSync(fullPath, "# No cookie data\n", 'utf8');
-        result.description = `Created empty cookie file at '${fullPath}'.`;
-        log(config, "debug", `Created empty cookie file: ${fullPath}`);
-      }
+      fs.writeFileSync(fullPath, content, 'utf8');
+      result.description = `Saved cookie \`${cookieName}\` to \`${fullPath}\`.`;
+      log(config, "debug", `Saved cookie '${cookieName}' to file: ${fullPath}`);
 
       result.outputs.path = fullPath;
     }
 
   } catch (error: any) {
     result.status = "FAIL";
-    result.description = `Failed to save cookie: ${error.message}`;
+    result.description = `Couldn't save cookie. ${error.message}`;
     log(config, "error", result.description);
   }
 
@@ -114,7 +94,9 @@ ${netscapeCookie}
  * @returns {string} Formatted cookie string.
  */
 function formatCookieForNetscape(cookie: any) {
-  // Netscape format: domain	flag	path	secure	expiration	name	value
+  // Netscape format: domain, flag, path, secure, expiration, name, value, then
+  // httpOnly and sameSite, which parseNetscapeCookieFile reads back. An
+  // httpOnly cookie also gets curl's `#HttpOnly_` prefix.
   const domain = cookie.domain || '';
   // The flag indicates if the domain applies to all subdomains
   // TRUE if domain starts with '.' (applies to subdomains), FALSE for exact domain match
@@ -125,6 +107,9 @@ function formatCookieForNetscape(cookie: any) {
   const expiry = cookie.expiry ? cookie.expiry.toString() : '0';
   const name = cookie.name || '';
   const value = cookie.value || '';
+  const httpOnly = cookie.httpOnly ? 'TRUE' : 'FALSE';
+  const sameSite = cookie.sameSite || 'Lax';
+  const prefix = cookie.httpOnly ? '#HttpOnly_' : '';
 
-  return `${domain}\t${flag}\t${cookiePath}\t${secure}\t${expiry}\t${name}\t${value}`;
+  return `${prefix}${domain}\t${flag}\t${cookiePath}\t${secure}\t${expiry}\t${name}\t${value}\t${httpOnly}\t${sameSite}`;
 }

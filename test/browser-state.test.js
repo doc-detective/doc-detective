@@ -8,6 +8,8 @@ import {
   toDriverCookie,
   applyCookies,
 } from "../dist/core/tests/browserState.js";
+import { formatCookieForNetscape } from "../dist/core/tests/saveCookie.js";
+import { parseNetscapeCookieFile } from "../dist/core/tests/loadCookie.js";
 
 const future = Math.floor(Date.now() / 1000) + 3600;
 const past = Math.floor(Date.now() / 1000) - 3600;
@@ -103,6 +105,18 @@ describe("browser state helpers", function () {
       );
       assert.deepEqual(applied.map((c) => c.name), ["parent", "host", "none"]);
       assert.deepEqual(set.map((c) => c.name), ["parent", "host", "none"]);
+    });
+  });
+
+  describe("Netscape cookie file", function () {
+    it("round-trips httpOnly and sameSite", function () {
+      for (const cookie of [
+        { name: "a", value: "1", domain: ".example.com", path: "/", secure: true, httpOnly: true, sameSite: "Strict", expiry: future },
+        { name: "b", value: "2", domain: "example.com", path: "/app", secure: false, httpOnly: false, sameSite: "None", expiry: future },
+      ]) {
+        const [parsed] = parseNetscapeCookieFile(formatCookieForNetscape(cookie) + "\n");
+        assert.deepEqual(parsed, cookie);
+      }
     });
   });
 });

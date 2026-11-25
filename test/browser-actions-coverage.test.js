@@ -700,7 +700,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not found or empty/);
+    assert.match(result.description, /Couldn't load cookie: environment variable `DD_MISSING_COOKIE` isn't set./);
   });
 
   it("env variable with invalid JSON → FAIL parse", async () => {
@@ -712,7 +712,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Failed to parse cookie data/);
+    assert.match(result.description, /doesn't hold cookie JSON./);
   });
 
   it("env variable happy path → sets cookie, PASS", async () => {
@@ -740,7 +740,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not found/);
+    assert.match(result.description, /Couldn't load cookie: `.*missing.txt` doesn't exist./);
   });
 
   it("file with no valid cookies → FAIL", async () => {
@@ -753,7 +753,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /No valid cookies found/);
+    assert.match(result.description, /has no cookies./);
   });
 
   it("cookie name not found in file → FAIL", async () => {
@@ -766,7 +766,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not found in file/);
+    assert.match(result.description, /has no cookie named `sid`./);
   });
 
   it("file happy path (string .txt form, infers name) → PASS", async () => {
@@ -901,7 +901,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not compatible/);
+    assert.match(result.description, /doesn't match the open page's host/);
   });
 
   it("cookie data missing name → FAIL", async () => {
@@ -913,7 +913,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /missing name/);
+    assert.match(result.description, /the cookie has no `name`./);
   });
 
   it("readFileSync throwing (path is a directory) → FAIL read branch", async () => {
@@ -928,7 +928,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Failed to read cookie file/);
+    assert.match(result.description, /isn't a readable file./);
   });
 
   it("directory omitted + config.output omitted → resolves against cwd", async () => {
@@ -942,7 +942,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not found/);
+    assert.match(result.description, /doesn't exist./);
   });
 
   it("cookie without a domain skips domain-compatibility check → PASS", async () => {
@@ -1028,7 +1028,7 @@ describe("loadCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Failed to load cookie: driver refused/);
+    assert.match(result.description, /Couldn't load cookie. driver refused/);
   });
 });
 
@@ -1094,7 +1094,7 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /not found/);
+    assert.match(result.description, /Couldn't save cookie: no cookie named `sid` is set./);
   });
 
   it("cookie not found for domain → FAIL with domain in message", async () => {
@@ -1110,7 +1110,7 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /for domain 'example.com'/);
+    assert.match(result.description, /is set for `example.com`./);
   });
 
   it("string env form → saves cookie JSON to env var, PASS", async () => {
@@ -1122,7 +1122,7 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "PASS");
-    assert.match(result.description, /environment variable 'sid'/);
+    assert.match(result.description, /environment variable `sid`/);
     assert.deepEqual(JSON.parse(process.env.sid).name, "sid");
   });
 
@@ -1168,7 +1168,7 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /already exists and overwrite is not enabled/);
+    assert.match(result.description, /exists. Set `overwrite` to `true` to replace it./);
   });
 
   it("file exists + overwrite true → overwrites, PASS", async () => {
@@ -1266,8 +1266,9 @@ describe("saveCookie action (coverage)", function () {
     });
     assert.equal(result.status, "PASS");
     const written = fs.readFileSync(file, "utf8");
-    // Empty domain → leading tab; flag FALSE; default path '/'; expiry 0.
-    assert.match(written, /^\tFALSE\t\/\tFALSE\t0\tsid\tv$/m);
+    // Empty domain → leading tab; flag FALSE; default path '/'; expiry 0;
+    // httpOnly FALSE; sameSite Lax.
+    assert.match(written, /^\tFALSE\t\/\tFALSE\t0\tsid\tv\tFALSE\tLax$/m);
   });
 
   it("cookie with empty value → [EMPTY] log + value fallback, PASS", async () => {
@@ -1284,8 +1285,8 @@ describe("saveCookie action (coverage)", function () {
     });
     assert.equal(result.status, "PASS");
     const written = fs.readFileSync(file, "utf8");
-    // Trailing empty value → line ends right after the name + tab.
-    assert.match(written, /example\.com\tFALSE\t\/\tFALSE\t0\tsid\t$/m);
+    // Empty value → an empty column between the name and httpOnly.
+    assert.match(written, /example\.com\tFALSE\t\/\tFALSE\t0\tsid\t\tFALSE\tLax$/m);
   });
 
   it("getCookies throwing → catch FAIL", async () => {
@@ -1300,6 +1301,6 @@ describe("saveCookie action (coverage)", function () {
       driver,
     });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /Failed to save cookie: browser gone/);
+    assert.match(result.description, /Couldn't save cookie\. browser gone/);
   });
 });

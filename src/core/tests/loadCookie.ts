@@ -40,7 +40,7 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
       const cookieData = process.env[variable];
       if (!cookieData) {
         result.status = "FAIL";
-        result.description = `Environment variable '${variable}' not found or empty`;
+        result.description = `Couldn't load cookie: environment variable \`${variable}\` isn't set.`;
         return result;
       }
 
@@ -51,9 +51,9 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
           "debug",
           `Loaded cookie from environment variable '${variable}'`
         );
-      } catch (parseError: any) {
+      } catch {
         result.status = "FAIL";
-        result.description = `Failed to parse cookie data from environment variable '${variable}': ${parseError.message}`;
+        result.description = `Couldn't load cookie: environment variable \`${variable}\` doesn't hold cookie JSON.`;
         return result;
       }
     } else {
@@ -62,7 +62,7 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
 
       if (!fs.existsSync(fullPath)) {
         result.status = "FAIL";
-        result.description = `Cookie file '${fullPath}' not found`;
+        result.description = `Couldn't load cookie: \`${fullPath}\` doesn't exist.`;
         return result;
       }
 
@@ -72,7 +72,7 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
 
         if (cookies.length === 0) {
           result.status = "FAIL";
-          result.description = `No valid cookies found in file '${fullPath}'`;
+          result.description = `Couldn't load cookie: \`${fullPath}\` has no cookies.`;
           return result;
         }
 
@@ -83,9 +83,9 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
 
         if (!targetCookie) {
           result.status = "FAIL";
-          result.description = `Cookie '${cookieName}' not found in file '${fullPath}'${
-            domain ? ` for domain '${domain}'` : ""
-          }`;
+          result.description = `Couldn't load cookie: \`${fullPath}\` has no cookie named \`${cookieName}\`${
+            domain ? ` for \`${domain}\`` : ""
+          }.`;
           return result;
         }
 
@@ -94,9 +94,9 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
           "debug",
           `Loaded cookie '${targetCookie.name}' from file: ${fullPath}`
         );
-      } catch (readError: any) {
+      } catch {
         result.status = "FAIL";
-        result.description = `Failed to read cookie file '${fullPath}': ${readError.message}`;
+        result.description = `Couldn't load cookie: \`${fullPath}\` isn't a readable file.`;
         return result;
       }
     }
@@ -104,7 +104,7 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
     // Validate cookie data
     if (!targetCookie || !targetCookie.name) {
       result.status = "FAIL";
-      result.description = "Invalid cookie data: missing name";
+      result.description = "Couldn't load cookie: the cookie has no `name`.";
       return result;
     }
 
@@ -113,11 +113,11 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
     const applied = await applyCookies(driver, [targetCookie], currentUrl);
     if (applied.length === 0) {
       result.status = "FAIL";
-      result.description = `Cookie domain '${targetCookie.domain}' is not compatible with current page domain '${new URL(currentUrl).hostname}'`;
+      result.description = `Couldn't load cookie: its domain \`${targetCookie.domain}\` doesn't match the open page's host \`${new URL(currentUrl).hostname}\`. Use \`goTo\` to open that site first.`;
       return result;
     }
 
-    result.description = `Loaded cookie '${targetCookie.name}' into browser.`;
+    result.description = `Loaded cookie \`${targetCookie.name}\`.`;
     result.outputs.cookieName = targetCookie.name;
     result.outputs.domain = targetCookie.domain;
 
@@ -128,7 +128,7 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
     );
   } catch (error: any) {
     result.status = "FAIL";
-    result.description = `Failed to load cookie: ${error.message}`;
+    result.description = `Couldn't load cookie. ${error.message}`;
     log(config, "error", result.description);
   }
 
