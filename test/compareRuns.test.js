@@ -122,6 +122,12 @@ describe("loadPreviousResults", function () {
     assert.equal(loaded.previous.runId, "old");
   });
 
+  it("loads nothing when compareTo is false", function () {
+    writeRun("2026-01-01T00-00-00-000Z", ok("old"));
+    const loaded = loadPreviousResults({ outputDir: tmp, compareTo: false }, "2026-04-01T00-00-00-000Z", "5.4.0");
+    assert.equal(loaded.reason, "Couldn't compare with an earlier run: `compareTo` is `false`.");
+  });
+
   it("reports no earlier run", function () {
     writeRun("2026-04-01T00-00-00-000Z", ok("current"));
     const loaded = loadPreviousResults({ outputDir: tmp }, "2026-04-01T00-00-00-000Z", "5.4.0");
