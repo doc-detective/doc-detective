@@ -59,9 +59,9 @@ report.
   ``Skipped: `safari` can't capture a page taller than the screen.`` The message names whichever
   browser hit the cap. Headed Safari is the common case, since Safari has no headless mode.
 
-Chrome sessions don't have a BiDi socket yet. ADR 01072 rejected an always-on socket. PR #1041
-turns one on per context, through `needsBidi()`. Once it merges, adding `fullPage` to `needsBidi()`
-is a one-line follow-up. Chrome then captures the document over BiDi, with no resize.
+Chrome sessions don't have a BiDi socket on this branch. PR #1041 gives every Chrome session one.
+Once it merges, Chrome captures the document over BiDi with no resize, and this code needs no
+change. The resize stays as the fallback for a session without a socket.
 
 ### Combinations
 
