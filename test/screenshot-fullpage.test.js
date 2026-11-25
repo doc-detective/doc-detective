@@ -100,6 +100,8 @@ function fakeDriver({
   frozenRect,
   // A rect that follows the viewport, like a responsive layout.
   rectAt,
+  // The page height once animations are frozen, when finishing one grows it.
+  frozenHeight,
   throwOnCapture = false,
   // Throws on the nth page-extent read (1-based).
   throwOnExtentRead,
@@ -115,7 +117,12 @@ function fakeDriver({
     height: Math.min(window.height - 100, maxViewport),
   });
   // A function height grows with the viewport, like a `vh` layout.
-  const docHeight = () => (typeof pageHeight === "function" ? pageHeight(viewport()) : pageHeight);
+  const docHeight = () =>
+    frozen && frozenHeight !== undefined
+      ? frozenHeight
+      : typeof pageHeight === "function"
+        ? pageHeight(viewport())
+        : pageHeight;
   const element = fakeElement();
   return {
     calls,
@@ -478,6 +485,30 @@ describe("screenshot fullPage and animations", function () {
     const reads = driver.calls.filter((c) => c.kind === "execute" && c.source.includes("getBoundingClientRect"));
     assert.ok(reads.length > 0 && reads.every((c) => c.viewport.height === 1600), "every rect read is at the capture size");
     assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("grows the window again when freezing makes the page taller", async function () {
+    // Finishing an animation adds 400px; the first resize only fit 1600.
+    const tall = await makePng(800, 2000);
+    const driver = fakeDriver({ viewportCapture, pageCapture: tall, frozenHeight: 2000 });
+    const result = await run({ fullPage: true, animations: "disabled" }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(await savedHeight(), 2000);
+    const shot = driver.calls.find((c) => c.kind === "takeScreenshot");
+    assert.equal(shot.viewport.height, 2000);
+    const freezes = driver.calls.filter((c) => c.kind === "execute" && c.source.includes("getAnimations") && c.source.includes("finish"));
+    assert.equal(freezes.length, 2, "frozen again after the second resize");
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("skips when freezing grows the page past the screen", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture, frozenHeight: 2000, maxViewport: 1800 });
+    const result = await run({ fullPage: true, animations: "disabled" }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.equal(result.description, "Skipped: `chrome` can't capture a page larger than the screen.");
+    assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+    assert.equal(driver.frozen, false);
   });
 
   it("scales live blurs on a whole-page image by the pixel density, not the viewport width", async function () {

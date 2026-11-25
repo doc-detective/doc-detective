@@ -55,7 +55,8 @@ report.
   tall as the page's `scrollHeight` and as wide as its `scrollWidth`. Capture, then put the window
   size and scroll position back when the step ends. Until then, the window stays at the capture
   size while annotation and mask geometry is read. A responsive layout then can't move a target
-  away from its blur. The resize uses `realizeViewport`. A page that already fits the
+  away from its blur. The resize uses `realizeViewport`. If freezing animations makes the page
+  bigger, the window grows and freezes once more, then SKIPs if it still doesn't fit. A page that already fits the
   viewport isn't resized. After the resize the page is measured again, because a `vh` layout grows
   with the viewport.
 * **The screen caps the window:** a headed browser can't grow past the display. When the viewport

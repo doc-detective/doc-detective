@@ -312,6 +312,9 @@ type FullPage = {
   // whole-page image: zero when the window grew to fit the page.
   scroll: Point;
   restore: () => Promise<void>;
+  // On the resize path: after the freeze, make sure the page still fits.
+  // Gets the freeze, to run again after a further resize.
+  settle?: (freeze: () => Promise<void>) => Promise<void>;
 };
 
 type CaptureOptions = {
@@ -357,25 +360,42 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
     await driver.setWindowSize(original.width, original.height);
     await driver.execute(scrollPageTo, scroll.x, scroll.y);
   };
-  let realized: { width: number; height: number };
-  let grown: any;
-  try {
+  const tooLarge = () =>
+    new CaptureSkipped(`Skipped: \`${browser || "this browser"}\` can't capture a page larger than the screen.`);
+  // Grow the viewport to `extent`, then read the page again: a `vh` layout
+  // grows with the viewport.
+  let realized = viewport;
+  const grow = async (extent: any) => {
     const wanted = {
-      width: Math.max(Number(page?.width) || 0, viewport.width),
-      height: Math.max(Number(page?.height) || 0, viewport.height),
+      width: Math.max(Number(extent?.width) || 0, realized.width),
+      height: Math.max(Number(extent?.height) || 0, realized.height),
     };
     realized = await realizeViewport(driver, wanted, options.config, options.label, "debug");
-    // Read again: a `vh` layout grows with the viewport.
-    grown = await driver.execute(readPageExtent);
+    return await driver.execute(readPageExtent);
+  };
+  let grown: any;
+  try {
+    grown = await grow(page);
   } catch (error) {
     await restore().catch(() => {});
     throw error;
   }
   if (!fits(grown, realized)) {
     await restore();
-    throw new CaptureSkipped(`Skipped: \`${browser || "this browser"}\` can't capture a page larger than the screen.`);
+    throw tooLarge();
   }
-  return { scroll: { x: 0, y: 0 }, restore, capture: viewportCapture };
+  // Finishing an animation can make the page bigger. The caller restores the
+  // window whatever this throws.
+  const settle = async (freeze: () => Promise<void>) => {
+    const frozen = await driver.execute(readPageExtent);
+    if (fits(frozen, realized)) return;
+    // ponytail: one more resize and freeze; a page that keeps growing after
+    // that is SKIPPED. Loop until it settles if real pages need more.
+    await grow(frozen);
+    await freeze();
+    if (!fits(await driver.execute(readPageExtent), realized)) throw tooLarge();
+  };
+  return { scroll: { x: 0, y: 0 }, restore, capture: viewportCapture, settle };
 }
 
 // A browser capture with every element that shows a secret blurred, and the
@@ -413,11 +433,15 @@ async function takeBrowserScreenshot(
       // After the fonts and the resize, so an animation either starts is
       // frozen too. The caller thaws, once it has read where elements are.
       if (freeze) {
-        try {
-          await driver.execute(freezeAnimations);
-        } catch (error: any) {
-          throw new Error(`Couldn't stop the page's animations: ${error?.message ?? error}`);
-        }
+        const freezePage = async () => {
+          try {
+            await driver.execute(freezeAnimations);
+          } catch (error: any) {
+            throw new Error(`Couldn't stop the page's animations: ${error?.message ?? error}`);
+          }
+        };
+        await freezePage();
+        await fullPage?.settle?.(freezePage);
       }
       // A tracked blur can move during the capture, so the page notes every place
       // each blur is drawn from here until the read after it.
