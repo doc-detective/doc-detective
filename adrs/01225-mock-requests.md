@@ -6,7 +6,7 @@ decision-makers: hawkeyexl
 
 # Mock browser requests with a `mockRequest` step
 
-Builds on [ADR 01216](01216-bidi-socket-per-browser-chrome-first.md), which opens the BiDi socket
+Builds on [ADR 01219](01219-bidi-socket-per-browser-chrome-first.md), which opens the BiDi socket
 on every session of a browser in `BIDI_BROWSERS`: Chrome only, for now.
 
 ## Context and Problem Statement
@@ -17,7 +17,7 @@ docs. Playwright users fix this by routing the request to a fixed response. Doc 
 has no way to answer a browser's request.
 
 webdriverio's `browser.mock()` intercepts requests through WebDriver BiDi `network.addIntercept`.
-ADR 01216 opens BiDi on every Chrome session. How should a spec answer a
+ADR 01219 opens BiDi on every Chrome session. How should a spec answer a
 browser request with a fixed response?
 
 ## Decision Drivers
@@ -72,7 +72,7 @@ counting the mocks this step replaced.
   before the session closes.
 * A later `mockRequest` for the same `url` and `method` replaces the earlier one. webdriverio
   restores the old intercept itself when the definition matches.
-* The step runs where ADR 01216's `hasBidi(browserName)` is `true`. Every session of such a
+* The step runs where ADR 01219's `hasBidi(browserName)` is `true`. Every session of such a
   browser has the socket, so the step needs nothing from capabilities. Elsewhere it's SKIPPED.
 * A session without the socket despite `hasBidi` FAILs the step. That's a defensive check.
 * A relative `bodyPath` resolves against the spec file at detection, like other spec paths, and
