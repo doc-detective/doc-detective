@@ -43,7 +43,7 @@ Chosen option: **A**.
 * `screenshot.threshold` is a number from `0` to `1`, default `0.1`, passed to pixelmatch as its
   per-pixel color tolerance. `0.1` is pixelmatch's own default (Playwright uses `0.2`).
   * A higher threshold can only lower the changed-pixel count, never raise it. With every other
-    input fixed, the measured variation can only fall, so no comparison that passed today starts
+    input fixed, the measured variation can only fall. No comparison that passed today starts
     warning, and `aboveVariation` can't overwrite a reference it would have kept. That's why the
     default can change without a major version.
   * `threshold: 0` restores ADR 01142's counts exactly.
@@ -52,7 +52,8 @@ Chosen option: **A**.
   both are set, both must hold, and `aboveVariation` overwrites when either fails. The message is
   ``Screenshot differs from the reference by 412 pixels, more than `maxDiffPixels` (150).``
 * When a comparison finds any changed pixel, and the runner gives the step a run folder, it writes
-  two files to the context's `screenshots/` folder, the same folder automatic screenshots use:
+  two files. They go to the context's `screenshots/` folder, the same folder automatic screenshots
+  use:
   * `<name>.diff.png`: pixelmatch's diff output, encoded with `pngjs`.
   * `<name>.previous.png`: the reference bytes before any `aboveVariation` overwrite.
 
@@ -76,8 +77,8 @@ Chosen option: **A**.
 ### Confirmation
 
 * `test/screenshot-tolerance.test.js` covers noise passing at the default and warning at `0`,
-  `maxDiffPixels` under and over, both limits together, and diff images written to the run folder,
-  not written for identical images, and not written without a run folder.
+  `maxDiffPixels` under and over, and both limits together. It also covers diff images: written to
+  the run folder, not written for identical images, and not written without a run folder.
 * `test/saveScreenshot.test.js` keeps ADR 01142's one-level test with `threshold: 0`.
 * `test/core-artifacts/capture/screenshot-tolerance.spec.json` runs each key in headless Chrome,
   including the deterministic `maxDiffPixels` WARNING that writes the diff images.
