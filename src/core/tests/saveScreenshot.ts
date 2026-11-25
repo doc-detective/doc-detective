@@ -1255,7 +1255,8 @@ async function captureScreenshot({
       // the capture's canvas pixels; painted onto both images further down.
       const maskTargets = Array.isArray(step.screenshot.mask) ? step.screenshot.mask : [];
       let maskRects: { x: number; y: number; width: number; height: number }[] = [];
-      const capturedSize = { width: img2.width, height: img2.height };
+      // The final canvas (post-crop, post-annotation) the mask rects are in.
+      const canvasSize = { width: img2.width, height: img2.height };
       if (maskTargets.length > 0) {
         const { canvas, scale, windowOrigin } = await captureGeometry();
         const { placed, errors } = await resolveAnnotationRects({
@@ -1356,8 +1357,8 @@ async function captureScreenshot({
       // path compares the top-left region as-is, and the resample path scales
       // the capture to (width, height), so the rects scale with it.
       if (maskRects.length > 0) {
-        const sx = sameScale ? 1 : width / capturedSize.width;
-        const sy = sameScale ? 1 : height / capturedSize.height;
+        const sx = sameScale ? 1 : width / canvasSize.width;
+        const sy = sameScale ? 1 : height / canvasSize.height;
         for (const rect of maskRects) {
           paintMask(img1.data, width, height, rect, sx, sy);
           paintMask(img2.data, width, height, rect, sx, sy);
