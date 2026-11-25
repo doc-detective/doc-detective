@@ -653,6 +653,8 @@ describe("getDriverCapabilities", function () {
 
   it("hasBidi reports whether a browser runs with the BiDi socket", function () {
     assert.equal(hasBidi("chrome"), true);
+    assert.equal(hasBidi("Chrome"), true);
+    assert.equal(hasBidi("CHROME"), true);
     assert.equal(hasBidi("firefox"), false);
     assert.equal(hasBidi("safari"), false);
     assert.equal(hasBidi("webkit"), false);
