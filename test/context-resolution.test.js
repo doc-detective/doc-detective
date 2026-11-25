@@ -621,7 +621,7 @@ describe("getDriverCapabilities", function () {
     assert.ok(args.includes("--auto-select-desktop-capture-source=T"));
   });
 
-  // ADR 01216: every session of a browser in BIDI_BROWSERS opens the BiDi
+  // ADR 01219: every session of a browser in BIDI_BROWSERS opens the BiDi
   // socket; every other browser gets none. Elements stay on classic WebDriver.
   it("opens a BiDi socket on every chrome session, with classic elements", function () {
     for (const headless of [true, false]) {
