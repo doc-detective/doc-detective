@@ -1523,13 +1523,15 @@ async function captureScreenshot({
       }
 
       // Diff images go to the run folder only, never next to the docs, and
-      // before any overwrite so the previous reference survives.
+      // before any overwrite so the previous reference survives. The stepId
+      // keeps references that share a basename from clobbering each other.
       let seeDiff = "";
-      if (numDiffPixels > 0 && screenshotsDir) {
+      if (numDiffPixels > 0) {
         try {
-          const outDir = screenshotsDir();
+          const outDir = screenshotsDir?.() ?? path.join(getRunOutputDir(config), "screenshots");
           fs.mkdirSync(outDir, { recursive: true });
-          const name = path.basename(filePath, path.extname(filePath));
+          const base = path.basename(filePath, path.extname(filePath));
+          const name = sanitizeFilesystemName([base, step.stepId].filter(Boolean).join("-"), base);
           const diffPath = path.join(outDir, `${name}.diff.png`);
           const previousPath = path.join(outDir, `${name}.previous.png`);
           fs.writeFileSync(diffPath, PNG.sync.write({ width, height, data: diffImage } as any));

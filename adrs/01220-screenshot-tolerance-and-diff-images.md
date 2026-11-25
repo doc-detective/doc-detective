@@ -51,14 +51,16 @@ Chosen option: **A**.
   asserts `$$outputs.diffPixels <= N` at WARNING severity. It sits alongside `maxVariation`: when
   both are set, both must hold, and `aboveVariation` overwrites when either fails. The message is
   ``Screenshot differs from the reference by 412 pixels, more than `maxDiffPixels` (150).``
-* When a comparison finds any changed pixel, and the runner gives the step a run folder, it writes
-  two files. They go to the context's `screenshots/` folder, the same folder automatic screenshots
-  use:
-  * `<name>.diff.png`: pixelmatch's diff output, encoded with `pngjs`.
-  * `<name>.previous.png`: the reference bytes before any `aboveVariation` overwrite.
+* When a comparison finds any changed pixel, it writes two files. They go to the context's
+  `screenshots/` folder, the same folder automatic screenshots use:
+  * `<name>-<stepId>.diff.png`: pixelmatch's diff output, encoded with `pngjs`.
+  * `<name>-<stepId>.previous.png`: the reference bytes before any `aboveVariation` overwrite.
 
-  With no run folder, such as a direct `saveScreenshot` call, nothing is written. A failure to write
-  them is logged and doesn't change the step's result.
+  `<name>` is the reference's basename without its extension. The `stepId` keeps two references
+  that share a basename, such as `a/home.png` and `b/home.png`, from overwriting each other's files.
+  A direct `saveScreenshot` call with no context folder writes to the run folder's `screenshots/`
+  folder, as the capture itself does. A failure to write them is logged and doesn't change the
+  step's result.
 * New outputs: `diffPixels` always, when a comparison runs; `diffPath` and `previousPath`, absolute,
   only when the files were written. Every comparison WARNING description ends with
   ``See `<diffPath>`.`` when a diff exists.
@@ -78,7 +80,8 @@ Chosen option: **A**.
 
 * `test/screenshot-tolerance.test.js` covers noise passing at the default and warning at `0`,
   `maxDiffPixels` under and over, and both limits together. It also covers diff images: written to
-  the run folder, not written for identical images, and not written without a run folder.
+  the run folder and not written for identical images. Two references that share a basename keep
+  separate files, and a direct call writes to the run folder's `screenshots/` folder.
 * `test/saveScreenshot.test.js` keeps ADR 01142's one-level test with `threshold: 0`.
 * `test/core-artifacts/capture/screenshot-tolerance.spec.json` runs each key in headless Chrome,
   including the deterministic `maxDiffPixels` WARNING that writes the diff images.
