@@ -602,6 +602,7 @@ async function setConfig({
   }
   if (typeof args.browserFallback === "string") config.browserFallback = args.browserFallback;
   if (typeof args.shell === "string") config.shell = args.shell;
+  if (typeof args.overwriteScreenshots === "string") config.overwriteScreenshots = args.overwriteScreenshots;
   // `auto` and `true` both mean one runner per CPU core, as in config.
   if (typeof args.concurrentRunners === "string") {
     config.concurrentRunners =

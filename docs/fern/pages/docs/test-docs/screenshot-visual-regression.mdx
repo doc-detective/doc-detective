@@ -119,6 +119,32 @@ Each item is one of two kinds:
 
 A mask must find its element. If it can't, the step fails with `Couldn't find every mask target.`, rather than comparing with nothing masked. If a string mask's element lies entirely outside the capture or the crop, the step returns `WARNING`. The `$$maskTargetsFound`, `$$masksInBounds`, and `$$maskedRegions` outputs report each check.
 
+## Accept a redesign in one run
+
+After an intentional redesign, every reference image is out of date. Instead of editing each step's `overwrite`, set it for the whole run with `--overwrite-screenshots`:
+
+```bash
+doc-detective --overwrite-screenshots
+```
+
+Given alone, the flag means `true`: every `screenshot` step replaces its reference with the new capture and passes. Review the changed images in your diff before you commit them.
+
+The flag takes the same values as a step's `overwrite` and replaces the value on every step. That includes automatic screenshots that compare against a reference:
+
+- `true`: replace every reference.
+- `false`: never replace a reference, even where a step says `"overwrite": "true"`. A step whose reference exists is skipped. Use this in CI so a pipeline never rewrites references.
+- `aboveVariation`: replace a reference only when the capture differs by more than `maxVariation`.
+
+To set it for every run, add `overwriteScreenshots` to your config. The flag beats the config key, which beats each step's own `overwrite`:
+
+```json
+{
+  "overwriteScreenshots": "false"
+}
+```
+
+When you list inputs, put them before the flag, or give the flag a value: `doc-detective run docs/billing.md --overwrite-screenshots true`. Any value other than the three above exits `2` with `error: option '--overwrite-screenshots [mode]' argument 'maybe' is invalid. Allowed choices are true, false, aboveVariation.` For details, see [`--overwrite-screenshots`](/reference/cli) and [`overwriteScreenshots`](/reference/schemas/config).
+
 ## Verify it works
 
 - A comparison that stays within `maxVariation` reports `PASS`.

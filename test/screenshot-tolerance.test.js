@@ -106,6 +106,18 @@ describe("screenshot tolerance and diff images (ADR 01220)", function () {
     );
   });
 
+  it("config `overwriteScreenshots: aboveVariation` replaces the reference on `maxDiffPixels` over a step's `overwrite: false` (ADR 01222)", async function () {
+    const capture = changed();
+    const result = await compare(
+      { overwrite: "false", maxVariation: 1, maxDiffPixels: 5 },
+      capture,
+      { config: { overwriteScreenshots: "aboveVariation" } }
+    );
+    assert.equal(result.status, "WARNING");
+    assert.equal(result.outputs.diffPixels, 10);
+    assert.ok(fs.readFileSync(target).equals(capture));
+  });
+
   it("checks `maxDiffPixels` alongside the default `maxVariation`", async function () {
     const result = await compare({ maxDiffPixels: 5 }, changed());
     assert.equal(result.status, "WARNING");

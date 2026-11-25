@@ -225,6 +225,15 @@ export function addRunOptions(command: Command): Command {
         "Write results back to source files: existing, true, or false [existing]"
       ).choices(["existing", "true", "false"])
     )
+    .addOption(
+      grouped(
+        BEHAVIOR_GROUP,
+        "--overwrite-screenshots [mode]",
+        "Set every screenshot's overwrite: true, false, or aboveVariation [true when given alone]"
+      )
+        .choices(["true", "false", "aboveVariation"])
+        .preset("true")
+    )
     .addOption(grouped(BEHAVIOR_GROUP, "--cache-dir <dir>", "Keep browsers and runtimes here"))
     .addOption(
       grouped(BEHAVIOR_GROUP, "--no-env-file", "Don't load .env from the current directory")

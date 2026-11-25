@@ -8145,6 +8145,14 @@
           ],
           "default": "auto"
         },
+        "overwriteScreenshots": {
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "aboveVariation"
+          ]
+        },
         "retries": {
           "type": "integer",
           "minimum": 0,
@@ -16459,6 +16467,14 @@
             "auto",
             "explicit",
             "off"
+          ]
+        },
+        "overwriteScreenshots": {
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "aboveVariation"
           ]
         },
         "retries": {

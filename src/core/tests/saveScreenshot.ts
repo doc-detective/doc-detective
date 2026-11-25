@@ -561,6 +561,8 @@ async function captureScreenshot({
     result.description = "Skipped: `screenshot` is `false`.";
     return result;
   }
+  // Run-wide `overwriteScreenshots` replaces the step's `overwrite` (ADR 01222).
+  if (config?.overwriteScreenshots) step.screenshot.overwrite = config.overwriteScreenshots;
 
   // Lazy-load heavy deps once per saveScreenshot invocation; ensureRuntime
   // already materialized them ahead of step execution. The ctx threads

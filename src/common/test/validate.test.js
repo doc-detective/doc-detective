@@ -1105,6 +1105,24 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.include("browserFallback");
       });
 
+      it("should validate a config_v3 object with each overwriteScreenshots mode, and leave it unset by default", function () {
+        for (const overwriteScreenshots of ["true", "false", "aboveVariation"]) {
+          const result = validate({ schemaKey: "config_v3", object: { overwriteScreenshots } });
+          expect(result.valid, `overwriteScreenshots: ${overwriteScreenshots}`).to.be.true;
+          expect(result.object.overwriteScreenshots).to.equal(overwriteScreenshots);
+        }
+        const defaults = validate({ schemaKey: "config_v3", object: { input: "." }, addDefaults: true });
+        expect(defaults.object.overwriteScreenshots).to.equal(undefined);
+      });
+
+      it("should reject a config_v3 object whose overwriteScreenshots is not a known mode", function () {
+        for (const overwriteScreenshots of ["maybe", "always"]) {
+          const result = validate({ schemaKey: "config_v3", object: { overwriteScreenshots } });
+          expect(result.valid, `overwriteScreenshots: ${overwriteScreenshots}`).to.be.false;
+          expect(result.errors).to.include("overwriteScreenshots");
+        }
+      });
+
       it("should add default values when addDefaults=true", function () {
         const result = validate({
           schemaKey: "step_v3",

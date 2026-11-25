@@ -411,6 +411,33 @@ describeIfSharp("saveScreenshot unified assertions", function () {
     assert.equal(result.outputs.screenshotPath, target);
   });
 
+  it("config overwriteScreenshots:false beats a step's overwrite:true -> SKIPPED, reference unchanged", async function () {
+    const target = path.join(tmpDir, "shot.png");
+    const refBuf = await makePngBuffer(100, 80, { r: 255, g: 0, b: 0 });
+    fs.writeFileSync(target, refBuf);
+    const result = await saveScreenshot({
+      config: { overwriteScreenshots: "false" },
+      step: { stepId: "s7", screenshot: { path: target, overwrite: "true" } },
+      driver: fakeDriver(await makePngBuffer(100, 80, { r: 0, g: 255, b: 0 })),
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.ok(fs.readFileSync(target).equals(refBuf));
+  });
+
+  it("config overwriteScreenshots:true beats a step's overwrite:aboveVariation -> reference replaced", async function () {
+    const target = path.join(tmpDir, "shot.png");
+    const newBuf = await makePngBuffer(100, 80, { r: 0, g: 255, b: 0 });
+    fs.writeFileSync(target, await makePngBuffer(100, 80, { r: 255, g: 0, b: 0 }));
+    const result = await saveScreenshot({
+      config: { overwriteScreenshots: "true" },
+      step: { stepId: "s8", screenshot: { path: target, maxVariation: 0.05, overwrite: "aboveVariation" } },
+      driver: fakeDriver(newBuf),
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(result.assertions, []);
+    assert.ok(fs.readFileSync(target).equals(newBuf));
+  });
+
   it("PNG decode error on a non-PNG reference -> EXECUTION FAIL, no assertions", async function () {
     const target = path.join(tmpDir, "shot.png");
     // Existing reference is NOT a valid PNG.
