@@ -53,7 +53,7 @@ To choose where the image lands, pass a file path as a string. A relative path r
 }
 ```
 
-By default (`overwrite: "aboveVariation"`), a target path that already holds a file gets compared against the new capture. Doc Detective replaces the file only when the two differ by more than `maxVariation`, which defaults to 5%. Otherwise it leaves the existing file in place. The [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) section covers this behavior in full. Set `"overwrite": "true"` to always replace the file. Set `"overwrite": "false"` to keep the existing file and skip the capture, which reports `SKIPPED`.
+By default (`overwrite: "aboveVariation"`), a target path that already holds a file gets compared against the new capture. Doc Detective replaces the file only when the two differ by more than `maxVariation`, which defaults to 5%. If you set `maxDiffPixels`, it also replaces the file when more pixels than that differ. Otherwise it leaves the existing file in place. The [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) section covers this behavior in full. Set `"overwrite": "true"` to always replace the file. Set `"overwrite": "false"` to keep the existing file and skip the capture, which reports `SKIPPED`.
 
 For more control, use the object form. Set `crop` to a CSS selector to capture only that element:
 

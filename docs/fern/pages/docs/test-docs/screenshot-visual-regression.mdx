@@ -44,7 +44,7 @@ Set `maxVariation` to a value from `0` to `1` to enable comparison. It's the max
 
 - `"false"`: never overwrite.
 - `"true"`: always overwrite.
-- `"aboveVariation"` (default): overwrite only when the difference exceeds `maxVariation`.
+- `"aboveVariation"` (default): overwrite only when the difference exceeds `maxVariation`, or `maxDiffPixels` when set.
 
 When a comparison runs, the step exposes `$$variation` (the fractional difference) and `$$aspectRatioMatches` (whether the two images share an aspect ratio). Capture either with the step-level `variables` object. For the full list of outputs, see [Visual regression testing](/docs/actions/screenshot) and the [`screenshot`](/reference/schemas/screenshot) schema.
 
@@ -59,7 +59,7 @@ The `WARNING` message ends with the diff's path, such as ``See `/home/runner/wor
 
 Two keys tune what counts as a change:
 
-- `threshold` (default `0.1`) is how different a pixel's color must be before it counts. Raise it if font smoothing or anti-aliasing differs between machines. Set it to `0` to count any color change.
+- `threshold` (default `0.1`) is how different a pixel's color must be before it counts. Raise it if font smoothing or anti-aliasing differs between machines. Set it to `0` to count any color change. Earlier versions counted every color change, so a comparison that used to warn can now pass. To keep that strictness, set `threshold` to `0`.
 - `maxDiffPixels` caps the number of changed pixels, alongside `maxVariation`. Use it for small images or crops, where a few pixels are a large fraction. When both are set, both must hold.
 
 ```json
@@ -115,7 +115,7 @@ Doc Detective paints the same solid block over each masked area on both the refe
 Each item is one of two kinds:
 
 - **A string**, a selector or display text, the same as `crop` accepts. It masks the first matching element.
-- **An element object**, with the same element-finding fields as `crop`, such as `selector`, `elementText`, or `elementClass`. It masks every matching element. Use it when the changing value appears in several places.
+- **An element object**, with the same element-finding fields as `crop`, such as `selector`, `elementText`, or `elementClass`. It masks every matching element on a browser page, or the first match in an app window. Use it when the changing value appears in several places on a browser page. In an app window, list one item for each element.
 
 A mask must find its element. If it can't, the step fails with `Couldn't find every mask target.`, rather than comparing with nothing masked. If a string mask's element lies entirely outside the capture or the crop, the step returns `WARNING`. The `$$maskTargetsFound`, `$$masksInBounds`, and `$$maskedRegions` outputs report each check.
 
