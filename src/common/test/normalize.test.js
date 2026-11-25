@@ -692,8 +692,8 @@ describe("normalization", function () {
       (key) => !(key in schemas.step_v3.components.schemas.common.properties)
     );
 
-    it("has one normalizer for each of the 21 actions", function () {
-      expect(actions).to.have.lengthOf(21);
+    it("has one normalizer for each of the 22 actions", function () {
+      expect(actions).to.have.lengthOf(22);
       expect(Object.keys(normalizers)).to.have.members(actions);
     });
 
