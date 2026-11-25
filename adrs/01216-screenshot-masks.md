@@ -40,21 +40,21 @@ How should a `screenshot` step ignore parts of the page that change?
 Chosen option: **A**, because it removes the changing pixels from the comparison without changing
 what the docs show.
 
-* `screenshot.mask` is an array. Each item is a string (a selector or display text, the same
-  shorthand `crop` takes), or an element object with the annotation target's element-finding fields
-  (`selector`, `elementText`, `elementId`, `elementTestId`, `elementClass`, `elementAttribute`,
-  `elementAria`, `elementImage`, `timeout`).
+* `screenshot.mask` is an array. Each item is a string: a selector or display text, the same
+  shorthand `crop` takes. Or it's an element object with the annotation target's element-finding
+  fields (`selector`, `elementText`, `elementId`, `elementTestId`, `elementClass`,
+  `elementAttribute`, `elementAria`, `elementImage`, `timeout`).
 * An element object masks **every** match, as Playwright's locator masks do. Masking an extra copy
-  of a changing value can't hide a regression the author cares about, and missing one makes the
-  check flaky. A string masks the first match, because a string could be a selector or display
-  text and matching every element for an ambiguous string could cover far more than intended. On
+  of a changing value can't hide a regression the author cares about. Missing one makes the check
+  flaky. A string masks the first match, because a string could be a selector or display text.
+  Matching every element for an ambiguous string could cover far more than intended. On
   app surfaces, where the native finder resolves one element, an object also masks its first match.
 * Position targets aren't accepted. An annotation position is a point or a named anchor, not an
   area, so there's nothing to mask. A region form can follow when someone needs one.
 * Masks are resolved only when a comparison runs: there's a reference, `overwrite` isn't `"true"`,
   and `maxVariation` is set. Without a comparison, a mask has no effect and isn't looked up.
-* A mask target that can't be found FAILs the step, like a missing crop or annotation target:
-  ``Couldn't find every mask target. Couldn't find the element to mask: `.date`.``
+* A mask target that can't be found FAILs the step, like a missing crop or annotation target. The
+  message reads ``Couldn't find every mask target. Couldn't find the element to mask: `.date`.``
   A comparison that quietly ignores nothing is worse than one that stops.
 * A targeted mask (a string) that lands entirely outside the capture or crop is a WARNING, through
   the `masksInBounds` check. Object masks are exempt, the same carve-out annotations with `all`
@@ -73,9 +73,9 @@ what the docs show.
 
 ### Confirmation
 
-* `test/screenshot-mask.test.js` covers a masked change passing where the unmasked one warns, a
-  missing target failing, an out-of-frame mask warning, every-match objects, resampled comparisons,
-  and masks being ignored without a reference.
+* `test/screenshot-mask.test.js` covers a masked change passing where the unmasked one warns. It
+  also covers a missing target failing, an out-of-frame mask warning, and every-match objects.
+  Last, it covers resampled comparisons and masks being ignored without a reference.
 * `test/core-artifacts/capture/screenshot-mask.spec.json` runs masks end to end in Chrome and
   Firefox against a page whose clock text changes every run.
 
