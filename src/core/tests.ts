@@ -313,7 +313,7 @@ export {
 // rewritten to `webkit` during context resolution, so both appear here.
 const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
 
-// Browsers that passed the BiDi socket go/no-go (ADR 01216). Every session of
+// Browsers that passed the BiDi socket go/no-go (ADR 01219). Every session of
 // one of these opens the socket; element commands stay classic. Add a browser
 // only with its own spike evidence in an ADR.
 const BIDI_BROWSERS: ReadonlySet<string> = new Set(["chrome"]);
@@ -569,7 +569,7 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:executable": chromium.driver,
           browserName: "chrome",
           // Elements stay on classic WebDriver (ADR 00132). The BiDi socket
-          // opens on every session of a browser in BIDI_BROWSERS (ADR 01216).
+          // opens on every session of a browser in BIDI_BROWSERS (ADR 01219).
           "wdio:enforceWebDriverClassic": true,
           ...(hasBidi(name)
             ? { webSocketUrl: true }
@@ -6843,7 +6843,7 @@ async function driverStart(
       //
       // Non-enumerable: with a BiDi socket open, webdriverio deep-clones the
       // live Browser on every `$` (via `_bidiHandler.client`), and this graph
-      // (session registry, recording handles) overflows the stack (ADR 01216).
+      // (session registry, recording handles) overflows the stack (ADR 01219).
       Object.defineProperty(driver, "state", {
         value: { url: "", x: null, y: null, recordings: [] },
         writable: true,
