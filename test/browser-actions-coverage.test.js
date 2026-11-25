@@ -749,6 +749,20 @@ describe("loadCookie action (coverage)", function () {
     assert.equal(setCookies.callCount, 0);
   });
 
+  it("expired cookie in a Netscape file → FAIL, not set as a session cookie", async () => {
+    const file = path.join(tmpDir, "expired.txt");
+    fs.writeFileSync(file, netscapeLine({ expiry: "1" }) + "\n");
+    const setCookies = sinon.spy(async () => {});
+    const result = await loadCookie({
+      config,
+      step: { loadCookie: { name: "sid", path: "expired.txt", directory: tmpDir } },
+      driver: makeDriver({ setCookiesImpl: setCookies }),
+    });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, "Couldn't load cookie: `sid` has expired.");
+    assert.equal(setCookies.callCount, 0);
+  });
+
   it("file not found → FAIL", async () => {
     const driver = makeDriver();
     const result = await loadCookie({

@@ -183,13 +183,10 @@ function parseNetscapeCookieFile(content: string) {
 
       // Add expiry if it's a valid number and greater than current time
       const expiry = parseInt(parts[4]);
+      // Keep any real expiry, past ones included, so an expired cookie fails
+      // to load instead of becoming a session cookie. 0 is a session cookie.
       if (!isNaN(expiry) && expiry > 0) {
-        // Only add expiry if it's in the future
-        const currentTime = Math.floor(Date.now() / 1000);
-        if (expiry > currentTime) {
-          cookie.expiry = expiry;
-        }
-        // If expiry is 0 or in the past, omit it (creates a session cookie)
+        cookie.expiry = expiry;
       }
 
       cookies.push(cookie);

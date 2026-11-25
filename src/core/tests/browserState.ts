@@ -41,10 +41,10 @@ async function readLocalStorage(driver: any): Promise<{ origin: string; entries:
 /**
  * Sets each `{ name, value }` entry in the open page's `localStorage`, only if
  * the page is still on `origin`. Returns false, having written nothing, when it
- * isn't.
+ * isn't. It checks the origin even with no entries, so a cookie-only restore
+ * gets the same guard.
  */
 async function applyLocalStorage(driver: any, origin: string, entries: { name: string; value: string }[]) {
-  if (entries.length === 0) return true;
   return (
     (await driver.execute(
       "if (window.location.origin !== arguments[0]) return false; arguments[1].forEach(function (entry) { window.localStorage.setItem(entry.name, entry.value); }); return true;",
@@ -141,7 +141,8 @@ async function readCookies(driver: any, { name, domain }: { name?: string; domai
  * - `sameSite` is Pascal case and defaults to `Lax`. `None` needs HTTPS, so on
  *   HTTP it falls back to `Lax`; on HTTPS it forces `secure`.
  * - On localhost and private addresses the domain is left to the browser.
- * - An expiry in the past is dropped, which makes a session cookie.
+ * - Any real expiry is kept, so a cookie that has expired is dropped by the
+ *   browser rather than kept as a session cookie.
  */
 function toDriverCookie(cookie: any, currentUrl: string) {
   const isHttps = currentUrl.startsWith("https://");
@@ -164,9 +165,10 @@ function toDriverCookie(cookie: any, currentUrl: string) {
   if (cookie.domain && !isLocalOrPrivateNetwork(new URL(currentUrl).hostname)) {
     driverCookie.domain = cookie.domain;
   }
-  if (cookie.expiry && cookie.expiry > Math.floor(Date.now() / 1000)) {
-    driverCookie.expiry = cookie.expiry;
-  }
+  // Keep any real expiry, even one that just passed: the browser then drops the
+  // cookie, rather than keeping it as a session cookie. cookiesFor skips the
+  // already expired ones up front.
+  if (cookie.expiry > 0) driverCookie.expiry = cookie.expiry;
   return driverCookie;
 }
 
@@ -179,7 +181,7 @@ function normalizeSameSite(sameSite: unknown) {
 /**
  * The cookies the page at `currentUrl` can take: an unexpired cookie whose
  * domain is the page's host or a parent of it. An expired cookie is skipped,
- * not set as a session cookie, as parseNetscapeCookieFile does.
+ * not set as a session cookie.
  */
 function cookiesFor(cookies: any[], currentUrl: string) {
   const host = new URL(currentUrl).hostname;

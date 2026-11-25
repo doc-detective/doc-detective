@@ -70,3 +70,4 @@ A path ending in `.json`. A relative path resolves against `outputDir`, where `s
 | ``Couldn't load state: `/abs/auth.json` isn't a valid state file.`` | Point `path` at a file from `saveState` or Playwright's `storageState`. |
 | ``Couldn't load state: no site is open. Use `goTo` first.`` | Add a `goTo` to the site before `loadState`. |
 | ``Couldn't load state: `/abs/auth.json` has no data for `https://app.example.com`. Use `goTo` to open that site first.`` | Open the site the file was saved from. |
+| ``Couldn't load state: the page left `https://app.example.com` before its state was restored.`` | The page redirected during the load. Wait for it to settle, for example with a `find`, before `loadState`. |

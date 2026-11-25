@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
+import sinon from "sinon";
 import { saveState } from "../dist/core/tests/saveState.js";
 import { loadState } from "../dist/core/tests/loadState.js";
 import { resolvePaths } from "../dist/core/files.js";
@@ -12,13 +13,15 @@ const future = Math.floor(Date.now() / 1000) + 3600;
 
 // A fake browser: one page URL, a cookie jar, and localStorage per origin.
 // `scriptUrl` is where the page is when a script runs, to simulate a page that
-// navigates away after `getUrl`.
-function fakeDriver({ url = "http://localhost:8092/app", scriptUrl = url, cookies = [], storage = {} } = {}) {
+// navigates away after `getUrl`. `laterUrl` is what every `getUrl` after the
+// first returns, to simulate a page that navigates after the storage script.
+function fakeDriver({ url = "http://localhost:8092/app", scriptUrl = url, laterUrl = url, cookies = [], storage = {} } = {}) {
   const set = [];
+  let urlReads = 0;
   const driver = {
     set,
     storage,
-    getUrl: async () => url,
+    getUrl: async () => (urlReads++ === 0 ? url : laterUrl),
     getCookies: async () => cookies,
     setCookies: async (cookie) => set.push(cookie),
     execute: async (script, expectedOrigin, entries) => {
@@ -88,8 +91,39 @@ describe("saveState and loadState", function () {
       const failed = await saveState({ config: config(), step: { saveState: "auth.json" }, driver: fakeDriver() });
       assert.equal(failed.status, "FAIL");
       assert.equal(failed.description, `Couldn't save state: \`${file}\` exists. Set \`overwrite\` to \`true\` to replace it.`);
+      assert.equal(fs.readFileSync(file, "utf8"), "{}", "the existing file is untouched");
       const passed = await saveState({ config: config(), step: { saveState: { path: "auth.json", overwrite: true } }, driver: fakeDriver() });
       assert.equal(passed.status, "PASS", passed.description);
+      assert.deepEqual(fs.readdirSync(outputDir), ["auth.json"], "no temporary file is left behind");
+    });
+
+    it("leaves the previous file whole when writing the new state fails", async function () {
+      const file = path.join(outputDir, "auth.json");
+      fs.writeFileSync(file, '{"cookies":[]}');
+      // The disk fills partway through the write.
+      const realWrite = fs.writeFileSync;
+      const stub = sinon.stub(fs, "writeFileSync").callsFake((target, data, options) => {
+        realWrite(target, String(data).slice(0, 5), options);
+        throw new Error("ENOSPC: no space left on device");
+      });
+      let result;
+      try {
+        result = await saveState({ config: config(), step: { saveState: { path: "auth.json", overwrite: true } }, driver: fakeDriver() });
+      } finally {
+        stub.restore();
+      }
+      assert.equal(result.status, "FAIL");
+      assert.equal(fs.readFileSync(file, "utf8"), '{"cookies":[]}');
+      assert.deepEqual(fs.readdirSync(outputDir), ["auth.json"], "no temporary file is left behind");
+    });
+
+    it("replaces a broadly readable file with an owner-only one", async function () {
+      if (process.platform === "win32") this.skip();
+      const file = path.join(outputDir, "auth.json");
+      fs.writeFileSync(file, "{}", { mode: 0o644 });
+      const result = await saveState({ config: config(), step: { saveState: { path: "auth.json", overwrite: true } }, driver: fakeDriver() });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(fs.statSync(file).mode & 0o777, 0o600);
     });
 
     for (const url of ["about:blank", "data:,"]) {
@@ -244,8 +278,29 @@ describe("saveState and loadState", function () {
       const driver = fakeDriver({ scriptUrl: "https://other.org/" });
       const result = await loadState({ config: config(), step: { loadState: "auth.json" }, driver });
       assert.equal(result.status, "FAIL");
-      assert.equal(result.description, "Couldn't load state: the page left `http://localhost:8092` before its storage was restored.");
+      assert.equal(result.description, "Couldn't load state: the page left `http://localhost:8092` before its state was restored.");
       assert.deepEqual(driver.storage, {});
+      assert.equal(driver.set.length, 0);
+    });
+
+    it("fails, and sets no cookie, when the page leaves the origin before a cookie-only restore", async function () {
+      write("auth.json", { cookies: [{ name: "sid", value: "1", domain: "localhost", path: "/" }] });
+      const driver = fakeDriver({ scriptUrl: "http://127.0.0.1:9999/" });
+      const result = await loadState({ config: config(), step: { loadState: "auth.json" }, driver });
+      assert.equal(result.status, "FAIL");
+      assert.equal(result.description, "Couldn't load state: the page left `http://localhost:8092` before its state was restored.");
+      assert.equal(driver.set.length, 0);
+    });
+
+    it("fails, and sets no cookie, when the page leaves the origin after storage is restored", async function () {
+      write("auth.json", {
+        cookies: [{ name: "sid", value: "1", domain: "localhost", path: "/" }],
+        origins: [{ origin: "http://localhost:8092", localStorage: [{ name: "a", value: "1" }] }],
+      });
+      const driver = fakeDriver({ laterUrl: "http://127.0.0.1:9999/" });
+      const result = await loadState({ config: config(), step: { loadState: "auth.json" }, driver });
+      assert.equal(result.status, "FAIL");
+      assert.equal(result.description, "Couldn't load state: the page left `http://localhost:8092` before its state was restored.");
       assert.equal(driver.set.length, 0);
     });
 

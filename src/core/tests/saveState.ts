@@ -41,24 +41,30 @@ async function saveState({ config, step, driver }: { config: any; step: any; dri
       return result;
     }
 
+    // The file holds live session tokens. Write it whole to an owner-only temp
+    // file beside it, then publish that in one step: a rename replaces an old
+    // file atomically, and a hard link fails with EEXIST rather than replace
+    // one. A reader never sees partial JSON, a failed write never touches the
+    // old file, and no broader permissions carry over.
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-    // `wx` fails on an existing file at the moment of writing, so no other
-    // writer can slip in between a check and the write. The file holds live
-    // session tokens, so only its owner can read it.
+    const temp = `${fullPath}.${process.pid}.${Date.now()}.tmp`;
     try {
-      fs.writeFileSync(fullPath, formatStateFile({ cookies, origin, localStorage }), {
-        encoding: "utf8",
-        mode: 0o600,
-        flag: overwrite === true ? "w" : "wx",
-      });
-    } catch (error: any) {
-      if (error.code !== "EEXIST") throw error;
-      result.status = "FAIL";
-      result.description = `Couldn't save state: \`${fullPath}\` exists. Set \`overwrite\` to \`true\` to replace it.`;
-      return result;
+      fs.writeFileSync(temp, formatStateFile({ cookies, origin, localStorage }), { encoding: "utf8", mode: 0o600, flag: "wx" });
+      if (overwrite === true) {
+        fs.renameSync(temp, fullPath);
+      } else {
+        try {
+          fs.linkSync(temp, fullPath);
+        } catch (error: any) {
+          if (error.code !== "EEXIST") throw error;
+          result.status = "FAIL";
+          result.description = `Couldn't save state: \`${fullPath}\` exists. Set \`overwrite\` to \`true\` to replace it.`;
+          return result;
+        }
+      }
+    } finally {
+      fs.rmSync(temp, { force: true });
     }
-    // `mode` applies only when the file is created, so tighten a replaced one too.
-    fs.chmodSync(fullPath, 0o600);
 
     result.description = `Saved state to \`${fullPath}\`.`;
     result.outputs = { path: fullPath, cookies: cookies.length, localStorage: localStorage.length };

@@ -50,10 +50,16 @@ async function loadState({ config, step, driver }: { config: any; step: any; dri
       return result;
     }
     // Storage first: the script writes only if the page is still on `origin`,
-    // so a page that navigated away gets neither storage nor cookies.
-    if (!(await applyLocalStorage(driver, origin, entries))) {
+    // even with no entries, so a page that navigated away gets nothing. Then the
+    // origin is read again right before the cookies, which WebDriver sets on
+    // whatever page is open (on localhost, with no domain to pin them).
+    // ponytail: one check before the cookie loop, not one per cookie; a page
+    // that navigates mid-loop can still take the rest. Per-cookie checks if that
+    // shows up.
+    const left = `Couldn't load state: the page left \`${origin}\` before its state was restored.`;
+    if (!(await applyLocalStorage(driver, origin, entries)) || siteOrigin(await driver.getUrl()) !== origin) {
       result.status = "FAIL";
-      result.description = `Couldn't load state: the page left \`${origin}\` before its storage was restored.`;
+      result.description = left;
       return result;
     }
     const cookies = await applyCookies(driver, fitting, currentUrl);

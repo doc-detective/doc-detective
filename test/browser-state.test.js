@@ -2,6 +2,7 @@
 // loadState, against a fake driver.
 import path from "node:path";
 import assert from "node:assert/strict";
+import sinon from "sinon";
 import {
   resolveStatePath,
   readCookies,
@@ -82,6 +83,10 @@ describe("browser state helpers", function () {
       assert.equal(toDriverCookie({ name: "n" }, "http://x.com/").expiry, undefined);
     });
 
+    it("keeps a past expiry rather than turning the cookie into a session cookie", function () {
+      assert.equal(toDriverCookie({ name: "n", expiry: past }, "http://x.com/").expiry, past);
+    });
+
     it("defaults path to / and httpOnly to false", function () {
       const c = toDriverCookie({ name: "n", value: "v" }, "http://x.com/");
       assert.equal(c.path, "/");
@@ -122,6 +127,20 @@ describe("browser state helpers", function () {
       );
       assert.deepEqual(applied.map((c) => c.name), ["live", "session"]);
       assert.deepEqual(set.map((c) => [c.name, c.expiry]), [["live", future], ["session", undefined]]);
+    });
+
+    it("keeps the expiry of a cookie that expires while an earlier one is being set", async function () {
+      const clock = sinon.useFakeTimers({ now: 1_000_000_000_000, toFake: ["Date"] });
+      try {
+        const soon = Math.floor(Date.now() / 1000) + 1;
+        const set = [];
+        // Setting the first cookie takes 5 seconds, so the second expires meanwhile.
+        const driver = { setCookies: async (c) => { set.push(c); clock.tick(5000); } };
+        await applyCookies(driver, [{ name: "a", domain: "x.com" }, { name: "b", domain: "x.com", expiry: soon }], "https://x.com/");
+        assert.equal(set[1].expiry, soon, "a cookie that expired mid-apply is not a session cookie");
+      } finally {
+        clock.restore();
+      }
     });
   });
 

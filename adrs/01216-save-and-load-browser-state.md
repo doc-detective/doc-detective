@@ -77,7 +77,7 @@ Chosen option: **A**.
 | The file is missing | FAIL | ``Couldn't load state: `/abs/auth.json` doesn't exist.`` |
 | The file isn't JSON with a `cookies` or `origins` list | FAIL | ``Couldn't load state: `/abs/auth.json` isn't a valid state file.`` |
 | Nothing in the file fits the open page | FAIL | ``Couldn't load state: `/abs/auth.json` has no data for `https://app.example.com`. Use `goTo` to open that site first.`` |
-| The page leaves the origin before storage is written | FAIL | ``Couldn't load state: the page left `https://app.example.com` before its storage was restored.`` |
+| The page leaves the origin before storage or cookies are restored | FAIL | ``Couldn't load state: the page left `https://app.example.com` before its state was restored.`` |
 | The page leaves the origin while state is read | FAIL | ``Couldn't save state: the page left `https://app.example.com` while its state was read.`` |
 
 Robustness rules:
@@ -86,12 +86,17 @@ Robustness rules:
   `localStorage` entry has a string `name` and `value`, and each origin has a string `origin` and a
   `localStorage` list. A file with only cookies, or only origins, is valid.
 * The `localStorage` script takes the expected origin and checks `location.origin` itself, so a page
-  that navigated away gets nothing. Storage is written before cookies, so that failure sets neither.
+  that navigated away gets nothing. It runs even with no entries, so a cookie-only file gets the
+  same check. Storage is written before cookies, and the origin is read again right before the
+  cookies are set, since WebDriver sets a cookie on whatever page is open. Either failure sets no
+  cookie. The second check runs once before the cookie loop, not before each cookie.
 * `saveState` reads the origin and `localStorage` in one script, and fails if that origin isn't the
   one it read first.
-* `saveState` writes with the `wx` flag unless `overwrite` is `true`, so an existing file can't be
-  replaced between a check and the write. The file is created with mode `0600`, because it holds
-  live session tokens.
+* `saveState` writes the whole file to an owner-only (`0600`) temp file beside it, then publishes it
+  in one step. With `overwrite`, a rename replaces the old file atomically. Without it, a hard link
+  fails with `EEXIST` rather than replace an existing file. A reader never sees partial JSON, a
+  failed write leaves the old file whole, an old file's broader permissions don't carry over, and
+  the temp file is always removed.
 
 ### Shared code path
 
@@ -107,9 +112,11 @@ environment-variable form.
   save-then-load round trip keeps it. The file stays at the standard 7 columns, because curl
   rejects a row with more. The format has no standard place for `sameSite`, so a cookie file
   doesn't keep it, and a loaded cookie gets the default `Lax`. A `saveState` file keeps `sameSite`.
-* An expired cookie is skipped on load, never set as a session cookie. `loadCookie` fails with
-  ``Couldn't load cookie: `sid` has expired.``, and `loadState` doesn't apply it, as the Netscape
-  reader already did.
+* An expired cookie is never set as a session cookie. Both readers keep any real expiry, past ones
+  included, and the WebDriver form keeps it too. `loadCookie` fails with
+  ``Couldn't load cookie: `sid` has expired.``, from a file or a variable. `loadState` skips an
+  expired cookie. A cookie that expires while earlier ones are being set keeps its expiry, so the
+  browser drops it.
 * The cookie messages follow the message style, for example
   ``Couldn't load cookie: `/abs/session.txt` doesn't exist.``. No status changes.
 
