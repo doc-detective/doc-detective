@@ -78,6 +78,8 @@ resize path serves any session without a socket, which is Safari.
 * Masks and annotations resolve against element rects in the viewport. On a whole-page image they
   add the page scroll, and use the pixel density as the scale. A whole-page image is as wide as the
   document, so the viewport width would skew the scale.
+* The step's `style`, a grown window, and the freeze stay until annotation and mask geometry is
+  read. They then undo in that order, even on a failure.
 * The live `annotate` blurs add the scroll they were drawn at. That's zero when the window grew,
   because a page as tall as its viewport can't scroll.
 * A whole-page capture skips the resize to the reference's viewport (ADR 01144). The reference's

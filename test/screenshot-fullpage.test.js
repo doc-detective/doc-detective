@@ -111,6 +111,7 @@ function fakeDriver({
   const window = { width: 800, height: 700 };
   let scroll = { x: 0, y: scrollY };
   let frozen = false;
+  let styled = false;
   let extentReads = 0;
   const viewport = () => ({
     width: Math.min(window.width, maxViewportWidth),
@@ -164,6 +165,9 @@ function fakeDriver({
     get frozen() {
       return frozen;
     },
+    get styled() {
+      return styled;
+    },
     async pause() {},
     async $$() {
       return [element];
@@ -173,7 +177,11 @@ function fakeDriver({
     },
     async execute(fn, ...args) {
       const source = String(fn);
-      calls.push({ kind: "execute", source, args, frozen, viewport: viewport() });
+      calls.push({ kind: "execute", source, args, frozen, styled, viewport: viewport() });
+      if (source.includes("data-dd-capture")) {
+        styled = !source.includes("remove");
+        return undefined;
+      }
       if (source.includes("getAnimations") && source.includes("finish")) {
         frozen = true;
         return undefined;
@@ -201,7 +209,7 @@ function fakeDriver({
       if (liveBlur && source.includes("requestAnimationFrame(note)")) return true;
       if (liveBlur && source.includes("__ddNote")) return { watched: true, viewportWidth: viewport().width, regions: [liveBlur] };
       if (source.includes("getBoundingClientRect")) {
-        const at = rectAt ? rectAt(viewport()) : frozen && frozenRect ? frozenRect : rect;
+        const at = rectAt ? rectAt(viewport(), { styled }) : frozen && frozenRect ? frozenRect : rect;
         return { ...at, y: at.y - scroll.y };
       }
       if (source.includes("innerHeight")) return viewport();
@@ -509,6 +517,36 @@ describe("screenshot fullPage and animations", function () {
     assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
     assert.deepEqual(driver.window, { width: 800, height: 700 });
     assert.equal(driver.frozen, false);
+  });
+
+  it("reads mask geometry while the `style` is still applied, then removes it", async function () {
+    // The style hides a banner above the date, which moves up from y 300 to y 100.
+    const target = path.join(dir, "page.png");
+    fs.writeFileSync(target, await makePng(800, 600));
+    const capture = await makePng(800, 600, { x: 100, y: 100, width: 200, height: 50 });
+    const driver = fakeDriver({
+      viewportCapture: capture,
+      pageCapture: capture,
+      rectAt: (vp, { styled }) => ({ x: 100, y: styled ? 100 : 300, width: 200, height: 50 }),
+    });
+    const result = await saveScreenshot({
+      config: {},
+      step: {
+        stepId: "f7",
+        screenshot: {
+          path: target,
+          maxVariation: 0.001,
+          overwrite: "aboveVariation",
+          style: "#banner { display: none !important; }",
+          mask: ["#date"],
+        },
+      },
+      driver,
+    });
+    assert.equal(result.status, "PASS", result.description);
+    const reads = driver.calls.filter((c) => c.kind === "execute" && c.source.includes("getBoundingClientRect"));
+    assert.ok(reads.length > 0 && reads.every((c) => c.styled), "every rect read happens with the style applied");
+    assert.equal(driver.styled, false, "the style is gone when the step ends");
   });
 
   it("scales live blurs on a whole-page image by the pixel density, not the viewport width", async function () {

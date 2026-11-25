@@ -324,10 +324,10 @@ type CaptureOptions = {
   animations?: string;
   config?: any;
   label?: string;
-  // Takes a grown window's restore, so the caller can read element geometry
-  // at the capture size first and restore in its own `finally`. Without it,
-  // the window is restored right after the capture.
-  holdRestore?: (restore: () => Promise<void>) => void;
+  // Takes the capture's cleanups (the `style` removal, then a grown window's
+  // restore), so the caller can read element geometry first and run them in
+  // its own `finally`. Without it, they run right after the capture.
+  defer?: (cleanup: () => Promise<void>) => void;
 };
 
 // `fullPage` (ADR 01224). Firefox has a whole-page command and a BiDi session
@@ -410,10 +410,18 @@ async function takeBrowserScreenshot(
   let captured: { buffer: Buffer; stable: boolean };
   let watching: any;
   let fullPage: FullPage | undefined;
+  const removeStyle = async () => {
+    try {
+      await driver.execute(removeCaptureStyle);
+    } catch {
+      // A page that navigated away has no style left to remove.
+    }
+  };
   try {
     // Inside the try: the script can add the style and the command still
-    // fail, so the cleanup in the finally must run either way.
+    // fail, so the cleanup must run either way.
     if (options.style) {
+      options.defer?.(removeStyle);
       try {
         await driver.execute(addCaptureStyle, options.style);
       } catch (error: any) {
@@ -427,7 +435,8 @@ async function takeBrowserScreenshot(
     }
     if (options.fullPage) {
       fullPage = await fullPageCapture(driver, options);
-      options.holdRestore?.(fullPage.restore);
+      const restore = fullPage.restore;
+      options.defer?.(() => restoreFullPage(restore, options.config));
     }
     try {
       // After the fonts and the resize, so an animation either starts is
@@ -456,16 +465,10 @@ async function takeBrowserScreenshot(
         await unblur();
       }
     } finally {
-      if (!options.holdRestore) await restoreFullPage(fullPage?.restore, options.config);
+      if (!options.defer) await restoreFullPage(fullPage?.restore, options.config);
     }
   } finally {
-    if (options.style) {
-      try {
-        await driver.execute(removeCaptureStyle);
-      } catch {
-        // A page that navigated away has no style left to remove.
-      }
-    }
+    if (options.style && !options.defer) await removeStyle();
   }
   const buffer = captured!.buffer;
   const page = await liveBlurs(driver, readBlurRegions);
@@ -646,20 +649,23 @@ function diffArtifactPaths(dir: string, name: string): { diffPath: string; previ
 // Window restoration lives out here rather than in the body: annotations
 // resolve against the live page after capture, so a resize for the reference
 // must hold until the step is done, whichever return the body takes. So must
-// a `fullPage` window grown to the page and `animations: disabled`, so
-// annotations and masks land where the capture shows the elements (ADR 01224).
+// the capture's `style`, a `fullPage` window grown to the page, and
+// `animations: disabled`, so annotations and masks land where the capture
+// shows the elements (ADR 01224). They undo in that order; each swallows its
+// own failure, so every one runs.
 type CaptureSession = {
   restoreWindow?: () => Promise<void>;
-  restorePage?: () => Promise<void>;
+  cleanups: (() => Promise<void>)[];
   thaw?: () => Promise<void>;
 };
 async function saveScreenshot(
   args: Parameters<typeof captureScreenshot>[0]
 ) {
-  const session: CaptureSession = {};
+  const session: CaptureSession = { cleanups: [] };
   try {
     return await captureScreenshot(args, session);
   } finally {
+    for (const cleanup of session.cleanups) await cleanup();
     try {
       await session.restoreWindow?.();
     } catch (error: any) {
@@ -669,7 +675,6 @@ async function saveScreenshot(
         `Couldn't restore the window size after resizing for a screenshot reference: ${error?.message ?? error}`
       );
     }
-    await restoreFullPage(session.restorePage, args.config);
     try {
       await session.thaw?.();
     } catch {
@@ -1164,6 +1169,11 @@ async function captureScreenshot({
     animations: step.screenshot.animations,
     config,
     label: `Screenshot ${step.stepId}`,
+    // The `style` and a grown window stay until geometry is read, like the
+    // freeze. The reference retake defers its own too.
+    defer: (cleanup) => {
+      session.cleanups.push(cleanup);
+    },
   };
   // Set by a whole-page capture: the scroll element rects add (ADR 01224).
   let fullPageScroll: { x: number; y: number } | undefined;
@@ -1202,13 +1212,7 @@ async function captureScreenshot({
         buffer: captureBuffer,
         stable: captureStable,
         scroll: fullPageScroll,
-      } = await takeBrowserScreenshot(captureDriver, sharp, {
-        ...captureOptions,
-        // A grown window stays until geometry is read, like the freeze.
-        holdRestore: (restore) => {
-          session.restorePage = restore;
-        },
-      }));
+      } = await takeBrowserScreenshot(captureDriver, sharp, captureOptions));
     }
   } catch (error) {
     if (error instanceof CaptureSkipped) {
