@@ -307,6 +307,15 @@ type FullPage = {
   restore: () => Promise<void>;
 };
 
+type CaptureOptions = {
+  style?: string;
+  stable?: boolean;
+  fullPage?: boolean;
+  animations?: string;
+  config?: any;
+  label?: string;
+};
+
 // `fullPage` (ADR 01224). Firefox has a whole-page command and a BiDi session
 // can capture the document. Anything else grows the window to the page's
 // height, captures, and puts the window and scroll back.
@@ -349,15 +358,6 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
   return { scroll, captureScroll: { x: 0, y: 0 }, restore, capture: viewportCapture };
 }
 
-type CaptureOptions = {
-  style?: string;
-  stable?: boolean;
-  fullPage?: boolean;
-  animations?: string;
-  config?: any;
-  label?: string;
-};
-
 // A browser capture with every element that shows a secret blurred, and the
 // blur removed after (ADR 01178), and the live annotate blurs burned in. The
 // step's `style` holds only for the capture, after web fonts load (ADR 01221).
@@ -380,17 +380,18 @@ async function takeBrowserScreenshot(
         throw new Error(`Couldn't add the \`style\` CSS to the page: ${error?.message ?? error}`);
       }
     }
+    try {
+      await driver.execute(waitForFonts);
+    } catch {
+      // A page that can't report its fonts is captured as it is.
+    }
+    // After the fonts, so an animation a loaded font starts is frozen too.
     if (freeze) {
       try {
         await driver.execute(freezeAnimations);
       } catch (error: any) {
         throw new Error(`Couldn't stop the page's animations: ${error?.message ?? error}`);
       }
-    }
-    try {
-      await driver.execute(waitForFonts);
-    } catch {
-      // A page that can't report its fonts is captured as it is.
     }
     if (options.fullPage) fullPage = await fullPageCapture(driver, options);
     try {

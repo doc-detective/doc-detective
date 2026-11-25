@@ -194,6 +194,16 @@ describe("screenshot fullPage and animations", function () {
 
   const kinds = (driver) => driver.calls.map((c) => c.kind).filter((k) => k !== "execute");
 
+  // Every call, with the page scripts named by what they do.
+  const steps = (driver) =>
+    driver.calls.map((c) => {
+      if (c.kind !== "execute") return c.kind;
+      if (c.source.includes("getAnimations") && c.source.includes("finish")) return "freeze";
+      if (c.source.includes("data-dd-animations") && c.source.includes("remove")) return "thaw";
+      if (c.source.includes("fonts")) return "fonts";
+      return "execute";
+    });
+
   it("captures the whole page through geckodriver in Firefox", async function () {
     const driver = fakeDriver({ browserName: "firefox", viewportCapture, pageCapture });
     const result = await run({ fullPage: true }, driver);
@@ -292,6 +302,32 @@ describe("screenshot fullPage and animations", function () {
     const shot = order.indexOf("takeScreenshot");
     const thaw = order.indexOf("thaw");
     assert.ok(freeze >= 0 && freeze < shot && shot < thaw, order.join(","));
+  });
+
+  it("`animations: disabled` freezes after the web fonts load", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture });
+    const result = await run({ animations: "disabled" }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    const order = steps(driver);
+    const fonts = order.indexOf("fonts");
+    const freeze = order.indexOf("freeze");
+    assert.ok(fonts >= 0 && fonts < freeze, order.join(","));
+  });
+
+  it("`fullPage` with `animations: disabled` freezes, grows the window, captures, restores, then thaws", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture, scrollY: 300 });
+    const result = await run({ fullPage: true, animations: "disabled" }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(await savedHeight(), 1600);
+    const order = steps(driver);
+    const freeze = order.indexOf("freeze");
+    const grow = order.indexOf("setWindowSize");
+    const shot = order.indexOf("takeScreenshot");
+    const restore = order.lastIndexOf("setWindowSize");
+    const thaw = order.indexOf("thaw");
+    assert.ok(freeze >= 0 && freeze < grow && grow < shot && shot < restore && restore < thaw, order.join(","));
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+    assert.deepEqual(driver.scroll, { x: 0, y: 300 });
   });
 
   it("`animations: disabled` thaws animations even when the capture fails", async function () {

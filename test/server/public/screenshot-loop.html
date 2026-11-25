@@ -17,6 +17,11 @@
   <div id="spinner"></div>
   <div id="fade"></div>
   <input id="name" value="Ada" autofocus>
-  <script>document.getElementById("name").focus();</script>
+  <script>
+    document.getElementById("name").focus();
+    // `?h=2400` makes the page taller than the viewport, for `fullPage`.
+    const height = Number(new URLSearchParams(location.search).get("h"));
+    if (height) document.body.style.height = height + "px";
+  </script>
 </body>
 </html>
