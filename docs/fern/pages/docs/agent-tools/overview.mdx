@@ -93,7 +93,8 @@ The bootstrapping process:
 3. Creates test specifications for identified procedures
 4. Runs the tests
 5. Tries to fix any failing test that doesn't match its doc, with confidence-based suggestions
-6. Reports each test's result, and flags any doc that no longer matches the product, with a proposed edit
+6. In a repository with a `github.com` remote, offers to add the [Doc Detective GitHub Action](/docs/ci/github-action). If your request asks for CI, or you run `/doc-detective-init --ci`, it adds the action without asking.
+7. Reports each test's result, and flags any doc that no longer matches the product, with a proposed edit
 
 ## Learn more
 
