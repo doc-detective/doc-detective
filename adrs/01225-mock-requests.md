@@ -61,6 +61,7 @@ Chosen option 1.
 | `bodyPath` can't be read | FAIL | ``Couldn't read `bodyPath` `<absolute path>`.`` |
 | Both `body` and `bodyPath` | schema error | ``set `body` or `bodyPath`, not both.`` |
 | The session has no BiDi socket (defensive) | FAIL | ``Couldn't mock requests to `<url>` in `<browser>`.`` |
+| The browser rejects the intercept (the driver's error goes to the debug log) | FAIL | ``Couldn't mock requests to `<url>` in `<browser>`. The browser refused the request intercept.`` |
 
 Output: `outputs.matched`, the number of requests already answered for that `url` and `method`,
 counting the mocks this step replaced.

@@ -150,6 +150,20 @@ describe("mockRequest action", function () {
     assert.doesNotMatch(result.description, /bidi/i);
   });
 
+  it("names the cause, not the driver's error, when the browser rejects the mock", async function () {
+    const driver = fakeDriver();
+    driver.mock = async () => {
+      throw new Error("WebDriver Bidi command network.addIntercept failed");
+    };
+    const { result } = await run({ url: "**/x" }, { driver });
+    assert.equal(result.status, "FAIL");
+    assert.equal(
+      result.description,
+      "Couldn't mock requests to `**/x` in `chrome`. The browser refused the request intercept."
+    );
+    assert.doesNotMatch(result.description, /bidi|webdriver/i);
+  });
+
   it("counts answered requests per url and method, across a replacement", async function () {
     const driver = fakeDriver();
     await run({ url: "**/x", response: { body: "a" } }, { driver });

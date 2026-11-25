@@ -94,7 +94,10 @@ async function mockRequest({
     });
   } catch (error: any) {
     result.status = "FAIL";
-    result.description = `Couldn't mock requests to \`${url}\`. The browser rejected the intercept: ${error?.message ?? "unknown error"}.`;
+    // The driver's error names protocol internals, so it goes to the debug log
+    // and the user sees the cause in words.
+    log(config, "debug", `mockRequest ${key}: ${error?.message ?? error}`);
+    result.description = `Couldn't mock requests to \`${url}\` in \`${name}\`. The browser refused the request intercept.`;
     return result;
   }
   mocks.set(key, entry);
