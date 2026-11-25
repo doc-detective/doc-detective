@@ -178,6 +178,7 @@
           }
         },
         {
+          "stepId": "tolerance-over-check",
           "screenshot": {
             "path": "tolerance-over.png",
             "directory": "static/images",
@@ -194,7 +195,7 @@
         },
         {
           "description": "The diff and previous images exist, are absolute, and sit in the run folder.",
-          "runShell": "node -e \"const fs = require('fs'); const path = require('path'); const e = process.env; const ok = Number(e.OVER_DIFF_PIXELS) > 10 && [e.OVER_DIFF_PATH, e.OVER_PREVIOUS_PATH].every((p) => p && path.isAbsolute(p) && fs.existsSync(p) && p.includes('.doc-detective')) && e.OVER_DIFF_PATH.endsWith('tolerance-over.diff.png') && e.OVER_PREVIOUS_PATH.endsWith('tolerance-over.previous.png'); if (!ok) { console.error(JSON.stringify(e)); process.exit(1) }\""
+          "runShell": "node -e \"const fs = require('fs'); const path = require('path'); const e = process.env; const ok = Number(e.OVER_DIFF_PIXELS) > 10 && [e.OVER_DIFF_PATH, e.OVER_PREVIOUS_PATH].every((p) => p && path.isAbsolute(p) && fs.existsSync(p) && p.includes('.doc-detective')) && e.OVER_DIFF_PATH.endsWith('tolerance-over-tolerance-over-check.diff.png') && e.OVER_PREVIOUS_PATH.endsWith('tolerance-over-tolerance-over-check.previous.png'); if (!ok) { console.error(JSON.stringify(e)); process.exit(1) }\""
         }
       ]
     }
