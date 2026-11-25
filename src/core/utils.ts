@@ -2514,7 +2514,7 @@ export async function applyBrowserSize(
   return { target, realized };
 }
 
-// Browsers that passed the BiDi socket go/no-go (ADR 01216). Every session of
+// Browsers that passed the BiDi socket go/no-go (ADR 01219). Every session of
 // one of these opens the socket; element commands stay classic. Add a browser
 // only with its own spike evidence in an ADR. Re-exported from tests.ts.
 export const BIDI_BROWSERS: ReadonlySet<string> = new Set(["chrome"]);

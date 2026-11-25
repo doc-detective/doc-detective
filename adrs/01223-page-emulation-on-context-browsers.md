@@ -6,7 +6,7 @@ decision-makers: hawkeyexl
 
 # Page emulation on context browsers
 
-Builds on [ADR 01216](01216-bidi-socket-per-browser-chrome-first.md), which opens a BiDi socket
+Builds on [ADR 01219](01219-bidi-socket-per-browser-chrome-first.md), which opens a BiDi socket
 for Chrome only.
 
 ## Context and Problem Statement
@@ -22,7 +22,7 @@ How should a context ask for these, and what happens in a browser that can't do 
 
 * A dark-mode screenshot must never be taken in light mode. With the default
   `overwrite: aboveVariation`, a wrong capture replaces the reference image.
-* Elements stay on classic WebDriver (ADR 00132). BiDi is open for Chrome only (ADR 01216).
+* Elements stay on classic WebDriver (ADR 00132). BiDi is open for Chrome only (ADR 01219).
 * Launch-time options work without BiDi, so they reach Firefox too.
 * Each variant is its own context, so a dark and a light run never share a session.
 
@@ -73,7 +73,7 @@ Android and iOS browsers skip every key.
   can't set. `runContext` calls it before any browser starts. It also filters the cross-browser
   fallback candidates, so a fallback engine must set every key too.
 * `timezone` and `clock` run over BiDi only in a browser in `BIDI_BROWSERS`, which always has the
-  socket (ADR 01216). `BIDI_BROWSERS` and `hasBidi()` live once, in `utils.ts`, and `tests.ts` re-exports them. Outside the set,
+  socket (ADR 01219). `BIDI_BROWSERS` and `hasBidi()` live once, in `utils.ts`, and `tests.ts` re-exports them. Outside the set,
   `timezone` uses the Firefox `TZ` fallback or skips, and `clock` skips.
 * `applyEmulation(driver, browser)` runs right after `applyBrowserSize`, for the context's session
   and for every later session a `startSurface` step opens. It sends the BiDi commands.
