@@ -120,7 +120,7 @@ A Safari window can't grow past the screen. If the page doesn't fit on the scree
 
 Chat launchers, cookie banners, and spinners make a screenshot differ from run to run, and readers don't need them. Two `screenshot` fields keep them out of the image:
 
-- `style` takes CSS that applies only while the screenshot is taken. Doc Detective adds it just before the capture and removes it right after, so later steps and recordings see the page as it was.
+- `style` takes CSS that applies only during the screenshot step. Doc Detective adds it just before the capture and removes it when the step ends, even a failed one. Later steps and recordings see the page as it was.
 - `stable: true` captures the page every 100 milliseconds until two captures in a row are identical, then saves that one. Use it for pages that load in stages or animate in.
 
 {/* test {"testId":"capture-guide-style-stable","detectSteps":false} */}
@@ -157,7 +157,7 @@ Spinners, carousels, transitions, and the blinking text cursor change from one c
 }
 ```
 
-Doc Detective jumps each finite CSS or Web Animation to its end and stops each looping one. It also turns off CSS transitions and hides the text cursor. Right after the capture, the page animates again. A script that changes the page on a timer isn't an animation, so it keeps running. Use `stable` or `style` for those. `animations` works only for browser captures.
+Doc Detective jumps each finite CSS or Web Animation to its end and stops each looping one. It also turns off CSS transitions and hides the text cursor. When the step ends, the page animates again. A script that changes the page on a timer isn't an animation, so it keeps running. Use `stable` or `style` for those. `animations` works only for browser captures.
 
 ## Verify it works
 
