@@ -5944,6 +5944,16 @@
                 "minimum": 0,
                 "maximum": 1
               },
+              "threshold": {
+                "type": "number",
+                "default": 0.1,
+                "minimum": 0,
+                "maximum": 1
+              },
+              "maxDiffPixels": {
+                "type": "integer",
+                "minimum": 0
+              },
               "overwrite": {
                 "type": "string",
                 "enum": [
@@ -14325,6 +14335,15 @@
                 "type": "number",
                 "minimum": 0,
                 "maximum": 1
+              },
+              "threshold": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "maxDiffPixels": {
+                "type": "integer",
+                "minimum": 0
               },
               "overwrite": {
                 "type": "string",

@@ -269,14 +269,15 @@ describeIfSharp("saveScreenshot unified assertions", function () {
 
   it("counts a one-level color change on every pixel (ADR 01142)", async function () {
     // pixelmatch 8 at the old threshold (0.0005) ignores this nudge; v7 counted
-    // it. Existing baselines must keep the v7 variation.
+    // it. `threshold: 0` keeps the v7 count; the 0.1 default (ADR 01220)
+    // deliberately ignores a nudge this small.
     const target = path.join(tmpDir, "shot.png");
     fs.writeFileSync(target, await makePngBuffer(100, 80, { r: 0, g: 128, b: 0 }));
     const result = await saveScreenshot({
       config,
       step: {
         stepId: "s3b",
-        screenshot: { path: target, maxVariation: 0.05, overwrite: "aboveVariation" },
+        screenshot: { path: target, maxVariation: 0.05, overwrite: "aboveVariation", threshold: 0 },
       },
       driver: fakeDriver(await makePngBuffer(100, 80, { r: 1, g: 128, b: 0 })),
     });

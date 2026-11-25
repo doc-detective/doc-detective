@@ -494,6 +494,14 @@ export interface CaptureScreenshotFields {
    */
   maxVariation?: number;
   /**
+   * How different two pixels' colors must be, from 0 to 1, before the pixel counts as changed when comparing with the existing screenshot at `path`. Higher numbers ignore anti-aliasing and font-smoothing noise. `0` counts any color change.
+   */
+  threshold?: number;
+  /**
+   * Most changed pixels allowed between the new screenshot and the existing screenshot at `path`. Applies alongside `maxVariation`: when both are set, both must hold, or the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.
+   */
+  maxDiffPixels?: number;
+  /**
    * If `true`, overwrites the existing screenshot at `path` if it exists.
    * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
    */

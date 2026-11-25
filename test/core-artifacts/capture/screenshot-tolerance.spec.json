@@ -1,0 +1,202 @@
+{
+  "specId": "screenshot-tolerance",
+  "description": "Screenshot `threshold` and `maxDiffPixels` through the real runner (ADR 01220). Each test seeds its own reference (overwrite true, unique path), changes the page, and compares again. A three-level background shift is font-smoothing-sized noise: the 0.1 default ignores it and `threshold: 0` counts it. `maxDiffPixels` passes an unchanged page and returns WARNING by design when typing changes the input, which also writes the diff and previous images to the run folder. Headless Chrome, so every platform runs it.",
+  "tests": [
+    {
+      "testId": "tolerance-threshold-default",
+      "description": "A sub-threshold color change measures zero changed pixels at the default threshold, so even `maxVariation: 0` PASSes.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": "document.querySelector('#text-input').style.background = 'rgb(200, 200, 200)';"
+        },
+        {
+          "screenshot": {
+            "path": "tolerance-default.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#text-input"
+          }
+        },
+        {
+          "runBrowserScript": "document.querySelector('#text-input').style.background = 'rgb(203, 203, 203)';"
+        },
+        {
+          "screenshot": {
+            "path": "tolerance-default.png",
+            "directory": "static/images",
+            "overwrite": "aboveVariation",
+            "maxVariation": 0,
+            "crop": "#text-input"
+          },
+          "assertions": [
+            "$$outputs.diffPixels == 0"
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "tolerance-threshold-zero",
+      "description": "`threshold: 0` counts the same change on every background pixel; `maxVariation: 1` keeps the step a PASS.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": "document.querySelector('#text-input').style.background = 'rgb(200, 200, 200)';"
+        },
+        {
+          "screenshot": {
+            "path": "tolerance-zero.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#text-input"
+          }
+        },
+        {
+          "runBrowserScript": "document.querySelector('#text-input').style.background = 'rgb(203, 203, 203)';"
+        },
+        {
+          "screenshot": {
+            "path": "tolerance-zero.png",
+            "directory": "static/images",
+            "overwrite": "aboveVariation",
+            "maxVariation": 1,
+            "threshold": 0,
+            "crop": "#text-input"
+          },
+          "assertions": [
+            "$$outputs.diffPixels > 0",
+            "$$outputs.variation > 0.5"
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "tolerance-max-diff-pixels-within",
+      "description": "An unchanged page has no changed pixels, so `maxDiffPixels: 0` PASSes. test/screenshot-tolerance.test.js pins that no diff image is written.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "screenshot": {
+            "path": "tolerance-within.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#text-input"
+          }
+        },
+        {
+          "screenshot": {
+            "path": "tolerance-within.png",
+            "directory": "static/images",
+            "overwrite": "aboveVariation",
+            "maxDiffPixels": 0,
+            "crop": "#text-input"
+          },
+          "assertions": [
+            "$$outputs.diffPixels == 0"
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "tolerance-max-diff-pixels-over",
+      "description": "Typing changes more than 10 pixels: the step returns WARNING by design, and the diff and previous images land in the run folder, not next to the reference.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "screenshot": {
+            "path": "tolerance-over.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "crop": "#text-input"
+          }
+        },
+        {
+          "find": {
+            "selector": "#text-input",
+            "click": true,
+            "type": "hello"
+          }
+        },
+        {
+          "screenshot": {
+            "path": "tolerance-over.png",
+            "directory": "static/images",
+            "overwrite": "aboveVariation",
+            "maxVariation": 1,
+            "maxDiffPixels": 10,
+            "crop": "#text-input"
+          },
+          "variables": {
+            "OVER_DIFF_PIXELS": "$$diffPixels",
+            "OVER_DIFF_PATH": "$$diffPath",
+            "OVER_PREVIOUS_PATH": "$$previousPath"
+          }
+        },
+        {
+          "description": "The diff and previous images exist, are absolute, and sit in the run folder.",
+          "runShell": "node -e \"const fs = require('fs'); const path = require('path'); const e = process.env; const ok = Number(e.OVER_DIFF_PIXELS) > 10 && [e.OVER_DIFF_PATH, e.OVER_PREVIOUS_PATH].every((p) => p && path.isAbsolute(p) && fs.existsSync(p) && p.includes('.doc-detective')) && e.OVER_DIFF_PATH.endsWith('tolerance-over.diff.png') && e.OVER_PREVIOUS_PATH.endsWith('tolerance-over.previous.png'); if (!ok) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
+    }
+  ]
+}

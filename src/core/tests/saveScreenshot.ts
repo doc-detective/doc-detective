@@ -1375,16 +1375,17 @@ async function captureScreenshot({
         result.description = `Couldn't load screenshot comparison dependency (pixelmatch). ${error?.message ?? error}`;
         return result;
       }
-      // threshold 0: any color change counts (anti-aliasing is still
-      // excused); maxVariation is the only tolerance. Reproduces pixelmatch
-      // 7's counts at its old 0.0005 exactly (ADR 01142).
+      // pixelmatch's per-pixel color tolerance (ADR 01220, amending ADR
+      // 01142). The 0.1 default ignores font-smoothing noise; 0 counts any
+      // color change, as pixelmatch 7 did.
+      const diffImage = Buffer.alloc(width * height * 4);
       const numDiffPixels = pixelmatchFn(
         img1.data,
         img2.data,
-        null,
+        diffImage,
         width,
         height,
-        { threshold: 0 }
+        { threshold: step.screenshot.threshold ?? 0.1 }
       );
       fractionalDiff = numDiffPixels / (width * height);
 
@@ -1400,12 +1401,42 @@ async function captureScreenshot({
       // (not FAIL) when it evaluates false, matching the prior `WARNING` status.
       // The file-write side effects below are preserved exactly.
       result.outputs.variation = fractionalDiff;
+      result.outputs.diffPixels = numDiffPixels;
+      const { maxVariation, maxDiffPixels } = step.screenshot;
       specs.push({
-        statement: `$$outputs.variation <= ${step.screenshot.maxVariation}`,
+        statement: `$$outputs.variation <= ${maxVariation}`,
         severity: "warning",
       });
+      if (maxDiffPixels != null) {
+        specs.push({
+          statement: `$$outputs.diffPixels <= ${maxDiffPixels}`,
+          severity: "warning",
+        });
+      }
 
-      if (fractionalDiff > step.screenshot.maxVariation) {
+      // Diff images go to the run folder only, never next to the docs, and
+      // before any overwrite so the previous reference survives.
+      let seeDiff = "";
+      if (numDiffPixels > 0 && screenshotsDir) {
+        try {
+          const outDir = screenshotsDir();
+          fs.mkdirSync(outDir, { recursive: true });
+          const name = path.basename(filePath, path.extname(filePath));
+          const diffPath = path.join(outDir, `${name}.diff.png`);
+          const previousPath = path.join(outDir, `${name}.previous.png`);
+          fs.writeFileSync(diffPath, PNG.sync.write({ width, height, data: diffImage } as any));
+          fs.copyFileSync(existFilePath, previousPath);
+          result.outputs.diffPath = diffPath;
+          result.outputs.previousPath = previousPath;
+          seeDiff = ` See \`${diffPath}\`.`;
+        } catch (error: any) {
+          log(config, "warning", `Couldn't write the screenshot diff images. ${error?.message ?? error}`);
+        }
+      }
+
+      const overVariation = fractionalDiff > maxVariation;
+      const overPixels = maxDiffPixels != null && numDiffPixels > maxDiffPixels;
+      if (overVariation || overPixels) {
         if (
           step.screenshot.overwrite == "aboveVariation" &&
           !isUrlPath &&
@@ -1414,11 +1445,15 @@ async function captureScreenshot({
           // Replace old file with the new capture (single write to the target).
           if (!writeFinalPng(existFilePath)) return result;
         }
-        result.description += ` The difference between the existing screenshot and new screenshot (${fractionalDiff.toFixed(
-          2
-        )}) is greater than the max accepted variation (${
-          step.screenshot.maxVariation
-        }).`;
+        if (overVariation) {
+          result.description += ` The difference between the existing screenshot and new screenshot (${fractionalDiff.toFixed(
+            2
+          )}) is greater than the max accepted variation (${maxVariation}).`;
+        }
+        if (overPixels) {
+          result.description += ` Screenshot differs from the reference by ${numDiffPixels} pixels, more than \`maxDiffPixels\` (${maxDiffPixels}).`;
+        }
+        result.description += seeDiff;
         if (isUrlPath) {
           // URL references are read-only: we can't write back to the remote.
           // Leave `outputs.changed` at its default (false) so upload pipelines

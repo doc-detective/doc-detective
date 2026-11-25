@@ -1898,6 +1898,39 @@ import { schemas } from "../dist/index.js";
         });
       }
 
+      // ADR 01220: per-pixel color tolerance and an absolute changed-pixel cap.
+      it("should validate screenshot threshold and maxDiffPixels, defaulting threshold to 0.1", function () {
+        const withKeys = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "a.png", threshold: 0.2, maxDiffPixels: 150 } },
+        });
+        expect(withKeys.valid, JSON.stringify(withKeys.errors)).to.be.true;
+        expect(withKeys.object.screenshot.maxDiffPixels).to.equal(150);
+
+        const defaulted = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "a.png" } },
+        });
+        expect(defaulted.object.screenshot.threshold).to.equal(0.1);
+        expect(defaulted.object.screenshot).to.not.have.property("maxDiffPixels");
+      });
+
+      for (const [label, extra] of [
+        ["a threshold above 1", { threshold: 1.5 }],
+        ["a negative threshold", { threshold: -0.1 }],
+        ["a negative maxDiffPixels", { maxDiffPixels: -1 }],
+        ["a fractional maxDiffPixels", { maxDiffPixels: 1.5 }],
+      ]) {
+        it(`should reject a screenshot with ${label}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { screenshot: { path: "a.png", ...extra } },
+          });
+
+          expect(result.valid).to.be.false;
+        });
+      }
+
       it("should validate annotationDefaults at the config level", function () {
         const result = validate({
           schemaKey: "config_v3",
