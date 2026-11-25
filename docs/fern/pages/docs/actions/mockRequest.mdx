@@ -65,7 +65,7 @@ This example answers every request whose path starts with `/api/invoices`. The p
 
 {/* step {"stepId":"mockrequest-json-mock","description":"Answer invoice requests with a fixed date","mockRequest":{"url":"/api/invoices*","response":{"body":{"next":"2026-12-03"}}}} */}
 {/* step {"stepId":"mockrequest-json-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
-{/* step {"stepId":"mockrequest-json-check","description":"Fetch an invoice and check the mocked date","runBrowserScript":{"script":"return fetch('/api/invoices?page=1').then((r) => r.text());","output":"2026-12-03"}} */}
+{/* step {"stepId":"mockrequest-json-check","description":"Fetch an invoice and check the mocked date","runBrowserScript":{"script":"return fetch('/api/invoices?page=1').then((r) => r.json()).then((d) => d.next);","output":"/^2026-12-03$/"}} */}
 {/* test end */}
 
 ### Answer one method with an error

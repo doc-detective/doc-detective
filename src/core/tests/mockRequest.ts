@@ -78,6 +78,8 @@ async function mockRequest({
   try {
     // webdriverio restores an earlier mock with the same url and filter itself.
     entry.mock = await driver.mock(url, filter);
+    // webdriverio emits "overwrite" each time this mock answers a request with
+    // its own response. It doesn't mean another mock replaced this one.
     entry.mock.on("overwrite", () => {
       entry.answered += 1;
     });
