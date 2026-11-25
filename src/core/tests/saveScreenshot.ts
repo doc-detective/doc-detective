@@ -354,9 +354,10 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
   // A pixel of slack for rounding; any more would cut off the page's edge.
   const fits = (extent: any, within: { width: number; height: number }) =>
     within.height + 1 >= (Number(extent?.height) || 0) && within.width + 1 >= (Number(extent?.width) || 0);
-  if (fits(page, viewport)) return { ...kept, capture: viewportCapture };
-  const original = await driver.getWindowSize();
+  // Read on the first resize, so a page that never grows is never resized.
+  let original: { width: number; height: number } | undefined;
   const restore = async () => {
+    if (!original) return;
     await driver.setWindowSize(original.width, original.height);
     await driver.execute(scrollPageTo, scroll.x, scroll.y);
   };
@@ -366,6 +367,7 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
   // grows with the viewport.
   let realized = viewport;
   const grow = async (extent: any) => {
+    original ??= await driver.getWindowSize();
     const wanted = {
       width: Math.max(Number(extent?.width) || 0, realized.width),
       height: Math.max(Number(extent?.height) || 0, realized.height),
@@ -373,19 +375,22 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
     realized = await realizeViewport(driver, wanted, options.config, options.label, "debug");
     return await driver.execute(readPageExtent);
   };
-  let grown: any;
-  try {
-    grown = await grow(page);
-  } catch (error) {
-    await restore().catch(() => {});
-    throw error;
+  const fitsAtFirst = fits(page, viewport);
+  if (!fitsAtFirst) {
+    let grown: any;
+    try {
+      grown = await grow(page);
+    } catch (error) {
+      await restore().catch(() => {});
+      throw error;
+    }
+    if (!fits(grown, realized)) {
+      await restore();
+      throw tooLarge();
+    }
   }
-  if (!fits(grown, realized)) {
-    await restore();
-    throw tooLarge();
-  }
-  // Finishing an animation can make the page bigger. The caller restores the
-  // window whatever this throws.
+  // Finishing an animation can make the page bigger, even one that fit at
+  // first. The caller restores the window whatever this throws.
   const settle = async (freeze: () => Promise<void>) => {
     const frozen = await driver.execute(readPageExtent);
     if (fits(frozen, realized)) return;
@@ -395,7 +400,8 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
     await freeze();
     if (!fits(await driver.execute(readPageExtent), realized)) throw tooLarge();
   };
-  return { scroll: { x: 0, y: 0 }, restore, capture: viewportCapture, settle };
+  // A page that fits can't scroll, so its scroll is about zero either way.
+  return { scroll: fitsAtFirst ? scroll : { x: 0, y: 0 }, restore, capture: viewportCapture, settle };
 }
 
 // A browser capture with every element that shows a secret blurred, and the

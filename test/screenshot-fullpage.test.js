@@ -509,6 +509,24 @@ describe("screenshot fullPage and animations", function () {
     assert.deepEqual(driver.window, { width: 800, height: 700 });
   });
 
+  it("grows the window when freezing makes a page that fit outgrow the viewport", async function () {
+    // 500px fits the 600px viewport until a finished animation adds 1000px.
+    const tall = await makePng(800, 1500);
+    const driver = fakeDriver({ viewportCapture, pageCapture: tall, pageHeight: 500, frozenHeight: 1500 });
+    const result = await run({ fullPage: true, animations: "disabled" }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(await savedHeight(), 1500);
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("skips when freezing makes a page that fit outgrow the screen", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture, pageHeight: 500, frozenHeight: 1500, maxViewport: 1000 });
+    const result = await run({ fullPage: true, animations: "disabled" }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
   it("skips when freezing grows the page past the screen", async function () {
     const driver = fakeDriver({ viewportCapture, pageCapture, frozenHeight: 2000, maxViewport: 1800 });
     const result = await run({ fullPage: true, animations: "disabled" }, driver);
