@@ -20302,7 +20302,7 @@ export interface CaptureScreenshotFields {
   maxDiffPixels?: number;
   /**
    * If `true`, overwrites the existing screenshot at `path` if it exists.
-   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
+   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.
    */
   overwrite?: "true" | "false" | "aboveVariation";
   crop?: CropByElementSimple | CropByElementDetailed;
@@ -28403,7 +28403,7 @@ export interface CaptureScreenshotFields1 {
   maxDiffPixels?: number;
   /**
    * If `true`, overwrites the existing screenshot at `path` if it exists.
-   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
+   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.
    */
   overwrite?: "true" | "false" | "aboveVariation";
   crop?: CropByElementSimple1 | CropByElementDetailed1;

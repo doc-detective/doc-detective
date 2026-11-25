@@ -31758,7 +31758,7 @@
                               },
                               "overwrite": {
                                 "type": "string",
-                                "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                                "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                                 "enum": [
                                   "true",
                                   "false",
@@ -35842,7 +35842,7 @@
                                 },
                                 "overwrite": {
                                   "type": "string",
-                                  "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                                  "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                                   "enum": [
                                     "true",
                                     "false",
@@ -39910,7 +39910,7 @@
                             },
                             "overwrite": {
                               "type": "string",
-                              "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                              "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                               "enum": [
                                 "true",
                                 "false",
@@ -96418,7 +96418,7 @@
                                     },
                                     "overwrite": {
                                       "type": "string",
-                                      "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                                      "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                                       "enum": [
                                         "true",
                                         "false",
@@ -100502,7 +100502,7 @@
                                       },
                                       "overwrite": {
                                         "type": "string",
-                                        "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                                        "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                                         "enum": [
                                           "true",
                                           "false",
@@ -104570,7 +104570,7 @@
                                   },
                                   "overwrite": {
                                     "type": "string",
-                                    "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                                    "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                                     "enum": [
                                       "true",
                                       "false",
