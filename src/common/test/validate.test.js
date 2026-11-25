@@ -1083,6 +1083,71 @@ import { schemas } from "../dist/index.js";
         }
       });
 
+      // ADR 01223: page emulation keys on the context `browser` object.
+      describe("browser page emulation", function () {
+        const ctx = (browser) => ({
+          platforms: "linux",
+          browsers: { name: "chrome", ...browser },
+        });
+
+        it("accepts every emulation key at once", function () {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: ctx({
+              colorScheme: "dark",
+              locale: "de-DE",
+              timezone: "Europe/Berlin",
+              deviceScaleFactor: 2,
+              reducedMotion: "reduce",
+              clock: "2026-12-03T09:00:00Z",
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        for (const [key, value] of [
+          ["colorScheme", "light"],
+          ["locale", "en"],
+          ["locale", "zh-Hant-TW"],
+          ["timezone", "UTC"],
+          ["timezone", "America/Argentina/Buenos_Aires"],
+          ["deviceScaleFactor", 0.5],
+          ["deviceScaleFactor", 4],
+          ["reducedMotion", "no-preference"],
+          ["clock", "2026-12-03T09:00:00.000+01:00"],
+        ]) {
+          it(`accepts ${key}: ${JSON.stringify(value)}`, function () {
+            const result = validate({
+              schemaKey: "context_v3",
+              object: ctx({ [key]: value }),
+            });
+            expect(result.valid, result.errors).to.be.true;
+          });
+        }
+
+        for (const [key, value] of [
+          ["colorScheme", "sepia"],
+          ["locale", "de_DE"],
+          ["locale", ""],
+          ["timezone", "Europe Berlin"],
+          ["timezone", ""],
+          ["deviceScaleFactor", 0.4],
+          ["deviceScaleFactor", 5],
+          ["reducedMotion", "none"],
+          ["clock", "tomorrow"],
+          ["clock", "2026-12-03"],
+        ]) {
+          it(`rejects ${key}: ${JSON.stringify(value)}`, function () {
+            const result = validate({
+              schemaKey: "context_v3",
+              object: ctx({ [key]: value }),
+            });
+            expect(result.valid).to.be.false;
+            expect(result.errors).to.include(key);
+          });
+        }
+      });
+
       it("should default browserFallback to 'auto' when addDefaults=true", function () {
         const result = validate({
           schemaKey: "config_v3",

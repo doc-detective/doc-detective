@@ -15371,6 +15371,30 @@ export interface Browser {
   headless?: boolean;
   window?: BrowserWindow;
   viewport?: BrowserViewport;
+  /**
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   */
+  colorScheme?: "light" | "dark";
+  /**
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   */
+  locale?: string;
+  /**
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Firefox sets it only on Linux and macOS, and Safari can't set it, so those contexts are skipped.
+   */
+  timezone?: string;
+  /**
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   */
+  deviceScaleFactor?: number;
+  /**
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   */
+  reducedMotion?: "reduce" | "no-preference";
+  /**
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   */
+  clock?: string;
 }
 /**
  * Browser dimensions.
@@ -15420,6 +15444,30 @@ export interface Browser1 {
   headless?: boolean;
   window?: BrowserWindow1;
   viewport?: BrowserViewport1;
+  /**
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   */
+  colorScheme?: "light" | "dark";
+  /**
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   */
+  locale?: string;
+  /**
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Firefox sets it only on Linux and macOS, and Safari can't set it, so those contexts are skipped.
+   */
+  timezone?: string;
+  /**
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   */
+  deviceScaleFactor?: number;
+  /**
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   */
+  reducedMotion?: "reduce" | "no-preference";
+  /**
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   */
+  clock?: string;
 }
 /**
  * Browser dimensions.
@@ -16186,6 +16234,30 @@ export interface Browser2 {
   headless?: boolean;
   window?: BrowserWindow2;
   viewport?: BrowserViewport2;
+  /**
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   */
+  colorScheme?: "light" | "dark";
+  /**
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   */
+  locale?: string;
+  /**
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Firefox sets it only on Linux and macOS, and Safari can't set it, so those contexts are skipped.
+   */
+  timezone?: string;
+  /**
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   */
+  deviceScaleFactor?: number;
+  /**
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   */
+  reducedMotion?: "reduce" | "no-preference";
+  /**
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   */
+  clock?: string;
 }
 /**
  * Browser dimensions.
@@ -16235,6 +16307,30 @@ export interface Browser3 {
   headless?: boolean;
   window?: BrowserWindow3;
   viewport?: BrowserViewport3;
+  /**
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   */
+  colorScheme?: "light" | "dark";
+  /**
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   */
+  locale?: string;
+  /**
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Firefox sets it only on Linux and macOS, and Safari can't set it, so those contexts are skipped.
+   */
+  timezone?: string;
+  /**
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   */
+  deviceScaleFactor?: number;
+  /**
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   */
+  reducedMotion?: "reduce" | "no-preference";
+  /**
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   */
+  clock?: string;
 }
 /**
  * Browser dimensions.
@@ -17056,6 +17152,30 @@ export interface Browser4 {
   headless?: boolean;
   window?: BrowserWindow4;
   viewport?: BrowserViewport4;
+  /**
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   */
+  colorScheme?: "light" | "dark";
+  /**
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   */
+  locale?: string;
+  /**
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Firefox sets it only on Linux and macOS, and Safari can't set it, so those contexts are skipped.
+   */
+  timezone?: string;
+  /**
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   */
+  deviceScaleFactor?: number;
+  /**
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   */
+  reducedMotion?: "reduce" | "no-preference";
+  /**
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   */
+  clock?: string;
 }
 /**
  * Browser dimensions.
@@ -17105,6 +17225,30 @@ export interface Browser5 {
   headless?: boolean;
   window?: BrowserWindow5;
   viewport?: BrowserViewport5;
+  /**
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   */
+  colorScheme?: "light" | "dark";
+  /**
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   */
+  locale?: string;
+  /**
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Firefox sets it only on Linux and macOS, and Safari can't set it, so those contexts are skipped.
+   */
+  timezone?: string;
+  /**
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   */
+  deviceScaleFactor?: number;
+  /**
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   */
+  reducedMotion?: "reduce" | "no-preference";
+  /**
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   */
+  clock?: string;
 }
 /**
  * Browser dimensions.
@@ -25197,6 +25341,30 @@ export interface Browser6 {
   headless?: boolean;
   window?: BrowserWindow6;
   viewport?: BrowserViewport6;
+  /**
+   * The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.
+   */
+  colorScheme?: "light" | "dark";
+  /**
+   * BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.
+   */
+  locale?: string;
+  /**
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Firefox sets it only on Linux and macOS, and Safari can't set it, so those contexts are skipped.
+   */
+  timezone?: string;
+  /**
+   * The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.
+   */
+  deviceScaleFactor?: number;
+  /**
+   * The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.
+   */
+  reducedMotion?: "reduce" | "no-preference";
+  /**
+   * ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.
+   */
+  clock?: string;
 }
 /**
  * Browser dimensions.

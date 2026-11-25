@@ -3727,6 +3727,37 @@
                     "type": "integer"
                   }
                 }
+              },
+              "colorScheme": {
+                "type": "string",
+                "enum": [
+                  "light",
+                  "dark"
+                ]
+              },
+              "locale": {
+                "type": "string",
+                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+              },
+              "timezone": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+              },
+              "deviceScaleFactor": {
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 4
+              },
+              "reducedMotion": {
+                "type": "string",
+                "enum": [
+                  "reduce",
+                  "no-preference"
+                ]
+              },
+              "clock": {
+                "type": "string",
+                "format": "date-time"
               }
             }
           }
@@ -12119,6 +12150,37 @@
                     "type": "integer"
                   }
                 }
+              },
+              "colorScheme": {
+                "type": "string",
+                "enum": [
+                  "light",
+                  "dark"
+                ]
+              },
+              "locale": {
+                "type": "string",
+                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+              },
+              "timezone": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+              },
+              "deviceScaleFactor": {
+                "type": "number",
+                "minimum": 0.5,
+                "maximum": 4
+              },
+              "reducedMotion": {
+                "type": "string",
+                "enum": [
+                  "reduce",
+                  "no-preference"
+                ]
+              },
+              "clock": {
+                "type": "string",
+                "format": "date-time"
               }
             }
           }

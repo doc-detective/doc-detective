@@ -53,6 +53,10 @@ import {
   classifyContextRetry,
   guardBlankDocumentNavigation,
   applyBrowserSize,
+  BIDI_BROWSERS,
+  emulationCapabilities,
+  unsupportedEmulation,
+  applyEmulation,
   isViewportFloored,
   loadAxios,
   sessionVersions,
@@ -312,16 +316,16 @@ export {
 // rewritten to `webkit` during context resolution, so both appear here.
 const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
 
-// Browsers that passed the BiDi socket go/no-go (ADR 01216). A BiDi feature
-// checks this set and falls back, or skips, everywhere else. Add a browser
-// only with its own spike evidence in an ADR.
-const BIDI_BROWSERS: ReadonlySet<string> = new Set(["chrome"]);
-
 // Whether a context needs the BiDi socket. Features that need it (timezone,
 // clock, full-page capture, request mocking) add their check here; every other
-// context keeps classic WebDriver with no socket.
-function needsBidi(_context: any, _steps: any[] | undefined): boolean {
-  return false;
+// context keeps classic WebDriver with no socket. BIDI_BROWSERS (utils.ts)
+// gates the socket per browser in getDriverCapabilities.
+function needsBidi(context: any, _steps: any[] | undefined): boolean {
+  // Page emulation over BiDi (ADR 01223).
+  return (
+    context?.browser?.timezone !== undefined ||
+    context?.browser?.clock !== undefined
+  );
 }
 
 // Tree-kill a pid and resolve only once the target process is actually gone.
@@ -442,6 +446,8 @@ function buildWarmPlanDeps(): WarmPlanDeps {
 function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails: any; name: any; options: any }): any {
   let capabilities: any = {};
   let args: string[] = [];
+  // Page emulation launch options (ADR 01223), from the context's browser.
+  const emulation = emulationCapabilities(options.emulation);
 
   // Fail loudly on an unknown or missing browser name instead of silently
   // returning empty capabilities. Empty caps used to surface downstream as the
@@ -494,7 +500,9 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
             "UEsDBBQAAAAIAKm6lldWzDiRbgAAAKUAAAAlAAAAZmlyZWZveF9wcm9maWxlL2Nocm9tZS91c2VyQ2hyb21lLmNzc3XMQQrCMBBG4X1O8Yu7QqhrPYOHiGbaDpqZMBmJIN7dgu6K28fHC+OAc7oRLuquBVc1IWvQCb6s1bQ3MnSWrB1VWZwyhjHsS2KJv/4KWAeWyeL3E+80ebSU+dGOONQndlyqmifx0wYbz8t//Q4fUEsBAhQDFAAAAAgAqbqWV1bMOJFuAAAApQAAACUAAAAAAAAAAAAAAKSBAAAAAGZpcmVmb3hfcHJvZmlsZS9jaHJvbWUvdXNlckNocm9tZS5jc3NQSwUGAAAAAAEAAQBTAAAAsQAAAAAA",
           prefs: {
             "toolkit.legacyUserProfileCustomizations.stylesheets": true, // Enable userChrome.css and userContent.css
+            ...emulation.prefs,
           },
+          ...(Object.keys(emulation.env).length ? { env: emulation.env } : {}),
           binary: firefox.path,
         },
       };
@@ -561,6 +569,7 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           // parallel browser contexts start reliably.
           args.push("--disable-dev-shm-usage");
         }
+        args.push(...emulation.args);
         // Set capabilities
         capabilities = {
           platformName: runnerDetails.environment.platform,
@@ -583,6 +592,7 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
               "download.default_directory": options.downloadDir || os.tmpdir(),
               "download.prompt_for_download": false,
               "download.directory_upgrade": true,
+              ...emulation.prefs,
             },
             binary: chromium.path,
           },
@@ -4530,6 +4540,25 @@ async function runContext({
   let mobileWebBrowserName: string | undefined;
 
   const mobileTarget = isMobileTargetPlatform(context.platform);
+  // Page emulation the browser can't do skips the context rather than run it
+  // unemulated (ADR 01223). Only for a context that runs here and opens a
+  // browser; another platform keeps its platform-mismatch reason.
+  if (
+    (context.platform === platform || mobileTarget) &&
+    Array.isArray(context.steps) &&
+    isBrowserRequired({ test: context })
+  ) {
+    const emulationSkip = unsupportedEmulation(
+      context.browser,
+      mobileTarget || platform
+    );
+    if (emulationSkip) {
+      clog("warning", emulationSkip);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = emulationSkip;
+      return contextReport;
+    }
+  }
   if (mobileTarget) {
     const requirementsSkip = contextRequirementsSkipMessage({ context });
     if (requirementsSkip) {
@@ -4748,7 +4777,11 @@ async function runContext({
           explicit: explicitlyRequested,
           policy: fallbackPolicy,
           availableApps,
-        })
+        }).filter(
+          // A fallback engine must set the same page emulation (ADR 01223).
+          (name: string) =>
+            !unsupportedEmulation({ ...context.browser, name }, platform)
+        )
       : [];
 
   // A driver context with no startable engine is skipped with a diagnostic that
@@ -5025,6 +5058,8 @@ async function runContext({
               headless,
               ...recordOptions,
               bidi: needsBidi(context, context.steps),
+              // Every session in the context gets its page emulation.
+              emulation: { ...context.browser, name: browserName },
             },
           });
           // Merge the authored escape hatch, minus the capabilities that are
@@ -5200,6 +5235,18 @@ async function runContext({
       if (driver) {
         browserSessions = createSessionRegistry({
           open: async (engine: string, overrides?: BrowserOpenOverrides) => {
+            // A later session gets the context's page emulation too, so an
+            // engine that can't set a key fails rather than run unemulated.
+            const emulationSkip = unsupportedEmulation(
+              { ...context.browser, name: engine },
+              platform
+            );
+            if (emulationSkip)
+              throw new Error(
+                `Couldn't open \`${engine}\`: ${emulationSkip
+                  .replace(/^Skipped: /, "")
+                  .replace(/\.$/, "")}.`
+              );
             const res = await startDriverForBrowser(engine, overrides);
             if (!res.ok) throw new Error(res.error);
             // A later session takes the context's size unless its
@@ -5221,6 +5268,15 @@ async function runContext({
                 "warning",
                 `Couldn't size the new ${engine} session: ${error?.message ?? error}`
               );
+            }
+            try {
+              await applyEmulation(res.driver, {
+                ...context.browser,
+                name: engine,
+              });
+            } catch (error) {
+              await res.driver.deleteSession().catch(() => {});
+              throw error;
             }
             return res.driver;
           },
@@ -5255,6 +5311,16 @@ async function runContext({
         isViewportFloored(sizing.target, sizing.realized)
       ) {
         contextReport.viewportFloored = true;
+      }
+      // Page emulation that needs BiDi: timezone and clock (ADR 01223). A
+      // rejected command fails the context rather than run unemulated.
+      try {
+        await applyEmulation(driver, context.browser);
+      } catch (error: any) {
+        clog("error", error.message);
+        contextReport.result = "FAIL";
+        contextReport.resultDescription = error.message;
+        return contextReport;
       }
     }
 

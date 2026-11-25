@@ -2514,6 +2514,155 @@ export async function applyBrowserSize(
   return { target, realized };
 }
 
+// Browsers that passed the BiDi socket go/no-go (ADR 01216). A BiDi feature
+// checks this set and falls back, or skips, everywhere else. Add a browser
+// only with its own spike evidence in an ADR.
+export const BIDI_BROWSERS: ReadonlySet<string> = new Set(["chrome"]);
+
+// Page emulation keys on the context `browser` object (ADR 01223), in the
+// order unsupportedEmulation reports them.
+const EMULATION_KEYS = [
+  "colorScheme",
+  "locale",
+  "timezone",
+  "deviceScaleFactor",
+  "reducedMotion",
+  "clock",
+] as const;
+
+/**
+ * Launch-time options for a context's page emulation keys (ADR 01223):
+ * Chrome args and prefs, Firefox prefs and env. `timezone` and `clock` in
+ * Chrome go over BiDi instead (applyEmulation). Other browsers get nothing;
+ * unsupportedEmulation skips them first.
+ */
+export function emulationCapabilities(browser: any): {
+  args: string[];
+  prefs: Record<string, any>;
+  env: Record<string, string>;
+} {
+  const args: string[] = [];
+  const prefs: Record<string, any> = {};
+  const env: Record<string, string> = {};
+  const b = browser ?? {};
+  if (b.name === "chrome") {
+    if (b.colorScheme)
+      args.push(
+        `--blink-settings=preferredColorScheme=${b.colorScheme === "dark" ? 0 : 1}`
+      );
+    if (b.locale) {
+      args.push(`--lang=${b.locale}`);
+      prefs["intl.accept_languages"] = b.locale;
+    }
+    if (b.deviceScaleFactor !== undefined)
+      args.push(`--force-device-scale-factor=${b.deviceScaleFactor}`);
+    if (b.reducedMotion)
+      args.push(
+        b.reducedMotion === "reduce"
+          ? "--force-prefers-reduced-motion"
+          : "--force-prefers-no-reduced-motion"
+      );
+  } else if (b.name === "firefox") {
+    if (b.colorScheme)
+      prefs["layout.css.prefers-color-scheme.content-override"] =
+        b.colorScheme === "dark" ? 0 : 1;
+    if (b.locale) {
+      prefs["intl.locale.requested"] = b.locale;
+      prefs["intl.accept_languages"] = b.locale;
+    }
+    if (b.deviceScaleFactor !== undefined)
+      prefs["layout.css.devPixelsPerPx"] = String(b.deviceScaleFactor);
+    if (b.reducedMotion)
+      prefs["ui.prefersReducedMotion"] = b.reducedMotion === "reduce" ? 1 : 0;
+    if (b.timezone) env.TZ = b.timezone;
+  }
+  return { args, prefs, env };
+}
+
+/**
+ * The skip message for the first emulation key this browser can't set on
+ * this platform, or null when it can set every key it has (ADR 01223).
+ * Running a dark-mode test in light mode would quietly overwrite its
+ * reference screenshot, so an unsupported key skips the context.
+ */
+export function unsupportedEmulation(
+  browser: any,
+  platform: string
+): string | null {
+  const keys = EMULATION_KEYS.filter((k) => browser?.[k] !== undefined);
+  if (keys.length === 0) return null;
+  const name = browser.name === "webkit" ? "safari" : browser.name;
+  const onDevice = ({ android: "Android", ios: "iOS" } as any)[platform];
+  if (onDevice)
+    return `Skipped: \`${name}\` can't set \`${keys[0]}\` on ${onDevice}.`;
+  for (const key of keys) {
+    if (name === "chrome") continue;
+    if (name === "firefox") {
+      if (key === "clock") return `Skipped: \`firefox\` can't set \`clock\`.`;
+      if (key === "timezone" && platform === "windows")
+        return `Skipped: \`firefox\` can't set \`timezone\` on Windows.`;
+      continue;
+    }
+    return `Skipped: \`${name}\` can't set \`${key}\`.`;
+  }
+  return null;
+}
+
+/**
+ * Preload script source that pins `Date.now()` and `new Date()` to `ms`.
+ * Explicit dates, `Date.parse` and `Date.UTC` keep working.
+ */
+export function freezeDateSource(ms: number): string {
+  return `() => {
+  const T = ${ms};
+  const D = globalThis.Date;
+  function F(...a) {
+    if (!new.target) return new D(T).toString();
+    return a.length ? new D(...a) : new D(T);
+  }
+  F.prototype = D.prototype;
+  F.now = () => T;
+  F.parse = D.parse;
+  F.UTC = D.UTC;
+  globalThis.Date = F;
+}`;
+}
+
+/**
+ * Session-start emulation that needs BiDi (ADR 01223): `timezone` and
+ * `clock`, in browsers in BIDI_BROWSERS. Firefox's `timezone` is the `TZ`
+ * env from emulationCapabilities. Throws the context FAIL message when the
+ * browser rejects a command.
+ */
+export async function applyEmulation(driver: any, browser: any): Promise<void> {
+  if (!BIDI_BROWSERS.has(browser?.name)) return;
+  const fail = (key: string) =>
+    new Error(
+      `Couldn't set \`${key}\` to \`${browser[key]}\` in \`${browser.name}\`.`
+    );
+  if (browser.timezone) {
+    try {
+      // Chrome rejects a global override. The default user context holds
+      // every tab and window this session opens.
+      await driver.emulationSetTimezoneOverride({
+        timezone: browser.timezone,
+        userContexts: ["default"],
+      });
+    } catch {
+      throw fail("timezone");
+    }
+  }
+  if (browser.clock) {
+    try {
+      await driver.scriptAddPreloadScript({
+        functionDeclaration: freezeDateSource(Date.parse(browser.clock)),
+      });
+    } catch {
+      throw fail("clock");
+    }
+  }
+}
+
 function logLabel(config: any, level: string): string {
   if (config?.logLevel === "debug") {
     return `${new Date().toISOString()} (${level.toUpperCase()}) `;

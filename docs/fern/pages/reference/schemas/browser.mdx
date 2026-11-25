@@ -23,6 +23,12 @@ version | string | ReadOnly. The browser version the session reported, for examp
 headless | boolean | Optional. If `true`, runs the browser in headless mode. | `true`
 window | object([Browser Window](/reference/schemas/browser-window)) | Optional. Browser dimensions. | —
 viewport | object([Browser Viewport](/reference/schemas/browser-viewport)) | Optional. Viewport dimensions. | —
+colorScheme | string | Optional. The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.<br/><br/>Accepted values: `light`, `dark` | —
+locale | string | Optional. BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.<br/><br/>Pattern: `^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$` | —
+timezone | string | Optional. IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Firefox sets it only on Linux and macOS, and Safari can't set it, so those contexts are skipped.<br/><br/>Pattern: `^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$` | —
+deviceScaleFactor | number | Optional. The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.<br/><br/>Minimum: 0.5. Maximum: 4 | —
+reducedMotion | string | Optional. The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.<br/><br/>Accepted values: `reduce`, `no-preference` | —
+clock | string | Optional. ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. | —
 
 ## Examples
 
@@ -37,6 +43,12 @@ viewport | object([Browser Viewport](/reference/schemas/browser-viewport)) | Opt
   "viewport": {
     "width": 42,
     "height": 42
-  }
+  },
+  "colorScheme": "light",
+  "locale": "example",
+  "timezone": "example",
+  "deviceScaleFactor": 42,
+  "reducedMotion": "reduce",
+  "clock": "example"
 }
 ```
