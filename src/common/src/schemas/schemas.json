@@ -77263,6 +77263,25 @@
                                                       ]
                                                     }
                                                   },
+                                                  "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                  "examples": [
+                                                    {
+                                                      "path": "pricing.png",
+                                                      "maxVariation": 0.05,
+                                                      "overwrite": "aboveVariation",
+                                                      "fullPage": true,
+                                                      "animations": "disabled",
+                                                      "mask": [
+                                                        ".last-updated"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "path": "submit.png",
+                                                      "crop": "#submit",
+                                                      "style": "#chat-launcher { visibility: hidden !important; }",
+                                                      "stable": true
+                                                    }
+                                                  ],
                                                   "title": "Capture screenshot fields"
                                                 },
                                                 {
@@ -81405,6 +81424,25 @@
                                                         ]
                                                       }
                                                     },
+                                                    "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                    "examples": [
+                                                      {
+                                                        "path": "pricing.png",
+                                                        "maxVariation": 0.05,
+                                                        "overwrite": "aboveVariation",
+                                                        "fullPage": true,
+                                                        "animations": "disabled",
+                                                        "mask": [
+                                                          ".last-updated"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "path": "submit.png",
+                                                        "crop": "#submit",
+                                                        "style": "#chat-launcher { visibility: hidden !important; }",
+                                                        "stable": true
+                                                      }
+                                                    ],
                                                     "title": "Capture screenshot fields"
                                                   },
                                                   {
@@ -85531,6 +85569,25 @@
                                                     ]
                                                   }
                                                 },
+                                                "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                "examples": [
+                                                  {
+                                                    "path": "pricing.png",
+                                                    "maxVariation": 0.05,
+                                                    "overwrite": "aboveVariation",
+                                                    "fullPage": true,
+                                                    "animations": "disabled",
+                                                    "mask": [
+                                                      ".last-updated"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "path": "submit.png",
+                                                    "crop": "#submit",
+                                                    "style": "#chat-launcher { visibility: hidden !important; }",
+                                                    "stable": true
+                                                  }
+                                                ],
                                                 "title": "Capture screenshot fields"
                                               },
                                               "crop_element": {
@@ -142060,6 +142117,25 @@
                                                             ]
                                                           }
                                                         },
+                                                        "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                        "examples": [
+                                                          {
+                                                            "path": "pricing.png",
+                                                            "maxVariation": 0.05,
+                                                            "overwrite": "aboveVariation",
+                                                            "fullPage": true,
+                                                            "animations": "disabled",
+                                                            "mask": [
+                                                              ".last-updated"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "path": "submit.png",
+                                                            "crop": "#submit",
+                                                            "style": "#chat-launcher { visibility: hidden !important; }",
+                                                            "stable": true
+                                                          }
+                                                        ],
                                                         "title": "Capture screenshot fields"
                                                       },
                                                       {
@@ -146202,6 +146278,25 @@
                                                               ]
                                                             }
                                                           },
+                                                          "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                          "examples": [
+                                                            {
+                                                              "path": "pricing.png",
+                                                              "maxVariation": 0.05,
+                                                              "overwrite": "aboveVariation",
+                                                              "fullPage": true,
+                                                              "animations": "disabled",
+                                                              "mask": [
+                                                                ".last-updated"
+                                                              ]
+                                                            },
+                                                            {
+                                                              "path": "submit.png",
+                                                              "crop": "#submit",
+                                                              "style": "#chat-launcher { visibility: hidden !important; }",
+                                                              "stable": true
+                                                            }
+                                                          ],
                                                           "title": "Capture screenshot fields"
                                                         },
                                                         {
@@ -150328,6 +150423,25 @@
                                                           ]
                                                         }
                                                       },
+                                                      "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                      "examples": [
+                                                        {
+                                                          "path": "pricing.png",
+                                                          "maxVariation": 0.05,
+                                                          "overwrite": "aboveVariation",
+                                                          "fullPage": true,
+                                                          "animations": "disabled",
+                                                          "mask": [
+                                                            ".last-updated"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "path": "submit.png",
+                                                          "crop": "#submit",
+                                                          "style": "#chat-launcher { visibility: hidden !important; }",
+                                                          "stable": true
+                                                        }
+                                                      ],
                                                       "title": "Capture screenshot fields"
                                                     },
                                                     "crop_element": {
@@ -211519,6 +211633,25 @@
                                                       ]
                                                     }
                                                   },
+                                                  "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                  "examples": [
+                                                    {
+                                                      "path": "pricing.png",
+                                                      "maxVariation": 0.05,
+                                                      "overwrite": "aboveVariation",
+                                                      "fullPage": true,
+                                                      "animations": "disabled",
+                                                      "mask": [
+                                                        ".last-updated"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "path": "submit.png",
+                                                      "crop": "#submit",
+                                                      "style": "#chat-launcher { visibility: hidden !important; }",
+                                                      "stable": true
+                                                    }
+                                                  ],
                                                   "title": "Capture screenshot fields"
                                                 },
                                                 {
@@ -215661,6 +215794,25 @@
                                                         ]
                                                       }
                                                     },
+                                                    "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                    "examples": [
+                                                      {
+                                                        "path": "pricing.png",
+                                                        "maxVariation": 0.05,
+                                                        "overwrite": "aboveVariation",
+                                                        "fullPage": true,
+                                                        "animations": "disabled",
+                                                        "mask": [
+                                                          ".last-updated"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "path": "submit.png",
+                                                        "crop": "#submit",
+                                                        "style": "#chat-launcher { visibility: hidden !important; }",
+                                                        "stable": true
+                                                      }
+                                                    ],
                                                     "title": "Capture screenshot fields"
                                                   },
                                                   {
@@ -219787,6 +219939,25 @@
                                                     ]
                                                   }
                                                 },
+                                                "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                "examples": [
+                                                  {
+                                                    "path": "pricing.png",
+                                                    "maxVariation": 0.05,
+                                                    "overwrite": "aboveVariation",
+                                                    "fullPage": true,
+                                                    "animations": "disabled",
+                                                    "mask": [
+                                                      ".last-updated"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "path": "submit.png",
+                                                    "crop": "#submit",
+                                                    "style": "#chat-launcher { visibility: hidden !important; }",
+                                                    "stable": true
+                                                  }
+                                                ],
                                                 "title": "Capture screenshot fields"
                                               },
                                               "crop_element": {
@@ -276316,6 +276487,25 @@
                                                             ]
                                                           }
                                                         },
+                                                        "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                        "examples": [
+                                                          {
+                                                            "path": "pricing.png",
+                                                            "maxVariation": 0.05,
+                                                            "overwrite": "aboveVariation",
+                                                            "fullPage": true,
+                                                            "animations": "disabled",
+                                                            "mask": [
+                                                              ".last-updated"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "path": "submit.png",
+                                                            "crop": "#submit",
+                                                            "style": "#chat-launcher { visibility: hidden !important; }",
+                                                            "stable": true
+                                                          }
+                                                        ],
                                                         "title": "Capture screenshot fields"
                                                       },
                                                       {
@@ -280458,6 +280648,25 @@
                                                               ]
                                                             }
                                                           },
+                                                          "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                          "examples": [
+                                                            {
+                                                              "path": "pricing.png",
+                                                              "maxVariation": 0.05,
+                                                              "overwrite": "aboveVariation",
+                                                              "fullPage": true,
+                                                              "animations": "disabled",
+                                                              "mask": [
+                                                                ".last-updated"
+                                                              ]
+                                                            },
+                                                            {
+                                                              "path": "submit.png",
+                                                              "crop": "#submit",
+                                                              "style": "#chat-launcher { visibility: hidden !important; }",
+                                                              "stable": true
+                                                            }
+                                                          ],
                                                           "title": "Capture screenshot fields"
                                                         },
                                                         {
@@ -284584,6 +284793,25 @@
                                                           ]
                                                         }
                                                       },
+                                                      "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                      "examples": [
+                                                        {
+                                                          "path": "pricing.png",
+                                                          "maxVariation": 0.05,
+                                                          "overwrite": "aboveVariation",
+                                                          "fullPage": true,
+                                                          "animations": "disabled",
+                                                          "mask": [
+                                                            ".last-updated"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "path": "submit.png",
+                                                          "crop": "#submit",
+                                                          "style": "#chat-launcher { visibility: hidden !important; }",
+                                                          "stable": true
+                                                        }
+                                                      ],
                                                       "title": "Capture screenshot fields"
                                                     },
                                                     "crop_element": {
@@ -314558,6 +314786,25 @@
                 ]
               }
             },
+            "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+            "examples": [
+              {
+                "path": "pricing.png",
+                "maxVariation": 0.05,
+                "overwrite": "aboveVariation",
+                "fullPage": true,
+                "animations": "disabled",
+                "mask": [
+                  ".last-updated"
+                ]
+              },
+              {
+                "path": "submit.png",
+                "crop": "#submit",
+                "style": "#chat-launcher { visibility: hidden !important; }",
+                "stable": true
+              }
+            ],
             "title": "Capture screenshot fields"
           },
           {
@@ -318700,6 +318947,25 @@
                   ]
                 }
               },
+              "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+              "examples": [
+                {
+                  "path": "pricing.png",
+                  "maxVariation": 0.05,
+                  "overwrite": "aboveVariation",
+                  "fullPage": true,
+                  "animations": "disabled",
+                  "mask": [
+                    ".last-updated"
+                  ]
+                },
+                {
+                  "path": "submit.png",
+                  "crop": "#submit",
+                  "style": "#chat-launcher { visibility: hidden !important; }",
+                  "stable": true
+                }
+              ],
               "title": "Capture screenshot fields"
             },
             {
@@ -322826,6 +323092,25 @@
               ]
             }
           },
+          "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+          "examples": [
+            {
+              "path": "pricing.png",
+              "maxVariation": 0.05,
+              "overwrite": "aboveVariation",
+              "fullPage": true,
+              "animations": "disabled",
+              "mask": [
+                ".last-updated"
+              ]
+            },
+            {
+              "path": "submit.png",
+              "crop": "#submit",
+              "style": "#chat-launcher { visibility: hidden !important; }",
+              "stable": true
+            }
+          ],
           "title": "Capture screenshot fields"
         },
         "crop_element": {
@@ -360253,6 +360538,25 @@
                                             ]
                                           }
                                         },
+                                        "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                        "examples": [
+                                          {
+                                            "path": "pricing.png",
+                                            "maxVariation": 0.05,
+                                            "overwrite": "aboveVariation",
+                                            "fullPage": true,
+                                            "animations": "disabled",
+                                            "mask": [
+                                              ".last-updated"
+                                            ]
+                                          },
+                                          {
+                                            "path": "submit.png",
+                                            "crop": "#submit",
+                                            "style": "#chat-launcher { visibility: hidden !important; }",
+                                            "stable": true
+                                          }
+                                        ],
                                         "title": "Capture screenshot fields"
                                       },
                                       {
@@ -364395,6 +364699,25 @@
                                               ]
                                             }
                                           },
+                                          "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                          "examples": [
+                                            {
+                                              "path": "pricing.png",
+                                              "maxVariation": 0.05,
+                                              "overwrite": "aboveVariation",
+                                              "fullPage": true,
+                                              "animations": "disabled",
+                                              "mask": [
+                                                ".last-updated"
+                                              ]
+                                            },
+                                            {
+                                              "path": "submit.png",
+                                              "crop": "#submit",
+                                              "style": "#chat-launcher { visibility: hidden !important; }",
+                                              "stable": true
+                                            }
+                                          ],
                                           "title": "Capture screenshot fields"
                                         },
                                         {
@@ -368521,6 +368844,25 @@
                                           ]
                                         }
                                       },
+                                      "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                      "examples": [
+                                        {
+                                          "path": "pricing.png",
+                                          "maxVariation": 0.05,
+                                          "overwrite": "aboveVariation",
+                                          "fullPage": true,
+                                          "animations": "disabled",
+                                          "mask": [
+                                            ".last-updated"
+                                          ]
+                                        },
+                                        {
+                                          "path": "submit.png",
+                                          "crop": "#submit",
+                                          "style": "#chat-launcher { visibility: hidden !important; }",
+                                          "stable": true
+                                        }
+                                      ],
                                       "title": "Capture screenshot fields"
                                     },
                                     "crop_element": {
@@ -425050,6 +425392,25 @@
                                                   ]
                                                 }
                                               },
+                                              "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                              "examples": [
+                                                {
+                                                  "path": "pricing.png",
+                                                  "maxVariation": 0.05,
+                                                  "overwrite": "aboveVariation",
+                                                  "fullPage": true,
+                                                  "animations": "disabled",
+                                                  "mask": [
+                                                    ".last-updated"
+                                                  ]
+                                                },
+                                                {
+                                                  "path": "submit.png",
+                                                  "crop": "#submit",
+                                                  "style": "#chat-launcher { visibility: hidden !important; }",
+                                                  "stable": true
+                                                }
+                                              ],
                                               "title": "Capture screenshot fields"
                                             },
                                             {
@@ -429192,6 +429553,25 @@
                                                     ]
                                                   }
                                                 },
+                                                "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                                "examples": [
+                                                  {
+                                                    "path": "pricing.png",
+                                                    "maxVariation": 0.05,
+                                                    "overwrite": "aboveVariation",
+                                                    "fullPage": true,
+                                                    "animations": "disabled",
+                                                    "mask": [
+                                                      ".last-updated"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "path": "submit.png",
+                                                    "crop": "#submit",
+                                                    "style": "#chat-launcher { visibility: hidden !important; }",
+                                                    "stable": true
+                                                  }
+                                                ],
                                                 "title": "Capture screenshot fields"
                                               },
                                               {
@@ -433318,6 +433698,25 @@
                                                 ]
                                               }
                                             },
+                                            "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                            "examples": [
+                                              {
+                                                "path": "pricing.png",
+                                                "maxVariation": 0.05,
+                                                "overwrite": "aboveVariation",
+                                                "fullPage": true,
+                                                "animations": "disabled",
+                                                "mask": [
+                                                  ".last-updated"
+                                                ]
+                                              },
+                                              {
+                                                "path": "submit.png",
+                                                "crop": "#submit",
+                                                "style": "#chat-launcher { visibility: hidden !important; }",
+                                                "stable": true
+                                              }
+                                            ],
                                             "title": "Capture screenshot fields"
                                           },
                                           "crop_element": {
@@ -491931,6 +492330,25 @@
                             ]
                           }
                         },
+                        "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                        "examples": [
+                          {
+                            "path": "pricing.png",
+                            "maxVariation": 0.05,
+                            "overwrite": "aboveVariation",
+                            "fullPage": true,
+                            "animations": "disabled",
+                            "mask": [
+                              ".last-updated"
+                            ]
+                          },
+                          {
+                            "path": "submit.png",
+                            "crop": "#submit",
+                            "style": "#chat-launcher { visibility: hidden !important; }",
+                            "stable": true
+                          }
+                        ],
                         "title": "Capture screenshot fields"
                       },
                       {
@@ -496073,6 +496491,25 @@
                               ]
                             }
                           },
+                          "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                          "examples": [
+                            {
+                              "path": "pricing.png",
+                              "maxVariation": 0.05,
+                              "overwrite": "aboveVariation",
+                              "fullPage": true,
+                              "animations": "disabled",
+                              "mask": [
+                                ".last-updated"
+                              ]
+                            },
+                            {
+                              "path": "submit.png",
+                              "crop": "#submit",
+                              "style": "#chat-launcher { visibility: hidden !important; }",
+                              "stable": true
+                            }
+                          ],
                           "title": "Capture screenshot fields"
                         },
                         {
@@ -500199,6 +500636,25 @@
                           ]
                         }
                       },
+                      "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                      "examples": [
+                        {
+                          "path": "pricing.png",
+                          "maxVariation": 0.05,
+                          "overwrite": "aboveVariation",
+                          "fullPage": true,
+                          "animations": "disabled",
+                          "mask": [
+                            ".last-updated"
+                          ]
+                        },
+                        {
+                          "path": "submit.png",
+                          "crop": "#submit",
+                          "style": "#chat-launcher { visibility: hidden !important; }",
+                          "stable": true
+                        }
+                      ],
                       "title": "Capture screenshot fields"
                     },
                     "crop_element": {
@@ -560732,6 +561188,25 @@
                                   ]
                                 }
                               },
+                              "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                              "examples": [
+                                {
+                                  "path": "pricing.png",
+                                  "maxVariation": 0.05,
+                                  "overwrite": "aboveVariation",
+                                  "fullPage": true,
+                                  "animations": "disabled",
+                                  "mask": [
+                                    ".last-updated"
+                                  ]
+                                },
+                                {
+                                  "path": "submit.png",
+                                  "crop": "#submit",
+                                  "style": "#chat-launcher { visibility: hidden !important; }",
+                                  "stable": true
+                                }
+                              ],
                               "title": "Capture screenshot fields"
                             },
                             {
@@ -564874,6 +565349,25 @@
                                     ]
                                   }
                                 },
+                                "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                "examples": [
+                                  {
+                                    "path": "pricing.png",
+                                    "maxVariation": 0.05,
+                                    "overwrite": "aboveVariation",
+                                    "fullPage": true,
+                                    "animations": "disabled",
+                                    "mask": [
+                                      ".last-updated"
+                                    ]
+                                  },
+                                  {
+                                    "path": "submit.png",
+                                    "crop": "#submit",
+                                    "style": "#chat-launcher { visibility: hidden !important; }",
+                                    "stable": true
+                                  }
+                                ],
                                 "title": "Capture screenshot fields"
                               },
                               {
@@ -569000,6 +569494,25 @@
                                 ]
                               }
                             },
+                            "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                            "examples": [
+                              {
+                                "path": "pricing.png",
+                                "maxVariation": 0.05,
+                                "overwrite": "aboveVariation",
+                                "fullPage": true,
+                                "animations": "disabled",
+                                "mask": [
+                                  ".last-updated"
+                                ]
+                              },
+                              {
+                                "path": "submit.png",
+                                "crop": "#submit",
+                                "style": "#chat-launcher { visibility: hidden !important; }",
+                                "stable": true
+                              }
+                            ],
                             "title": "Capture screenshot fields"
                           },
                           "crop_element": {
@@ -625529,6 +626042,25 @@
                                         ]
                                       }
                                     },
+                                    "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                    "examples": [
+                                      {
+                                        "path": "pricing.png",
+                                        "maxVariation": 0.05,
+                                        "overwrite": "aboveVariation",
+                                        "fullPage": true,
+                                        "animations": "disabled",
+                                        "mask": [
+                                          ".last-updated"
+                                        ]
+                                      },
+                                      {
+                                        "path": "submit.png",
+                                        "crop": "#submit",
+                                        "style": "#chat-launcher { visibility: hidden !important; }",
+                                        "stable": true
+                                      }
+                                    ],
                                     "title": "Capture screenshot fields"
                                   },
                                   {
@@ -629671,6 +630203,25 @@
                                           ]
                                         }
                                       },
+                                      "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                      "examples": [
+                                        {
+                                          "path": "pricing.png",
+                                          "maxVariation": 0.05,
+                                          "overwrite": "aboveVariation",
+                                          "fullPage": true,
+                                          "animations": "disabled",
+                                          "mask": [
+                                            ".last-updated"
+                                          ]
+                                        },
+                                        {
+                                          "path": "submit.png",
+                                          "crop": "#submit",
+                                          "style": "#chat-launcher { visibility: hidden !important; }",
+                                          "stable": true
+                                        }
+                                      ],
                                       "title": "Capture screenshot fields"
                                     },
                                     {
@@ -633797,6 +634348,25 @@
                                       ]
                                     }
                                   },
+                                  "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                  "examples": [
+                                    {
+                                      "path": "pricing.png",
+                                      "maxVariation": 0.05,
+                                      "overwrite": "aboveVariation",
+                                      "fullPage": true,
+                                      "animations": "disabled",
+                                      "mask": [
+                                        ".last-updated"
+                                      ]
+                                    },
+                                    {
+                                      "path": "submit.png",
+                                      "crop": "#submit",
+                                      "style": "#chat-launcher { visibility: hidden !important; }",
+                                      "stable": true
+                                    }
+                                  ],
                                   "title": "Capture screenshot fields"
                                 },
                                 "crop_element": {

@@ -34,25 +34,22 @@ sourceIntegration | object([sourceIntegration](/reference/schemas/sourceintegrat
 
 ```json
 {
-  "surface": "chrome",
-  "path": "example",
-  "directory": "example",
+  "path": "pricing.png",
   "maxVariation": 0.05,
-  "threshold": 0.1,
-  "maxDiffPixels": 42,
   "overwrite": "aboveVariation",
-  "crop": "example",
-  "style": "example",
-  "stable": true,
   "fullPage": true,
-  "animations": "allow",
-  "annotations": [],
+  "animations": "disabled",
   "mask": [
-    "example"
-  ],
-  "sourceIntegration": {
-    "type": "heretto",
-    "integrationName": "example"
-  }
+    ".last-updated"
+  ]
+}
+```
+
+```json
+{
+  "path": "submit.png",
+  "crop": "#submit",
+  "style": "#chat-launcher { visibility: hidden !important; }",
+  "stable": true
 }
 ```
