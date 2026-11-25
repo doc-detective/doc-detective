@@ -55,6 +55,8 @@ When a comparison finds any changed pixels, Doc Detective writes two images to t
 - `<name>-<stepId>.diff.png`: the comparison, with changed pixels in red.
 - `<name>-<stepId>.previous.png`: the reference image as it was before the step ran. With `"aboveVariation"`, the step overwrites the reference when it drifts, so this copy is the only record of the old image.
 
+When a step runs again in the same run, such as in a `goToStep` loop, its later pairs get `-2`, `-3`, and so on before `.diff.png` and `.previous.png`.
+
 The `WARNING` message ends with the diff's path. For example: ``See `/home/runner/work/docs/.doc-detective/runs/<runId>/specs/…/screenshots/home-check-home.diff.png`.`` The step also exposes `$$diffPixels` (the number of changed pixels), and `$$diffPath` and `$$previousPath` when it wrote the images. Nothing is written next to your docs.
 
 Two keys tune what counts as a change:

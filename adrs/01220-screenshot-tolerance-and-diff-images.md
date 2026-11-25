@@ -58,7 +58,8 @@ Chosen option: **A**.
 
   `<name>` is the reference's basename without its extension. The `stepId` keeps two references
   that share a basename, such as `a/home.png` and `b/home.png`, from overwriting each other's files.
-  A direct `saveScreenshot` call with no context folder writes to the run folder's `screenshots/`
+  A rerun of the same step, such as in a `goToStep` loop, appends `-2`, `-3`, and so on to both
+  names. A direct `saveScreenshot` call with no context folder writes to the run folder's `screenshots/`
   folder, as the capture itself does. A failure to write them is logged and doesn't change the
   step's result.
 * New outputs: `diffPixels` always, when a comparison runs; `diffPath` and `previousPath`, absolute,
@@ -81,7 +82,7 @@ Chosen option: **A**.
 * `test/screenshot-tolerance.test.js` covers noise passing at the default and warning at `0`,
   `maxDiffPixels` under and over, and both limits together. It also covers diff images: written to
   the run folder and not written for identical images. Two references that share a basename keep
-  separate files, and a direct call writes to the run folder's `screenshots/` folder.
+  separate files, as does a rerun of the same step. A direct call writes to the run folder's `screenshots/` folder.
 * `test/saveScreenshot.test.js` keeps ADR 01142's one-level test with `threshold: 0`.
 * `test/core-artifacts/capture/screenshot-tolerance.spec.json` runs each key in headless Chrome,
   including the deterministic `maxDiffPixels` WARNING that writes the diff images.
