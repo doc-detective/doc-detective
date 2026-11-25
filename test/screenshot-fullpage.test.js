@@ -273,7 +273,7 @@ describe("screenshot fullPage and animations", function () {
     assert.equal(await savedHeight(), 1600);
   });
 
-  it("without BiDi, grows the window to the page, captures, and puts the window and scroll back", async function () {
+  it("a session without BiDi (Safari) grows the window to the page, captures, and puts the window and scroll back", async function () {
     const driver = fakeDriver({ viewportCapture, pageCapture, scrollY: 300 });
     const result = await run({ fullPage: true }, driver);
     assert.equal(result.status, "PASS", result.description);

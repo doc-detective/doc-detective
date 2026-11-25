@@ -1,6 +1,6 @@
 {
   "specId": "screenshot-fullpage-animations",
-  "description": "`screenshot.fullPage` and `screenshot.animations` (ADR 01224) through the real runner. Headless Chrome grows the window to the page (no BiDi socket yet), Firefox uses geckodriver's whole-page command, and headed Safari on a page taller than the screen is SKIPPED. `crop` with `fullPage`, app-surface rejection, BiDi, and mask offsets are pinned in test/screenshot-fullpage.test.js and src/common/test/validate.test.js.",
+  "description": "`screenshot.fullPage` and `screenshot.animations` (ADR 01224) through the real runner. Chrome captures the document over BiDi, Firefox uses geckodriver's whole-page command, and Safari on a page larger than the screen is SKIPPED. `crop` with `fullPage`, app-surface rejection, BiDi, and mask offsets are pinned in test/screenshot-fullpage.test.js and src/common/test/validate.test.js.",
   "tests": [
     {
       "testId": "fullpage-chrome",

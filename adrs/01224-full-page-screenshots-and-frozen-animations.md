@@ -49,9 +49,10 @@ report.
 
 * **Firefox:** geckodriver's whole-page command (`GET /moz/screenshot/full`), through wdio's
   `fullPageScreenshot()`.
-* **A session with a BiDi socket (`driver.isBidi`):** `browsingContext.captureScreenshot` with
+* **A session with a BiDi socket (`driver.isBidi`), which every Chrome session has:**
+  `browsingContext.captureScreenshot` with
   `origin: "document"`.
-* **Anything else, including Chrome today and Safari:** grow the window until the viewport is as
+* **Anything else, which is Safari:** grow the window until the viewport is as
   tall as the page's `scrollHeight` and as wide as its `scrollWidth`. Capture, then put the window
   size and scroll position back when the step ends. Until then, the window stays at the capture
   size while annotation and mask geometry is read. A responsive layout then can't move a target
@@ -65,9 +66,8 @@ report.
   dimensions. It names whichever browser hit the cap. Headed Safari is the common case, since
   Safari has no headless mode.
 
-Chrome sessions don't have a BiDi socket on this branch. PR #1041 gives every Chrome session one.
-Once it merges, Chrome captures the document over BiDi with no resize, and this code needs no
-change. The resize stays as the fallback for a session without a socket.
+Chrome always has a BiDi socket (#1041), so Chrome never resizes. The dispatch stays generic: the
+resize path serves any session without a socket, which is Safari.
 
 ### Combinations
 
@@ -104,8 +104,8 @@ running. `stable` covers those.
 * Good, because authors capture long pages in one step, in every desktop browser.
 * Good, because a page with a spinner or a caret compares cleanly against its reference.
 * Good, because existing steps and references don't change.
-* Bad, because Chrome grows its window until #1041's socket is on for `fullPage` contexts. A page
-  whose layout depends on the viewport height, such as a `100vh` hero, renders taller.
+* Bad, because Safari grows its window for `fullPage`. A page whose layout depends on the
+  viewport height, such as a `100vh` hero, renders taller.
 * Bad, because a headed browser on a small screen SKIPs a page larger than the screen.
 
 ### Confirmation

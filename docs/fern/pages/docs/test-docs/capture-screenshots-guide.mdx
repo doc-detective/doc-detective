@@ -110,9 +110,9 @@ A long page, such as a settings page or a pricing table, doesn't fit in the view
 {/* step {"stepId":"capture-guide-full-page-shot","description":"Capture the whole page, directed at a gitignored output folder","screenshot":{"path":"guide_full_page.png","directory":"./.dd-output","fullPage":true}} */}
 {/* test end */}
 
-Firefox captures the page directly, and so does Chrome with a WebDriver BiDi connection. Safari, and Chrome without BiDi, grow the window to fit the page, capture, then put the window and scroll position back. [Masks](/docs/test-docs/screenshot-visual-regression#ignore-parts-that-change) and [annotations](/docs/actions/screenshot#annotations) still land on the content they target.
+Chrome and Firefox capture the whole page directly. Safari grows the window to fit the page, captures, then puts the window and scroll position back. [Masks](/docs/test-docs/screenshot-visual-regression#ignore-parts-that-change) and [annotations](/docs/actions/screenshot#annotations) still land on the content they target.
 
-On that resize path, a headed window can't grow past the screen. If the page doesn't fit on the screen, the step reports `SKIPPED` and saves nothing. To capture taller pages, use Firefox, or set `"headless": true` on Chrome in the context. See [Chrome dimensions and visibility](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility). Safari has no headless mode, so it skips them.
+A Safari window can't grow past the screen. If the page doesn't fit on the screen, the step reports `SKIPPED` and saves nothing. To capture larger pages, use Chrome or Firefox.
 
 `fullPage` works only for browser captures, and you can't combine it with `crop`. A crop already sets the area to capture.
 
@@ -163,7 +163,7 @@ Doc Detective jumps each finite CSS or Web Animation to its end and stops each l
 
 - A step that captured an image reports `PASS`.
 - A step with `stable: true` on a page that never stopped changing reports `WARNING` and still saves the image.
-- A step with `fullPage: true` reports `SKIPPED` and saves nothing when it resizes a headed window and the page doesn't fit on the screen.
+- A step with `fullPage: true` in Safari reports `SKIPPED` and saves nothing when the page doesn't fit on the screen.
 - When the target path already holds a file and you set `"overwrite": "false"`, the step keeps the existing file and reports `SKIPPED`.
 
 Captures land in the run's output directory and the per-run artifact tree. To see where they land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
