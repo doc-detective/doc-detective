@@ -1865,7 +1865,7 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
       });
 
-      // ADR 01216: masks take a string or an element target, never a position.
+      // ADR 01218: masks take a string or an element target, never a position.
       it("should validate a screenshot mask of strings and element targets", function () {
         const result = validate({
           schemaKey: "step_v3",

@@ -1,4 +1,4 @@
-// `screenshot.mask` (ADR 01216): areas ignored when a capture is compared with
+// `screenshot.mask` (ADR 01218): areas ignored when a capture is compared with
 // its reference. Runs the real saveScreenshot pipeline against a fake driver,
 // because fixtures can assert PASS and SKIPPED but never FAIL.
 
