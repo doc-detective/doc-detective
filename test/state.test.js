@@ -15,15 +15,25 @@ const future = Math.floor(Date.now() / 1000) + 3600;
 // `scriptUrl` is where the page is when a script runs, to simulate a page that
 // navigates away after `getUrl`. `laterUrl` is what every `getUrl` after the
 // first returns, to simulate a page that navigates after the storage script.
-function fakeDriver({ url = "http://localhost:8092/app", scriptUrl = url, laterUrl = url, cookies = [], storage = {} } = {}) {
+// `navigate` moves the page to `to` around cookie write number `atSet`:
+// "before" the write lands (so the cookie lands on the new host) or "after" it.
+function fakeDriver({ url = "http://localhost:8092/app", scriptUrl = url, laterUrl = url, navigate, cookies = [], storage = {} } = {}) {
   const set = [];
+  const deleted = [];
   let urlReads = 0;
+  let current;
   const driver = {
     set,
+    deleted,
     storage,
-    getUrl: async () => (urlReads++ === 0 ? url : laterUrl),
+    getUrl: async () => current ?? (urlReads++ === 0 ? url : laterUrl),
     getCookies: async () => cookies,
-    setCookies: async (cookie) => set.push(cookie),
+    setCookies: async (cookie) => {
+      if (navigate?.atSet === set.length && navigate.when === "before") current = navigate.to;
+      set.push(cookie);
+      if (navigate?.atSet === set.length - 1 && navigate.when === "after") current = navigate.to;
+    },
+    deleteCookies: async (name) => deleted.push(name),
     execute: async (script, expectedOrigin, entries) => {
       const origin = new URL(scriptUrl).origin;
       if (script.includes("setItem")) {
@@ -291,6 +301,28 @@ describe("saveState and loadState", function () {
       assert.equal(result.description, "Couldn't load state: the page left `http://localhost:8092` before its state was restored.");
       assert.equal(driver.set.length, 0);
     });
+
+    for (const [label, navigate, expectedDeleted] of [
+      // The page moves after the check for the last cookie, so that write lands
+      // on the new host; the check after the loop catches it.
+      ["after the check, before a cookie write", { atSet: 1, when: "before" }, ["a", "b"]],
+      // The page moves after the first write; the check before the second catches it.
+      ["between two cookie writes", { atSet: 0, when: "after" }, ["a"]],
+    ]) {
+      it(`fails, and deletes the cookies it set, when the page navigates ${label}`, async function () {
+        write("auth.json", {
+          cookies: [
+            { name: "a", value: "1", domain: "localhost", path: "/" },
+            { name: "b", value: "2", domain: "localhost", path: "/" },
+          ],
+        });
+        const driver = fakeDriver({ navigate: { ...navigate, to: "http://127.0.0.1:9999/" } });
+        const result = await loadState({ config: config(), step: { loadState: "auth.json" }, driver });
+        assert.equal(result.status, "FAIL");
+        assert.equal(result.description, "Couldn't load state: the page left `http://localhost:8092` before its state was restored.");
+        assert.deepEqual(driver.deleted, expectedDeleted);
+      });
+    }
 
     it("fails, and sets no cookie, when the page leaves the origin after storage is restored", async function () {
       write("auth.json", {

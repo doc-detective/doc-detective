@@ -1,9 +1,12 @@
 // Browser state shared by saveCookie, loadCookie, saveState and loadState:
 // where the file goes, reading cookies from the browser, and applying them.
 import path from "node:path";
+import fs from "node:fs";
+import crypto from "node:crypto";
 
 export {
   resolveStatePath,
+  publishFile,
   readCookies,
   toDriverCookie,
   applyCookies,
@@ -17,6 +20,45 @@ export {
   formatStateFile,
   parseStateFile,
 };
+
+/**
+ * Writes `content` to `fullPath` for a file that holds live session tokens.
+ * It writes the whole file to an owner-only (0600) temp file beside the target,
+ * then publishes it in one step: a rename replaces an old file atomically, and
+ * a hard link fails with EEXIST rather than replace one. A reader never sees
+ * partial content, a failed write never touches the old file, an old file's
+ * broader permissions don't carry over, and the temp file is always removed.
+ * Returns false, having written nothing, when the file exists and `overwrite`
+ * isn't true.
+ */
+function publishFile(fullPath: string, content: string, overwrite: boolean) {
+  fs.mkdirSync(path.dirname(fullPath), { recursive: true });
+  // A random name, opened with `wx`, so two writers never share a temp file.
+  const temp = `${fullPath}.${crypto.randomUUID()}.tmp`;
+  try {
+    fs.writeFileSync(temp, content, { encoding: "utf8", mode: 0o600, flag: "wx" });
+  } catch (error: any) {
+    // EEXIST means another writer owns that name: leave its file alone. Any
+    // other failure happened after `wx` created the file, so it's ours.
+    if (error.code !== "EEXIST") fs.rmSync(temp, { force: true });
+    throw error;
+  }
+  try {
+    if (overwrite) {
+      fs.renameSync(temp, fullPath);
+      return true;
+    }
+    try {
+      fs.linkSync(temp, fullPath);
+      return true;
+    } catch (error: any) {
+      if (error.code === "EEXIST") return false;
+      throw error;
+    }
+  } finally {
+    fs.rmSync(temp, { force: true });
+  }
+}
 
 /** The origin of an http(s) page, or null when no site is open (about:blank, data:). */
 function siteOrigin(url: string): string | null {
@@ -66,7 +108,7 @@ function formatStateFile({ cookies, origin, localStorage }: { cookies: any[]; or
       value: cookie.value,
       domain: cookie.domain,
       path: cookie.path || "/",
-      expires: cookie.expiry || -1,
+      expires: cookie.expiry != null && cookie.expiry > 0 ? cookie.expiry : -1,
       httpOnly: cookie.httpOnly || false,
       secure: cookie.secure || false,
       sameSite: normalizeSameSite(cookie.sameSite),

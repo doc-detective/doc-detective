@@ -1,8 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { log, invalidStepMessage } from "../utils.js";
-import { formatStateFile, readCookies, readLocalStorage, resolveStatePath, siteOrigin } from "./browserState.js";
-import path from "node:path";
-import fs from "node:fs";
+import { formatStateFile, publishFile, readCookies, readLocalStorage, resolveStatePath, siteOrigin } from "./browserState.js";
 
 export { saveState };
 
@@ -41,29 +39,11 @@ async function saveState({ config, step, driver }: { config: any; step: any; dri
       return result;
     }
 
-    // The file holds live session tokens. Write it whole to an owner-only temp
-    // file beside it, then publish that in one step: a rename replaces an old
-    // file atomically, and a hard link fails with EEXIST rather than replace
-    // one. A reader never sees partial JSON, a failed write never touches the
-    // old file, and no broader permissions carry over.
-    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-    const temp = `${fullPath}.${process.pid}.${Date.now()}.tmp`;
-    try {
-      fs.writeFileSync(temp, formatStateFile({ cookies, origin, localStorage }), { encoding: "utf8", mode: 0o600, flag: "wx" });
-      if (overwrite === true) {
-        fs.renameSync(temp, fullPath);
-      } else {
-        try {
-          fs.linkSync(temp, fullPath);
-        } catch (error: any) {
-          if (error.code !== "EEXIST") throw error;
-          result.status = "FAIL";
-          result.description = `Couldn't save state: \`${fullPath}\` exists. Set \`overwrite\` to \`true\` to replace it.`;
-          return result;
-        }
-      }
-    } finally {
-      fs.rmSync(temp, { force: true });
+    // The file holds live session tokens: publish it atomically, owner-only.
+    if (!publishFile(fullPath, formatStateFile({ cookies, origin, localStorage }), overwrite === true)) {
+      result.status = "FAIL";
+      result.description = `Couldn't save state: \`${fullPath}\` exists. Set \`overwrite\` to \`true\` to replace it.`;
+      return result;
     }
 
     result.description = `Saved state to \`${fullPath}\`.`;

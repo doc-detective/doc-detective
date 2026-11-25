@@ -1,6 +1,9 @@
 // The browser-state helpers shared by saveCookie, loadCookie, saveState and
 // loadState, against a fake driver.
 import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
+import crypto from "node:crypto";
 import assert from "node:assert/strict";
 import sinon from "sinon";
 import {
@@ -9,6 +12,8 @@ import {
   toDriverCookie,
   applyCookies,
   parseStateFile,
+  formatStateFile,
+  publishFile,
 } from "../dist/core/tests/browserState.js";
 import { formatCookieForNetscape } from "../dist/core/tests/saveCookie.js";
 import { parseNetscapeCookieFile } from "../dist/core/tests/loadCookie.js";
@@ -141,6 +146,46 @@ describe("browser state helpers", function () {
       } finally {
         clock.restore();
       }
+    });
+  });
+
+  describe("publishFile", function () {
+    let dir;
+    beforeEach(function () {
+      dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-publish-"));
+    });
+    afterEach(function () {
+      sinon.restore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("names its temp file with a random UUID", function () {
+      const spy = sinon.spy(crypto, "randomUUID");
+      const realWrite = fs.writeFileSync;
+      const targets = [];
+      sinon.stub(fs, "writeFileSync").callsFake((target, ...rest) => { targets.push(target); return realWrite(target, ...rest); });
+      publishFile(path.join(dir, "a.json"), "{}", false);
+      assert.equal(spy.callCount, 1);
+      assert.equal(targets[0], `${path.join(dir, "a.json")}.${spy.firstCall.returnValue}.tmp`);
+    });
+
+    it("never deletes a temp file another writer created", function () {
+      const file = path.join(dir, "a.json");
+      sinon.stub(crypto, "randomUUID").returns("same");
+      const theirs = `${file}.same.tmp`;
+      fs.writeFileSync(theirs, "theirs");
+      assert.throws(() => publishFile(file, "{}", false));
+      assert.equal(fs.readFileSync(theirs, "utf8"), "theirs");
+      assert.ok(!fs.existsSync(file));
+    });
+  });
+
+  describe("formatStateFile", function () {
+    it("writes `expires` -1 for any expiry that isn't a positive time", function () {
+      const expires = (expiry) =>
+        JSON.parse(formatStateFile({ cookies: [{ name: "a", value: "1", expiry }], origin: "https://x.com", localStorage: [] })).cookies[0].expires;
+      assert.equal(expires(future), future);
+      for (const expiry of [undefined, null, 0, -5]) assert.equal(expires(expiry), -1, String(expiry));
     });
   });
 

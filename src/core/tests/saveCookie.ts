@@ -1,8 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { log, invalidStepMessage } from "../utils.js";
-import { readCookies, resolveStatePath } from "./browserState.js";
-import path from "node:path";
-import fs from "node:fs";
+import { publishFile, readCookies, resolveStatePath } from "./browserState.js";
 
 export { saveCookie, formatCookieForNetscape };
 
@@ -60,19 +58,17 @@ async function saveCookie({ config, step, driver }: { config: any; step: any; dr
     if (filePath) {
       const fullPath = resolveStatePath(config, { path: filePath, directory });
 
-      // `overwrite` is a boolean; validation coerces "true" to true.
-      if (fs.existsSync(fullPath) && overwrite !== true) {
-        result.status = "FAIL";
-        result.description = `Couldn't save cookie: \`${fullPath}\` exists. Set \`overwrite\` to \`true\` to replace it.`;
-        return result;
-      }
-
-      fs.mkdirSync(path.dirname(fullPath), { recursive: true });
       const content = `# Netscape HTTP Cookie File
 # This is a cookie file saved by Doc Detective
 ${formatCookieForNetscape(targetCookie)}
 `;
-      fs.writeFileSync(fullPath, content, 'utf8');
+      // The cookie works like a password: publish it atomically, owner-only.
+      // `overwrite` is a boolean; validation coerces "true" to true.
+      if (!publishFile(fullPath, content, overwrite === true)) {
+        result.status = "FAIL";
+        result.description = `Couldn't save cookie: \`${fullPath}\` exists. Set \`overwrite\` to \`true\` to replace it.`;
+        return result;
+      }
       result.description = `Saved cookie \`${cookieName}\` to \`${fullPath}\`.`;
       log(config, "debug", `Saved cookie '${cookieName}' to file: ${fullPath}`);
 

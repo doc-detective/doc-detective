@@ -1,6 +1,6 @@
 import { validate } from "../../common/src/validate.js";
 import { log, invalidStepMessage } from "../utils.js";
-import { applyCookies, applyLocalStorage, cookiesFor, parseStateFile, resolveStatePath, siteOrigin } from "./browserState.js";
+import { applyLocalStorage, cookiesFor, parseStateFile, resolveStatePath, siteOrigin, toDriverCookie } from "./browserState.js";
 import fs from "node:fs";
 
 export { loadState };
@@ -50,19 +50,33 @@ async function loadState({ config, step, driver }: { config: any; step: any; dri
       return result;
     }
     // Storage first: the script writes only if the page is still on `origin`,
-    // even with no entries, so a page that navigated away gets nothing. Then the
-    // origin is read again right before the cookies, which WebDriver sets on
-    // whatever page is open (on localhost, with no domain to pin them).
-    // ponytail: one check before the cookie loop, not one per cookie; a page
-    // that navigates mid-loop can still take the rest. Per-cookie checks if that
-    // shows up.
-    const left = `Couldn't load state: the page left \`${origin}\` before its state was restored.`;
-    if (!(await applyLocalStorage(driver, origin, entries)) || siteOrigin(await driver.getUrl()) !== origin) {
+    // even with no entries, so a page that navigated away gets nothing.
+    const fail = () => {
       result.status = "FAIL";
-      result.description = left;
+      result.description = `Couldn't load state: the page left \`${origin}\` before its state was restored.`;
       return result;
+    };
+    if (!(await applyLocalStorage(driver, origin, entries))) return fail();
+
+    // WebDriver sets a cookie on whatever page is open, and on localhost it has
+    // no domain to pin it. So the origin is checked before each write and once
+    // after the loop, and a mismatch deletes every cookie this step set.
+    // ponytail: classic WebDriver can't set a cookie only on one host, so a
+    // navigation between a check and its write still lands that cookie on the
+    // new host until the check after the loop removes it. Upgrade path: BiDi
+    // `storage.setCookie` with an explicit partition.
+    const stillOnOrigin = async () => siteOrigin(await driver.getUrl()) === origin;
+    const cookies: any[] = [];
+    const rollBack = async () => {
+      for (const cookie of cookies) await driver.deleteCookies(cookie.name);
+      return fail();
+    };
+    for (const cookie of fitting) {
+      if (!(await stillOnOrigin())) return rollBack();
+      await driver.setCookies(toDriverCookie(cookie, currentUrl));
+      cookies.push(cookie);
     }
-    const cookies = await applyCookies(driver, fitting, currentUrl);
+    if (!(await stillOnOrigin())) return rollBack();
 
     result.description = `Loaded state from \`${fullPath}\`.`;
     result.outputs = { path: fullPath, cookies: cookies.length, localStorage: entries.length };

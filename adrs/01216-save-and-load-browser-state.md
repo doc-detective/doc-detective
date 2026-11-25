@@ -82,21 +82,25 @@ Chosen option: **A**.
 
 Robustness rules:
 
-* `loadState` validates every record before it touches the browser: each cookie and each
-  `localStorage` entry has a string `name` and `value`, and each origin has a string `origin` and a
+* `loadState` validates every record before it touches the browser. Each cookie and each
+  `localStorage` entry needs a string `name` and `value`. Each origin needs a string `origin` and a
   `localStorage` list. A file with only cookies, or only origins, is valid.
-* The `localStorage` script takes the expected origin and checks `location.origin` itself, so a page
-  that navigated away gets nothing. It runs even with no entries, so a cookie-only file gets the
-  same check. Storage is written before cookies, and the origin is read again right before the
-  cookies are set, since WebDriver sets a cookie on whatever page is open. Either failure sets no
-  cookie. The second check runs once before the cookie loop, not before each cookie.
+* The `localStorage` script takes the expected origin and checks `location.origin` itself. A page
+  that navigated away gets nothing. The script runs even with no entries, so a cookie-only file gets
+  the same check.
+* Storage is written before cookies. WebDriver sets a cookie on whatever page is open, so
+  `loadState` checks the origin before each cookie write and once after the loop. On a mismatch, it
+  deletes the cookies it set and fails.
+* Classic WebDriver can't pin a cookie to one host, so a navigation between a check and its write
+  stays possible.
 * `saveState` reads the origin and `localStorage` in one script, and fails if that origin isn't the
   one it read first.
-* `saveState` writes the whole file to an owner-only (`0600`) temp file beside it, then publishes it
-  in one step. With `overwrite`, a rename replaces the old file atomically. Without it, a hard link
-  fails with `EEXIST` rather than replace an existing file. A reader never sees partial JSON, a
-  failed write leaves the old file whole, an old file's broader permissions don't carry over, and
-  the temp file is always removed.
+* `saveState` and `saveCookie` write the whole file to an owner-only (`0600`) temp file beside it.
+  The temp file has a random name, and only the call that created it removes it. Then they publish
+  it in one step. With `overwrite`, a rename replaces the old file atomically. Without it, a hard
+  link fails with `EEXIST` rather than replace an existing file.
+* So a reader never sees partial content, and a failed write leaves the old file whole. An old
+  file's broader permissions don't carry over.
 
 ### Shared code path
 

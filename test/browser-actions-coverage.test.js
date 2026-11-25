@@ -1200,6 +1200,42 @@ describe("saveCookie action (coverage)", function () {
     });
     assert.equal(result.status, "FAIL");
     assert.match(result.description, /exists. Set `overwrite` to `true` to replace it./);
+    assert.equal(fs.readFileSync(file, "utf8"), "old\n", "the existing file is untouched");
+    assert.deepEqual(fs.readdirSync(tmpDir), ["exists.txt"], "no temporary file is left behind");
+  });
+
+  it("a file that appears after any existence check → FAIL with the exists message, not overwritten", async () => {
+    // Another writer creates the file between a check and the write.
+    const file = path.join(tmpDir, "race.txt");
+    fs.writeFileSync(file, "theirs\n", "utf8");
+    sinon.stub(fs, "existsSync").returns(false);
+    const result = await saveCookie({
+      config,
+      step: { saveCookie: { name: "sid", path: "race.txt", directory: tmpDir } },
+      driver: makeDriver({ cookies: [cookie] }),
+    });
+    sinon.restore();
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, `Couldn't save cookie: \`${file}\` exists. Set \`overwrite\` to \`true\` to replace it.`);
+    assert.equal(fs.readFileSync(file, "utf8"), "theirs\n");
+  });
+
+  it("creates the cookie file readable by its owner only, and replaces a broader one", async function () {
+    if (process.platform === "win32") this.skip();
+    const created = await saveCookie({
+      config,
+      step: { saveCookie: { name: "sid", path: "new.txt", directory: tmpDir } },
+      driver: makeDriver({ cookies: [cookie] }),
+    });
+    assert.equal(fs.statSync(created.outputs.path).mode & 0o777, 0o600);
+    const file = path.join(tmpDir, "broad.txt");
+    fs.writeFileSync(file, "old\n", { mode: 0o644 });
+    await saveCookie({
+      config,
+      step: { saveCookie: { name: "sid", path: "broad.txt", directory: tmpDir, overwrite: true } },
+      driver: makeDriver({ cookies: [cookie] }),
+    });
+    assert.equal(fs.statSync(file).mode & 0o777, 0o600);
   });
 
   it("file exists + overwrite true → overwrites, PASS", async () => {
