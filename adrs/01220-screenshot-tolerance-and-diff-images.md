@@ -65,7 +65,7 @@ Chosen option: **A**.
 * New outputs: `diffPixels` always, when a comparison runs; `diffPath` and `previousPath`, absolute,
   only when the files were written. Every comparison WARNING description ends with
   ``See `<diffPath>`.`` when a diff exists.
-* Masks (ADR 01216) are painted before pixelmatch runs, so masked areas never appear in the diff.
+* Masks (ADR 01218) are painted before pixelmatch runs, so masked areas never appear in the diff.
 
 ### Consequences
 

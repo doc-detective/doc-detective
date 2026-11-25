@@ -293,7 +293,7 @@ async function resolveAnnotationRects({
 }: {
   config: any;
   // What the caller does with the rect, for "Couldn't find the element to
-  // <verb>" messages: screenshot masks reuse this resolver (ADR 01216).
+  // <verb>" messages: screenshot masks reuse this resolver (ADR 01218).
   verb?: string;
   annotations: ResolvedAnnotation[];
   driver: any;
