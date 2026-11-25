@@ -3,6 +3,7 @@ import { log } from "./utils.js";
 // const xpath = require("xpath");
 // const { DOMParser } = require("xmldom");
 import jq from "jq-web";
+import { totp, waitForFreshTotpWindow } from "./totp.js";
 
 /**
  * Shared pattern source for a $$ meta-value token (the part after "$$"),
@@ -24,7 +25,7 @@ import jq from "jq-web";
  */
 // What makes a condition more than plain text: a `$$` reference, an operator, or
 // a helper call.
-const CONDITION_SYNTAX = /\$\$|==|!=|<|>|&&|\|\||!|\b(?:contains|oneOf|matches|jq|extract)\b/;
+const CONDITION_SYNTAX = /\$\$|==|!=|<|>|&&|\|\||!|\b(?:contains|oneOf|matches|jq|extract|totp)\b/;
 
 const META_TOKEN_SOURCE = "\\$\\$([\\w.\\[\\]\\-~]+(?:#\\/[\\w\\/\\[\\]]+)*)";
 
@@ -362,7 +363,7 @@ function containsOperators(expression: string, allowOperators: boolean = false):
   // Function-call operators are ALWAYS active (today's behavior). These are used
   // by the default resolveExpression path (variables, interpolation) and must
   // remain unchanged regardless of allowOperators.
-  const functionOperatorRegex = /jq\(|extract\(/;
+  const functionOperatorRegex = /jq\(|extract\(|totp\(/;
   if (functionOperatorRegex.test(expression)) {
     return true;
   }
@@ -410,6 +411,8 @@ const compiledEvaluatorCache = new Map<string, Function>();
  */
 async function evaluateExpression(expression: string, context: any): Promise<any> {
   const loadedJq: any = /\bjq\(/.test(expression) ? await jq : undefined;
+  // Like jq above: wait here so totp() below stays synchronous.
+  if (/\btotp\(/.test(expression)) await waitForFreshTotpWindow();
   try {
     // Handle special operators that aren't valid JS syntax
     expression = preprocessExpression(expression);
@@ -475,11 +478,19 @@ async function evaluateExpression(expression: string, context: any): Promise<any
         try {
           return loadedJq.json(json, query);
         } catch (error: any) {
-          throw Object.assign(error, { fromJq: true });
+          throw Object.assign(error, { rethrow: true });
         } finally {
           if (process.exitCode !== prevExitCode) {
             process.exitCode = prevExitCode;
           }
+        }
+      },
+      // A bad secret throws; rethrown below like jq's so {{...}} stays verbatim.
+      totp: (secret: string) => {
+        try {
+          return totp(secret);
+        } catch (error: any) {
+          throw Object.assign(error, { rethrow: true });
         }
       },
     };
@@ -510,7 +521,7 @@ async function evaluateExpression(expression: string, context: any): Promise<any
     }
     return evaluator(...Object.values(evalContext));
   } catch (error: any) {
-    if (error?.fromJq) throw error;
+    if (error?.rethrow) throw error;
     log(
       `Error evaluating expression '${expression}': ${error.message}`,
       "error"
