@@ -132,7 +132,7 @@ Given alone, the flag means `true`: every `screenshot` step replaces its referen
 The flag takes the same values as a step's `overwrite` and replaces the value on every step. That includes automatic screenshots that compare against a reference:
 
 - `true`: replace every reference.
-- `false`: never replace a reference, even where a step says `"overwrite": "true"`. A step whose reference exists is skipped. Use this in CI so a pipeline never rewrites references.
+- `false`: never replace a reference, even where a step says `"overwrite": "true"`. A step whose reference exists returns `SKIPPED` before it takes a screenshot or compares, so it never reports drift. Use it when a run must leave every reference untouched. To catch drift in CI, use `aboveVariation` instead: a step whose new screenshot drifts returns `WARNING` and replaces the reference in the CI workspace.
 - `aboveVariation`: replace a reference only when the capture differs by more than `maxVariation`, or `maxDiffPixels` when set.
 
 To set it for every run, add `overwriteScreenshots` to your config. The flag beats the config key, which beats each step's own `overwrite`:
@@ -143,7 +143,7 @@ To set it for every run, add `overwriteScreenshots` to your config. The flag bea
 }
 ```
 
-When you list inputs, put them before the flag, or give the flag a value: `doc-detective run docs/billing.md --overwrite-screenshots true`. Any value other than the three above exits `2` with `error: option '--overwrite-screenshots [mode]' argument 'maybe' is invalid. Allowed choices are true, false, aboveVariation.` For details, see [`--overwrite-screenshots`](/reference/cli) and [`overwriteScreenshots`](/reference/schemas/config).
+When you list inputs, put them before the flag, or give the flag a value: `doc-detective run docs/billing.md --overwrite-screenshots true`. Any value other than the three above exits `2` with `error: option '--overwrite-screenshots [mode]' argument 'maybe' is invalid. Allowed choices are true, false, aboveVariation.` For details, see [`--overwrite-screenshots`](/reference/reference/cli) and [`overwriteScreenshots`](/reference/schemas/config).
 
 ## Verify it works
 
