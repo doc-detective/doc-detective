@@ -230,6 +230,45 @@ describeIfSharp("saveScreenshot: internal compareOnly", function () {
     expect(fs.existsSync(stagingPath), "capture staged").to.equal(true);
   });
 
+  // ADR 01222: the run-wide override doesn't reach checkpoints; stopRecord
+  // owns their baselines (ADR 01075).
+  it("ignores `overwriteScreenshots: \"true\"`, keeping the baseline", async function () {
+    const baselinePath = path.join(tmpDir, "base.png");
+    const stagingPath = path.join(tmpDir, "staged.png");
+    const baselineBytes = await makePngBuffer(24, 24, { r: 255, g: 0, b: 0 });
+    fs.writeFileSync(baselinePath, baselineBytes);
+    const captured = await makePngBuffer(24, 24, { r: 0, g: 0, b: 255 });
+
+    const result = await saveScreenshot({
+      config: { overwriteScreenshots: "true" },
+      step: checkpointStep(baselinePath),
+      driver: fakeDriver(captured),
+      internal: { compareOnly: true, capturePath: stagingPath },
+    });
+
+    expect(result.status).to.equal("WARNING");
+    expect(fs.readFileSync(baselinePath).equals(baselineBytes), "baseline kept").to.equal(true);
+    expect(fs.existsSync(stagingPath), "capture staged").to.equal(true);
+  });
+
+  it("ignores `overwriteScreenshots: \"false\"`, still staging the capture", async function () {
+    const baselinePath = path.join(tmpDir, "base.png");
+    const stagingPath = path.join(tmpDir, "staged.png");
+    const bytes = await makePngBuffer(24, 24);
+    fs.writeFileSync(baselinePath, bytes);
+
+    const result = await saveScreenshot({
+      config: { overwriteScreenshots: "false" },
+      step: checkpointStep(baselinePath),
+      driver: fakeDriver(bytes),
+      internal: { compareOnly: true, capturePath: stagingPath },
+    });
+
+    expect(result.status).to.equal("PASS");
+    expect(result.outputs.variation).to.equal(0);
+    expect(fs.existsSync(stagingPath), "capture staged").to.equal(true);
+  });
+
   it("passes within variation, staging the capture and keeping the baseline", async function () {
     const baselinePath = path.join(tmpDir, "base.png");
     const stagingPath = path.join(tmpDir, "staged.png");
