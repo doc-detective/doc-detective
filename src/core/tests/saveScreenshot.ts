@@ -366,18 +366,20 @@ async function takeBrowserScreenshot(
   sharp: any,
   options: CaptureOptions = {}
 ): Promise<{ buffer: Buffer; stable: boolean; scroll?: Point }> {
-  if (options.style) {
-    try {
-      await driver.execute(addCaptureStyle, options.style);
-    } catch (error: any) {
-      throw new Error(`Couldn't add the \`style\` CSS to the page: ${error?.message ?? error}`);
-    }
-  }
   const freeze = options.animations === "disabled";
   let captured: { buffer: Buffer; stable: boolean };
   let watching: any;
   let fullPage: FullPage | undefined;
   try {
+    // Inside the try: the script can add the style and the command still
+    // fail, so the cleanup in the finally must run either way.
+    if (options.style) {
+      try {
+        await driver.execute(addCaptureStyle, options.style);
+      } catch (error: any) {
+        throw new Error(`Couldn't add the \`style\` CSS to the page: ${error?.message ?? error}`);
+      }
+    }
     if (freeze) {
       try {
         await driver.execute(freezeAnimations);
@@ -699,8 +701,9 @@ async function captureScreenshot({
     result.description = "Skipped: `screenshot` is `false`.";
     return result;
   }
-  // Run-wide `overwriteScreenshots` replaces the step's `overwrite` (ADR 01222).
-  if (config?.overwriteScreenshots) step.screenshot.overwrite = config.overwriteScreenshots;
+  // Run-wide `overwriteScreenshots` replaces the step's `overwrite` (ADR 01222),
+  // except on recording checkpoints: stopRecord owns their baselines (ADR 01075).
+  if (config?.overwriteScreenshots && !internal?.compareOnly) step.screenshot.overwrite = config.overwriteScreenshots;
 
   // Lazy-load heavy deps once per saveScreenshot invocation; ensureRuntime
   // already materialized them ahead of step execution. The ctx threads
@@ -1683,13 +1686,15 @@ async function captureScreenshot({
       }
 
       // Diff images go to the run folder only, never next to the docs, and
-      // before any overwrite so the previous reference survives.
+      // before any overwrite so the previous reference survives. The stepId
+      // keeps references that share a basename from clobbering each other.
       let seeDiff = "";
-      if (numDiffPixels > 0 && screenshotsDir) {
+      if (numDiffPixels > 0) {
         try {
-          const outDir = screenshotsDir();
+          const outDir = screenshotsDir?.() ?? path.join(getRunOutputDir(config), "screenshots");
           fs.mkdirSync(outDir, { recursive: true });
-          const name = path.basename(filePath, path.extname(filePath));
+          const base = path.basename(filePath, path.extname(filePath));
+          const name = sanitizeFilesystemName([base, step.stepId].filter(Boolean).join("-"), base);
           const diffPath = path.join(outDir, `${name}.diff.png`);
           const previousPath = path.join(outDir, `${name}.previous.png`);
           fs.writeFileSync(diffPath, PNG.sync.write({ width, height, data: diffImage } as any));

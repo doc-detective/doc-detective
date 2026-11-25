@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { saveScreenshot } from "../dist/core/tests/saveScreenshot.js";
+import { getRunOutputDir } from "../dist/core/utils.js";
 
 const require = createRequire(import.meta.url);
 const { PNG } = require("pngjs");
@@ -60,10 +61,10 @@ describe("screenshot tolerance and diff images (ADR 01220)", function () {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  async function compare(screenshot, capture, options = {}) {
+  async function compare(screenshot, capture, options = {}, stepId = "t") {
     return saveScreenshot({
-      config: {},
-      step: { stepId: "t", screenshot: { path: target, overwrite: "aboveVariation", ...screenshot } },
+      config: { outputDir: tmpDir },
+      step: { stepId, screenshot: { path: target, overwrite: "aboveVariation", ...screenshot } },
       driver: fakeDriver(capture),
       ...options,
     });
@@ -136,8 +137,8 @@ describe("screenshot tolerance and diff images (ADR 01220)", function () {
     const result = await compare({ maxVariation: 0.0001 }, changed(), { screenshotsDir: () => runDir });
     assert.equal(result.status, "WARNING");
 
-    const diffPath = path.join(runDir, "shot.diff.png");
-    const previousPath = path.join(runDir, "shot.previous.png");
+    const diffPath = path.join(runDir, "shot-t.diff.png");
+    const previousPath = path.join(runDir, "shot-t.previous.png");
     assert.equal(result.outputs.diffPath, diffPath);
     assert.equal(result.outputs.previousPath, previousPath);
     // The reference was overwritten (aboveVariation), but the previous copy
@@ -161,10 +162,37 @@ describe("screenshot tolerance and diff images (ADR 01220)", function () {
     assert.equal(fs.existsSync(runDir), false);
   });
 
-  it("writes no diff without a run folder", async function () {
-    const result = await compare({ maxVariation: 0.0001 }, changed());
+  it("keeps the artifacts of two references that share a basename", async function () {
+    const other = path.join(tmpDir, "docs", "b", "shot.png");
+    fs.mkdirSync(path.dirname(other), { recursive: true });
+    fs.writeFileSync(other, png());
+    const first = await compare({ maxVariation: 0.0001 }, changed(), { screenshotsDir: () => runDir }, "a");
+    target = other;
+    const second = await compare({ maxVariation: 0.0001 }, changed(), { screenshotsDir: () => runDir }, "b");
+    assert.equal(first.outputs.diffPath, path.join(runDir, "shot-a.diff.png"));
+    assert.equal(second.outputs.diffPath, path.join(runDir, "shot-b.diff.png"));
+    assert.notEqual(first.outputs.previousPath, second.outputs.previousPath);
+    assert.deepEqual(fs.readdirSync(runDir).sort(), [
+      "shot-a.diff.png",
+      "shot-a.previous.png",
+      "shot-b.diff.png",
+      "shot-b.previous.png",
+    ]);
+  });
+
+  it("falls back to the run folder's screenshots folder without `screenshotsDir`", async function () {
+    const config = { outputDir: tmpDir };
+    const result = await saveScreenshot({
+      config,
+      step: { stepId: "t", screenshot: { path: target, maxVariation: 0.0001 } },
+      driver: fakeDriver(changed()),
+    });
     assert.equal(result.status, "WARNING");
-    assert.equal(result.outputs.diffPath, undefined);
+    const dir = path.join(getRunOutputDir(config), "screenshots");
+    assert.equal(result.outputs.diffPath, path.join(dir, "shot-t.diff.png"));
+    assert.equal(result.outputs.previousPath, path.join(dir, "shot-t.previous.png"));
+    assert.ok(fs.existsSync(result.outputs.diffPath));
+    assert.ok(fs.existsSync(result.outputs.previousPath));
     assert.deepEqual(fs.readdirSync(path.dirname(target)), ["shot.png"]);
   });
 });

@@ -52,8 +52,9 @@ Chosen option: 1.
   Because the value is optional, an input given right after the bare flag is read as its value and
   rejected the same way. Put inputs first, or give the flag a value.
 
-`saveScreenshot` applies the key once, right after it resolves the effective step, so every caller
-(authored steps, automatic screenshots, recording checkpoints) gets it.
+`saveScreenshot` applies the key once, right after it resolves the effective step, so authored steps
+and automatic screenshots get it. Recording checkpoints don't: `stopRecord` owns their baselines
+(ADR 01075), so a checkpoint always stages its capture and never rewrites the baseline.
 
 ### Consequences
 
@@ -73,6 +74,7 @@ Chosen option: 1.
   value is rejected.
 - `test/saveScreenshot.test.js`: config `"false"` beats a step's `"true"`, and config `"true"` beats a
   step's `"aboveVariation"`.
+- `test/recording-checkpoints.test.js`: a checkpoint ignores config `"true"` and `"false"`.
 - `test/core-artifacts/capture/screenshot-overwrite-all.spec.json`: through the real CLI, config
   `"false"` leaves a reference unchanged, and the bare flag beats config `"false"` and replaces it.
 
