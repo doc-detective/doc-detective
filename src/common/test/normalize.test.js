@@ -201,7 +201,7 @@ describe("normalization", function () {
   // ADR 01173: a capture with no path is named for its step. The runner
   // resolves a relative path against outputDir; validate() never does.
   describe("captures", function () {
-    const SHOT = { maxVariation: 0.05, overwrite: "aboveVariation" };
+    const SHOT = { maxVariation: 0.05, overwrite: "aboveVariation", threshold: 0.1 };
 
     for (const [name, value] of [
       ["true", true],
