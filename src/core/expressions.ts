@@ -735,7 +735,9 @@ function preprocessExpression(expression: string): string {
   // Handle unquoted identifiers on both sides of comparisons
   // First handle unquoted identifiers on the right side of comparisons
   expression = expression.replace(
-    /(==|!=|>|>=|<|<=)\s+([A-Za-z]\w*)(?!\s*[\(\.\[])/g,
+    // `\w|` in the lookahead stops backtracking into a name: without it,
+    // `== totp(` matched "tot" and became `== "tot"p(`.
+    /(==|!=|>|>=|<|<=)\s+([A-Za-z]\w*)(?!\w|\s*[\(\.\[])/g,
     (match: string, operator: string, word: string) => {
       // Skip JavaScript keywords that might be valid in expressions
       const jsKeywords = [

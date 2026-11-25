@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import sinon from "sinon";
 import { totp, waitForFreshTotpWindow } from "../dist/core/totp.js";
-import { resolveExpression, resolveExpressionOrThrow } from "../dist/core/expressions.js";
+import {
+  evaluateAssertion,
+  resolveExpression,
+  resolveExpressionOrThrow,
+} from "../dist/core/expressions.js";
 import { replaceEnvs } from "../dist/core/utils.js";
 
 // RFC 6238 Appendix B, SHA-1: the ASCII secret "12345678901234567890" in base32.
@@ -34,6 +38,37 @@ describe("totp()", function () {
       { message: "Couldn't generate a TOTP code: the secret isn't valid base32." }
     );
     assert.throws(() => totp("", 59 * 1000), /isn't valid base32/);
+  });
+
+  it("rejects a length that can't encode whole bytes (remainder 1, 3, or 6 mod 8)", function () {
+    for (const extra of ["A", "AAA", "AAAAAA"]) {
+      assert.throws(() => totp(RFC_SECRET + extra, 59 * 1000), /isn't valid base32/);
+    }
+    // Remainders 2, 4, 5, and 7 are valid partial groups.
+    for (const extra of ["AA", "AAAA", "AAAAA", "AAAAAAA"]) {
+      assert.match(totp(RFC_SECRET + extra, 59 * 1000), /^\d{6}$/);
+    }
+  });
+});
+
+describe("function operators on both sides of a comparison", function () {
+  // The right-operand quoting regex used to backtrack into a function name,
+  // turning `== totp(` into `== "tot"p(`.
+  it("totp() == totp() is true", async function () {
+    assert.equal(
+      await evaluateAssertion(`totp("${RFC_SECRET}") == totp("${RFC_SECRET}")`, {}),
+      true
+    );
+  });
+  it("extract() == extract() is true", async function () {
+    assert.equal(await evaluateAssertion(`extract("abc", "b") == extract("xbx", "b")`, {}), true);
+  });
+  it("jq() == jq() is true", async function () {
+    const ctx = { outputs: { obj: { n: 1 } } };
+    assert.equal(
+      await evaluateAssertion(`jq($$outputs.obj, ".n") == jq($$outputs.obj, ".n")`, ctx),
+      true
+    );
   });
 });
 

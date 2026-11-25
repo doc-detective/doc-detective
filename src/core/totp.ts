@@ -9,7 +9,8 @@ export function totp(secret: string, now: number = Date.now()): string {
   let bits = "";
   for (const c of chars) bits += BASE32.indexOf(c).toString(2).padStart(5, "0");
   // A non-base32 char maps to indexOf -1, which renders as "-1" and fails here.
-  if (bits.length < 8 || /[^01]/.test(bits)) {
+  // Lengths of 1, 3, or 6 mod 8 can't encode whole bytes.
+  if (bits.length < 8 || /[^01]/.test(bits) || [1, 3, 6].includes(chars.length % 8)) {
     throw new Error("Couldn't generate a TOTP code: the secret isn't valid base32.");
   }
   const key = Buffer.from(bits.match(/.{8}/g)!.map((b) => parseInt(b, 2)));
