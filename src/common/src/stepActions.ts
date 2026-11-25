@@ -16,6 +16,7 @@ export const stepActions = [
   "httpRequest",
   "loadCookie",
   "loadVariables",
+  "mockRequest",
   "record",
   "runBrowserScript",
   "runCode",

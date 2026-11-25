@@ -4312,6 +4312,7 @@
         "loadVariables": {},
         "dragAndDrop": {},
         "loadCookie": {},
+        "mockRequest": {},
         "swipe": {},
         "wait": {},
         "annotate": {}
@@ -4637,6 +4638,24 @@
               "properties": {
                 "loadCookie": {
                   "$ref": "loadCookie_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "mockRequest"
+              ],
+              "properties": {
+                "mockRequest": {
+                  "$ref": "mockRequest_v3.nodefaults.schema.json#"
                 }
               }
             }
@@ -5274,6 +5293,76 @@
         }
       },
       "$id": "swipe_v3.schema.json"
+    },
+    "mockRequest_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+          ]
+        },
+        "response": {
+          "type": "object",
+          "additionalProperties": false,
+          "not": {
+            "required": [
+              "body",
+              "bodyPath"
+            ]
+          },
+          "errorMessage": {
+            "not": "set `body` or `bodyPath`, not both."
+          },
+          "properties": {
+            "statusCode": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            },
+            "headers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "body": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object"
+                },
+                {
+                  "type": "array"
+                }
+              ]
+            },
+            "bodyPath": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "$id": "mockRequest_v3.schema.json"
     },
     "loadCookie_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12689,6 +12778,7 @@
         "loadVariables": {},
         "dragAndDrop": {},
         "loadCookie": {},
+        "mockRequest": {},
         "swipe": {},
         "wait": {},
         "annotate": {}
@@ -13014,6 +13104,24 @@
               "properties": {
                 "loadCookie": {
                   "$ref": "loadCookie_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "mockRequest"
+              ],
+              "properties": {
+                "mockRequest": {
+                  "$ref": "mockRequest_v3.nodefaults.schema.json#"
                 }
               }
             }
@@ -13645,6 +13753,76 @@
         }
       },
       "$id": "swipe_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+          ]
+        },
+        "response": {
+          "type": "object",
+          "additionalProperties": false,
+          "not": {
+            "required": [
+              "body",
+              "bodyPath"
+            ]
+          },
+          "errorMessage": {
+            "not": "set `body` or `bodyPath`, not both."
+          },
+          "properties": {
+            "statusCode": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 599
+            },
+            "headers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "body": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object"
+                },
+                {
+                  "type": "array"
+                }
+              ]
+            },
+            "bodyPath": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      },
+      "$id": "mockRequest_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",

@@ -342,6 +342,12 @@ async function resolvePaths({
         objectType: objectType,
       });
       if (cookiePath !== undefined) object[property].path = cookiePath;
+      // A mock's `bodyPath` sits in `response`, which isn't resolved, so
+      // resolve it here, against the spec (ADR 01225).
+      const mockResponse = isStep && property === "mockRequest" ? object[property].response : undefined;
+      if (typeof mockResponse?.bodyPath === "string") {
+        mockResponse.bodyPath = resolve(relativePathBase, mockResponse.bodyPath, filePath);
+      }
     } else if (typeof object[property] === "string") {
       if (
         object[property].startsWith("https://") ||

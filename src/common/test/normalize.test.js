@@ -270,6 +270,7 @@ describe("normalization", function () {
       runBrowserScript: { script: "return 1" },
       runCode: { language: "python", code: "print(1)", background: {} },
       runShell: { command: "echo hi", background: {} },
+      mockRequest: { url: "**/x", response: { body: { a: 1 } } },
       saveCookie: { name: "session" },
       screenshot: { directory: "d", crop: { selector: "#a" } },
       startSurface: [{ browser: "chrome" }],
