@@ -2596,13 +2596,18 @@ export function unsupportedEmulation(
   if (onDevice)
     return `Skipped: \`${name}\` can't set \`${keys[0]}\` on ${onDevice}.`;
   for (const key of keys) {
-    if (name === "chrome") continue;
-    if (name === "firefox") {
-      if (key === "clock") return `Skipped: \`firefox\` can't set \`clock\`.`;
-      if (key === "timezone" && platform === "windows")
+    // `timezone` and `clock` need BiDi. Without it, only Firefox has a
+    // fallback: `TZ` for `timezone`, which Windows ignores.
+    if (key === "timezone" || key === "clock") {
+      if (BIDI_BROWSERS.has(name)) continue;
+      if (name === "firefox" && key === "timezone") {
+        if (platform !== "windows") continue;
         return `Skipped: \`firefox\` can't set \`timezone\` on Windows.`;
-      continue;
+      }
+      return `Skipped: \`${name}\` can't set \`${key}\`.`;
     }
+    // Launch-time keys: Chrome args and Firefox prefs.
+    if (name === "chrome" || name === "firefox") continue;
     return `Skipped: \`${name}\` can't set \`${key}\`.`;
   }
   return null;

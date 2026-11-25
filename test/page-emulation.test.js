@@ -6,7 +6,7 @@ import {
   applyEmulation,
   freezeDateSource,
 } from "../dist/core/utils.js";
-import { getDriverCapabilities, needsBidi } from "../dist/core/tests.js";
+import { getDriverCapabilities } from "../dist/core/tests.js";
 
 describe("emulationCapabilities", function () {
   it("returns nothing for a browser with no emulation keys", function () {
@@ -200,29 +200,6 @@ describe("unsupportedEmulation", function () {
         "linux"
       ),
       "Skipped: `firefox` can't set `clock`."
-    );
-  });
-});
-
-describe("needsBidi for page emulation", function () {
-  it("is true when the browser sets timezone or clock", function () {
-    assert.equal(
-      needsBidi({ browser: { name: "chrome", timezone: "UTC" } }, []),
-      true
-    );
-    assert.equal(
-      needsBidi(
-        { browser: { name: "chrome", clock: "2026-12-03T09:00:00Z" } },
-        []
-      ),
-      true
-    );
-  });
-
-  it("is false for launch-time keys alone", function () {
-    assert.equal(
-      needsBidi({ browser: { name: "chrome", colorScheme: "dark" } }, []),
-      false
     );
   });
 });

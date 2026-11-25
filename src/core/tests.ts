@@ -320,12 +320,8 @@ const KNOWN_BROWSERS = ["firefox", "chrome", "safari", "webkit"];
 // clock, full-page capture, request mocking) add their check here; every other
 // context keeps classic WebDriver with no socket. BIDI_BROWSERS (utils.ts)
 // gates the socket per browser in getDriverCapabilities.
-function needsBidi(context: any, _steps: any[] | undefined): boolean {
-  // Page emulation over BiDi (ADR 01223).
-  return (
-    context?.browser?.timezone !== undefined ||
-    context?.browser?.clock !== undefined
-  );
+function needsBidi(_context: any, _steps: any[] | undefined): boolean {
+  return false;
 }
 
 // Tree-kill a pid and resolve only once the target process is actually gone.

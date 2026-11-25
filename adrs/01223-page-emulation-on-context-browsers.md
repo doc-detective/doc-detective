@@ -72,8 +72,9 @@ Android and iOS browsers skip every key.
 * `unsupportedEmulation(browser, platform)` returns the skip message for the first key the browser
   can't set. `runContext` calls it before any browser starts. It also filters the cross-browser
   fallback candidates, so a fallback engine must set every key too.
-* `needsBidi(context)` is true when the browser sets `timezone` or `clock`. The socket still opens
-  only for browsers in `BIDI_BROWSERS`, which moved to `utils.ts` and is re-exported.
+* `timezone` and `clock` run over BiDi only in a browser in `BIDI_BROWSERS`, which always has the
+  socket (ADR 01216). `BIDI_BROWSERS` moved to `utils.ts` and is re-exported. Outside the set,
+  `timezone` uses the Firefox `TZ` fallback or skips, and `clock` skips.
 * `applyEmulation(driver, browser)` runs right after `applyBrowserSize`, for the context's session
   and for every later session a `startSurface` step opens. It sends the BiDi commands.
 * `emulation.setTimezoneOverride` targets `userContexts: ["default"]`. Chrome rejects the global
@@ -105,7 +106,7 @@ Android and iOS browsers skip every key.
 ### Confirmation
 
 * Unit tests: [test/page-emulation.test.js](../test/page-emulation.test.js) covers every key and
-  browser in `emulationCapabilities`, every Skipped cell in `unsupportedEmulation`, `needsBidi`,
+  browser in `emulationCapabilities`, every Skipped cell in `unsupportedEmulation`,
   the merged capabilities, `applyEmulation` and the `Date` replacement.
   [src/common/test/validate.test.js](../src/common/test/validate.test.js) covers the schema.
   [test/browser-wait.test.js](../test/browser-wait.test.js) guards the `performance.now()` change.
