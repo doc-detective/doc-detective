@@ -5,13 +5,12 @@ import path from "node:path";
 
 import { mockRequest, restoreMocks } from "../dist/core/tests/mockRequest.js";
 import { resolvePaths } from "../dist/core/files.js";
-import { needsBidi } from "../dist/core/tests.js";
+import { hasBidi } from "../dist/core/tests.js";
 
 // ADR 01225: hermetic coverage for the mockRequest action. The driver is a fake
 // with webdriverio's `mock()` shape; no browser, no BiDi socket.
 
 const config = { logLevel: "silent" };
-const BIDI = new Set(["chrome"]);
 
 function fakeMock() {
   const handlers = {};
@@ -50,7 +49,7 @@ function fakeDriver() {
 }
 
 const run = (mockRequestValue, { driver = fakeDriver(), browserName = "chrome" } = {}) =>
-  mockRequest({ config, step: { mockRequest: mockRequestValue }, driver, browserName, bidiBrowsers: BIDI }).then(
+  mockRequest({ config, step: { mockRequest: mockRequestValue }, driver, browserName, hasBidi }).then(
     (result) => ({ result, driver })
   );
 
@@ -61,7 +60,7 @@ describe("mockRequest action", function () {
   });
   afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
 
-  it("skips a browser outside BIDI_BROWSERS", async function () {
+  it("skips a browser whose sessions have no BiDi socket", async function () {
     const { result, driver } = await run({ url: "**/x" }, { browserName: "firefox" });
     assert.equal(result.status, "SKIPPED");
     assert.equal(result.description, "Skipped: `firefox` can't mock requests.");
@@ -183,8 +182,10 @@ describe("mockRequest bodyPath resolution", function () {
   });
 });
 
-describe("needsBidi and mockRequest", function () {
-  it("opens the socket for a context with a mockRequest step", function () {
-    assert.equal(needsBidi({ browser: { name: "chrome" } }, [{ goTo: "x" }, { mockRequest: { url: "**/x" } }]), true);
+describe("hasBidi decides where mockRequest runs", function () {
+  it("is true for chrome and false for firefox and webkit", function () {
+    assert.equal(hasBidi("chrome"), true);
+    assert.equal(hasBidi("firefox"), false);
+    assert.equal(hasBidi("webkit"), false);
   });
 });

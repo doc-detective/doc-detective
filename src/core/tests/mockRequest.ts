@@ -12,20 +12,20 @@ type MockEntry = { mock: any; answered: number };
 /**
  * Answer matching browser requests with a fixed response until the test ends.
  * Uses webdriverio `browser.mock()`, which needs the BiDi socket, so it runs
- * only in a browser listed in `bidiBrowsers`.
+ * only where `hasBidi(browserName)` is true (ADR 01216).
  */
 async function mockRequest({
   config,
   step,
   driver,
   browserName,
-  bidiBrowsers,
+  hasBidi,
 }: {
   config: any;
   step: any;
   driver: any;
   browserName?: string;
-  bidiBrowsers: ReadonlySet<string>;
+  hasBidi: (browserName: string | undefined) => boolean;
 }) {
   const result: any = { status: "PASS", description: "Mocked requests.", outputs: {} };
 
@@ -37,7 +37,7 @@ async function mockRequest({
   }
   const { url, method, response = {} } = isValidStep.object.mockRequest;
 
-  if (!browserName || !bidiBrowsers.has(browserName)) {
+  if (!hasBidi(browserName)) {
     result.status = "SKIPPED";
     result.description = `Skipped: \`${browserName === "webkit" ? "safari" : browserName}\` can't mock requests.`;
     return result;
@@ -58,6 +58,7 @@ async function mockRequest({
     }
   }
 
+  // Defensive: every session of a BiDi browser has the socket (ADR 01216).
   if (!driver?.isBidi) {
     result.status = "FAIL";
     result.description = `Couldn't mock requests to \`${url}\`. The browser session has no WebDriver BiDi connection.`;

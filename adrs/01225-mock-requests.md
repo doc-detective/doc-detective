@@ -7,7 +7,7 @@ decision-makers: hawkeyexl
 # Mock browser requests with a `mockRequest` step
 
 Builds on [ADR 01216](01216-bidi-socket-per-browser-chrome-first.md), which opens the BiDi socket
-per context, per browser, for Chrome only.
+on every session of a browser in `BIDI_BROWSERS`: Chrome only, for now.
 
 ## Context and Problem Statement
 
@@ -17,13 +17,13 @@ docs. Playwright users fix this by routing the request to a fixed response. Doc 
 has no way to answer a browser's request.
 
 webdriverio's `browser.mock()` intercepts requests through WebDriver BiDi `network.addIntercept`.
-ADR 01216 made BiDi safe to open for Chrome, one context at a time. How should a spec answer a
+ADR 01216 opens BiDi on every Chrome session. How should a spec answer a
 browser request with a fixed response?
 
 ## Decision Drivers
 
 * Stable screenshots for Wren (W2), and error-state tests for Diego (D2).
-* Contexts that don't mock keep today's classic session with no socket.
+* Element commands stay on classic WebDriver (ADR 00132).
 * Browsers outside `BIDI_BROWSERS` skip clearly, never fail.
 * One shared shape: the schema in common is the only contract.
 
@@ -57,10 +57,10 @@ Chosen option 1.
 
 | Case | Result | Message |
 |---|---|---|
-| Browser not in `BIDI_BROWSERS` | SKIPPED | ``Skipped: `safari` can't mock requests.`` (`webkit` is named `safari`) |
+| `hasBidi(<browser>)` is `false` | SKIPPED | ``Skipped: `safari` can't mock requests.`` (`webkit` is named `safari`) |
 | `bodyPath` can't be read | FAIL | ``Couldn't read `bodyPath` `<absolute path>`.`` |
 | Both `body` and `bodyPath` | schema error | ``set `body` or `bodyPath`, not both.`` |
-| The session has no BiDi socket | FAIL | ``Couldn't mock requests to `<url>`. The browser session has no WebDriver BiDi connection.`` |
+| The session has no BiDi socket (defensive) | FAIL | ``Couldn't mock requests to `<url>`. The browser session has no WebDriver BiDi connection.`` |
 
 Output: `outputs.matched`, the number of requests already answered for that `url` and `method`,
 counting the mocks this step replaced.
@@ -72,9 +72,9 @@ counting the mocks this step replaced.
   before the session closes.
 * A later `mockRequest` for the same `url` and `method` replaces the earlier one. webdriverio
   restores the old intercept itself when the definition matches.
-* `needsBidi(context, steps)` returns `true` when any of the context's steps is a `mockRequest`.
-  The runner passes `context.steps`, the resolved steps, when it builds the driver capabilities.
-  So only a context that mocks opens the socket, and only in a browser in `BIDI_BROWSERS`.
+* The step runs where ADR 01216's `hasBidi(browserName)` is `true`. Every session of such a
+  browser has the socket, so the step needs nothing from capabilities. Elsewhere it's SKIPPED.
+* A session without the socket despite `hasBidi` FAILs the step. That's a defensive check.
 * A relative `bodyPath` resolves against the spec file at detection, like other spec paths, and
   honors `relativePathBase`. `resolvePaths` doesn't descend into `response`, so it handles this
   key on its own. A step from `getRunner()` resolves against the working directory.
@@ -82,7 +82,7 @@ counting the mocks this step replaced.
 ### Consequences
 
 * Good: stable screenshots of live data in Chrome, with no proxy and no app changes.
-* Good: every other context keeps its classic session.
+* Good: one helper, `hasBidi`, decides where every BiDi feature runs.
 * Neutral: `outputs.matched` is counted when the step runs. A count at the end of the test isn't
   reported.
 * Bad: Firefox and Safari skip until they join `BIDI_BROWSERS`.
@@ -94,7 +94,7 @@ counting the mocks this step replaced.
   default is added.
 * `test/mockRequest.test.js`: skip messages, the default `200`, method filter, headers, `bodyPath`
   bytes, missing `bodyPath`, no BiDi, replacement counting, cleanup, `bodyPath` resolution and
-  `needsBidi`.
+  `hasBidi`.
 * `test/core-artifacts/http/mock-request.spec.json`: a JSON body, a body file, a method filter, a
   replacement with its count, and the Firefox and Safari skips.
 

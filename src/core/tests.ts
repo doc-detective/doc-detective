@@ -6265,7 +6265,7 @@ async function runStep({
       step,
       driver,
       browserName: context?.browser?.name,
-      bidiBrowsers: BIDI_BROWSERS,
+      hasBidi,
     });
   } else if (typeof step.httpRequest !== "undefined") {
     actionResult = await httpRequest({

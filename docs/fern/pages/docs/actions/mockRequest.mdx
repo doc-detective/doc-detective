@@ -63,7 +63,7 @@ This example answers every request whose path starts with `/api/invoices`. The p
 }
 ```
 
-{/* step {"stepId":"mockrequest-json-mock","description":"Answer invoice requests with a fixed date","mockRequest":{"url":"**/api/invoices*","response":{"body":{"next":"2026-12-03"}}}} */}
+{/* step {"stepId":"mockrequest-json-mock","description":"Answer invoice requests with a fixed date","mockRequest":{"url":"/api/invoices*","response":{"body":{"next":"2026-12-03"}}}} */}
 {/* step {"stepId":"mockrequest-json-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"mockrequest-json-check","description":"Fetch an invoice and check the mocked date","runBrowserScript":{"script":"return fetch('/api/invoices?page=1').then((r) => r.text());","output":"2026-12-03"}} */}
 {/* test end */}
@@ -89,7 +89,7 @@ This example answers `POST` requests with a `503` error and lets every other met
 }
 ```
 
-{/* step {"stepId":"mockrequest-method-mock","description":"Fail every order submission","mockRequest":{"url":"**/api/orders","method":"POST","response":{"statusCode":503,"headers":{"content-type":"text/plain"},"body":"Service unavailable"}}} */}
+{/* step {"stepId":"mockrequest-method-mock","description":"Fail every order submission","mockRequest":{"url":"/api/orders","method":"POST","response":{"statusCode":503,"headers":{"content-type":"text/plain"},"body":"Service unavailable"}}} */}
 {/* step {"stepId":"mockrequest-method-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
 {/* step {"stepId":"mockrequest-method-check","description":"POST gets the mocked error and GET reaches the server","runBrowserScript":{"script":"const u = '/api/orders'; return Promise.all([fetch(u, { method: 'POST' }).then((r) => r.status), fetch(u).then((r) => r.status)]).then((s) => s.join(' '));","output":"503 200"}} */}
 {/* test end */}
