@@ -5969,6 +5969,24 @@
                   "$ref": "annotation_v3.schema.json#"
                 }
               },
+              "mask": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "transform": [
+                        "trim"
+                      ]
+                    },
+                    {
+                      "$ref": "annotation_v3.nodefaults.schema.json#/components/schemas/target_element"
+                    }
+                  ]
+                }
+              },
               "sourceIntegration": {
                 "$ref": "sourceIntegration_v3.schema.json#"
               }
@@ -14330,6 +14348,24 @@
                 "type": "array",
                 "items": {
                   "$ref": "annotation_v3.nodefaults.schema.json#"
+                }
+              },
+              "mask": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "transform": [
+                        "trim"
+                      ]
+                    },
+                    {
+                      "$ref": "annotation_v3.nodefaults.schema.json#/components/schemas/target_element"
+                    }
+                  ]
                 }
               },
               "sourceIntegration": {

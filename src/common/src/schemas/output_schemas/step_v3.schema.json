@@ -32797,6 +32797,265 @@
                             ]
                           }
                         },
+                        "mask": {
+                          "type": "array",
+                          "description": "Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.",
+                          "minItems": 1,
+                          "items": {
+                            "anyOf": [
+                              {
+                                "title": "Mask by element (simple)",
+                                "type": "string",
+                                "description": "Display text or selector of the element to mask. Masks the first match.",
+                                "minLength": 1,
+                                "transform": [
+                                  "trim"
+                                ]
+                              },
+                              {
+                                "title": "Target by element (detailed)",
+                                "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
+                                "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
+                                "allOf": [
+                                  {
+                                    "title": "Element-finding fields",
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "properties": {
+                                      "selector": {
+                                        "type": "string",
+                                        "description": "Selector of the element to annotate. Browser surfaces only."
+                                      },
+                                      "elementText": {
+                                        "type": "string",
+                                        "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementId": {
+                                        "type": "string",
+                                        "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementTestId": {
+                                        "type": "string",
+                                        "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "elementClass": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "array",
+                                            "items": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        ],
+                                        "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
+                                      },
+                                      "elementAttribute": {
+                                        "type": "object",
+                                        "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                        "additionalProperties": {
+                                          "type": [
+                                            "boolean",
+                                            "number",
+                                            "string"
+                                          ]
+                                        },
+                                        "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
+                                      },
+                                      "elementImage": {
+                                        "$schema": "http://json-schema.org/draft-07/schema#",
+                                        "title": "elementImage",
+                                        "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+                                        "anyOf": [
+                                          {
+                                            "title": "Image path",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                          },
+                                          {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "path"
+                                                ]
+                                              },
+                                              {
+                                                "required": [
+                                                  "base64"
+                                                ]
+                                              }
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                              },
+                                              "base64": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                              },
+                                              "threshold": {
+                                                "type": "number",
+                                                "exclusiveMinimum": 0,
+                                                "maximum": 1,
+                                                "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                              },
+                                              "color": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$",
+                                                "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                              }
+                                            }
+                                          }
+                                        ],
+                                        "components": {
+                                          "schemas": {
+                                            "path": {
+                                              "title": "Image path",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                            },
+                                            "object": {
+                                              "title": "Image (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "oneOf": [
+                                                {
+                                                  "required": [
+                                                    "path"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "base64"
+                                                  ]
+                                                }
+                                              ],
+                                              "properties": {
+                                                "path": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                },
+                                                "base64": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                },
+                                                "threshold": {
+                                                  "type": "number",
+                                                  "exclusiveMinimum": 0,
+                                                  "maximum": 1,
+                                                  "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                },
+                                                "color": {
+                                                  "type": "string",
+                                                  "pattern": "^#[0-9a-fA-F]{6}$",
+                                                  "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                }
+                                              }
+                                            }
+                                          }
+                                        },
+                                        "examples": [
+                                          "icons/save.svg",
+                                          {
+                                            "path": "icons/save.svg"
+                                          },
+                                          {
+                                            "path": "chart.png",
+                                            "threshold": 0.99
+                                          },
+                                          {
+                                            "path": "icons/save.svg",
+                                            "color": "#1a5fb4"
+                                          },
+                                          {
+                                            "base64": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAAAAADRSSBWAAAAC0lEQVR4nGNg+A8AAQIBAEK+vGgAAAAASUVORK5CYII="
+                                          }
+                                        ]
+                                      },
+                                      "elementAria": {
+                                        "type": "string",
+                                        "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                      },
+                                      "timeout": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
+                                        "default": 5000,
+                                        "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "title": "At least one element-finding field",
+                                    "type": "object",
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "selector"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "elementText"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "elementId"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "elementTestId"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "elementClass"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "elementAttribute"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "elementAria"
+                                        ]
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "elementImage"
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
                         "sourceIntegration": {
                           "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
                           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -36610,6 +36869,265 @@
                               ]
                             }
                           },
+                          "mask": {
+                            "type": "array",
+                            "description": "Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.",
+                            "minItems": 1,
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "title": "Mask by element (simple)",
+                                  "type": "string",
+                                  "description": "Display text or selector of the element to mask. Masks the first match.",
+                                  "minLength": 1,
+                                  "transform": [
+                                    "trim"
+                                  ]
+                                },
+                                {
+                                  "title": "Target by element (detailed)",
+                                  "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
+                                  "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
+                                  "allOf": [
+                                    {
+                                      "title": "Element-finding fields",
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "properties": {
+                                        "selector": {
+                                          "type": "string",
+                                          "description": "Selector of the element to annotate. Browser surfaces only."
+                                        },
+                                        "elementText": {
+                                          "type": "string",
+                                          "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "elementId": {
+                                          "type": "string",
+                                          "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "elementTestId": {
+                                          "type": "string",
+                                          "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "elementClass": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              }
+                                            }
+                                          ],
+                                          "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
+                                        },
+                                        "elementAttribute": {
+                                          "type": "object",
+                                          "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                          "additionalProperties": {
+                                            "type": [
+                                              "boolean",
+                                              "number",
+                                              "string"
+                                            ]
+                                          },
+                                          "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
+                                        },
+                                        "elementImage": {
+                                          "$schema": "http://json-schema.org/draft-07/schema#",
+                                          "title": "elementImage",
+                                          "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+                                          "anyOf": [
+                                            {
+                                              "title": "Image path",
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                            },
+                                            {
+                                              "title": "Image (detailed)",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "oneOf": [
+                                                {
+                                                  "required": [
+                                                    "path"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "base64"
+                                                  ]
+                                                }
+                                              ],
+                                              "properties": {
+                                                "path": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                },
+                                                "base64": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                },
+                                                "threshold": {
+                                                  "type": "number",
+                                                  "exclusiveMinimum": 0,
+                                                  "maximum": 1,
+                                                  "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                },
+                                                "color": {
+                                                  "type": "string",
+                                                  "pattern": "^#[0-9a-fA-F]{6}$",
+                                                  "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                }
+                                              }
+                                            }
+                                          ],
+                                          "components": {
+                                            "schemas": {
+                                              "path": {
+                                                "title": "Image path",
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                              },
+                                              "object": {
+                                                "title": "Image (detailed)",
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "path"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "base64"
+                                                    ]
+                                                  }
+                                                ],
+                                                "properties": {
+                                                  "path": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                  },
+                                                  "base64": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                  },
+                                                  "threshold": {
+                                                    "type": "number",
+                                                    "exclusiveMinimum": 0,
+                                                    "maximum": 1,
+                                                    "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                  },
+                                                  "color": {
+                                                    "type": "string",
+                                                    "pattern": "^#[0-9a-fA-F]{6}$",
+                                                    "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "examples": [
+                                            "icons/save.svg",
+                                            {
+                                              "path": "icons/save.svg"
+                                            },
+                                            {
+                                              "path": "chart.png",
+                                              "threshold": 0.99
+                                            },
+                                            {
+                                              "path": "icons/save.svg",
+                                              "color": "#1a5fb4"
+                                            },
+                                            {
+                                              "base64": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAAAAADRSSBWAAAAC0lEQVR4nGNg+A8AAQIBAEK+vGgAAAAASUVORK5CYII="
+                                            }
+                                          ]
+                                        },
+                                        "elementAria": {
+                                          "type": "string",
+                                          "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                        },
+                                        "timeout": {
+                                          "type": "integer",
+                                          "minimum": 0,
+                                          "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
+                                          "default": 5000,
+                                          "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "title": "At least one element-finding field",
+                                      "type": "object",
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "required": [
+                                            "selector"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "required": [
+                                            "elementText"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "required": [
+                                            "elementId"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "required": [
+                                            "elementTestId"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "required": [
+                                            "elementClass"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "required": [
+                                            "elementAttribute"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "required": [
+                                            "elementAria"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "required": [
+                                            "elementImage"
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          },
                           "sourceIntegration": {
                             "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
                             "$schema": "http://json-schema.org/draft-07/schema#",
@@ -40403,6 +40921,265 @@
                                 "exit": "fade",
                                 "durationMs": 400
                               }
+                            }
+                          ]
+                        }
+                      },
+                      "mask": {
+                        "type": "array",
+                        "description": "Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.",
+                        "minItems": 1,
+                        "items": {
+                          "anyOf": [
+                            {
+                              "title": "Mask by element (simple)",
+                              "type": "string",
+                              "description": "Display text or selector of the element to mask. Masks the first match.",
+                              "minLength": 1,
+                              "transform": [
+                                "trim"
+                              ]
+                            },
+                            {
+                              "title": "Target by element (detailed)",
+                              "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
+                              "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
+                              "allOf": [
+                                {
+                                  "title": "Element-finding fields",
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "selector": {
+                                      "type": "string",
+                                      "description": "Selector of the element to annotate. Browser surfaces only."
+                                    },
+                                    "elementText": {
+                                      "type": "string",
+                                      "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementId": {
+                                      "type": "string",
+                                      "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementTestId": {
+                                      "type": "string",
+                                      "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "elementClass": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      ],
+                                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
+                                    },
+                                    "elementAttribute": {
+                                      "type": "object",
+                                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                      "additionalProperties": {
+                                        "type": [
+                                          "boolean",
+                                          "number",
+                                          "string"
+                                        ]
+                                      },
+                                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
+                                    },
+                                    "elementImage": {
+                                      "$schema": "http://json-schema.org/draft-07/schema#",
+                                      "title": "elementImage",
+                                      "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+                                      "anyOf": [
+                                        {
+                                          "title": "Image path",
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                        },
+                                        {
+                                          "title": "Image (detailed)",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "oneOf": [
+                                            {
+                                              "required": [
+                                                "path"
+                                              ]
+                                            },
+                                            {
+                                              "required": [
+                                                "base64"
+                                              ]
+                                            }
+                                          ],
+                                          "properties": {
+                                            "path": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                            },
+                                            "base64": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                            },
+                                            "threshold": {
+                                              "type": "number",
+                                              "exclusiveMinimum": 0,
+                                              "maximum": 1,
+                                              "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                            },
+                                            "color": {
+                                              "type": "string",
+                                              "pattern": "^#[0-9a-fA-F]{6}$",
+                                              "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                            }
+                                          }
+                                        }
+                                      ],
+                                      "components": {
+                                        "schemas": {
+                                          "path": {
+                                            "title": "Image path",
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                          },
+                                          "object": {
+                                            "title": "Image (detailed)",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "oneOf": [
+                                              {
+                                                "required": [
+                                                  "path"
+                                                ]
+                                              },
+                                              {
+                                                "required": [
+                                                  "base64"
+                                                ]
+                                              }
+                                            ],
+                                            "properties": {
+                                              "path": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                              },
+                                              "base64": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                              },
+                                              "threshold": {
+                                                "type": "number",
+                                                "exclusiveMinimum": 0,
+                                                "maximum": 1,
+                                                "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                              },
+                                              "color": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$",
+                                                "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                              }
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "examples": [
+                                        "icons/save.svg",
+                                        {
+                                          "path": "icons/save.svg"
+                                        },
+                                        {
+                                          "path": "chart.png",
+                                          "threshold": 0.99
+                                        },
+                                        {
+                                          "path": "icons/save.svg",
+                                          "color": "#1a5fb4"
+                                        },
+                                        {
+                                          "base64": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAAAAADRSSBWAAAAC0lEQVR4nGNg+A8AAQIBAEK+vGgAAAAASUVORK5CYII="
+                                        }
+                                      ]
+                                    },
+                                    "elementAria": {
+                                      "type": "string",
+                                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                    },
+                                    "timeout": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
+                                      "default": 5000,
+                                      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
+                                    }
+                                  }
+                                },
+                                {
+                                  "title": "At least one element-finding field",
+                                  "type": "object",
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "selector"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "elementText"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "elementId"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "elementTestId"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "elementClass"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "elementAttribute"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "elementAria"
+                                      ]
+                                    },
+                                    {
+                                      "type": "object",
+                                      "required": [
+                                        "elementImage"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
                             }
                           ]
                         }

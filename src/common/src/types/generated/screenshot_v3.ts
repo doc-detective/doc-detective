@@ -412,6 +412,72 @@ export type NamedRegion6 =
 export type ExactlyOneAnnotationType = {
   [k: string]: unknown;
 };
+/**
+ * Display text or selector of the element to mask. Masks the first match.
+ */
+export type MaskByElementSimple = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed6 = ElementFindingFields6 & AtLeastOneElementFindingField6;
+/**
+ * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
+ */
+export type ElementImage7 = ImagePath7 | ImageDetailed7;
+/**
+ * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+ */
+export type ImagePath7 = string;
+export type ImageDetailed7 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+   */
+  path?: string;
+  /**
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
+   */
+  base64?: string;
+  /**
+   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
+   */
+  threshold?: number;
+  /**
+   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
+   */
+  color?: string;
+};
+export type AtLeastOneElementFindingField6 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 
 export interface CaptureScreenshotFields {
   /**
@@ -437,6 +503,12 @@ export interface CaptureScreenshotFields {
    * Visual annotations to draw onto the screenshot. Annotations are composited into the image and never touch the page, so they can't disturb the page under test or appear in a recording that's running at the same time. Each annotation is resolved against the capture after any `crop`. To keep annotations on screen across steps and in recordings, use an `annotate` step instead.
    */
   annotations?: Annotation[];
+  /**
+   * Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.
+   *
+   * @minItems 1
+   */
+  mask?: [MaskByElementSimple | TargetByElementDetailed6, ...(MaskByElementSimple | TargetByElementDetailed6)[]];
   sourceIntegration?: SourceIntegration;
 }
 export interface BrowserSurface {
@@ -997,6 +1069,43 @@ export interface AnnotationTransition {
    * Length of the enter and exit animations, in milliseconds.
    */
   durationMs?: number;
+}
+export interface ElementFindingFields6 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: boolean | number | string;
+  };
+  elementImage?: ElementImage7;
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
+   */
+  timeout?: number;
 }
 /**
  * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.

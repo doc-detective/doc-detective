@@ -289,8 +289,12 @@ async function resolveAnnotationRects({
   canvas,
   scale,
   cropOrigin,
+  verb = "annotate",
 }: {
   config: any;
+  // What the caller does with the rect, for "Couldn't find the element to
+  // <verb>" messages: screenshot masks reuse this resolver (ADR 01216).
+  verb?: string;
   annotations: ResolvedAnnotation[];
   driver: any;
   surface?: any;
@@ -345,7 +349,7 @@ async function resolveAnnotationRects({
       const element = findResult.outputs?.rawElement;
       if (findResult.status === "FAIL" || !element) {
         errors.push(
-          `Couldn't find the element to annotate: ${JSON.stringify(target)}.`
+          `Couldn't find the element to ${verb}: ${JSON.stringify(target)}.`
         );
         continue;
       }
@@ -372,7 +376,7 @@ async function resolveAnnotationRects({
       });
       if (found.error || !found.elements?.length) {
         errors.push(
-          `Couldn't find any element to annotate: ${JSON.stringify(redactElementImage(target))}. ${found.error ?? ""}`.trim()
+          `Couldn't find any element to ${verb}: ${JSON.stringify(redactElementImage(target))}. ${found.error ?? ""}`.trim()
         );
         continue;
       }
@@ -389,7 +393,7 @@ async function resolveAnnotationRects({
       const element = findResult.outputs?.rawElement;
       if (findResult.status === "FAIL" || !element) {
         errors.push(
-          `Couldn't find the element to annotate: ${
+          `Couldn't find the element to ${verb}: ${
             typeof target === "string" ? target : JSON.stringify(redactElementImage(target))
           }. ${findResult.description ?? ""}`.trim()
         );

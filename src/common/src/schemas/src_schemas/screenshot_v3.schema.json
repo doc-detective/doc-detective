@@ -125,6 +125,27 @@
               "$ref": "annotation_v3.schema.json#"
             }
           },
+          "mask": {
+            "type": "array",
+            "description": "Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.",
+            "minItems": 1,
+            "items": {
+              "anyOf": [
+                {
+                  "title": "Mask by element (simple)",
+                  "type": "string",
+                  "description": "Display text or selector of the element to mask. Masks the first match.",
+                  "minLength": 1,
+                  "transform": [
+                    "trim"
+                  ]
+                },
+                {
+                  "$ref": "annotation_v3.schema.json#/components/schemas/target_element"
+                }
+              ]
+            }
+          },
           "sourceIntegration": {
             "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
             "$ref": "sourceIntegration_v3.schema.json#"

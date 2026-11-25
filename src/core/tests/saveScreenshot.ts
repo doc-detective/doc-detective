@@ -92,6 +92,29 @@ export { saveScreenshot, clampCropRect, aspectRatiosMatch, referenceViewport };
 
 type Rect = { x: number; y: number; width: number; height: number };
 
+// Fill `rect` (in capture pixels, scaled by sx/sy) with opaque magenta in a raw
+// RGBA buffer of width x height, clipped to the buffer (ADR 01216).
+// A resampled image (sx/sy != 1) smears each edge outward, so the mask grows
+// there to cover the bleed.
+// ponytail: fixed 3px pad matches sharp's default lanczos3 kernel; derive it
+// from the kernel if the resample ever changes.
+function paintMask(data: Buffer, width: number, height: number, rect: Rect, sx: number, sy: number) {
+  const pad = sx === 1 && sy === 1 ? 0 : 3;
+  const x0 = Math.max(0, Math.floor(rect.x * sx) - pad);
+  const y0 = Math.max(0, Math.floor(rect.y * sy) - pad);
+  const x1 = Math.min(width, Math.ceil((rect.x + rect.width) * sx) + pad);
+  const y1 = Math.min(height, Math.ceil((rect.y + rect.height) * sy) + pad);
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const i = (y * width + x) * 4;
+      data[i] = 255;
+      data[i + 1] = 0;
+      data[i + 2] = 255;
+      data[i + 3] = 255;
+    }
+  }
+}
+
 // Shift the rect into image bounds without shrinking. When the rect fits
 // inside the image, output dimensions depend only on the requested rect,
 // not on where it sits — so two crops of the same element with the same
@@ -988,36 +1011,49 @@ async function captureScreenshot({
   // write. Annotations are composited in image space rather than injected into
   // the page: that keeps the page under test untouched, works identically on
   // app surfaces, and can't flash into a recording that's running concurrently.
+  // How element rects map onto the final canvas, shared by annotations and
+  // masks (ADR 01216) so both land in the same place. Computed once, on first
+  // use. Neither changes the canvas size, so it stays valid after annotating.
+  let geometry:
+    | { canvas: { width: number; height: number }; scale: number; windowOrigin: { x: number; y: number }; logicalWidth: unknown }
+    | undefined;
+  const captureGeometry = async () => {
+    if (geometry) return geometry;
+    // Without a crop these are the same buffer, so read metadata once.
+    const captureMeta = await sharp(captureBuffer).metadata();
+    const canvasMeta =
+      finalBuffer === captureBuffer
+        ? captureMeta
+        : await sharp(finalBuffer).metadata();
+    const canvas = { width: canvasMeta.width!, height: canvasMeta.height! };
+
+    // Scale comes from the CAPTURE, not the cropped canvas: it relates the
+    // capture's pixels to the logical units element rects are reported in,
+    // and cropping changes the canvas but not that relationship.
+    let logicalWidth: unknown;
+    let windowOrigin = { x: 0, y: 0 };
+    if (isAppCapture) {
+      const windowRect = await appWindowRect(appEntry, appWindowTarget);
+      if (windowRect) {
+        logicalWidth = windowRect.w;
+        // Whether native rects need rebasing onto the window is
+        // platform-specific — see appWindowOrigin for the evidence.
+        windowOrigin = appWindowOrigin(appEntry?.platform, windowRect);
+      }
+    } else {
+      logicalWidth = await driver.execute(() => window.innerWidth);
+    }
+    const scale = computeScale(captureMeta.width!, logicalWidth);
+    geometry = { canvas, scale, windowOrigin, logicalWidth };
+    return geometry;
+  };
+
   const annotationSpecs = Array.isArray(step.screenshot.annotations)
     ? step.screenshot.annotations
     : [];
   if (annotationSpecs.length > 0) {
     try {
-      // Without a crop these are the same buffer, so read metadata once.
-      const captureMeta = await sharp(captureBuffer).metadata();
-      const canvasMeta =
-        finalBuffer === captureBuffer
-          ? captureMeta
-          : await sharp(finalBuffer).metadata();
-      const canvas = { width: canvasMeta.width!, height: canvasMeta.height! };
-
-      // Scale comes from the CAPTURE, not the cropped canvas: it relates the
-      // capture's pixels to the logical units element rects are reported in,
-      // and cropping changes the canvas but not that relationship.
-      let logicalWidth: unknown;
-      let windowOrigin = { x: 0, y: 0 };
-      if (isAppCapture) {
-        const windowRect = await appWindowRect(appEntry, appWindowTarget);
-        if (windowRect) {
-          logicalWidth = windowRect.w;
-          // Whether native rects need rebasing onto the window is
-          // platform-specific — see appWindowOrigin for the evidence.
-          windowOrigin = appWindowOrigin(appEntry?.platform, windowRect);
-        }
-      } else {
-        logicalWidth = await driver.execute(() => window.innerWidth);
-      }
-      const scale = computeScale(captureMeta.width!, logicalWidth);
+      const { canvas, scale, windowOrigin, logicalWidth } = await captureGeometry();
 
       const theme = annotationTheme ?? resolveTheme([config?.annotationDefaults]);
       const resolved = annotationSpecs.map((annotation: any) =>
@@ -1214,6 +1250,70 @@ async function captureScreenshot({
         return await evaluateApplicable();
       }
 
+      // Masks (ADR 01216): areas whose pixels don't count toward the
+      // comparison. Resolved only here, where a comparison actually runs, in
+      // the capture's canvas pixels; painted onto both images further down.
+      const maskTargets = Array.isArray(step.screenshot.mask) ? step.screenshot.mask : [];
+      let maskRects: { x: number; y: number; width: number; height: number }[] = [];
+      const capturedSize = { width: img2.width, height: img2.height };
+      if (maskTargets.length > 0) {
+        const { canvas, scale, windowOrigin } = await captureGeometry();
+        const { placed, errors } = await resolveAnnotationRects({
+          config,
+          verb: "mask",
+          // An element object masks every match; a string, which could be a
+          // selector or display text, masks the first. App finds resolve one
+          // element, so they never ask for all.
+          annotations: maskTargets.map((target: any) => ({
+            target,
+            all: typeof target === "object" && !isAppCapture,
+          })) as any,
+          driver,
+          surface: step.screenshot.surface,
+          appSession,
+          isAppCapture,
+          appDriver: captureDriver,
+          windowOrigin,
+          canvas,
+          scale,
+          cropOrigin,
+        });
+
+        // A mask that can't be found FAILs: a comparison that quietly ignores
+        // nothing is worse than one that stops.
+        result.outputs.maskTargetsFound = errors.length === 0;
+        specs.push({
+          statement: `$$outputs.maskTargetsFound == true`,
+          severity: "fail",
+        });
+        if (errors.length > 0) {
+          result.description = `Couldn't find every mask target. ${errors.join(" ")}`;
+          return await evaluateApplicable();
+        }
+
+        // Clip to the canvas. A targeted (string) mask that lands wholly
+        // outside it masks nothing, which is a WARNING; every-match masks are
+        // exempt, since matches below the fold are expected.
+        const clipped = placed.map((item: any) => {
+          const x = Math.max(0, Math.floor(item.rect.x));
+          const y = Math.max(0, Math.floor(item.rect.y));
+          const right = Math.min(canvas.width, Math.ceil(item.rect.x + item.rect.width));
+          const bottom = Math.min(canvas.height, Math.ceil(item.rect.y + item.rect.height));
+          return { all: item.all, rect: { x, y, width: Math.max(0, right - x), height: Math.max(0, bottom - y) } };
+        });
+        maskRects = clipped
+          .map((item: any) => item.rect)
+          .filter((rect: any) => rect.width > 0 && rect.height > 0);
+        result.outputs.maskedRegions = maskRects.length;
+        result.outputs.masksInBounds = clipped.every(
+          (item: any) => item.all || (item.rect.width > 0 && item.rect.height > 0)
+        );
+        specs.push({
+          statement: `$$outputs.masksInBounds == true`,
+          severity: "warning",
+        });
+      }
+
       // Bring the images to a common size (ADR 01205). At the same scale (each
       // side within 5%, such as a viewport a pixel shorter) compare the common
       // top-left region: resampling would smear every row into false drift.
@@ -1249,6 +1349,19 @@ async function captureScreenshot({
 
         img1.data = img1ResizedBuffer;
         img2.data = img2ResizedBuffer;
+      }
+
+      // Paint every mask the same color on both images, so masked pixels
+      // always match. The rects are in the capture's pixels: the same-scale
+      // path compares the top-left region as-is, and the resample path scales
+      // the capture to (width, height), so the rects scale with it.
+      if (maskRects.length > 0) {
+        const sx = sameScale ? 1 : width / capturedSize.width;
+        const sy = sameScale ? 1 : height / capturedSize.height;
+        for (const rect of maskRects) {
+          paintMask(img1.data, width, height, rect, sx, sy);
+          paintMask(img2.data, width, height, rect, sx, sy);
+        }
       }
 
       let pixelmatchFn: any;

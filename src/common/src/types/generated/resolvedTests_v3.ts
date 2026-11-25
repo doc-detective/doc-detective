@@ -4706,6 +4706,72 @@ export type ExactlyOneAnnotationType =
       [k: string]: unknown;
     };
 /**
+ * Display text or selector of the element to mask. Masks the first match.
+ */
+export type MaskByElementSimple = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed6 = ElementFindingFields6 & AtLeastOneElementFindingField6;
+/**
+ * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
+ */
+export type ElementImage16 = ImagePath16 | ImageDetailed16;
+/**
+ * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+ */
+export type ImagePath16 = string;
+export type ImageDetailed16 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+   */
+  path?: string;
+  /**
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
+   */
+  base64?: string;
+  /**
+   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
+   */
+  threshold?: number;
+  /**
+   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
+   */
+  color?: string;
+};
+export type AtLeastOneElementFindingField6 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
  * A condition expression, or an array of expressions combined with logical AND.
  */
 export type Condition66 = string | [string, ...string[]];
@@ -5745,7 +5811,7 @@ export type ElementCriteria4 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage16;
+  elementImage?: ElementImage17;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -5754,12 +5820,12 @@ export type ElementCriteria4 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage16 = ImagePath16 | ImageDetailed16;
+export type ElementImage17 = ImagePath17 | ImageDetailed17;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath16 = string;
-export type ImageDetailed16 = (
+export type ImagePath17 = string;
+export type ImageDetailed17 = (
   | {
       [k: string]: unknown;
     }
@@ -5849,7 +5915,7 @@ export type ElementCriteria5 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage17;
+  elementImage?: ElementImage18;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -5858,12 +5924,12 @@ export type ElementCriteria5 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage17 = ImagePath17 | ImageDetailed17;
+export type ElementImage18 = ImagePath18 | ImageDetailed18;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath17 = string;
-export type ImageDetailed17 = (
+export type ImagePath18 = string;
+export type ImageDetailed18 = (
   | {
       [k: string]: unknown;
     }
@@ -6252,7 +6318,7 @@ export type ElementDetailed = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage18;
+  elementImage?: ElementImage19;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -6265,12 +6331,12 @@ export type ElementDetailed = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage18 = ImagePath18 | ImageDetailed18;
+export type ElementImage19 = ImagePath19 | ImageDetailed19;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath18 = string;
-export type ImageDetailed18 = (
+export type ImagePath19 = string;
+export type ImageDetailed19 = (
   | {
       [k: string]: unknown;
     }
@@ -6351,7 +6417,7 @@ export type ElementDetailed1 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage19;
+  elementImage?: ElementImage20;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -6364,12 +6430,12 @@ export type ElementDetailed1 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage19 = ImagePath19 | ImageDetailed19;
+export type ElementImage20 = ImagePath20 | ImageDetailed20;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath19 = string;
-export type ImageDetailed19 = (
+export type ImagePath20 = string;
+export type ImageDetailed20 = (
   | {
       [k: string]: unknown;
     }
@@ -7185,77 +7251,6 @@ export type TargetByElementSimple6 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
-export type TargetByElementDetailed6 = ElementFindingFields6 & AtLeastOneElementFindingField6;
-/**
- * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
- */
-export type ElementImage20 = ImagePath20 | ImageDetailed20;
-/**
- * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
- */
-export type ImagePath20 = string;
-export type ImageDetailed20 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
-  /**
-   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
-   */
-  path?: string;
-  /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
-   */
-  base64?: string;
-  /**
-   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
-   */
-  threshold?: number;
-  /**
-   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
-   */
-  color?: string;
-};
-export type AtLeastOneElementFindingField6 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
-/**
- * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
- */
-export type NamedRegion7 =
-  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
-/**
- * Display text or selector of the element to annotate.
- */
-export type TargetByElementSimple7 = string;
-/**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
- */
 export type TargetByElementDetailed7 = ElementFindingFields7 & AtLeastOneElementFindingField7;
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
@@ -7318,12 +7313,12 @@ export type AtLeastOneElementFindingField7 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion8 =
+export type NamedRegion7 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple8 = string;
+export type TargetByElementSimple7 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -7389,12 +7384,12 @@ export type AtLeastOneElementFindingField8 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion9 =
+export type NamedRegion8 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple9 = string;
+export type TargetByElementSimple8 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -7460,12 +7455,12 @@ export type AtLeastOneElementFindingField9 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion10 =
+export type NamedRegion9 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple10 = string;
+export type TargetByElementSimple9 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -7531,12 +7526,12 @@ export type AtLeastOneElementFindingField10 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion11 =
+export type NamedRegion10 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple11 = string;
+export type TargetByElementSimple10 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -7575,6 +7570,77 @@ export type ImageDetailed25 = (
   color?: string;
 };
 export type AtLeastOneElementFindingField11 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion11 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple11 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed12 = ElementFindingFields12 & AtLeastOneElementFindingField12;
+/**
+ * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
+ */
+export type ElementImage26 = ImagePath26 | ImageDetailed26;
+/**
+ * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+ */
+export type ImagePath26 = string;
+export type ImageDetailed26 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+   */
+  path?: string;
+  /**
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
+   */
+  base64?: string;
+  /**
+   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
+   */
+  threshold?: number;
+  /**
+   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
+   */
+  color?: string;
+};
+export type AtLeastOneElementFindingField12 =
   | {
       [k: string]: unknown;
     }
@@ -7643,77 +7709,6 @@ export type TargetByElementSimple12 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
-export type TargetByElementDetailed12 = ElementFindingFields12 & AtLeastOneElementFindingField12;
-/**
- * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
- */
-export type ElementImage26 = ImagePath26 | ImageDetailed26;
-/**
- * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
- */
-export type ImagePath26 = string;
-export type ImageDetailed26 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
-  /**
-   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
-   */
-  path?: string;
-  /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
-   */
-  base64?: string;
-  /**
-   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
-   */
-  threshold?: number;
-  /**
-   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
-   */
-  color?: string;
-};
-export type AtLeastOneElementFindingField12 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
-/**
- * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
- */
-export type NamedRegion14 =
-  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
-/**
- * Display text or selector of the element to annotate.
- */
-export type TargetByElementSimple13 = string;
-/**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
- */
 export type TargetByElementDetailed13 = ElementFindingFields13 & AtLeastOneElementFindingField13;
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
@@ -7776,12 +7771,12 @@ export type AtLeastOneElementFindingField13 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion15 =
+export type NamedRegion14 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple14 = string;
+export type TargetByElementSimple13 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -7847,12 +7842,12 @@ export type AtLeastOneElementFindingField14 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion16 =
+export type NamedRegion15 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple15 = string;
+export type TargetByElementSimple14 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -7918,12 +7913,12 @@ export type AtLeastOneElementFindingField15 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion17 =
+export type NamedRegion16 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple16 = string;
+export type TargetByElementSimple15 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -7989,12 +7984,12 @@ export type AtLeastOneElementFindingField16 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion18 =
+export type NamedRegion17 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple17 = string;
+export type TargetByElementSimple16 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -8033,6 +8028,77 @@ export type ImageDetailed31 = (
   color?: string;
 };
 export type AtLeastOneElementFindingField17 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion18 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple17 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed18 = ElementFindingFields18 & AtLeastOneElementFindingField18;
+/**
+ * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
+ */
+export type ElementImage32 = ImagePath32 | ImageDetailed32;
+/**
+ * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+ */
+export type ImagePath32 = string;
+export type ImageDetailed32 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+   */
+  path?: string;
+  /**
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
+   */
+  base64?: string;
+  /**
+   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
+   */
+  threshold?: number;
+  /**
+   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
+   */
+  color?: string;
+};
+export type AtLeastOneElementFindingField18 =
   | {
       [k: string]: unknown;
     }
@@ -8623,7 +8689,7 @@ export type ClickElementDetailed1 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage32;
+  elementImage?: ElementImage33;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -8672,12 +8738,12 @@ export type ByName38 = string;
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage32 = ImagePath32 | ImageDetailed32;
+export type ElementImage33 = ImagePath33 | ImageDetailed33;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath32 = string;
-export type ImageDetailed32 = (
+export type ImagePath33 = string;
+export type ImageDetailed33 = (
   | {
       [k: string]: unknown;
     }
@@ -8918,7 +8984,7 @@ export type FindElementDetailed1 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage33;
+  elementImage?: ElementImage34;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -8983,12 +9049,12 @@ export type ByName41 = string;
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage33 = ImagePath33 | ImageDetailed33;
+export type ElementImage34 = ImagePath34 | ImageDetailed34;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath33 = string;
-export type ImageDetailed33 = (
+export type ImagePath34 = string;
+export type ImageDetailed34 = (
   | {
       [k: string]: unknown;
     }
@@ -9062,7 +9128,7 @@ export type TypeKeysDetailed2 = {
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage36;
+  elementImage?: ElementImage37;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -9176,7 +9242,7 @@ export type ElementCriteria6 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage34;
+  elementImage?: ElementImage35;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -9185,12 +9251,12 @@ export type ElementCriteria6 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage34 = ImagePath34 | ImageDetailed34;
+export type ElementImage35 = ImagePath35 | ImageDetailed35;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath34 = string;
-export type ImageDetailed34 = (
+export type ImagePath35 = string;
+export type ImageDetailed35 = (
   | {
       [k: string]: unknown;
     }
@@ -9270,7 +9336,7 @@ export type ElementCriteria7 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage35;
+  elementImage?: ElementImage36;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -9279,12 +9345,12 @@ export type ElementCriteria7 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage35 = ImagePath35 | ImageDetailed35;
+export type ElementImage36 = ImagePath36 | ImageDetailed36;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath35 = string;
-export type ImageDetailed35 = (
+export type ImagePath36 = string;
+export type ImageDetailed36 = (
   | {
       [k: string]: unknown;
     }
@@ -9312,12 +9378,12 @@ export type ImageDetailed35 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage36 = ImagePath36 | ImageDetailed36;
+export type ElementImage37 = ImagePath37 | ImageDetailed37;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath36 = string;
-export type ImageDetailed36 = (
+export type ImagePath37 = string;
+export type ImageDetailed37 = (
   | {
       [k: string]: unknown;
     }
@@ -9617,7 +9683,7 @@ export type GoToURLDetailed1 = {
       elementAttribute?: {
         [k: string]: boolean | number | string;
       };
-      elementImage?: ElementImage37;
+      elementImage?: ElementImage38;
       /**
        * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
        */
@@ -9662,12 +9728,12 @@ export type TargetURL4 = string;
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage37 = ImagePath37 | ImageDetailed37;
+export type ElementImage38 = ImagePath38 | ImageDetailed38;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath37 = string;
-export type ImageDetailed37 = (
+export type ImagePath38 = string;
+export type ImageDetailed38 = (
   | {
       [k: string]: unknown;
     }
@@ -10683,7 +10749,7 @@ export type TypeKeysDetailed3 = {
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage40;
+  elementImage?: ElementImage41;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -10797,7 +10863,7 @@ export type ElementCriteria8 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage38;
+  elementImage?: ElementImage39;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -10806,12 +10872,12 @@ export type ElementCriteria8 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage38 = ImagePath38 | ImageDetailed38;
+export type ElementImage39 = ImagePath39 | ImageDetailed39;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath38 = string;
-export type ImageDetailed38 = (
+export type ImagePath39 = string;
+export type ImageDetailed39 = (
   | {
       [k: string]: unknown;
     }
@@ -10891,7 +10957,7 @@ export type ElementCriteria9 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage39;
+  elementImage?: ElementImage40;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -10900,12 +10966,12 @@ export type ElementCriteria9 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage39 = ImagePath39 | ImageDetailed39;
+export type ElementImage40 = ImagePath40 | ImageDetailed40;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath39 = string;
-export type ImageDetailed39 = (
+export type ImagePath40 = string;
+export type ImageDetailed40 = (
   | {
       [k: string]: unknown;
     }
@@ -10933,12 +10999,12 @@ export type ImageDetailed39 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage40 = ImagePath40 | ImageDetailed40;
+export type ElementImage41 = ImagePath41 | ImageDetailed41;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath40 = string;
-export type ImageDetailed40 = (
+export type ImagePath41 = string;
+export type ImageDetailed41 = (
   | {
       [k: string]: unknown;
     }
@@ -11231,7 +11297,7 @@ export type CropByElementDetailed1 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage41;
+  elementImage?: ElementImage42;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -11241,12 +11307,12 @@ export type CropByElementDetailed1 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage41 = ImagePath41 | ImageDetailed41;
+export type ElementImage42 = ImagePath42 | ImageDetailed42;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath41 = string;
-export type ImageDetailed41 = (
+export type ImagePath42 = string;
+export type ImageDetailed42 = (
   | {
       [k: string]: unknown;
     }
@@ -11283,77 +11349,6 @@ export type Annotation3 = AnnotationFields3 & ExactlyOneAnnotationType3;
  * Display text or selector of the element to annotate.
  */
 export type TargetByElementSimple18 = string;
-/**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
- */
-export type TargetByElementDetailed18 = ElementFindingFields18 & AtLeastOneElementFindingField18;
-/**
- * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
- */
-export type ElementImage42 = ImagePath42 | ImageDetailed42;
-/**
- * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
- */
-export type ImagePath42 = string;
-export type ImageDetailed42 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
-  /**
-   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
-   */
-  path?: string;
-  /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
-   */
-  base64?: string;
-  /**
-   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
-   */
-  threshold?: number;
-  /**
-   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
-   */
-  color?: string;
-};
-export type AtLeastOneElementFindingField18 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
-/**
- * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
- */
-export type NamedRegion21 =
-  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
-/**
- * Display text or selector of the element to annotate.
- */
-export type TargetByElementSimple19 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -11419,12 +11414,12 @@ export type AtLeastOneElementFindingField19 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion22 =
+export type NamedRegion21 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple20 = string;
+export type TargetByElementSimple19 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -11490,12 +11485,12 @@ export type AtLeastOneElementFindingField20 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion23 =
+export type NamedRegion22 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple21 = string;
+export type TargetByElementSimple20 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -11561,12 +11556,12 @@ export type AtLeastOneElementFindingField21 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion24 =
+export type NamedRegion23 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple22 = string;
+export type TargetByElementSimple21 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -11632,12 +11627,12 @@ export type AtLeastOneElementFindingField22 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion25 =
+export type NamedRegion24 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple23 = string;
+export type TargetByElementSimple22 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -11703,6 +11698,77 @@ export type AtLeastOneElementFindingField23 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
+export type NamedRegion25 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple23 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed24 = ElementFindingFields24 & AtLeastOneElementFindingField24;
+/**
+ * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
+ */
+export type ElementImage48 = ImagePath48 | ImageDetailed48;
+/**
+ * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+ */
+export type ImagePath48 = string;
+export type ImageDetailed48 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+   */
+  path?: string;
+  /**
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
+   */
+  base64?: string;
+  /**
+   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
+   */
+  threshold?: number;
+  /**
+   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
+   */
+  color?: string;
+};
+export type AtLeastOneElementFindingField24 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
 export type NamedRegion26 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
@@ -11711,6 +11777,72 @@ export type NamedRegion26 =
 export type NamedRegion27 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 export type ExactlyOneAnnotationType3 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * Display text or selector of the element to mask. Masks the first match.
+ */
+export type MaskByElementSimple1 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed25 = ElementFindingFields25 & AtLeastOneElementFindingField25;
+/**
+ * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
+ */
+export type ElementImage49 = ImagePath49 | ImageDetailed49;
+/**
+ * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+ */
+export type ImagePath49 = string;
+export type ImageDetailed49 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+   */
+  path?: string;
+  /**
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
+   */
+  base64?: string;
+  /**
+   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
+   */
+  threshold?: number;
+  /**
+   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
+   */
+  color?: string;
+};
+export type AtLeastOneElementFindingField25 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
   | {
       [k: string]: unknown;
     }
@@ -12769,7 +12901,7 @@ export type ElementCriteria10 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage48;
+  elementImage?: ElementImage50;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -12778,12 +12910,12 @@ export type ElementCriteria10 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage48 = ImagePath48 | ImageDetailed48;
+export type ElementImage50 = ImagePath50 | ImageDetailed50;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath48 = string;
-export type ImageDetailed48 = (
+export type ImagePath50 = string;
+export type ImageDetailed50 = (
   | {
       [k: string]: unknown;
     }
@@ -12873,7 +13005,7 @@ export type ElementCriteria11 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage49;
+  elementImage?: ElementImage51;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -12882,12 +13014,12 @@ export type ElementCriteria11 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage49 = ImagePath49 | ImageDetailed49;
+export type ElementImage51 = ImagePath51 | ImageDetailed51;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath49 = string;
-export type ImageDetailed49 = (
+export type ImagePath51 = string;
+export type ImageDetailed51 = (
   | {
       [k: string]: unknown;
     }
@@ -13276,7 +13408,7 @@ export type ElementDetailed2 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage50;
+  elementImage?: ElementImage52;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -13289,12 +13421,12 @@ export type ElementDetailed2 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage50 = ImagePath50 | ImageDetailed50;
+export type ElementImage52 = ImagePath52 | ImageDetailed52;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath50 = string;
-export type ImageDetailed50 = (
+export type ImagePath52 = string;
+export type ImageDetailed52 = (
   | {
       [k: string]: unknown;
     }
@@ -13375,7 +13507,7 @@ export type ElementDetailed3 = (
   elementAttribute?: {
     [k: string]: boolean | number | string;
   };
-  elementImage?: ElementImage51;
+  elementImage?: ElementImage53;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -13388,12 +13520,12 @@ export type ElementDetailed3 = (
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
  */
-export type ElementImage51 = ImagePath51 | ImageDetailed51;
+export type ElementImage53 = ImagePath53 | ImageDetailed53;
 /**
  * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
  */
-export type ImagePath51 = string;
-export type ImageDetailed51 = (
+export type ImagePath53 = string;
+export type ImageDetailed53 = (
   | {
       [k: string]: unknown;
     }
@@ -14209,148 +14341,6 @@ export type TargetByElementSimple24 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
-export type TargetByElementDetailed24 = ElementFindingFields24 & AtLeastOneElementFindingField24;
-/**
- * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
- */
-export type ElementImage52 = ImagePath52 | ImageDetailed52;
-/**
- * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
- */
-export type ImagePath52 = string;
-export type ImageDetailed52 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
-  /**
-   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
-   */
-  path?: string;
-  /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
-   */
-  base64?: string;
-  /**
-   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
-   */
-  threshold?: number;
-  /**
-   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
-   */
-  color?: string;
-};
-export type AtLeastOneElementFindingField24 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
-/**
- * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
- */
-export type NamedRegion28 =
-  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
-/**
- * Display text or selector of the element to annotate.
- */
-export type TargetByElementSimple25 = string;
-/**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
- */
-export type TargetByElementDetailed25 = ElementFindingFields25 & AtLeastOneElementFindingField25;
-/**
- * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
- */
-export type ElementImage53 = ImagePath53 | ImageDetailed53;
-/**
- * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
- */
-export type ImagePath53 = string;
-export type ImageDetailed53 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
-  /**
-   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
-   */
-  path?: string;
-  /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
-   */
-  base64?: string;
-  /**
-   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
-   */
-  threshold?: number;
-  /**
-   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
-   */
-  color?: string;
-};
-export type AtLeastOneElementFindingField25 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
-/**
- * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
- */
-export type NamedRegion29 =
-  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
-/**
- * Display text or selector of the element to annotate.
- */
-export type TargetByElementSimple26 = string;
-/**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
- */
 export type TargetByElementDetailed26 = ElementFindingFields26 & AtLeastOneElementFindingField26;
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
@@ -14413,12 +14403,12 @@ export type AtLeastOneElementFindingField26 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion30 =
+export type NamedRegion28 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple27 = string;
+export type TargetByElementSimple25 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -14484,12 +14474,12 @@ export type AtLeastOneElementFindingField27 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion31 =
+export type NamedRegion29 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple28 = string;
+export type TargetByElementSimple26 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -14555,12 +14545,12 @@ export type AtLeastOneElementFindingField28 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion32 =
+export type NamedRegion30 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple29 = string;
+export type TargetByElementSimple27 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -14599,6 +14589,148 @@ export type ImageDetailed57 = (
   color?: string;
 };
 export type AtLeastOneElementFindingField29 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion31 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple28 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed30 = ElementFindingFields30 & AtLeastOneElementFindingField30;
+/**
+ * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
+ */
+export type ElementImage58 = ImagePath58 | ImageDetailed58;
+/**
+ * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+ */
+export type ImagePath58 = string;
+export type ImageDetailed58 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+   */
+  path?: string;
+  /**
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
+   */
+  base64?: string;
+  /**
+   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
+   */
+  threshold?: number;
+  /**
+   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
+   */
+  color?: string;
+};
+export type AtLeastOneElementFindingField30 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion32 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple29 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed31 = ElementFindingFields31 & AtLeastOneElementFindingField31;
+/**
+ * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
+ */
+export type ElementImage59 = ImagePath59 | ImageDetailed59;
+/**
+ * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+ */
+export type ImagePath59 = string;
+export type ImageDetailed59 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+   */
+  path?: string;
+  /**
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
+   */
+  base64?: string;
+  /**
+   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
+   */
+  threshold?: number;
+  /**
+   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
+   */
+  color?: string;
+};
+export type AtLeastOneElementFindingField31 =
   | {
       [k: string]: unknown;
     }
@@ -14667,148 +14799,6 @@ export type TargetByElementSimple30 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
-export type TargetByElementDetailed30 = ElementFindingFields30 & AtLeastOneElementFindingField30;
-/**
- * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
- */
-export type ElementImage58 = ImagePath58 | ImageDetailed58;
-/**
- * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
- */
-export type ImagePath58 = string;
-export type ImageDetailed58 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
-  /**
-   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
-   */
-  path?: string;
-  /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
-   */
-  base64?: string;
-  /**
-   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
-   */
-  threshold?: number;
-  /**
-   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
-   */
-  color?: string;
-};
-export type AtLeastOneElementFindingField30 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
-/**
- * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
- */
-export type NamedRegion35 =
-  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
-/**
- * Display text or selector of the element to annotate.
- */
-export type TargetByElementSimple31 = string;
-/**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
- */
-export type TargetByElementDetailed31 = ElementFindingFields31 & AtLeastOneElementFindingField31;
-/**
- * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
- */
-export type ElementImage59 = ImagePath59 | ImageDetailed59;
-/**
- * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
- */
-export type ImagePath59 = string;
-export type ImageDetailed59 = (
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-) & {
-  /**
-   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
-   */
-  path?: string;
-  /**
-   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
-   */
-  base64?: string;
-  /**
-   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
-   */
-  threshold?: number;
-  /**
-   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
-   */
-  color?: string;
-};
-export type AtLeastOneElementFindingField31 =
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    }
-  | {
-      [k: string]: unknown;
-    };
-/**
- * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
- */
-export type NamedRegion36 =
-  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
-/**
- * Display text or selector of the element to annotate.
- */
-export type TargetByElementSimple32 = string;
-/**
- * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
- */
 export type TargetByElementDetailed32 = ElementFindingFields32 & AtLeastOneElementFindingField32;
 /**
  * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
@@ -14871,12 +14861,12 @@ export type AtLeastOneElementFindingField32 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion37 =
+export type NamedRegion35 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple33 = string;
+export type TargetByElementSimple31 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -14942,12 +14932,12 @@ export type AtLeastOneElementFindingField33 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion38 =
+export type NamedRegion36 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple34 = string;
+export type TargetByElementSimple32 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -15013,12 +15003,12 @@ export type AtLeastOneElementFindingField34 =
 /**
  * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
  */
-export type NamedRegion39 =
+export type NamedRegion37 =
   "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
 /**
  * Display text or selector of the element to annotate.
  */
-export type TargetByElementSimple35 = string;
+export type TargetByElementSimple33 = string;
 /**
  * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
  */
@@ -15057,6 +15047,148 @@ export type ImageDetailed63 = (
   color?: string;
 };
 export type AtLeastOneElementFindingField35 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion38 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple34 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed36 = ElementFindingFields36 & AtLeastOneElementFindingField36;
+/**
+ * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
+ */
+export type ElementImage64 = ImagePath64 | ImageDetailed64;
+/**
+ * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+ */
+export type ImagePath64 = string;
+export type ImageDetailed64 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+   */
+  path?: string;
+  /**
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
+   */
+  base64?: string;
+  /**
+   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
+   */
+  threshold?: number;
+  /**
+   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
+   */
+  color?: string;
+};
+export type AtLeastOneElementFindingField36 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
+/**
+ * A named spot, relative to the target element when the annotation has one, or to the capture when it doesn't.
+ */
+export type NamedRegion39 =
+  "top" | "bottom" | "left" | "right" | "center" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+/**
+ * Display text or selector of the element to annotate.
+ */
+export type TargetByElementSimple35 = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed37 = ElementFindingFields37 & AtLeastOneElementFindingField37;
+/**
+ * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
+ */
+export type ElementImage65 = ImagePath65 | ImageDetailed65;
+/**
+ * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+ */
+export type ImagePath65 = string;
+export type ImageDetailed65 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+   */
+  path?: string;
+  /**
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
+   */
+  base64?: string;
+  /**
+   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
+   */
+  threshold?: number;
+  /**
+   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
+   */
+  color?: string;
+};
+export type AtLeastOneElementFindingField37 =
   | {
       [k: string]: unknown;
     }
@@ -20170,6 +20302,12 @@ export interface CaptureScreenshotFields {
    * Visual annotations to draw onto the screenshot. Annotations are composited into the image and never touch the page, so they can't disturb the page under test or appear in a recording that's running at the same time. Each annotation is resolved against the capture after any `crop`. To keep annotations on screen across steps and in recordings, use an `annotate` step instead.
    */
   annotations?: Annotation[];
+  /**
+   * Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.
+   *
+   * @minItems 1
+   */
+  mask?: [MaskByElementSimple | TargetByElementDetailed6, ...(MaskByElementSimple | TargetByElementDetailed6)[]];
   sourceIntegration?: SourceIntegration;
 }
 export interface BrowserSurface6 {
@@ -20730,6 +20868,43 @@ export interface AnnotationTransition3 {
    * Length of the enter and exit animations, in milliseconds.
    */
   durationMs?: number;
+}
+export interface ElementFindingFields6 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: boolean | number | string;
+  };
+  elementImage?: ElementImage16;
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
+   */
+  timeout?: number;
 }
 /**
  * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
@@ -24071,27 +24246,27 @@ export interface AnnotationFields1 {
   /**
    * Draw a box around the target.
    */
-  outline?: TargetByElementSimple6 | TargetByElementDetailed6 | TargetByPosition6;
+  outline?: TargetByElementSimple6 | TargetByElementDetailed7 | TargetByPosition6;
   /**
    * Point an arrow at the target.
    */
-  arrow?: TargetByElementSimple7 | TargetByElementDetailed7 | TargetByPosition7;
+  arrow?: TargetByElementSimple7 | TargetByElementDetailed8 | TargetByPosition7;
   /**
    * Mark the target with a small numbered or lettered marker. Set the marker's characters with `label`.
    */
-  badge?: TargetByElementSimple8 | TargetByElementDetailed8 | TargetByPosition8;
+  badge?: TargetByElementSimple8 | TargetByElementDetailed9 | TargetByPosition8;
   /**
    * Label the target with a text box and a leader line. Set the text with `label`.
    */
-  callout?: TargetByElementSimple9 | TargetByElementDetailed9 | TargetByPosition9;
+  callout?: TargetByElementSimple9 | TargetByElementDetailed10 | TargetByPosition9;
   /**
    * Obscure the target to redact sensitive information. Pair with `all` to redact every match rather than the first.
    */
-  blur?: TargetByElementSimple10 | TargetByElementDetailed10 | TargetByPosition10;
+  blur?: TargetByElementSimple10 | TargetByElementDetailed11 | TargetByPosition10;
   /**
    * Place a standalone text box. Set the text with `label`.
    */
-  text?: TargetByElementSimple11 | TargetByElementDetailed11 | TargetByPosition11;
+  text?: TargetByElementSimple11 | TargetByElementDetailed12 | TargetByPosition11;
   /**
    * Text to display. Required by `badge`, `callout`, and `text`; ignored by the other types.
    */
@@ -24118,62 +24293,6 @@ export interface AnnotationFields1 {
    * If `true`, annotates every element matching the target instead of only the first. Most useful with `blur`, where redacting only the first match can leave sensitive content visible.
    */
   all?: boolean;
-}
-export interface ElementFindingFields6 {
-  /**
-   * Selector of the element to annotate. Browser surfaces only.
-   */
-  selector?: string;
-  /**
-   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementText?: string;
-  /**
-   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementId?: string;
-  /**
-   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementTestId?: string;
-  /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
-   */
-  elementClass?: string | string[];
-  /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
-   */
-  elementAttribute?: {
-    [k: string]: boolean | number | string;
-  };
-  elementImage?: ElementImage20;
-  /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementAria?: string;
-  /**
-   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
-   */
-  timeout?: number;
-}
-/**
- * A fixed spot in the capture, for annotations that aren't anchored to an element.
- */
-export interface TargetByPosition6 {
-  position: NamedRegion7 | AnnotationPoint7;
-}
-/**
- * An absolute coordinate in the capture, in pixels from the top-left.
- */
-export interface AnnotationPoint7 {
-  /**
-   * Horizontal position in pixels from the left edge of the capture.
-   */
-  x: number;
-  /**
-   * Vertical position in pixels from the top edge of the capture.
-   */
-  y: number;
 }
 export interface ElementFindingFields7 {
   /**
@@ -24215,13 +24334,13 @@ export interface ElementFindingFields7 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition7 {
-  position: NamedRegion8 | AnnotationPoint8;
+export interface TargetByPosition6 {
+  position: NamedRegion7 | AnnotationPoint7;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint8 {
+export interface AnnotationPoint7 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -24271,13 +24390,13 @@ export interface ElementFindingFields8 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition8 {
-  position: NamedRegion9 | AnnotationPoint9;
+export interface TargetByPosition7 {
+  position: NamedRegion8 | AnnotationPoint8;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint9 {
+export interface AnnotationPoint8 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -24327,13 +24446,13 @@ export interface ElementFindingFields9 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition9 {
-  position: NamedRegion10 | AnnotationPoint10;
+export interface TargetByPosition8 {
+  position: NamedRegion9 | AnnotationPoint9;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint10 {
+export interface AnnotationPoint9 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -24383,13 +24502,13 @@ export interface ElementFindingFields10 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition10 {
-  position: NamedRegion11 | AnnotationPoint11;
+export interface TargetByPosition9 {
+  position: NamedRegion10 | AnnotationPoint10;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint11 {
+export interface AnnotationPoint10 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -24427,6 +24546,62 @@ export interface ElementFindingFields11 {
     [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage25;
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition10 {
+  position: NamedRegion11 | AnnotationPoint11;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint11 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields12 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: boolean | number | string;
+  };
+  elementImage?: ElementImage26;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -24552,27 +24727,27 @@ export interface AnnotationFields2 {
   /**
    * Draw a box around the target.
    */
-  outline?: TargetByElementSimple12 | TargetByElementDetailed12 | TargetByPosition12;
+  outline?: TargetByElementSimple12 | TargetByElementDetailed13 | TargetByPosition12;
   /**
    * Point an arrow at the target.
    */
-  arrow?: TargetByElementSimple13 | TargetByElementDetailed13 | TargetByPosition13;
+  arrow?: TargetByElementSimple13 | TargetByElementDetailed14 | TargetByPosition13;
   /**
    * Mark the target with a small numbered or lettered marker. Set the marker's characters with `label`.
    */
-  badge?: TargetByElementSimple14 | TargetByElementDetailed14 | TargetByPosition14;
+  badge?: TargetByElementSimple14 | TargetByElementDetailed15 | TargetByPosition14;
   /**
    * Label the target with a text box and a leader line. Set the text with `label`.
    */
-  callout?: TargetByElementSimple15 | TargetByElementDetailed15 | TargetByPosition15;
+  callout?: TargetByElementSimple15 | TargetByElementDetailed16 | TargetByPosition15;
   /**
    * Obscure the target to redact sensitive information. Pair with `all` to redact every match rather than the first.
    */
-  blur?: TargetByElementSimple16 | TargetByElementDetailed16 | TargetByPosition16;
+  blur?: TargetByElementSimple16 | TargetByElementDetailed17 | TargetByPosition16;
   /**
    * Place a standalone text box. Set the text with `label`.
    */
-  text?: TargetByElementSimple17 | TargetByElementDetailed17 | TargetByPosition17;
+  text?: TargetByElementSimple17 | TargetByElementDetailed18 | TargetByPosition17;
   /**
    * Text to display. Required by `badge`, `callout`, and `text`; ignored by the other types.
    */
@@ -24599,62 +24774,6 @@ export interface AnnotationFields2 {
    * If `true`, annotates every element matching the target instead of only the first. Most useful with `blur`, where redacting only the first match can leave sensitive content visible.
    */
   all?: boolean;
-}
-export interface ElementFindingFields12 {
-  /**
-   * Selector of the element to annotate. Browser surfaces only.
-   */
-  selector?: string;
-  /**
-   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementText?: string;
-  /**
-   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementId?: string;
-  /**
-   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementTestId?: string;
-  /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
-   */
-  elementClass?: string | string[];
-  /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
-   */
-  elementAttribute?: {
-    [k: string]: boolean | number | string;
-  };
-  elementImage?: ElementImage26;
-  /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementAria?: string;
-  /**
-   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
-   */
-  timeout?: number;
-}
-/**
- * A fixed spot in the capture, for annotations that aren't anchored to an element.
- */
-export interface TargetByPosition12 {
-  position: NamedRegion14 | AnnotationPoint14;
-}
-/**
- * An absolute coordinate in the capture, in pixels from the top-left.
- */
-export interface AnnotationPoint14 {
-  /**
-   * Horizontal position in pixels from the left edge of the capture.
-   */
-  x: number;
-  /**
-   * Vertical position in pixels from the top edge of the capture.
-   */
-  y: number;
 }
 export interface ElementFindingFields13 {
   /**
@@ -24696,13 +24815,13 @@ export interface ElementFindingFields13 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition13 {
-  position: NamedRegion15 | AnnotationPoint15;
+export interface TargetByPosition12 {
+  position: NamedRegion14 | AnnotationPoint14;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint15 {
+export interface AnnotationPoint14 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -24752,13 +24871,13 @@ export interface ElementFindingFields14 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition14 {
-  position: NamedRegion16 | AnnotationPoint16;
+export interface TargetByPosition13 {
+  position: NamedRegion15 | AnnotationPoint15;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint16 {
+export interface AnnotationPoint15 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -24808,13 +24927,13 @@ export interface ElementFindingFields15 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition15 {
-  position: NamedRegion17 | AnnotationPoint17;
+export interface TargetByPosition14 {
+  position: NamedRegion16 | AnnotationPoint16;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint17 {
+export interface AnnotationPoint16 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -24864,13 +24983,13 @@ export interface ElementFindingFields16 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition16 {
-  position: NamedRegion18 | AnnotationPoint18;
+export interface TargetByPosition15 {
+  position: NamedRegion17 | AnnotationPoint17;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint18 {
+export interface AnnotationPoint17 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -24908,6 +25027,62 @@ export interface ElementFindingFields17 {
     [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage31;
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition16 {
+  position: NamedRegion18 | AnnotationPoint18;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint18 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields18 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: boolean | number | string;
+  };
+  elementImage?: ElementImage32;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -28220,6 +28395,12 @@ export interface CaptureScreenshotFields1 {
    * Visual annotations to draw onto the screenshot. Annotations are composited into the image and never touch the page, so they can't disturb the page under test or appear in a recording that's running at the same time. Each annotation is resolved against the capture after any `crop`. To keep annotations on screen across steps and in recordings, use an `annotate` step instead.
    */
   annotations?: Annotation3[];
+  /**
+   * Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.
+   *
+   * @minItems 1
+   */
+  mask?: [MaskByElementSimple1 | TargetByElementDetailed25, ...(MaskByElementSimple1 | TargetByElementDetailed25)[]];
   sourceIntegration?: SourceIntegration1;
 }
 export interface BrowserSurface19 {
@@ -28304,27 +28485,27 @@ export interface AnnotationFields3 {
   /**
    * Draw a box around the target.
    */
-  outline?: TargetByElementSimple18 | TargetByElementDetailed18 | TargetByPosition18;
+  outline?: TargetByElementSimple18 | TargetByElementDetailed19 | TargetByPosition18;
   /**
    * Point an arrow at the target.
    */
-  arrow?: TargetByElementSimple19 | TargetByElementDetailed19 | TargetByPosition19;
+  arrow?: TargetByElementSimple19 | TargetByElementDetailed20 | TargetByPosition19;
   /**
    * Mark the target with a small numbered or lettered marker. Set the marker's characters with `label`.
    */
-  badge?: TargetByElementSimple20 | TargetByElementDetailed20 | TargetByPosition20;
+  badge?: TargetByElementSimple20 | TargetByElementDetailed21 | TargetByPosition20;
   /**
    * Label the target with a text box and a leader line. Set the text with `label`.
    */
-  callout?: TargetByElementSimple21 | TargetByElementDetailed21 | TargetByPosition21;
+  callout?: TargetByElementSimple21 | TargetByElementDetailed22 | TargetByPosition21;
   /**
    * Obscure the target to redact sensitive information. Pair with `all` to redact every match rather than the first.
    */
-  blur?: TargetByElementSimple22 | TargetByElementDetailed22 | TargetByPosition22;
+  blur?: TargetByElementSimple22 | TargetByElementDetailed23 | TargetByPosition22;
   /**
    * Place a standalone text box. Set the text with `label`.
    */
-  text?: TargetByElementSimple23 | TargetByElementDetailed23 | TargetByPosition23;
+  text?: TargetByElementSimple23 | TargetByElementDetailed24 | TargetByPosition23;
   /**
    * Text to display. Required by `badge`, `callout`, and `text`; ignored by the other types.
    */
@@ -28351,62 +28532,6 @@ export interface AnnotationFields3 {
    * If `true`, annotates every element matching the target instead of only the first. Most useful with `blur`, where redacting only the first match can leave sensitive content visible.
    */
   all?: boolean;
-}
-export interface ElementFindingFields18 {
-  /**
-   * Selector of the element to annotate. Browser surfaces only.
-   */
-  selector?: string;
-  /**
-   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementText?: string;
-  /**
-   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementId?: string;
-  /**
-   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementTestId?: string;
-  /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
-   */
-  elementClass?: string | string[];
-  /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
-   */
-  elementAttribute?: {
-    [k: string]: boolean | number | string;
-  };
-  elementImage?: ElementImage42;
-  /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementAria?: string;
-  /**
-   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
-   */
-  timeout?: number;
-}
-/**
- * A fixed spot in the capture, for annotations that aren't anchored to an element.
- */
-export interface TargetByPosition18 {
-  position: NamedRegion21 | AnnotationPoint21;
-}
-/**
- * An absolute coordinate in the capture, in pixels from the top-left.
- */
-export interface AnnotationPoint21 {
-  /**
-   * Horizontal position in pixels from the left edge of the capture.
-   */
-  x: number;
-  /**
-   * Vertical position in pixels from the top edge of the capture.
-   */
-  y: number;
 }
 export interface ElementFindingFields19 {
   /**
@@ -28448,13 +28573,13 @@ export interface ElementFindingFields19 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition19 {
-  position: NamedRegion22 | AnnotationPoint22;
+export interface TargetByPosition18 {
+  position: NamedRegion21 | AnnotationPoint21;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint22 {
+export interface AnnotationPoint21 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -28504,13 +28629,13 @@ export interface ElementFindingFields20 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition20 {
-  position: NamedRegion23 | AnnotationPoint23;
+export interface TargetByPosition19 {
+  position: NamedRegion22 | AnnotationPoint22;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint23 {
+export interface AnnotationPoint22 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -28560,13 +28685,13 @@ export interface ElementFindingFields21 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition21 {
-  position: NamedRegion24 | AnnotationPoint24;
+export interface TargetByPosition20 {
+  position: NamedRegion23 | AnnotationPoint23;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint24 {
+export interface AnnotationPoint23 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -28616,13 +28741,13 @@ export interface ElementFindingFields22 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition22 {
-  position: NamedRegion25 | AnnotationPoint25;
+export interface TargetByPosition21 {
+  position: NamedRegion24 | AnnotationPoint24;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint25 {
+export interface AnnotationPoint24 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -28660,6 +28785,62 @@ export interface ElementFindingFields23 {
     [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage47;
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition22 {
+  position: NamedRegion25 | AnnotationPoint25;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint25 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields24 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: boolean | number | string;
+  };
+  elementImage?: ElementImage48;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -28780,6 +28961,43 @@ export interface AnnotationTransition6 {
    * Length of the enter and exit animations, in milliseconds.
    */
   durationMs?: number;
+}
+export interface ElementFindingFields25 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: boolean | number | string;
+  };
+  elementImage?: ElementImage49;
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
+   */
+  timeout?: number;
 }
 /**
  * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
@@ -32121,27 +32339,27 @@ export interface AnnotationFields4 {
   /**
    * Draw a box around the target.
    */
-  outline?: TargetByElementSimple24 | TargetByElementDetailed24 | TargetByPosition24;
+  outline?: TargetByElementSimple24 | TargetByElementDetailed26 | TargetByPosition24;
   /**
    * Point an arrow at the target.
    */
-  arrow?: TargetByElementSimple25 | TargetByElementDetailed25 | TargetByPosition25;
+  arrow?: TargetByElementSimple25 | TargetByElementDetailed27 | TargetByPosition25;
   /**
    * Mark the target with a small numbered or lettered marker. Set the marker's characters with `label`.
    */
-  badge?: TargetByElementSimple26 | TargetByElementDetailed26 | TargetByPosition26;
+  badge?: TargetByElementSimple26 | TargetByElementDetailed28 | TargetByPosition26;
   /**
    * Label the target with a text box and a leader line. Set the text with `label`.
    */
-  callout?: TargetByElementSimple27 | TargetByElementDetailed27 | TargetByPosition27;
+  callout?: TargetByElementSimple27 | TargetByElementDetailed29 | TargetByPosition27;
   /**
    * Obscure the target to redact sensitive information. Pair with `all` to redact every match rather than the first.
    */
-  blur?: TargetByElementSimple28 | TargetByElementDetailed28 | TargetByPosition28;
+  blur?: TargetByElementSimple28 | TargetByElementDetailed30 | TargetByPosition28;
   /**
    * Place a standalone text box. Set the text with `label`.
    */
-  text?: TargetByElementSimple29 | TargetByElementDetailed29 | TargetByPosition29;
+  text?: TargetByElementSimple29 | TargetByElementDetailed31 | TargetByPosition29;
   /**
    * Text to display. Required by `badge`, `callout`, and `text`; ignored by the other types.
    */
@@ -32168,118 +32386,6 @@ export interface AnnotationFields4 {
    * If `true`, annotates every element matching the target instead of only the first. Most useful with `blur`, where redacting only the first match can leave sensitive content visible.
    */
   all?: boolean;
-}
-export interface ElementFindingFields24 {
-  /**
-   * Selector of the element to annotate. Browser surfaces only.
-   */
-  selector?: string;
-  /**
-   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementText?: string;
-  /**
-   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementId?: string;
-  /**
-   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementTestId?: string;
-  /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
-   */
-  elementClass?: string | string[];
-  /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
-   */
-  elementAttribute?: {
-    [k: string]: boolean | number | string;
-  };
-  elementImage?: ElementImage52;
-  /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementAria?: string;
-  /**
-   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
-   */
-  timeout?: number;
-}
-/**
- * A fixed spot in the capture, for annotations that aren't anchored to an element.
- */
-export interface TargetByPosition24 {
-  position: NamedRegion28 | AnnotationPoint28;
-}
-/**
- * An absolute coordinate in the capture, in pixels from the top-left.
- */
-export interface AnnotationPoint28 {
-  /**
-   * Horizontal position in pixels from the left edge of the capture.
-   */
-  x: number;
-  /**
-   * Vertical position in pixels from the top edge of the capture.
-   */
-  y: number;
-}
-export interface ElementFindingFields25 {
-  /**
-   * Selector of the element to annotate. Browser surfaces only.
-   */
-  selector?: string;
-  /**
-   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementText?: string;
-  /**
-   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementId?: string;
-  /**
-   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementTestId?: string;
-  /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
-   */
-  elementClass?: string | string[];
-  /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
-   */
-  elementAttribute?: {
-    [k: string]: boolean | number | string;
-  };
-  elementImage?: ElementImage53;
-  /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementAria?: string;
-  /**
-   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
-   */
-  timeout?: number;
-}
-/**
- * A fixed spot in the capture, for annotations that aren't anchored to an element.
- */
-export interface TargetByPosition25 {
-  position: NamedRegion29 | AnnotationPoint29;
-}
-/**
- * An absolute coordinate in the capture, in pixels from the top-left.
- */
-export interface AnnotationPoint29 {
-  /**
-   * Horizontal position in pixels from the left edge of the capture.
-   */
-  x: number;
-  /**
-   * Vertical position in pixels from the top edge of the capture.
-   */
-  y: number;
 }
 export interface ElementFindingFields26 {
   /**
@@ -32321,13 +32427,13 @@ export interface ElementFindingFields26 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition26 {
-  position: NamedRegion30 | AnnotationPoint30;
+export interface TargetByPosition24 {
+  position: NamedRegion28 | AnnotationPoint28;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint30 {
+export interface AnnotationPoint28 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -32377,13 +32483,13 @@ export interface ElementFindingFields27 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition27 {
-  position: NamedRegion31 | AnnotationPoint31;
+export interface TargetByPosition25 {
+  position: NamedRegion29 | AnnotationPoint29;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint31 {
+export interface AnnotationPoint29 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -32433,13 +32539,13 @@ export interface ElementFindingFields28 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition28 {
-  position: NamedRegion32 | AnnotationPoint32;
+export interface TargetByPosition26 {
+  position: NamedRegion30 | AnnotationPoint30;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint32 {
+export interface AnnotationPoint30 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -32477,6 +32583,118 @@ export interface ElementFindingFields29 {
     [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage57;
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition27 {
+  position: NamedRegion31 | AnnotationPoint31;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint31 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields30 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: boolean | number | string;
+  };
+  elementImage?: ElementImage58;
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition28 {
+  position: NamedRegion32 | AnnotationPoint32;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint32 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields31 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: boolean | number | string;
+  };
+  elementImage?: ElementImage59;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */
@@ -32602,27 +32820,27 @@ export interface AnnotationFields5 {
   /**
    * Draw a box around the target.
    */
-  outline?: TargetByElementSimple30 | TargetByElementDetailed30 | TargetByPosition30;
+  outline?: TargetByElementSimple30 | TargetByElementDetailed32 | TargetByPosition30;
   /**
    * Point an arrow at the target.
    */
-  arrow?: TargetByElementSimple31 | TargetByElementDetailed31 | TargetByPosition31;
+  arrow?: TargetByElementSimple31 | TargetByElementDetailed33 | TargetByPosition31;
   /**
    * Mark the target with a small numbered or lettered marker. Set the marker's characters with `label`.
    */
-  badge?: TargetByElementSimple32 | TargetByElementDetailed32 | TargetByPosition32;
+  badge?: TargetByElementSimple32 | TargetByElementDetailed34 | TargetByPosition32;
   /**
    * Label the target with a text box and a leader line. Set the text with `label`.
    */
-  callout?: TargetByElementSimple33 | TargetByElementDetailed33 | TargetByPosition33;
+  callout?: TargetByElementSimple33 | TargetByElementDetailed35 | TargetByPosition33;
   /**
    * Obscure the target to redact sensitive information. Pair with `all` to redact every match rather than the first.
    */
-  blur?: TargetByElementSimple34 | TargetByElementDetailed34 | TargetByPosition34;
+  blur?: TargetByElementSimple34 | TargetByElementDetailed36 | TargetByPosition34;
   /**
    * Place a standalone text box. Set the text with `label`.
    */
-  text?: TargetByElementSimple35 | TargetByElementDetailed35 | TargetByPosition35;
+  text?: TargetByElementSimple35 | TargetByElementDetailed37 | TargetByPosition35;
   /**
    * Text to display. Required by `badge`, `callout`, and `text`; ignored by the other types.
    */
@@ -32649,118 +32867,6 @@ export interface AnnotationFields5 {
    * If `true`, annotates every element matching the target instead of only the first. Most useful with `blur`, where redacting only the first match can leave sensitive content visible.
    */
   all?: boolean;
-}
-export interface ElementFindingFields30 {
-  /**
-   * Selector of the element to annotate. Browser surfaces only.
-   */
-  selector?: string;
-  /**
-   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementText?: string;
-  /**
-   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementId?: string;
-  /**
-   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementTestId?: string;
-  /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
-   */
-  elementClass?: string | string[];
-  /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
-   */
-  elementAttribute?: {
-    [k: string]: boolean | number | string;
-  };
-  elementImage?: ElementImage58;
-  /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementAria?: string;
-  /**
-   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
-   */
-  timeout?: number;
-}
-/**
- * A fixed spot in the capture, for annotations that aren't anchored to an element.
- */
-export interface TargetByPosition30 {
-  position: NamedRegion35 | AnnotationPoint35;
-}
-/**
- * An absolute coordinate in the capture, in pixels from the top-left.
- */
-export interface AnnotationPoint35 {
-  /**
-   * Horizontal position in pixels from the left edge of the capture.
-   */
-  x: number;
-  /**
-   * Vertical position in pixels from the top edge of the capture.
-   */
-  y: number;
-}
-export interface ElementFindingFields31 {
-  /**
-   * Selector of the element to annotate. Browser surfaces only.
-   */
-  selector?: string;
-  /**
-   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementText?: string;
-  /**
-   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementId?: string;
-  /**
-   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementTestId?: string;
-  /**
-   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
-   */
-  elementClass?: string | string[];
-  /**
-   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
-   */
-  elementAttribute?: {
-    [k: string]: boolean | number | string;
-  };
-  elementImage?: ElementImage59;
-  /**
-   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
-   */
-  elementAria?: string;
-  /**
-   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
-   */
-  timeout?: number;
-}
-/**
- * A fixed spot in the capture, for annotations that aren't anchored to an element.
- */
-export interface TargetByPosition31 {
-  position: NamedRegion36 | AnnotationPoint36;
-}
-/**
- * An absolute coordinate in the capture, in pixels from the top-left.
- */
-export interface AnnotationPoint36 {
-  /**
-   * Horizontal position in pixels from the left edge of the capture.
-   */
-  x: number;
-  /**
-   * Vertical position in pixels from the top edge of the capture.
-   */
-  y: number;
 }
 export interface ElementFindingFields32 {
   /**
@@ -32802,13 +32908,13 @@ export interface ElementFindingFields32 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition32 {
-  position: NamedRegion37 | AnnotationPoint37;
+export interface TargetByPosition30 {
+  position: NamedRegion35 | AnnotationPoint35;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint37 {
+export interface AnnotationPoint35 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -32858,13 +32964,13 @@ export interface ElementFindingFields33 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition33 {
-  position: NamedRegion38 | AnnotationPoint38;
+export interface TargetByPosition31 {
+  position: NamedRegion36 | AnnotationPoint36;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint38 {
+export interface AnnotationPoint36 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -32914,13 +33020,13 @@ export interface ElementFindingFields34 {
 /**
  * A fixed spot in the capture, for annotations that aren't anchored to an element.
  */
-export interface TargetByPosition34 {
-  position: NamedRegion39 | AnnotationPoint39;
+export interface TargetByPosition32 {
+  position: NamedRegion37 | AnnotationPoint37;
 }
 /**
  * An absolute coordinate in the capture, in pixels from the top-left.
  */
-export interface AnnotationPoint39 {
+export interface AnnotationPoint37 {
   /**
    * Horizontal position in pixels from the left edge of the capture.
    */
@@ -32958,6 +33064,118 @@ export interface ElementFindingFields35 {
     [k: string]: boolean | number | string;
   };
   elementImage?: ElementImage63;
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition33 {
+  position: NamedRegion38 | AnnotationPoint38;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint38 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields36 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: boolean | number | string;
+  };
+  elementImage?: ElementImage64;
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
+   */
+  timeout?: number;
+}
+/**
+ * A fixed spot in the capture, for annotations that aren't anchored to an element.
+ */
+export interface TargetByPosition34 {
+  position: NamedRegion39 | AnnotationPoint39;
+}
+/**
+ * An absolute coordinate in the capture, in pixels from the top-left.
+ */
+export interface AnnotationPoint39 {
+  /**
+   * Horizontal position in pixels from the left edge of the capture.
+   */
+  x: number;
+  /**
+   * Vertical position in pixels from the top edge of the capture.
+   */
+  y: number;
+}
+export interface ElementFindingFields37 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: boolean | number | string;
+  };
+  elementImage?: ElementImage65;
   /**
    * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
    */

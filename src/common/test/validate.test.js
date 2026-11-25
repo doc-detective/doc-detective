@@ -1865,6 +1865,39 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
       });
 
+      // ADR 01216: masks take a string or an element target, never a position.
+      it("should validate a screenshot mask of strings and element targets", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            screenshot: {
+              path: "a.png",
+              mask: ["#next-invoice", { elementText: "Last login" }, { selector: ".clock", timeout: 2000 }],
+            },
+          },
+        });
+
+        expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+        expect(result.object.screenshot.mask).to.have.lengthOf(3);
+      });
+
+      for (const [label, mask] of [
+        ["an empty array", []],
+        ["an empty string", [""]],
+        ["a position target", [{ position: { x: 0, y: 0 } }]],
+        ["an element object with no finding field", [{ timeout: 100 }]],
+        ["an unknown key", [{ selector: ".a", color: "red" }]],
+      ]) {
+        it(`should reject a screenshot mask with ${label}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { screenshot: { path: "a.png", mask } },
+          });
+
+          expect(result.valid).to.be.false;
+        });
+      }
+
       it("should validate annotationDefaults at the config level", function () {
         const result = validate({
           schemaKey: "config_v3",
