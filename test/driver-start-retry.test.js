@@ -47,7 +47,7 @@ describe("driverStart: retried session starts are reported", function () {
   // With a BiDi socket open, webdriverio deep-clones the live Browser on every
   // `$` (through `_bidiHandler.client`). Our per-context state must stay out of
   // that clone, or the session registry and recording handles overflow the
-  // stack (ADR 01216).
+  // stack (ADR 01219).
   it("keeps per-context state off the driver's enumerable keys", async function () {
     const driver = await driverStart(iosCaps, 4723, 1, {
       remote: async () => ({}),
