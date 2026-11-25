@@ -133,7 +133,7 @@ The flag takes the same values as a step's `overwrite` and replaces the value on
 
 - `true`: replace every reference.
 - `false`: never replace a reference, even where a step says `"overwrite": "true"`. A step whose reference exists is skipped. Use this in CI so a pipeline never rewrites references.
-- `aboveVariation`: replace a reference only when the capture differs by more than `maxVariation`.
+- `aboveVariation`: replace a reference only when the capture differs by more than `maxVariation`, or `maxDiffPixels` when set.
 
 To set it for every run, add `overwriteScreenshots` to your config. The flag beats the config key, which beats each step's own `overwrite`:
 

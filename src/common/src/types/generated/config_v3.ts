@@ -853,7 +853,7 @@ export interface Config {
    */
   browserFallback?: "auto" | "explicit" | "off";
   /**
-   * Sets `overwrite` for every `screenshot` step in the run, including automatic screenshots that compare against a reference. It replaces each step's own `overwrite`. `true` replaces every reference with the new capture. `false` never replaces a reference. `aboveVariation` replaces a reference only when the capture differs from it by more than `maxVariation`. Unset, each step uses its own `overwrite`. Equivalent to `--overwrite-screenshots` on the CLI.
+   * Sets `overwrite` for every `screenshot` step in the run, including automatic screenshots that compare against a reference. It replaces each step's own `overwrite`. `true` replaces every reference with the new capture. `false` never replaces a reference. `aboveVariation` replaces a reference only when the capture differs from it by more than `maxVariation`, or `maxDiffPixels` when set. Unset, each step uses its own `overwrite`. Equivalent to `--overwrite-screenshots` on the CLI.
    */
   overwriteScreenshots?: "true" | "false" | "aboveVariation";
   /**
