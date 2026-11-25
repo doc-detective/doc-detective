@@ -23743,7 +23743,7 @@ export interface MockRequest {
   [k: string]: unknown;
 }
 /**
- * Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.
+ * Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.
  */
 export interface MockRequest1 {
   /**
@@ -32049,7 +32049,7 @@ export interface MockRequest2 {
   [k: string]: unknown;
 }
 /**
- * Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.
+ * Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.
  */
 export interface MockRequest3 {
   /**

@@ -60,7 +60,7 @@ Chosen option 1.
 | `hasBidi(<browser>)` is `false` | SKIPPED | ``Skipped: `safari` can't mock requests.`` (`webkit` is named `safari`) |
 | `bodyPath` can't be read | FAIL | ``Couldn't read `bodyPath` `<absolute path>`.`` |
 | Both `body` and `bodyPath` | schema error | ``set `body` or `bodyPath`, not both.`` |
-| The session has no BiDi socket (defensive) | FAIL | ``Couldn't mock requests to `<url>`. The browser session has no WebDriver BiDi connection.`` |
+| The session has no BiDi socket (defensive) | FAIL | ``Couldn't mock requests to `<url>` in `<browser>`.`` |
 
 Output: `outputs.matched`, the number of requests already answered for that `url` and `method`,
 counting the mocks this step replaced.
@@ -75,6 +75,7 @@ counting the mocks this step replaced.
 * The step runs where ADR 01219's `hasBidi(browserName)` is `true`. Every session of such a
   browser has the socket, so the step needs nothing from capabilities. Elsewhere it's SKIPPED.
 * A session without the socket despite `hasBidi` FAILs the step. That's a defensive check.
+* User-facing text names browsers, never the protocol. BiDi is an implementation detail.
 * A relative `bodyPath` resolves against the spec file at detection, like other spec paths, and
   honors `relativePathBase`. `resolvePaths` doesn't descend into `response`, so it handles this
   key on its own. A step from `getRunner()` resolves against the working directory.

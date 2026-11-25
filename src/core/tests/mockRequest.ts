@@ -37,9 +37,10 @@ async function mockRequest({
   }
   const { url, method, response = {} } = isValidStep.object.mockRequest;
 
+  // User-facing text names the browser, never the protocol.
+  const name = browserName === "webkit" ? "safari" : browserName || "this browser";
   if (!hasBidi(browserName)) {
     result.status = "SKIPPED";
-    const name = browserName === "webkit" ? "safari" : browserName || "this browser";
     result.description = `Skipped: \`${name}\` can't mock requests.`;
     return result;
   }
@@ -48,7 +49,7 @@ async function mockRequest({
   // Checked before the bodyPath read, so this cause wins over a file error.
   if (!driver?.isBidi) {
     result.status = "FAIL";
-    result.description = `Couldn't mock requests to \`${url}\`. The browser session has no WebDriver BiDi connection.`;
+    result.description = `Couldn't mock requests to \`${url}\` in \`${name}\`.`;
     return result;
   }
 

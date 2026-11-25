@@ -7,7 +7,7 @@ The `mockRequest` action answers matching browser requests with a fixed response
 
 A mock starts at its step and lasts until the test ends. Doc Detective then removes every mock the test set.
 
-> `mockRequest` needs WebDriver BiDi, which Doc Detective turns on in Chrome only. In Firefox and Safari, the step reports `SKIPPED` with a message such as ``Skipped: `firefox` can't mock requests.``
+> `mockRequest` works in Chrome. Other browsers skip the step. In Firefox, for example, the step reports `SKIPPED`: ``Skipped: `firefox` can't mock requests.``
 
 Set `mockRequest` to an object with these fields:
 

@@ -32302,7 +32302,7 @@
   "mockRequest_v3": {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "mockRequest",
-    "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.",
+    "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
     "type": "object",
     "additionalProperties": false,
     "required": [
@@ -97662,7 +97662,7 @@
                                         "mockRequest": {
                                           "$schema": "http://json-schema.org/draft-07/schema#",
                                           "title": "mockRequest",
-                                          "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.",
+                                          "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "required": [
@@ -162414,7 +162414,7 @@
                                               "mockRequest": {
                                                 "$schema": "http://json-schema.org/draft-07/schema#",
                                                 "title": "mockRequest",
-                                                "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.",
+                                                "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                                                 "type": "object",
                                                 "additionalProperties": false,
                                                 "required": [
@@ -231828,7 +231828,7 @@
                                         "mockRequest": {
                                           "$schema": "http://json-schema.org/draft-07/schema#",
                                           "title": "mockRequest",
-                                          "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.",
+                                          "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                                           "type": "object",
                                           "additionalProperties": false,
                                           "required": [
@@ -296580,7 +296580,7 @@
                                               "mockRequest": {
                                                 "$schema": "http://json-schema.org/draft-07/schema#",
                                                 "title": "mockRequest",
-                                                "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.",
+                                                "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                                                 "type": "object",
                                                 "additionalProperties": false,
                                                 "required": [
@@ -379522,7 +379522,7 @@
                               "mockRequest": {
                                 "$schema": "http://json-schema.org/draft-07/schema#",
                                 "title": "mockRequest",
-                                "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.",
+                                "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                                 "type": "object",
                                 "additionalProperties": false,
                                 "required": [
@@ -444274,7 +444274,7 @@
                                     "mockRequest": {
                                       "$schema": "http://json-schema.org/draft-07/schema#",
                                       "title": "mockRequest",
-                                      "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.",
+                                      "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                                       "type": "object",
                                       "additionalProperties": false,
                                       "required": [
@@ -511110,7 +511110,7 @@
               "mockRequest": {
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "title": "mockRequest",
-                "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.",
+                "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
@@ -579866,7 +579866,7 @@
                     "mockRequest": {
                       "$schema": "http://json-schema.org/draft-07/schema#",
                       "title": "mockRequest",
-                      "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.",
+                      "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                       "type": "object",
                       "additionalProperties": false,
                       "required": [
@@ -644618,7 +644618,7 @@
                           "mockRequest": {
                             "$schema": "http://json-schema.org/draft-07/schema#",
                             "title": "mockRequest",
-                            "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in browsers that support WebDriver BiDi (Chrome). In other browsers, the step is skipped.",
+                            "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                             "type": "object",
                             "additionalProperties": false,
                             "required": [

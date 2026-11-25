@@ -80,7 +80,7 @@ describe("mockRequest action", function () {
     assert.equal(result.status, "FAIL");
     assert.equal(
       result.description,
-      "Couldn't mock requests to `**/x`. The browser session has no WebDriver BiDi connection."
+      "Couldn't mock requests to `**/x` in `chrome`."
     );
   });
 
@@ -146,7 +146,8 @@ describe("mockRequest action", function () {
     driver.isBidi = false;
     const { result } = await run({ url: "**/x" }, { driver });
     assert.equal(result.status, "FAIL");
-    assert.match(result.description, /^Couldn't mock requests to `\*\*\/x`\./);
+    assert.equal(result.description, "Couldn't mock requests to `**/x` in `chrome`.");
+    assert.doesNotMatch(result.description, /bidi/i);
   });
 
   it("counts answered requests per url and method, across a replacement", async function () {
