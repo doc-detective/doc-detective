@@ -567,6 +567,39 @@ describe("screenshot fullPage and animations", function () {
     assert.equal(driver.styled, false, "the style is gone when the step ends");
   });
 
+  it("blurs a `style`-shifted target where the capture shows it", async function () {
+    // The style hides a banner, moving the secret from y 300 to y 100. The
+    // capture has the same black mark at both places; only the target's is blurred.
+    const marks = await makePng(800, 600, { x: 190, y: 115, width: 20, height: 20 });
+    const capture = await sharp(marks)
+      .composite([
+        {
+          input: await sharp({ create: { width: 20, height: 20, channels: 3, background: { r: 0, g: 0, b: 0 } } })
+            .png()
+            .toBuffer(),
+          left: 190,
+          top: 315,
+        },
+      ])
+      .png()
+      .toBuffer();
+    const driver = fakeDriver({
+      viewportCapture: capture,
+      pageCapture: capture,
+      rectAt: (vp, { styled }) => ({ x: 100, y: styled ? 100 : 300, width: 200, height: 50 }),
+    });
+    const result = await run(
+      { style: "#banner { display: none !important; }", annotations: [{ blur: "#secret" }] },
+      driver
+    );
+    assert.equal(result.status, "PASS", result.description);
+    const { data, info } = await sharp(path.join(dir, "page.png")).raw().toBuffer({ resolveWithObject: true });
+    const at = (x, y) => data[(y * info.width + x) * info.channels];
+    assert.ok(at(190, 115) > 0, "the mark at the target's captured position is blurred");
+    assert.equal(at(190, 315), 0, "the mark where the target sits without the style is untouched");
+    assert.equal(driver.styled, false);
+  });
+
   it("scales live blurs on a whole-page image by the pixel density, not the viewport width", async function () {
     // A 1600px-wide document in an 800px viewport. The blur covers x 100–200;
     // dividing the image width by the viewport width would double it onto the
