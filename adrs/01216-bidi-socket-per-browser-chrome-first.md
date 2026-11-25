@@ -129,9 +129,9 @@ Chosen option 1.
 * `driver.state` is non-enumerable, so it never enters webdriverio's clone.
 * A `BIDI_BROWSERS` set in [src/core/tests.ts](../src/core/tests.ts) lists the browsers that passed:
   `["chrome"]`. Adding one is a one-line change, made with its own evidence in an ADR.
-* `needsBidi(context, steps)` decides whether a context gets the socket. It returns `false` until a
-  feature that needs the socket (timezone, clock, full-page capture, request mocking) adds its
-  check, so every context keeps today's behavior.
+* `needsBidi(context, steps)` decides whether a context gets the socket. For now it returns `false`,
+  so every context keeps today's behavior. A feature that needs the socket (timezone, clock,
+  full-page capture, request mocking) adds its check there.
 * `getDriverCapabilities()` adds `webSocketUrl: true` only when `options.bidi` is set and the
   browser is in `BIDI_BROWSERS`. `wdio:enforceWebDriverClassic` stays `true` everywhere.
 
