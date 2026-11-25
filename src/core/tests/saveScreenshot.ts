@@ -258,16 +258,18 @@ async function takeBrowserScreenshot(
   sharp: any,
   options: CaptureOptions = {}
 ): Promise<{ buffer: Buffer; stable: boolean }> {
-  if (options.style) {
-    try {
-      await driver.execute(addCaptureStyle, options.style);
-    } catch (error: any) {
-      throw new Error(`Couldn't add the \`style\` CSS to the page: ${error?.message ?? error}`);
-    }
-  }
   let captured: { buffer: Buffer; stable: boolean };
   let watching: any;
   try {
+    // Inside the try: the script can add the style and the command still
+    // fail, so the cleanup in the finally must run either way.
+    if (options.style) {
+      try {
+        await driver.execute(addCaptureStyle, options.style);
+      } catch (error: any) {
+        throw new Error(`Couldn't add the \`style\` CSS to the page: ${error?.message ?? error}`);
+      }
+    }
     try {
       await driver.execute(waitForFonts);
     } catch {
