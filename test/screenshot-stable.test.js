@@ -27,7 +27,7 @@ async function solidPng(shade) {
 
 // Serves `frames` in order (the last one repeats) and logs each call as
 // `execute:<source>` or `takeScreenshot`.
-function fakeDriver(frames, { throwOnCapture = false } = {}) {
+function fakeDriver(frames, { throwOnCapture = false, throwOnAddStyle = false } = {}) {
   const calls = [];
   let index = 0;
   return {
@@ -41,6 +41,8 @@ function fakeDriver(frames, { throwOnCapture = false } = {}) {
     },
     async execute(fn, ...args) {
       calls.push({ kind: "execute", source: String(fn), args });
+      // The page script ran (the style is on the page), then the command failed.
+      if (throwOnAddStyle && String(fn).includes("addCaptureStyle")) throw new Error("socket hang up");
       return undefined;
     },
   };
@@ -116,6 +118,15 @@ describe("screenshot stable, style, and fonts wait", function () {
     const result = await run({ style: "body { color: red; }" }, driver);
     assert.equal(result.status, "FAIL");
     assert.ok(driver.calls.some((c) => c.kind === "execute" && c.source.includes("removeCaptureStyle")));
+  });
+
+  it("removes `style` when adding it throws after the page script ran", async function () {
+    const driver = fakeDriver([await solidPng(0)], { throwOnAddStyle: true });
+    const result = await run({ style: "body { color: red; }" }, driver);
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /Couldn't add the `style` CSS to the page/);
+    assert.ok(driver.calls.some((c) => c.kind === "execute" && c.source.includes("removeCaptureStyle")));
+    assert.equal(driver.calls.filter((c) => c.kind === "takeScreenshot").length, 0);
   });
 
   it("waits for `document.fonts.ready` before every browser capture", async function () {

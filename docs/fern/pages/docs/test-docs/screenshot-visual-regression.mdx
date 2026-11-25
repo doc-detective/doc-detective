@@ -52,10 +52,10 @@ When a comparison runs, the step exposes `$$variation` (the fractional differenc
 
 When a comparison finds any changed pixels, Doc Detective writes two images to the context's `screenshots/` folder in the [run folder](/docs/ci/reporters-and-artifacts#step-5-collect-the-run-folder-and-artifacts):
 
-- `<name>.diff.png`: the comparison, with changed pixels in red.
-- `<name>.previous.png`: the reference image as it was before the step ran. With `"aboveVariation"`, the step overwrites the reference when it drifts, so this copy is the only record of the old image.
+- `<name>-<stepId>.diff.png`: the comparison, with changed pixels in red.
+- `<name>-<stepId>.previous.png`: the reference image as it was before the step ran. With `"aboveVariation"`, the step overwrites the reference when it drifts, so this copy is the only record of the old image.
 
-The `WARNING` message ends with the diff's path. For example: ``See `/home/runner/work/docs/.doc-detective/runs/<runId>/specs/…/screenshots/home.diff.png`.`` The step also exposes `$$diffPixels` (the number of changed pixels), and `$$diffPath` and `$$previousPath` when it wrote the images. Nothing is written next to your docs.
+The `WARNING` message ends with the diff's path. For example: ``See `/home/runner/work/docs/.doc-detective/runs/<runId>/specs/…/screenshots/home-check-home.diff.png`.`` The step also exposes `$$diffPixels` (the number of changed pixels), and `$$diffPath` and `$$previousPath` when it wrote the images. Nothing is written next to your docs.
 
 Two keys tune what counts as a change:
 

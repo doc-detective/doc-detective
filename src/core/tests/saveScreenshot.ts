@@ -258,16 +258,18 @@ async function takeBrowserScreenshot(
   sharp: any,
   options: CaptureOptions = {}
 ): Promise<{ buffer: Buffer; stable: boolean }> {
-  if (options.style) {
-    try {
-      await driver.execute(addCaptureStyle, options.style);
-    } catch (error: any) {
-      throw new Error(`Couldn't add the \`style\` CSS to the page: ${error?.message ?? error}`);
-    }
-  }
   let captured: { buffer: Buffer; stable: boolean };
   let watching: any;
   try {
+    // Inside the try: the script can add the style and the command still
+    // fail, so the cleanup in the finally must run either way.
+    if (options.style) {
+      try {
+        await driver.execute(addCaptureStyle, options.style);
+      } catch (error: any) {
+        throw new Error(`Couldn't add the \`style\` CSS to the page: ${error?.message ?? error}`);
+      }
+    }
     try {
       await driver.execute(waitForFonts);
     } catch {
@@ -1525,13 +1527,15 @@ async function captureScreenshot({
       }
 
       // Diff images go to the run folder only, never next to the docs, and
-      // before any overwrite so the previous reference survives.
+      // before any overwrite so the previous reference survives. The stepId
+      // keeps references that share a basename from clobbering each other.
       let seeDiff = "";
-      if (numDiffPixels > 0 && screenshotsDir) {
+      if (numDiffPixels > 0) {
         try {
-          const outDir = screenshotsDir();
+          const outDir = screenshotsDir?.() ?? path.join(getRunOutputDir(config), "screenshots");
           fs.mkdirSync(outDir, { recursive: true });
-          const name = path.basename(filePath, path.extname(filePath));
+          const base = path.basename(filePath, path.extname(filePath));
+          const name = sanitizeFilesystemName([base, step.stepId].filter(Boolean).join("-"), base);
           const diffPath = path.join(outDir, `${name}.diff.png`);
           const previousPath = path.join(outDir, `${name}.previous.png`);
           fs.writeFileSync(diffPath, PNG.sync.write({ width, height, data: diffImage } as any));
