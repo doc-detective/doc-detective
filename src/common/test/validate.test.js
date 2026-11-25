@@ -1931,6 +1931,41 @@ import { schemas } from "../dist/index.js";
         });
       }
 
+      // ADR 01221: capture-only CSS and settle-before-capture.
+      it("should validate a screenshot with style and stable", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "a.png", style: ".banner { display: none; }", stable: true } },
+        });
+
+        expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+        expect(result.object.screenshot.style).to.equal(".banner { display: none; }");
+        expect(result.object.screenshot.stable).to.equal(true);
+      });
+
+      // No schema default: an effective step without `stable` stays unchanged.
+      it("should leave screenshot stable unset when omitted", function () {
+        const result = validate({ schemaKey: "step_v3", object: { screenshot: { path: "a.png" } } });
+
+        expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+        expect(result.object.screenshot).to.not.have.property("stable");
+      });
+
+      for (const [label, screenshot] of [
+        ["an empty style", { style: "" }],
+        ["a non-string style", { style: { display: "none" } }],
+        ["a non-boolean stable", { stable: "sometimes" }],
+      ]) {
+        it(`should reject a screenshot with ${label}`, function () {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { screenshot: { path: "a.png", ...screenshot } },
+          });
+
+          expect(result.valid).to.be.false;
+        });
+      }
+
       it("should validate annotationDefaults at the config level", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -5802,6 +5837,22 @@ import { schemas } from "../dist/index.js";
         });
         expect(browserCrop.valid).to.be.true;
         expect(browserCrop.errors).to.equal("");
+      });
+
+      // ADR 01221: `style` injects CSS into a web page, so app captures reject it;
+      // `stable` only compares PNGs, so they keep it.
+      it("should reject style on an app-surface screenshot and allow stable", function () {
+        const styled = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "app.png", surface: { app: "notepad" }, style: "a { color: red; }" } },
+        });
+        expect(styled.valid).to.be.false;
+
+        const stable = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "app.png", surface: { app: "notepad" }, stable: true } },
+        });
+        expect(stable.valid, JSON.stringify(stable.errors)).to.be.true;
       });
 
       it("should validate app surfaces on find/click/screenshot", function () {

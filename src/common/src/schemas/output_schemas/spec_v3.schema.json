@@ -32976,7 +32976,7 @@
                                       "additionalProperties": false,
                                       "properties": {
                                         "surface": {
-                                          "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                                          "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` or `style`.",
                                           "anyOf": [
                                             {
                                               "title": "Surface (by browser engine)",
@@ -33496,6 +33496,15 @@
                                               }
                                             }
                                           ]
+                                        },
+                                        "style": {
+                                          "type": "string",
+                                          "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                                          "minLength": 1
+                                        },
+                                        "stable": {
+                                          "type": "boolean",
+                                          "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
                                         },
                                         "annotations": {
                                           "type": "array",
@@ -37013,8 +37022,8 @@
                                       "title": "Capture screenshot fields"
                                     },
                                     {
-                                      "title": "App captures don't support crop",
-                                      "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
+                                      "title": "App captures don't support crop or style",
+                                      "$comment": "crop relies on browser viewport APIs, and style injects CSS into a web page; neither has an app-window equivalent. Rejected at validation time so authors don't hit a runtime FAIL.",
                                       "if": {
                                         "required": [
                                           "surface"
@@ -37030,8 +37039,17 @@
                                       },
                                       "then": {
                                         "not": {
-                                          "required": [
-                                            "crop"
+                                          "anyOf": [
+                                            {
+                                              "required": [
+                                                "crop"
+                                              ]
+                                            },
+                                            {
+                                              "required": [
+                                                "style"
+                                              ]
+                                            }
                                           ]
                                         }
                                       }
@@ -37060,7 +37078,7 @@
                                         "additionalProperties": false,
                                         "properties": {
                                           "surface": {
-                                            "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                                            "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` or `style`.",
                                             "anyOf": [
                                               {
                                                 "title": "Surface (by browser engine)",
@@ -37580,6 +37598,15 @@
                                                 }
                                               }
                                             ]
+                                          },
+                                          "style": {
+                                            "type": "string",
+                                            "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                                            "minLength": 1
+                                          },
+                                          "stable": {
+                                            "type": "boolean",
+                                            "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
                                           },
                                           "annotations": {
                                             "type": "array",
@@ -41097,8 +41124,8 @@
                                         "title": "Capture screenshot fields"
                                       },
                                       {
-                                        "title": "App captures don't support crop",
-                                        "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
+                                        "title": "App captures don't support crop or style",
+                                        "$comment": "crop relies on browser viewport APIs, and style injects CSS into a web page; neither has an app-window equivalent. Rejected at validation time so authors don't hit a runtime FAIL.",
                                         "if": {
                                           "required": [
                                             "surface"
@@ -41114,8 +41141,17 @@
                                         },
                                         "then": {
                                           "not": {
-                                            "required": [
-                                              "crop"
+                                            "anyOf": [
+                                              {
+                                                "required": [
+                                                  "crop"
+                                                ]
+                                              },
+                                              {
+                                                "required": [
+                                                  "style"
+                                                ]
+                                              }
                                             ]
                                           }
                                         }
@@ -41128,7 +41164,7 @@
                                     "additionalProperties": false,
                                     "properties": {
                                       "surface": {
-                                        "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                                        "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` or `style`.",
                                         "anyOf": [
                                           {
                                             "title": "Surface (by browser engine)",
@@ -41648,6 +41684,15 @@
                                             }
                                           }
                                         ]
+                                      },
+                                      "style": {
+                                        "type": "string",
+                                        "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                                        "minLength": 1
+                                      },
+                                      "stable": {
+                                        "type": "boolean",
+                                        "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
                                       },
                                       "annotations": {
                                         "type": "array",
@@ -97636,7 +97681,7 @@
                                             "additionalProperties": false,
                                             "properties": {
                                               "surface": {
-                                                "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                                                "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` or `style`.",
                                                 "anyOf": [
                                                   {
                                                     "title": "Surface (by browser engine)",
@@ -98156,6 +98201,15 @@
                                                     }
                                                   }
                                                 ]
+                                              },
+                                              "style": {
+                                                "type": "string",
+                                                "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                                                "minLength": 1
+                                              },
+                                              "stable": {
+                                                "type": "boolean",
+                                                "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
                                               },
                                               "annotations": {
                                                 "type": "array",
@@ -101673,8 +101727,8 @@
                                             "title": "Capture screenshot fields"
                                           },
                                           {
-                                            "title": "App captures don't support crop",
-                                            "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
+                                            "title": "App captures don't support crop or style",
+                                            "$comment": "crop relies on browser viewport APIs, and style injects CSS into a web page; neither has an app-window equivalent. Rejected at validation time so authors don't hit a runtime FAIL.",
                                             "if": {
                                               "required": [
                                                 "surface"
@@ -101690,8 +101744,17 @@
                                             },
                                             "then": {
                                               "not": {
-                                                "required": [
-                                                  "crop"
+                                                "anyOf": [
+                                                  {
+                                                    "required": [
+                                                      "crop"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "style"
+                                                    ]
+                                                  }
                                                 ]
                                               }
                                             }
@@ -101720,7 +101783,7 @@
                                               "additionalProperties": false,
                                               "properties": {
                                                 "surface": {
-                                                  "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                                                  "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` or `style`.",
                                                   "anyOf": [
                                                     {
                                                       "title": "Surface (by browser engine)",
@@ -102240,6 +102303,15 @@
                                                       }
                                                     }
                                                   ]
+                                                },
+                                                "style": {
+                                                  "type": "string",
+                                                  "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                                                  "minLength": 1
+                                                },
+                                                "stable": {
+                                                  "type": "boolean",
+                                                  "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
                                                 },
                                                 "annotations": {
                                                   "type": "array",
@@ -105757,8 +105829,8 @@
                                               "title": "Capture screenshot fields"
                                             },
                                             {
-                                              "title": "App captures don't support crop",
-                                              "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
+                                              "title": "App captures don't support crop or style",
+                                              "$comment": "crop relies on browser viewport APIs, and style injects CSS into a web page; neither has an app-window equivalent. Rejected at validation time so authors don't hit a runtime FAIL.",
                                               "if": {
                                                 "required": [
                                                   "surface"
@@ -105774,8 +105846,17 @@
                                               },
                                               "then": {
                                                 "not": {
-                                                  "required": [
-                                                    "crop"
+                                                  "anyOf": [
+                                                    {
+                                                      "required": [
+                                                        "crop"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "required": [
+                                                        "style"
+                                                      ]
+                                                    }
                                                   ]
                                                 }
                                               }
@@ -105788,7 +105869,7 @@
                                           "additionalProperties": false,
                                           "properties": {
                                             "surface": {
-                                              "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                                              "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop` or `style`.",
                                               "anyOf": [
                                                 {
                                                   "title": "Surface (by browser engine)",
@@ -106308,6 +106389,15 @@
                                                   }
                                                 }
                                               ]
+                                            },
+                                            "style": {
+                                              "type": "string",
+                                              "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                                              "minLength": 1
+                                            },
+                                            "stable": {
+                                              "type": "boolean",
+                                              "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
                                             },
                                             "annotations": {
                                               "type": "array",

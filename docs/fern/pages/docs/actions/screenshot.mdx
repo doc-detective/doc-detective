@@ -33,6 +33,8 @@ You can specify the screenshot action in several ways:
   - `mask`: (Optional) A list of areas to ignore when comparing against a reference image, such as a date that changes every run. Doc Detective paints each area the same solid color on both images before comparing, so changes inside a mask don't count toward `maxVariation`. The saved screenshot isn't changed. A string item, a selector or display text, masks the first match. An object item takes the element-finding fields `crop` takes, except `padding`, and masks every match. Masks apply only when a comparison runs. The step fails if Doc Detective can't find a mask's element. See [Ignore parts that change](/docs/test-docs/screenshot-visual-regression#ignore-parts-that-change).
   - `surface`: (Optional) The browser session, window, or tab to capture, such as `{ "browser": "chrome", "tab": "cart" }`. It can also be the [native app surface](/docs/actions/startsurface) to capture, such as `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": -1 }`. On macOS the capture is that window element, and on Windows the switched window. Omit it to capture the active surface, the most recently opened, focused, or explicitly targeted one, whether a browser tab or an app window. Specifying a surface switches the active surface for the steps that follow. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](find#app-windows).
   - `annotations`: (Optional) A list of visual annotations to draw onto the screenshot. See [Annotations](#annotations).
+  - `style`: (Optional) CSS that applies only while the screenshot is taken, such as `"#chat-launcher, .cookie-banner { visibility: hidden !important; }"`. Doc Detective adds it to the page just before the capture and removes it right after, even when the capture fails, so later steps and recordings see the page unchanged. Browser captures only: setting `style` with an app `surface` is a validation error.
+  - `stable`: (Optional) If `true`, Doc Detective captures the page every 100 milliseconds until two captures in a row are identical, then saves that one. If the page still changes after 5 seconds, it saves the last capture and the step returns WARNING with `Page kept changing for 5 seconds, so the screenshot may not be stable.` Works for browser and app captures (default: `false`).
 
 **Where files go:** a path you write resolves against the spec file you wrote it in. A spec loaded from a URL (`--input https://…`) has no folder of its own, so its relative paths resolve against `outputDir`. A file Doc Detective names, such as `<stepId>.png`, goes in `outputDir`, so it lands on the same path every run and later runs compare against it. `outputDir` defaults to `.`, which resolves against your config file's folder. With no config file, that's the current folder.
 
@@ -172,11 +174,14 @@ URL paths must end in `.png` (or `.PNG`) and can include query strings for signe
 - `$$maskTargetsFound`: whether Doc Detective found every mask's element (when a comparison runs with `mask`). The step fails if one is missing.
 - `$$masksInBounds`: whether every string mask landed inside the image (when a comparison runs with `mask`). The step returns WARNING if one falls outside.
 - `$$maskedRegions`: the number of masked areas inside the image (when a comparison runs with `mask`).
+- `$$stable`: whether two captures in a row matched within 5 seconds (when `stable` is `true`). The step returns WARNING when it's `false`.
 - `$$resizedToReference`: the pixel sizes of the first screenshot (`from`) and the reference image (`to`), when Doc Detective resized the window to match the reference image. See **Size mismatches**.
 
 > For comprehensive options, see the [`screenshot`](/reference/schemas/screenshot) reference.
 
 A browser screenshot blurs every element whose text or form value holds a secret environment variable value. A field that received a typed secret shows dots. Native app and device screenshots aren't blurred. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
+
+Before every browser screenshot, Doc Detective waits up to 2 seconds for the page's web fonts to load, so text doesn't render in a fallback font.
 
 ## Examples
 

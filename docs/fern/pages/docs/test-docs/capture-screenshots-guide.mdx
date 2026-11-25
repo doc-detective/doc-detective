@@ -90,9 +90,38 @@ For more control, use the object form. Set `crop` to a CSS selector to capture o
 
 `padding` accepts a single number for all four sides, or an object `{ "top": …, "right": …, "bottom": …, "left": … }` to pad each side independently. For the full list of fields, see the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema.
 
+## Hide widgets and wait for the page to settle
+
+Chat launchers, cookie banners, and spinners make a screenshot differ from run to run, and readers don't need them. Two `screenshot` fields keep them out of the image:
+
+- `style` takes CSS that applies only while the screenshot is taken. Doc Detective adds it just before the capture and removes it right after, so later steps and recordings see the page as it was.
+- `stable: true` captures the page every 100 milliseconds until two captures in a row are identical, then saves that one. Use it for pages that load in stages or animate in.
+
+{/* test {"testId":"capture-guide-style-stable","detectSteps":false} */}
+
+```json
+{
+  "description": "Capture the home page without the chat launcher or cookie banner, once it stops changing.",
+  "screenshot": {
+    "path": "./output/home.png",
+    "style": "#chat-launcher, .cookie-banner { visibility: hidden !important; }",
+    "stable": true
+  }
+}
+```
+
+{/* step {"stepId":"capture-guide-style-stable-goto","description":"Open a local test page with a cookie banner","goTo":"http://localhost:8092/screenshot-banner.html"} */}
+{/* step {"stepId":"capture-guide-style-stable-shot","description":"Capture without the banner once the page settles, directed at a gitignored output folder","screenshot":{"path":"guide_style_stable.png","directory":"./.dd-output","style":".cookie-banner { visibility: hidden !important; }","stable":true}} */}
+{/* test end */}
+
+If the page is still changing after 5 seconds, Doc Detective saves the last capture and the step returns `WARNING` with `Page kept changing for 5 seconds, so the screenshot may not be stable.` A looping animation never settles, so hide it with `style` instead. `style` works only for browser captures. `stable` also works for [app windows](/docs/actions/startsurface#target-an-app-surface).
+
+Doc Detective also waits up to 2 seconds for web fonts to load before every browser screenshot, so you don't need a `wait` step for fonts.
+
 ## Verify it works
 
 - A step that captured an image reports `PASS`.
+- A step with `stable: true` on a page that never stopped changing reports `WARNING` and still saves the image.
 - When the target path already holds a file and you set `"overwrite": "false"`, the step keeps the existing file and reports `SKIPPED`.
 
 Captures land in the run's output directory and the per-run artifact tree. To see where they land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).

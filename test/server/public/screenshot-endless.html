@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Endless</title>
+  <style>
+    body { margin: 0; background: #fff; }
+    #box { width: 300px; height: 300px; }
+  </style>
+</head>
+<body>
+  <!-- The box changes color every 20 ms forever, so no two captures 100 ms apart match. -->
+  <div id="box"></div>
+  <script>
+    let hue = 0;
+    const box = document.getElementById("box");
+    setInterval(() => {
+      hue = (hue + 7) % 360;
+      box.style.background = "hsl(" + hue + ", 80%, 50%)";
+    }, 20);
+  </script>
+</body>
+</html>

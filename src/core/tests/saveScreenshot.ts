@@ -88,7 +88,7 @@ async function getPixelmatch(ctx: { cacheDir?: string } = {}) {
   return _pixelmatch;
 }
 
-export { saveScreenshot, clampCropRect, aspectRatiosMatch, referenceViewport };
+export { saveScreenshot, clampCropRect, aspectRatiosMatch, referenceViewport, captureUntilStable };
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -203,26 +203,105 @@ function referenceViewport({
   return wanted;
 }
 
-// A browser capture with every element that shows a secret blurred, and the
-// blur removed after (ADR 01178), and the live annotate blurs burned in.
-async function takeBrowserScreenshot(driver: any, sharp: any): Promise<Buffer> {
-  // A tracked blur can move during the capture, so the page notes every place
-  // each blur is drawn from here until the read after it.
-  const watching = await liveBlurs(driver, watchBlurRegions);
-  const unblur = await blurSecretsForCapture(driver);
-  let buffer: Buffer;
-  try {
-    buffer = Buffer.from(await driver.takeScreenshot(), "base64");
-  } finally {
-    await unblur();
+// `stable` (ADR 01221): capture until two captures in a row are byte-identical.
+const STABLE_INTERVAL_MS = 100;
+// ponytail: a fixed 5-second ceiling. Add a `stableTimeout` key if pages need longer.
+const STABLE_TIMEOUT_MS = 5000;
+const realClock = {
+  now: () => Date.now(),
+  sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
+};
+
+async function captureUntilStable(
+  capture: () => Promise<Buffer>,
+  stable: boolean | undefined,
+  clock = realClock
+): Promise<{ buffer: Buffer; stable: boolean }> {
+  let previous = await capture();
+  if (!stable) return { buffer: previous, stable: true };
+  const deadline = clock.now() + STABLE_TIMEOUT_MS;
+  while (clock.now() < deadline) {
+    await clock.sleep(STABLE_INTERVAL_MS);
+    const next = await capture();
+    if (next.equals(previous)) return { buffer: next, stable: true };
+    previous = next;
   }
+  return { buffer: previous, stable: false };
+}
+
+// Run in the page, so they're self-contained.
+function addCaptureStyle(css: string) {
+  const style = document.createElement("style");
+  style.setAttribute("data-dd-capture", "");
+  style.textContent = css;
+  (document.head || document.documentElement).appendChild(style);
+}
+function removeCaptureStyle() {
+  document.querySelectorAll("style[data-dd-capture]").forEach((style) => style.remove());
+}
+// Web fonts that are still loading render in a fallback face, so wait for
+// them, up to 2 seconds. A page that never settles is captured as it is.
+function waitForFonts() {
+  return Promise.race([
+    (document as any).fonts?.ready,
+    new Promise((resolve) => setTimeout(resolve, 2000)),
+  ]).then(() => true);
+}
+
+type CaptureOptions = { style?: string; stable?: boolean };
+
+// A browser capture with every element that shows a secret blurred, and the
+// blur removed after (ADR 01178), and the live annotate blurs burned in. The
+// step's `style` holds only for the capture, after web fonts load (ADR 01221).
+async function takeBrowserScreenshot(
+  driver: any,
+  sharp: any,
+  options: CaptureOptions = {}
+): Promise<{ buffer: Buffer; stable: boolean }> {
+  if (options.style) {
+    try {
+      await driver.execute(addCaptureStyle, options.style);
+    } catch (error: any) {
+      throw new Error(`Couldn't add the \`style\` CSS to the page: ${error?.message ?? error}`);
+    }
+  }
+  let captured: { buffer: Buffer; stable: boolean };
+  let watching: any;
+  try {
+    try {
+      await driver.execute(waitForFonts);
+    } catch {
+      // A page that can't report its fonts is captured as it is.
+    }
+    // A tracked blur can move during the capture, so the page notes every place
+    // each blur is drawn from here until the read after it.
+    watching = await liveBlurs(driver, watchBlurRegions);
+    const unblur = await blurSecretsForCapture(driver);
+    try {
+      captured = await captureUntilStable(
+        async () => Buffer.from(await driver.takeScreenshot(), "base64"),
+        options.stable
+      );
+    } finally {
+      await unblur();
+    }
+  } finally {
+    if (options.style) {
+      try {
+        await driver.execute(removeCaptureStyle);
+      } catch {
+        // A page that navigated away has no style left to remove.
+      }
+    }
+  }
+  const buffer = captured!.buffer;
   const page = await liveBlurs(driver, readBlurRegions);
   // A watch that's gone means a new document, which can't say where the
   // captured frame's blurs were.
   if (watching && !page?.watched) {
     throw new Error("Couldn't read where the live `blur` annotations are on the page. The page changed during the screenshot.");
   }
-  return await burnInLiveBlurs(sharp, buffer, page);
+  return { buffer: await burnInLiveBlurs(sharp, buffer, page), stable: captured!.stable };
 }
 
 async function liveBlurs(driver: any, call: (driver: any) => Promise<any>): Promise<any> {
@@ -270,6 +349,7 @@ async function retakeAtReferenceSize({
   sharp,
   config,
   label,
+  options,
 }: {
   driver: any;
   captureBuffer: Buffer;
@@ -277,9 +357,11 @@ async function retakeAtReferenceSize({
   sharp: any;
   config: any;
   label: string;
+  options?: CaptureOptions;
 }): Promise<{
   restore: () => Promise<void>;
   buffer: Buffer;
+  stable: boolean;
   from: Size;
   to: Size;
 } | null> {
@@ -323,13 +405,13 @@ async function retakeAtReferenceSize({
   let got: string;
   try {
     await realizeViewport(driver, wanted, config, label, "debug");
-    const buffer = await takeBrowserScreenshot(driver, sharp);
-    const retaken = await sharp(buffer).metadata();
+    const shot = await takeBrowserScreenshot(driver, sharp, options);
+    const retaken = await sharp(shot.buffer).metadata();
     if (
       retaken.width === reference.width &&
       retaken.height === reference.height
     ) {
-      return { restore, buffer, from: capture, to: reference };
+      return { restore, buffer: shot.buffer, stable: shot.stable, from: capture, to: reference };
     }
     got = `${retaken.width}×${retaken.height}`;
   } catch (error: any) {
@@ -435,6 +517,7 @@ async function captureScreenshot({
   // Applicable verification specs, IN ORDER:
   //   (1) crop element found      `$$outputs.cropElementFound == true`      (fail)    — only when `crop` is set
   //   (2) element fits viewport   `$$outputs.fitsViewport == true`          (fail)    — only when `crop` is set
+  //   (2b) page settled           `$$outputs.stable == true`                (warning) — only when `stable` is set
   //   (3) annotation targets found `$$outputs.annotationTargetsFound == true` (fail)   — only when `annotations` is set
   //   (4) annotations in bounds   `$$outputs.annotationsInBounds == true`   (warning) — only when `annotations` is set
   //   (5) aspect ratios match     `$$outputs.aspectRatioMatches == true`    (fail)    — only when comparing against an existing/URL reference
@@ -836,6 +919,11 @@ async function captureScreenshot({
   // buffer-based. Nothing is written to `filePath`/`existFilePath` yet — the
   // final PNG lands on disk exactly once, at the end.
   let captureBuffer: Buffer;
+  let captureStable = true;
+  const captureOptions: CaptureOptions = {
+    style: step.screenshot.style,
+    stable: step.screenshot.stable,
+  };
   let appScratchPath: string | undefined;
   try {
     if (recordingActive) {
@@ -853,10 +941,18 @@ async function captureScreenshot({
         dir,
         `.appcapture_${step.stepId || "screenshot"}_${Date.now()}.png`
       );
-      await appWindowScreenshot(appEntry, appWindowTarget, appScratchPath);
-      captureBuffer = fs.readFileSync(appScratchPath);
+      const scratch = appScratchPath;
+      // `stable` only compares PNGs, so it works on app windows too.
+      ({ buffer: captureBuffer, stable: captureStable } = await captureUntilStable(async () => {
+        await appWindowScreenshot(appEntry, appWindowTarget, scratch);
+        return fs.readFileSync(scratch);
+      }, captureOptions.stable));
     } else {
-      captureBuffer = await takeBrowserScreenshot(captureDriver, sharp);
+      ({ buffer: captureBuffer, stable: captureStable } = await takeBrowserScreenshot(
+        captureDriver,
+        sharp,
+        captureOptions
+      ));
     }
   } catch (error) {
     // Couldn't capture screenshot
@@ -913,12 +1009,23 @@ async function captureScreenshot({
       sharp,
       config,
       label: `Screenshot ${step.stepId}`,
+      options: captureOptions,
     });
     if (retake) {
       session.restoreWindow = retake.restore;
       captureBuffer = retake.buffer;
+      captureStable = retake.stable;
       result.outputs.resizedToReference = { from: retake.from, to: retake.to };
       result.description += ` Resized the window to match the reference's ${retake.to.width}×${retake.to.height} before comparing.`;
+    }
+  }
+
+  // A page that never settled is still saved: a WARNING, not a FAIL.
+  if (step.screenshot.stable) {
+    result.outputs.stable = captureStable;
+    specs.push({ statement: `$$outputs.stable == true`, severity: "warning" });
+    if (!captureStable) {
+      result.description += ` Page kept changing for ${STABLE_TIMEOUT_MS / 1000} seconds, so the screenshot may not be stable.`;
     }
   }
 
