@@ -39,7 +39,16 @@ async function mockRequest({
 
   if (!hasBidi(browserName)) {
     result.status = "SKIPPED";
-    result.description = `Skipped: \`${browserName === "webkit" ? "safari" : browserName}\` can't mock requests.`;
+    const name = browserName === "webkit" ? "safari" : browserName || "this browser";
+    result.description = `Skipped: \`${name}\` can't mock requests.`;
+    return result;
+  }
+
+  // Defensive: every session of a BiDi browser has the socket (ADR 01219).
+  // Checked before the bodyPath read, so this cause wins over a file error.
+  if (!driver?.isBidi) {
+    result.status = "FAIL";
+    result.description = `Couldn't mock requests to \`${url}\`. The browser session has no WebDriver BiDi connection.`;
     return result;
   }
 
@@ -56,13 +65,6 @@ async function mockRequest({
       result.description = `Couldn't read \`bodyPath\` \`${file}\`.`;
       return result;
     }
-  }
-
-  // Defensive: every session of a BiDi browser has the socket (ADR 01219).
-  if (!driver?.isBidi) {
-    result.status = "FAIL";
-    result.description = `Couldn't mock requests to \`${url}\`. The browser session has no WebDriver BiDi connection.`;
-    return result;
   }
 
   const filter = method ? { method } : {};

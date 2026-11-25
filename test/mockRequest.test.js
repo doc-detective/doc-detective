@@ -48,8 +48,15 @@ function fakeDriver() {
   return driver;
 }
 
-const run = (mockRequestValue, { driver = fakeDriver(), browserName = "chrome" } = {}) =>
-  mockRequest({ config, step: { mockRequest: mockRequestValue }, driver, browserName, hasBidi }).then(
+// `browserName` defaults to chrome only when the key is absent, so a test can pass undefined.
+const run = (mockRequestValue, { driver = fakeDriver(), ...opts } = {}) =>
+  mockRequest({
+    config,
+    step: { mockRequest: mockRequestValue },
+    driver,
+    browserName: "browserName" in opts ? opts.browserName : "chrome",
+    hasBidi,
+  }).then(
     (result) => ({ result, driver })
   );
 
@@ -59,6 +66,23 @@ describe("mockRequest action", function () {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-mock-"));
   });
   afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  it("names `this browser` when it skips with no browser name", async function () {
+    const { result } = await run({ url: "**/x" }, { browserName: undefined });
+    assert.equal(result.status, "SKIPPED");
+    assert.equal(result.description, "Skipped: `this browser` can't mock requests.");
+  });
+
+  it("reports the missing BiDi socket before it reads a bodyPath", async function () {
+    const driver = fakeDriver();
+    driver.isBidi = false;
+    const { result } = await run({ url: "**/x", response: { bodyPath: path.join(dir, "nope.json") } }, { driver });
+    assert.equal(result.status, "FAIL");
+    assert.equal(
+      result.description,
+      "Couldn't mock requests to `**/x`. The browser session has no WebDriver BiDi connection."
+    );
+  });
 
   it("skips a browser whose sessions have no BiDi socket", async function () {
     const { result, driver } = await run({ url: "**/x" }, { browserName: "firefox" });

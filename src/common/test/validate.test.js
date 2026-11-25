@@ -1311,8 +1311,12 @@ import { schemas } from "../dist/index.js";
       });
 
       it("rejects unknown keys", function () {
-        expect(check({ url: "**/x", bogus: true }).valid).to.be.false;
-        expect(check({ url: "**/x", response: { bogus: true } }).valid).to.be.false;
+        const top = check({ url: "**/x", bogus: true });
+        expect(top.valid).to.be.false;
+        expect(top.errors).to.include("/mockRequest must NOT have additional properties");
+        const inResponse = check({ url: "**/x", response: { bogus: true } });
+        expect(inResponse.valid).to.be.false;
+        expect(inResponse.errors).to.include("/mockRequest/response must NOT have additional properties");
       });
 
       it("rejects setting both body and bodyPath", function () {
