@@ -469,7 +469,7 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         "appium:automationName": "Gecko",
         "appium:newCommandTimeout": 600, // 10 minutes
         browserName: "MozillaFirefox",
-        "wdio:enforceWebDriverClassic": true, // Classic elements (ADR 00132)
+        "wdio:enforceWebDriverClassic": !hasBidi(name), // ADR 01219
         ...(hasBidi(name)
           ? { webSocketUrl: true }
           : {}),
@@ -515,7 +515,7 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:automationName": "Safari",
           "appium:newCommandTimeout": 600, // 10 minutes
           browserName: "Safari",
-          "wdio:enforceWebDriverClassic": true, // Classic elements (ADR 00132)
+          "wdio:enforceWebDriverClassic": !hasBidi(name), // ADR 01219
           ...(hasBidi(name)
             ? { webSocketUrl: true }
             : {}),
@@ -567,9 +567,9 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:newCommandTimeout": 600, // 10 minutes
           "appium:executable": chromium.driver,
           browserName: "chrome",
-          // Elements stay on classic WebDriver (ADR 00132). The BiDi socket
-          // opens on every session of a browser in BIDI_BROWSERS (ADR 01219).
-          "wdio:enforceWebDriverClassic": true,
+          // A browser in BIDI_BROWSERS runs fully on BiDi; any other stays
+          // classic with no socket (ADR 01219).
+          "wdio:enforceWebDriverClassic": !hasBidi(name),
           ...(hasBidi(name)
             ? { webSocketUrl: true }
             : {}),
