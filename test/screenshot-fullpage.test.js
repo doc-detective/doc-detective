@@ -280,7 +280,7 @@ describe("screenshot fullPage and animations", function () {
     const driver = fakeDriver({ browserName: "Safari", viewportCapture, pageCapture, maxViewport: 900 });
     const result = await run({ fullPage: true }, driver);
     assert.equal(result.status, "SKIPPED", result.description);
-    assert.equal(result.description, "Skipped: `safari` can't capture a page taller than the screen.");
+    assert.equal(result.description, "Skipped: `safari` can't capture a page larger than the screen.");
     assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
     assert.deepEqual(driver.window, { width: 800, height: 700 });
     assert.ok(!fs.existsSync(path.join(dir, "page.png")));
@@ -405,7 +405,7 @@ describe("screenshot fullPage and animations", function () {
     });
     const result = await run({ fullPage: true }, driver);
     assert.equal(result.status, "SKIPPED", result.description);
-    assert.equal(result.description, "Skipped: `chrome` can't capture a page taller than the screen.");
+    assert.equal(result.description, "Skipped: `chrome` can't capture a page larger than the screen.");
     assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
     assert.deepEqual(driver.window, { width: 800, height: 700 });
   });

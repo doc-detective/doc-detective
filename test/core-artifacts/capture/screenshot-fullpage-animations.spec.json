@@ -116,7 +116,7 @@
     },
     {
       "testId": "fullpage-safari-taller-than-screen",
-      "description": "Headed Safari can't grow its window past the screen, so a 20,000-pixel page is SKIPPED because `safari` can't capture a page taller than the screen.",
+      "description": "Headed Safari can't grow its window past the screen, so a 20,000-pixel page is SKIPPED because `safari` can't capture a page larger than the screen.",
       "runOn": [
         {
           "platforms": [

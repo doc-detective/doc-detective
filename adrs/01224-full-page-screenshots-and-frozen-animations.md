@@ -52,12 +52,15 @@ report.
 * **A session with a BiDi socket (`driver.isBidi`):** `browsingContext.captureScreenshot` with
   `origin: "document"`.
 * **Anything else, including Chrome today and Safari:** grow the window until the viewport is as
-  tall as the page's `scrollHeight`. Capture, then put the window size and scroll position back.
-  The resize uses `realizeViewport`. A page that already fits the viewport isn't resized.
+  tall as the page's `scrollHeight` and as wide as its `scrollWidth`. Capture, then put the window
+  size and scroll position back. The resize uses `realizeViewport`. A page that already fits the
+  viewport isn't resized. After the resize the page is measured again, because a `vh` layout grows
+  with the viewport.
 * **The screen caps the window:** a headed browser can't grow past the display. When the viewport
-  ends up shorter than the page, the window goes back. The step is SKIPPED:
-  ``Skipped: `safari` can't capture a page taller than the screen.`` The message names whichever
-  browser hit the cap. Headed Safari is the common case, since Safari has no headless mode.
+  ends up shorter or narrower than the page, the window goes back. The step is SKIPPED:
+  ``Skipped: `safari` can't capture a page larger than the screen.`` One message covers both
+  dimensions. It names whichever browser hit the cap. Headed Safari is the common case, since
+  Safari has no headless mode.
 
 Chrome sessions don't have a BiDi socket on this branch. PR #1041 gives every Chrome session one.
 Once it merges, Chrome captures the document over BiDi with no resize, and this code needs no
@@ -86,9 +89,11 @@ Before the capture, a page script:
 * calls `finish()` on each finite animation and `cancel()` on each infinite one;
 * adds CSS that sets `transition: none` and `caret-color: transparent` on every element.
 
-It saves each animation's `currentTime` and whether it was running. In a `finally`, the CSS goes
-and each animation gets its time back and resumes if it was running. A capture that fails still
-puts the page back. JavaScript timers that restyle the page aren't animations, so they keep
+The freeze runs after the fonts load and after any `fullPage` resize, so an animation either one
+starts is frozen too. It saves each animation's `currentTime` and whether it was running. The page
+stays frozen until annotation and mask geometry is read, so both land where the capture shows each
+element. When the step ends, in a `finally`, the CSS goes and each animation gets its time back
+and resumes if it was running. A step that fails still puts the page back. JavaScript timers that restyle the page aren't animations, so they keep
 running. `stable` covers those.
 
 ### Consequences
@@ -98,7 +103,7 @@ running. `stable` covers those.
 * Good, because existing steps and references don't change.
 * Bad, because Chrome grows its window until #1041's socket is on for `fullPage` contexts. A page
   whose layout depends on the viewport height, such as a `100vh` hero, renders taller.
-* Bad, because a headed browser on a small screen SKIPs a page taller than the screen.
+* Bad, because a headed browser on a small screen SKIPs a page larger than the screen.
 
 ### Confirmation
 

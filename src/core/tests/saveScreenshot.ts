@@ -370,7 +370,7 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
   }
   if (!fits(grown, realized)) {
     await restore();
-    throw new CaptureSkipped(`Skipped: \`${browser || "this browser"}\` can't capture a page taller than the screen.`);
+    throw new CaptureSkipped(`Skipped: \`${browser || "this browser"}\` can't capture a page larger than the screen.`);
   }
   return { scroll, captureScroll: { x: 0, y: 0 }, restore, capture: viewportCapture };
 }
