@@ -1969,10 +1969,53 @@ import { schemas } from "../dist/index.js";
         expect(result.object.screenshot).to.not.have.property("stable");
       });
 
+      // ADR 01224: whole-page capture and frozen animations.
+      it("should validate a screenshot with fullPage and animations", function () {
+        for (const animations of ["allow", "disabled"]) {
+          const result = validate({
+            schemaKey: "step_v3",
+            object: { screenshot: { path: "a.png", fullPage: true, animations } },
+          });
+          expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+          expect(result.object.screenshot.fullPage).to.equal(true);
+          expect(result.object.screenshot.animations).to.equal(animations);
+        }
+      });
+
+      // No schema defaults: an effective step without them stays unchanged.
+      it("should leave screenshot fullPage and animations unset when omitted", function () {
+        const result = validate({ schemaKey: "step_v3", object: { screenshot: { path: "a.png" } } });
+
+        expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+        expect(result.object.screenshot).to.not.have.property("fullPage");
+        expect(result.object.screenshot).to.not.have.property("animations");
+      });
+
+      it("should reject crop with fullPage, naming both keys", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "a.png", crop: "#header", fullPage: true } },
+        });
+
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.contain("set `crop` or `fullPage`, not both");
+      });
+
+      it("should allow crop with fullPage false", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "a.png", crop: "#header", fullPage: false } },
+        });
+
+        expect(result.valid, JSON.stringify(result.errors)).to.be.true;
+      });
+
       for (const [label, screenshot] of [
         ["an empty style", { style: "" }],
         ["a non-string style", { style: { display: "none" } }],
         ["a non-boolean stable", { stable: "sometimes" }],
+        ["a non-boolean fullPage", { fullPage: "yes" }],
+        ["an unknown animations value", { animations: "paused" }],
       ]) {
         it(`should reject a screenshot with ${label}`, function () {
           const result = validate({
@@ -5865,6 +5908,19 @@ import { schemas } from "../dist/index.js";
           object: { screenshot: { path: "app.png", surface: { app: "notepad" }, style: "a { color: red; }" } },
         });
         expect(styled.valid).to.be.false;
+
+        // ADR 01224: a whole page is a browser document.
+        const fullPage = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "app.png", surface: { app: "notepad" }, fullPage: true } },
+        });
+        expect(fullPage.valid).to.be.false;
+
+        const animations = validate({
+          schemaKey: "step_v3",
+          object: { screenshot: { path: "app.png", surface: { app: "notepad" }, animations: "disabled" } },
+        });
+        expect(animations.valid).to.be.false;
 
         const stable = validate({
           schemaKey: "step_v3",

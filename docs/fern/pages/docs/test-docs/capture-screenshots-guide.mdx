@@ -90,6 +90,32 @@ For more control, use the object form. Set `crop` to a CSS selector to capture o
 
 `padding` accepts a single number for all four sides, or an object `{ "top": …, "right": …, "bottom": …, "left": … }` to pad each side independently. For the full list of fields, see the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema.
 
+## Capture a whole page
+
+A long page, such as a settings page or a pricing table, doesn't fit in the viewport. Set `fullPage: true` to capture all of it in one image:
+
+{/* test {"testId":"capture-guide-full-page","detectSteps":false} */}
+
+```json
+{
+  "description": "Capture the whole pricing page, top to bottom.",
+  "screenshot": {
+    "path": "./output/pricing.png",
+    "fullPage": true
+  }
+}
+```
+
+{/* step {"stepId":"capture-guide-full-page-goto","description":"Open a local test page taller than the viewport","goTo":"http://localhost:8092/screenshot-tall.html"} */}
+{/* step {"stepId":"capture-guide-full-page-shot","description":"Capture the whole page, directed at a gitignored output folder","screenshot":{"path":"guide_full_page.png","directory":"./.dd-output","fullPage":true}} */}
+{/* test end */}
+
+Firefox captures the page directly. Chrome and Safari grow the window to the page's height, capture, then put the window and scroll position back. [Masks](/docs/test-docs/screenshot-visual-regression#ignore-parts-that-change) and [annotations](/docs/actions/screenshot#annotations) still land on the content they target.
+
+A headed browser can't grow past the screen. If the page is taller than the screen, the step reports `SKIPPED` and saves nothing. Run the browser headless to capture taller pages. Safari has no headless mode, so it skips them.
+
+`fullPage` works only for browser captures, and you can't combine it with `crop`. A crop already sets the area to capture.
+
 ## Hide widgets and wait for the page to settle
 
 Chat launchers, cookie banners, and spinners make a screenshot differ from run to run, and readers don't need them. Two `screenshot` fields keep them out of the image:
@@ -114,14 +140,30 @@ Chat launchers, cookie banners, and spinners make a screenshot differ from run t
 {/* step {"stepId":"capture-guide-style-stable-shot","description":"Capture without the banner once the page settles, directed at a gitignored output folder","screenshot":{"path":"guide_style_stable.png","directory":"./.dd-output","style":".cookie-banner { visibility: hidden !important; }","stable":true}} */}
 {/* test end */}
 
-If the page is still changing after 5 seconds, Doc Detective saves the last capture. The step then returns `WARNING` with `Page kept changing for 5 seconds, so the screenshot may not be stable.` A looping animation never settles, so hide it with `style` instead. `style` works only for browser captures. `stable` also works for [app windows](/docs/actions/startsurface#target-an-app-surface).
+If the page is still changing after 5 seconds, Doc Detective saves the last capture. The step then returns `WARNING` with `Page kept changing for 5 seconds, so the screenshot may not be stable.` A looping animation never settles, so stop it with `animations` or hide it with `style` instead. `style` works only for browser captures. `stable` also works for [app windows](/docs/actions/startsurface#target-an-app-surface).
 
 Doc Detective also waits up to 2 seconds for web fonts to load before every browser screenshot. You don't need a `wait` step for fonts.
+
+### Stop animations for the capture
+
+Spinners, carousels, transitions, and the blinking text cursor change from one capture to the next. Set `animations: "disabled"` to hold them still:
+
+```json
+{
+  "screenshot": {
+    "path": "./output/dashboard.png",
+    "animations": "disabled"
+  }
+}
+```
+
+Doc Detective jumps each finite CSS or Web Animation to its end and stops each looping one. It also turns off CSS transitions and hides the text cursor. Right after the capture, the page animates again. A script that changes the page on a timer isn't an animation, so it keeps running. Use `stable` or `style` for those. `animations` works only for browser captures.
 
 ## Verify it works
 
 - A step that captured an image reports `PASS`.
 - A step with `stable: true` on a page that never stopped changing reports `WARNING` and still saves the image.
+- A step with `fullPage: true` in a headed browser on a page taller than the screen reports `SKIPPED` and saves nothing.
 - When the target path already holds a file and you set `"overwrite": "false"`, the step keeps the existing file and reports `SKIPPED`.
 
 Captures land in the run's output directory and the per-run artifact tree. To see where they land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).

@@ -5914,9 +5914,35 @@
                         "required": [
                           "style"
                         ]
+                      },
+                      {
+                        "required": [
+                          "fullPage"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "animations"
+                        ]
                       }
                     ]
                   }
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "crop",
+                    "fullPage"
+                  ],
+                  "properties": {
+                    "fullPage": {
+                      "const": true
+                    }
+                  }
+                },
+                "errorMessage": {
+                  "not": "set `crop` or `fullPage`, not both."
                 }
               }
             ]
@@ -5988,6 +6014,16 @@
               },
               "stable": {
                 "type": "boolean"
+              },
+              "fullPage": {
+                "type": "boolean"
+              },
+              "animations": {
+                "type": "string",
+                "enum": [
+                  "allow",
+                  "disabled"
+                ]
               },
               "annotations": {
                 "type": "array",
@@ -14331,9 +14367,35 @@
                         "required": [
                           "style"
                         ]
+                      },
+                      {
+                        "required": [
+                          "fullPage"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "animations"
+                        ]
                       }
                     ]
                   }
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "crop",
+                    "fullPage"
+                  ],
+                  "properties": {
+                    "fullPage": {
+                      "const": true
+                    }
+                  }
+                },
+                "errorMessage": {
+                  "not": "set `crop` or `fullPage`, not both."
                 }
               }
             ]
@@ -14402,6 +14464,16 @@
               },
               "stable": {
                 "type": "boolean"
+              },
+              "fullPage": {
+                "type": "boolean"
+              },
+              "animations": {
+                "type": "string",
+                "enum": [
+                  "allow",
+                  "disabled"
+                ]
               },
               "annotations": {
                 "type": "array",

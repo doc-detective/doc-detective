@@ -35,8 +35,8 @@
             "$ref": "#/components/schemas/objectShape"
           },
           {
-            "title": "App captures don't support crop or style",
-            "$comment": "crop relies on browser viewport APIs, and style injects CSS into a web page; neither has an app-window equivalent. Rejected at validation time so authors don't hit a runtime FAIL.",
+            "title": "App captures don't support crop, style, fullPage, or animations",
+            "$comment": "crop relies on browser viewport APIs, and style, fullPage, and animations act on a web page; none has an app-window equivalent. Rejected at validation time so authors don't hit a runtime FAIL.",
             "if": {
               "required": [
                 "surface"
@@ -62,9 +62,37 @@
                     "required": [
                       "style"
                     ]
+                  },
+                  {
+                    "required": [
+                      "fullPage"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "animations"
+                    ]
                   }
                 ]
               }
+            }
+          },
+          {
+            "title": "crop and fullPage are exclusive",
+            "$comment": "A crop already defines the captured area (ADR 01224).",
+            "not": {
+              "required": [
+                "crop",
+                "fullPage"
+              ],
+              "properties": {
+                "fullPage": {
+                  "const": true
+                }
+              }
+            },
+            "errorMessage": {
+              "not": "set `crop` or `fullPage`, not both."
             }
           }
         ],
@@ -75,7 +103,7 @@
         "additionalProperties": false,
         "properties": {
           "surface": {
-            "description": "The browser window/tab or app window to capture. Omit to capture the active surface \u2014 the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": \u2026 }). App captures don't support `crop` or `style`.",
+            "description": "The browser window/tab or app window to capture. Omit to capture the active surface \u2014 the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": \u2026 }). App captures don't support `crop`, `style`, `fullPage`, or `animations`.",
             "anyOf": [
               {
                 "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
@@ -147,6 +175,18 @@
           "stable": {
             "type": "boolean",
             "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
+          },
+          "fullPage": {
+            "type": "boolean",
+            "description": "If `true`, captures the whole scrollable page, not only the visible viewport. Can't be combined with `crop`. Browser captures only. If unset, captures the viewport."
+          },
+          "animations": {
+            "type": "string",
+            "description": "If `disabled`, finishes finite CSS and Web Animations, stops infinite ones, turns off CSS transitions, and hides the text caret while the screenshot is taken, then puts them back. If unset or `allow`, the page animates as usual. Browser captures only.",
+            "enum": [
+              "allow",
+              "disabled"
+            ]
           },
           "annotations": {
             "type": "array",
