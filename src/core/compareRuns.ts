@@ -62,6 +62,7 @@ export function loadPreviousResults(
   runId: string,
   currentVersion?: string
 ): { previous: any; path: string } | { reason: string } {
+  if (config.compareTo === false) return { reason: `${PREFIX} \`compareTo\` is \`false\`.` };
   const target = config.compareTo ?? "previous";
   let file: string;
   if (target === "previous") {
