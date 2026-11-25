@@ -3,7 +3,7 @@ title: Capture screenshots
 description: Capture a screenshot of the full viewport, a cropped element, or an element with padding.
 ---
 
-Doc Detective can capture a screenshot at any point in a test. This guide is the entry point to the Screenshots section. It covers a single capture: the full viewport, a cropped element, or an element with padding. The section's other guides cover three related capabilities. [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) compares a capture against a reference image. [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) fires after every step. [Annotate screenshots](/docs/test-docs/annotate-screenshots) marks up an image. Look up every field in the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema. Unlike recording, screenshots capture fine in a headless or CI context.
+Doc Detective can capture a screenshot at any point in a test. This guide is the entry point to the Screenshots section. It covers a single capture: the full viewport, the whole page, a cropped element, or an element with padding. The section's other guides cover three related capabilities. [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) compares a capture against a reference image. [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) fires after every step. [Annotate screenshots](/docs/test-docs/annotate-screenshots) marks up an image. Look up every field in the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema. Unlike recording, screenshots capture fine in a headless or CI context.
 
 ## Before you begin
 
@@ -112,7 +112,7 @@ A long page, such as a settings page or a pricing table, doesn't fit in the view
 
 Firefox captures the page directly. Chrome and Safari grow the window to the page's height, capture, then put the window and scroll position back. [Masks](/docs/test-docs/screenshot-visual-regression#ignore-parts-that-change) and [annotations](/docs/actions/screenshot#annotations) still land on the content they target.
 
-A headed browser can't grow past the screen. If the page is taller than the screen, the step reports `SKIPPED` and saves nothing. Run the browser headless to capture taller pages. Safari has no headless mode, so it skips them.
+A headed Chrome or Safari window can't grow past the screen. If the page is taller than the screen, the step reports `SKIPPED` and saves nothing. To capture taller pages, use Firefox, or set `"headless": true` on Chrome in the context. See [Chrome dimensions and visibility](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility). Safari has no headless mode, so it skips them.
 
 `fullPage` works only for browser captures, and you can't combine it with `crop`. A crop already sets the area to capture.
 
@@ -163,7 +163,7 @@ Doc Detective jumps each finite CSS or Web Animation to its end and stops each l
 
 - A step that captured an image reports `PASS`.
 - A step with `stable: true` on a page that never stopped changing reports `WARNING` and still saves the image.
-- A step with `fullPage: true` in a headed browser on a page taller than the screen reports `SKIPPED` and saves nothing.
+- A step with `fullPage: true` in headed Chrome or Safari on a page taller than the screen reports `SKIPPED` and saves nothing.
 - When the target path already holds a file and you set `"overwrite": "false"`, the step keeps the existing file and reports `SKIPPED`.
 
 Captures land in the run's output directory and the per-run artifact tree. To see where they land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).

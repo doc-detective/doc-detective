@@ -40,7 +40,7 @@ You can specify the screenshot action in several ways:
   - `fullPage`: (Optional) If `true`, Doc Detective captures the whole scrollable page, not only the viewport. Masks and annotations land on the page content they target. Browser captures only. Setting both `fullPage` and `crop`, or `fullPage` with an app `surface`, is a validation error (default: `false`). How it captures depends on the browser:
     - Firefox uses its built-in whole-page capture.
     - Chrome and Safari grow the window to the page's height, capture, then restore the window size and scroll position.
-    - A headed browser can't grow past the screen. When the page is taller than the screen, the step returns SKIPPED with ``Skipped: `safari` can't capture a page taller than the screen.``, naming the browser.
+    - A headed Chrome or Safari window can't grow past the screen. When the page is taller than the screen, the step returns SKIPPED with ``Skipped: `safari` can't capture a page taller than the screen.``, naming the browser.
   - `animations`: (Optional) If `"disabled"`, Doc Detective stops the page's motion for the capture. It finishes finite CSS and Web Animations, stops infinite ones, turns off CSS transitions, and hides the text caret. After the capture, even a failed one, it puts them back. Animations that a script drives with timers keep running. Browser captures only: setting `animations` with an app `surface` is a validation error (default: `"allow"`).
 
 **Where files go:** a path you write resolves against the spec file you wrote it in. A spec loaded from a URL (`--input https://…`) has no folder of its own, so its relative paths resolve against `outputDir`. A file Doc Detective names, such as `<stepId>.png`, goes in `outputDir`, so it lands on the same path every run and later runs compare against it. `outputDir` defaults to `.`, which resolves against your config file's folder. With no config file, that's the current folder.
@@ -152,6 +152,7 @@ Annotations change the image's pixels. If you compare against a reference image 
 **Size mismatches:** a reference image from one machine can have different dimensions than a new screenshot on another. A new CI runner image, for example, can render the browser at a slightly different size. When the sizes differ, Doc Detective resizes the browser window so the viewport matches the reference image. It then takes the screenshot again and compares that one. The window returns to its original size when the step finishes, and `$$resizedToReference` reports the resize. Doc Detective doesn't resize the window when:
 
 - The step uses `crop`. A cropped image's size comes from the element, not the window.
+- The step uses `fullPage`. A whole-page image's height comes from the page's content, not the window. A page that gets longer or shorter changes the image's size.
 - `overwrite` is `"true"` on a local path, so there's no comparison.
 - A recording is running, because the resize would show in the video.
 - The context's [`viewport` or `window`](/docs/test-docs/platforms-and-browsers#chrome-dimensions-and-visibility) no longer matches the reference image, so a deliberate size change isn't undone. A reference image within 16 pixels of the `viewport` still matches. For a `window`, the window can change by up to 5% to match.
