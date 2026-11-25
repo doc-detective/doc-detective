@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "saveState",
+  "description": "Save the open site's cookies and `localStorage` to a JSON file in Playwright's `storageState` format, so later tests can sign in with `loadState`.",
+  "anyOf": [
+    {
+      "type": "string",
+      "title": "State file path",
+      "description": "Path of the state file, ending in `.json`. A relative path resolves against `outputDir`.",
+      "pattern": "^.*\\S.*\\.json$",
+      "transform": [
+        "trim"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "State file path",
+          "description": "Path of the state file, ending in `.json`. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+          "pattern": "^.*\\S.*\\.json$",
+          "transform": [
+            "trim"
+          ]
+        },
+        "directory": {
+          "type": "string",
+          "title": "Directory path",
+          "description": "Directory to save the state file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+          "minLength": 1,
+          "pattern": "\\S",
+          "transform": [
+            "trim"
+          ]
+        },
+        "overwrite": {
+          "type": "boolean",
+          "title": "Overwrite existing file",
+          "description": "Whether to replace an existing state file.",
+          "default": false
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "Save state (detailed)"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "string": {
+        "type": "string",
+        "title": "State file path",
+        "description": "Path of the state file, ending in `.json`. A relative path resolves against `outputDir`.",
+        "pattern": "^.*\\S.*\\.json$",
+        "transform": [
+          "trim"
+        ]
+      },
+      "object": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "State file path",
+            "description": "Path of the state file, ending in `.json`. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+            "pattern": "^.*\\S.*\\.json$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "directory": {
+            "type": "string",
+            "title": "Directory path",
+            "description": "Directory to save the state file in. A relative directory resolves against the spec file. Omit it to save under `outputDir`.",
+            "minLength": 1,
+            "pattern": "\\S",
+            "transform": [
+              "trim"
+            ]
+          },
+          "overwrite": {
+            "type": "boolean",
+            "title": "Overwrite existing file",
+            "description": "Whether to replace an existing state file.",
+            "default": false
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "Save state (detailed)"
+      }
+    }
+  },
+  "examples": [
+    "auth.json",
+    {
+      "path": "auth.json",
+      "directory": "../.auth",
+      "overwrite": true
+    }
+  ]
+}

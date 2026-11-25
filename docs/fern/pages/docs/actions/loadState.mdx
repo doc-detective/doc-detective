@@ -1,0 +1,72 @@
+---
+title: loadState
+description: Load saved cookies and localStorage into the open site, to reuse a sign-in.
+---
+
+The `loadState` action loads cookies and `localStorage` from a state file into the open site. The file comes from [`saveState`](/docs/actions/savestate), or from Playwright's `storageState`. For the whole pattern, see [Sign in once, reuse it](/docs/test-docs/sign-in).
+
+> For comprehensive options, see the [`loadState`](/reference/schemas/loadstate) reference.
+
+## What it loads
+
+`loadState` applies only what fits the open page:
+
+- the cookies whose domain is the open host or a parent of it;
+- the `localStorage` entries saved for the open origin.
+
+Open the site with [`goTo`](/docs/actions/goto) before `loadState`. Then `goTo` again, so the app reads the loaded state:
+
+```json
+{
+  "steps": [
+    { "goTo": "https://app.example.com" },
+    { "loadState": "auth.json" },
+    { "goTo": "https://app.example.com/billing" }
+  ]
+}
+```
+
+## Formats
+
+### String format
+
+A path ending in `.json`. A relative path resolves against `outputDir`, where `saveState` writes by default.
+
+```json
+{
+  "loadState": "auth.json"
+}
+```
+
+### Object format
+
+```json
+{
+  "loadState": {
+    "path": "auth.json",
+    "directory": "../.auth"
+  }
+}
+```
+
+| Field | Type | Description | Default |
+|-------|------|-------------|---------|
+| `path` | string | **Required.** File to read, ending in `.json`. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted. | |
+| `directory` | string | Directory that holds the file. A relative directory resolves against the spec file. | `outputDir` |
+
+## Outputs
+
+| Output | Description |
+|--------|-------------|
+| `path` | Absolute path of the loaded file. |
+| `cookies` | Number of cookies applied. |
+| `localStorage` | Number of `localStorage` entries applied. |
+
+## Failures
+
+| Message | Fix |
+|---------|-----|
+| ``Couldn't load state: `/abs/auth.json` doesn't exist.`` | Check `path` and `directory`, and that `saveState` ran first. |
+| ``Couldn't load state: `/abs/auth.json` isn't a valid state file.`` | Point `path` at a file from `saveState` or Playwright's `storageState`. |
+| ``Couldn't load state: no site is open. Use `goTo` first.`` | Add a `goTo` to the site before `loadState`. |
+| ``Couldn't load state: `/abs/auth.json` has no data for `https://app.example.com`. Use `goTo` to open that site first.`` | Open the site the file was saved from. |

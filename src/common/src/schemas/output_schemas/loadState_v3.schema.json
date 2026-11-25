@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "loadState",
+  "description": "Load the cookies and `localStorage` saved by `saveState`, or by Playwright's `storageState`, into the open site. Open the site with `goTo` first.",
+  "anyOf": [
+    {
+      "type": "string",
+      "title": "State file path",
+      "description": "Path of the state file, ending in `.json`. A relative path resolves against `outputDir`.",
+      "pattern": "^.*\\S.*\\.json$",
+      "transform": [
+        "trim"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "State file path",
+          "description": "Path of the state file, ending in `.json`. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+          "pattern": "^.*\\S.*\\.json$",
+          "transform": [
+            "trim"
+          ]
+        },
+        "directory": {
+          "type": "string",
+          "title": "Directory path",
+          "description": "Directory to load the state file from. A relative directory resolves against the spec file. Omit it to load from `outputDir`.",
+          "minLength": 1,
+          "pattern": "\\S",
+          "transform": [
+            "trim"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "Load state (detailed)"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "string": {
+        "type": "string",
+        "title": "State file path",
+        "description": "Path of the state file, ending in `.json`. A relative path resolves against `outputDir`.",
+        "pattern": "^.*\\S.*\\.json$",
+        "transform": [
+          "trim"
+        ]
+      },
+      "object": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "State file path",
+            "description": "Path of the state file, ending in `.json`. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted.",
+            "pattern": "^.*\\S.*\\.json$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "directory": {
+            "type": "string",
+            "title": "Directory path",
+            "description": "Directory to load the state file from. A relative directory resolves against the spec file. Omit it to load from `outputDir`.",
+            "minLength": 1,
+            "pattern": "\\S",
+            "transform": [
+              "trim"
+            ]
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "Load state (detailed)"
+      }
+    }
+  },
+  "examples": [
+    "auth.json",
+    {
+      "path": "auth.json",
+      "directory": "../.auth"
+    }
+  ]
+}

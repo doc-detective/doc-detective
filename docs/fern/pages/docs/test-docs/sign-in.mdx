@@ -1,0 +1,83 @@
+---
+title: Test pages behind a sign-in
+sidebar-title: Pages behind a sign-in
+description: Sign in once with saveState, then reuse the session in every test with loadState.
+---
+
+Most product docs describe pages a reader sees only after signing in. A test that signs in at the start of every procedure is slow. Every extra sign-in is also a chance for a rate limit or a CAPTCHA to fail the run. Sign in once instead, save the session, and load it in each test.
+
+## Sign in once, reuse it
+
+[`saveState`](/docs/actions/savestate) writes the open site's cookies and `localStorage` to a JSON file. [`loadState`](/docs/actions/loadstate) puts them back into a later test's browser. Together they carry a sign-in from one test to the rest of the run.
+
+### 1. Sign in from a `beforeAll` spec
+
+Put the sign-in in its own spec and list it in `beforeAll` in your config. `beforeAll` specs finish before the rest of the run starts, so the state file exists before any test needs it.
+
+```json title=".doc-detective.json"
+{
+  "input": "docs",
+  "beforeAll": "tests/sign-in.spec.json",
+  "loadVariables": ".env"
+}
+```
+
+```json title="tests/sign-in.spec.json"
+{
+  "tests": [
+    {
+      "testId": "sign-in",
+      "steps": [
+        { "goTo": "https://app.example.com/login" },
+        { "find": { "selector": "#user", "click": true, "type": "$APP_USER" } },
+        { "find": { "selector": "#password", "click": true, "type": ["$APP_PASSWORD", "$ENTER$"] } },
+        { "find": "Dashboard" },
+        { "saveState": { "path": "auth.json", "directory": "../.auth", "overwrite": true } }
+      ]
+    }
+  ]
+}
+```
+
+Keep the credentials in environment variables, not in the spec. A relative `directory` resolves against the spec file, so this writes `.auth/auth.json` at the project root. `overwrite` replaces the file on every run, so the session stays fresh.
+
+<Warning>
+The state file holds live session cookies and tokens. Add `.auth/` to `.gitignore`, and leave it out of uploaded CI artifacts.
+</Warning>
+
+### 2. Load the state in each test
+
+Open the site, load the state, and open the page again so the app reads it:
+
+```json title="billing.spec.json"
+{
+  "tests": [
+    {
+      "steps": [
+        { "goTo": "https://app.example.com" },
+        { "loadState": { "path": "auth.json", "directory": "../.auth" } },
+        { "goTo": "https://app.example.com/billing" },
+        { "screenshot": "billing.png" }
+      ]
+    }
+  ]
+}
+```
+
+`loadState` applies the cookies whose domain fits the open host and the `localStorage` saved for the open origin. It fails if the file has nothing for the open site, so a test can't quietly run signed out.
+
+## Limits
+
+- **One site per file.** The browser only exposes the open site's cookies and storage, so one `saveState` captures one site. When your docs span sites, such as `app.example.com` and `admin.example.com`, save one file per site: `goTo` each one and `saveState` to its own file.
+- **Single sign-on.** With SSO, the identity provider's session lives on the provider's site, and your app's session lives on your app's site. Save the state from your app's site after the redirect back, and load it there. A test that needs the provider's own session needs a second file, saved after a `goTo` to the provider.
+- **`sessionStorage` isn't saved.** An app that keeps its session in `sessionStorage` has to sign in during each test.
+- **Sessions expire.** A saved session lasts as long as the app allows. Running the sign-in in `beforeAll` on every run keeps it fresh.
+
+## Reuse a Playwright session
+
+The state file uses Playwright's `storageState` format. A file Playwright wrote with `storageState({ path })` works with `loadState`, and Playwright can read a file `saveState` wrote.
+
+## Related
+
+- [`saveCookie`](/docs/actions/savecookie) and [`loadCookie`](/docs/actions/loadcookie) move one named cookie, through a file or an environment variable.
+- [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
