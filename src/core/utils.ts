@@ -2514,10 +2514,16 @@ export async function applyBrowserSize(
   return { target, realized };
 }
 
-// Browsers that passed the BiDi socket go/no-go (ADR 01216). A BiDi feature
-// checks this set and falls back, or skips, everywhere else. Add a browser
-// only with its own spike evidence in an ADR.
+// Browsers that passed the BiDi socket go/no-go (ADR 01216). Every session of
+// one of these opens the socket; element commands stay classic. Add a browser
+// only with its own spike evidence in an ADR. Re-exported from tests.ts.
 export const BIDI_BROWSERS: ReadonlySet<string> = new Set(["chrome"]);
+
+// Whether a browser's sessions have the BiDi socket. A feature that needs BiDi
+// runs where this is true and is SKIPPED everywhere else.
+export function hasBidi(browserName: string | undefined): boolean {
+  return BIDI_BROWSERS.has(String(browserName ?? "").toLowerCase());
+}
 
 // Page emulation keys on the context `browser` object (ADR 01223), in the
 // order unsupportedEmulation reports them.
@@ -2599,7 +2605,7 @@ export function unsupportedEmulation(
     // `timezone` and `clock` need BiDi. Without it, only Firefox has a
     // fallback: `TZ` for `timezone`, which Windows ignores.
     if (key === "timezone" || key === "clock") {
-      if (BIDI_BROWSERS.has(name)) continue;
+      if (hasBidi(name)) continue;
       if (name === "firefox" && key === "timezone") {
         if (platform !== "windows") continue;
         return `Skipped: \`firefox\` can't set \`timezone\` on Windows.`;
@@ -2640,7 +2646,7 @@ export function freezeDateSource(ms: number): string {
  * browser rejects a command.
  */
 export async function applyEmulation(driver: any, browser: any): Promise<void> {
-  if (!BIDI_BROWSERS.has(browser?.name)) return;
+  if (!hasBidi(browser?.name)) return;
   const fail = (key: string) =>
     new Error(
       `Couldn't set \`${key}\` to \`${browser[key]}\` in \`${browser.name}\`.`

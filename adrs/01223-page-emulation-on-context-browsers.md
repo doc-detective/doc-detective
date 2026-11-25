@@ -73,7 +73,7 @@ Android and iOS browsers skip every key.
   can't set. `runContext` calls it before any browser starts. It also filters the cross-browser
   fallback candidates, so a fallback engine must set every key too.
 * `timezone` and `clock` run over BiDi only in a browser in `BIDI_BROWSERS`, which always has the
-  socket (ADR 01216). `BIDI_BROWSERS` moved to `utils.ts` and is re-exported. Outside the set,
+  socket (ADR 01216). `BIDI_BROWSERS` and `hasBidi()` live once, in `utils.ts`, and `tests.ts` re-exports them. Outside the set,
   `timezone` uses the Firefox `TZ` fallback or skips, and `clock` skips.
 * `applyEmulation(driver, browser)` runs right after `applyBrowserSize`, for the context's session
   and for every later session a `startSurface` step opens. It sends the BiDi commands.
@@ -98,7 +98,7 @@ Android and iOS browsers skip every key.
 
 * Good: dark-mode, localized and fixed-date screenshots run on one machine, one context each.
 * Good: no row runs wrong. A browser that can't set a key skips the context.
-* Neutral: Chrome contexts with `timezone` or `clock` open a BiDi socket. Others don't.
+* Neutral: `timezone` and `clock` reuse the socket every Chrome session already has. They add none.
 * Bad: Firefox `clock` and Windows Firefox `timezone` stay Skipped until Firefox joins
   `BIDI_BROWSERS`.
 * Bad: Safari sets nothing, because safaridriver takes neither args nor prefs.

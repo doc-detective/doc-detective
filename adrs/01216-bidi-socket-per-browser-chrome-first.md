@@ -4,7 +4,7 @@ date: 2026-11-25
 decision-makers: hawkeyexl
 ---
 
-# Open the BiDi socket per browser, Chrome first
+# Open the BiDi socket on every session of a go browser, Chrome first
 
 Supersedes the rejection in [ADR 01072](01072-bidi-socket-for-chrome-viewport-emulation.md).
 Keeps [ADR 00132](00132-wdio-v9-bidi-attempt-and-classic-revert.md)'s classic element commands.
@@ -116,7 +116,10 @@ macOS and Linux are confirmed in CI, not on this machine.
 
 ## Considered Options
 
-1. **Make `driver.state` non-enumerable; open the socket per context, per browser** (chosen).
+1. **Make `driver.state` non-enumerable; open the socket on every session of a go browser**
+   (chosen).
+5. **Open the socket per context, only when a feature needs it.** Rejected: it adds a switch
+   between two stacks in one browser for no measured gain.
 2. **Hide `_bidiHandler` from webdriverio's clone** by redefining it non-enumerable on
    `__propertiesObject__`. Smaller graph per `$()`, but it edits webdriverio's private object.
 3. **Patch webdriverio** (patch-package) so `elementProperties()` skips non-plain values.
@@ -129,11 +132,13 @@ Chosen option 1.
 * `driver.state` is non-enumerable, so it never enters webdriverio's clone.
 * A `BIDI_BROWSERS` set in [src/core/tests.ts](../src/core/tests.ts) lists the browsers that passed:
   `["chrome"]`. Adding one is a one-line change, made with its own evidence in an ADR.
-* `needsBidi(context, steps)` decides whether a context gets the socket. For now it returns `false`,
-  so every context keeps today's behavior. A feature that needs the socket (timezone, clock,
-  full-page capture, request mocking) adds its check there.
-* `getDriverCapabilities()` adds `webSocketUrl: true` only when `options.bidi` is set and the
-  browser is in `BIDI_BROWSERS`. `wdio:enforceWebDriverClassic` stays `true` everywhere.
+* The socket is always on for a browser in the set. `getDriverCapabilities()` adds
+  `webSocketUrl: true` to every session of that browser, and to no other browser.
+* `hasBidi(browserName)` reports whether a browser's sessions have the socket. A feature that needs
+  BiDi runs where it's `true` and is SKIPPED everywhere else. Its name is stable.
+* `wdio:enforceWebDriverClassic` stays `true`, so element commands stay classic. Only the socket
+  was validated. The spike's 1,284-context comparison already ran with the socket on for every
+  Chrome context.
 
 There's no user-facing interface: no keys, flags or messages. A BiDi start failure surfaces
 through the existing context-start FAIL and its headless retry.
@@ -141,7 +146,8 @@ through the existing context-start FAIL and its headless retry.
 ### Consequences
 
 * Good: the recording crash's root cause is fixed for every caller, socket or not.
-* Good: features that need BiDi can turn it on for Chrome, one context at a time.
+* Good: one stack per browser. Features that need BiDi check `hasBidi()` and nothing else.
+* Neutral: every Chrome session now opens a socket, whether or not a step uses it.
 * Neutral: webdriverio still deep-clones the whole `Browser` on every `$()` while a socket is open.
   It measured no slower here, but anything enumerable added to the driver later re-enters that
   clone. Keep per-context state on `driver.state`.
@@ -151,11 +157,9 @@ through the existing context-start FAIL and its headless retry.
 
 * `test/driver-start-retry.test.js`: `driver.state` isn't an enumerable key, before or after it's
   reassigned.
-* `test/context-resolution.test.js`: Chrome gets `webSocketUrl` only when `bidi` is set; a browser
-  outside `BIDI_BROWSERS` never does; `needsBidi()` is `false`; `enforceWebDriverClassic` stays
-  `true`.
-* CI's fixture matrix on Windows, macOS and Linux confirms the other platforms once a feature
-  turns the socket on.
+* `test/context-resolution.test.js`: every Chrome session gets `webSocketUrl`; Firefox and Safari
+  never do; `hasBidi()` is `true` only for Chrome.
+* CI's fixture matrix on Windows, macOS and Linux confirms the other platforms on this PR.
 
 ## Pros and Cons of the Options
 
@@ -174,6 +178,10 @@ through the existing context-start FAIL and its headless retry.
 ### Option 4: keep the rejection
 * Good: no change.
 * Bad: blocks every BiDi feature on a bug that is now understood and fixed.
+
+### Option 5: socket per context, only when needed
+* Good: contexts that don't need BiDi keep the exact classic stack.
+* Bad: two stacks per browser to reason about, and a gate every feature must extend.
 
 ## More Information
 
