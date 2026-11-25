@@ -122,6 +122,13 @@ describe("totp() in expressions", function () {
     }
   });
 
+  it("rejects a bare totp() with a bad secret (the variables failure path)", async function () {
+    await assert.rejects(
+      resolveExpressionOrThrow({ expression: `totp("bad!")`, context: {} }),
+      /isn't valid base32/
+    );
+  });
+
   it("keeps {{totp(...)}} verbatim when the secret is bad", async function () {
     const out = await resolveExpression({ expression: `x-{{totp("bad!")}}`, context: {} });
     assert.equal(out, `x-{{totp("bad!")}}`);
