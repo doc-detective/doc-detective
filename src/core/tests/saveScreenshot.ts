@@ -250,9 +250,14 @@ function waitForFonts() {
 
 // `animations: disabled` (ADR 01224): finite animations jump to their end,
 // infinite ones stop, transitions and the caret go. Each animation's time and
-// play state are kept on the page so `thawAnimations` can put them back.
+// play state are kept on the page so `thawAnimations` can put them back. A
+// second freeze before the thaw (a retake) adds only animations that started
+// since, so the first freeze's saved states survive.
 function freezeAnimations() {
-  const frozen = ((document as any).getAnimations?.() ?? []).map((animation: any) => {
+  const kept: any[] = (window as any).__ddFrozenAnimations ?? [];
+  const known = new Set(kept.map((saved) => saved.animation));
+  const fresh = ((document as any).getAnimations?.() ?? []).filter((animation: any) => !known.has(animation));
+  const frozen = fresh.map((animation: any) => {
     const saved = { animation, time: animation.currentTime, running: animation.playState === "running" };
     try {
       if (Number.isFinite(animation.effect?.getComputedTiming?.().endTime)) animation.finish();
@@ -262,7 +267,8 @@ function freezeAnimations() {
     }
     return saved;
   });
-  (window as any).__ddFrozenAnimations = frozen;
+  (window as any).__ddFrozenAnimations = kept.concat(frozen);
+  if (document.querySelector("style[data-dd-animations]")) return;
   const style = document.createElement("style");
   style.setAttribute("data-dd-animations", "");
   style.textContent = "*, *::before, *::after { transition: none !important; caret-color: transparent !important; }";
@@ -281,13 +287,15 @@ function thawAnimations() {
   delete (window as any).__ddFrozenAnimations;
 }
 
-// Where the page is scrolled and how tall it is, for `fullPage`.
+// Where the page is scrolled and how big it is, for `fullPage`.
 function readPageExtent() {
   return {
     x: window.scrollX,
     y: window.scrollY,
     height: document.documentElement.scrollHeight,
+    width: document.documentElement.scrollWidth,
     viewportHeight: window.innerHeight,
+    viewportWidth: window.innerWidth,
   };
 }
 function scrollPageTo(x: number, y: number) {
@@ -318,7 +326,7 @@ type CaptureOptions = {
 
 // `fullPage` (ADR 01224). Firefox has a whole-page command and a BiDi session
 // can capture the document. Anything else grows the window to the page's
-// height, captures, and puts the window and scroll back.
+// height and width, captures, and puts the window and scroll back.
 async function fullPageCapture(driver: any, options: CaptureOptions): Promise<FullPage> {
   const page = await driver.execute(readPageExtent);
   const scroll = { x: Number(page?.x) || 0, y: Number(page?.y) || 0 };
@@ -336,22 +344,31 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
     };
   }
   const viewportCapture = async () => Buffer.from(await driver.takeScreenshot(), "base64");
-  const height = Number(page?.height);
-  if (!(height > Number(page?.viewportHeight))) return { ...kept, capture: viewportCapture };
+  const viewport = { width: Number(page?.viewportWidth) || 0, height: Number(page?.viewportHeight) || 0 };
+  // A pixel of slack for rounding; any more would cut off the page's edge.
+  const fits = (extent: any, within: { width: number; height: number }) =>
+    within.height + 1 >= (Number(extent?.height) || 0) && within.width + 1 >= (Number(extent?.width) || 0);
+  if (fits(page, viewport)) return { ...kept, capture: viewportCapture };
   const original = await driver.getWindowSize();
   const restore = async () => {
     await driver.setWindowSize(original.width, original.height);
     await driver.execute(scrollPageTo, scroll.x, scroll.y);
   };
-  let realized: { height: number };
+  let realized: { width: number; height: number };
+  let grown: any;
   try {
-    realized = await realizeViewport(driver, { height }, options.config, options.label, "debug");
+    const wanted = {
+      width: Math.max(Number(page?.width) || 0, viewport.width),
+      height: Math.max(Number(page?.height) || 0, viewport.height),
+    };
+    realized = await realizeViewport(driver, wanted, options.config, options.label, "debug");
+    // Read again: a `vh` layout grows with the viewport.
+    grown = await driver.execute(readPageExtent);
   } catch (error) {
     await restore().catch(() => {});
     throw error;
   }
-  // A pixel of slack for rounding; any more would cut off the page's bottom.
-  if (!(realized.height + 1 >= height)) {
+  if (!fits(grown, realized)) {
     await restore();
     throw new CaptureSkipped(`Skipped: \`${browser || "this browser"}\` can't capture a page taller than the screen.`);
   }
@@ -385,16 +402,17 @@ async function takeBrowserScreenshot(
     } catch {
       // A page that can't report its fonts is captured as it is.
     }
-    // After the fonts, so an animation a loaded font starts is frozen too.
-    if (freeze) {
-      try {
-        await driver.execute(freezeAnimations);
-      } catch (error: any) {
-        throw new Error(`Couldn't stop the page's animations: ${error?.message ?? error}`);
-      }
-    }
     if (options.fullPage) fullPage = await fullPageCapture(driver, options);
     try {
+      // After the fonts and the resize, so an animation either starts is
+      // frozen too. The caller thaws, once it has read where elements are.
+      if (freeze) {
+        try {
+          await driver.execute(freezeAnimations);
+        } catch (error: any) {
+          throw new Error(`Couldn't stop the page's animations: ${error?.message ?? error}`);
+        }
+      }
       // A tracked blur can move during the capture, so the page notes every place
       // each blur is drawn from here until the read after it.
       watching = await liveBlurs(driver, watchBlurRegions);
@@ -415,13 +433,6 @@ async function takeBrowserScreenshot(
       }
     }
   } finally {
-    if (freeze) {
-      try {
-        await driver.execute(thawAnimations);
-      } catch {
-        // A page that navigated away has no animations left to resume.
-      }
-    }
     if (options.style) {
       try {
         await driver.execute(removeCaptureStyle);
@@ -437,8 +448,12 @@ async function takeBrowserScreenshot(
   if (watching && !page?.watched) {
     throw new Error("Couldn't read where the live `blur` annotations are on the page. The page changed during the screenshot.");
   }
+  // A whole-page image is as wide as the document, so its scale is the pixel
+  // density, as for annotations.
+  const dpr =
+    fullPage && page?.regions?.length > 0 ? Number(await driver.execute(() => window.devicePixelRatio)) : NaN;
   return {
-    buffer: await burnInLiveBlurs(sharp, buffer, page, fullPage?.captureScroll),
+    buffer: await burnInLiveBlurs(sharp, buffer, page, fullPage?.captureScroll, dpr > 0 ? dpr : undefined),
     stable: captured!.stable,
     scroll: fullPage?.scroll,
   };
@@ -460,14 +475,20 @@ async function liveBlurs(driver: any, call: (driver: any) => Promise<any>): Prom
 // avoid that, but a running recording would catch the page unblurred. Fails
 // closed, like the secret blur: no capture beats an unredacted one.
 // A whole-page capture adds the scroll the blurs were drawn at.
-async function burnInLiveBlurs(sharp: any, buffer: Buffer, page: any, scroll: Point = { x: 0, y: 0 }): Promise<Buffer> {
+async function burnInLiveBlurs(
+  sharp: any,
+  buffer: Buffer,
+  page: any,
+  scroll: Point = { x: 0, y: 0 },
+  pageScale?: number
+): Promise<Buffer> {
   // Weakest first: where blurs overlap, the last one composited is what shows.
   const regions: any[] = Array.isArray(page?.regions)
     ? [...page.regions].sort((a, b) => a.intensity - b.intensity)
     : [];
   if (regions.length === 0) return buffer;
   const meta = await sharp(buffer).metadata();
-  const scale = computeScale(meta.width, page.viewportWidth);
+  const scale = pageScale ?? computeScale(meta.width, page.viewportWidth);
   const { blurRegions } = annotationsToSvg(
     regions.map((region) => ({
       type: "blur",
@@ -590,11 +611,14 @@ function diffArtifactPaths(dir: string, name: string): { diffPath: string; previ
 
 // Window restoration lives out here rather than in the body: annotations
 // resolve against the live page after capture, so a resize for the reference
-// must hold until the step is done, whichever return the body takes.
+// must hold until the step is done, whichever return the body takes. So must
+// `animations: disabled`, so annotations and masks land where the capture
+// shows the elements (ADR 01224).
+type CaptureSession = { restoreWindow?: () => Promise<void>; thaw?: () => Promise<void> };
 async function saveScreenshot(
   args: Parameters<typeof captureScreenshot>[0]
 ) {
-  const session: { restoreWindow?: () => Promise<void> } = {};
+  const session: CaptureSession = {};
   try {
     return await captureScreenshot(args, session);
   } finally {
@@ -606,6 +630,11 @@ async function saveScreenshot(
         "warning",
         `Couldn't restore the window size after resizing for a screenshot reference: ${error?.message ?? error}`
       );
+    }
+    try {
+      await session.thaw?.();
+    } catch {
+      // A page that navigated away has no animations left to resume.
     }
   }
 }
@@ -644,7 +673,7 @@ async function captureScreenshot({
   // run folder is only created when a capture needs it. Direct callers fall
   // back to the run folder's own `screenshots/`.
   screenshotsDir?: () => string;
-}, session: { restoreWindow?: () => Promise<void> }) {
+}, session: CaptureSession) {
   let result: any = {
     status: "PASS",
     description: "Saved screenshot.",
@@ -792,6 +821,20 @@ async function captureScreenshot({
       result.status = "FAIL";
       result.description =
         "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
+      return result;
+    }
+    // The schema rejects these with an `{ app }` surface; a bare name or the
+    // active surface only resolves to an app here.
+    if (step.screenshot.fullPage === true) {
+      result.status = "FAIL";
+      result.description =
+        "`fullPage` isn't supported on app captures; it captures a scrollable web page. Omit `fullPage`.";
+      return result;
+    }
+    if (step.screenshot.animations === "disabled") {
+      result.status = "FAIL";
+      result.description =
+        "`animations` isn't supported on app captures; it stops a web page's animations. Omit `animations`.";
       return result;
     }
     const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
@@ -1109,6 +1152,13 @@ async function captureScreenshot({
         return fs.readFileSync(scratch);
       }, captureOptions.stable));
     } else {
+      // The page stays frozen until the step ends, after annotation and mask
+      // geometry is read; `saveScreenshot` thaws it, even on a failure.
+      if (captureOptions.animations === "disabled") {
+        session.thaw = async () => {
+          await captureDriver.execute(thawAnimations);
+        };
+      }
       ({
         buffer: captureBuffer,
         stable: captureStable,
