@@ -35,15 +35,15 @@ function publishFile(fullPath: string, content: string, overwrite: boolean) {
   fs.mkdirSync(path.dirname(fullPath), { recursive: true });
   // A random name, opened with `wx`, so two writers never share a temp file.
   const temp = `${fullPath}.${crypto.randomUUID()}.tmp`;
+  // The temp file is this call's own only once the exclusive open succeeds. A
+  // failed open, for any reason, leaves whatever is at that name alone.
+  const fd = fs.openSync(temp, "wx", 0o600);
   try {
-    fs.writeFileSync(temp, content, { encoding: "utf8", mode: 0o600, flag: "wx" });
-  } catch (error: any) {
-    // EEXIST means another writer owns that name: leave its file alone. Any
-    // other failure happened after `wx` created the file, so it's ours.
-    if (error.code !== "EEXIST") fs.rmSync(temp, { force: true });
-    throw error;
-  }
-  try {
+    try {
+      fs.writeFileSync(fd, content, "utf8");
+    } finally {
+      fs.closeSync(fd);
+    }
     if (overwrite) {
       fs.renameSync(temp, fullPath);
       return true;

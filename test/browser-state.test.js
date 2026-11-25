@@ -161,12 +161,10 @@ describe("browser state helpers", function () {
 
     it("names its temp file with a random UUID", function () {
       const spy = sinon.spy(crypto, "randomUUID");
-      const realWrite = fs.writeFileSync;
-      const targets = [];
-      sinon.stub(fs, "writeFileSync").callsFake((target, ...rest) => { targets.push(target); return realWrite(target, ...rest); });
+      const open = sinon.spy(fs, "openSync");
       publishFile(path.join(dir, "a.json"), "{}", false);
       assert.equal(spy.callCount, 1);
-      assert.equal(targets[0], `${path.join(dir, "a.json")}.${spy.firstCall.returnValue}.tmp`);
+      assert.deepEqual(open.firstCall.args, [`${path.join(dir, "a.json")}.${spy.firstCall.returnValue}.tmp`, "wx", 0o600]);
     });
 
     it("never deletes a temp file another writer created", function () {
@@ -177,6 +175,19 @@ describe("browser state helpers", function () {
       assert.throws(() => publishFile(file, "{}", false));
       assert.equal(fs.readFileSync(theirs, "utf8"), "theirs");
       assert.ok(!fs.existsSync(file));
+    });
+
+    it("never deletes another writer's temp file when the open fails for another reason", function () {
+      const file = path.join(dir, "a.json");
+      sinon.stub(crypto, "randomUUID").returns("same");
+      const theirs = `${file}.same.tmp`;
+      fs.writeFileSync(theirs, "theirs");
+      const emfile = () => Object.assign(new Error("EMFILE: too many open files"), { code: "EMFILE" });
+      sinon.stub(fs, "openSync").throws(emfile());
+      sinon.stub(fs, "writeFileSync").throws(emfile());
+      assert.throws(() => publishFile(file, "{}", false), /EMFILE/);
+      sinon.restore();
+      assert.equal(fs.readFileSync(theirs, "utf8"), "theirs");
     });
   });
 
