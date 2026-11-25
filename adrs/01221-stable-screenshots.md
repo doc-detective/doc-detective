@@ -48,7 +48,7 @@ Chosen option: **A**.
   A page that times out or can't report its fonts is captured as it is, with no message. It only
   ever waits for something that changes the rendering, so it can't make a capture less correct.
 * **`style`** (string, CSS, at least one character). Before the capture, Doc Detective adds a
-  `<style data-dd-capture>` element with the CSS to the page; right after, in a `finally`, it
+  `<style data-dd-capture>` element with the CSS to the page. Right after, in a `finally`, it
   removes every `style[data-dd-capture]`, so the page is restored even when the capture fails.
   The fonts wait runs after the style is added, so CSS that changes fonts settles too. A `style`
   that can't be added FAILs the step: ``Couldn't add the `style` CSS to the page: <cause>.``
@@ -66,7 +66,7 @@ Chosen option: **A**.
   ``Page kept changing for 5 seconds, so the screenshot may not be stable.`` to the description.
   Without `stable`, there's no output and no assertion.
 * When the step resizes the window to match the reference and captures again (ADR 01144), the
-  retake applies `style` and `stable` too, and its stability is the one reported.
+  retake applies `style` and `stable` too. Its stability is the one reported.
 
 ### Consequences
 
@@ -82,13 +82,13 @@ Chosen option: **A**.
 ### Confirmation
 
 * `test/screenshot-stable.test.js` covers `stable` settling after several captures, timing out
-  into a WARNING, capturing once without `stable`, `style` being added before the capture and
-  removed after it, including when the capture throws, and the fonts wait running first.
+  into a WARNING, and capturing once without `stable`. It also covers `style` being added before
+  the capture and removed after it, including when the capture throws, and the fonts wait running first.
 * `src/common/test/validate.test.js` covers the new keys, the `stable` default, malformed values,
   and `style` on an app surface.
 * `test/core-artifacts/capture/screenshot-stable-style.spec.json` runs each form in headless
-  Chrome and Firefox: a page that settles after 300 ms PASSes with the loaded page, `style` hides a
-  banner only for the capture, and an endless animation is a deterministic WARNING.
+  Chrome and Firefox. A page that settles after 300 ms PASSes with the loaded page, and `style`
+  hides a banner only for the capture. An endless animation is a deterministic WARNING.
 
 ## Pros and Cons of the Options
 
