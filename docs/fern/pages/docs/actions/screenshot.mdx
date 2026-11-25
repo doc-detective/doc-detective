@@ -19,7 +19,7 @@ You can specify the screenshot action in several ways:
   - `overwrite`: (Optional) Controls when to overwrite the reference image. Ignored when `path` is a URL (remote storage is never mutated). Options:
     - `"false"`: Never overwrite the reference image.
     - `"true"`: Always overwrite the reference image with the new capture.
-    - `"aboveVariation"`: Overwrite only if the visual difference exceeds `maxVariation`, or `maxDiffPixels` when set (default).
+    - `"aboveVariation"`: Overwrite only if the visual difference exceeds `maxVariation`, or `maxDiffPixels` when it's set (default).
   - `crop`: (Optional) Crop the screenshot to a specific element. Provide a CSS/XPath selector string (for example, `"#myElement"`) or an object with at least one element-finding field:
     - `selector`: (Optional, one of several element-finding fields) The [CSS selector](/docs/selectors/css) or [XPath selector](/docs/selectors/xpath) of the element to crop to.
     - `elementText`: (Optional) Display text of the element. Doc Detective matches it against the element's full visible text with whitespace normalized. Wrap the value in slashes (`/pattern/`) to match a substring by regular expression.
@@ -33,8 +33,8 @@ You can specify the screenshot action in several ways:
   - `mask`: (Optional) A list of areas to ignore when comparing against a reference image, such as a date that changes every run. Doc Detective paints each area the same solid color on both images before comparing, so changes inside a mask don't count toward `maxVariation`. The saved screenshot isn't changed. A string item, a selector or display text, masks the first match. An object item takes the element-finding fields `crop` takes, except `padding`. It masks every match on a browser page, or the first match in an app window. Masks apply only when a comparison runs. The step fails if Doc Detective can't find a mask's element. See [Ignore parts that change](/docs/test-docs/screenshot-visual-regression#ignore-parts-that-change).
   - `surface`: (Optional) The browser session, window, or tab to capture, such as `{ "browser": "chrome", "tab": "cart" }`. It can also be the [native app surface](/docs/actions/startsurface) to capture, such as `{ "app": "notepad" }` or a specific app window `{ "app": "notepad", "window": -1 }`. On macOS the capture is that window element, and on Windows the switched window. Omit it to capture the active surface, the most recently opened, focused, or explicitly targeted one, whether a browser tab or an app window. Specifying a surface switches the active surface for the steps that follow. See [Test across multiple tabs, windows, and browsers](/docs/test-docs/multiple-tabs-and-windows), [Target an app surface](/docs/actions/startsurface#target-an-app-surface), and [App windows](find#app-windows).
   - `annotations`: (Optional) A list of visual annotations to draw onto the screenshot. See [Annotations](#annotations).
-  - `style`: (Optional) CSS that applies only while the screenshot is taken, such as `"#chat-launcher, .cookie-banner { visibility: hidden !important; }"`. Doc Detective adds it to the page just before the capture and removes it right after, even when the capture fails, so later steps and recordings see the page unchanged. Browser captures only: setting `style` with an app `surface` is a validation error.
-  - `stable`: (Optional) If `true`, Doc Detective captures the page every 100 milliseconds until two captures in a row are identical, then saves that one. If the page still changes after 5 seconds, it saves the last capture and the step returns WARNING with `Page kept changing for 5 seconds, so the screenshot may not be stable.` Works for browser and app captures (default: `false`).
+  - `style`: (Optional) CSS that applies only while the screenshot is taken, such as `"#chat-launcher, .cookie-banner { visibility: hidden !important; }"`. Doc Detective adds it to the page just before the capture and removes it right after, even when the capture fails. Later steps and recordings see the page unchanged. Browser captures only: setting `style` with an app `surface` is a validation error.
+  - `stable`: (Optional) If `true`, Doc Detective captures the page every 100 milliseconds until two captures in a row are identical, then saves that one. If the page still changes after 5 seconds, it saves the last capture. The step then returns WARNING with `Page kept changing for 5 seconds, so the screenshot may not be stable.` Works for browser and app captures (default: `false`).
 
 **Where files go:** a path you write resolves against the spec file you wrote it in. A spec loaded from a URL (`--input https://…`) has no folder of its own, so its relative paths resolve against `outputDir`. A file Doc Detective names, such as `<stepId>.png`, goes in `outputDir`, so it lands on the same path every run and later runs compare against it. `outputDir` defaults to `.`, which resolves against your config file's folder. With no config file, that's the current folder.
 
@@ -183,7 +183,7 @@ URL paths must end in `.png` (or `.PNG`) and can include query strings for signe
 
 A browser screenshot blurs every element whose text or form value holds a secret environment variable value. A field that received a typed secret shows dots. Native app and device screenshots aren't blurred. See [Screenshots and recordings](/docs/ci/secrets#screenshots-and-recordings).
 
-Before every browser screenshot, Doc Detective waits up to 2 seconds for the page's web fonts to load, so text doesn't render in a fallback font.
+Before every browser screenshot, Doc Detective waits up to 2 seconds for the page's web fonts to load. That way, text doesn't render in a fallback font.
 
 ## Examples
 
@@ -413,7 +413,7 @@ Numbers the fields of a form and redacts an email address, all as part of the ca
 
 ### Overwrite the reference image
 
-`overwrite` controls when a comparison refreshes the reference image. `"true"` rewrites the reference on every run, which disables drift detection. Use it to seed a new reference image or reset an existing one, not in a gating run. To gate a run on drift instead, use `"aboveVariation"` with `maxVariation` (see [Full viewport screenshot with visual comparison](#full-viewport-screenshot-with-visual-comparison-object-format)).
+`overwrite` controls when a comparison refreshes the reference image. `"true"` rewrites the reference on every run, which disables drift detection. Use it to seed a new reference image or reset an existing one, not in a gating run. To gate a run on drift instead, use `"aboveVariation"` with `maxVariation` or `maxDiffPixels` (see [Full viewport screenshot with visual comparison](#full-viewport-screenshot-with-visual-comparison-object-format)).
 
 ```json
 {

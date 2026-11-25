@@ -20,7 +20,7 @@ directory | string | Optional. Directory of the PNG file. If the directory doesn
 maxVariation | number | Optional. Allowed variation as a fraction (0 to 1) of pixels different between the new screenshot and the existing screenshot at `path`. For example, 0.1 means 10%. If the difference between the new screenshot and the existing screenshot is greater than `maxVariation`, the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.<br/><br/>Minimum: 0. Maximum: 1 | `0.05`
 threshold | number | Optional. How different two pixels' colors must be, from 0 to 1, before the pixel counts as changed when comparing with the existing screenshot at `path`. Higher numbers ignore anti-aliasing and font-smoothing noise. `0` counts any color change.<br/><br/>Minimum: 0. Maximum: 1 | `0.1`
 maxDiffPixels | integer | Optional. Most changed pixels allowed between the new screenshot and the existing screenshot at `path`. Applies alongside `maxVariation`: when both are set, both must hold, or the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.<br/><br/>Minimum: 0 | —
-overwrite | string | Optional. If `true`, overwrites the existing screenshot at `path` if it exists.<br/>If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.<br/><br/>Accepted values: `true`, `false`, `aboveVariation` | `aboveVariation`
+overwrite | string | Optional. If `true`, overwrites the existing screenshot at `path` if it exists.<br/>If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.<br/><br/>Accepted values: `true`, `false`, `aboveVariation` | `aboveVariation`
 crop | one of:<br/>- string<br/>- object([Crop by element (detailed)](/reference/schemas/crop-by-element-detailed)) | Optional. No description provided. | —
 style | string | Optional. CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.<br/><br/>Minimum length: 1 | —
 stable | boolean | Optional. If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once. | —
@@ -43,7 +43,9 @@ sourceIntegration | object([sourceIntegration](/reference/schemas/sourceintegrat
   "style": "example",
   "stable": true,
   "annotations": [],
-  "mask": [],
+  "mask": [
+    "example"
+  ],
   "sourceIntegration": {
     "type": "heretto",
     "integrationName": "example"

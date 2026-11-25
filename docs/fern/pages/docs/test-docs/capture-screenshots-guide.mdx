@@ -114,9 +114,9 @@ Chat launchers, cookie banners, and spinners make a screenshot differ from run t
 {/* step {"stepId":"capture-guide-style-stable-shot","description":"Capture without the banner once the page settles, directed at a gitignored output folder","screenshot":{"path":"guide_style_stable.png","directory":"./.dd-output","style":".cookie-banner { visibility: hidden !important; }","stable":true}} */}
 {/* test end */}
 
-If the page is still changing after 5 seconds, Doc Detective saves the last capture and the step returns `WARNING` with `Page kept changing for 5 seconds, so the screenshot may not be stable.` A looping animation never settles, so hide it with `style` instead. `style` works only for browser captures. `stable` also works for [app windows](/docs/actions/startsurface#target-an-app-surface).
+If the page is still changing after 5 seconds, Doc Detective saves the last capture. The step then returns `WARNING` with `Page kept changing for 5 seconds, so the screenshot may not be stable.` A looping animation never settles, so hide it with `style` instead. `style` works only for browser captures. `stable` also works for [app windows](/docs/actions/startsurface#target-an-app-surface).
 
-Doc Detective also waits up to 2 seconds for web fonts to load before every browser screenshot, so you don't need a `wait` step for fonts.
+Doc Detective also waits up to 2 seconds for web fonts to load before every browser screenshot. You don't need a `wait` step for fonts.
 
 ## Verify it works
 
