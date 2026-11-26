@@ -1122,8 +1122,30 @@ import { schemas } from "../dist/index.js";
               object: ctx({ [key]: value }),
             });
             expect(result.valid, result.errors).to.be.true;
+            // The validated object keeps the value as written, with its
+            // type: a numeric `deviceScaleFactor`, an offset `clock`.
+            expect(result.object.browsers[key]).to.deep.equal(value);
           });
         }
+
+        it("keeps every value when validating with defaults", function () {
+          const browser = {
+            colorScheme: "dark",
+            locale: "de-DE",
+            timezone: "Europe/Berlin",
+            deviceScaleFactor: 1.5,
+            reducedMotion: "reduce",
+            clock: "2026-12-03T09:00:00.000+01:00",
+          };
+          const result = validate({
+            schemaKey: "context_v3",
+            object: ctx(browser),
+            addDefaults: true,
+          });
+          expect(result.valid, result.errors).to.be.true;
+          expect(result.object.browsers).to.include(browser);
+          expect(result.object.browsers.deviceScaleFactor).to.be.a("number");
+        });
 
         for (const [key, value] of [
           ["colorScheme", "sepia"],
