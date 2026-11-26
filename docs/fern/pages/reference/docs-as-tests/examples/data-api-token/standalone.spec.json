@@ -1,0 +1,61 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "publicVariables": [
+    "API_URL"
+  ],
+  "tests": [
+    {
+      "testId": "data-api-token",
+      "publicVariables": [
+        "ACCOUNT_*"
+      ],
+      "steps": [
+        {
+          "loadVariables": ".env"
+        },
+        {
+          "httpRequest": {
+            "url": "$API_URL/accounts",
+            "method": "post",
+            "request": {
+              "headers": {
+                "Authorization": "Bearer $API_TOKEN"
+              },
+              "body": {
+                "name": "Wren",
+                "plan": "team",
+                "seats": 5
+              }
+            },
+            "response": {
+              "body": {
+                "name": "Wren"
+              }
+            }
+          },
+          "assertions": [
+            "$$outputs.response.statusCode == 200",
+            "$$outputs.response.body.plan == \"team\""
+          ],
+          "variables": {
+            "ACCOUNT_NAME": "$$response.body.name",
+            "ACCOUNT_SEATS": "jq($$response.body, \".seats\")"
+          }
+        },
+        {
+          "httpRequest": {
+            "url": "$API_URL/accounts?name=$ACCOUNT_NAME&seats=$ACCOUNT_SEATS",
+            "method": "get",
+            "response": {
+              "body": {
+                "name": "Wren",
+                "seats": "5"
+              }
+            }
+          },
+          "assertions": "$$outputs.response.body.seats == $ACCOUNT_SEATS"
+        }
+      ]
+    }
+  ]
+}

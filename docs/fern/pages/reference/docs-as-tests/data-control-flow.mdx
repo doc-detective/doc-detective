@@ -1,0 +1,101 @@
+---
+title: Variables and control flow, written as tests
+sidebar-title: Variables and control flow
+description: Procedures that load variables, pass values from one step to the next, add custom assertions, run steps conditionally, and route on a step's result, in every supported format.
+---
+
+Each example on this page shows one procedure as prose, detected tests, inline tests, and a standalone spec. For what each tab holds, see [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).
+
+## Call an API with a token from a `.env` file
+
+This procedure uses [`loadVariables`](/docs/actions/loadvariables) and [`httpRequest`](/docs/actions/httprequest), with the step fields [`variables` and `assertions`](/reference/schemas/step), the [`jq()` function](/reference/expressions#function-operators), and [`publicVariables`](/reference/schemas/test) on the test and the [spec](/reference/schemas/specification).
+
+The example folder holds the `.env` file the steps load:
+
+```text title=".env"
+API_URL=http://localhost:8092/api
+API_TOKEN=docs-example-token
+```
+
+<Markdown src="examples/data-api-token/_variants.mdx" />
+
+### How the values flow
+
+- `$API_URL` and `$API_TOKEN` come from the `.env` file. Doc Detective substitutes them into the URL and the `Authorization` header.
+- The first request's `variables` field sets `ACCOUNT_NAME` from `$$response.body.name`, and `ACCOUNT_SEATS` from `jq($$response.body, ".seats")`. The second request uses both in its URL, and its assertion reads `$ACCOUNT_SEATS` too.
+- `assertions` adds custom checks to a step. Each check is an [expression](/reference/expressions) over the step's `$$outputs`, given as one string or as an array whose checks must all pass.
+- Doc Detective masks every value it loads or substitutes as `***NAME***` in logs and reports. `publicVariables` lists the names to show: `ACCOUNT_*` on the test, and `API_URL` on the spec. A name listed in the config, any spec, or any test is public for the whole run. See [Keep secrets out of logs](/docs/ci/secrets).
+
+### What detection finds
+
+The prose has no links, bold text, or HTTP code blocks, so detection finds no steps. All three steps come from `step` statements.
+
+The detected run also loads the `.env` file before any test starts. The example's own `doc-detective.json` sets the config-level [`loadVariables`](/reference/schemas/config) field, and lists `API_URL` in the config-level `publicVariables`:
+
+```json title="doc-detective.json"
+{
+  "detectSteps": true,
+  "loadVariables": ".env",
+  "publicVariables": ["API_URL"]
+}
+```
+
+A config-level file only fills variables that aren't already set, while a `loadVariables` step replaces them.
+
+## Check your Node.js version
+
+This procedure uses [`runShell`](/docs/actions/runshell), the step and test [`if`](/reference/schemas/test) conditions, the [`extract()` function](/reference/expressions#function-operators), and the [`onSkip` and `onFail` step routing](/reference/schemas/step-routing) entries `continue` and `stop`.
+
+<Markdown src="examples/data-node-check/_variants.mdx" />
+
+### How the conditions work
+
+- The test's `if` runs the test only on Linux, macOS, and Windows. The standalone spec sets the same condition on the spec. A false condition skips the spec, test, or step it's on.
+- The first step's `variables` field sets `NODE_MAJOR` from `extract($$stdio.stdout, "v([0-9]+)")`, the major version in the command's output. Its assertion checks the output with `matches`.
+- The second step runs only when `$$steps.node-version.outputs.exitCode == 0`, which reads an earlier step's output by its `stepId`. Its assertion `$NODE_MAJOR >= 18` substitutes the variable the first step set.
+- The last two steps check `$$platform`, so each platform runs one of them and skips the other. `onSkip` with `continue: true` moves on after the skip, which is also the default. `onFail` with `stop: "test"` stops the test's remaining steps, which is also the default for a failure.
+
+### What detection finds
+
+The commands sit in `shell` code blocks, and default detection turns only `bash`, Python, and JavaScript code blocks into steps, so detection finds none here. Every step comes from a `step` statement, and the detected and inline variants differ only in `detectSteps`.
+
+## Wait for a service, then echo text through it
+
+This procedure has three tests. It uses [`runShell`](/docs/actions/runshell), [`goTo`](/docs/actions/goto), [`click`](/docs/actions/click), [`type`](/docs/actions/type), [`find`](/docs/actions/find), and [`httpRequest`](/docs/actions/httprequest). It routes with the [step routing](/reference/schemas/step-routing) entries `retry` and `goToStep`, and the [test routing](/reference/schemas/routing) entries `goToTest`, `stop: "spec"`, and `continue`. It also sets the [context](/reference/schemas/context) field `retries`.
+
+<Markdown src="examples/data-service-retry/_variants.mdx" />
+
+### How the routing works
+
+The readiness check fails on purpose the first time it runs, and the test still passes:
+
+1. The check exits `1` and prints `Not ready yet.`
+2. Its `onFail` entry `retry` runs it again after 500 milliseconds, up to 3 more times, with `exponential` backoff between runs.
+3. The second run exits `0`, so the step passes. Its result reports `"attempts": 2`.
+
+A step that a `retry` brings back to passing counts as passed. Other routing doesn't change a result: a step that fails and then routes with `continue` or `goToStep` still fails its test.
+
+The rest of the routing:
+
+- The first test's `onPass` entry `goToTest` jumps to `data-echo-text`, so `data-service-restart` doesn't run and doesn't appear in the results. If the check still fails after its retries, the `onFail` entry `stop: "spec"` skips the spec's remaining tests.
+- In `data-echo-text`, the `read-echo` step saves the element's text from `$$element.text`. When it passes, `goToStep` jumps over the `retype` step to `send-echo`. When it fails, `retry` runs it again.
+- `send-echo` runs only when `$$steps.read-echo.outputs.element.text` matches, sends the saved `$ECHOED` value, and asserts that the response echoes it. The test's `publicVariables` shows `ECHOED` in output instead of masking it.
+- The test's `onWarning` entry `continue: true` keeps the spec running after a warning, which is also the default.
+- The context's `retries: 2` runs the whole test again on a fresh browser session, up to twice, when the session crashes or never loads a page. A real failure, such as a missing element, doesn't trigger it. A step's `retry` runs one step again on the same session.
+
+A step that `retry` or `goToStep` runs more than once reports `attempts` or `visit` in its result. A test that `goToTest` runs again reports `visit`. Doc Detective sets these fields. Don't set them in a test.
+
+### What detection finds
+
+In the first two tests, the commands sit in `shell` code blocks, which default detection doesn't run, so their steps come from `step` statements.
+
+In `data-echo-text`, detection resolves the prose to six steps:
+
+| Prose | Detected steps |
+|---|---|
+| Go to a link | `goTo` the URL, then `checkLink` the same URL |
+| Click a bold phrase | `click` the phrase, then `find` the same phrase |
+| `type "…"` | `type` the quoted text |
+| A bold phrase | `find` the phrase |
+
+A `step` statement adds the `httpRequest`, which sends the literal text because no detected step saves it. The detected `data-echo-text` has no `retype` step or step routing: those live on steps that only the inline and standalone variants write out.

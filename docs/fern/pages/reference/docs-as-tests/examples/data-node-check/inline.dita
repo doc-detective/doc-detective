@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-node-check">
+  <title>Check your Node.js version</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-node-check","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["NODE_MAJOR"],"detectSteps":false}'/>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock>
+          <p>The output starts with <codeph>v</codeph> and the major version, such as <codeph>v22.11.0</codeph>. You need version 18 or later.</p>
+          <data name="doc-detective" value='step {"stepId":"node-version","runShell":"node --version","assertions":"$$outputs.stdio.stdout matches /^v[0-9]+\\./","variables":{"NODE_MAJOR":"extract($$stdio.stdout, \"v([0-9]+)\")"}}'/></info></step>
+      <step><cmd>If Node.js printed a version, print the npm version:</cmd>
+        <info><codeblock outputclass="language-shell">npm --version</codeblock>
+          <data name="doc-detective" value='step {"if":"$$steps.node-version.outputs.exitCode == 0","runShell":"npm --version","assertions":["$$outputs.exitCode == 0","$NODE_MAJOR &gt;= 18"]}'/></info></step>
+      <step><cmd>Find the Node.js executable. On Windows, run:</cmd>
+        <info><codeblock outputclass="language-shell">where node</codeblock>
+          <p>On macOS and Linux, run:</p>
+          <codeblock outputclass="language-shell">command -v node</codeblock>
+          <data name="doc-detective" value='step {"if":"$$platform == windows","runShell":"where node","onSkip":[{"continue":true}]}'/>
+          <data name="doc-detective" value='step {"if":"$$platform != windows","runShell":"command -v node","onFail":[{"stop":"test"}]}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>
