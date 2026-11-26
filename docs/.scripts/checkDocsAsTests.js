@@ -92,10 +92,29 @@ function runCli(inputs, configPath, extraArgs, options = {}) {
   );
 }
 
+// Windows caps a command line at 32K characters, so long input lists run in batches.
+const BATCH = 60;
+function batches(inputs) {
+  const out = [];
+  for (let i = 0; i < inputs.length; i += BATCH) out.push(inputs.slice(i, i + BATCH));
+  return out;
+}
+
 function dryRun(inputs, configPath) {
-  const out = runCli(inputs, configPath, ["--dry-run"]);
-  // Keep only the examples' specs, not beforeAll/afterAll setup specs.
-  return JSON.parse(out).specs.filter((spec) => path.resolve(spec.contentPath).startsWith(examplesDir));
+  return batches(inputs).flatMap((batch) =>
+    // Keep only the examples' specs, not beforeAll/afterAll setup specs.
+    JSON.parse(runCli(batch, configPath, ["--dry-run"])).specs.filter((spec) =>
+      path.resolve(spec.contentPath).startsWith(examplesDir)
+    )
+  );
+}
+
+/** Every file in the named example folders, or in all of them when `only` is empty. */
+function listExampleFiles(only = []) {
+  return fs
+    .readdirSync(examplesDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && (!only.length || only.includes(d.name)))
+    .flatMap((d) => fs.readdirSync(path.join(examplesDir, d.name)).map((f) => path.join(examplesDir, d.name, f)));
 }
 
 function main() {
@@ -105,10 +124,7 @@ function main() {
   }
   // Bare arguments name the examples to check; none means all of them.
   const only = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
-  const files = fs
-    .readdirSync(examplesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && (!only.length || only.includes(d.name)))
-    .flatMap((d) => fs.readdirSync(path.join(examplesDir, d.name)).map((f) => path.join(examplesDir, d.name, f)));
+  const files = listExampleFiles(only);
   if (!files.length) {
     console.error(`Couldn't find examples to check in ${examplesDir}.`);
     process.exit(1);
@@ -123,10 +139,12 @@ function main() {
     const detected = tested.filter((f) => path.basename(f).startsWith("detected."));
     let failed = false;
     for (const [config, inputs] of groupByConfig(detected, sharedConfig)) {
-      try {
-        runCli(inputs, config, [], { stdio: "inherit" });
-      } catch {
-        failed = true;
+      for (const batch of batches(inputs)) {
+        try {
+          runCli(batch, config, [], { stdio: "inherit" });
+        } catch {
+          failed = true;
+        }
       }
     }
     process.exit(failed ? 1 : 0);
@@ -151,4 +169,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { findMismatches, normalizeSteps, groupByConfig };
+module.exports = { findMismatches, normalizeSteps, groupByConfig, dryRun, listExampleFiles, examplesDir };
