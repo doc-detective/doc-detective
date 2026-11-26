@@ -1083,6 +1083,93 @@ import { schemas } from "../dist/index.js";
         }
       });
 
+      // ADR 01223: page emulation keys on the context `browser` object.
+      describe("browser page emulation", function () {
+        const ctx = (browser) => ({
+          platforms: "linux",
+          browsers: { name: "chrome", ...browser },
+        });
+
+        it("accepts every emulation key at once", function () {
+          const result = validate({
+            schemaKey: "context_v3",
+            object: ctx({
+              colorScheme: "dark",
+              locale: "de-DE",
+              timezone: "Europe/Berlin",
+              deviceScaleFactor: 2,
+              reducedMotion: "reduce",
+              clock: "2026-12-03T09:00:00Z",
+            }),
+          });
+          expect(result.valid, result.errors).to.be.true;
+        });
+
+        for (const [key, value] of [
+          ["colorScheme", "light"],
+          ["locale", "en"],
+          ["locale", "zh-Hant-TW"],
+          ["timezone", "UTC"],
+          ["timezone", "America/Argentina/Buenos_Aires"],
+          ["deviceScaleFactor", 0.5],
+          ["deviceScaleFactor", 4],
+          ["reducedMotion", "no-preference"],
+          ["clock", "2026-12-03T09:00:00.000+01:00"],
+        ]) {
+          it(`accepts ${key}: ${JSON.stringify(value)}`, function () {
+            const result = validate({
+              schemaKey: "context_v3",
+              object: ctx({ [key]: value }),
+            });
+            expect(result.valid, result.errors).to.be.true;
+            // The validated object keeps the value as written, with its
+            // type: a numeric `deviceScaleFactor`, an offset `clock`.
+            expect(result.object.browsers[key]).to.deep.equal(value);
+          });
+        }
+
+        it("keeps every value when validating with defaults", function () {
+          const browser = {
+            colorScheme: "dark",
+            locale: "de-DE",
+            timezone: "Europe/Berlin",
+            deviceScaleFactor: 1.5,
+            reducedMotion: "reduce",
+            clock: "2026-12-03T09:00:00.000+01:00",
+          };
+          const result = validate({
+            schemaKey: "context_v3",
+            object: ctx(browser),
+            addDefaults: true,
+          });
+          expect(result.valid, result.errors).to.be.true;
+          expect(result.object.browsers).to.include(browser);
+          expect(result.object.browsers.deviceScaleFactor).to.be.a("number");
+        });
+
+        for (const [key, value] of [
+          ["colorScheme", "sepia"],
+          ["locale", "de_DE"],
+          ["locale", ""],
+          ["timezone", "Europe Berlin"],
+          ["timezone", ""],
+          ["deviceScaleFactor", 0.4],
+          ["deviceScaleFactor", 5],
+          ["reducedMotion", "none"],
+          ["clock", "tomorrow"],
+          ["clock", "2026-12-03"],
+        ]) {
+          it(`rejects ${key}: ${JSON.stringify(value)}`, function () {
+            const result = validate({
+              schemaKey: "context_v3",
+              object: ctx({ [key]: value }),
+            });
+            expect(result.valid).to.be.false;
+            expect(result.errors).to.include(key);
+          });
+        }
+      });
+
       it("should default browserFallback to 'auto' when addDefaults=true", function () {
         const result = validate({
           schemaKey: "config_v3",
@@ -1284,6 +1371,63 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.be.a("string");
         expect(result.errors.length).to.be.greaterThan(0);
+      });
+    });
+
+    // ADR 01225: mockRequest answers matching browser requests with a fixed response.
+    describe("mockRequest step", function () {
+      const check = (mockRequest) => validate({ schemaKey: "step_v3", object: { mockRequest } });
+
+      it("accepts a url with a JSON body", function () {
+        const result = check({ url: "**/api/invoices*", response: { body: { next: "2026-12-03" } } });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("accepts a string body, a method, a status code, and headers", function () {
+        const result = check({
+          url: "https://api.example.com/user",
+          method: "GET",
+          response: { statusCode: 404, headers: { "content-type": "text/plain" }, body: "gone" },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("accepts a bodyPath and a url with no response", function () {
+        expect(check({ url: "**/user", response: { bodyPath: "fixtures/user.json" } }).valid).to.be.true;
+        expect(check({ url: "**/ping" }).valid).to.be.true;
+      });
+
+      it("adds no statusCode default; the runner applies 200", function () {
+        const result = check({ url: "**/ping", response: { body: "ok" } });
+        expect(result.object.mockRequest.response).to.not.have.property("statusCode");
+      });
+
+      it("rejects a missing url", function () {
+        expect(check({ response: { body: "x" } }).valid).to.be.false;
+      });
+
+      it("rejects an unknown method", function () {
+        expect(check({ url: "**/x", method: "FETCH" }).valid).to.be.false;
+      });
+
+      it("rejects a status code out of range", function () {
+        expect(check({ url: "**/x", response: { statusCode: 99 } }).valid).to.be.false;
+        expect(check({ url: "**/x", response: { statusCode: 600 } }).valid).to.be.false;
+      });
+
+      it("rejects unknown keys", function () {
+        const top = check({ url: "**/x", bogus: true });
+        expect(top.valid).to.be.false;
+        expect(top.errors).to.include("/mockRequest must NOT have additional properties");
+        const inResponse = check({ url: "**/x", response: { bogus: true } });
+        expect(inResponse.valid).to.be.false;
+        expect(inResponse.errors).to.include("/mockRequest/response must NOT have additional properties");
+      });
+
+      it("rejects setting both body and bodyPath", function () {
+        const result = check({ url: "**/x", response: { body: "a", bodyPath: "a.json" } });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("set `body` or `bodyPath`, not both.");
       });
     });
 
