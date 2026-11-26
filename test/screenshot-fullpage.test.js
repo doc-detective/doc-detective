@@ -102,6 +102,8 @@ function fakeDriver({
   rectAt,
   // The page height once animations are frozen, when finishing one grows it.
   frozenHeight,
+  // The screen's available size, as `screen.availWidth`/`availHeight` report it.
+  screen,
   throwOnCapture = false,
   // Throws on the nth page-extent read (1-based).
   throwOnExtentRead,
@@ -204,6 +206,9 @@ function fakeDriver({
           width: pageWidth,
           viewportHeight: viewport().height,
           viewportWidth: viewport().width,
+          outerWidth: window.width,
+          outerHeight: window.height,
+          ...(screen ? { availWidth: screen.availWidth, availHeight: screen.availHeight } : {}),
         };
       }
       if (liveBlur && source.includes("requestAnimationFrame(note)")) return true;
@@ -506,6 +511,37 @@ describe("screenshot fullPage and animations", function () {
     assert.equal(shot.viewport.height, 2000);
     const freezes = driver.calls.filter((c) => c.kind === "execute" && c.source.includes("getAnimations") && c.source.includes("finish"));
     assert.equal(freezes.length, 2, "frozen again after the second resize");
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("skips without resizing when the page needs more than the screen's available height", async function () {
+    // A 1000px screen less 100px of window chrome leaves a 900px viewport at most.
+    const driver = fakeDriver({
+      browserName: "Safari",
+      viewportCapture,
+      pageCapture,
+      screen: { availWidth: 1920, availHeight: 1000 },
+    });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.equal(result.description, "Skipped: `safari` can't capture a page larger than the screen.");
+    assert.ok(!driver.calls.some((c) => c.kind === "setWindowSize"), "no resize");
+    assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
+  });
+
+  it("still grows the window when the page fits the screen's available size", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture, screen: { availWidth: 1920, availHeight: 2000 } });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(await savedHeight(), 1600);
+  });
+
+  it("skips, with the window restored, when the screenshot fails after the window grew", async function () {
+    // safaridriver can refuse a screenshot of a window grown past the screen.
+    const driver = fakeDriver({ browserName: "Safari", viewportCapture, pageCapture, throwOnCapture: true });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.equal(result.description, "Skipped: `safari` can't capture a page larger than the screen.");
     assert.deepEqual(driver.window, { width: 800, height: 700 });
   });
 

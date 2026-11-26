@@ -296,6 +296,11 @@ function readPageExtent() {
     width: document.documentElement.scrollWidth,
     viewportHeight: window.innerHeight,
     viewportWidth: window.innerWidth,
+    // The largest window the screen allows, and the window's chrome.
+    outerWidth: window.outerWidth,
+    outerHeight: window.outerHeight,
+    availWidth: window.screen?.availWidth,
+    availHeight: window.screen?.availHeight,
   };
 }
 function scrollPageTo(x: number, y: number) {
@@ -349,7 +354,17 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
         Buffer.from((await driver.browsingContextCaptureScreenshot({ context, origin: "document" })).data, "base64"),
     };
   }
-  const viewportCapture = async () => Buffer.from(await driver.takeScreenshot(), "base64");
+  // A screenshot that fails once the window grew is the screen's cap too: a
+  // browser can cap the window without saying so.
+  const viewportCapture = async () => {
+    try {
+      return Buffer.from(await driver.takeScreenshot(), "base64");
+    } catch (error) {
+      if (!original) throw error;
+      await restore().catch(() => {});
+      throw tooLarge();
+    }
+  };
   const viewport = { width: Number(page?.viewportWidth) || 0, height: Number(page?.viewportHeight) || 0 };
   // A pixel of slack for rounding; any more would cut off the page's edge.
   const fits = (extent: any, within: { width: number; height: number }) =>
@@ -366,12 +381,20 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
   // Grow the viewport to `extent`, then read the page again: a `vh` layout
   // grows with the viewport.
   let realized = viewport;
+  // The largest viewport the screen allows: its available size less the
+  // window's chrome. Checked before resizing, because safaridriver can refuse
+  // the screenshot of a window grown past the screen. Unknown when unreported.
+  const limit = {
+    width: Number(page?.availWidth) - (Number(page?.outerWidth) - viewport.width),
+    height: Number(page?.availHeight) - (Number(page?.outerHeight) - viewport.height),
+  };
   const grow = async (extent: any) => {
-    original ??= await driver.getWindowSize();
     const wanted = {
       width: Math.max(Number(extent?.width) || 0, realized.width),
       height: Math.max(Number(extent?.height) || 0, realized.height),
     };
+    if (wanted.width > limit.width + 1 || wanted.height > limit.height + 1) throw tooLarge();
+    original ??= await driver.getWindowSize();
     realized = await realizeViewport(driver, wanted, options.config, options.label, "debug");
     return await driver.execute(readPageExtent);
   };

@@ -60,8 +60,10 @@ report.
   bigger, the window grows and freezes once more, then SKIPs if it still doesn't fit. A page that already fits the
   viewport isn't resized. After the resize the page is measured again, because a `vh` layout grows
   with the viewport.
-* **The screen caps the window:** a headed browser can't grow past the display. When the viewport
-  ends up shorter or narrower than the page, the window goes back. The step is SKIPPED:
+* **The screen caps the window:** a headed browser can't grow past the display. A page larger than
+  `screen.availWidth` and `availHeight`, less the window chrome, SKIPs before any resize. So does a
+  viewport that ends up too small, or a screenshot that fails after the window grew. The window goes
+  back first. The step is SKIPPED:
   ``Skipped: `safari` can't capture a page larger than the screen.`` One message covers both
   dimensions. It names whichever browser hit the cap. Headed Safari is the common case, since
   Safari has no headless mode.
