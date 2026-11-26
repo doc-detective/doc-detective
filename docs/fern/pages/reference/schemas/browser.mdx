@@ -35,20 +35,18 @@ clock | string | Optional. ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `
 ```json
 {
   "name": "chrome",
-  "headless": true,
-  "window": {
-    "width": 42,
-    "height": 42
-  },
-  "viewport": {
-    "width": 42,
-    "height": 42
-  },
-  "colorScheme": "light",
-  "locale": "example",
-  "timezone": "example",
-  "deviceScaleFactor": 42,
+  "headless": true
+}
+```
+
+```json
+{
+  "name": "chrome",
+  "colorScheme": "dark",
+  "locale": "de-DE",
+  "timezone": "Europe/Berlin",
+  "deviceScaleFactor": 2,
   "reducedMotion": "reduce",
-  "clock": "example"
+  "clock": "2026-12-03T09:00:00Z"
 }
 ```

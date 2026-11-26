@@ -407,6 +407,21 @@
                         "format": "date-time"
                       }
                     },
+                    "examples": [
+                      {
+                        "name": "chrome",
+                        "headless": true
+                      },
+                      {
+                        "name": "chrome",
+                        "colorScheme": "dark",
+                        "locale": "de-DE",
+                        "timezone": "Europe/Berlin",
+                        "deviceScaleFactor": 2,
+                        "reducedMotion": "reduce",
+                        "clock": "2026-12-03T09:00:00Z"
+                      }
+                    ],
                     "title": "Browser"
                   },
                   {
@@ -538,6 +553,21 @@
                               "format": "date-time"
                             }
                           },
+                          "examples": [
+                            {
+                              "name": "chrome",
+                              "headless": true
+                            },
+                            {
+                              "name": "chrome",
+                              "colorScheme": "dark",
+                              "locale": "de-DE",
+                              "timezone": "Europe/Berlin",
+                              "deviceScaleFactor": 2,
+                              "reducedMotion": "reduce",
+                              "clock": "2026-12-03T09:00:00Z"
+                            }
+                          ],
                           "title": "Browser"
                         }
                       ]
@@ -884,6 +914,21 @@
                       "format": "date-time"
                     }
                   },
+                  "examples": [
+                    {
+                      "name": "chrome",
+                      "headless": true
+                    },
+                    {
+                      "name": "chrome",
+                      "colorScheme": "dark",
+                      "locale": "de-DE",
+                      "timezone": "Europe/Berlin",
+                      "deviceScaleFactor": 2,
+                      "reducedMotion": "reduce",
+                      "clock": "2026-12-03T09:00:00Z"
+                    }
+                  ],
                   "title": "Browser"
                 }
               }
