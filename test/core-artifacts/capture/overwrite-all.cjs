@@ -14,12 +14,12 @@ const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const spec = (overwrite) => ({
+const spec = (overwrite, viewport, maxVariation) => ({
   specId: "overwrite-all",
   tests: [
     {
-      runOn: [{ platforms: ["windows", "mac", "linux"], browsers: { name: "chrome", headless: true } }],
-      steps: [{ goTo: "http://localhost:8092" }, { stepId: "shot", screenshot: { path: "ref.png", overwrite } }],
+      runOn: [{ platforms: ["windows", "mac", "linux"], browsers: { name: "chrome", headless: true, ...(viewport && { viewport }) } }],
+      steps: [{ goTo: "http://localhost:8092" }, { stepId: "shot", screenshot: { path: "ref.png", overwrite, ...(maxVariation !== undefined && { maxVariation }) } }],
     },
   ],
 });
@@ -41,6 +41,17 @@ const cases = {
     shot: "PASS",
     changed: true,
   },
+  // Config `aboveVariation` beats the step's `false`. The viewport is pinned to
+  // the reference's size so they compare. The page is mostly white, so a tight
+  // maxVariation makes the blank reference count as drift: warn and replace.
+  "config-above-variation-replaces-drifted": {
+    spec: spec("false", { width: 800, height: 600 }, 0.001),
+    size: "800x600",
+    config: { overwriteScreenshots: "aboveVariation" },
+    args: [],
+    shot: "WARNING",
+    changed: true,
+  },
 };
 
 const name = process.argv[2];
@@ -56,7 +67,7 @@ fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(dir, "case.spec.json"), JSON.stringify(c.spec, null, 2));
 fs.writeFileSync(path.join(dir, "dd.json"), JSON.stringify(c.config));
 const reference = path.join(dir, "ref.png");
-const made = spawnSync(process.execPath, [path.join(__dirname, "make-reference.cjs"), reference, "40x30"]);
+const made = spawnSync(process.execPath, [path.join(__dirname, "make-reference.cjs"), reference, c.size ?? "40x30"]);
 if (made.status !== 0) {
   console.error(`Couldn't write the reference: ${made.stderr}`);
   process.exit(1);

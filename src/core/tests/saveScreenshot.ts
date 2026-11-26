@@ -849,8 +849,7 @@ async function captureScreenshot({
     result.description = "Skipped: `screenshot` is `false`.";
     return result;
   }
-  // Run-wide `overwriteScreenshots` replaces the step's `overwrite` (ADR 01222),
-  // except on recording checkpoints: stopRecord owns their baselines (ADR 01075).
+  // Run-wide override (ADR 01222); recording checkpoints keep theirs (ADR 01075).
   if (config?.overwriteScreenshots && !internal?.compareOnly) step.screenshot.overwrite = config.overwriteScreenshots;
 
   // Lazy-load heavy deps once per saveScreenshot invocation; ensureRuntime
