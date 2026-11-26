@@ -90,6 +90,98 @@ For more control, use the object form. Set `crop` to a CSS selector to capture o
 
 `padding` accepts a single number for all four sides, or an object `{ "top": …, "right": …, "bottom": …, "left": … }` to pad each side independently. For the full list of fields, see the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema.
 
+## Capture dark-mode and localized screenshots
+
+To screenshot a page in dark mode, another language, or at a fixed date, set emulation keys on the context's browser. Each variant gets its own test, with its own `runOn` and its own screenshot `path`.
+
+{/* test {"testId":"capture-guide-dark","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true,"colorScheme":"dark","locale":"de-DE"}}]} */}
+
+```json
+{
+  "testId": "billing-dark-de",
+  "runOn": [
+    {
+      "browsers": {
+        "name": "chrome",
+        "colorScheme": "dark",
+        "locale": "de-DE",
+        "timezone": "Europe/Berlin",
+        "clock": "2026-12-03T09:00:00Z"
+      }
+    }
+  ],
+  "steps": [
+    { "goTo": "https://example.com/billing" },
+    { "screenshot": "billing-dark-de.png" }
+  ]
+}
+```
+
+{/* step {"stepId":"capture-guide-dark-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"capture-guide-dark-check","description":"The page sees dark mode and German","runBrowserScript":{"script":"return matchMedia('(prefers-color-scheme: dark)').matches + ' ' + navigator.language;","output":"/^true de-DE$/"}} */}
+{/* step {"stepId":"capture-guide-dark-shot","description":"Capture the dark, German page to a gitignored output folder","screenshot":{"path":"guide_dark_de.png","directory":"./.dd-output"}} */}
+{/* test end */}
+
+| Key | What the page sees |
+|---|---|
+| `colorScheme` | `prefers-color-scheme`: `light` or `dark`. |
+| `locale` | `navigator.language`, `Intl` formatting, and the `Accept-Language` header. |
+| `timezone` | The IANA time zone that `Date` and `Intl` use. |
+| `deviceScaleFactor` | `devicePixelRatio`, from 0.5 to 4. Screenshots come out at that pixel density. |
+| `reducedMotion` | `prefers-reduced-motion`: `reduce` or `no-preference`. |
+| `clock` | `Date.now()` and `new Date()` stay at this ISO 8601 instant. |
+
+Not every browser can set every key:
+
+| Key | Chrome | Firefox | Safari |
+|---|---|---|---|
+| `colorScheme` | Yes | Yes | Not supported |
+| `locale` | Yes | Yes | Not supported |
+| `timezone` | Yes | Not supported | Not supported |
+| `deviceScaleFactor` | Yes | Yes | Not supported |
+| `reducedMotion` | Yes | Yes | Not supported |
+| `clock` | Yes | Not supported | Not supported |
+
+A context that asks for a key its browser can't set reports `SKIPPED`. Doc Detective never runs it without the emulation, because a light-mode capture in a dark-mode test would replace your reference image.
+
+```text
+Skipped: `safari` can't set `colorScheme`.
+```
+
+For every browser key, see [Page emulation](/docs/test-docs/platforms-and-browsers#page-emulation).
+
+## Show stable data in screenshots
+
+Pages often show data that changes, such as "Next invoice: 3 December" or an account balance. A screenshot of that data differs on every run. To keep it the same, answer the request behind it with [`mockRequest`](/docs/actions/mockrequest) before the page loads:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Answer invoice requests with a fixed date.",
+          "mockRequest": {
+            "url": "**/api/invoices*",
+            "response": { "body": { "next": "2026-12-03" } }
+          }
+        },
+        {
+          "goTo": "https://example.com/billing"
+        },
+        {
+          "screenshot": "./output/billing.png"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Put the `mockRequest` step before the `goTo` step, so the page's first request already gets the fixed data. The mock lasts until the test ends.
+
+`mockRequest` runs in Chrome only. In Firefox and Safari, the step reports `SKIPPED` and the page loads its live data.
+
 ## Verify it works
 
 - A step that captured an image reports `PASS`.
