@@ -1,9 +1,9 @@
 import { validate } from "../../common/src/validate.js";
 import { log, invalidStepMessage } from "../utils.js";
-import path from "node:path";
+import { applyCookies, matchesDomain, resolveStatePath } from "./browserState.js";
 import fs from "node:fs";
 
-export { loadCookie };
+export { loadCookie, parseNetscapeCookieFile };
 
 /**
  * Load a specific cookie from a file or environment variable into the browser.
@@ -40,7 +40,7 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
       const cookieData = process.env[variable];
       if (!cookieData) {
         result.status = "FAIL";
-        result.description = `Environment variable '${variable}' not found or empty`;
+        result.description = `Couldn't load cookie: environment variable \`${variable}\` isn't set.`;
         return result;
       }
 
@@ -51,19 +51,18 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
           "debug",
           `Loaded cookie from environment variable '${variable}'`
         );
-      } catch (parseError: any) {
+      } catch {
         result.status = "FAIL";
-        result.description = `Failed to parse cookie data from environment variable '${variable}': ${parseError.message}`;
+        result.description = `Couldn't load cookie: environment variable \`${variable}\` doesn't hold cookie JSON.`;
         return result;
       }
     } else {
       // Load cookie from file
-      const inputDirectory = directory || config.outputDir || process.cwd();
-      const fullPath = path.resolve(inputDirectory, filePath);
+      const fullPath = resolveStatePath(config, { path: filePath, directory });
 
       if (!fs.existsSync(fullPath)) {
         result.status = "FAIL";
-        result.description = `Cookie file '${fullPath}' not found`;
+        result.description = `Couldn't load cookie: \`${fullPath}\` doesn't exist.`;
         return result;
       }
 
@@ -73,27 +72,20 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
 
         if (cookies.length === 0) {
           result.status = "FAIL";
-          result.description = `No valid cookies found in file '${fullPath}'`;
+          result.description = `Couldn't load cookie: \`${fullPath}\` has no cookies.`;
           return result;
         }
 
         // Find the specific cookie
-        targetCookie = cookies.find((cookie) => {
-          const nameMatches = cookie.name === cookieName;
-          const domainMatches =
-            !domain ||
-            (cookie.domain &&
-              (cookie.domain === domain ||
-                cookie.domain === "." + domain ||
-                cookie.domain.endsWith("." + domain)));
-          return nameMatches && domainMatches;
-        });
+        targetCookie = cookies.find(
+          (cookie) => cookie.name === cookieName && matchesDomain(cookie.domain, domain)
+        );
 
         if (!targetCookie) {
           result.status = "FAIL";
-          result.description = `Cookie '${cookieName}' not found in file '${fullPath}'${
-            domain ? ` for domain '${domain}'` : ""
-          }`;
+          result.description = `Couldn't load cookie: \`${fullPath}\` has no cookie named \`${cookieName}\`${
+            domain ? ` for \`${domain}\`` : ""
+          }.`;
           return result;
         }
 
@@ -102,9 +94,9 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
           "debug",
           `Loaded cookie '${targetCookie.name}' from file: ${fullPath}`
         );
-      } catch (readError: any) {
+      } catch {
         result.status = "FAIL";
-        result.description = `Failed to read cookie file '${fullPath}': ${readError.message}`;
+        result.description = `Couldn't load cookie: \`${fullPath}\` isn't a readable file.`;
         return result;
       }
     }
@@ -112,82 +104,26 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
     // Validate cookie data
     if (!targetCookie || !targetCookie.name) {
       result.status = "FAIL";
-      result.description = "Invalid cookie data: missing name";
+      result.description = "Couldn't load cookie: the cookie has no `name`.";
       return result;
     }
 
-    // Check for domain compatibility
-    const currentUrl = await driver.getUrl();
-    const currentDomain = new URL(currentUrl).hostname;
-
-    if (
-      targetCookie.domain &&
-      !isDomainCompatible(currentDomain, targetCookie.domain)
-    ) {
+    if (targetCookie.expiry && targetCookie.expiry <= Math.floor(Date.now() / 1000)) {
       result.status = "FAIL";
-      result.description = `Cookie domain '${targetCookie.domain}' is not compatible with current page domain '${currentDomain}'`;
+      result.description = `Couldn't load cookie: \`${targetCookie.name}\` has expired.`;
       return result;
     }
 
-    // Prepare cookie for WebDriver
-    // Handle sameSite and secure relationship: if sameSite is "None", secure must be true
-    const isHttps = currentUrl.startsWith("https://");
-
-    let sameSite = targetCookie.sameSite || "Lax";
-    let secure = targetCookie.secure || false;
-
-    // Normalize sameSite to Pascal case - WebDriver expects "None", "Lax", or "Strict"
-    if (typeof sameSite === "string") {
-      const lower = sameSite.toLowerCase();
-      if (lower === "none") sameSite = "None";
-      else if (lower === "strict") sameSite = "Strict";
-      else sameSite = "Lax";
+    // Set the cookie, if its domain fits the open page
+    const currentUrl = await driver.getUrl();
+    const applied = await applyCookies(driver, [targetCookie], currentUrl);
+    if (applied.length === 0) {
+      result.status = "FAIL";
+      result.description = `Couldn't load cookie: its domain \`${targetCookie.domain}\` doesn't match the open page's host \`${new URL(currentUrl).hostname}\`. Use \`goTo\` to open that site first.`;
+      return result;
     }
 
-    // If sameSite is "None", secure must be true, but only if we're on HTTPS
-    if (sameSite === "None") {
-      if (isHttps) {
-        secure = true;
-      } else {
-        // For HTTP, we can't use sameSite: "None", fall back to "Lax"
-        sameSite = "Lax";
-        log(
-          config,
-          "debug",
-          `Changed sameSite from "None" to "Lax" because current URL is HTTP`
-        );
-      }
-    }
-
-    const cookieForDriver: any = {
-      name: targetCookie.name,
-      value: targetCookie.value,
-      path: targetCookie.path || "/",
-      secure: secure,
-      httpOnly: targetCookie.httpOnly || false,
-      sameSite: sameSite,
-    };
-
-    // Handle domain: special handling for localhost and IP addresses
-    const isLocalhost = isLocalOrPrivateNetwork(currentDomain);
-
-    if (targetCookie.domain && !isLocalhost) {
-      cookieForDriver.domain = targetCookie.domain;
-    }
-    // For localhost/IP addresses, never set the domain property - let the browser handle it
-
-    // Add expiry if it exists and is valid
-    if (
-      targetCookie.expiry &&
-      targetCookie.expiry > Math.floor(Date.now() / 1000)
-    ) {
-      cookieForDriver.expiry = targetCookie.expiry;
-    }
-
-    // Set the cookie in the browser
-    await driver.setCookies(cookieForDriver);
-
-    result.description = `Loaded cookie '${targetCookie.name}' into browser.`;
+    result.description = `Loaded cookie \`${targetCookie.name}\`.`;
     result.outputs.cookieName = targetCookie.name;
     result.outputs.domain = targetCookie.domain;
 
@@ -198,64 +134,11 @@ async function loadCookie({ config, step, driver }: { config: any; step: any; dr
     );
   } catch (error: any) {
     result.status = "FAIL";
-    result.description = `Failed to load cookie: ${error.message}`;
+    result.description = `Couldn't load cookie. ${error.message}`;
     log(config, "error", result.description);
   }
 
   return result;
-}
-
-/**
- * Check if a domain is localhost or a private network IP address.
- * @param {string} domain - The domain to check.
- * @returns {boolean} True if the domain is localhost or a private IP.
- */
-function isLocalOrPrivateNetwork(domain: string) {
-  // Check for localhost and IPv6 loopback
-  if (domain === "localhost" || domain === "::1") {
-    return true;
-  }
-
-  // Check if it's an IPv4 address
-  const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
-  const match = domain.match(ipv4Regex);
-
-  if (!match) {
-    return false; // Not an IPv4 address
-  }
-
-  // Parse octets
-  const octets = match.slice(1, 5).map(Number);
-
-  // Validate that all octets are in valid range (0-255)
-  if (octets.some((octet) => octet < 0 || octet > 255)) {
-    return false;
-  }
-
-  const [first, second] = octets;
-
-  // Check private IP ranges:
-  // 127.0.0.0/8 (loopback)
-  if (first === 127) {
-    return true;
-  }
-
-  // 10.0.0.0/8 (private class A)
-  if (first === 10) {
-    return true;
-  }
-
-  // 192.168.0.0/16 (private class C)
-  if (first === 192 && second === 168) {
-    return true;
-  }
-
-  // 172.16.0.0/12 (private class B: 172.16.0.0 to 172.31.255.255)
-  if (first === 172 && second >= 16 && second <= 31) {
-    return true;
-  }
-
-  return false;
 }
 
 /**
@@ -300,13 +183,10 @@ function parseNetscapeCookieFile(content: string) {
 
       // Add expiry if it's a valid number and greater than current time
       const expiry = parseInt(parts[4]);
+      // Keep any real expiry, past ones included, so an expired cookie fails
+      // to load instead of becoming a session cookie. 0 is a session cookie.
       if (!isNaN(expiry) && expiry > 0) {
-        // Only add expiry if it's in the future
-        const currentTime = Math.floor(Date.now() / 1000);
-        if (expiry > currentTime) {
-          cookie.expiry = expiry;
-        }
-        // If expiry is 0 or in the past, omit it (creates a session cookie)
+        cookie.expiry = expiry;
       }
 
       cookies.push(cookie);
@@ -314,27 +194,4 @@ function parseNetscapeCookieFile(content: string) {
   }
 
   return cookies;
-}
-
-/**
- * Check if a cookie domain is compatible with the current page domain.
- * @param {string} currentDomain - Current page domain.
- * @param {string} cookieDomain - Cookie domain.
- * @returns {boolean} True if compatible.
- */
-function isDomainCompatible(currentDomain: string, cookieDomain: string) {
-  if (!cookieDomain) return true;
-
-  // Remove leading dot from cookie domain for comparison
-  const normalizedCookieDomain = cookieDomain.startsWith(".")
-    ? cookieDomain.substring(1)
-    : cookieDomain;
-
-  // Exact match
-  if (currentDomain === normalizedCookieDomain) return true;
-
-  // Current domain is a subdomain of cookie domain
-  if (currentDomain.endsWith("." + normalizedCookieDomain)) return true;
-
-  return false;
 }

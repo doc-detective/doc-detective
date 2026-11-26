@@ -6,6 +6,8 @@ description: Load a cookie from a file or environment variable into the browser.
 
 The `loadCookie` action loads a cookie from a file or environment variable into the browser. This action is useful for restoring authentication sessions, user preferences, or other stateful information that was previously saved using the [`saveCookie`](/docs/actions/savecookie) action.
 
+To restore a whole sign-in, with every cookie and `localStorage`, use [`loadState`](/docs/actions/loadstate) instead. `loadCookie` moves one named cookie.
+
 > For comprehensive options, see the [`loadCookie`](/reference/schemas/loadcookie) reference.
 
 ## Use cases
