@@ -97,6 +97,29 @@ describe("screenshot tolerance and diff images (ADR 01220)", function () {
     assert.ok(fs.existsSync(result.outputs.previousPath), "the previous image exists");
   });
 
+  it("archives the reference bytes it compared, even if the file changes afterward", async function () {
+    // Another step rewrites the shared reference right after this step reads it.
+    const original = fs.readFileSync(target);
+    const read = fs.readFileSync;
+    let swapped = false;
+    fs.readFileSync = function (file, ...rest) {
+      const bytes = read.call(this, file, ...rest);
+      if (!swapped && file === target) {
+        swapped = true;
+        fs.writeFileSync(target, png(() => [0, 0, 255]));
+      }
+      return bytes;
+    };
+    let result;
+    try {
+      result = await compare({ maxVariation: 1 }, changed());
+    } finally {
+      fs.readFileSync = read;
+    }
+    assert.ok(swapped, "the reference was read");
+    assert.ok(read(result.outputs.previousPath).equals(original), "previous image is the compared reference");
+  });
+
   it("warns when changed pixels exceed `maxDiffPixels`, even within `maxVariation`", async function () {
     const result = await compare({ maxVariation: 1, maxDiffPixels: 5 }, changed());
     assert.equal(result.status, "WARNING");
