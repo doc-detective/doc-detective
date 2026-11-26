@@ -304,7 +304,9 @@
     "mockRequest": {},
     "swipe": {},
     "wait": {},
-    "annotate": {}
+    "annotate": {},
+    "saveState": {},
+    "loadState": {}
   },
   "additionalProperties": false,
   "oneOf": [
@@ -725,6 +727,44 @@
           "title": "annotate"
         }
       ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "title": "saveState",
+          "type": "object",
+          "required": [
+            "saveState"
+          ],
+          "properties": {
+            "saveState": {
+              "$ref": "saveState_v3.schema.json#"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "title": "loadState",
+          "type": "object",
+          "required": [
+            "loadState"
+          ],
+          "properties": {
+            "loadState": {
+              "$ref": "loadState_v3.schema.json#"
+            }
+          }
+        }
+      ]
     }
   ],
   "examples": [
@@ -893,6 +933,15 @@
     },
     {
       "loadCookie": "session_token"
+    },
+    {
+      "saveState": "auth.json"
+    },
+    {
+      "loadState": {
+        "path": "auth.json",
+        "directory": "../.auth"
+      }
     },
     {
       "loadCookie": {

@@ -61,6 +61,8 @@ mockRequest | unknown | Optional. No description provided. | —
 swipe | unknown | Optional. No description provided. | —
 wait | unknown | Optional. No description provided. | —
 annotate | unknown | Optional. No description provided. | —
+saveState | unknown | Optional. No description provided. | —
+loadState | unknown | Optional. No description provided. | —
 
 ## Examples
 
@@ -314,6 +316,21 @@ annotate | unknown | Optional. No description provided. | —
 ```json
 {
   "loadCookie": "session_token"
+}
+```
+
+```json
+{
+  "saveState": "auth.json"
+}
+```
+
+```json
+{
+  "loadState": {
+    "path": "auth.json",
+    "directory": "../.auth"
+  }
 }
 ```
 

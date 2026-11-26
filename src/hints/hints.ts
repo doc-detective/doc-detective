@@ -652,16 +652,17 @@ export const HINTS: Hint[] = [
     id: "useLoadCookieSaveCookie",
     priority: 20,
     markdown: [
-      "Tests that log in over and over slow your suite down. Capture the session once with `saveCookie` and reuse it with `loadCookie`:",
+      "Tests that log in over and over slow your suite down. Save the signed-in state once with `saveState`, then load it with `loadState` after a `goTo` to the same site:",
       "",
       "```json",
-      "{ \"saveCookie\": { \"path\": \"./cookies.json\" } }",
-      "{ \"loadCookie\": { \"path\": \"./cookies.json\" } }",
+      "{ \"saveState\": \"auth.json\" }",
+      "{ \"loadState\": \"auth.json\" }",
       "```",
     ].join("\n"),
     when: (ctx) =>
       ctx.usedBrowserContexts.size > 0 &&
       !ctx.usedStepTypes.has("loadCookie") &&
+      !ctx.usedStepTypes.has("loadState") &&
       ctx.usedStepTypes.has("loadVariables") &&
       ctx.usedStepTypes.has("type") &&
       ctx.usedStepTypes.has("click"),
