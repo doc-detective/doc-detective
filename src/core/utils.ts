@@ -2583,6 +2583,12 @@ export function emulationCapabilities(browser: any): {
   return { args, prefs };
 }
 
+const MOTION_ARGS = [
+  "--force-prefers-reduced-motion",
+  "--force-prefers-no-reduced-motion",
+];
+const BLINK_SETTINGS = "--blink-settings=";
+
 /**
  * Put a browser's emulation args and prefs back into capabilities after an
  * authored `driverOptions` replaced `goog:chromeOptions` or
@@ -2600,8 +2606,27 @@ export function keepEmulationCapabilities(
     browser?.name === "chrome" ? "goog:chromeOptions" : "moz:firefoxOptions";
   const options = { ...(caps[key] ?? {}) };
   if (args.length) {
-    const authored: string[] = Array.isArray(options.args) ? options.args : [];
-    options.args = [...authored, ...args.filter((a) => !authored.includes(a))];
+    let merged: string[] = Array.isArray(options.args) ? [...options.args] : [];
+    // Chrome lets --force-prefers-reduced-motion win over its opposite, so
+    // drop any authored motion flag before adding the requested one.
+    if (browser.reducedMotion !== undefined)
+      merged = merged.filter((a) => !MOTION_ARGS.includes(a));
+    for (const arg of args) {
+      const blink = arg.startsWith(BLINK_SETTINGS)
+        ? merged.findIndex((a) => a.startsWith(BLINK_SETTINGS))
+        : -1;
+      if (blink >= 0) {
+        // ChromeDriver keeps only the last --blink-settings switch, so the
+        // color scheme joins the authored settings in one argument.
+        const ours = arg.slice(BLINK_SETTINGS.length);
+        const theirs = merged[blink]
+          .slice(BLINK_SETTINGS.length)
+          .split(",")
+          .filter((s) => s && !s.startsWith("preferredColorScheme="));
+        merged[blink] = `${BLINK_SETTINGS}${[...theirs, ours].join(",")}`;
+      } else if (!merged.includes(arg)) merged.push(arg);
+    }
+    options.args = merged;
   }
   if (Object.keys(prefs).length)
     options.prefs = { ...(options.prefs ?? {}), ...prefs };

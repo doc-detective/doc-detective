@@ -442,6 +442,38 @@ describe("keepEmulationCapabilities", function () {
     ]);
   });
 
+  // Chrome lets --force-prefers-reduced-motion win over its opposite, so the
+  // authored opposite flag must go.
+  it("drops an authored motion flag that opposes reducedMotion", function () {
+    const caps = {
+      "goog:chromeOptions": {
+        args: ["--force-prefers-reduced-motion", "--disable-extensions"],
+      },
+    };
+    keepEmulationCapabilities(caps, {
+      name: "chrome",
+      reducedMotion: "no-preference",
+    });
+    assert.deepEqual(caps["goog:chromeOptions"].args, [
+      "--disable-extensions",
+      "--force-prefers-no-reduced-motion",
+    ]);
+  });
+
+  // ChromeDriver keeps only the last --blink-settings switch, so the
+  // color scheme joins the authored settings in one argument.
+  it("merges the color scheme into authored --blink-settings", function () {
+    const caps = {
+      "goog:chromeOptions": {
+        args: ["--blink-settings=imagesEnabled=false,preferredColorScheme=1"],
+      },
+    };
+    keepEmulationCapabilities(caps, { name: "chrome", colorScheme: "dark" });
+    assert.deepEqual(caps["goog:chromeOptions"].args, [
+      "--blink-settings=imagesEnabled=false,preferredColorScheme=0",
+    ]);
+  });
+
   it("restores firefox emulation prefs and keeps authored ones", function () {
     const caps = { "moz:firefoxOptions": { prefs: { "custom.pref": true } } };
     keepEmulationCapabilities(caps, { name: "firefox", reducedMotion: "reduce" });
