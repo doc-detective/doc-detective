@@ -13192,8 +13192,70 @@
                             }
                           },
                           "title": "Browser Viewport"
+                        },
+                        "colorScheme": {
+                          "type": "string",
+                          "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                          "enum": [
+                            "light",
+                            "dark"
+                          ]
+                        },
+                        "locale": {
+                          "type": "string",
+                          "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                          "examples": [
+                            "de-DE",
+                            "fr",
+                            "ja-JP"
+                          ]
+                        },
+                        "timezone": {
+                          "type": "string",
+                          "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                          "examples": [
+                            "Europe/Berlin",
+                            "America/New_York",
+                            "UTC"
+                          ]
+                        },
+                        "deviceScaleFactor": {
+                          "type": "number",
+                          "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                          "minimum": 0.5,
+                          "maximum": 4
+                        },
+                        "reducedMotion": {
+                          "type": "string",
+                          "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                          "enum": [
+                            "reduce",
+                            "no-preference"
+                          ]
+                        },
+                        "clock": {
+                          "type": "string",
+                          "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                          "format": "date-time"
                         }
                       },
+                      "examples": [
+                        {
+                          "name": "chrome",
+                          "headless": true
+                        },
+                        {
+                          "name": "chrome",
+                          "colorScheme": "dark",
+                          "locale": "de-DE",
+                          "timezone": "Europe/Berlin",
+                          "deviceScaleFactor": 2,
+                          "reducedMotion": "reduce",
+                          "clock": "2026-12-03T09:00:00Z"
+                        }
+                      ],
                       "title": "Browser"
                     },
                     {
@@ -13276,8 +13338,70 @@
                                   }
                                 },
                                 "title": "Browser Viewport"
+                              },
+                              "colorScheme": {
+                                "type": "string",
+                                "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                "enum": [
+                                  "light",
+                                  "dark"
+                                ]
+                              },
+                              "locale": {
+                                "type": "string",
+                                "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                "examples": [
+                                  "de-DE",
+                                  "fr",
+                                  "ja-JP"
+                                ]
+                              },
+                              "timezone": {
+                                "type": "string",
+                                "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                "examples": [
+                                  "Europe/Berlin",
+                                  "America/New_York",
+                                  "UTC"
+                                ]
+                              },
+                              "deviceScaleFactor": {
+                                "type": "number",
+                                "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                "minimum": 0.5,
+                                "maximum": 4
+                              },
+                              "reducedMotion": {
+                                "type": "string",
+                                "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                "enum": [
+                                  "reduce",
+                                  "no-preference"
+                                ]
+                              },
+                              "clock": {
+                                "type": "string",
+                                "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                "format": "date-time"
                               }
                             },
+                            "examples": [
+                              {
+                                "name": "chrome",
+                                "headless": true
+                              },
+                              {
+                                "name": "chrome",
+                                "colorScheme": "dark",
+                                "locale": "de-DE",
+                                "timezone": "Europe/Berlin",
+                                "deviceScaleFactor": 2,
+                                "reducedMotion": "reduce",
+                                "clock": "2026-12-03T09:00:00Z"
+                              }
+                            ],
                             "title": "Browser"
                           }
                         ]
@@ -13575,8 +13699,70 @@
                           }
                         },
                         "title": "Browser Viewport"
+                      },
+                      "colorScheme": {
+                        "type": "string",
+                        "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                        "enum": [
+                          "light",
+                          "dark"
+                        ]
+                      },
+                      "locale": {
+                        "type": "string",
+                        "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                        "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                        "examples": [
+                          "de-DE",
+                          "fr",
+                          "ja-JP"
+                        ]
+                      },
+                      "timezone": {
+                        "type": "string",
+                        "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                        "examples": [
+                          "Europe/Berlin",
+                          "America/New_York",
+                          "UTC"
+                        ]
+                      },
+                      "deviceScaleFactor": {
+                        "type": "number",
+                        "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                        "minimum": 0.5,
+                        "maximum": 4
+                      },
+                      "reducedMotion": {
+                        "type": "string",
+                        "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                        "enum": [
+                          "reduce",
+                          "no-preference"
+                        ]
+                      },
+                      "clock": {
+                        "type": "string",
+                        "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                        "format": "date-time"
                       }
                     },
+                    "examples": [
+                      {
+                        "name": "chrome",
+                        "headless": true
+                      },
+                      {
+                        "name": "chrome",
+                        "colorScheme": "dark",
+                        "locale": "de-DE",
+                        "timezone": "Europe/Berlin",
+                        "deviceScaleFactor": 2,
+                        "reducedMotion": "reduce",
+                        "clock": "2026-12-03T09:00:00Z"
+                      }
+                    ],
                     "title": "Browser"
                   }
                 }
@@ -18704,8 +18890,70 @@
                   }
                 },
                 "title": "Browser Viewport"
+              },
+              "colorScheme": {
+                "type": "string",
+                "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                "enum": [
+                  "light",
+                  "dark"
+                ]
+              },
+              "locale": {
+                "type": "string",
+                "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                "examples": [
+                  "de-DE",
+                  "fr",
+                  "ja-JP"
+                ]
+              },
+              "timezone": {
+                "type": "string",
+                "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                "examples": [
+                  "Europe/Berlin",
+                  "America/New_York",
+                  "UTC"
+                ]
+              },
+              "deviceScaleFactor": {
+                "type": "number",
+                "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                "minimum": 0.5,
+                "maximum": 4
+              },
+              "reducedMotion": {
+                "type": "string",
+                "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                "enum": [
+                  "reduce",
+                  "no-preference"
+                ]
+              },
+              "clock": {
+                "type": "string",
+                "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                "format": "date-time"
               }
             },
+            "examples": [
+              {
+                "name": "chrome",
+                "headless": true
+              },
+              {
+                "name": "chrome",
+                "colorScheme": "dark",
+                "locale": "de-DE",
+                "timezone": "Europe/Berlin",
+                "deviceScaleFactor": 2,
+                "reducedMotion": "reduce",
+                "clock": "2026-12-03T09:00:00Z"
+              }
+            ],
             "title": "Browser"
           },
           {
@@ -18788,8 +19036,70 @@
                         }
                       },
                       "title": "Browser Viewport"
+                    },
+                    "colorScheme": {
+                      "type": "string",
+                      "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                      "enum": [
+                        "light",
+                        "dark"
+                      ]
+                    },
+                    "locale": {
+                      "type": "string",
+                      "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                      "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                      "examples": [
+                        "de-DE",
+                        "fr",
+                        "ja-JP"
+                      ]
+                    },
+                    "timezone": {
+                      "type": "string",
+                      "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                      "examples": [
+                        "Europe/Berlin",
+                        "America/New_York",
+                        "UTC"
+                      ]
+                    },
+                    "deviceScaleFactor": {
+                      "type": "number",
+                      "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                      "minimum": 0.5,
+                      "maximum": 4
+                    },
+                    "reducedMotion": {
+                      "type": "string",
+                      "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                      "enum": [
+                        "reduce",
+                        "no-preference"
+                      ]
+                    },
+                    "clock": {
+                      "type": "string",
+                      "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                      "format": "date-time"
                     }
                   },
+                  "examples": [
+                    {
+                      "name": "chrome",
+                      "headless": true
+                    },
+                    {
+                      "name": "chrome",
+                      "colorScheme": "dark",
+                      "locale": "de-DE",
+                      "timezone": "Europe/Berlin",
+                      "deviceScaleFactor": 2,
+                      "reducedMotion": "reduce",
+                      "clock": "2026-12-03T09:00:00Z"
+                    }
+                  ],
                   "title": "Browser"
                 }
               ]
@@ -19087,8 +19397,70 @@
                 }
               },
               "title": "Browser Viewport"
+            },
+            "colorScheme": {
+              "type": "string",
+              "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+              "enum": [
+                "light",
+                "dark"
+              ]
+            },
+            "locale": {
+              "type": "string",
+              "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+              "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+              "examples": [
+                "de-DE",
+                "fr",
+                "ja-JP"
+              ]
+            },
+            "timezone": {
+              "type": "string",
+              "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+              "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+              "examples": [
+                "Europe/Berlin",
+                "America/New_York",
+                "UTC"
+              ]
+            },
+            "deviceScaleFactor": {
+              "type": "number",
+              "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+              "minimum": 0.5,
+              "maximum": 4
+            },
+            "reducedMotion": {
+              "type": "string",
+              "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+              "enum": [
+                "reduce",
+                "no-preference"
+              ]
+            },
+            "clock": {
+              "type": "string",
+              "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+              "format": "date-time"
             }
           },
+          "examples": [
+            {
+              "name": "chrome",
+              "headless": true
+            },
+            {
+              "name": "chrome",
+              "colorScheme": "dark",
+              "locale": "de-DE",
+              "timezone": "Europe/Berlin",
+              "deviceScaleFactor": 2,
+              "reducedMotion": "reduce",
+              "clock": "2026-12-03T09:00:00Z"
+            }
+          ],
           "title": "Browser"
         }
       }
@@ -35031,8 +35403,70 @@
                                 }
                               },
                               "title": "Browser Viewport"
+                            },
+                            "colorScheme": {
+                              "type": "string",
+                              "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                              "enum": [
+                                "light",
+                                "dark"
+                              ]
+                            },
+                            "locale": {
+                              "type": "string",
+                              "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                              "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                              "examples": [
+                                "de-DE",
+                                "fr",
+                                "ja-JP"
+                              ]
+                            },
+                            "timezone": {
+                              "type": "string",
+                              "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                              "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                              "examples": [
+                                "Europe/Berlin",
+                                "America/New_York",
+                                "UTC"
+                              ]
+                            },
+                            "deviceScaleFactor": {
+                              "type": "number",
+                              "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                              "minimum": 0.5,
+                              "maximum": 4
+                            },
+                            "reducedMotion": {
+                              "type": "string",
+                              "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                              "enum": [
+                                "reduce",
+                                "no-preference"
+                              ]
+                            },
+                            "clock": {
+                              "type": "string",
+                              "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                              "format": "date-time"
                             }
                           },
+                          "examples": [
+                            {
+                              "name": "chrome",
+                              "headless": true
+                            },
+                            {
+                              "name": "chrome",
+                              "colorScheme": "dark",
+                              "locale": "de-DE",
+                              "timezone": "Europe/Berlin",
+                              "deviceScaleFactor": 2,
+                              "reducedMotion": "reduce",
+                              "clock": "2026-12-03T09:00:00Z"
+                            }
+                          ],
                           "title": "Browser"
                         },
                         {
@@ -35115,8 +35549,70 @@
                                       }
                                     },
                                     "title": "Browser Viewport"
+                                  },
+                                  "colorScheme": {
+                                    "type": "string",
+                                    "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                    "enum": [
+                                      "light",
+                                      "dark"
+                                    ]
+                                  },
+                                  "locale": {
+                                    "type": "string",
+                                    "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                    "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                    "examples": [
+                                      "de-DE",
+                                      "fr",
+                                      "ja-JP"
+                                    ]
+                                  },
+                                  "timezone": {
+                                    "type": "string",
+                                    "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                    "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                    "examples": [
+                                      "Europe/Berlin",
+                                      "America/New_York",
+                                      "UTC"
+                                    ]
+                                  },
+                                  "deviceScaleFactor": {
+                                    "type": "number",
+                                    "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                    "minimum": 0.5,
+                                    "maximum": 4
+                                  },
+                                  "reducedMotion": {
+                                    "type": "string",
+                                    "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                    "enum": [
+                                      "reduce",
+                                      "no-preference"
+                                    ]
+                                  },
+                                  "clock": {
+                                    "type": "string",
+                                    "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                    "format": "date-time"
                                   }
                                 },
+                                "examples": [
+                                  {
+                                    "name": "chrome",
+                                    "headless": true
+                                  },
+                                  {
+                                    "name": "chrome",
+                                    "colorScheme": "dark",
+                                    "locale": "de-DE",
+                                    "timezone": "Europe/Berlin",
+                                    "deviceScaleFactor": 2,
+                                    "reducedMotion": "reduce",
+                                    "clock": "2026-12-03T09:00:00Z"
+                                  }
+                                ],
                                 "title": "Browser"
                               }
                             ]
@@ -35414,8 +35910,70 @@
                               }
                             },
                             "title": "Browser Viewport"
+                          },
+                          "colorScheme": {
+                            "type": "string",
+                            "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                            "enum": [
+                              "light",
+                              "dark"
+                            ]
+                          },
+                          "locale": {
+                            "type": "string",
+                            "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                            "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                            "examples": [
+                              "de-DE",
+                              "fr",
+                              "ja-JP"
+                            ]
+                          },
+                          "timezone": {
+                            "type": "string",
+                            "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                            "examples": [
+                              "Europe/Berlin",
+                              "America/New_York",
+                              "UTC"
+                            ]
+                          },
+                          "deviceScaleFactor": {
+                            "type": "number",
+                            "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                            "minimum": 0.5,
+                            "maximum": 4
+                          },
+                          "reducedMotion": {
+                            "type": "string",
+                            "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                            "enum": [
+                              "reduce",
+                              "no-preference"
+                            ]
+                          },
+                          "clock": {
+                            "type": "string",
+                            "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                            "format": "date-time"
                           }
                         },
+                        "examples": [
+                          {
+                            "name": "chrome",
+                            "headless": true
+                          },
+                          {
+                            "name": "chrome",
+                            "colorScheme": "dark",
+                            "locale": "de-DE",
+                            "timezone": "Europe/Berlin",
+                            "deviceScaleFactor": 2,
+                            "reducedMotion": "reduce",
+                            "clock": "2026-12-03T09:00:00Z"
+                          }
+                        ],
                         "title": "Browser"
                       }
                     }
@@ -40613,8 +41171,70 @@
                                       }
                                     },
                                     "title": "Browser Viewport"
+                                  },
+                                  "colorScheme": {
+                                    "type": "string",
+                                    "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                    "enum": [
+                                      "light",
+                                      "dark"
+                                    ]
+                                  },
+                                  "locale": {
+                                    "type": "string",
+                                    "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                    "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                    "examples": [
+                                      "de-DE",
+                                      "fr",
+                                      "ja-JP"
+                                    ]
+                                  },
+                                  "timezone": {
+                                    "type": "string",
+                                    "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                    "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                    "examples": [
+                                      "Europe/Berlin",
+                                      "America/New_York",
+                                      "UTC"
+                                    ]
+                                  },
+                                  "deviceScaleFactor": {
+                                    "type": "number",
+                                    "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                    "minimum": 0.5,
+                                    "maximum": 4
+                                  },
+                                  "reducedMotion": {
+                                    "type": "string",
+                                    "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                    "enum": [
+                                      "reduce",
+                                      "no-preference"
+                                    ]
+                                  },
+                                  "clock": {
+                                    "type": "string",
+                                    "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                    "format": "date-time"
                                   }
                                 },
+                                "examples": [
+                                  {
+                                    "name": "chrome",
+                                    "headless": true
+                                  },
+                                  {
+                                    "name": "chrome",
+                                    "colorScheme": "dark",
+                                    "locale": "de-DE",
+                                    "timezone": "Europe/Berlin",
+                                    "deviceScaleFactor": 2,
+                                    "reducedMotion": "reduce",
+                                    "clock": "2026-12-03T09:00:00Z"
+                                  }
+                                ],
                                 "title": "Browser"
                               },
                               {
@@ -40697,8 +41317,70 @@
                                             }
                                           },
                                           "title": "Browser Viewport"
+                                        },
+                                        "colorScheme": {
+                                          "type": "string",
+                                          "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                          "enum": [
+                                            "light",
+                                            "dark"
+                                          ]
+                                        },
+                                        "locale": {
+                                          "type": "string",
+                                          "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                          "examples": [
+                                            "de-DE",
+                                            "fr",
+                                            "ja-JP"
+                                          ]
+                                        },
+                                        "timezone": {
+                                          "type": "string",
+                                          "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                          "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                          "examples": [
+                                            "Europe/Berlin",
+                                            "America/New_York",
+                                            "UTC"
+                                          ]
+                                        },
+                                        "deviceScaleFactor": {
+                                          "type": "number",
+                                          "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                          "minimum": 0.5,
+                                          "maximum": 4
+                                        },
+                                        "reducedMotion": {
+                                          "type": "string",
+                                          "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                          "enum": [
+                                            "reduce",
+                                            "no-preference"
+                                          ]
+                                        },
+                                        "clock": {
+                                          "type": "string",
+                                          "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                          "format": "date-time"
                                         }
                                       },
+                                      "examples": [
+                                        {
+                                          "name": "chrome",
+                                          "headless": true
+                                        },
+                                        {
+                                          "name": "chrome",
+                                          "colorScheme": "dark",
+                                          "locale": "de-DE",
+                                          "timezone": "Europe/Berlin",
+                                          "deviceScaleFactor": 2,
+                                          "reducedMotion": "reduce",
+                                          "clock": "2026-12-03T09:00:00Z"
+                                        }
+                                      ],
                                       "title": "Browser"
                                     }
                                   ]
@@ -40996,8 +41678,70 @@
                                     }
                                   },
                                   "title": "Browser Viewport"
+                                },
+                                "colorScheme": {
+                                  "type": "string",
+                                  "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                  "enum": [
+                                    "light",
+                                    "dark"
+                                  ]
+                                },
+                                "locale": {
+                                  "type": "string",
+                                  "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                  "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                  "examples": [
+                                    "de-DE",
+                                    "fr",
+                                    "ja-JP"
+                                  ]
+                                },
+                                "timezone": {
+                                  "type": "string",
+                                  "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                  "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                  "examples": [
+                                    "Europe/Berlin",
+                                    "America/New_York",
+                                    "UTC"
+                                  ]
+                                },
+                                "deviceScaleFactor": {
+                                  "type": "number",
+                                  "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                  "minimum": 0.5,
+                                  "maximum": 4
+                                },
+                                "reducedMotion": {
+                                  "type": "string",
+                                  "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                  "enum": [
+                                    "reduce",
+                                    "no-preference"
+                                  ]
+                                },
+                                "clock": {
+                                  "type": "string",
+                                  "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                  "format": "date-time"
                                 }
                               },
+                              "examples": [
+                                {
+                                  "name": "chrome",
+                                  "headless": true
+                                },
+                                {
+                                  "name": "chrome",
+                                  "colorScheme": "dark",
+                                  "locale": "de-DE",
+                                  "timezone": "Europe/Berlin",
+                                  "deviceScaleFactor": 2,
+                                  "reducedMotion": "reduce",
+                                  "clock": "2026-12-03T09:00:00Z"
+                                }
+                              ],
                               "title": "Browser"
                             }
                           }
@@ -42652,8 +43396,70 @@
                                                 }
                                               },
                                               "title": "Browser Viewport"
+                                            },
+                                            "colorScheme": {
+                                              "type": "string",
+                                              "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                              "enum": [
+                                                "light",
+                                                "dark"
+                                              ]
+                                            },
+                                            "locale": {
+                                              "type": "string",
+                                              "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                              "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                              "examples": [
+                                                "de-DE",
+                                                "fr",
+                                                "ja-JP"
+                                              ]
+                                            },
+                                            "timezone": {
+                                              "type": "string",
+                                              "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                              "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                              "examples": [
+                                                "Europe/Berlin",
+                                                "America/New_York",
+                                                "UTC"
+                                              ]
+                                            },
+                                            "deviceScaleFactor": {
+                                              "type": "number",
+                                              "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                              "minimum": 0.5,
+                                              "maximum": 4
+                                            },
+                                            "reducedMotion": {
+                                              "type": "string",
+                                              "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                              "enum": [
+                                                "reduce",
+                                                "no-preference"
+                                              ]
+                                            },
+                                            "clock": {
+                                              "type": "string",
+                                              "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                              "format": "date-time"
                                             }
                                           },
+                                          "examples": [
+                                            {
+                                              "name": "chrome",
+                                              "headless": true
+                                            },
+                                            {
+                                              "name": "chrome",
+                                              "colorScheme": "dark",
+                                              "locale": "de-DE",
+                                              "timezone": "Europe/Berlin",
+                                              "deviceScaleFactor": 2,
+                                              "reducedMotion": "reduce",
+                                              "clock": "2026-12-03T09:00:00Z"
+                                            }
+                                          ],
                                           "title": "Browser"
                                         },
                                         {
@@ -42736,8 +43542,70 @@
                                                       }
                                                     },
                                                     "title": "Browser Viewport"
+                                                  },
+                                                  "colorScheme": {
+                                                    "type": "string",
+                                                    "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                                    "enum": [
+                                                      "light",
+                                                      "dark"
+                                                    ]
+                                                  },
+                                                  "locale": {
+                                                    "type": "string",
+                                                    "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                                    "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                                    "examples": [
+                                                      "de-DE",
+                                                      "fr",
+                                                      "ja-JP"
+                                                    ]
+                                                  },
+                                                  "timezone": {
+                                                    "type": "string",
+                                                    "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                                    "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                                    "examples": [
+                                                      "Europe/Berlin",
+                                                      "America/New_York",
+                                                      "UTC"
+                                                    ]
+                                                  },
+                                                  "deviceScaleFactor": {
+                                                    "type": "number",
+                                                    "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                                    "minimum": 0.5,
+                                                    "maximum": 4
+                                                  },
+                                                  "reducedMotion": {
+                                                    "type": "string",
+                                                    "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                                    "enum": [
+                                                      "reduce",
+                                                      "no-preference"
+                                                    ]
+                                                  },
+                                                  "clock": {
+                                                    "type": "string",
+                                                    "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                                    "format": "date-time"
                                                   }
                                                 },
+                                                "examples": [
+                                                  {
+                                                    "name": "chrome",
+                                                    "headless": true
+                                                  },
+                                                  {
+                                                    "name": "chrome",
+                                                    "colorScheme": "dark",
+                                                    "locale": "de-DE",
+                                                    "timezone": "Europe/Berlin",
+                                                    "deviceScaleFactor": 2,
+                                                    "reducedMotion": "reduce",
+                                                    "clock": "2026-12-03T09:00:00Z"
+                                                  }
+                                                ],
                                                 "title": "Browser"
                                               }
                                             ]
@@ -43035,8 +43903,70 @@
                                               }
                                             },
                                             "title": "Browser Viewport"
+                                          },
+                                          "colorScheme": {
+                                            "type": "string",
+                                            "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                            "enum": [
+                                              "light",
+                                              "dark"
+                                            ]
+                                          },
+                                          "locale": {
+                                            "type": "string",
+                                            "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                            "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                            "examples": [
+                                              "de-DE",
+                                              "fr",
+                                              "ja-JP"
+                                            ]
+                                          },
+                                          "timezone": {
+                                            "type": "string",
+                                            "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                            "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                            "examples": [
+                                              "Europe/Berlin",
+                                              "America/New_York",
+                                              "UTC"
+                                            ]
+                                          },
+                                          "deviceScaleFactor": {
+                                            "type": "number",
+                                            "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                            "minimum": 0.5,
+                                            "maximum": 4
+                                          },
+                                          "reducedMotion": {
+                                            "type": "string",
+                                            "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                            "enum": [
+                                              "reduce",
+                                              "no-preference"
+                                            ]
+                                          },
+                                          "clock": {
+                                            "type": "string",
+                                            "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                            "format": "date-time"
                                           }
                                         },
+                                        "examples": [
+                                          {
+                                            "name": "chrome",
+                                            "headless": true
+                                          },
+                                          {
+                                            "name": "chrome",
+                                            "colorScheme": "dark",
+                                            "locale": "de-DE",
+                                            "timezone": "Europe/Berlin",
+                                            "deviceScaleFactor": 2,
+                                            "reducedMotion": "reduce",
+                                            "clock": "2026-12-03T09:00:00Z"
+                                          }
+                                        ],
                                         "title": "Browser"
                                       }
                                     }
@@ -110677,8 +111607,70 @@
                                         }
                                       },
                                       "title": "Browser Viewport"
+                                    },
+                                    "colorScheme": {
+                                      "type": "string",
+                                      "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                      "enum": [
+                                        "light",
+                                        "dark"
+                                      ]
+                                    },
+                                    "locale": {
+                                      "type": "string",
+                                      "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                      "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                      "examples": [
+                                        "de-DE",
+                                        "fr",
+                                        "ja-JP"
+                                      ]
+                                    },
+                                    "timezone": {
+                                      "type": "string",
+                                      "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                      "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                      "examples": [
+                                        "Europe/Berlin",
+                                        "America/New_York",
+                                        "UTC"
+                                      ]
+                                    },
+                                    "deviceScaleFactor": {
+                                      "type": "number",
+                                      "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                      "minimum": 0.5,
+                                      "maximum": 4
+                                    },
+                                    "reducedMotion": {
+                                      "type": "string",
+                                      "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                      "enum": [
+                                        "reduce",
+                                        "no-preference"
+                                      ]
+                                    },
+                                    "clock": {
+                                      "type": "string",
+                                      "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                      "format": "date-time"
                                     }
                                   },
+                                  "examples": [
+                                    {
+                                      "name": "chrome",
+                                      "headless": true
+                                    },
+                                    {
+                                      "name": "chrome",
+                                      "colorScheme": "dark",
+                                      "locale": "de-DE",
+                                      "timezone": "Europe/Berlin",
+                                      "deviceScaleFactor": 2,
+                                      "reducedMotion": "reduce",
+                                      "clock": "2026-12-03T09:00:00Z"
+                                    }
+                                  ],
                                   "title": "Browser"
                                 },
                                 "openApi": {
@@ -178407,8 +179399,70 @@
                                       }
                                     },
                                     "title": "Browser Viewport"
+                                  },
+                                  "colorScheme": {
+                                    "type": "string",
+                                    "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                    "enum": [
+                                      "light",
+                                      "dark"
+                                    ]
+                                  },
+                                  "locale": {
+                                    "type": "string",
+                                    "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                    "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                    "examples": [
+                                      "de-DE",
+                                      "fr",
+                                      "ja-JP"
+                                    ]
+                                  },
+                                  "timezone": {
+                                    "type": "string",
+                                    "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                    "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                    "examples": [
+                                      "Europe/Berlin",
+                                      "America/New_York",
+                                      "UTC"
+                                    ]
+                                  },
+                                  "deviceScaleFactor": {
+                                    "type": "number",
+                                    "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                    "minimum": 0.5,
+                                    "maximum": 4
+                                  },
+                                  "reducedMotion": {
+                                    "type": "string",
+                                    "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                    "enum": [
+                                      "reduce",
+                                      "no-preference"
+                                    ]
+                                  },
+                                  "clock": {
+                                    "type": "string",
+                                    "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                    "format": "date-time"
                                   }
                                 },
+                                "examples": [
+                                  {
+                                    "name": "chrome",
+                                    "headless": true
+                                  },
+                                  {
+                                    "name": "chrome",
+                                    "colorScheme": "dark",
+                                    "locale": "de-DE",
+                                    "timezone": "Europe/Berlin",
+                                    "deviceScaleFactor": 2,
+                                    "reducedMotion": "reduce",
+                                    "clock": "2026-12-03T09:00:00Z"
+                                  }
+                                ],
                                 "title": "Browser"
                               },
                               {
@@ -178491,8 +179545,70 @@
                                             }
                                           },
                                           "title": "Browser Viewport"
+                                        },
+                                        "colorScheme": {
+                                          "type": "string",
+                                          "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                          "enum": [
+                                            "light",
+                                            "dark"
+                                          ]
+                                        },
+                                        "locale": {
+                                          "type": "string",
+                                          "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                          "examples": [
+                                            "de-DE",
+                                            "fr",
+                                            "ja-JP"
+                                          ]
+                                        },
+                                        "timezone": {
+                                          "type": "string",
+                                          "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                          "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                          "examples": [
+                                            "Europe/Berlin",
+                                            "America/New_York",
+                                            "UTC"
+                                          ]
+                                        },
+                                        "deviceScaleFactor": {
+                                          "type": "number",
+                                          "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                          "minimum": 0.5,
+                                          "maximum": 4
+                                        },
+                                        "reducedMotion": {
+                                          "type": "string",
+                                          "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                          "enum": [
+                                            "reduce",
+                                            "no-preference"
+                                          ]
+                                        },
+                                        "clock": {
+                                          "type": "string",
+                                          "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                          "format": "date-time"
                                         }
                                       },
+                                      "examples": [
+                                        {
+                                          "name": "chrome",
+                                          "headless": true
+                                        },
+                                        {
+                                          "name": "chrome",
+                                          "colorScheme": "dark",
+                                          "locale": "de-DE",
+                                          "timezone": "Europe/Berlin",
+                                          "deviceScaleFactor": 2,
+                                          "reducedMotion": "reduce",
+                                          "clock": "2026-12-03T09:00:00Z"
+                                        }
+                                      ],
                                       "title": "Browser"
                                     }
                                   ]
@@ -178790,8 +179906,70 @@
                                     }
                                   },
                                   "title": "Browser Viewport"
+                                },
+                                "colorScheme": {
+                                  "type": "string",
+                                  "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                  "enum": [
+                                    "light",
+                                    "dark"
+                                  ]
+                                },
+                                "locale": {
+                                  "type": "string",
+                                  "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                  "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                  "examples": [
+                                    "de-DE",
+                                    "fr",
+                                    "ja-JP"
+                                  ]
+                                },
+                                "timezone": {
+                                  "type": "string",
+                                  "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                  "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                  "examples": [
+                                    "Europe/Berlin",
+                                    "America/New_York",
+                                    "UTC"
+                                  ]
+                                },
+                                "deviceScaleFactor": {
+                                  "type": "number",
+                                  "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                  "minimum": 0.5,
+                                  "maximum": 4
+                                },
+                                "reducedMotion": {
+                                  "type": "string",
+                                  "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                  "enum": [
+                                    "reduce",
+                                    "no-preference"
+                                  ]
+                                },
+                                "clock": {
+                                  "type": "string",
+                                  "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                  "format": "date-time"
                                 }
                               },
+                              "examples": [
+                                {
+                                  "name": "chrome",
+                                  "headless": true
+                                },
+                                {
+                                  "name": "chrome",
+                                  "colorScheme": "dark",
+                                  "locale": "de-DE",
+                                  "timezone": "Europe/Berlin",
+                                  "deviceScaleFactor": 2,
+                                  "reducedMotion": "reduce",
+                                  "clock": "2026-12-03T09:00:00Z"
+                                }
+                              ],
                               "title": "Browser"
                             }
                           }
@@ -180446,8 +181624,70 @@
                                                 }
                                               },
                                               "title": "Browser Viewport"
+                                            },
+                                            "colorScheme": {
+                                              "type": "string",
+                                              "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                              "enum": [
+                                                "light",
+                                                "dark"
+                                              ]
+                                            },
+                                            "locale": {
+                                              "type": "string",
+                                              "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                              "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                              "examples": [
+                                                "de-DE",
+                                                "fr",
+                                                "ja-JP"
+                                              ]
+                                            },
+                                            "timezone": {
+                                              "type": "string",
+                                              "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                              "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                              "examples": [
+                                                "Europe/Berlin",
+                                                "America/New_York",
+                                                "UTC"
+                                              ]
+                                            },
+                                            "deviceScaleFactor": {
+                                              "type": "number",
+                                              "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                              "minimum": 0.5,
+                                              "maximum": 4
+                                            },
+                                            "reducedMotion": {
+                                              "type": "string",
+                                              "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                              "enum": [
+                                                "reduce",
+                                                "no-preference"
+                                              ]
+                                            },
+                                            "clock": {
+                                              "type": "string",
+                                              "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                              "format": "date-time"
                                             }
                                           },
+                                          "examples": [
+                                            {
+                                              "name": "chrome",
+                                              "headless": true
+                                            },
+                                            {
+                                              "name": "chrome",
+                                              "colorScheme": "dark",
+                                              "locale": "de-DE",
+                                              "timezone": "Europe/Berlin",
+                                              "deviceScaleFactor": 2,
+                                              "reducedMotion": "reduce",
+                                              "clock": "2026-12-03T09:00:00Z"
+                                            }
+                                          ],
                                           "title": "Browser"
                                         },
                                         {
@@ -180530,8 +181770,70 @@
                                                       }
                                                     },
                                                     "title": "Browser Viewport"
+                                                  },
+                                                  "colorScheme": {
+                                                    "type": "string",
+                                                    "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                                    "enum": [
+                                                      "light",
+                                                      "dark"
+                                                    ]
+                                                  },
+                                                  "locale": {
+                                                    "type": "string",
+                                                    "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                                    "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                                    "examples": [
+                                                      "de-DE",
+                                                      "fr",
+                                                      "ja-JP"
+                                                    ]
+                                                  },
+                                                  "timezone": {
+                                                    "type": "string",
+                                                    "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                                    "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                                    "examples": [
+                                                      "Europe/Berlin",
+                                                      "America/New_York",
+                                                      "UTC"
+                                                    ]
+                                                  },
+                                                  "deviceScaleFactor": {
+                                                    "type": "number",
+                                                    "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                                    "minimum": 0.5,
+                                                    "maximum": 4
+                                                  },
+                                                  "reducedMotion": {
+                                                    "type": "string",
+                                                    "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                                    "enum": [
+                                                      "reduce",
+                                                      "no-preference"
+                                                    ]
+                                                  },
+                                                  "clock": {
+                                                    "type": "string",
+                                                    "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                                    "format": "date-time"
                                                   }
                                                 },
+                                                "examples": [
+                                                  {
+                                                    "name": "chrome",
+                                                    "headless": true
+                                                  },
+                                                  {
+                                                    "name": "chrome",
+                                                    "colorScheme": "dark",
+                                                    "locale": "de-DE",
+                                                    "timezone": "Europe/Berlin",
+                                                    "deviceScaleFactor": 2,
+                                                    "reducedMotion": "reduce",
+                                                    "clock": "2026-12-03T09:00:00Z"
+                                                  }
+                                                ],
                                                 "title": "Browser"
                                               }
                                             ]
@@ -180829,8 +182131,70 @@
                                               }
                                             },
                                             "title": "Browser Viewport"
+                                          },
+                                          "colorScheme": {
+                                            "type": "string",
+                                            "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                            "enum": [
+                                              "light",
+                                              "dark"
+                                            ]
+                                          },
+                                          "locale": {
+                                            "type": "string",
+                                            "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                            "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                            "examples": [
+                                              "de-DE",
+                                              "fr",
+                                              "ja-JP"
+                                            ]
+                                          },
+                                          "timezone": {
+                                            "type": "string",
+                                            "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                            "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                            "examples": [
+                                              "Europe/Berlin",
+                                              "America/New_York",
+                                              "UTC"
+                                            ]
+                                          },
+                                          "deviceScaleFactor": {
+                                            "type": "number",
+                                            "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                            "minimum": 0.5,
+                                            "maximum": 4
+                                          },
+                                          "reducedMotion": {
+                                            "type": "string",
+                                            "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                            "enum": [
+                                              "reduce",
+                                              "no-preference"
+                                            ]
+                                          },
+                                          "clock": {
+                                            "type": "string",
+                                            "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                            "format": "date-time"
                                           }
                                         },
+                                        "examples": [
+                                          {
+                                            "name": "chrome",
+                                            "headless": true
+                                          },
+                                          {
+                                            "name": "chrome",
+                                            "colorScheme": "dark",
+                                            "locale": "de-DE",
+                                            "timezone": "Europe/Berlin",
+                                            "deviceScaleFactor": 2,
+                                            "reducedMotion": "reduce",
+                                            "clock": "2026-12-03T09:00:00Z"
+                                          }
+                                        ],
                                         "title": "Browser"
                                       }
                                     }
@@ -248471,8 +249835,70 @@
                                         }
                                       },
                                       "title": "Browser Viewport"
+                                    },
+                                    "colorScheme": {
+                                      "type": "string",
+                                      "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                      "enum": [
+                                        "light",
+                                        "dark"
+                                      ]
+                                    },
+                                    "locale": {
+                                      "type": "string",
+                                      "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                      "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                      "examples": [
+                                        "de-DE",
+                                        "fr",
+                                        "ja-JP"
+                                      ]
+                                    },
+                                    "timezone": {
+                                      "type": "string",
+                                      "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                      "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                      "examples": [
+                                        "Europe/Berlin",
+                                        "America/New_York",
+                                        "UTC"
+                                      ]
+                                    },
+                                    "deviceScaleFactor": {
+                                      "type": "number",
+                                      "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                      "minimum": 0.5,
+                                      "maximum": 4
+                                    },
+                                    "reducedMotion": {
+                                      "type": "string",
+                                      "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                      "enum": [
+                                        "reduce",
+                                        "no-preference"
+                                      ]
+                                    },
+                                    "clock": {
+                                      "type": "string",
+                                      "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                      "format": "date-time"
                                     }
                                   },
+                                  "examples": [
+                                    {
+                                      "name": "chrome",
+                                      "headless": true
+                                    },
+                                    {
+                                      "name": "chrome",
+                                      "colorScheme": "dark",
+                                      "locale": "de-DE",
+                                      "timezone": "Europe/Berlin",
+                                      "deviceScaleFactor": 2,
+                                      "reducedMotion": "reduce",
+                                      "clock": "2026-12-03T09:00:00Z"
+                                    }
+                                  ],
                                   "title": "Browser"
                                 },
                                 "openApi": {
@@ -329856,8 +331282,70 @@
                             }
                           },
                           "title": "Browser Viewport"
+                        },
+                        "colorScheme": {
+                          "type": "string",
+                          "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                          "enum": [
+                            "light",
+                            "dark"
+                          ]
+                        },
+                        "locale": {
+                          "type": "string",
+                          "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                          "examples": [
+                            "de-DE",
+                            "fr",
+                            "ja-JP"
+                          ]
+                        },
+                        "timezone": {
+                          "type": "string",
+                          "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                          "examples": [
+                            "Europe/Berlin",
+                            "America/New_York",
+                            "UTC"
+                          ]
+                        },
+                        "deviceScaleFactor": {
+                          "type": "number",
+                          "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                          "minimum": 0.5,
+                          "maximum": 4
+                        },
+                        "reducedMotion": {
+                          "type": "string",
+                          "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                          "enum": [
+                            "reduce",
+                            "no-preference"
+                          ]
+                        },
+                        "clock": {
+                          "type": "string",
+                          "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                          "format": "date-time"
                         }
                       },
+                      "examples": [
+                        {
+                          "name": "chrome",
+                          "headless": true
+                        },
+                        {
+                          "name": "chrome",
+                          "colorScheme": "dark",
+                          "locale": "de-DE",
+                          "timezone": "Europe/Berlin",
+                          "deviceScaleFactor": 2,
+                          "reducedMotion": "reduce",
+                          "clock": "2026-12-03T09:00:00Z"
+                        }
+                      ],
                       "title": "Browser"
                     },
                     {
@@ -329940,8 +331428,70 @@
                                   }
                                 },
                                 "title": "Browser Viewport"
+                              },
+                              "colorScheme": {
+                                "type": "string",
+                                "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                "enum": [
+                                  "light",
+                                  "dark"
+                                ]
+                              },
+                              "locale": {
+                                "type": "string",
+                                "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                "examples": [
+                                  "de-DE",
+                                  "fr",
+                                  "ja-JP"
+                                ]
+                              },
+                              "timezone": {
+                                "type": "string",
+                                "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                "examples": [
+                                  "Europe/Berlin",
+                                  "America/New_York",
+                                  "UTC"
+                                ]
+                              },
+                              "deviceScaleFactor": {
+                                "type": "number",
+                                "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                "minimum": 0.5,
+                                "maximum": 4
+                              },
+                              "reducedMotion": {
+                                "type": "string",
+                                "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                "enum": [
+                                  "reduce",
+                                  "no-preference"
+                                ]
+                              },
+                              "clock": {
+                                "type": "string",
+                                "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                "format": "date-time"
                               }
                             },
+                            "examples": [
+                              {
+                                "name": "chrome",
+                                "headless": true
+                              },
+                              {
+                                "name": "chrome",
+                                "colorScheme": "dark",
+                                "locale": "de-DE",
+                                "timezone": "Europe/Berlin",
+                                "deviceScaleFactor": 2,
+                                "reducedMotion": "reduce",
+                                "clock": "2026-12-03T09:00:00Z"
+                              }
+                            ],
                             "title": "Browser"
                           }
                         ]
@@ -330239,8 +331789,70 @@
                           }
                         },
                         "title": "Browser Viewport"
+                      },
+                      "colorScheme": {
+                        "type": "string",
+                        "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                        "enum": [
+                          "light",
+                          "dark"
+                        ]
+                      },
+                      "locale": {
+                        "type": "string",
+                        "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                        "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                        "examples": [
+                          "de-DE",
+                          "fr",
+                          "ja-JP"
+                        ]
+                      },
+                      "timezone": {
+                        "type": "string",
+                        "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                        "examples": [
+                          "Europe/Berlin",
+                          "America/New_York",
+                          "UTC"
+                        ]
+                      },
+                      "deviceScaleFactor": {
+                        "type": "number",
+                        "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                        "minimum": 0.5,
+                        "maximum": 4
+                      },
+                      "reducedMotion": {
+                        "type": "string",
+                        "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                        "enum": [
+                          "reduce",
+                          "no-preference"
+                        ]
+                      },
+                      "clock": {
+                        "type": "string",
+                        "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                        "format": "date-time"
                       }
                     },
+                    "examples": [
+                      {
+                        "name": "chrome",
+                        "headless": true
+                      },
+                      {
+                        "name": "chrome",
+                        "colorScheme": "dark",
+                        "locale": "de-DE",
+                        "timezone": "Europe/Berlin",
+                        "deviceScaleFactor": 2,
+                        "reducedMotion": "reduce",
+                        "clock": "2026-12-03T09:00:00Z"
+                      }
+                    ],
                     "title": "Browser"
                   }
                 }
@@ -331895,8 +333507,70 @@
                                       }
                                     },
                                     "title": "Browser Viewport"
+                                  },
+                                  "colorScheme": {
+                                    "type": "string",
+                                    "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                    "enum": [
+                                      "light",
+                                      "dark"
+                                    ]
+                                  },
+                                  "locale": {
+                                    "type": "string",
+                                    "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                    "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                    "examples": [
+                                      "de-DE",
+                                      "fr",
+                                      "ja-JP"
+                                    ]
+                                  },
+                                  "timezone": {
+                                    "type": "string",
+                                    "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                    "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                    "examples": [
+                                      "Europe/Berlin",
+                                      "America/New_York",
+                                      "UTC"
+                                    ]
+                                  },
+                                  "deviceScaleFactor": {
+                                    "type": "number",
+                                    "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                    "minimum": 0.5,
+                                    "maximum": 4
+                                  },
+                                  "reducedMotion": {
+                                    "type": "string",
+                                    "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                    "enum": [
+                                      "reduce",
+                                      "no-preference"
+                                    ]
+                                  },
+                                  "clock": {
+                                    "type": "string",
+                                    "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                    "format": "date-time"
                                   }
                                 },
+                                "examples": [
+                                  {
+                                    "name": "chrome",
+                                    "headless": true
+                                  },
+                                  {
+                                    "name": "chrome",
+                                    "colorScheme": "dark",
+                                    "locale": "de-DE",
+                                    "timezone": "Europe/Berlin",
+                                    "deviceScaleFactor": 2,
+                                    "reducedMotion": "reduce",
+                                    "clock": "2026-12-03T09:00:00Z"
+                                  }
+                                ],
                                 "title": "Browser"
                               },
                               {
@@ -331979,8 +333653,70 @@
                                             }
                                           },
                                           "title": "Browser Viewport"
+                                        },
+                                        "colorScheme": {
+                                          "type": "string",
+                                          "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                          "enum": [
+                                            "light",
+                                            "dark"
+                                          ]
+                                        },
+                                        "locale": {
+                                          "type": "string",
+                                          "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                          "examples": [
+                                            "de-DE",
+                                            "fr",
+                                            "ja-JP"
+                                          ]
+                                        },
+                                        "timezone": {
+                                          "type": "string",
+                                          "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                          "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                          "examples": [
+                                            "Europe/Berlin",
+                                            "America/New_York",
+                                            "UTC"
+                                          ]
+                                        },
+                                        "deviceScaleFactor": {
+                                          "type": "number",
+                                          "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                          "minimum": 0.5,
+                                          "maximum": 4
+                                        },
+                                        "reducedMotion": {
+                                          "type": "string",
+                                          "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                          "enum": [
+                                            "reduce",
+                                            "no-preference"
+                                          ]
+                                        },
+                                        "clock": {
+                                          "type": "string",
+                                          "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                          "format": "date-time"
                                         }
                                       },
+                                      "examples": [
+                                        {
+                                          "name": "chrome",
+                                          "headless": true
+                                        },
+                                        {
+                                          "name": "chrome",
+                                          "colorScheme": "dark",
+                                          "locale": "de-DE",
+                                          "timezone": "Europe/Berlin",
+                                          "deviceScaleFactor": 2,
+                                          "reducedMotion": "reduce",
+                                          "clock": "2026-12-03T09:00:00Z"
+                                        }
+                                      ],
                                       "title": "Browser"
                                     }
                                   ]
@@ -332278,8 +334014,70 @@
                                     }
                                   },
                                   "title": "Browser Viewport"
+                                },
+                                "colorScheme": {
+                                  "type": "string",
+                                  "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                  "enum": [
+                                    "light",
+                                    "dark"
+                                  ]
+                                },
+                                "locale": {
+                                  "type": "string",
+                                  "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                  "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                  "examples": [
+                                    "de-DE",
+                                    "fr",
+                                    "ja-JP"
+                                  ]
+                                },
+                                "timezone": {
+                                  "type": "string",
+                                  "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                  "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                  "examples": [
+                                    "Europe/Berlin",
+                                    "America/New_York",
+                                    "UTC"
+                                  ]
+                                },
+                                "deviceScaleFactor": {
+                                  "type": "number",
+                                  "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                  "minimum": 0.5,
+                                  "maximum": 4
+                                },
+                                "reducedMotion": {
+                                  "type": "string",
+                                  "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                  "enum": [
+                                    "reduce",
+                                    "no-preference"
+                                  ]
+                                },
+                                "clock": {
+                                  "type": "string",
+                                  "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                  "format": "date-time"
                                 }
                               },
+                              "examples": [
+                                {
+                                  "name": "chrome",
+                                  "headless": true
+                                },
+                                {
+                                  "name": "chrome",
+                                  "colorScheme": "dark",
+                                  "locale": "de-DE",
+                                  "timezone": "Europe/Berlin",
+                                  "deviceScaleFactor": 2,
+                                  "reducedMotion": "reduce",
+                                  "clock": "2026-12-03T09:00:00Z"
+                                }
+                              ],
                               "title": "Browser"
                             }
                           }
@@ -399920,8 +401718,70 @@
                               }
                             },
                             "title": "Browser Viewport"
+                          },
+                          "colorScheme": {
+                            "type": "string",
+                            "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                            "enum": [
+                              "light",
+                              "dark"
+                            ]
+                          },
+                          "locale": {
+                            "type": "string",
+                            "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                            "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                            "examples": [
+                              "de-DE",
+                              "fr",
+                              "ja-JP"
+                            ]
+                          },
+                          "timezone": {
+                            "type": "string",
+                            "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                            "examples": [
+                              "Europe/Berlin",
+                              "America/New_York",
+                              "UTC"
+                            ]
+                          },
+                          "deviceScaleFactor": {
+                            "type": "number",
+                            "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                            "minimum": 0.5,
+                            "maximum": 4
+                          },
+                          "reducedMotion": {
+                            "type": "string",
+                            "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                            "enum": [
+                              "reduce",
+                              "no-preference"
+                            ]
+                          },
+                          "clock": {
+                            "type": "string",
+                            "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                            "format": "date-time"
                           }
                         },
+                        "examples": [
+                          {
+                            "name": "chrome",
+                            "headless": true
+                          },
+                          {
+                            "name": "chrome",
+                            "colorScheme": "dark",
+                            "locale": "de-DE",
+                            "timezone": "Europe/Berlin",
+                            "deviceScaleFactor": 2,
+                            "reducedMotion": "reduce",
+                            "clock": "2026-12-03T09:00:00Z"
+                          }
+                        ],
                         "title": "Browser"
                       },
                       "openApi": {
@@ -537681,8 +539541,70 @@
                             }
                           },
                           "title": "Browser Viewport"
+                        },
+                        "colorScheme": {
+                          "type": "string",
+                          "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                          "enum": [
+                            "light",
+                            "dark"
+                          ]
+                        },
+                        "locale": {
+                          "type": "string",
+                          "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                          "examples": [
+                            "de-DE",
+                            "fr",
+                            "ja-JP"
+                          ]
+                        },
+                        "timezone": {
+                          "type": "string",
+                          "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                          "examples": [
+                            "Europe/Berlin",
+                            "America/New_York",
+                            "UTC"
+                          ]
+                        },
+                        "deviceScaleFactor": {
+                          "type": "number",
+                          "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                          "minimum": 0.5,
+                          "maximum": 4
+                        },
+                        "reducedMotion": {
+                          "type": "string",
+                          "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                          "enum": [
+                            "reduce",
+                            "no-preference"
+                          ]
+                        },
+                        "clock": {
+                          "type": "string",
+                          "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                          "format": "date-time"
                         }
                       },
+                      "examples": [
+                        {
+                          "name": "chrome",
+                          "headless": true
+                        },
+                        {
+                          "name": "chrome",
+                          "colorScheme": "dark",
+                          "locale": "de-DE",
+                          "timezone": "Europe/Berlin",
+                          "deviceScaleFactor": 2,
+                          "reducedMotion": "reduce",
+                          "clock": "2026-12-03T09:00:00Z"
+                        }
+                      ],
                       "title": "Browser"
                     },
                     {
@@ -537765,8 +539687,70 @@
                                   }
                                 },
                                 "title": "Browser Viewport"
+                              },
+                              "colorScheme": {
+                                "type": "string",
+                                "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                                "enum": [
+                                  "light",
+                                  "dark"
+                                ]
+                              },
+                              "locale": {
+                                "type": "string",
+                                "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                                "examples": [
+                                  "de-DE",
+                                  "fr",
+                                  "ja-JP"
+                                ]
+                              },
+                              "timezone": {
+                                "type": "string",
+                                "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                                "examples": [
+                                  "Europe/Berlin",
+                                  "America/New_York",
+                                  "UTC"
+                                ]
+                              },
+                              "deviceScaleFactor": {
+                                "type": "number",
+                                "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                                "minimum": 0.5,
+                                "maximum": 4
+                              },
+                              "reducedMotion": {
+                                "type": "string",
+                                "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                                "enum": [
+                                  "reduce",
+                                  "no-preference"
+                                ]
+                              },
+                              "clock": {
+                                "type": "string",
+                                "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                                "format": "date-time"
                               }
                             },
+                            "examples": [
+                              {
+                                "name": "chrome",
+                                "headless": true
+                              },
+                              {
+                                "name": "chrome",
+                                "colorScheme": "dark",
+                                "locale": "de-DE",
+                                "timezone": "Europe/Berlin",
+                                "deviceScaleFactor": 2,
+                                "reducedMotion": "reduce",
+                                "clock": "2026-12-03T09:00:00Z"
+                              }
+                            ],
                             "title": "Browser"
                           }
                         ]
@@ -538064,8 +540048,70 @@
                           }
                         },
                         "title": "Browser Viewport"
+                      },
+                      "colorScheme": {
+                        "type": "string",
+                        "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                        "enum": [
+                          "light",
+                          "dark"
+                        ]
+                      },
+                      "locale": {
+                        "type": "string",
+                        "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                        "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                        "examples": [
+                          "de-DE",
+                          "fr",
+                          "ja-JP"
+                        ]
+                      },
+                      "timezone": {
+                        "type": "string",
+                        "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                        "examples": [
+                          "Europe/Berlin",
+                          "America/New_York",
+                          "UTC"
+                        ]
+                      },
+                      "deviceScaleFactor": {
+                        "type": "number",
+                        "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                        "minimum": 0.5,
+                        "maximum": 4
+                      },
+                      "reducedMotion": {
+                        "type": "string",
+                        "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                        "enum": [
+                          "reduce",
+                          "no-preference"
+                        ]
+                      },
+                      "clock": {
+                        "type": "string",
+                        "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                        "format": "date-time"
                       }
                     },
+                    "examples": [
+                      {
+                        "name": "chrome",
+                        "headless": true
+                      },
+                      {
+                        "name": "chrome",
+                        "colorScheme": "dark",
+                        "locale": "de-DE",
+                        "timezone": "Europe/Berlin",
+                        "deviceScaleFactor": 2,
+                        "reducedMotion": "reduce",
+                        "clock": "2026-12-03T09:00:00Z"
+                      }
+                    ],
                     "title": "Browser"
                   }
                 }
@@ -605706,8 +607752,70 @@
                     }
                   },
                   "title": "Browser Viewport"
+                },
+                "colorScheme": {
+                  "type": "string",
+                  "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
+                  "enum": [
+                    "light",
+                    "dark"
+                  ]
+                },
+                "locale": {
+                  "type": "string",
+                  "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
+                  "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                  "examples": [
+                    "de-DE",
+                    "fr",
+                    "ja-JP"
+                  ]
+                },
+                "timezone": {
+                  "type": "string",
+                  "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                  "examples": [
+                    "Europe/Berlin",
+                    "America/New_York",
+                    "UTC"
+                  ]
+                },
+                "deviceScaleFactor": {
+                  "type": "number",
+                  "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
+                  "minimum": 0.5,
+                  "maximum": 4
+                },
+                "reducedMotion": {
+                  "type": "string",
+                  "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
+                  "enum": [
+                    "reduce",
+                    "no-preference"
+                  ]
+                },
+                "clock": {
+                  "type": "string",
+                  "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
+                  "format": "date-time"
                 }
               },
+              "examples": [
+                {
+                  "name": "chrome",
+                  "headless": true
+                },
+                {
+                  "name": "chrome",
+                  "colorScheme": "dark",
+                  "locale": "de-DE",
+                  "timezone": "Europe/Berlin",
+                  "deviceScaleFactor": 2,
+                  "reducedMotion": "reduce",
+                  "clock": "2026-12-03T09:00:00Z"
+                }
+              ],
               "title": "Browser"
             },
             "openApi": {

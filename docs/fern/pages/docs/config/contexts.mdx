@@ -90,6 +90,49 @@ When you use the object format for any browser, you must set `name`. If you omit
 
 If a desktop browser sets neither `window` nor `viewport`, Doc Detective gives it a 1200×800 viewport. Screenshots are then the same size on every machine that can fit that viewport, rather than whatever size the browser and operating system choose. Browser sessions that a [`startSurface`](/docs/actions/startsurface) step opens without their own `size` or `viewport` use the context's size.
 
+### Page emulation
+
+A browser object can also set what the page sees about the user's device. Every key is optional. Without a key, the browser uses the host's setting.
+
+| Key | Type | Effect |
+|---|---|---|
+| `colorScheme` | `"light"` or `"dark"` | The `prefers-color-scheme` value. |
+| `locale` | BCP 47 tag, such as `de-DE` | `navigator.language`, `Intl` formatting, and the `Accept-Language` header. |
+| `timezone` | IANA name, such as `Europe/Berlin` | The time zone that `Date` and `Intl` use. |
+| `deviceScaleFactor` | Number from 0.5 to 4 | `devicePixelRatio`. Screenshots come out at that pixel density. |
+| `reducedMotion` | `"reduce"` or `"no-preference"` | The `prefers-reduced-motion` value. |
+| `clock` | ISO 8601 date-time, such as `2026-12-03T09:00:00Z` | `Date.now()` and `new Date()` stay at that instant on every page. |
+
+```json
+{
+  "browsers": {
+    "name": "chrome",
+    "colorScheme": "dark",
+    "locale": "de-DE",
+    "timezone": "Europe/Berlin",
+    "deviceScaleFactor": 2,
+    "reducedMotion": "reduce",
+    "clock": "2026-12-03T09:00:00Z"
+  }
+}
+```
+
+Chrome sets every key. Firefox sets every key except `timezone` and `clock`. Safari, Android, and iOS browsers set none of them.
+
+A context that asks for a key its browser can't set reports `SKIPPED`. A fallback browser must also set every key, or it isn't used. The skip reads like this:
+
+```text
+Skipped: `firefox` can't set `clock`.
+```
+
+When Chrome rejects a `timezone` or `clock` value at start, the context fails:
+
+```text
+Couldn't set `timezone` to `Europe/Berlin` in `chrome`.
+```
+
+These keys are part of the context, so a dark context and a light context of the same browser run separately. To take a screenshot of each variant, see [Capture dark-mode and localized screenshots](/docs/test-docs/capture-screenshots-guide#capture-dark-mode-and-localized-screenshots).
+
 ### Chrome (`chrome`)
 
 Available on Windows, macOS, and Linux.
