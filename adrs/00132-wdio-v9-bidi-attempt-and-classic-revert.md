@@ -1,10 +1,13 @@
 ---
-status: accepted
+status: accepted (superseded for Chrome by ADR 01219)
 date: 2025-11-05
 decision-makers: doc-detective maintainers
 ---
 
 # WebdriverIO v9 + BiDi migration attempt, reverted to classic
+
+Superseded for Chrome by [ADR 01219](01219-bidi-socket-per-browser-chrome-first.md), which runs
+Chrome fully on BiDi. Firefox and Safari still follow this ADR.
 
 ## Context and Problem Statement
 

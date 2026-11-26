@@ -1657,6 +1657,52 @@ import { schemas } from "../dist/index.js";
       }
     });
 
+    describe("saveState and loadState", function () {
+      for (const action of ["saveState", "loadState"]) {
+        it(`${action} accepts a .json path string and the object form`, function () {
+          for (const value of [
+            "auth.json",
+            "../.auth/auth.json",
+            { path: "auth.json" },
+            { path: "auth.json", directory: "../.auth" },
+          ]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected valid: ${JSON.stringify(value)}: ${result.errors}`).to.be.true;
+          }
+        });
+
+        it(`${action} rejects a path that isn't .json, an empty directory, and unknown keys`, function () {
+          for (const value of [
+            "auth.txt",
+            ".json",
+            "",
+            { path: "auth.txt" },
+            { directory: "x" },
+            { path: "auth.json", directory: "" },
+            { path: "auth.json", name: "x" },
+          ]) {
+            const result = validate({ schemaKey: "step_v3", object: { [action]: value } });
+            expect(result.valid, `expected invalid: ${JSON.stringify(value)}`).to.be.false;
+          }
+        });
+      }
+
+      it("saveState expands the string form and defaults overwrite to false", function () {
+        const result = validate({ schemaKey: "step_v3", object: { saveState: "auth.json" } });
+        expect(result.object.saveState).to.deep.equal({ path: "auth.json", overwrite: false });
+      });
+
+      it("saveState accepts overwrite, and loadState rejects it", function () {
+        expect(validate({ schemaKey: "step_v3", object: { saveState: { path: "a.json", overwrite: true } } }).valid).to.be.true;
+        expect(validate({ schemaKey: "step_v3", object: { loadState: { path: "a.json", overwrite: true } } }).valid).to.be.false;
+      });
+
+      it("loadState expands the string form", function () {
+        const result = validate({ schemaKey: "step_v3", object: { loadState: "auth.json" } });
+        expect(result.object.loadState).to.deep.equal({ path: "auth.json" });
+      });
+    });
+
     describe("annotations", function () {
       const TYPES = ["outline", "arrow", "badge", "callout", "blur", "text"];
 
