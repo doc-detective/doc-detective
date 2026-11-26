@@ -10,6 +10,10 @@ export { waitForNetworkIdle, waitForDOMStable };
 // including the phase A5 XCUITest web context) and re-injects instead of
 // throwing, so a page swap restarts the measurement rather than failing the
 // whole navigation wait.
+//
+// In the page, time comes from `performance.now()`, never `Date`: a context
+// `clock` freezes the page's `Date`, and the waits would never settle
+// (ADR 01223).
 
 // Inject the network monitor global (idempotent per page).
 async function injectNetworkMonitor(driver: any) {
@@ -19,21 +23,21 @@ async function injectNetworkMonitor(driver: any) {
       const originalXHROpen = XMLHttpRequest.prototype.open;
 
       (window as any).__docDetectiveNetworkMonitor = {
-        lastRequestTime: Date.now(), // Use browser time
+        lastRequestTime: performance.now(), // Use browser time
         requestCount: 0,
-        startTime: Date.now(), // Track start in browser
+        startTime: performance.now(), // Track start in browser
         originalFetch: originalFetch,
         originalXHROpen: originalXHROpen,
       };
 
       window.fetch = function (...args: any[]) {
-        (window as any).__docDetectiveNetworkMonitor.lastRequestTime = Date.now();
+        (window as any).__docDetectiveNetworkMonitor.lastRequestTime = performance.now();
         (window as any).__docDetectiveNetworkMonitor.requestCount++;
         return originalFetch.apply(this, args as [RequestInfo | URL, RequestInit?]);
       };
 
       XMLHttpRequest.prototype.open = function (...args: any[]) {
-        (window as any).__docDetectiveNetworkMonitor.lastRequestTime = Date.now();
+        (window as any).__docDetectiveNetworkMonitor.lastRequestTime = performance.now();
         (window as any).__docDetectiveNetworkMonitor.requestCount++;
         return originalXHROpen.apply(this, args as [string, string | URL, boolean, (string | null)?, (string | null)?]);
       };
@@ -73,7 +77,7 @@ async function waitForNetworkIdle(driver: any, idleTime: any, timeout: any) {
   const initialCheck = await driver.execute(() => {
     const monitor = (window as any).__docDetectiveNetworkMonitor;
     if (!monitor) return null;
-    const now = Date.now();
+    const now = performance.now();
     return {
       idleFor: now - monitor.lastRequestTime,
       requestCount: monitor.requestCount,
@@ -107,7 +111,7 @@ async function waitForNetworkIdle(driver: any, idleTime: any, timeout: any) {
       const state = await driver.execute(() => {
         const monitor = (window as any).__docDetectiveNetworkMonitor;
         if (!monitor) return null;
-        const now = Date.now();
+        const now = performance.now();
         return {
           idleFor: now - monitor.lastRequestTime,
           elapsedTotal: now - monitor.startTime,
@@ -140,14 +144,14 @@ async function injectDOMMonitor(driver: any) {
   await driver.execute(() => {
     if (!(window as any).__docDetectiveDOMMonitor) {
       (window as any).__docDetectiveDOMMonitor = {
-        lastMutationTime: Date.now(), // Use browser time
+        lastMutationTime: performance.now(), // Use browser time
         mutationCount: 0,
-        startTime: Date.now(), // Track start in browser
+        startTime: performance.now(), // Track start in browser
         observer: null,
       };
 
       const observer = new MutationObserver(() => {
-        (window as any).__docDetectiveDOMMonitor.lastMutationTime = Date.now();
+        (window as any).__docDetectiveDOMMonitor.lastMutationTime = performance.now();
         (window as any).__docDetectiveDOMMonitor.mutationCount++;
       });
 
@@ -191,7 +195,7 @@ async function waitForDOMStable(driver: any, idleTime: any, timeout: any) {
   const initialCheck = await driver.execute(() => {
     const monitor = (window as any).__docDetectiveDOMMonitor;
     if (!monitor) return null;
-    const now = Date.now();
+    const now = performance.now();
     return {
       idleFor: now - monitor.lastMutationTime,
       mutationCount: monitor.mutationCount,
@@ -225,7 +229,7 @@ async function waitForDOMStable(driver: any, idleTime: any, timeout: any) {
       const state = await driver.execute(() => {
         const monitor = (window as any).__docDetectiveDOMMonitor;
         if (!monitor) return null;
-        const now = Date.now();
+        const now = performance.now();
         return {
           idleFor: now - monitor.lastMutationTime,
           elapsedTotal: now - monitor.startTime,
