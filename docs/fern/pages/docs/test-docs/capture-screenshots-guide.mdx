@@ -120,7 +120,7 @@ A Safari window can't grow past the screen. If the page doesn't fit on the scree
 
 Chat launchers, cookie banners, and spinners make a screenshot differ from run to run, and readers don't need them. Two `screenshot` fields keep them out of the image:
 
-- `style` takes CSS that applies only while the screenshot is taken. Doc Detective adds it just before the capture and removes it right after, so later steps and recordings see the page as it was.
+- `style` takes CSS that applies only during the screenshot step. Doc Detective adds it just before the capture and removes it when the step ends, even a failed one. Later steps and recordings see the page as it was.
 - `stable: true` captures the page every 100 milliseconds until two captures in a row are identical, then saves that one. Use it for pages that load in stages or animate in.
 
 {/* test {"testId":"capture-guide-style-stable","detectSteps":false} */}
