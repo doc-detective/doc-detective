@@ -23,6 +23,7 @@ export const BROWSER_STEP_KEYS = [
   "goTo",
   "loadCookie",
   "loadState",
+  "mockRequest",
   "moveMouse",
   "record",
   "runBrowserScript",

@@ -271,6 +271,7 @@ describe("normalization", function () {
       runBrowserScript: { script: "return 1" },
       runCode: { language: "python", code: "print(1)", background: {} },
       runShell: { command: "echo hi", background: {} },
+      mockRequest: { url: "**/x", response: { body: { a: 1 } } },
       saveCookie: { name: "session" },
       saveState: { path: "auth.json" },
       screenshot: { directory: "d", crop: { selector: "#a" } },
@@ -693,8 +694,8 @@ describe("normalization", function () {
       (key) => !(key in schemas.step_v3.components.schemas.common.properties)
     );
 
-    it("has one normalizer for each of the 23 actions", function () {
-      expect(actions).to.have.lengthOf(23);
+    it("has one normalizer for each of the 24 actions", function () {
+      expect(actions).to.have.lengthOf(24);
       expect(Object.keys(normalizers)).to.have.members(actions);
     });
 
