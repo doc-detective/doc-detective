@@ -104,7 +104,8 @@ describe("Run tests successfully", function () {
         },
       ],
     };
-    const tempFilePath = path.resolve("./test/temp-emulation-skip-test.json");
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "emulation-skip-"));
+    const tempFilePath = path.join(tempDir, "emulation-skip.spec.json");
     fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
     try {
       const result = await runTests({ input: tempFilePath, logLevel: "error" });
@@ -116,7 +117,7 @@ describe("Run tests successfully", function () {
         "Skipped: `firefox` can't set `clock`."
       );
     } finally {
-      fs.unlinkSync(tempFilePath);
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
