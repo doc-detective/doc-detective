@@ -105,6 +105,7 @@ function fakeDriver({
   // The screen's available size, as `screen.availWidth`/`availHeight` report it.
   screen,
   throwOnCapture = false,
+  captureResetsScroll = false,
   // The viewport cap the browser reveals once a screenshot fails.
   shrinkOnCapture,
   // Where a finish handler scrolls the page when animations freeze.
@@ -156,6 +157,8 @@ function fakeDriver({
     },
     async browsingContextCaptureScreenshot(params) {
       calls.push({ kind: "bidiCapture", params });
+      // Chrome on macOS leaves the page scrolled to the top after a document capture.
+      if (captureResetsScroll) scroll = { x: 0, y: 0 };
       return { data: pageCapture.toString("base64") };
     },
     async getWindowHandle() {
@@ -300,6 +303,14 @@ describe("screenshot fullPage and animations", function () {
     assert.deepEqual(bidi.params, { context: "ctx-1", origin: "document" });
     assert.ok(!driver.calls.some((c) => c.kind === "setWindowSize"));
     assert.equal(await savedHeight(), 1600);
+  });
+
+  it("puts the scroll back when the BiDi document capture moves it", async function () {
+    const driver = fakeDriver({ isBidi: true, viewportCapture, pageCapture, scrollY: 500, captureResetsScroll: true });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.deepEqual(driver.scroll, { x: 0, y: 500 });
+    assert.ok(!driver.calls.some((c) => c.kind === "setWindowSize"));
   });
 
   it("a session without BiDi (Safari) grows the window to the page, captures, and puts the window and scroll back", async function () {

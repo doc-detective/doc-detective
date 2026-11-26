@@ -342,7 +342,13 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
   // Appium reports Firefox as `MozillaFirefox`.
   const reported = String(driver.capabilities?.browserName ?? "").toLowerCase();
   const browser = reported.includes("firefox") ? "firefox" : reported;
-  const kept = { restore: async () => {} };
+  // A whole-page command can leave the page scrolled elsewhere: Chrome on
+  // macOS scrolls to the top for a BiDi document capture. Put it back.
+  const kept = {
+    restore: async () => {
+      await driver.execute(scrollPageTo, scroll.x, scroll.y);
+    },
+  };
   const note = (how: string) => log(options.config ?? {}, "debug", `${options.label ?? "Screenshot"}: \`fullPage\` ${how}.`);
   if (browser === "firefox") {
     note("captures through geckodriver's whole-page command, with no resize");
@@ -542,7 +548,7 @@ async function restoreFullPage(restore: (() => Promise<void>) | undefined, confi
   try {
     await restore?.();
   } catch (error: any) {
-    log(config ?? {}, "warning", `Couldn't restore the window size after the \`fullPage\` screenshot: ${error?.message ?? error}`);
+    log(config ?? {}, "warning", `Couldn't restore the window size and scroll after the \`fullPage\` screenshot: ${error?.message ?? error}`);
   }
 }
 
