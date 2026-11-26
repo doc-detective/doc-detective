@@ -312,10 +312,9 @@ class CaptureSkipped extends Error {}
 
 type Point = { x: number; y: number };
 type FullPage = {
+  // An image whose top-left is the document's, so element rects read with the
+  // page scroll land on it.
   capture: () => Promise<Buffer>;
-  // The scroll while capturing, which element rects add to land on the
-  // whole-page image: zero when the window grew to fit the page.
-  scroll: Point;
   restore: () => Promise<void>;
   // On the resize path: after the freeze, make sure the page still fits.
   // Gets the freeze, to run again after a further resize.
@@ -342,7 +341,7 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
   const page = await driver.execute(readPageExtent);
   const scroll = { x: Number(page?.x) || 0, y: Number(page?.y) || 0 };
   const browser = String(driver.capabilities?.browserName ?? "").toLowerCase();
-  const kept = { scroll, restore: async () => {} };
+  const kept = { restore: async () => {} };
   if (browser === "firefox") {
     return { ...kept, capture: async () => Buffer.from(await driver.fullPageScreenshot(), "base64") };
   }
@@ -354,15 +353,24 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
         Buffer.from((await driver.browsingContextCaptureScreenshot({ context, origin: "document" })).data, "base64"),
     };
   }
-  // A screenshot that fails once the window grew is the screen's cap too: a
-  // browser can cap the window without saying so.
+  // A screenshot that fails once the window grew is a SKIP only with evidence
+  // that the screen capped it: the viewport no longer fits the page, or the
+  // screen can't hold it. Anything else, such as a lost session, FAILs.
   const viewportCapture = async () => {
     try {
       return Buffer.from(await driver.takeScreenshot(), "base64");
     } catch (error) {
       if (!original) throw error;
+      let capped = false;
+      try {
+        const now = await driver.execute(readPageExtent);
+        const shown = { width: Number(now?.viewportWidth) || 0, height: Number(now?.viewportHeight) || 0 };
+        capped = !fits(now, shown) || !fits(now, limitOf(now));
+      } catch {
+        // A page that can't be read gives no evidence of a cap.
+      }
       await restore().catch(() => {});
-      throw tooLarge();
+      throw capped ? tooLarge() : error;
     }
   };
   const viewport = { width: Number(page?.viewportWidth) || 0, height: Number(page?.viewportHeight) || 0 };
@@ -383,11 +391,18 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
   let realized = viewport;
   // The largest viewport the screen allows: its available size less the
   // window's chrome. Checked before resizing, because safaridriver can refuse
-  // the screenshot of a window grown past the screen. Unknown when unreported.
-  const limit = {
-    width: Number(page?.availWidth) - (Number(page?.outerWidth) - viewport.width),
-    height: Number(page?.availHeight) - (Number(page?.outerHeight) - viewport.height),
-  };
+  // the screenshot of a window grown past the screen. No limit when unreported.
+  function limitOf(extent: any) {
+    const axis = (avail: unknown, outer: unknown, inner: unknown) => {
+      const max = Number(avail) - (Number(outer) - Number(inner));
+      return Number.isFinite(max) && max > 0 ? max : Infinity;
+    };
+    return {
+      width: axis(extent?.availWidth, extent?.outerWidth, extent?.viewportWidth),
+      height: axis(extent?.availHeight, extent?.outerHeight, extent?.viewportHeight),
+    };
+  }
+  const limit = limitOf(page);
   const grow = async (extent: any) => {
     const wanted = {
       width: Math.max(Number(extent?.width) || 0, realized.width),
@@ -423,8 +438,9 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
     await freeze();
     if (!fits(await driver.execute(readPageExtent), realized)) throw tooLarge();
   };
-  // A page that fits can't scroll, so its scroll is about zero either way.
-  return { scroll: fitsAtFirst ? scroll : { x: 0, y: 0 }, restore, capture: viewportCapture, settle };
+  // A viewport as big as the page can't scroll, so it starts at the document's
+  // top-left.
+  return { restore, capture: viewportCapture, settle };
 }
 
 // A browser capture with every element that shows a secret blurred, and the
@@ -434,7 +450,7 @@ async function takeBrowserScreenshot(
   driver: any,
   sharp: any,
   options: CaptureOptions = {}
-): Promise<{ buffer: Buffer; stable: boolean; scroll?: Point }> {
+): Promise<{ buffer: Buffer; stable: boolean; fullPage: boolean }> {
   const freeze = options.animations === "disabled";
   let captured: { buffer: Buffer; stable: boolean };
   let watching: any;
@@ -511,9 +527,10 @@ async function takeBrowserScreenshot(
   const dpr =
     fullPage && page?.regions?.length > 0 ? Number(await driver.execute(() => window.devicePixelRatio)) : NaN;
   return {
-    buffer: await burnInLiveBlurs(sharp, buffer, page, fullPage?.scroll, dpr > 0 ? dpr : undefined),
+    // The scroll comes from the same read as the blurs' rects.
+    buffer: await burnInLiveBlurs(sharp, buffer, page, fullPage ? page?.scroll : undefined, dpr > 0 ? dpr : undefined),
     stable: captured!.stable,
-    scroll: fullPage?.scroll,
+    fullPage: !!fullPage,
   };
 }
 
@@ -1204,8 +1221,9 @@ async function captureScreenshot({
       session.cleanups.push(cleanup);
     },
   };
-  // Set by a whole-page capture: the scroll element rects add (ADR 01224).
-  let fullPageScroll: { x: number; y: number } | undefined;
+  // A whole-page capture: element rects are read relative to the document
+  // (ADR 01224).
+  let wholePage = false;
   let appScratchPath: string | undefined;
   try {
     if (recordingActive) {
@@ -1240,7 +1258,7 @@ async function captureScreenshot({
       ({
         buffer: captureBuffer,
         stable: captureStable,
-        scroll: fullPageScroll,
+        fullPage: wholePage,
       } = await takeBrowserScreenshot(captureDriver, sharp, captureOptions));
     }
   } catch (error) {
@@ -1292,7 +1310,7 @@ async function captureScreenshot({
   if (
     !isAppCapture &&
     !step.screenshot.crop &&
-    !fullPageScroll &&
+    !wholePage &&
     existFilePath &&
     !(step.screenshot.overwrite === "true" && !isUrlPath) &&
     !internal?.compareOnly &&
@@ -1448,11 +1466,11 @@ async function captureScreenshot({
     }
     let scale = computeScale(captureMeta.width!, logicalWidth);
     // A whole-page image is as wide as the document, not the viewport, so
-    // the pixel density is the scale, and element rects add the page scroll.
-    if (fullPageScroll) {
+    // the pixel density is the scale. Element rects add the page scroll they
+    // were read with (`documentRelative` below).
+    if (wholePage) {
       const dpr = Number(await driver.execute(() => window.devicePixelRatio));
       if (dpr > 0) scale = dpr;
-      cropOrigin = { x: -fullPageScroll.x * scale, y: -fullPageScroll.y * scale };
     }
     geometry = { canvas, scale, windowOrigin, logicalWidth };
     return geometry;
@@ -1481,6 +1499,7 @@ async function captureScreenshot({
         canvas,
         scale,
         cropOrigin,
+        documentRelative: wholePage,
       });
 
       // (3) Annotation targets resolved is a VERIFICATION ASSERTION, and a
@@ -1688,6 +1707,7 @@ async function captureScreenshot({
           canvas,
           scale,
           cropOrigin,
+          documentRelative: wholePage,
         });
 
         // A mask that can't be found FAILs: a comparison that quietly ignores

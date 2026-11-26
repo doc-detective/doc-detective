@@ -105,6 +105,10 @@ function fakeDriver({
   // The screen's available size, as `screen.availWidth`/`availHeight` report it.
   screen,
   throwOnCapture = false,
+  // The viewport cap the browser reveals once a screenshot fails.
+  shrinkOnCapture,
+  // Where a finish handler scrolls the page when animations freeze.
+  scrollOnFreeze,
   // Throws on the nth page-extent read (1-based).
   throwOnExtentRead,
   liveBlur,
@@ -138,7 +142,10 @@ function fakeDriver({
     window,
     async takeScreenshot() {
       calls.push({ kind: "takeScreenshot", viewport: viewport() });
-      if (throwOnCapture) throw new Error("session gone");
+      if (throwOnCapture) {
+        if (shrinkOnCapture) maxViewport = shrinkOnCapture;
+        throw new Error("session gone");
+      }
       return (viewport().height >= docHeight() && viewport().width >= pageWidth ? pageCapture : viewportCapture).toString(
         "base64"
       );
@@ -186,6 +193,7 @@ function fakeDriver({
       }
       if (source.includes("getAnimations") && source.includes("finish")) {
         frozen = true;
+        if (scrollOnFreeze) scroll = { ...scrollOnFreeze };
         return undefined;
       }
       if (source.includes("data-dd-animations") && source.includes("remove")) {
@@ -215,7 +223,8 @@ function fakeDriver({
       if (liveBlur && source.includes("__ddNote")) return { watched: true, viewportWidth: viewport().width, regions: [liveBlur] };
       if (source.includes("getBoundingClientRect")) {
         const at = rectAt ? rectAt(viewport(), { styled }) : frozen && frozenRect ? frozenRect : rect;
-        return { ...at, y: at.y - scroll.y };
+        // A document-relative read adds the scroll in the same evaluation.
+        return args[1] === true ? { ...at } : { ...at, y: at.y - scroll.y };
       }
       if (source.includes("innerHeight")) return viewport();
       if (source.includes("innerWidth")) return viewport().width;
@@ -538,11 +547,55 @@ describe("screenshot fullPage and animations", function () {
 
   it("skips, with the window restored, when the screenshot fails after the window grew", async function () {
     // safaridriver can refuse a screenshot of a window grown past the screen.
-    const driver = fakeDriver({ browserName: "Safari", viewportCapture, pageCapture, throwOnCapture: true });
+    const driver = fakeDriver({
+      browserName: "Safari",
+      viewportCapture,
+      pageCapture,
+      throwOnCapture: true,
+      shrinkOnCapture: 900,
+    });
     const result = await run({ fullPage: true }, driver);
     assert.equal(result.status, "SKIPPED", result.description);
     assert.equal(result.description, "Skipped: `safari` can't capture a page larger than the screen.");
     assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("fails, with the window restored, when the screenshot fails after a grow with no sign of a cap", async function () {
+    // A lost session isn't a screen cap: the viewport still fits the page.
+    const driver = fakeDriver({ browserName: "Safari", viewportCapture, pageCapture, throwOnCapture: true });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "FAIL", result.description);
+    assert.match(result.description, /session gone/);
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("places masks by the scroll read with the rects, even when the freeze scrolls the page", async function () {
+    // A finish handler scrolls to y 200 after the capture code read y 0.
+    const target = path.join(dir, "page.png");
+    fs.writeFileSync(target, await makePng(800, 1600));
+    const capture = await makePng(800, 1600, { x: 100, y: 300, width: 200, height: 50 });
+    const result = await saveScreenshot({
+      config: {},
+      step: {
+        stepId: "f8",
+        screenshot: {
+          path: target,
+          maxVariation: 0.001,
+          overwrite: "aboveVariation",
+          fullPage: true,
+          animations: "disabled",
+          mask: ["#date"],
+        },
+      },
+      driver: fakeDriver({
+        browserName: "firefox",
+        viewportCapture,
+        pageCapture: capture,
+        rect: { x: 100, y: 300, width: 200, height: 50 },
+        scrollOnFreeze: { x: 0, y: 200 },
+      }),
+    });
+    assert.equal(result.status, "PASS", result.description);
   });
 
   it("grows the window when freezing makes a page that fit outgrow the viewport", async function () {

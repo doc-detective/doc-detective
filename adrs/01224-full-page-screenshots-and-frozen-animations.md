@@ -62,8 +62,8 @@ report.
   with the viewport.
 * **The screen caps the window:** a headed browser can't grow past the display. A page larger than
   `screen.availWidth` and `availHeight`, less the window chrome, SKIPs before any resize. So does a
-  viewport that ends up too small, or a screenshot that fails after the window grew. The window goes
-  back first. The step is SKIPPED:
+  viewport that ends up too small, or a failed screenshot with that evidence. The window goes back
+  first. The step is SKIPPED:
   ``Skipped: `safari` can't capture a page larger than the screen.`` One message covers both
   dimensions. It names whichever browser hit the cap. Headed Safari is the common case, since
   Safari has no headless mode.
@@ -78,12 +78,15 @@ resize path serves any session without a socket, which is Safari.
 * App surfaces reject `fullPage` and `animations`, through the same `allOf` guard that rejects
   `crop` and `style`. A native window has no document to scroll or animate.
 * Masks and annotations resolve against element rects in the viewport. On a whole-page image they
-  add the page scroll, and use the pixel density as the scale. A whole-page image is as wide as the
+  add the page scroll, read in the same page evaluation as the rects. A finish handler that
+  scrolls can't shift them. They use the pixel density as the scale. A whole-page image is as wide as the
   document, so the viewport width would skew the scale.
 * The step's `style`, a grown window, and the freeze stay until annotation and mask geometry is
   read. They then undo in that order, even on a failure.
-* The live `annotate` blurs add the scroll they were drawn at. That's zero when the window grew,
+* The live `annotate` blurs add the scroll read with their rects. That's zero when the window grew,
   because a page as tall as its viewport can't scroll.
+* A screenshot that fails after the window grew SKIPs only when the viewport or the screen shows a
+  cap. Any other failure, such as a lost session, FAILs after the restore.
 * A whole-page capture skips the resize to the reference's viewport (ADR 01144). The reference's
   height is the page's height, not a viewport height.
 

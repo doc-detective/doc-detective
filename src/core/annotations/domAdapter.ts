@@ -355,6 +355,7 @@ async function watchBlurRegions(driver: any): Promise<boolean> {
  */
 async function readBlurRegions(driver: any): Promise<{
   viewportWidth: number;
+  scroll: { x: number; y: number };
   regions: { x: number; y: number; width: number; height: number; intensity: number }[];
   watched: boolean;
 }> {
@@ -375,6 +376,8 @@ async function readBlurRegions(driver: any): Promise<{
     return {
       watched,
       viewportWidth: window.innerWidth,
+      // Read with the rects, so a whole-page image can add it (ADR 01224).
+      scroll: { x: window.scrollX, y: window.scrollY },
       regions: blurs.map((blur, i) => {
         const rect = seen[i] || blur.getBoundingClientRect();
         return {
