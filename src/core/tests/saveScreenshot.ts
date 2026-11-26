@@ -89,6 +89,8 @@ async function getPixelmatch(ctx: { cacheDir?: string } = {}) {
 }
 
 export { saveScreenshot, clampCropRect, aspectRatiosMatch, referenceViewport, captureUntilStable };
+// Page code, exported for tests that run it against stand-in pages.
+export { freezeAnimations, thawAnimations };
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -258,7 +260,7 @@ function freezeAnimations() {
   const known = new Set(kept.map((saved) => saved.animation));
   const fresh = ((document as any).getAnimations?.() ?? []).filter((animation: any) => !known.has(animation));
   const frozen = fresh.map((animation: any) => {
-    const saved = { animation, time: animation.currentTime, running: animation.playState === "running" };
+    const saved = { animation, time: animation.currentTime, state: animation.playState };
     try {
       if (Number.isFinite(animation.effect?.getComputedTiming?.().endTime)) animation.finish();
       else animation.cancel();
@@ -276,10 +278,13 @@ function freezeAnimations() {
 }
 function thawAnimations() {
   document.querySelectorAll("style[data-dd-animations]").forEach((style) => style.remove());
-  for (const { animation, time, running } of (window as any).__ddFrozenAnimations ?? []) {
+  for (const { animation, time, state } of (window as any).__ddFrozenAnimations ?? []) {
     try {
       animation.currentTime = time;
-      if (running) animation.play();
+      // A finished animation runs again once its time moves back, so a
+      // paused one is paused again.
+      if (state === "running") animation.play();
+      else if (state === "paused") animation.pause();
     } catch {
       // An animation whose element left the page has nothing to resume.
     }
@@ -366,9 +371,12 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
   // A screenshot that fails once the window grew is a SKIP only with evidence
   // that the screen capped it: the viewport no longer fits the page, or the
   // screen can't hold it. Anything else, such as a lost session, FAILs.
+  // Each capture checks the page still fits the viewport, so a page that grew
+  // between `stable` captures SKIPs instead of saving a cropped image.
   const viewportCapture = async () => {
+    let image: Buffer;
     try {
-      return Buffer.from(await driver.takeScreenshot(), "base64");
+      image = Buffer.from(await driver.takeScreenshot(), "base64");
     } catch (error) {
       if (!original) throw error;
       let capped = false;
@@ -382,6 +390,11 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
       await restore().catch(() => {});
       throw capped ? tooLarge() : error;
     }
+    const now = await driver.execute(readPageExtent);
+    if (!fits(now, { width: Number(now?.viewportWidth) || 0, height: Number(now?.viewportHeight) || 0 })) {
+      throw tooLarge();
+    }
+    return image;
   };
   const viewport = { width: Number(page?.viewportWidth) || 0, height: Number(page?.viewportHeight) || 0 };
   // A pixel of slack for rounding; any more would cut off the page's edge.

@@ -106,6 +106,8 @@ function fakeDriver({
   screen,
   throwOnCapture = false,
   captureResetsScroll = false,
+  // The page height after the first screenshot, like content that loads late.
+  growOnCapture,
   // The viewport cap the browser reveals once a screenshot fails.
   shrinkOnCapture,
   // Where a finish handler scrolls the page when animations freeze.
@@ -147,9 +149,11 @@ function fakeDriver({
         if (shrinkOnCapture) maxViewport = shrinkOnCapture;
         throw new Error("session gone");
       }
-      return (viewport().height >= docHeight() && viewport().width >= pageWidth ? pageCapture : viewportCapture).toString(
+      const image = (viewport().height >= docHeight() && viewport().width >= pageWidth ? pageCapture : viewportCapture).toString(
         "base64"
       );
+      if (growOnCapture) pageHeight = growOnCapture;
+      return image;
     },
     async fullPageScreenshot() {
       calls.push({ kind: "fullPageScreenshot" });
@@ -711,7 +715,12 @@ describe("screenshot fullPage and animations", function () {
     // A 1600px-wide document in an 800px viewport. The blur covers x 100–200;
     // dividing the image width by the viewport width would double it onto the
     // black block at x 300.
-    const capture = await makePng(1600, 1600, { x: 300, y: 300, width: 100, height: 100 });
+    // A mark inside the blur at x 140–160 shows the blur ran.
+    const blocks = await makePng(1600, 1600, { x: 300, y: 300, width: 100, height: 100 });
+    const mark = await sharp({ create: { width: 20, height: 20, channels: 3, background: { r: 0, g: 0, b: 0 } } })
+      .png()
+      .toBuffer();
+    const capture = await sharp(blocks).composite([{ input: mark, left: 140, top: 140 }]).png().toBuffer();
     const driver = fakeDriver({
       browserName: "firefox",
       viewportCapture,
@@ -723,6 +732,7 @@ describe("screenshot fullPage and animations", function () {
     assert.equal(result.status, "PASS", result.description);
     const { data, info } = await sharp(path.join(dir, "page.png")).raw().toBuffer({ resolveWithObject: true });
     const at = (x, y) => data[(y * info.width + x) * info.channels];
+    assert.ok(at(141, 150) > 0, "the mark inside the blur is blurred");
     assert.equal(at(302, 350), 0, "the block's edge isn't blurred");
   });
 
@@ -748,6 +758,72 @@ describe("screenshot fullPage and animations", function () {
       assert.equal(result.description, message);
     });
   }
+
+  it("thaws each animation back to the play state it had: paused stays paused", async function () {
+    // Runs the real page code against stand-in animations. A spec animation
+    // that `finish()` ends runs again when its time moves back, unless paused.
+    const { freezeAnimations, thawAnimations } = await import("../dist/core/tests/saveScreenshot.js");
+    const make = (playState) => {
+      const anim = {
+        playState,
+        time: 100,
+        effect: { getComputedTiming: () => ({ endTime: 1000 }) },
+        get currentTime() {
+          return this.time;
+        },
+        set currentTime(value) {
+          this.time = value;
+          if (this.playState === "finished") this.playState = "running";
+        },
+        finish() {
+          this.playState = "finished";
+          this.time = 1000;
+        },
+        cancel() {
+          this.playState = "idle";
+        },
+        play() {
+          this.playState = "running";
+        },
+        pause() {
+          this.playState = "paused";
+        },
+      };
+      return anim;
+    };
+    const paused = make("paused");
+    const running = make("running");
+    const saved = ["document", "window"].map((key) => [key, global[key]]);
+    Object.assign(global, {
+      window: {},
+      document: {
+        getAnimations: () => [paused, running],
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        createElement: () => ({ setAttribute() {} }),
+        head: { appendChild() {} },
+      },
+    });
+    try {
+      freezeAnimations();
+      assert.equal(paused.playState, "finished");
+      thawAnimations();
+      assert.deepEqual([paused.playState, paused.time], ["paused", 100]);
+      assert.deepEqual([running.playState, running.time], ["running", 100]);
+    } finally {
+      for (const [key, value] of saved) global[key] = value;
+    }
+  });
+
+  it("skips when the page outgrows the grown viewport between stable captures", async function () {
+    // The page is 1600px when the window grows, then 2000px after the first capture.
+    const driver = fakeDriver({ browserName: "Safari", viewportCapture, pageCapture, growOnCapture: 2000 });
+    const result = await run({ fullPage: true, stable: true }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.equal(result.description, "Skipped: `safari` can't capture a page larger than the screen.");
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+    assert.ok(!fs.existsSync(path.join(dir, "page.png")));
+  });
 
   for (const animations of [undefined, "allow"]) {
     it(`\`animations: ${animations}\` leaves animations alone`, async function () {
