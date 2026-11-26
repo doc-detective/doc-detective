@@ -4,9 +4,10 @@
 
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import path from "node:path";
 
 const require = createRequire(import.meta.url);
-const { findMismatches } = require("../docs/.scripts/checkDocsAsTests.js");
+const { findMismatches, groupByConfig } = require("../docs/.scripts/checkDocsAsTests.js");
 
 const spec = (file, steps) => ({
   contentPath: `/repo/examples/echo/${file}`,
@@ -53,5 +54,18 @@ describe("docs-as-tests equivalence", function () {
   it("flags a prose file that resolves to any test", function () {
     const specs = [spec("standalone.spec.json", [goTo]), spec("prose.md", [goTo])];
     assert.match(findMismatches(specs).join("\n"), /prose\.md/);
+  });
+});
+
+describe("docs-as-tests config groups", function () {
+  it("uses an example's own doc-detective.json, else the shared config", function () {
+    const p = (...parts) => path.join("/ex", ...parts);
+    const files = [p("a", "detected.md"), p("a", "inline.md"), p("b", "detected.md")];
+    const own = p("b", "doc-detective.json");
+    const groups = groupByConfig(files, p("shared.json"), (f) => f === own);
+    assert.deepEqual(groups, new Map([
+      [p("shared.json"), [p("a", "detected.md"), p("a", "inline.md")]],
+      [own, [p("b", "detected.md")]],
+    ]));
   });
 });

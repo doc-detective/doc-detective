@@ -59,7 +59,7 @@ jobs:
       # test can't turn detection back on (ADR 00088), so run those here with
       # the examples' own config.
       - name: Run the docs-as-tests detected examples
-        run: npx doc-detective run docs/fern/pages/reference/docs-as-tests/examples/*/detected.* -c docs/fern/pages/reference/docs-as-tests/examples/.doc-detective.json
+        run: npm run docs:check-docs-as-tests -- --run
 
       - name: Run Doc Detective on the docs
         uses: doc-detective/github-action@55ba39bc460e809c279179421fb26a8c76fc2539 # v2.2.0

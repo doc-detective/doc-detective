@@ -10,7 +10,11 @@
 //   an author wouldn't write by hand, so it isn't compared to standalone),
 // - every prose.* resolves to no tests when detection is off.
 //
-// Run with `npm run docs:check-docs-as-tests` after `npm run build`.
+// An example that needs other config, such as custom fileTypes, keeps a
+// doc-detective.json in its folder; the rest use examples/.doc-detective.json.
+//
+// Run with `npm run docs:check-docs-as-tests` after `npm run build`. Add
+// `-- --run` to run the detected variants for real instead.
 
 const fs = require("fs");
 const path = require("path");
@@ -65,12 +69,31 @@ function findMismatches(specs) {
   return problems;
 }
 
-function dryRun(inputs, configPath) {
-  const out = execFileSync(
+/**
+ * Groups files by the config they run with: the example's own
+ * `doc-detective.json` when it has one, else the shared config.
+ */
+function groupByConfig(files, sharedConfig, exists = fs.existsSync) {
+  const groups = new Map();
+  for (const file of files) {
+    const own = path.join(path.dirname(file), "doc-detective.json");
+    const config = exists(own) ? own : sharedConfig;
+    if (!groups.has(config)) groups.set(config, []);
+    groups.get(config).push(file);
+  }
+  return groups;
+}
+
+function runCli(inputs, configPath, extraArgs, options = {}) {
+  return execFileSync(
     process.execPath,
-    [path.join(repoRoot, "bin/doc-detective.js"), "run", ...inputs, "--dry-run", "-c", configPath],
-    { cwd: repoRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }
+    [path.join(repoRoot, "bin/doc-detective.js"), "run", ...inputs, ...extraArgs, "-c", configPath],
+    { cwd: repoRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, ...options }
   );
+}
+
+function dryRun(inputs, configPath) {
+  const out = runCli(inputs, configPath, ["--dry-run"]);
   // Keep only the examples' specs, not beforeAll/afterAll setup specs.
   return JSON.parse(out).specs.filter((spec) => path.resolve(spec.contentPath).startsWith(examplesDir));
 }
@@ -87,8 +110,24 @@ function main() {
   const prose = files.filter((f) => path.basename(f).startsWith("prose."));
   const tested = files.filter((f) => /^(detected|inline|standalone)\./.test(path.basename(f)));
 
+  const sharedConfig = path.join(examplesDir, ".doc-detective.json");
+  if (process.argv.includes("--run")) {
+    // Run the detected variants for real. The docs run covers inline and
+    // standalone with the site config, which turns detection off.
+    const detected = tested.filter((f) => path.basename(f).startsWith("detected."));
+    let failed = false;
+    for (const [config, inputs] of groupByConfig(detected, sharedConfig)) {
+      try {
+        runCli(inputs, config, [], { stdio: "inherit" });
+      } catch {
+        failed = true;
+      }
+    }
+    process.exit(failed ? 1 : 0);
+  }
+
   const specs = [
-    ...dryRun(tested, path.join(examplesDir, ".doc-detective.json")),
+    ...[...groupByConfig(tested, sharedConfig)].flatMap(([config, inputs]) => dryRun(inputs, config)),
     // The docs site's own config turns detection off, so prose must resolve to nothing.
     ...dryRun(prose, path.resolve(__dirname, "../.doc-detective.json")),
   ];
@@ -106,4 +145,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { findMismatches, normalizeSteps };
+module.exports = { findMismatches, normalizeSteps, groupByConfig };
