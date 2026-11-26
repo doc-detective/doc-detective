@@ -108,6 +108,7 @@ import {
 import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
 import { loadCookie } from "./tests/loadCookie.js";
+import { mockRequest, restoreMocks } from "./tests/mockRequest.js";
 import { saveState } from "./tests/saveState.js";
 import { loadState } from "./tests/loadState.js";
 import { httpRequest } from "./tests/httpRequest.js";
@@ -5909,6 +5910,8 @@ async function runContext({
     } catch (error: any) {
       clog("error", `Failed to stop recordings during cleanup: ${error?.message ?? error}`);
     }
+    // The test is over: restore its request mocks (ADR 01225). Best-effort.
+    for (const d of sessionDrivers(browserSessions, driver)) await restoreMocks(d);
     // Close every session still registered (the default driver registers at
     // start, so the sweep covers it; sessions a closeSurface step already
     // ended are gone from the registry). In a finally so an unexpected throw
@@ -6316,6 +6319,14 @@ async function runStep({
       config: config,
       step: step,
       driver: driver,
+    });
+  } else if (typeof step.mockRequest !== "undefined") {
+    actionResult = await mockRequest({
+      config,
+      step,
+      driver,
+      browserName: context?.browser?.name,
+      hasBidi,
     });
   } else if (typeof step.saveState !== "undefined") {
     actionResult = await saveState({ config, step, driver });

@@ -40,6 +40,7 @@ async function dereferenceSchemas() {
     "loadCookie_v3.schema.json",
     "loadState_v3.schema.json",
     "loadVariables_v3.schema.json",
+    "mockRequest_v3.schema.json",
     "httpRequest_v3.schema.json",
     "openApi_v3.schema.json",
     "record_v3.schema.json",

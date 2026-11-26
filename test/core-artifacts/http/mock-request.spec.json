@@ -1,0 +1,243 @@
+{
+  "specId": "mock-request",
+  "description": "mockRequest (ADR 01225): one test per permutation. Chrome is the only browser in BIDI_BROWSERS, so the real mocks run on headless Chrome on every OS. Each fetch goes to the 8092 test server's /api echo route, which would echo the request back, so a PASS proves the mock answered. Firefox and Safari assert the skip.",
+  "tests": [
+    {
+      "testId": "mock-request-json-body",
+      "description": "A JSON body, the default 200 status, and a path glob that ignores the query string.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "**/api/mock-invoices*",
+            "response": {
+              "body": {
+                "next": "2026-12-03"
+              }
+            }
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return fetch('/api/mock-invoices?page=1').then(async (r) => r.status + ' ' + JSON.stringify(await r.json()));",
+            "output": "200 {\"next\":\"2026-12-03\"}"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "mock-request-body-file",
+      "description": "A `bodyPath` relative to the spec file, a full-URL pattern, a status code, and headers.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "http://localhost:8092/api/mock-user",
+            "response": {
+              "statusCode": 202,
+              "headers": {
+                "content-type": "application/json",
+                "x-mock": "file"
+              },
+              "bodyPath": "mock-request-user.json"
+            }
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return fetch('/api/mock-user').then(async (r) => [r.status, r.headers.get('x-mock'), (await r.json()).name].join(' '));",
+            "output": "202 file Ada Lovelace"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "mock-request-method-filter",
+      "description": "A `method` filter answers POST and lets GET through to the server.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "**/api/mock-method",
+            "method": "POST",
+            "response": {
+              "body": "mocked-post"
+            }
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "const u = '/api/mock-method'; return Promise.all([fetch(u).then((r) => r.text()), fetch(u, { method: 'POST' }).then((r) => r.text())]).then(([get, post]) => (get === 'mocked-post' ? 'GET was mocked' : 'GET passed') + ', POST ' + post);",
+            "output": "GET passed, POST mocked-post"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "mock-request-replacement",
+      "description": "A later mockRequest for the same `url` and `method` replaces the earlier one, and `outputs.matched` counts the requests answered for that pair so far.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "**/api/mock-swap",
+            "response": {
+              "body": "first"
+            }
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return fetch('/api/mock-swap').then((r) => r.text());",
+            "output": "first"
+          }
+        },
+        {
+          "mockRequest": {
+            "url": "**/api/mock-swap",
+            "response": {
+              "statusCode": 404,
+              "body": "second"
+            }
+          },
+          "variables": {
+            "MOCK_SWAP_MATCHED": "$$matched"
+          }
+        },
+        {
+          "runBrowserScript": {
+            "script": "return fetch('/api/mock-swap').then(async (r) => r.status + ' ' + (await r.text()));",
+            "output": "404 second"
+          }
+        },
+        {
+          "description": "The replacing step reported the one request the first mock answered.",
+          "runShell": "node -e \"process.exit(process.env.MOCK_SWAP_MATCHED === '1' ? 0 : 1)\""
+        }
+      ]
+    },
+    {
+      "testId": "mock-request-firefox-skip",
+      "description": "Firefox isn't in BIDI_BROWSERS, so the step is Skipped: `firefox` can't mock requests.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "firefox",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "**/api/mock-skip",
+            "response": {
+              "body": "never"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "mock-request-safari-skip",
+      "description": "Safari stays on classic WebDriver, so the step is Skipped: `safari` can't mock requests.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": [
+            {
+              "name": "safari"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "**/api/mock-skip",
+            "response": {
+              "body": "never"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

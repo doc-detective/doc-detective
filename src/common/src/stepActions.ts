@@ -17,6 +17,7 @@ export const stepActions = [
   "loadCookie",
   "loadState",
   "loadVariables",
+  "mockRequest",
   "record",
   "runBrowserScript",
   "runCode",
