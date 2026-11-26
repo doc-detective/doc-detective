@@ -85,3 +85,28 @@ describe("browserWait self-healing monitors", function () {
     assert.ok(driver.calls >= 4, "expected re-injection + poll after the miss");
   });
 });
+
+// ADR 01223: a context `clock` freezes the page's `Date`, so the in-page
+// monitors must measure idle time with `performance.now()`, which keeps
+// running. Measured with `Date.now()`, goTo's waits never settled.
+describe("browserWait under a frozen page clock", function () {
+  this.timeout(10000);
+
+  for (const [name, wait, idle] of [
+    ["waitForNetworkIdle", waitForNetworkIdle, { idleFor: 600, requestCount: 0 }],
+    ["waitForDOMStable", waitForDOMStable, { idleFor: 600, mutationCount: 0 }],
+  ]) {
+    it(`${name} never reads Date in the page`, async () => {
+      const sources = [];
+      const driver = {
+        execute: async (fn) => {
+          sources.push(String(fn));
+          return sources.length === 1 ? undefined : idle;
+        },
+      };
+      await wait(driver, 500, 5000);
+      assert.ok(sources.length >= 2);
+      for (const src of sources) assert.doesNotMatch(src, /\bDate\b/);
+    });
+  }
+});

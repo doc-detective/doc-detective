@@ -265,12 +265,15 @@ describe("normalization", function () {
       goTo: { url: "https://x.com", waitUntil: { domIdleTime: 0 } },
       httpRequest: { url: "https://x.com", statusCodes: 200, request: { headers: {} }, response: {} },
       loadCookie: { name: "session", path: "session.txt" },
+      loadState: { path: "auth.json" },
       loadVariables: "vars.env",
       record: { directory: "d" },
       runBrowserScript: { script: "return 1" },
       runCode: { language: "python", code: "print(1)", background: {} },
       runShell: { command: "echo hi", background: {} },
+      mockRequest: { url: "**/x", response: { body: { a: 1 } } },
       saveCookie: { name: "session" },
+      saveState: { path: "auth.json" },
       screenshot: { directory: "d", crop: { selector: "#a" } },
       startSurface: [{ browser: "chrome" }],
       stopRecord: { name: "demo" },
@@ -691,8 +694,8 @@ describe("normalization", function () {
       (key) => !(key in schemas.step_v3.components.schemas.common.properties)
     );
 
-    it("has one normalizer for each of the 21 actions", function () {
-      expect(actions).to.have.lengthOf(21);
+    it("has one normalizer for each of the 24 actions", function () {
+      expect(actions).to.have.lengthOf(24);
       expect(Object.keys(normalizers)).to.have.members(actions);
     });
 
@@ -718,6 +721,8 @@ describe("normalization", function () {
       swipe: { direction: "up" },
       loadCookie: { name: "session", variable: "session" },
       saveCookie: { name: "session", path: "session.txt" },
+      saveState: { path: "auth.json" },
+      loadState: { path: "auth.json" },
       stopRecord: { name: "demo" },
       startSurface: [
         ["processDescriptor", { process: "node server.js", name: "api" }],
@@ -750,7 +755,7 @@ describe("normalization", function () {
       swipe: (schema) => schema.components.schemas.directional,
     };
     // Moved actions whose schemas declare no defaults.
-    const NO_DEFAULTS = ["loadCookie", "stopRecord"];
+    const NO_DEFAULTS = ["loadCookie", "loadState", "stopRecord"];
     for (const action of actions) {
       it(`fills every plain schema default: ${action}`, function () {
         if (normalizers[action] === passthrough || NO_OBJECT_FORM.includes(action)) this.skip();

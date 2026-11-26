@@ -319,24 +319,34 @@ async function watchBlurRegions(driver: any): Promise<boolean> {
     const layer: any = document.querySelector(tag);
     if (!layer || !layer.shadowRoot) return false;
     cancelAnimationFrame(layer.__ddWatch);
+    // Each blur's bounds in the viewport, and in the document with the scroll
+    // of the frame it was drawn in, for whole-page images (ADR 01224).
     const seen: any[] = [];
+    const seenInDocument: any[] = [];
+    const grow = (into: any[], i: number, r: any) => {
+      const s = into[i] || r;
+      into[i] = {
+        left: Math.min(s.left, r.left),
+        top: Math.min(s.top, r.top),
+        right: Math.max(s.right, r.right),
+        bottom: Math.max(s.bottom, r.bottom),
+      };
+    };
     // ponytail: a capture that throws leaves this noting until the next read or
     // until the layer goes; one rect read per blur per frame.
     const note = () => {
       if (!layer.isConnected) return;
+      const x = window.scrollX || 0;
+      const y = window.scrollY || 0;
       Array.from(layer.shadowRoot.querySelectorAll(".dd-blur")).forEach((blur: any, i: number) => {
         const r = blur.getBoundingClientRect();
-        const s = seen[i] || r;
-        seen[i] = {
-          left: Math.min(s.left, r.left),
-          top: Math.min(s.top, r.top),
-          right: Math.max(s.right, r.right),
-          bottom: Math.max(s.bottom, r.bottom),
-        };
+        grow(seen, i, r);
+        grow(seenInDocument, i, { left: r.left + x, top: r.top + y, right: r.right + x, bottom: r.bottom + y });
       });
       layer.__ddWatch = requestAnimationFrame(note);
     };
     layer.__ddSeen = seen;
+    layer.__ddSeenInDocument = seenInDocument;
     layer.__ddNote = note;
     note();
     return true;
@@ -356,6 +366,8 @@ async function watchBlurRegions(driver: any): Promise<boolean> {
 async function readBlurRegions(driver: any): Promise<{
   viewportWidth: number;
   regions: { x: number; y: number; width: number; height: number; intensity: number }[];
+  // The same blurs in document pixels, each frame with its own scroll.
+  documentRegions: { x: number; y: number; width: number; height: number; intensity: number }[];
   watched: boolean;
 }> {
   return await driver.execute((tag: string) => {
@@ -365,25 +377,32 @@ async function readBlurRegions(driver: any): Promise<{
         ? Array.from(layer.shadowRoot.querySelectorAll(".dd-blur"))
         : [];
     let seen: any[] = [];
+    let seenInDocument: any[] = [];
     const watched = !!(layer && layer.__ddNote);
     if (watched) {
       layer.__ddNote();
       cancelAnimationFrame(layer.__ddWatch);
       seen = layer.__ddSeen;
-      layer.__ddNote = layer.__ddSeen = undefined;
+      seenInDocument = layer.__ddSeenInDocument || [];
+      layer.__ddNote = layer.__ddSeen = layer.__ddSeenInDocument = undefined;
     }
+    const x = window.scrollX || 0;
+    const y = window.scrollY || 0;
+    const region = (rect: any, blur: any) => ({
+      x: rect.left,
+      y: rect.top,
+      width: rect.right - rect.left,
+      height: rect.bottom - rect.top,
+      intensity: Number(blur.getAttribute("data-dd-intensity")),
+    });
     return {
       watched,
       viewportWidth: window.innerWidth,
-      regions: blurs.map((blur, i) => {
-        const rect = seen[i] || blur.getBoundingClientRect();
-        return {
-          x: rect.left,
-          y: rect.top,
-          width: rect.right - rect.left,
-          height: rect.bottom - rect.top,
-          intensity: Number(blur.getAttribute("data-dd-intensity")),
-        };
+      regions: blurs.map((blur, i) => region(seen[i] || blur.getBoundingClientRect(), blur)),
+      documentRegions: blurs.map((blur, i) => {
+        if (seenInDocument[i]) return region(seenInDocument[i], blur);
+        const r = blur.getBoundingClientRect();
+        return region({ left: r.left + x, top: r.top + y, right: r.right + x, bottom: r.bottom + y }, blur);
       }),
     };
   }, LAYER_TAG);

@@ -53,6 +53,13 @@ import {
   classifyContextRetry,
   guardBlankDocumentNavigation,
   applyBrowserSize,
+  BIDI_BROWSERS,
+  hasBidi,
+  emulationCapabilities,
+  keepEmulationCapabilities,
+  unsupportedEmulation,
+  emulationOpenError,
+  applyEmulation,
   isViewportFloored,
   loadAxios,
   sessionVersions,
@@ -101,6 +108,9 @@ import {
 import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
 import { loadCookie } from "./tests/loadCookie.js";
+import { mockRequest, restoreMocks } from "./tests/mockRequest.js";
+import { saveState } from "./tests/saveState.js";
+import { loadState } from "./tests/loadState.js";
 import { httpRequest } from "./tests/httpRequest.js";
 import { clickElement } from "./tests/click.js";
 import { runCode } from "./tests/runCode.js";
@@ -304,6 +314,8 @@ export {
   appiumIsReady,
   APPIUM_READY_POLL_MS,
   driverStart,
+  BIDI_BROWSERS,
+  hasBidi,
 };
 
 // Browser names getDriverCapabilities knows how to build caps for. `safari` is
@@ -428,6 +440,8 @@ function buildWarmPlanDeps(): WarmPlanDeps {
 function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails: any; name: any; options: any }): any {
   let capabilities: any = {};
   let args: string[] = [];
+  // Page emulation launch options (ADR 01223), from the context's browser.
+  const emulation = emulationCapabilities(options.emulation);
 
   // Fail loudly on an unknown or missing browser name instead of silently
   // returning empty capabilities. Empty caps used to surface downstream as the
@@ -456,7 +470,10 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
         "appium:automationName": "Gecko",
         "appium:newCommandTimeout": 600, // 10 minutes
         browserName: "MozillaFirefox",
-        "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
+        "wdio:enforceWebDriverClassic": !hasBidi(name), // ADR 01219
+        ...(hasBidi(name)
+          ? { webSocketUrl: true }
+          : {}),
         // Pin the geckodriver Doc Detective manages. appium-geckodriver
         // resolves its binary from this capability or `which geckodriver` and
         // nothing else, so without it the managed install in the browsers cache
@@ -477,6 +494,7 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
             "UEsDBBQAAAAIAKm6lldWzDiRbgAAAKUAAAAlAAAAZmlyZWZveF9wcm9maWxlL2Nocm9tZS91c2VyQ2hyb21lLmNzc3XMQQrCMBBG4X1O8Yu7QqhrPYOHiGbaDpqZMBmJIN7dgu6K28fHC+OAc7oRLuquBVc1IWvQCb6s1bQ3MnSWrB1VWZwyhjHsS2KJv/4KWAeWyeL3E+80ebSU+dGOONQndlyqmifx0wYbz8t//Q4fUEsBAhQDFAAAAAgAqbqWV1bMOJFuAAAApQAAACUAAAAAAAAAAAAAAKSBAAAAAGZpcmVmb3hfcHJvZmlsZS9jaHJvbWUvdXNlckNocm9tZS5jc3NQSwUGAAAAAAEAAQBTAAAAsQAAAAAA",
           prefs: {
             "toolkit.legacyUserProfileCustomizations.stylesheets": true, // Enable userChrome.css and userContent.css
+            ...emulation.prefs,
           },
           binary: firefox.path,
         },
@@ -499,7 +517,10 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:automationName": "Safari",
           "appium:newCommandTimeout": 600, // 10 minutes
           browserName: "Safari",
-          "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
+          "wdio:enforceWebDriverClassic": !hasBidi(name), // ADR 01219
+          ...(hasBidi(name)
+            ? { webSocketUrl: true }
+            : {}),
         };
       }
       break;
@@ -541,6 +562,7 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           // parallel browser contexts start reliably.
           args.push("--disable-dev-shm-usage");
         }
+        args.push(...emulation.args);
         // Set capabilities
         capabilities = {
           platformName: runnerDetails.environment.platform,
@@ -548,11 +570,12 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
           "appium:newCommandTimeout": 600, // 10 minutes
           "appium:executable": chromium.driver,
           browserName: "chrome",
-          // Classic WebDriver, no BiDi socket. Enabling `webSocketUrl` for
-          // viewport emulation (driver.setViewport) crashed headed recording
-          // contexts with a stack overflow and can't be gated off recording
-          // (viewport+recording is a supported combo) — see ADR 01072 (rejected).
-          "wdio:enforceWebDriverClassic": true, // Disable BiDi, use classic mode
+          // A browser in BIDI_BROWSERS runs fully on BiDi; any other stays
+          // classic with no socket (ADR 01219).
+          "wdio:enforceWebDriverClassic": !hasBidi(name),
+          ...(hasBidi(name)
+            ? { webSocketUrl: true }
+            : {}),
           "goog:chromeOptions": {
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
@@ -562,6 +585,7 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
               "download.default_directory": options.downloadDir || os.tmpdir(),
               "download.prompt_for_download": false,
               "download.directory_upgrade": true,
+              ...emulation.prefs,
             },
             binary: chromium.path,
           },
@@ -4509,6 +4533,25 @@ async function runContext({
   let mobileWebBrowserName: string | undefined;
 
   const mobileTarget = isMobileTargetPlatform(context.platform);
+  // Page emulation the browser can't do skips the context rather than run it
+  // unemulated (ADR 01223). Only for a context that runs here and opens a
+  // browser; another platform keeps its platform-mismatch reason.
+  if (
+    (context.platform === platform || mobileTarget) &&
+    Array.isArray(context.steps) &&
+    isBrowserRequired({ test: context })
+  ) {
+    const emulationSkip = unsupportedEmulation(
+      context.browser,
+      mobileTarget || platform
+    );
+    if (emulationSkip) {
+      clog("warning", emulationSkip);
+      contextReport.result = "SKIPPED";
+      contextReport.resultDescription = emulationSkip;
+      return contextReport;
+    }
+  }
   if (mobileTarget) {
     const requirementsSkip = contextRequirementsSkipMessage({ context });
     if (requirementsSkip) {
@@ -4727,7 +4770,11 @@ async function runContext({
           explicit: explicitlyRequested,
           policy: fallbackPolicy,
           availableApps,
-        })
+        }).filter(
+          // A fallback engine must set the same page emulation (ADR 01223).
+          (name: string) =>
+            !unsupportedEmulation({ ...context.browser, name }, platform)
+        )
       : [];
 
   // A driver context with no startable engine is skipped with a diagnostic that
@@ -5003,6 +5050,8 @@ async function runContext({
             options: {
               headless,
               ...recordOptions,
+              // Every session in the context gets its page emulation.
+              emulation: { ...context.browser, name: browserName },
             },
           });
           // Merge the authored escape hatch, minus the capabilities that are
@@ -5014,6 +5063,12 @@ async function runContext({
             applyDriverOptions(caps, overrides.driverOptions, (message) =>
               log(config, "warning", message)
             );
+            // Authored browser options replace the computed ones; put the
+            // context's emulation args and prefs back (ADR 01223).
+            keepEmulationCapabilities(caps, {
+              ...context.browser,
+              name: browserName,
+            });
           }
           return caps;
         };
@@ -5178,6 +5233,14 @@ async function runContext({
       if (driver) {
         browserSessions = createSessionRegistry({
           open: async (engine: string, overrides?: BrowserOpenOverrides) => {
+            // A later session gets the context's page emulation too, so an
+            // engine that can't set a key fails rather than run unemulated.
+            const emulationError = emulationOpenError(
+              engine,
+              context.browser,
+              platform
+            );
+            if (emulationError) throw new Error(emulationError);
             const res = await startDriverForBrowser(engine, overrides);
             if (!res.ok) throw new Error(res.error);
             // A later session takes the context's size unless its
@@ -5199,6 +5262,15 @@ async function runContext({
                 "warning",
                 `Couldn't size the new ${engine} session: ${error?.message ?? error}`
               );
+            }
+            try {
+              await applyEmulation(res.driver, {
+                ...context.browser,
+                name: engine,
+              });
+            } catch (error) {
+              await res.driver.deleteSession().catch(() => {});
+              throw error;
             }
             return res.driver;
           },
@@ -5233,6 +5305,16 @@ async function runContext({
         isViewportFloored(sizing.target, sizing.realized)
       ) {
         contextReport.viewportFloored = true;
+      }
+      // Page emulation that needs BiDi: timezone and clock (ADR 01223). A
+      // rejected command fails the context rather than run unemulated.
+      try {
+        await applyEmulation(driver, context.browser);
+      } catch (error: any) {
+        clog("error", error.message);
+        contextReport.result = "FAIL";
+        contextReport.resultDescription = error.message;
+        return contextReport;
       }
     }
 
@@ -5828,6 +5910,8 @@ async function runContext({
     } catch (error: any) {
       clog("error", `Failed to stop recordings during cleanup: ${error?.message ?? error}`);
     }
+    // The test is over: restore its request mocks (ADR 01225). Best-effort.
+    for (const d of sessionDrivers(browserSessions, driver)) await restoreMocks(d);
     // Close every session still registered (the default driver registers at
     // start, so the sweep covers it; sessions a closeSurface step already
     // ended are gone from the registry). In a finally so an unexpected throw
@@ -6236,6 +6320,18 @@ async function runStep({
       step: step,
       driver: driver,
     });
+  } else if (typeof step.mockRequest !== "undefined") {
+    actionResult = await mockRequest({
+      config,
+      step,
+      driver,
+      browserName: context?.browser?.name,
+      hasBidi,
+    });
+  } else if (typeof step.saveState !== "undefined") {
+    actionResult = await saveState({ config, step, driver });
+  } else if (typeof step.loadState !== "undefined") {
+    actionResult = await loadState({ config, step, driver });
   } else if (typeof step.httpRequest !== "undefined") {
     actionResult = await httpRequest({
       config: config,
@@ -6809,7 +6905,16 @@ async function driverStart(
       // stack of active recording handles (LIFO) so several can overlap within
       // one context (e.g. an autoRecord full-context capture plus an explicit
       // record/stopRecord sub-section).
-      driver.state = { url: "", x: null, y: null, recordings: [] };
+      //
+      // Non-enumerable: with a BiDi socket open, webdriverio deep-clones the
+      // live Browser on every `$` (via `_bidiHandler.client`), and this graph
+      // (session registry, recording handles) overflows the stack (ADR 01219).
+      Object.defineProperty(driver, "state", {
+        value: { url: "", x: null, y: null, recordings: [] },
+        writable: true,
+        configurable: true,
+        enumerable: false,
+      });
       return driver;
     } catch (err: any) {
       lastError = err;

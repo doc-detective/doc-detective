@@ -235,17 +235,26 @@ function criteriaFromTarget(target: any): any {
 // Read a browser element's viewport-relative rect. Mirrors the crop path's
 // read so annotations and crops agree on where an element is, down to the
 // same post-scroll coordinate space.
-async function browserElementRect(driver: any, element: any): Promise<Rect> {
-  if (isVisualMatch(element)) return { ...visualRect(element) };
-  return await driver.execute((el: any) => {
+// `documentRelative` adds the page scroll, read in the same evaluation, for a
+// whole-page image whose top-left is the document's (ADR 01224).
+async function browserElementRect(driver: any, element: any, documentRelative = false): Promise<Rect> {
+  if (isVisualMatch(element)) {
+    const rect = { ...visualRect(element) };
+    if (!documentRelative) return rect;
+    // ponytail: a visual match has no page evaluation, so the scroll is a
+    // separate read. Fold it into the match if pages scroll in between.
+    const scroll = await driver.execute(() => ({ x: window.scrollX, y: window.scrollY }));
+    return { ...rect, x: rect.x + (Number(scroll?.x) || 0), y: rect.y + (Number(scroll?.y) || 0) };
+  }
+  return await driver.execute((el: any, toDocument: boolean) => {
     const bounds = el.getBoundingClientRect();
     return {
-      x: bounds.left,
-      y: bounds.top,
+      x: bounds.left + (toDocument ? window.scrollX : 0),
+      y: bounds.top + (toDocument ? window.scrollY : 0),
       width: bounds.width,
       height: bounds.height,
     };
-  }, element);
+  }, element, documentRelative);
 }
 
 // Read a native element's rect and rebase it onto the captured window.
@@ -289,8 +298,11 @@ async function resolveAnnotationRects({
   canvas,
   scale,
   cropOrigin,
+  documentRelative = false,
   verb = "annotate",
 }: {
+  // Browser rects relative to the document, for a whole-page image.
+  documentRelative?: boolean;
   config: any;
   // What the caller does with the rect, for "Couldn't find the element to
   // <verb>" messages: screenshot masks reuse this resolver (ADR 01218).
@@ -403,7 +415,7 @@ async function resolveAnnotationRects({
     }
 
     for (const element of elements) {
-      const logical = await browserElementRect(driver, element);
+      const logical = await browserElementRect(driver, element, documentRelative);
       placed.push({
         ...annotation,
         rect: toCanvasRect(logical, scale, cropOrigin),
