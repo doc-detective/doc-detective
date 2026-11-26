@@ -1269,6 +1269,63 @@ import { schemas } from "../dist/index.js";
       });
     });
 
+    // ADR 01225: mockRequest answers matching browser requests with a fixed response.
+    describe("mockRequest step", function () {
+      const check = (mockRequest) => validate({ schemaKey: "step_v3", object: { mockRequest } });
+
+      it("accepts a url with a JSON body", function () {
+        const result = check({ url: "**/api/invoices*", response: { body: { next: "2026-12-03" } } });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("accepts a string body, a method, a status code, and headers", function () {
+        const result = check({
+          url: "https://api.example.com/user",
+          method: "GET",
+          response: { statusCode: 404, headers: { "content-type": "text/plain" }, body: "gone" },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("accepts a bodyPath and a url with no response", function () {
+        expect(check({ url: "**/user", response: { bodyPath: "fixtures/user.json" } }).valid).to.be.true;
+        expect(check({ url: "**/ping" }).valid).to.be.true;
+      });
+
+      it("adds no statusCode default; the runner applies 200", function () {
+        const result = check({ url: "**/ping", response: { body: "ok" } });
+        expect(result.object.mockRequest.response).to.not.have.property("statusCode");
+      });
+
+      it("rejects a missing url", function () {
+        expect(check({ response: { body: "x" } }).valid).to.be.false;
+      });
+
+      it("rejects an unknown method", function () {
+        expect(check({ url: "**/x", method: "FETCH" }).valid).to.be.false;
+      });
+
+      it("rejects a status code out of range", function () {
+        expect(check({ url: "**/x", response: { statusCode: 99 } }).valid).to.be.false;
+        expect(check({ url: "**/x", response: { statusCode: 600 } }).valid).to.be.false;
+      });
+
+      it("rejects unknown keys", function () {
+        const top = check({ url: "**/x", bogus: true });
+        expect(top.valid).to.be.false;
+        expect(top.errors).to.include("/mockRequest must NOT have additional properties");
+        const inResponse = check({ url: "**/x", response: { bogus: true } });
+        expect(inResponse.valid).to.be.false;
+        expect(inResponse.errors).to.include("/mockRequest/response must NOT have additional properties");
+      });
+
+      it("rejects setting both body and bodyPath", function () {
+        const result = check({ url: "**/x", response: { body: "a", bodyPath: "a.json" } });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("set `body` or `bodyPath`, not both.");
+      });
+    });
+
     describe("checkLink timeout", function () {
       it("should accept a positive integer timeout", function () {
         const result = validate({

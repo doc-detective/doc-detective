@@ -90,6 +90,38 @@ For more control, use the object form. Set `crop` to a CSS selector to capture o
 
 `padding` accepts a single number for all four sides, or an object `{ "top": …, "right": …, "bottom": …, "left": … }` to pad each side independently. For the full list of fields, see the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema.
 
+## Show stable data in screenshots
+
+Pages often show data that changes, such as "Next invoice: 3 December" or an account balance. A screenshot of that data differs on every run. To keep it the same, answer the request behind it with [`mockRequest`](/docs/actions/mockrequest) before the page loads:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        {
+          "description": "Answer invoice requests with a fixed date.",
+          "mockRequest": {
+            "url": "**/api/invoices*",
+            "response": { "body": { "next": "2026-12-03" } }
+          }
+        },
+        {
+          "goTo": "https://example.com/billing"
+        },
+        {
+          "screenshot": "./output/billing.png"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Put the `mockRequest` step before the `goTo` step, so the page's first request already gets the fixed data. The mock lasts until the test ends.
+
+`mockRequest` runs in Chrome only. In Firefox and Safari, the step reports `SKIPPED` and the page loads its live data.
+
 ## Verify it works
 
 - A step that captured an image reports `PASS`.
