@@ -545,6 +545,28 @@ describe("Util tests", function () {
     expect(() => setArgs(["node", "runTests.js", "--browser-fallback", "sometimes"])).to.throw();
   });
 
+  it("CLI parses --overwrite-screenshots; the bare flag means 'true'", function () {
+    for (const mode of ["true", "false", "aboveVariation"]) {
+      expect(setArgs(["node", "runTests.js", "--overwrite-screenshots", mode]).overwriteScreenshots).to.equal(mode);
+    }
+    expect(setArgs(["node", "runTests.js", "--overwrite-screenshots"]).overwriteScreenshots).to.equal("true");
+    expect(setArgs(["node", "runTests.js", "--input", "."]).overwriteScreenshots).to.equal(undefined);
+    expect(() => setArgs(["node", "runTests.js", "--overwrite-screenshots", "maybe"])).to.throw();
+  });
+
+  it("setConfig stores --overwrite-screenshots on config.overwriteScreenshots; absent leaves it unset", async function () {
+    this.timeout(5000);
+    for (const mode of ["true", "false", "aboveVariation"]) {
+      const args = setArgs(["node", "runTests.js", "--overwrite-screenshots", mode]);
+      const config = await setConfig({ configPath: null, args });
+      expect(config.overwriteScreenshots, `mode: ${mode}`).to.equal(mode);
+    }
+    const bare = await setConfig({ configPath: null, args: setArgs(["node", "runTests.js", "--overwrite-screenshots"]) });
+    expect(bare.overwriteScreenshots).to.equal("true");
+    const absent = await setConfig({ configPath: null, args: setArgs(["node", "runTests.js", "--input", "."]) });
+    expect(absent.overwriteScreenshots).to.equal(undefined);
+  });
+
   it("CLI parses --concurrent-runners as a number or auto, and requires a value", function () {
     const numeric = setArgs(["node", "runTests.js", "--concurrent-runners", "4"]);
     expect(numeric.concurrentRunners).to.equal("4");

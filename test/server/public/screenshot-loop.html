@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Looping animation</title>
+  <style>
+    body { margin: 0; background: #fff; }
+    @keyframes slide { from { transform: translateX(0); } to { transform: translateX(400px); } }
+    @keyframes pulse { from { background: #c33; } to { background: #36c; } }
+    #spinner { width: 80px; height: 80px; background: #36c; animation: slide 700ms linear infinite alternate; }
+    #fade { width: 80px; height: 80px; animation: pulse 300ms ease-in 1 forwards; }
+    #name { margin: 20px; font-size: 24px; }
+  </style>
+</head>
+<body>
+  <!-- An endless slide, a finite pulse, and a focused input with a blinking caret. -->
+  <div id="spinner"></div>
+  <div id="fade"></div>
+  <input id="name" value="Ada" autofocus>
+  <script>
+    document.getElementById("name").focus();
+    // `?h=2400` makes the page taller than the viewport, for `fullPage`.
+    const height = Number(new URLSearchParams(location.search).get("h"));
+    if (height) document.body.style.height = height + "px";
+  </script>
+</body>
+</html>

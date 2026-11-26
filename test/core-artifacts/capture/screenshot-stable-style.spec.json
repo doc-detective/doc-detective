@@ -1,0 +1,344 @@
+{
+  "specId": "screenshot-stable-style",
+  "description": "`screenshot.stable` and `screenshot.style` (ADR 01221) through the real runner, headless Chrome and Firefox. `stable` on a page that settles after 300 ms PASSes with the loaded page; `style` hides a banner only for the capture; `stable` on an endless animation is a deterministic WARNING. The fonts wait runs on every capture and is pinned in test/screenshot-stable.test.js.",
+  "tests": [
+    {
+      "testId": "stable-late-reveal-chrome",
+      "description": "A loading bar fills for 300 ms, then the content appears. `stable` keeps capturing until two captures match, so the saved image is the loaded page: it matches a reference taken after a 1-second wait.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-late-reveal.html",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "description": "The settled reference.",
+          "screenshot": {
+            "path": "late-reveal-chrome.png",
+            "directory": "static/images",
+            "overwrite": "true"
+          }
+        },
+        {
+          "description": "Reload, so the bar starts again.",
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-late-reveal.html",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "stepId": "stable-late-reveal-chrome-compare",
+          "screenshot": {
+            "path": "late-reveal-chrome.png",
+            "directory": "static/images",
+            "stable": true,
+            "maxVariation": 0.01,
+            "overwrite": "aboveVariation"
+          },
+          "variables": {
+            "LATE_VARIATION": "$$variation",
+            "LATE_STABLE": "$$stable"
+          }
+        },
+        {
+          "description": "The page settled, and the capture shows the loaded page.",
+          "runShell": "node -e \"const e = { v: process.env.LATE_VARIATION, s: process.env.LATE_STABLE }; if (!(e.s === 'true' && e.v !== '' && Number(e.v) < 0.001)) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "style-hides-banner-chrome",
+      "description": "`style` hides the cookie banner only for the capture: the capture matches the page with the banner removed, and the banner is visible again right after.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/screenshot-banner.html"
+        },
+        {
+          "description": "The reference, with the banner hidden by capture-only CSS.",
+          "screenshot": {
+            "path": "banner-chrome.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "style": ".cookie-banner { visibility: hidden !important; }"
+          }
+        },
+        {
+          "description": "The CSS is gone and the banner shows again.",
+          "runBrowserScript": {
+            "script": "return document.querySelectorAll('style[data-dd-capture]').length + ':' + getComputedStyle(document.getElementById('banner')).visibility;",
+            "output": "/^0:visible$/"
+          }
+        },
+        {
+          "runBrowserScript": "document.getElementById('banner').remove(); return 'removed';"
+        },
+        {
+          "stepId": "style-hides-banner-chrome-compare",
+          "screenshot": {
+            "path": "banner-chrome.png",
+            "directory": "static/images",
+            "maxVariation": 0.01,
+            "overwrite": "aboveVariation"
+          },
+          "variables": {
+            "BANNER_VARIATION": "$$variation"
+          }
+        },
+        {
+          "description": "The styled capture matches the page without the banner.",
+          "runShell": "node -e \"const v = process.env.BANNER_VARIATION; if (v === '' || Number(v) >= 0.001) { console.error(v); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "stable-endless-chrome",
+      "description": "The box changes color every 20 ms forever, so `stable` gives up after 5 seconds, keeps the last capture, and returns a WARNING by design.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "description": "The DOM never stops changing, so don't wait for it.",
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-endless.html",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "stepId": "stable-endless-chrome-capture",
+          "screenshot": {
+            "path": "endless-chrome.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "stable": true
+          },
+          "variables": {
+            "ENDLESS_STABLE": "$$stable"
+          }
+        },
+        {
+          "description": "The step reported the page as unstable.",
+          "runShell": "node -e \"if (process.env.ENDLESS_STABLE !== 'false') { console.error(process.env.ENDLESS_STABLE); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "stable-late-reveal-firefox",
+      "description": "A loading bar fills for 300 ms, then the content appears. `stable` keeps capturing until two captures match, so the saved image is the loaded page: it matches a reference taken after a 1-second wait.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-late-reveal.html",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "description": "The settled reference.",
+          "screenshot": {
+            "path": "late-reveal-firefox.png",
+            "directory": "static/images",
+            "overwrite": "true"
+          }
+        },
+        {
+          "description": "Reload, so the bar starts again.",
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-late-reveal.html",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "stepId": "stable-late-reveal-firefox-compare",
+          "screenshot": {
+            "path": "late-reveal-firefox.png",
+            "directory": "static/images",
+            "stable": true,
+            "maxVariation": 0.01,
+            "overwrite": "aboveVariation"
+          },
+          "variables": {
+            "LATE_VARIATION": "$$variation",
+            "LATE_STABLE": "$$stable"
+          }
+        },
+        {
+          "description": "The page settled, and the capture shows the loaded page.",
+          "runShell": "node -e \"const e = { v: process.env.LATE_VARIATION, s: process.env.LATE_STABLE }; if (!(e.s === 'true' && e.v !== '' && Number(e.v) < 0.001)) { console.error(JSON.stringify(e)); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "style-hides-banner-firefox",
+      "description": "`style` hides the cookie banner only for the capture: the capture matches the page with the banner removed, and the banner is visible again right after.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/screenshot-banner.html"
+        },
+        {
+          "description": "The reference, with the banner hidden by capture-only CSS.",
+          "screenshot": {
+            "path": "banner-firefox.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "style": ".cookie-banner { visibility: hidden !important; }"
+          }
+        },
+        {
+          "description": "The CSS is gone and the banner shows again.",
+          "runBrowserScript": {
+            "script": "return document.querySelectorAll('style[data-dd-capture]').length + ':' + getComputedStyle(document.getElementById('banner')).visibility;",
+            "output": "/^0:visible$/"
+          }
+        },
+        {
+          "runBrowserScript": "document.getElementById('banner').remove(); return 'removed';"
+        },
+        {
+          "stepId": "style-hides-banner-firefox-compare",
+          "screenshot": {
+            "path": "banner-firefox.png",
+            "directory": "static/images",
+            "maxVariation": 0.01,
+            "overwrite": "aboveVariation"
+          },
+          "variables": {
+            "BANNER_VARIATION": "$$variation"
+          }
+        },
+        {
+          "description": "The styled capture matches the page without the banner.",
+          "runShell": "node -e \"const v = process.env.BANNER_VARIATION; if (v === '' || Number(v) >= 0.001) { console.error(v); process.exit(1) }\""
+        }
+      ]
+    },
+    {
+      "testId": "stable-endless-firefox",
+      "description": "The box changes color every 20 ms forever, so `stable` gives up after 5 seconds, keeps the last capture, and returns a WARNING by design.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "description": "The DOM never stops changing, so don't wait for it.",
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-endless.html",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "stepId": "stable-endless-firefox-capture",
+          "screenshot": {
+            "path": "endless-firefox.png",
+            "directory": "static/images",
+            "overwrite": "true",
+            "stable": true
+          },
+          "variables": {
+            "ENDLESS_STABLE": "$$stable"
+          }
+        },
+        {
+          "description": "The step reported the page as unstable.",
+          "runShell": "node -e \"if (process.env.ENDLESS_STABLE !== 'false') { console.error(process.env.ENDLESS_STABLE); process.exit(1) }\""
+        }
+      ]
+    }
+  ]
+}

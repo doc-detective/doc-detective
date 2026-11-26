@@ -88,9 +88,34 @@ async function getPixelmatch(ctx: { cacheDir?: string } = {}) {
   return _pixelmatch;
 }
 
-export { saveScreenshot, clampCropRect, aspectRatiosMatch, referenceViewport };
+export { saveScreenshot, clampCropRect, aspectRatiosMatch, referenceViewport, captureUntilStable };
+// Page code, exported for tests that run it against stand-in pages.
+export { freezeAnimations, thawAnimations };
 
 type Rect = { x: number; y: number; width: number; height: number };
+
+// Fill `rect` (in capture pixels, scaled by sx/sy) with opaque magenta in a raw
+// RGBA buffer of width x height, clipped to the buffer (ADR 01218).
+// A resampled image (sx/sy != 1) smears each edge outward, so the mask grows
+// there to cover the bleed.
+// ponytail: fixed 3px pad matches sharp's default lanczos3 kernel; derive it
+// from the kernel if the resample ever changes.
+function paintMask(data: Buffer, width: number, height: number, rect: Rect, sx: number, sy: number) {
+  const pad = sx === 1 && sy === 1 ? 0 : 3;
+  const x0 = Math.max(0, Math.floor(rect.x * sx) - pad);
+  const y0 = Math.max(0, Math.floor(rect.y * sy) - pad);
+  const x1 = Math.min(width, Math.ceil((rect.x + rect.width) * sx) + pad);
+  const y1 = Math.min(height, Math.ceil((rect.y + rect.height) * sy) + pad);
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const i = (y * width + x) * 4;
+      data[i] = 255;
+      data[i + 1] = 0;
+      data[i + 2] = 255;
+      data[i + 3] = 255;
+    }
+  }
+}
 
 // Shift the rect into image bounds without shrinking. When the rect fits
 // inside the image, output dimensions depend only on the requested rect,
@@ -180,26 +205,364 @@ function referenceViewport({
   return wanted;
 }
 
-// A browser capture with every element that shows a secret blurred, and the
-// blur removed after (ADR 01178), and the live annotate blurs burned in.
-async function takeBrowserScreenshot(driver: any, sharp: any): Promise<Buffer> {
-  // A tracked blur can move during the capture, so the page notes every place
-  // each blur is drawn from here until the read after it.
-  const watching = await liveBlurs(driver, watchBlurRegions);
-  const unblur = await blurSecretsForCapture(driver);
-  let buffer: Buffer;
-  try {
-    buffer = Buffer.from(await driver.takeScreenshot(), "base64");
-  } finally {
-    await unblur();
+// `stable` (ADR 01221): capture until two captures in a row are byte-identical.
+const STABLE_INTERVAL_MS = 100;
+// ponytail: a fixed 5-second ceiling. Add a `stableTimeout` key if pages need longer.
+const STABLE_TIMEOUT_MS = 5000;
+const realClock = {
+  now: () => Date.now(),
+  sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
+};
+
+async function captureUntilStable(
+  capture: () => Promise<Buffer>,
+  stable: boolean | undefined,
+  clock = realClock
+): Promise<{ buffer: Buffer; stable: boolean }> {
+  let previous = await capture();
+  if (!stable) return { buffer: previous, stable: true };
+  const deadline = clock.now() + STABLE_TIMEOUT_MS;
+  while (clock.now() < deadline) {
+    await clock.sleep(STABLE_INTERVAL_MS);
+    const next = await capture();
+    if (next.equals(previous)) return { buffer: next, stable: true };
+    previous = next;
   }
+  return { buffer: previous, stable: false };
+}
+
+// Run in the page, so they're self-contained.
+function addCaptureStyle(css: string) {
+  const style = document.createElement("style");
+  style.setAttribute("data-dd-capture", "");
+  style.textContent = css;
+  (document.head || document.documentElement).appendChild(style);
+}
+function removeCaptureStyle() {
+  document.querySelectorAll("style[data-dd-capture]").forEach((style) => style.remove());
+}
+// Web fonts that are still loading render in a fallback face, so wait for
+// them, up to 2 seconds. A page that never settles is captured as it is.
+function waitForFonts() {
+  return Promise.race([
+    (document as any).fonts?.ready,
+    new Promise((resolve) => setTimeout(resolve, 2000)),
+  ]).then(() => true);
+}
+
+// `animations: disabled` (ADR 01224): finite animations jump to their end,
+// infinite ones stop, transitions and the caret go. Each animation's time and
+// play state are kept on the page so `thawAnimations` can put them back. A
+// second freeze before the thaw (a retake) adds only animations that started
+// since, so the first freeze's saved states survive.
+function freezeAnimations() {
+  const kept: any[] = (window as any).__ddFrozenAnimations ?? [];
+  const known = new Set(kept.map((saved) => saved.animation));
+  const fresh = ((document as any).getAnimations?.() ?? []).filter((animation: any) => !known.has(animation));
+  const frozen = fresh.map((animation: any) => {
+    const saved = { animation, time: animation.currentTime, state: animation.playState };
+    try {
+      if (Number.isFinite(animation.effect?.getComputedTiming?.().endTime)) animation.finish();
+      else animation.cancel();
+    } catch {
+      animation.cancel();
+    }
+    return saved;
+  });
+  (window as any).__ddFrozenAnimations = kept.concat(frozen);
+  if (document.querySelector("style[data-dd-animations]")) return;
+  const style = document.createElement("style");
+  style.setAttribute("data-dd-animations", "");
+  style.textContent = "*, *::before, *::after { transition: none !important; caret-color: transparent !important; }";
+  (document.head || document.documentElement).appendChild(style);
+}
+function thawAnimations() {
+  document.querySelectorAll("style[data-dd-animations]").forEach((style) => style.remove());
+  for (const { animation, time, state } of (window as any).__ddFrozenAnimations ?? []) {
+    try {
+      animation.currentTime = time;
+      // A finished animation runs again once its time moves back, so a
+      // paused one is paused again.
+      if (state === "running") animation.play();
+      else if (state === "paused") animation.pause();
+    } catch {
+      // An animation whose element left the page has nothing to resume.
+    }
+  }
+  delete (window as any).__ddFrozenAnimations;
+}
+
+// Where the page is scrolled and how big it is, for `fullPage`.
+function readPageExtent() {
+  return {
+    x: window.scrollX,
+    y: window.scrollY,
+    height: document.documentElement.scrollHeight,
+    width: document.documentElement.scrollWidth,
+    viewportHeight: window.innerHeight,
+    viewportWidth: window.innerWidth,
+    // The largest window the screen allows, and the window's chrome.
+    outerWidth: window.outerWidth,
+    outerHeight: window.outerHeight,
+    availWidth: window.screen?.availWidth,
+    availHeight: window.screen?.availHeight,
+  };
+}
+function scrollPageTo(x: number, y: number) {
+  window.scrollTo(x, y);
+}
+
+// A capture that can't happen here, reported as SKIPPED rather than FAIL.
+class CaptureSkipped extends Error {}
+
+type FullPage = {
+  // An image whose top-left is the document's, so element rects read with the
+  // page scroll land on it.
+  capture: () => Promise<Buffer>;
+  restore: () => Promise<void>;
+  // On the resize path: after the freeze, make sure the page still fits.
+  // Gets the freeze, to run again after a further resize.
+  settle?: (freeze: () => Promise<void>) => Promise<void>;
+};
+
+type CaptureOptions = {
+  style?: string;
+  stable?: boolean;
+  fullPage?: boolean;
+  animations?: string;
+  config?: any;
+  label?: string;
+  // Takes the capture's cleanups (the `style` removal, then a grown window's
+  // restore), so the caller can read element geometry first and run them in
+  // its own `finally`. Without it, they run right after the capture.
+  defer?: (cleanup: () => Promise<void>) => void;
+};
+
+// `fullPage` (ADR 01224). Firefox has a whole-page command and a BiDi session
+// can capture the document. Anything else grows the window to the page's
+// height and width, captures, and puts the window and scroll back.
+async function fullPageCapture(driver: any, options: CaptureOptions): Promise<FullPage> {
+  const page = await driver.execute(readPageExtent);
+  const scroll = { x: Number(page?.x) || 0, y: Number(page?.y) || 0 };
+  // Appium reports Firefox as `MozillaFirefox`.
+  const reported = String(driver.capabilities?.browserName ?? "").toLowerCase();
+  const browser = reported.includes("firefox") ? "firefox" : reported;
+  // A whole-page command can leave the page scrolled elsewhere: Chrome on
+  // macOS scrolls to the top for a BiDi document capture. Put it back.
+  const kept = {
+    restore: async () => {
+      await driver.execute(scrollPageTo, scroll.x, scroll.y);
+    },
+  };
+  const note = (how: string) => log(options.config ?? {}, "debug", `${options.label ?? "Screenshot"}: \`fullPage\` ${how}.`);
+  if (browser === "firefox") {
+    note("captures through geckodriver's whole-page command, with no resize");
+    return { ...kept, capture: async () => Buffer.from(await driver.fullPageScreenshot(), "base64") };
+  }
+  if (driver.isBidi) {
+    note("captures the document over BiDi, with no resize");
+    const context = await driver.getWindowHandle();
+    return {
+      ...kept,
+      capture: async () =>
+        Buffer.from((await driver.browsingContextCaptureScreenshot({ context, origin: "document" })).data, "base64"),
+    };
+  }
+  // A screenshot that fails once the window grew is a SKIP only with evidence
+  // that the screen capped it: the viewport no longer fits the page, or the
+  // screen can't hold it. Anything else, such as a lost session, FAILs.
+  // Each capture checks the page still fits the viewport, so a page that grew
+  // between `stable` captures SKIPs instead of saving a cropped image.
+  const viewportCapture = async () => {
+    let image: Buffer;
+    try {
+      image = Buffer.from(await driver.takeScreenshot(), "base64");
+    } catch (error) {
+      if (!original) throw error;
+      let capped = false;
+      try {
+        const now = await driver.execute(readPageExtent);
+        const shown = { width: Number(now?.viewportWidth) || 0, height: Number(now?.viewportHeight) || 0 };
+        capped = !fits(now, shown) || !fits(now, limitOf(now));
+      } catch {
+        // A page that can't be read gives no evidence of a cap.
+      }
+      await restore().catch(() => {});
+      throw capped ? tooLarge() : error;
+    }
+    const now = await driver.execute(readPageExtent);
+    if (!fits(now, { width: Number(now?.viewportWidth) || 0, height: Number(now?.viewportHeight) || 0 })) {
+      throw tooLarge();
+    }
+    return image;
+  };
+  const viewport = { width: Number(page?.viewportWidth) || 0, height: Number(page?.viewportHeight) || 0 };
+  // A pixel of slack for rounding; any more would cut off the page's edge.
+  const fits = (extent: any, within: { width: number; height: number }) =>
+    within.height + 1 >= (Number(extent?.height) || 0) && within.width + 1 >= (Number(extent?.width) || 0);
+  // Read on the first resize, so a page that never grows is never resized.
+  let original: { width: number; height: number } | undefined;
+  const restore = async () => {
+    if (!original) return;
+    await driver.setWindowSize(original.width, original.height);
+    await driver.execute(scrollPageTo, scroll.x, scroll.y);
+  };
+  const tooLarge = () =>
+    new CaptureSkipped(`Skipped: \`${browser || "this browser"}\` can't capture a page larger than the screen.`);
+  // Grow the viewport to `extent`, then read the page again: a `vh` layout
+  // grows with the viewport.
+  let realized = viewport;
+  // The largest viewport the screen allows: its available size less the
+  // window's chrome. Checked before resizing, because safaridriver can refuse
+  // the screenshot of a window grown past the screen. No limit when unreported.
+  function limitOf(extent: any) {
+    const axis = (avail: unknown, outer: unknown, inner: unknown) => {
+      const max = Number(avail) - (Number(outer) - Number(inner));
+      return Number.isFinite(max) && max > 0 ? max : Infinity;
+    };
+    return {
+      width: axis(extent?.availWidth, extent?.outerWidth, extent?.viewportWidth),
+      height: axis(extent?.availHeight, extent?.outerHeight, extent?.viewportHeight),
+    };
+  }
+  const limit = limitOf(page);
+  const grow = async (extent: any) => {
+    const wanted = {
+      width: Math.max(Number(extent?.width) || 0, realized.width),
+      height: Math.max(Number(extent?.height) || 0, realized.height),
+    };
+    if (wanted.width > limit.width + 1 || wanted.height > limit.height + 1) throw tooLarge();
+    note(`resizes the window to a ${wanted.width}×${wanted.height} viewport`);
+    original ??= await driver.getWindowSize();
+    realized = await realizeViewport(driver, wanted, options.config, options.label, "debug");
+    return await driver.execute(readPageExtent);
+  };
+  const fitsAtFirst = fits(page, viewport);
+  if (!fitsAtFirst) {
+    let grown: any;
+    try {
+      grown = await grow(page);
+    } catch (error) {
+      await restore().catch(() => {});
+      throw error;
+    }
+    if (!fits(grown, realized)) {
+      await restore();
+      throw tooLarge();
+    }
+  }
+  // Finishing an animation can make the page bigger, even one that fit at
+  // first. The caller restores the window whatever this throws.
+  const settle = async (freeze: () => Promise<void>) => {
+    const frozen = await driver.execute(readPageExtent);
+    if (fits(frozen, realized)) return;
+    // ponytail: one more resize and freeze; a page that keeps growing after
+    // that is SKIPPED. Loop until it settles if real pages need more.
+    await grow(frozen);
+    await freeze();
+    if (!fits(await driver.execute(readPageExtent), realized)) throw tooLarge();
+  };
+  // A viewport as big as the page can't scroll, so it starts at the document's
+  // top-left.
+  return { restore, capture: viewportCapture, settle };
+}
+
+// A browser capture with every element that shows a secret blurred, and the
+// blur removed after (ADR 01178), and the live annotate blurs burned in. The
+// step's `style` holds only for the capture, after web fonts load (ADR 01221).
+async function takeBrowserScreenshot(
+  driver: any,
+  sharp: any,
+  options: CaptureOptions = {}
+): Promise<{ buffer: Buffer; stable: boolean; fullPage: boolean }> {
+  const freeze = options.animations === "disabled";
+  let captured: { buffer: Buffer; stable: boolean };
+  let watching: any;
+  let fullPage: FullPage | undefined;
+  const removeStyle = async () => {
+    try {
+      await driver.execute(removeCaptureStyle);
+    } catch {
+      // A page that navigated away has no style left to remove.
+    }
+  };
+  try {
+    // Inside the try: the script can add the style and the command still
+    // fail, so the cleanup must run either way.
+    if (options.style) {
+      options.defer?.(removeStyle);
+      try {
+        await driver.execute(addCaptureStyle, options.style);
+      } catch (error: any) {
+        throw new Error(`Couldn't add the \`style\` CSS to the page: ${error?.message ?? error}`);
+      }
+    }
+    try {
+      await driver.execute(waitForFonts);
+    } catch {
+      // A page that can't report its fonts is captured as it is.
+    }
+    if (options.fullPage) {
+      fullPage = await fullPageCapture(driver, options);
+      const restore = fullPage.restore;
+      options.defer?.(() => restoreFullPage(restore, options.config));
+    }
+    try {
+      // After the fonts and the resize, so an animation either starts is
+      // frozen too. The caller thaws, once it has read where elements are.
+      if (freeze) {
+        const freezePage = async () => {
+          try {
+            await driver.execute(freezeAnimations);
+          } catch (error: any) {
+            throw new Error(`Couldn't stop the page's animations: ${error?.message ?? error}`);
+          }
+        };
+        await freezePage();
+        await fullPage?.settle?.(freezePage);
+      }
+      // A tracked blur can move during the capture, so the page notes every place
+      // each blur is drawn from here until the read after it.
+      watching = await liveBlurs(driver, watchBlurRegions);
+      const unblur = await blurSecretsForCapture(driver);
+      try {
+        captured = await captureUntilStable(
+          fullPage?.capture ?? (async () => Buffer.from(await driver.takeScreenshot(), "base64")),
+          options.stable
+        );
+      } finally {
+        await unblur();
+      }
+    } finally {
+      if (!options.defer) await restoreFullPage(fullPage?.restore, options.config);
+    }
+  } finally {
+    if (options.style && !options.defer) await removeStyle();
+  }
+  const buffer = captured!.buffer;
   const page = await liveBlurs(driver, readBlurRegions);
   // A watch that's gone means a new document, which can't say where the
   // captured frame's blurs were.
   if (watching && !page?.watched) {
     throw new Error("Couldn't read where the live `blur` annotations are on the page. The page changed during the screenshot.");
   }
-  return await burnInLiveBlurs(sharp, buffer, page);
+  // A whole-page image is as wide as the document, so its scale is the pixel
+  // density, as for annotations. Without one, the page's own default of 1.
+  const dpr =
+    fullPage && page?.regions?.length > 0 ? Number(await driver.execute(() => window.devicePixelRatio)) : NaN;
+  return {
+    buffer: await burnInLiveBlurs(sharp, buffer, page, fullPage ? (dpr > 0 ? dpr : 1) : undefined),
+    stable: captured!.stable,
+    fullPage: !!fullPage,
+  };
+}
+
+async function restoreFullPage(restore: (() => Promise<void>) | undefined, config: any): Promise<void> {
+  try {
+    await restore?.();
+  } catch (error: any) {
+    log(config ?? {}, "warning", `Couldn't restore the window size and scroll after the \`fullPage\` screenshot: ${error?.message ?? error}`);
+  }
 }
 
 async function liveBlurs(driver: any, call: (driver: any) => Promise<any>): Promise<any> {
@@ -217,14 +580,15 @@ async function liveBlurs(driver: any, call: (driver: any) => Promise<any>): Prom
 // twice: stronger, never weaker. Hiding the layer's blurs for the capture would
 // avoid that, but a running recording would catch the page unblurred. Fails
 // closed, like the secret blur: no capture beats an unredacted one.
-async function burnInLiveBlurs(sharp: any, buffer: Buffer, page: any): Promise<Buffer> {
+// A whole-page capture (`pageScale` set) uses the blurs in document pixels,
+// each frame with its own scroll.
+async function burnInLiveBlurs(sharp: any, buffer: Buffer, page: any, pageScale?: number): Promise<Buffer> {
+  const source = pageScale ? page?.documentRegions : page?.regions;
   // Weakest first: where blurs overlap, the last one composited is what shows.
-  const regions: any[] = Array.isArray(page?.regions)
-    ? [...page.regions].sort((a, b) => a.intensity - b.intensity)
-    : [];
+  const regions: any[] = Array.isArray(source) ? [...source].sort((a, b) => a.intensity - b.intensity) : [];
   if (regions.length === 0) return buffer;
   const meta = await sharp(buffer).metadata();
-  const scale = computeScale(meta.width, page.viewportWidth);
+  const scale = pageScale ?? computeScale(meta.width, page.viewportWidth);
   const { blurRegions } = annotationsToSvg(
     regions.map((region) => ({
       type: "blur",
@@ -247,6 +611,7 @@ async function retakeAtReferenceSize({
   sharp,
   config,
   label,
+  options,
 }: {
   driver: any;
   captureBuffer: Buffer;
@@ -254,9 +619,11 @@ async function retakeAtReferenceSize({
   sharp: any;
   config: any;
   label: string;
+  options?: CaptureOptions;
 }): Promise<{
   restore: () => Promise<void>;
   buffer: Buffer;
+  stable: boolean;
   from: Size;
   to: Size;
 } | null> {
@@ -300,13 +667,13 @@ async function retakeAtReferenceSize({
   let got: string;
   try {
     await realizeViewport(driver, wanted, config, label, "debug");
-    const buffer = await takeBrowserScreenshot(driver, sharp);
-    const retaken = await sharp(buffer).metadata();
+    const shot = await takeBrowserScreenshot(driver, sharp, options);
+    const retaken = await sharp(shot.buffer).metadata();
     if (
       retaken.width === reference.width &&
       retaken.height === reference.height
     ) {
-      return { restore, buffer, from: capture, to: reference };
+      return { restore, buffer: shot.buffer, stable: shot.stable, from: capture, to: reference };
     }
     got = `${retaken.width}×${retaken.height}`;
   } catch (error: any) {
@@ -331,16 +698,37 @@ async function retakeAtReferenceSize({
   return null;
 }
 
+// The first free `<name>[-N].diff.png`/`.previous.png` pair in `dir`. A taken
+// name is an earlier run of the same step (a `goToStep` loop), so it's kept.
+function diffArtifactPaths(dir: string, name: string): { diffPath: string; previousPath: string } {
+  for (let n = 1; ; n++) {
+    const stem = path.join(dir, n === 1 ? name : `${name}-${n}`);
+    const diffPath = `${stem}.diff.png`;
+    const previousPath = `${stem}.previous.png`;
+    if (!fs.existsSync(diffPath) && !fs.existsSync(previousPath)) return { diffPath, previousPath };
+  }
+}
+
 // Window restoration lives out here rather than in the body: annotations
 // resolve against the live page after capture, so a resize for the reference
-// must hold until the step is done, whichever return the body takes.
+// must hold until the step is done, whichever return the body takes. So must
+// the capture's `style`, a `fullPage` window grown to the page, and
+// `animations: disabled`, so annotations and masks land where the capture
+// shows the elements (ADR 01224). They undo in that order; each swallows its
+// own failure, so every one runs.
+type CaptureSession = {
+  restoreWindow?: () => Promise<void>;
+  cleanups: (() => Promise<void>)[];
+  thaw?: () => Promise<void>;
+};
 async function saveScreenshot(
   args: Parameters<typeof captureScreenshot>[0]
 ) {
-  const session: { restoreWindow?: () => Promise<void> } = {};
+  const session: CaptureSession = { cleanups: [] };
   try {
     return await captureScreenshot(args, session);
   } finally {
+    for (const cleanup of session.cleanups) await cleanup();
     try {
       await session.restoreWindow?.();
     } catch (error: any) {
@@ -349,6 +737,11 @@ async function saveScreenshot(
         "warning",
         `Couldn't restore the window size after resizing for a screenshot reference: ${error?.message ?? error}`
       );
+    }
+    try {
+      await session.thaw?.();
+    } catch {
+      // A page that navigated away has no animations left to resume.
     }
   }
 }
@@ -387,7 +780,7 @@ async function captureScreenshot({
   // run folder is only created when a capture needs it. Direct callers fall
   // back to the run folder's own `screenshots/`.
   screenshotsDir?: () => string;
-}, session: { restoreWindow?: () => Promise<void> }) {
+}, session: CaptureSession) {
   let result: any = {
     status: "PASS",
     description: "Saved screenshot.",
@@ -412,6 +805,7 @@ async function captureScreenshot({
   // Applicable verification specs, IN ORDER:
   //   (1) crop element found      `$$outputs.cropElementFound == true`      (fail)    — only when `crop` is set
   //   (2) element fits viewport   `$$outputs.fitsViewport == true`          (fail)    — only when `crop` is set
+  //   (2b) page settled           `$$outputs.stable == true`                (warning) — only when `stable` is set
   //   (3) annotation targets found `$$outputs.annotationTargetsFound == true` (fail)   — only when `annotations` is set
   //   (4) annotations in bounds   `$$outputs.annotationsInBounds == true`   (warning) — only when `annotations` is set
   //   (5) aspect ratios match     `$$outputs.aspectRatioMatches == true`    (fail)    — only when comparing against an existing/URL reference
@@ -455,6 +849,9 @@ async function captureScreenshot({
     result.description = "Skipped: `screenshot` is `false`.";
     return result;
   }
+  // Run-wide `overwriteScreenshots` replaces the step's `overwrite` (ADR 01222),
+  // except on recording checkpoints: stopRecord owns their baselines (ADR 01075).
+  if (config?.overwriteScreenshots && !internal?.compareOnly) step.screenshot.overwrite = config.overwriteScreenshots;
 
   // Lazy-load heavy deps once per saveScreenshot invocation; ensureRuntime
   // already materialized them ahead of step execution. The ctx threads
@@ -531,6 +928,20 @@ async function captureScreenshot({
       result.status = "FAIL";
       result.description =
         "crop isn't supported on app captures yet; it relies on browser viewport APIs. Capture the window and crop downstream, or omit crop.";
+      return result;
+    }
+    // The schema rejects these with an `{ app }` surface; a bare name or the
+    // active surface only resolves to an app here.
+    if (step.screenshot.fullPage === true) {
+      result.status = "FAIL";
+      result.description =
+        "`fullPage` isn't supported on app captures; it captures a scrollable web page. Omit `fullPage`.";
+      return result;
+    }
+    if (step.screenshot.animations === "disabled") {
+      result.status = "FAIL";
+      result.description =
+        "`animations` isn't supported on app captures; it stops a web page's animations. Omit `animations`.";
       return result;
     }
     const switchedApp = await ensureAppForeground(appRef.entry!, appSession);
@@ -813,6 +1224,23 @@ async function captureScreenshot({
   // buffer-based. Nothing is written to `filePath`/`existFilePath` yet — the
   // final PNG lands on disk exactly once, at the end.
   let captureBuffer: Buffer;
+  let captureStable = true;
+  const captureOptions: CaptureOptions = {
+    style: step.screenshot.style,
+    stable: step.screenshot.stable,
+    fullPage: step.screenshot.fullPage === true,
+    animations: step.screenshot.animations,
+    config,
+    label: `Screenshot ${step.stepId}`,
+    // The `style` and a grown window stay until geometry is read, like the
+    // freeze. The reference retake defers its own too.
+    defer: (cleanup) => {
+      session.cleanups.push(cleanup);
+    },
+  };
+  // A whole-page capture: element rects are read relative to the document
+  // (ADR 01224).
+  let wholePage = false;
   let appScratchPath: string | undefined;
   try {
     if (recordingActive) {
@@ -830,12 +1258,33 @@ async function captureScreenshot({
         dir,
         `.appcapture_${step.stepId || "screenshot"}_${Date.now()}.png`
       );
-      await appWindowScreenshot(appEntry, appWindowTarget, appScratchPath);
-      captureBuffer = fs.readFileSync(appScratchPath);
+      const scratch = appScratchPath;
+      // `stable` only compares PNGs, so it works on app windows too.
+      ({ buffer: captureBuffer, stable: captureStable } = await captureUntilStable(async () => {
+        await appWindowScreenshot(appEntry, appWindowTarget, scratch);
+        return fs.readFileSync(scratch);
+      }, captureOptions.stable));
     } else {
-      captureBuffer = await takeBrowserScreenshot(captureDriver, sharp);
+      // The page stays frozen until the step ends, after annotation and mask
+      // geometry is read; `saveScreenshot` thaws it, even on a failure.
+      if (captureOptions.animations === "disabled") {
+        session.thaw = async () => {
+          await captureDriver.execute(thawAnimations);
+        };
+      }
+      ({
+        buffer: captureBuffer,
+        stable: captureStable,
+        fullPage: wholePage,
+      } = await takeBrowserScreenshot(captureDriver, sharp, captureOptions));
     }
   } catch (error) {
+    if (error instanceof CaptureSkipped) {
+      result.status = "SKIPPED";
+      result.description = error.message;
+      result.assertions = [];
+      return result;
+    }
     // Couldn't capture screenshot
     result.status = "FAIL";
     result.description = `Couldn't save screenshot. ${error}`;
@@ -878,6 +1327,7 @@ async function captureScreenshot({
   if (
     !isAppCapture &&
     !step.screenshot.crop &&
+    !wholePage &&
     existFilePath &&
     !(step.screenshot.overwrite === "true" && !isUrlPath) &&
     !internal?.compareOnly &&
@@ -890,12 +1340,23 @@ async function captureScreenshot({
       sharp,
       config,
       label: `Screenshot ${step.stepId}`,
+      options: captureOptions,
     });
     if (retake) {
       session.restoreWindow = retake.restore;
       captureBuffer = retake.buffer;
+      captureStable = retake.stable;
       result.outputs.resizedToReference = { from: retake.from, to: retake.to };
       result.description += ` Resized the window to match the reference's ${retake.to.width}×${retake.to.height} before comparing.`;
+    }
+  }
+
+  // A page that never settled is still saved: a WARNING, not a FAIL.
+  if (step.screenshot.stable) {
+    result.outputs.stable = captureStable;
+    specs.push({ statement: `$$outputs.stable == true`, severity: "warning" });
+    if (!captureStable) {
+      result.description += ` Page kept changing for ${STABLE_TIMEOUT_MS / 1000} seconds, so the screenshot may not be stable.`;
     }
   }
 
@@ -988,36 +1449,56 @@ async function captureScreenshot({
   // write. Annotations are composited in image space rather than injected into
   // the page: that keeps the page under test untouched, works identically on
   // app surfaces, and can't flash into a recording that's running concurrently.
+  // How element rects map onto the final canvas, shared by annotations and
+  // masks (ADR 01218) so both land in the same place. Computed once, on first
+  // use. Neither changes the canvas size, so it stays valid after annotating.
+  let geometry:
+    | { canvas: { width: number; height: number }; scale: number; windowOrigin: { x: number; y: number }; logicalWidth: unknown }
+    | undefined;
+  const captureGeometry = async () => {
+    if (geometry) return geometry;
+    // Without a crop these are the same buffer, so read metadata once.
+    const captureMeta = await sharp(captureBuffer).metadata();
+    const canvasMeta =
+      finalBuffer === captureBuffer
+        ? captureMeta
+        : await sharp(finalBuffer).metadata();
+    const canvas = { width: canvasMeta.width!, height: canvasMeta.height! };
+
+    // Scale comes from the CAPTURE, not the cropped canvas: it relates the
+    // capture's pixels to the logical units element rects are reported in,
+    // and cropping changes the canvas but not that relationship.
+    let logicalWidth: unknown;
+    let windowOrigin = { x: 0, y: 0 };
+    if (isAppCapture) {
+      const windowRect = await appWindowRect(appEntry, appWindowTarget);
+      if (windowRect) {
+        logicalWidth = windowRect.w;
+        // Whether native rects need rebasing onto the window is
+        // platform-specific — see appWindowOrigin for the evidence.
+        windowOrigin = appWindowOrigin(appEntry?.platform, windowRect);
+      }
+    } else {
+      logicalWidth = await driver.execute(() => window.innerWidth);
+    }
+    let scale = computeScale(captureMeta.width!, logicalWidth);
+    // A whole-page image is as wide as the document, not the viewport, so
+    // the pixel density is the scale. Element rects add the page scroll they
+    // were read with (`documentRelative` below).
+    if (wholePage) {
+      const dpr = Number(await driver.execute(() => window.devicePixelRatio));
+      if (dpr > 0) scale = dpr;
+    }
+    geometry = { canvas, scale, windowOrigin, logicalWidth };
+    return geometry;
+  };
+
   const annotationSpecs = Array.isArray(step.screenshot.annotations)
     ? step.screenshot.annotations
     : [];
   if (annotationSpecs.length > 0) {
     try {
-      // Without a crop these are the same buffer, so read metadata once.
-      const captureMeta = await sharp(captureBuffer).metadata();
-      const canvasMeta =
-        finalBuffer === captureBuffer
-          ? captureMeta
-          : await sharp(finalBuffer).metadata();
-      const canvas = { width: canvasMeta.width!, height: canvasMeta.height! };
-
-      // Scale comes from the CAPTURE, not the cropped canvas: it relates the
-      // capture's pixels to the logical units element rects are reported in,
-      // and cropping changes the canvas but not that relationship.
-      let logicalWidth: unknown;
-      let windowOrigin = { x: 0, y: 0 };
-      if (isAppCapture) {
-        const windowRect = await appWindowRect(appEntry, appWindowTarget);
-        if (windowRect) {
-          logicalWidth = windowRect.w;
-          // Whether native rects need rebasing onto the window is
-          // platform-specific — see appWindowOrigin for the evidence.
-          windowOrigin = appWindowOrigin(appEntry?.platform, windowRect);
-        }
-      } else {
-        logicalWidth = await driver.execute(() => window.innerWidth);
-      }
-      const scale = computeScale(captureMeta.width!, logicalWidth);
+      const { canvas, scale, windowOrigin, logicalWidth } = await captureGeometry();
 
       const theme = annotationTheme ?? resolveTheme([config?.annotationDefaults]);
       const resolved = annotationSpecs.map((annotation: any) =>
@@ -1035,6 +1516,7 @@ async function captureScreenshot({
         canvas,
         scale,
         cropOrigin,
+        documentRelative: wholePage,
       });
 
       // (3) Annotation targets resolved is a VERIFICATION ASSERTION, and a
@@ -1184,11 +1666,15 @@ async function captureScreenshot({
     if (step.screenshot.maxVariation != null) {
       let img1: any;
       let img2: any;
+      // The reference as compared, kept so the archived previous image is
+      // these bytes even if another step rewrites the file meanwhile.
+      let referenceBytes: Buffer;
       try {
         // Decode the existing reference from disk and the freshly captured
         // (optionally cropped) buffer directly — no read-back of a file we
         // just wrote.
-        img1 = PNG.sync.read(fs.readFileSync(existFilePath));
+        referenceBytes = fs.readFileSync(existFilePath);
+        img1 = PNG.sync.read(referenceBytes);
         img2 = PNG.sync.read(finalBuffer);
       } catch (error) {
         result.status = "FAIL";
@@ -1212,6 +1698,72 @@ async function captureScreenshot({
       if (!aspectRatioMatches) {
         result.description = `Couldn't compare images. Images have different aspect ratios.`;
         return await evaluateApplicable();
+      }
+
+      // Masks (ADR 01218): areas whose pixels don't count toward the
+      // comparison. Resolved only here, where a comparison actually runs, in
+      // the capture's canvas pixels; painted onto both images further down.
+      const maskTargets = Array.isArray(step.screenshot.mask) ? step.screenshot.mask : [];
+      let maskRects: { x: number; y: number; width: number; height: number }[] = [];
+      // The final canvas (post-crop, post-annotation) the mask rects are in.
+      const canvasSize = { width: img2.width, height: img2.height };
+      if (maskTargets.length > 0) {
+        const { canvas, scale, windowOrigin } = await captureGeometry();
+        const { placed, errors } = await resolveAnnotationRects({
+          config,
+          verb: "mask",
+          // An element object masks every match; a string, which could be a
+          // selector or display text, masks the first. App finds resolve one
+          // element, so they never ask for all.
+          annotations: maskTargets.map((target: any) => ({
+            target,
+            all: typeof target === "object" && !isAppCapture,
+          })) as any,
+          driver,
+          surface: step.screenshot.surface,
+          appSession,
+          isAppCapture,
+          appDriver: captureDriver,
+          windowOrigin,
+          canvas,
+          scale,
+          cropOrigin,
+          documentRelative: wholePage,
+        });
+
+        // A mask that can't be found FAILs: a comparison that quietly ignores
+        // nothing is worse than one that stops.
+        result.outputs.maskTargetsFound = errors.length === 0;
+        specs.push({
+          statement: `$$outputs.maskTargetsFound == true`,
+          severity: "fail",
+        });
+        if (errors.length > 0) {
+          result.description = `Couldn't find every mask target. ${errors.join(" ")}`;
+          return await evaluateApplicable();
+        }
+
+        // Clip to the canvas. A targeted (string) mask that lands wholly
+        // outside it masks nothing, which is a WARNING; every-match masks are
+        // exempt, since matches below the fold are expected.
+        const clipped = placed.map((item: any) => {
+          const x = Math.max(0, Math.floor(item.rect.x));
+          const y = Math.max(0, Math.floor(item.rect.y));
+          const right = Math.min(canvas.width, Math.ceil(item.rect.x + item.rect.width));
+          const bottom = Math.min(canvas.height, Math.ceil(item.rect.y + item.rect.height));
+          return { all: item.all, rect: { x, y, width: Math.max(0, right - x), height: Math.max(0, bottom - y) } };
+        });
+        maskRects = clipped
+          .map((item: any) => item.rect)
+          .filter((rect: any) => rect.width > 0 && rect.height > 0);
+        result.outputs.maskedRegions = maskRects.length;
+        result.outputs.masksInBounds = clipped.every(
+          (item: any) => item.all || (item.rect.width > 0 && item.rect.height > 0)
+        );
+        specs.push({
+          statement: `$$outputs.masksInBounds == true`,
+          severity: "warning",
+        });
       }
 
       // Bring the images to a common size (ADR 01205). At the same scale (each
@@ -1251,6 +1803,19 @@ async function captureScreenshot({
         img2.data = img2ResizedBuffer;
       }
 
+      // Paint every mask the same color on both images, so masked pixels
+      // always match. The rects are in the capture's pixels: the same-scale
+      // path compares the top-left region as-is, and the resample path scales
+      // the capture to (width, height), so the rects scale with it.
+      if (maskRects.length > 0) {
+        const sx = sameScale ? 1 : width / canvasSize.width;
+        const sy = sameScale ? 1 : height / canvasSize.height;
+        for (const rect of maskRects) {
+          paintMask(img1.data, width, height, rect, sx, sy);
+          paintMask(img2.data, width, height, rect, sx, sy);
+        }
+      }
+
       let pixelmatchFn: any;
       try {
         pixelmatchFn = await getPixelmatch(loadCtx);
@@ -1262,16 +1827,17 @@ async function captureScreenshot({
         result.description = `Couldn't load screenshot comparison dependency (pixelmatch). ${error?.message ?? error}`;
         return result;
       }
-      // threshold 0: any color change counts (anti-aliasing is still
-      // excused); maxVariation is the only tolerance. Reproduces pixelmatch
-      // 7's counts at its old 0.0005 exactly (ADR 01142).
+      // pixelmatch's per-pixel color tolerance (ADR 01220, amending ADR
+      // 01142). The 0.1 default ignores font-smoothing noise; 0 counts any
+      // color change, as pixelmatch 7 did.
+      const diffImage = Buffer.alloc(width * height * 4);
       const numDiffPixels = pixelmatchFn(
         img1.data,
         img2.data,
-        null,
+        diffImage,
         width,
         height,
-        { threshold: 0 }
+        { threshold: step.screenshot.threshold ?? 0.1 }
       );
       fractionalDiff = numDiffPixels / (width * height);
 
@@ -1287,12 +1853,43 @@ async function captureScreenshot({
       // (not FAIL) when it evaluates false, matching the prior `WARNING` status.
       // The file-write side effects below are preserved exactly.
       result.outputs.variation = fractionalDiff;
+      result.outputs.diffPixels = numDiffPixels;
+      const { maxVariation, maxDiffPixels } = step.screenshot;
       specs.push({
-        statement: `$$outputs.variation <= ${step.screenshot.maxVariation}`,
+        statement: `$$outputs.variation <= ${maxVariation}`,
         severity: "warning",
       });
+      if (maxDiffPixels != null) {
+        specs.push({
+          statement: `$$outputs.diffPixels <= ${maxDiffPixels}`,
+          severity: "warning",
+        });
+      }
 
-      if (fractionalDiff > step.screenshot.maxVariation) {
+      // Diff images go to the run folder only, never next to the docs, and
+      // before any overwrite so the previous reference survives. The stepId
+      // keeps references that share a basename from clobbering each other.
+      let seeDiff = "";
+      if (numDiffPixels > 0) {
+        try {
+          const outDir = screenshotsDir?.() ?? path.join(getRunOutputDir(config), "screenshots");
+          fs.mkdirSync(outDir, { recursive: true });
+          const base = path.basename(filePath, path.extname(filePath));
+          const name = sanitizeFilesystemName([base, step.stepId].filter(Boolean).join("-"), base);
+          const { diffPath, previousPath } = diffArtifactPaths(outDir, name);
+          fs.writeFileSync(diffPath, PNG.sync.write({ width, height, data: diffImage } as any));
+          fs.writeFileSync(previousPath, referenceBytes!);
+          result.outputs.diffPath = diffPath;
+          result.outputs.previousPath = previousPath;
+          seeDiff = ` See \`${diffPath}\`.`;
+        } catch (error: any) {
+          log(config, "warning", `Couldn't write the screenshot diff images. ${error?.message ?? error}`);
+        }
+      }
+
+      const overVariation = fractionalDiff > maxVariation;
+      const overPixels = maxDiffPixels != null && numDiffPixels > maxDiffPixels;
+      if (overVariation || overPixels) {
         if (
           step.screenshot.overwrite == "aboveVariation" &&
           !isUrlPath &&
@@ -1301,11 +1898,15 @@ async function captureScreenshot({
           // Replace old file with the new capture (single write to the target).
           if (!writeFinalPng(existFilePath)) return result;
         }
-        result.description += ` The difference between the existing screenshot and new screenshot (${fractionalDiff.toFixed(
-          2
-        )}) is greater than the max accepted variation (${
-          step.screenshot.maxVariation
-        }).`;
+        if (overVariation) {
+          result.description += ` The difference between the existing screenshot and new screenshot (${fractionalDiff.toFixed(
+            2
+          )}) is greater than the max accepted variation (${maxVariation}).`;
+        }
+        if (overPixels) {
+          result.description += ` Screenshot differs from the reference by ${numDiffPixels} pixels, more than \`maxDiffPixels\` (${maxDiffPixels}).`;
+        }
+        result.description += seeDiff;
         if (isUrlPath) {
           // URL references are read-only: we can't write back to the remote.
           // Leave `outputs.changed` at its default (false) so upload pipelines

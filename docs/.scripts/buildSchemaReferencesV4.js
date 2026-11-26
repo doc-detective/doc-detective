@@ -84,6 +84,9 @@ function getEffectiveProperties(schema) {
   if (!schema || typeof schema !== "object") return null;
   let properties = schema.properties ? { ...schema.properties } : null;
   let required = Array.isArray(schema.required) ? [...schema.required] : [];
+  // Field sets a `not: { required }` guard forbids together, such as
+  // screenshot's `crop` and `fullPage`. A synthesized example sets none in full.
+  let exclusive = Array.isArray(schema.not?.required) ? [schema.not.required] : [];
   if (Array.isArray(schema.allOf)) {
     for (const sub of schema.allOf) {
       const subEff = getEffectiveProperties(sub);
@@ -91,9 +94,10 @@ function getEffectiveProperties(schema) {
         properties = { ...(properties || {}), ...subEff.properties };
         required = required.concat(subEff.required);
       }
+      if (Array.isArray(sub?.not?.required)) exclusive.push(sub.not.required);
     }
   }
-  return properties ? { properties, required } : null;
+  return properties ? { properties, required, exclusive } : null;
 }
 
 // A single-property wrapper whose property name matches its title, e.g. an action
@@ -355,8 +359,14 @@ function exampleValue(propSchema, depth = 0) {
       return 42;
     case "boolean":
       return true;
-    case "array":
-      return [];
+    case "array": {
+      // `[]` is invalid when the schema sets minItems, so fill the minimum with
+      // a synthesized item, or omit the field when no item can be made.
+      const min = propSchema.minItems || 0;
+      if (min === 0) return [];
+      const item = exampleValue(propSchema.items, depth + 1);
+      return item === undefined ? undefined : Array(min).fill(item);
+    }
   }
 
   // Object schemas (incl. allOf-composed). Build a minimal valid object: when the
@@ -398,6 +408,10 @@ function buildExampleObject(eff, depth = 0) {
     // step_v3's root allow-list holds empty schemas. The real fields are in its branches.
     if (Object.keys(propSchema).length === 0) continue;
     if (propSchema.readOnly || propSchema.deprecated) continue;
+    const completes = (eff.exclusive || []).some(
+      (set) => set.includes(propName) && set.every((key) => key === propName || key in example)
+    );
+    if (completes) continue;
     const v = exampleValue(propSchema, depth);
     if (v !== undefined) example[propName] = v;
   }
@@ -726,8 +740,12 @@ async function main() {
   console.log(`Total schemas generated: ${generatedSchemaFiles.size}`);
 }
 
-// Run the main function
-main().catch((err) => {
-  console.error("Error generating schema references:", err);
-  process.exit(1);
-});
+module.exports = { exampleValue, generateExampleFromSchema };
+
+// Run the main function when invoked as a script, not when required by a test.
+if (require.main === module) {
+  main().catch((err) => {
+    console.error("Error generating schema references:", err);
+    process.exit(1);
+  });
+}

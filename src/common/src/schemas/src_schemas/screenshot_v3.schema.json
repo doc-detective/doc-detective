@@ -35,8 +35,8 @@
             "$ref": "#/components/schemas/objectShape"
           },
           {
-            "title": "App captures don't support crop",
-            "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
+            "title": "App captures don't support crop, style, fullPage, or animations",
+            "$comment": "crop relies on browser viewport APIs, and style, fullPage, and animations act on a web page; none has an app-window equivalent. Rejected at validation time so authors don't hit a runtime FAIL.",
             "if": {
               "required": [
                 "surface"
@@ -52,10 +52,47 @@
             },
             "then": {
               "not": {
-                "required": [
-                  "crop"
+                "anyOf": [
+                  {
+                    "required": [
+                      "crop"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "style"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "fullPage"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "animations"
+                    ]
+                  }
                 ]
               }
+            }
+          },
+          {
+            "title": "crop and fullPage are exclusive",
+            "$comment": "A crop already defines the captured area (ADR 01224).",
+            "not": {
+              "required": [
+                "crop",
+                "fullPage"
+              ],
+              "properties": {
+                "fullPage": {
+                  "const": true
+                }
+              }
+            },
+            "errorMessage": {
+              "not": "set `crop` or `fullPage`, not both."
             }
           }
         ],
@@ -66,7 +103,7 @@
         "additionalProperties": false,
         "properties": {
           "surface": {
-            "description": "The browser window/tab or app window to capture. Omit to capture the active surface \u2014 the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": \u2026 }). App captures don't support `crop`.",
+            "description": "The browser window/tab or app window to capture. Omit to capture the active surface \u2014 the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": \u2026 }). App captures don't support `crop`, `style`, `fullPage`, or `animations`.",
             "anyOf": [
               {
                 "$ref": "surface_v3.schema.json#/components/schemas/byEngineName"
@@ -96,9 +133,21 @@
             "minimum": 0,
             "maximum": 1
           },
+          "threshold": {
+            "type": "number",
+            "description": "How different two pixels' colors must be, from 0 to 1, before the pixel counts as changed when comparing with the existing screenshot at `path`. Higher numbers ignore anti-aliasing and font-smoothing noise. `0` counts any color change.",
+            "default": 0.1,
+            "minimum": 0,
+            "maximum": 1
+          },
+          "maxDiffPixels": {
+            "type": "integer",
+            "description": "Most changed pixels allowed between the new screenshot and the existing screenshot at `path`. Applies alongside `maxVariation`: when both are set, both must hold, or the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
+            "minimum": 0
+          },
           "overwrite": {
             "type": "string",
-            "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+            "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
             "enum": [
               "true",
               "false",
@@ -118,6 +167,27 @@
               }
             ]
           },
+          "style": {
+            "type": "string",
+            "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+            "minLength": 1
+          },
+          "stable": {
+            "type": "boolean",
+            "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
+          },
+          "fullPage": {
+            "type": "boolean",
+            "description": "If `true`, captures the whole scrollable page, not only the visible viewport. Can't be combined with `crop`. Browser captures only. If unset, captures the viewport."
+          },
+          "animations": {
+            "type": "string",
+            "description": "If `disabled`, finishes finite CSS and Web Animations, stops infinite ones, turns off CSS transitions, and hides the text caret while the screenshot is taken, then puts them back. If unset or `allow`, the page animates as usual. Browser captures only.",
+            "enum": [
+              "allow",
+              "disabled"
+            ]
+          },
           "annotations": {
             "type": "array",
             "description": "Visual annotations to draw onto the screenshot. Annotations are composited into the image and never touch the page, so they can't disturb the page under test or appear in a recording that's running at the same time. Each annotation is resolved against the capture after any `crop`. To keep annotations on screen across steps and in recordings, use an `annotate` step instead.",
@@ -125,11 +195,49 @@
               "$ref": "annotation_v3.schema.json#"
             }
           },
+          "mask": {
+            "type": "array",
+            "description": "Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.",
+            "minItems": 1,
+            "items": {
+              "anyOf": [
+                {
+                  "title": "Mask by element (simple)",
+                  "type": "string",
+                  "description": "Display text or selector of the element to mask. Masks the first match.",
+                  "minLength": 1,
+                  "transform": [
+                    "trim"
+                  ]
+                },
+                {
+                  "$ref": "annotation_v3.schema.json#/components/schemas/target_element"
+                }
+              ]
+            }
+          },
           "sourceIntegration": {
             "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
             "$ref": "sourceIntegration_v3.schema.json#"
           }
         },
+        "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+        "examples": [
+          {
+            "path": "pricing.png",
+            "maxVariation": 0.05,
+            "overwrite": "aboveVariation",
+            "fullPage": true,
+            "animations": "disabled",
+            "mask": [".last-updated"]
+          },
+          {
+            "path": "submit.png",
+            "crop": "#submit",
+            "style": "#chat-launcher { visibility: hidden !important; }",
+            "stable": true
+          }
+        ],
         "title": "Capture screenshot fields"
       },
       "crop_element": {

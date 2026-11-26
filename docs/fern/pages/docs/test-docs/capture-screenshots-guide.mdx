@@ -3,7 +3,7 @@ title: Capture screenshots
 description: Capture a screenshot of the full viewport, a cropped element, or an element with padding.
 ---
 
-Doc Detective can capture a screenshot at any point in a test. This guide is the entry point to the Screenshots section. It covers a single capture: the full viewport, a cropped element, or an element with padding. The section's other guides cover three related capabilities. [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) compares a capture against a reference image. [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) fires after every step. [Annotate screenshots](/docs/test-docs/annotate-screenshots) marks up an image. Look up every field in the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema. Unlike recording, screenshots capture fine in a headless or CI context.
+Doc Detective can capture a screenshot at any point in a test. This guide is the entry point to the Screenshots section. It covers a single capture: the full viewport, the whole page, a cropped element, or an element with padding. The section's other guides cover three related capabilities. [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) compares a capture against a reference image. [Capture screenshots automatically](/docs/test-docs/automatic-screenshots) fires after every step. [Annotate screenshots](/docs/test-docs/annotate-screenshots) marks up an image. Look up every field in the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema. Unlike recording, screenshots capture fine in a headless or CI context.
 
 ## Before you begin
 
@@ -53,7 +53,7 @@ To choose where the image lands, pass a file path as a string. A relative path r
 }
 ```
 
-By default (`overwrite: "aboveVariation"`), a target path that already holds a file gets compared against the new capture. Doc Detective replaces the file only when the two differ by more than `maxVariation`, which defaults to 5%. Otherwise it leaves the existing file in place. The [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) section covers this behavior in full. Set `"overwrite": "true"` to always replace the file. Set `"overwrite": "false"` to keep the existing file and skip the capture, which reports `SKIPPED`.
+By default (`overwrite: "aboveVariation"`), a target path that already holds a file gets compared against the new capture. Doc Detective replaces the file only when the two differ by more than `maxVariation`, which defaults to 5%. If you set `maxDiffPixels`, it also replaces the file when more pixels than that differ. Otherwise it leaves the existing file in place. The [Detect visual regressions](/docs/test-docs/screenshot-visual-regression) section covers this behavior in full. Set `"overwrite": "true"` to always replace the file. Set `"overwrite": "false"` to keep the existing file and skip the capture, which reports `SKIPPED`.
 
 For more control, use the object form. Set `crop` to a CSS selector to capture only that element:
 
@@ -89,6 +89,75 @@ For more control, use the object form. Set `crop` to a CSS selector to capture o
 ```
 
 `padding` accepts a single number for all four sides, or an object `{ "top": …, "right": …, "bottom": …, "left": … }` to pad each side independently. For the full list of fields, see the [`screenshot`](/docs/actions/screenshot) action reference and the generated [`screenshot`](/reference/schemas/screenshot) schema.
+
+## Capture a whole page
+
+A long page, such as a settings page or a pricing table, doesn't fit in the viewport. Set `fullPage: true` to capture all of it in one image:
+
+{/* test {"testId":"capture-guide-full-page","detectSteps":false} */}
+
+```json
+{
+  "description": "Capture the whole pricing page, top to bottom.",
+  "screenshot": {
+    "path": "./output/pricing.png",
+    "fullPage": true
+  }
+}
+```
+
+{/* step {"stepId":"capture-guide-full-page-goto","description":"Open a local test page taller than the viewport","goTo":"http://localhost:8092/screenshot-tall.html"} */}
+{/* step {"stepId":"capture-guide-full-page-shot","description":"Capture the whole page, directed at a gitignored output folder","screenshot":{"path":"guide_full_page.png","directory":"./.dd-output","fullPage":true}} */}
+{/* test end */}
+
+Chrome and Firefox capture the whole page directly. Safari grows the window to fit the page, captures, then puts the window and scroll position back. [Masks](/docs/test-docs/screenshot-visual-regression#ignore-parts-that-change) and [annotations](/docs/actions/screenshot#annotations) still land on the content they target.
+
+A Safari window can't grow past the screen. If the page doesn't fit on the screen, the step reports `SKIPPED` and saves nothing. To capture larger pages, use Chrome or Firefox.
+
+`fullPage` works only for browser captures, and you can't combine it with `crop`. A crop already sets the area to capture.
+
+## Hide widgets and wait for the page to settle
+
+Chat launchers, cookie banners, and spinners make a screenshot differ from run to run, and readers don't need them. Two `screenshot` fields keep them out of the image:
+
+- `style` takes CSS that applies only while the screenshot is taken. Doc Detective adds it just before the capture and removes it right after, so later steps and recordings see the page as it was.
+- `stable: true` captures the page every 100 milliseconds until two captures in a row are identical, then saves that one. Use it for pages that load in stages or animate in.
+
+{/* test {"testId":"capture-guide-style-stable","detectSteps":false} */}
+
+```json
+{
+  "description": "Capture the home page without the chat launcher or cookie banner, once it stops changing.",
+  "screenshot": {
+    "path": "./output/home.png",
+    "style": "#chat-launcher, .cookie-banner { visibility: hidden !important; }",
+    "stable": true
+  }
+}
+```
+
+{/* step {"stepId":"capture-guide-style-stable-goto","description":"Open a local test page with a cookie banner","goTo":"http://localhost:8092/screenshot-banner.html"} */}
+{/* step {"stepId":"capture-guide-style-stable-shot","description":"Capture without the banner once the page settles, directed at a gitignored output folder","screenshot":{"path":"guide_style_stable.png","directory":"./.dd-output","style":".cookie-banner { visibility: hidden !important; }","stable":true}} */}
+{/* test end */}
+
+If the page is still changing after 5 seconds, Doc Detective saves the last capture. The step then returns `WARNING` with `Page kept changing for 5 seconds, so the screenshot may not be stable.` A looping animation never settles, so stop it with `animations` or hide it with `style` instead. `style` works only for browser captures. `stable` also works for [app windows](/docs/actions/startsurface#target-an-app-surface).
+
+Doc Detective also waits up to 2 seconds for web fonts to load before every browser screenshot. You don't need a `wait` step for fonts.
+
+### Stop animations for the capture
+
+Spinners, carousels, transitions, and the blinking text cursor change from one capture to the next. Set `animations: "disabled"` to hold them still:
+
+```json
+{
+  "screenshot": {
+    "path": "./output/dashboard.png",
+    "animations": "disabled"
+  }
+}
+```
+
+Doc Detective jumps each finite CSS or Web Animation to its end and stops each looping one. It also turns off CSS transitions and hides the text cursor. When the step ends, the page animates again. A script that changes the page on a timer isn't an animation, so it keeps running. Use `stable` or `style` for those. `animations` works only for browser captures.
 
 ## Capture dark-mode and localized screenshots
 
@@ -185,6 +254,8 @@ Put the `mockRequest` step before the `goTo` step, so the page's first request a
 ## Verify it works
 
 - A step that captured an image reports `PASS`.
+- A step with `stable: true` on a page that never stopped changing reports `WARNING` and still saves the image.
+- A step with `fullPage: true` in Safari reports `SKIPPED` and saves nothing when the page doesn't fit on the screen.
 - When the target path already holds a file and you set `"overwrite": "false"`, the step keeps the existing file and reports `SKIPPED`.
 
 Captures land in the run's output directory and the per-run artifact tree. To see where they land and how to consume them in CI, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).

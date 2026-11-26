@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Late reveal</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; background: #fff; }
+    /* A loading bar fills for 300 ms, then the content appears: the page keeps
+       changing until then, and never after. CSS only, so no DOM mutations. */
+    #bar { height: 40px; background: #36c; width: 0; animation: fill 300ms linear forwards; }
+    #content { padding: 20px; font-size: 32px; opacity: 0; animation: show 0s 300ms forwards; }
+    @keyframes fill { to { width: 100%; } }
+    @keyframes show { to { opacity: 1; } }
+  </style>
+</head>
+<body>
+  <div id="bar"></div>
+  <div id="content">Loaded</div>
+</body>
+</html>

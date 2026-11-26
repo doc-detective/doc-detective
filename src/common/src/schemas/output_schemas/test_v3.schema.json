@@ -31692,7 +31692,7 @@
                             "additionalProperties": false,
                             "properties": {
                               "surface": {
-                                "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                                "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`, `style`, `fullPage`, or `animations`.",
                                 "anyOf": [
                                   {
                                     "title": "Surface (by browser engine)",
@@ -31933,9 +31933,21 @@
                                 "minimum": 0,
                                 "maximum": 1
                               },
+                              "threshold": {
+                                "type": "number",
+                                "description": "How different two pixels' colors must be, from 0 to 1, before the pixel counts as changed when comparing with the existing screenshot at `path`. Higher numbers ignore anti-aliasing and font-smoothing noise. `0` counts any color change.",
+                                "default": 0.1,
+                                "minimum": 0,
+                                "maximum": 1
+                              },
+                              "maxDiffPixels": {
+                                "type": "integer",
+                                "description": "Most changed pixels allowed between the new screenshot and the existing screenshot at `path`. Applies alongside `maxVariation`: when both are set, both must hold, or the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                "minimum": 0
+                              },
                               "overwrite": {
                                 "type": "string",
-                                "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                                "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                                 "enum": [
                                   "true",
                                   "false",
@@ -32199,6 +32211,27 @@
                                       }
                                     }
                                   }
+                                ]
+                              },
+                              "style": {
+                                "type": "string",
+                                "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                                "minLength": 1
+                              },
+                              "stable": {
+                                "type": "boolean",
+                                "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
+                              },
+                              "fullPage": {
+                                "type": "boolean",
+                                "description": "If `true`, captures the whole scrollable page, not only the visible viewport. Can't be combined with `crop`. Browser captures only. If unset, captures the viewport."
+                              },
+                              "animations": {
+                                "type": "string",
+                                "description": "If `disabled`, finishes finite CSS and Web Animations, stops infinite ones, turns off CSS transitions, and hides the text caret while the screenshot is taken, then puts them back. If unset or `allow`, the page animates as usual. Browser captures only.",
+                                "enum": [
+                                  "allow",
+                                  "disabled"
                                 ]
                               },
                               "annotations": {
@@ -35404,6 +35437,265 @@
                                   ]
                                 }
                               },
+                              "mask": {
+                                "type": "array",
+                                "description": "Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.",
+                                "minItems": 1,
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "title": "Mask by element (simple)",
+                                      "type": "string",
+                                      "description": "Display text or selector of the element to mask. Masks the first match.",
+                                      "minLength": 1,
+                                      "transform": [
+                                        "trim"
+                                      ]
+                                    },
+                                    {
+                                      "title": "Target by element (detailed)",
+                                      "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
+                                      "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
+                                      "allOf": [
+                                        {
+                                          "title": "Element-finding fields",
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "properties": {
+                                            "selector": {
+                                              "type": "string",
+                                              "description": "Selector of the element to annotate. Browser surfaces only."
+                                            },
+                                            "elementText": {
+                                              "type": "string",
+                                              "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "elementId": {
+                                              "type": "string",
+                                              "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "elementTestId": {
+                                              "type": "string",
+                                              "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "elementClass": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "type": "string"
+                                                  }
+                                                }
+                                              ],
+                                              "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
+                                            },
+                                            "elementAttribute": {
+                                              "type": "object",
+                                              "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                              "additionalProperties": {
+                                                "type": [
+                                                  "boolean",
+                                                  "number",
+                                                  "string"
+                                                ]
+                                              },
+                                              "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
+                                            },
+                                            "elementImage": {
+                                              "$schema": "http://json-schema.org/draft-07/schema#",
+                                              "title": "elementImage",
+                                              "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+                                              "anyOf": [
+                                                {
+                                                  "title": "Image path",
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                },
+                                                {
+                                                  "title": "Image (detailed)",
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "oneOf": [
+                                                    {
+                                                      "required": [
+                                                        "path"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "required": [
+                                                        "base64"
+                                                      ]
+                                                    }
+                                                  ],
+                                                  "properties": {
+                                                    "path": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                    },
+                                                    "base64": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                    },
+                                                    "threshold": {
+                                                      "type": "number",
+                                                      "exclusiveMinimum": 0,
+                                                      "maximum": 1,
+                                                      "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                    },
+                                                    "color": {
+                                                      "type": "string",
+                                                      "pattern": "^#[0-9a-fA-F]{6}$",
+                                                      "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                    }
+                                                  }
+                                                }
+                                              ],
+                                              "components": {
+                                                "schemas": {
+                                                  "path": {
+                                                    "title": "Image path",
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                  },
+                                                  "object": {
+                                                    "title": "Image (detailed)",
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "oneOf": [
+                                                      {
+                                                        "required": [
+                                                          "path"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "required": [
+                                                          "base64"
+                                                        ]
+                                                      }
+                                                    ],
+                                                    "properties": {
+                                                      "path": {
+                                                        "type": "string",
+                                                        "minLength": 1,
+                                                        "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                      },
+                                                      "base64": {
+                                                        "type": "string",
+                                                        "minLength": 1,
+                                                        "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                      },
+                                                      "threshold": {
+                                                        "type": "number",
+                                                        "exclusiveMinimum": 0,
+                                                        "maximum": 1,
+                                                        "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                      },
+                                                      "color": {
+                                                        "type": "string",
+                                                        "pattern": "^#[0-9a-fA-F]{6}$",
+                                                        "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              "examples": [
+                                                "icons/save.svg",
+                                                {
+                                                  "path": "icons/save.svg"
+                                                },
+                                                {
+                                                  "path": "chart.png",
+                                                  "threshold": 0.99
+                                                },
+                                                {
+                                                  "path": "icons/save.svg",
+                                                  "color": "#1a5fb4"
+                                                },
+                                                {
+                                                  "base64": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAAAAADRSSBWAAAAC0lEQVR4nGNg+A8AAQIBAEK+vGgAAAAASUVORK5CYII="
+                                                }
+                                              ]
+                                            },
+                                            "elementAria": {
+                                              "type": "string",
+                                              "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                            },
+                                            "timeout": {
+                                              "type": "integer",
+                                              "minimum": 0,
+                                              "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
+                                              "default": 5000,
+                                              "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "title": "At least one element-finding field",
+                                          "type": "object",
+                                          "anyOf": [
+                                            {
+                                              "type": "object",
+                                              "required": [
+                                                "selector"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "required": [
+                                                "elementText"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "required": [
+                                                "elementId"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "required": [
+                                                "elementTestId"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "required": [
+                                                "elementClass"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "required": [
+                                                "elementAttribute"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "required": [
+                                                "elementAria"
+                                              ]
+                                            },
+                                            {
+                                              "type": "object",
+                                              "required": [
+                                                "elementImage"
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              },
                               "sourceIntegration": {
                                 "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
                                 "$schema": "http://json-schema.org/draft-07/schema#",
@@ -35455,11 +35747,30 @@
                                 ]
                               }
                             },
+                            "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                            "examples": [
+                              {
+                                "path": "pricing.png",
+                                "maxVariation": 0.05,
+                                "overwrite": "aboveVariation",
+                                "fullPage": true,
+                                "animations": "disabled",
+                                "mask": [
+                                  ".last-updated"
+                                ]
+                              },
+                              {
+                                "path": "submit.png",
+                                "crop": "#submit",
+                                "style": "#chat-launcher { visibility: hidden !important; }",
+                                "stable": true
+                              }
+                            ],
                             "title": "Capture screenshot fields"
                           },
                           {
-                            "title": "App captures don't support crop",
-                            "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
+                            "title": "App captures don't support crop, style, fullPage, or animations",
+                            "$comment": "crop relies on browser viewport APIs, and style, fullPage, and animations act on a web page; none has an app-window equivalent. Rejected at validation time so authors don't hit a runtime FAIL.",
                             "if": {
                               "required": [
                                 "surface"
@@ -35475,10 +35786,47 @@
                             },
                             "then": {
                               "not": {
-                                "required": [
-                                  "crop"
+                                "anyOf": [
+                                  {
+                                    "required": [
+                                      "crop"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "style"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "fullPage"
+                                    ]
+                                  },
+                                  {
+                                    "required": [
+                                      "animations"
+                                    ]
+                                  }
                                 ]
                               }
+                            }
+                          },
+                          {
+                            "title": "crop and fullPage are exclusive",
+                            "$comment": "A crop already defines the captured area (ADR 01224).",
+                            "not": {
+                              "required": [
+                                "crop",
+                                "fullPage"
+                              ],
+                              "properties": {
+                                "fullPage": {
+                                  "const": true
+                                }
+                              }
+                            },
+                            "errorMessage": {
+                              "not": "set `crop` or `fullPage`, not both."
                             }
                           }
                         ],
@@ -35505,7 +35853,7 @@
                               "additionalProperties": false,
                               "properties": {
                                 "surface": {
-                                  "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                                  "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`, `style`, `fullPage`, or `animations`.",
                                   "anyOf": [
                                     {
                                       "title": "Surface (by browser engine)",
@@ -35746,9 +36094,21 @@
                                   "minimum": 0,
                                   "maximum": 1
                                 },
+                                "threshold": {
+                                  "type": "number",
+                                  "description": "How different two pixels' colors must be, from 0 to 1, before the pixel counts as changed when comparing with the existing screenshot at `path`. Higher numbers ignore anti-aliasing and font-smoothing noise. `0` counts any color change.",
+                                  "default": 0.1,
+                                  "minimum": 0,
+                                  "maximum": 1
+                                },
+                                "maxDiffPixels": {
+                                  "type": "integer",
+                                  "description": "Most changed pixels allowed between the new screenshot and the existing screenshot at `path`. Applies alongside `maxVariation`: when both are set, both must hold, or the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                  "minimum": 0
+                                },
                                 "overwrite": {
                                   "type": "string",
-                                  "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                                  "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                                   "enum": [
                                     "true",
                                     "false",
@@ -36012,6 +36372,27 @@
                                         }
                                       }
                                     }
+                                  ]
+                                },
+                                "style": {
+                                  "type": "string",
+                                  "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                                  "minLength": 1
+                                },
+                                "stable": {
+                                  "type": "boolean",
+                                  "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
+                                },
+                                "fullPage": {
+                                  "type": "boolean",
+                                  "description": "If `true`, captures the whole scrollable page, not only the visible viewport. Can't be combined with `crop`. Browser captures only. If unset, captures the viewport."
+                                },
+                                "animations": {
+                                  "type": "string",
+                                  "description": "If `disabled`, finishes finite CSS and Web Animations, stops infinite ones, turns off CSS transitions, and hides the text caret while the screenshot is taken, then puts them back. If unset or `allow`, the page animates as usual. Browser captures only.",
+                                  "enum": [
+                                    "allow",
+                                    "disabled"
                                   ]
                                 },
                                 "annotations": {
@@ -39217,6 +39598,265 @@
                                     ]
                                   }
                                 },
+                                "mask": {
+                                  "type": "array",
+                                  "description": "Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.",
+                                  "minItems": 1,
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "title": "Mask by element (simple)",
+                                        "type": "string",
+                                        "description": "Display text or selector of the element to mask. Masks the first match.",
+                                        "minLength": 1,
+                                        "transform": [
+                                          "trim"
+                                        ]
+                                      },
+                                      {
+                                        "title": "Target by element (detailed)",
+                                        "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
+                                        "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
+                                        "allOf": [
+                                          {
+                                            "title": "Element-finding fields",
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "properties": {
+                                              "selector": {
+                                                "type": "string",
+                                                "description": "Selector of the element to annotate. Browser surfaces only."
+                                              },
+                                              "elementText": {
+                                                "type": "string",
+                                                "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "elementId": {
+                                                "type": "string",
+                                                "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "elementTestId": {
+                                                "type": "string",
+                                                "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "elementClass": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                ],
+                                                "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
+                                              },
+                                              "elementAttribute": {
+                                                "type": "object",
+                                                "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                                "additionalProperties": {
+                                                  "type": [
+                                                    "boolean",
+                                                    "number",
+                                                    "string"
+                                                  ]
+                                                },
+                                                "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
+                                              },
+                                              "elementImage": {
+                                                "$schema": "http://json-schema.org/draft-07/schema#",
+                                                "title": "elementImage",
+                                                "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+                                                "anyOf": [
+                                                  {
+                                                    "title": "Image path",
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                  },
+                                                  {
+                                                    "title": "Image (detailed)",
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "oneOf": [
+                                                      {
+                                                        "required": [
+                                                          "path"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "required": [
+                                                          "base64"
+                                                        ]
+                                                      }
+                                                    ],
+                                                    "properties": {
+                                                      "path": {
+                                                        "type": "string",
+                                                        "minLength": 1,
+                                                        "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                      },
+                                                      "base64": {
+                                                        "type": "string",
+                                                        "minLength": 1,
+                                                        "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                      },
+                                                      "threshold": {
+                                                        "type": "number",
+                                                        "exclusiveMinimum": 0,
+                                                        "maximum": 1,
+                                                        "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                      },
+                                                      "color": {
+                                                        "type": "string",
+                                                        "pattern": "^#[0-9a-fA-F]{6}$",
+                                                        "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                      }
+                                                    }
+                                                  }
+                                                ],
+                                                "components": {
+                                                  "schemas": {
+                                                    "path": {
+                                                      "title": "Image path",
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                    },
+                                                    "object": {
+                                                      "title": "Image (detailed)",
+                                                      "type": "object",
+                                                      "additionalProperties": false,
+                                                      "oneOf": [
+                                                        {
+                                                          "required": [
+                                                            "path"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "required": [
+                                                            "base64"
+                                                          ]
+                                                        }
+                                                      ],
+                                                      "properties": {
+                                                        "path": {
+                                                          "type": "string",
+                                                          "minLength": 1,
+                                                          "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                        },
+                                                        "base64": {
+                                                          "type": "string",
+                                                          "minLength": 1,
+                                                          "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                        },
+                                                        "threshold": {
+                                                          "type": "number",
+                                                          "exclusiveMinimum": 0,
+                                                          "maximum": 1,
+                                                          "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                        },
+                                                        "color": {
+                                                          "type": "string",
+                                                          "pattern": "^#[0-9a-fA-F]{6}$",
+                                                          "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "examples": [
+                                                  "icons/save.svg",
+                                                  {
+                                                    "path": "icons/save.svg"
+                                                  },
+                                                  {
+                                                    "path": "chart.png",
+                                                    "threshold": 0.99
+                                                  },
+                                                  {
+                                                    "path": "icons/save.svg",
+                                                    "color": "#1a5fb4"
+                                                  },
+                                                  {
+                                                    "base64": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAAAAADRSSBWAAAAC0lEQVR4nGNg+A8AAQIBAEK+vGgAAAAASUVORK5CYII="
+                                                  }
+                                                ]
+                                              },
+                                              "elementAria": {
+                                                "type": "string",
+                                                "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                              },
+                                              "timeout": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
+                                                "default": 5000,
+                                                "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "title": "At least one element-finding field",
+                                            "type": "object",
+                                            "anyOf": [
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "selector"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "elementText"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "elementId"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "elementTestId"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "elementClass"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "elementAttribute"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "elementAria"
+                                                ]
+                                              },
+                                              {
+                                                "type": "object",
+                                                "required": [
+                                                  "elementImage"
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
                                 "sourceIntegration": {
                                   "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
                                   "$schema": "http://json-schema.org/draft-07/schema#",
@@ -39268,11 +39908,30 @@
                                   ]
                                 }
                               },
+                              "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                              "examples": [
+                                {
+                                  "path": "pricing.png",
+                                  "maxVariation": 0.05,
+                                  "overwrite": "aboveVariation",
+                                  "fullPage": true,
+                                  "animations": "disabled",
+                                  "mask": [
+                                    ".last-updated"
+                                  ]
+                                },
+                                {
+                                  "path": "submit.png",
+                                  "crop": "#submit",
+                                  "style": "#chat-launcher { visibility: hidden !important; }",
+                                  "stable": true
+                                }
+                              ],
                               "title": "Capture screenshot fields"
                             },
                             {
-                              "title": "App captures don't support crop",
-                              "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
+                              "title": "App captures don't support crop, style, fullPage, or animations",
+                              "$comment": "crop relies on browser viewport APIs, and style, fullPage, and animations act on a web page; none has an app-window equivalent. Rejected at validation time so authors don't hit a runtime FAIL.",
                               "if": {
                                 "required": [
                                   "surface"
@@ -39288,10 +39947,47 @@
                               },
                               "then": {
                                 "not": {
-                                  "required": [
-                                    "crop"
+                                  "anyOf": [
+                                    {
+                                      "required": [
+                                        "crop"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "style"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "fullPage"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "animations"
+                                      ]
+                                    }
                                   ]
                                 }
+                              }
+                            },
+                            {
+                              "title": "crop and fullPage are exclusive",
+                              "$comment": "A crop already defines the captured area (ADR 01224).",
+                              "not": {
+                                "required": [
+                                  "crop",
+                                  "fullPage"
+                                ],
+                                "properties": {
+                                  "fullPage": {
+                                    "const": true
+                                  }
+                                }
+                              },
+                              "errorMessage": {
+                                "not": "set `crop` or `fullPage`, not both."
                               }
                             }
                           ],
@@ -39302,7 +39998,7 @@
                           "additionalProperties": false,
                           "properties": {
                             "surface": {
-                              "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                              "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`, `style`, `fullPage`, or `animations`.",
                               "anyOf": [
                                 {
                                   "title": "Surface (by browser engine)",
@@ -39543,9 +40239,21 @@
                               "minimum": 0,
                               "maximum": 1
                             },
+                            "threshold": {
+                              "type": "number",
+                              "description": "How different two pixels' colors must be, from 0 to 1, before the pixel counts as changed when comparing with the existing screenshot at `path`. Higher numbers ignore anti-aliasing and font-smoothing noise. `0` counts any color change.",
+                              "default": 0.1,
+                              "minimum": 0,
+                              "maximum": 1
+                            },
+                            "maxDiffPixels": {
+                              "type": "integer",
+                              "description": "Most changed pixels allowed between the new screenshot and the existing screenshot at `path`. Applies alongside `maxVariation`: when both are set, both must hold, or the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
+                              "minimum": 0
+                            },
                             "overwrite": {
                               "type": "string",
-                              "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                              "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                               "enum": [
                                 "true",
                                 "false",
@@ -39809,6 +40517,27 @@
                                     }
                                   }
                                 }
+                              ]
+                            },
+                            "style": {
+                              "type": "string",
+                              "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                              "minLength": 1
+                            },
+                            "stable": {
+                              "type": "boolean",
+                              "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
+                            },
+                            "fullPage": {
+                              "type": "boolean",
+                              "description": "If `true`, captures the whole scrollable page, not only the visible viewport. Can't be combined with `crop`. Browser captures only. If unset, captures the viewport."
+                            },
+                            "animations": {
+                              "type": "string",
+                              "description": "If `disabled`, finishes finite CSS and Web Animations, stops infinite ones, turns off CSS transitions, and hides the text caret while the screenshot is taken, then puts them back. If unset or `allow`, the page animates as usual. Browser captures only.",
+                              "enum": [
+                                "allow",
+                                "disabled"
                               ]
                             },
                             "annotations": {
@@ -43014,6 +43743,265 @@
                                 ]
                               }
                             },
+                            "mask": {
+                              "type": "array",
+                              "description": "Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.",
+                              "minItems": 1,
+                              "items": {
+                                "anyOf": [
+                                  {
+                                    "title": "Mask by element (simple)",
+                                    "type": "string",
+                                    "description": "Display text or selector of the element to mask. Masks the first match.",
+                                    "minLength": 1,
+                                    "transform": [
+                                      "trim"
+                                    ]
+                                  },
+                                  {
+                                    "title": "Target by element (detailed)",
+                                    "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
+                                    "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
+                                    "allOf": [
+                                      {
+                                        "title": "Element-finding fields",
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "selector": {
+                                            "type": "string",
+                                            "description": "Selector of the element to annotate. Browser surfaces only."
+                                          },
+                                          "elementText": {
+                                            "type": "string",
+                                            "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "elementId": {
+                                            "type": "string",
+                                            "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "elementTestId": {
+                                            "type": "string",
+                                            "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "elementClass": {
+                                            "anyOf": [
+                                              {
+                                                "type": "string"
+                                              },
+                                              {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            ],
+                                            "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
+                                          },
+                                          "elementAttribute": {
+                                            "type": "object",
+                                            "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                            "additionalProperties": {
+                                              "type": [
+                                                "boolean",
+                                                "number",
+                                                "string"
+                                              ]
+                                            },
+                                            "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
+                                          },
+                                          "elementImage": {
+                                            "$schema": "http://json-schema.org/draft-07/schema#",
+                                            "title": "elementImage",
+                                            "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+                                            "anyOf": [
+                                              {
+                                                "title": "Image path",
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                              },
+                                              {
+                                                "title": "Image (detailed)",
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "oneOf": [
+                                                  {
+                                                    "required": [
+                                                      "path"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "base64"
+                                                    ]
+                                                  }
+                                                ],
+                                                "properties": {
+                                                  "path": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                  },
+                                                  "base64": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                  },
+                                                  "threshold": {
+                                                    "type": "number",
+                                                    "exclusiveMinimum": 0,
+                                                    "maximum": 1,
+                                                    "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                  },
+                                                  "color": {
+                                                    "type": "string",
+                                                    "pattern": "^#[0-9a-fA-F]{6}$",
+                                                    "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                  }
+                                                }
+                                              }
+                                            ],
+                                            "components": {
+                                              "schemas": {
+                                                "path": {
+                                                  "title": "Image path",
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                },
+                                                "object": {
+                                                  "title": "Image (detailed)",
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "oneOf": [
+                                                    {
+                                                      "required": [
+                                                        "path"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "required": [
+                                                        "base64"
+                                                      ]
+                                                    }
+                                                  ],
+                                                  "properties": {
+                                                    "path": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                    },
+                                                    "base64": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                    },
+                                                    "threshold": {
+                                                      "type": "number",
+                                                      "exclusiveMinimum": 0,
+                                                      "maximum": 1,
+                                                      "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                    },
+                                                    "color": {
+                                                      "type": "string",
+                                                      "pattern": "^#[0-9a-fA-F]{6}$",
+                                                      "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            },
+                                            "examples": [
+                                              "icons/save.svg",
+                                              {
+                                                "path": "icons/save.svg"
+                                              },
+                                              {
+                                                "path": "chart.png",
+                                                "threshold": 0.99
+                                              },
+                                              {
+                                                "path": "icons/save.svg",
+                                                "color": "#1a5fb4"
+                                              },
+                                              {
+                                                "base64": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAAAAADRSSBWAAAAC0lEQVR4nGNg+A8AAQIBAEK+vGgAAAAASUVORK5CYII="
+                                              }
+                                            ]
+                                          },
+                                          "elementAria": {
+                                            "type": "string",
+                                            "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                          },
+                                          "timeout": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
+                                            "default": 5000,
+                                            "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "title": "At least one element-finding field",
+                                        "type": "object",
+                                        "anyOf": [
+                                          {
+                                            "type": "object",
+                                            "required": [
+                                              "selector"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "required": [
+                                              "elementText"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "required": [
+                                              "elementId"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "required": [
+                                              "elementTestId"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "required": [
+                                              "elementClass"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "required": [
+                                              "elementAttribute"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "required": [
+                                              "elementAria"
+                                            ]
+                                          },
+                                          {
+                                            "type": "object",
+                                            "required": [
+                                              "elementImage"
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            },
                             "sourceIntegration": {
                               "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
                               "$schema": "http://json-schema.org/draft-07/schema#",
@@ -43065,6 +44053,25 @@
                               ]
                             }
                           },
+                          "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                          "examples": [
+                            {
+                              "path": "pricing.png",
+                              "maxVariation": 0.05,
+                              "overwrite": "aboveVariation",
+                              "fullPage": true,
+                              "animations": "disabled",
+                              "mask": [
+                                ".last-updated"
+                              ]
+                            },
+                            {
+                              "path": "submit.png",
+                              "crop": "#submit",
+                              "style": "#chat-launcher { visibility: hidden !important; }",
+                              "stable": true
+                            }
+                          ],
                           "title": "Capture screenshot fields"
                         },
                         "crop_element": {
@@ -98320,7 +99327,7 @@
                                   "additionalProperties": false,
                                   "properties": {
                                     "surface": {
-                                      "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                                      "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`, `style`, `fullPage`, or `animations`.",
                                       "anyOf": [
                                         {
                                           "title": "Surface (by browser engine)",
@@ -98561,9 +99568,21 @@
                                       "minimum": 0,
                                       "maximum": 1
                                     },
+                                    "threshold": {
+                                      "type": "number",
+                                      "description": "How different two pixels' colors must be, from 0 to 1, before the pixel counts as changed when comparing with the existing screenshot at `path`. Higher numbers ignore anti-aliasing and font-smoothing noise. `0` counts any color change.",
+                                      "default": 0.1,
+                                      "minimum": 0,
+                                      "maximum": 1
+                                    },
+                                    "maxDiffPixels": {
+                                      "type": "integer",
+                                      "description": "Most changed pixels allowed between the new screenshot and the existing screenshot at `path`. Applies alongside `maxVariation`: when both are set, both must hold, or the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                      "minimum": 0
+                                    },
                                     "overwrite": {
                                       "type": "string",
-                                      "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                                      "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                                       "enum": [
                                         "true",
                                         "false",
@@ -98827,6 +99846,27 @@
                                             }
                                           }
                                         }
+                                      ]
+                                    },
+                                    "style": {
+                                      "type": "string",
+                                      "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                                      "minLength": 1
+                                    },
+                                    "stable": {
+                                      "type": "boolean",
+                                      "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
+                                    },
+                                    "fullPage": {
+                                      "type": "boolean",
+                                      "description": "If `true`, captures the whole scrollable page, not only the visible viewport. Can't be combined with `crop`. Browser captures only. If unset, captures the viewport."
+                                    },
+                                    "animations": {
+                                      "type": "string",
+                                      "description": "If `disabled`, finishes finite CSS and Web Animations, stops infinite ones, turns off CSS transitions, and hides the text caret while the screenshot is taken, then puts them back. If unset or `allow`, the page animates as usual. Browser captures only.",
+                                      "enum": [
+                                        "allow",
+                                        "disabled"
                                       ]
                                     },
                                     "annotations": {
@@ -102032,6 +103072,265 @@
                                         ]
                                       }
                                     },
+                                    "mask": {
+                                      "type": "array",
+                                      "description": "Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.",
+                                      "minItems": 1,
+                                      "items": {
+                                        "anyOf": [
+                                          {
+                                            "title": "Mask by element (simple)",
+                                            "type": "string",
+                                            "description": "Display text or selector of the element to mask. Masks the first match.",
+                                            "minLength": 1,
+                                            "transform": [
+                                              "trim"
+                                            ]
+                                          },
+                                          {
+                                            "title": "Target by element (detailed)",
+                                            "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
+                                            "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
+                                            "allOf": [
+                                              {
+                                                "title": "Element-finding fields",
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                  "selector": {
+                                                    "type": "string",
+                                                    "description": "Selector of the element to annotate. Browser surfaces only."
+                                                  },
+                                                  "elementText": {
+                                                    "type": "string",
+                                                    "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                                  },
+                                                  "elementId": {
+                                                    "type": "string",
+                                                    "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                                  },
+                                                  "elementTestId": {
+                                                    "type": "string",
+                                                    "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                                  },
+                                                  "elementClass": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "type": "string"
+                                                        }
+                                                      }
+                                                    ],
+                                                    "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
+                                                  },
+                                                  "elementAttribute": {
+                                                    "type": "object",
+                                                    "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                                    "additionalProperties": {
+                                                      "type": [
+                                                        "boolean",
+                                                        "number",
+                                                        "string"
+                                                      ]
+                                                    },
+                                                    "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
+                                                  },
+                                                  "elementImage": {
+                                                    "$schema": "http://json-schema.org/draft-07/schema#",
+                                                    "title": "elementImage",
+                                                    "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+                                                    "anyOf": [
+                                                      {
+                                                        "title": "Image path",
+                                                        "type": "string",
+                                                        "minLength": 1,
+                                                        "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                      },
+                                                      {
+                                                        "title": "Image (detailed)",
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "oneOf": [
+                                                          {
+                                                            "required": [
+                                                              "path"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "required": [
+                                                              "base64"
+                                                            ]
+                                                          }
+                                                        ],
+                                                        "properties": {
+                                                          "path": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                          },
+                                                          "base64": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                          },
+                                                          "threshold": {
+                                                            "type": "number",
+                                                            "exclusiveMinimum": 0,
+                                                            "maximum": 1,
+                                                            "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                          },
+                                                          "color": {
+                                                            "type": "string",
+                                                            "pattern": "^#[0-9a-fA-F]{6}$",
+                                                            "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                          }
+                                                        }
+                                                      }
+                                                    ],
+                                                    "components": {
+                                                      "schemas": {
+                                                        "path": {
+                                                          "title": "Image path",
+                                                          "type": "string",
+                                                          "minLength": 1,
+                                                          "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                        },
+                                                        "object": {
+                                                          "title": "Image (detailed)",
+                                                          "type": "object",
+                                                          "additionalProperties": false,
+                                                          "oneOf": [
+                                                            {
+                                                              "required": [
+                                                                "path"
+                                                              ]
+                                                            },
+                                                            {
+                                                              "required": [
+                                                                "base64"
+                                                              ]
+                                                            }
+                                                          ],
+                                                          "properties": {
+                                                            "path": {
+                                                              "type": "string",
+                                                              "minLength": 1,
+                                                              "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                            },
+                                                            "base64": {
+                                                              "type": "string",
+                                                              "minLength": 1,
+                                                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                            },
+                                                            "threshold": {
+                                                              "type": "number",
+                                                              "exclusiveMinimum": 0,
+                                                              "maximum": 1,
+                                                              "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                            },
+                                                            "color": {
+                                                              "type": "string",
+                                                              "pattern": "^#[0-9a-fA-F]{6}$",
+                                                              "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                            }
+                                                          }
+                                                        }
+                                                      }
+                                                    },
+                                                    "examples": [
+                                                      "icons/save.svg",
+                                                      {
+                                                        "path": "icons/save.svg"
+                                                      },
+                                                      {
+                                                        "path": "chart.png",
+                                                        "threshold": 0.99
+                                                      },
+                                                      {
+                                                        "path": "icons/save.svg",
+                                                        "color": "#1a5fb4"
+                                                      },
+                                                      {
+                                                        "base64": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAAAAADRSSBWAAAAC0lEQVR4nGNg+A8AAQIBAEK+vGgAAAAASUVORK5CYII="
+                                                      }
+                                                    ]
+                                                  },
+                                                  "elementAria": {
+                                                    "type": "string",
+                                                    "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                  },
+                                                  "timeout": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
+                                                    "default": 5000,
+                                                    "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "title": "At least one element-finding field",
+                                                "type": "object",
+                                                "anyOf": [
+                                                  {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "selector"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "elementText"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "elementId"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "elementTestId"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "elementClass"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "elementAttribute"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "elementAria"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "required": [
+                                                      "elementImage"
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    },
                                     "sourceIntegration": {
                                       "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
                                       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -102083,11 +103382,30 @@
                                       ]
                                     }
                                   },
+                                  "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                  "examples": [
+                                    {
+                                      "path": "pricing.png",
+                                      "maxVariation": 0.05,
+                                      "overwrite": "aboveVariation",
+                                      "fullPage": true,
+                                      "animations": "disabled",
+                                      "mask": [
+                                        ".last-updated"
+                                      ]
+                                    },
+                                    {
+                                      "path": "submit.png",
+                                      "crop": "#submit",
+                                      "style": "#chat-launcher { visibility: hidden !important; }",
+                                      "stable": true
+                                    }
+                                  ],
                                   "title": "Capture screenshot fields"
                                 },
                                 {
-                                  "title": "App captures don't support crop",
-                                  "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
+                                  "title": "App captures don't support crop, style, fullPage, or animations",
+                                  "$comment": "crop relies on browser viewport APIs, and style, fullPage, and animations act on a web page; none has an app-window equivalent. Rejected at validation time so authors don't hit a runtime FAIL.",
                                   "if": {
                                     "required": [
                                       "surface"
@@ -102103,10 +103421,47 @@
                                   },
                                   "then": {
                                     "not": {
-                                      "required": [
-                                        "crop"
+                                      "anyOf": [
+                                        {
+                                          "required": [
+                                            "crop"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "style"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "fullPage"
+                                          ]
+                                        },
+                                        {
+                                          "required": [
+                                            "animations"
+                                          ]
+                                        }
                                       ]
                                     }
+                                  }
+                                },
+                                {
+                                  "title": "crop and fullPage are exclusive",
+                                  "$comment": "A crop already defines the captured area (ADR 01224).",
+                                  "not": {
+                                    "required": [
+                                      "crop",
+                                      "fullPage"
+                                    ],
+                                    "properties": {
+                                      "fullPage": {
+                                        "const": true
+                                      }
+                                    }
+                                  },
+                                  "errorMessage": {
+                                    "not": "set `crop` or `fullPage`, not both."
                                   }
                                 }
                               ],
@@ -102133,7 +103488,7 @@
                                     "additionalProperties": false,
                                     "properties": {
                                       "surface": {
-                                        "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                                        "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`, `style`, `fullPage`, or `animations`.",
                                         "anyOf": [
                                           {
                                             "title": "Surface (by browser engine)",
@@ -102374,9 +103729,21 @@
                                         "minimum": 0,
                                         "maximum": 1
                                       },
+                                      "threshold": {
+                                        "type": "number",
+                                        "description": "How different two pixels' colors must be, from 0 to 1, before the pixel counts as changed when comparing with the existing screenshot at `path`. Higher numbers ignore anti-aliasing and font-smoothing noise. `0` counts any color change.",
+                                        "default": 0.1,
+                                        "minimum": 0,
+                                        "maximum": 1
+                                      },
+                                      "maxDiffPixels": {
+                                        "type": "integer",
+                                        "description": "Most changed pixels allowed between the new screenshot and the existing screenshot at `path`. Applies alongside `maxVariation`: when both are set, both must hold, or the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                        "minimum": 0
+                                      },
                                       "overwrite": {
                                         "type": "string",
-                                        "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                                        "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                                         "enum": [
                                           "true",
                                           "false",
@@ -102640,6 +104007,27 @@
                                               }
                                             }
                                           }
+                                        ]
+                                      },
+                                      "style": {
+                                        "type": "string",
+                                        "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                                        "minLength": 1
+                                      },
+                                      "stable": {
+                                        "type": "boolean",
+                                        "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
+                                      },
+                                      "fullPage": {
+                                        "type": "boolean",
+                                        "description": "If `true`, captures the whole scrollable page, not only the visible viewport. Can't be combined with `crop`. Browser captures only. If unset, captures the viewport."
+                                      },
+                                      "animations": {
+                                        "type": "string",
+                                        "description": "If `disabled`, finishes finite CSS and Web Animations, stops infinite ones, turns off CSS transitions, and hides the text caret while the screenshot is taken, then puts them back. If unset or `allow`, the page animates as usual. Browser captures only.",
+                                        "enum": [
+                                          "allow",
+                                          "disabled"
                                         ]
                                       },
                                       "annotations": {
@@ -105845,6 +107233,265 @@
                                           ]
                                         }
                                       },
+                                      "mask": {
+                                        "type": "array",
+                                        "description": "Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.",
+                                        "minItems": 1,
+                                        "items": {
+                                          "anyOf": [
+                                            {
+                                              "title": "Mask by element (simple)",
+                                              "type": "string",
+                                              "description": "Display text or selector of the element to mask. Masks the first match.",
+                                              "minLength": 1,
+                                              "transform": [
+                                                "trim"
+                                              ]
+                                            },
+                                            {
+                                              "title": "Target by element (detailed)",
+                                              "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
+                                              "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
+                                              "allOf": [
+                                                {
+                                                  "title": "Element-finding fields",
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "selector": {
+                                                      "type": "string",
+                                                      "description": "Selector of the element to annotate. Browser surfaces only."
+                                                    },
+                                                    "elementText": {
+                                                      "type": "string",
+                                                      "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                                    },
+                                                    "elementId": {
+                                                      "type": "string",
+                                                      "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                                    },
+                                                    "elementTestId": {
+                                                      "type": "string",
+                                                      "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                                    },
+                                                    "elementClass": {
+                                                      "anyOf": [
+                                                        {
+                                                          "type": "string"
+                                                        },
+                                                        {
+                                                          "type": "array",
+                                                          "items": {
+                                                            "type": "string"
+                                                          }
+                                                        }
+                                                      ],
+                                                      "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
+                                                    },
+                                                    "elementAttribute": {
+                                                      "type": "object",
+                                                      "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                                      "additionalProperties": {
+                                                        "type": [
+                                                          "boolean",
+                                                          "number",
+                                                          "string"
+                                                        ]
+                                                      },
+                                                      "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
+                                                    },
+                                                    "elementImage": {
+                                                      "$schema": "http://json-schema.org/draft-07/schema#",
+                                                      "title": "elementImage",
+                                                      "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+                                                      "anyOf": [
+                                                        {
+                                                          "title": "Image path",
+                                                          "type": "string",
+                                                          "minLength": 1,
+                                                          "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                        },
+                                                        {
+                                                          "title": "Image (detailed)",
+                                                          "type": "object",
+                                                          "additionalProperties": false,
+                                                          "oneOf": [
+                                                            {
+                                                              "required": [
+                                                                "path"
+                                                              ]
+                                                            },
+                                                            {
+                                                              "required": [
+                                                                "base64"
+                                                              ]
+                                                            }
+                                                          ],
+                                                          "properties": {
+                                                            "path": {
+                                                              "type": "string",
+                                                              "minLength": 1,
+                                                              "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                            },
+                                                            "base64": {
+                                                              "type": "string",
+                                                              "minLength": 1,
+                                                              "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                            },
+                                                            "threshold": {
+                                                              "type": "number",
+                                                              "exclusiveMinimum": 0,
+                                                              "maximum": 1,
+                                                              "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                            },
+                                                            "color": {
+                                                              "type": "string",
+                                                              "pattern": "^#[0-9a-fA-F]{6}$",
+                                                              "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                            }
+                                                          }
+                                                        }
+                                                      ],
+                                                      "components": {
+                                                        "schemas": {
+                                                          "path": {
+                                                            "title": "Image path",
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                          },
+                                                          "object": {
+                                                            "title": "Image (detailed)",
+                                                            "type": "object",
+                                                            "additionalProperties": false,
+                                                            "oneOf": [
+                                                              {
+                                                                "required": [
+                                                                  "path"
+                                                                ]
+                                                              },
+                                                              {
+                                                                "required": [
+                                                                  "base64"
+                                                                ]
+                                                              }
+                                                            ],
+                                                            "properties": {
+                                                              "path": {
+                                                                "type": "string",
+                                                                "minLength": 1,
+                                                                "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                              },
+                                                              "base64": {
+                                                                "type": "string",
+                                                                "minLength": 1,
+                                                                "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                              },
+                                                              "threshold": {
+                                                                "type": "number",
+                                                                "exclusiveMinimum": 0,
+                                                                "maximum": 1,
+                                                                "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                              },
+                                                              "color": {
+                                                                "type": "string",
+                                                                "pattern": "^#[0-9a-fA-F]{6}$",
+                                                                "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                              }
+                                                            }
+                                                          }
+                                                        }
+                                                      },
+                                                      "examples": [
+                                                        "icons/save.svg",
+                                                        {
+                                                          "path": "icons/save.svg"
+                                                        },
+                                                        {
+                                                          "path": "chart.png",
+                                                          "threshold": 0.99
+                                                        },
+                                                        {
+                                                          "path": "icons/save.svg",
+                                                          "color": "#1a5fb4"
+                                                        },
+                                                        {
+                                                          "base64": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAAAAADRSSBWAAAAC0lEQVR4nGNg+A8AAQIBAEK+vGgAAAAASUVORK5CYII="
+                                                        }
+                                                      ]
+                                                    },
+                                                    "elementAria": {
+                                                      "type": "string",
+                                                      "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                    },
+                                                    "timeout": {
+                                                      "type": "integer",
+                                                      "minimum": 0,
+                                                      "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
+                                                      "default": 5000,
+                                                      "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "title": "At least one element-finding field",
+                                                  "type": "object",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "object",
+                                                      "required": [
+                                                        "selector"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "required": [
+                                                        "elementText"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "required": [
+                                                        "elementId"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "required": [
+                                                        "elementTestId"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "required": [
+                                                        "elementClass"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "required": [
+                                                        "elementAttribute"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "required": [
+                                                        "elementAria"
+                                                      ]
+                                                    },
+                                                    {
+                                                      "type": "object",
+                                                      "required": [
+                                                        "elementImage"
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      },
                                       "sourceIntegration": {
                                         "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
                                         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -105896,11 +107543,30 @@
                                         ]
                                       }
                                     },
+                                    "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                    "examples": [
+                                      {
+                                        "path": "pricing.png",
+                                        "maxVariation": 0.05,
+                                        "overwrite": "aboveVariation",
+                                        "fullPage": true,
+                                        "animations": "disabled",
+                                        "mask": [
+                                          ".last-updated"
+                                        ]
+                                      },
+                                      {
+                                        "path": "submit.png",
+                                        "crop": "#submit",
+                                        "style": "#chat-launcher { visibility: hidden !important; }",
+                                        "stable": true
+                                      }
+                                    ],
                                     "title": "Capture screenshot fields"
                                   },
                                   {
-                                    "title": "App captures don't support crop",
-                                    "$comment": "crop relies on browser viewport APIs; on app surfaces it lands in a later phase. Rejected at validation time so authors don't hit a runtime FAIL.",
+                                    "title": "App captures don't support crop, style, fullPage, or animations",
+                                    "$comment": "crop relies on browser viewport APIs, and style, fullPage, and animations act on a web page; none has an app-window equivalent. Rejected at validation time so authors don't hit a runtime FAIL.",
                                     "if": {
                                       "required": [
                                         "surface"
@@ -105916,10 +107582,47 @@
                                     },
                                     "then": {
                                       "not": {
-                                        "required": [
-                                          "crop"
+                                        "anyOf": [
+                                          {
+                                            "required": [
+                                              "crop"
+                                            ]
+                                          },
+                                          {
+                                            "required": [
+                                              "style"
+                                            ]
+                                          },
+                                          {
+                                            "required": [
+                                              "fullPage"
+                                            ]
+                                          },
+                                          {
+                                            "required": [
+                                              "animations"
+                                            ]
+                                          }
                                         ]
                                       }
+                                    }
+                                  },
+                                  {
+                                    "title": "crop and fullPage are exclusive",
+                                    "$comment": "A crop already defines the captured area (ADR 01224).",
+                                    "not": {
+                                      "required": [
+                                        "crop",
+                                        "fullPage"
+                                      ],
+                                      "properties": {
+                                        "fullPage": {
+                                          "const": true
+                                        }
+                                      }
+                                    },
+                                    "errorMessage": {
+                                      "not": "set `crop` or `fullPage`, not both."
                                     }
                                   }
                                 ],
@@ -105930,7 +107633,7 @@
                                 "additionalProperties": false,
                                 "properties": {
                                   "surface": {
-                                    "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`.",
+                                    "description": "The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ \"app\": … }). App captures don't support `crop`, `style`, `fullPage`, or `animations`.",
                                     "anyOf": [
                                       {
                                         "title": "Surface (by browser engine)",
@@ -106171,9 +107874,21 @@
                                     "minimum": 0,
                                     "maximum": 1
                                   },
+                                  "threshold": {
+                                    "type": "number",
+                                    "description": "How different two pixels' colors must be, from 0 to 1, before the pixel counts as changed when comparing with the existing screenshot at `path`. Higher numbers ignore anti-aliasing and font-smoothing noise. `0` counts any color change.",
+                                    "default": 0.1,
+                                    "minimum": 0,
+                                    "maximum": 1
+                                  },
+                                  "maxDiffPixels": {
+                                    "type": "integer",
+                                    "description": "Most changed pixels allowed between the new screenshot and the existing screenshot at `path`. Applies alongside `maxVariation`: when both are set, both must hold, or the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.",
+                                    "minimum": 0
+                                  },
                                   "overwrite": {
                                     "type": "string",
-                                    "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.",
+                                    "description": "If `true`, overwrites the existing screenshot at `path` if it exists.\nIf `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.",
                                     "enum": [
                                       "true",
                                       "false",
@@ -106437,6 +108152,27 @@
                                           }
                                         }
                                       }
+                                    ]
+                                  },
+                                  "style": {
+                                    "type": "string",
+                                    "description": "CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.",
+                                    "minLength": 1
+                                  },
+                                  "stable": {
+                                    "type": "boolean",
+                                    "description": "If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once."
+                                  },
+                                  "fullPage": {
+                                    "type": "boolean",
+                                    "description": "If `true`, captures the whole scrollable page, not only the visible viewport. Can't be combined with `crop`. Browser captures only. If unset, captures the viewport."
+                                  },
+                                  "animations": {
+                                    "type": "string",
+                                    "description": "If `disabled`, finishes finite CSS and Web Animations, stops infinite ones, turns off CSS transitions, and hides the text caret while the screenshot is taken, then puts them back. If unset or `allow`, the page animates as usual. Browser captures only.",
+                                    "enum": [
+                                      "allow",
+                                      "disabled"
                                     ]
                                   },
                                   "annotations": {
@@ -109642,6 +111378,265 @@
                                       ]
                                     }
                                   },
+                                  "mask": {
+                                    "type": "array",
+                                    "description": "Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.",
+                                    "minItems": 1,
+                                    "items": {
+                                      "anyOf": [
+                                        {
+                                          "title": "Mask by element (simple)",
+                                          "type": "string",
+                                          "description": "Display text or selector of the element to mask. Masks the first match.",
+                                          "minLength": 1,
+                                          "transform": [
+                                            "trim"
+                                          ]
+                                        },
+                                        {
+                                          "title": "Target by element (detailed)",
+                                          "description": "Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.",
+                                          "$comment": "allOf [shape, guard] for the same reason as the root schema: a sibling anyOf next to `properties` collapses the generated TS type to an index signature, which would erase every field here AND swallow the sibling target branches in the Target union (an index-signature type matches any object). crop_element in screenshot_v3 predates this and is still collapsed.",
+                                          "allOf": [
+                                            {
+                                              "title": "Element-finding fields",
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "properties": {
+                                                "selector": {
+                                                  "type": "string",
+                                                  "description": "Selector of the element to annotate. Browser surfaces only."
+                                                },
+                                                "elementText": {
+                                                  "type": "string",
+                                                  "description": "Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "elementId": {
+                                                  "type": "string",
+                                                  "description": "ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "elementTestId": {
+                                                  "type": "string",
+                                                  "description": "data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "elementClass": {
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "array",
+                                                      "items": {
+                                                        "type": "string"
+                                                      }
+                                                    }
+                                                  ],
+                                                  "description": "Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only."
+                                                },
+                                                "elementAttribute": {
+                                                  "type": "object",
+                                                  "description": "Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.",
+                                                  "additionalProperties": {
+                                                    "type": [
+                                                      "boolean",
+                                                      "number",
+                                                      "string"
+                                                    ]
+                                                  },
+                                                  "$comment": "A type array, not an anyOf: AJV runs with coerceTypes and coerces only when a value matches none of the listed types, so 5, true, and \"true\" each keep their authored type. In an anyOf, whichever branch came first rewrote the others' values. See ADR 01161."
+                                                },
+                                                "elementImage": {
+                                                  "$schema": "http://json-schema.org/draft-07/schema#",
+                                                  "title": "elementImage",
+                                                  "description": "A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.",
+                                                  "anyOf": [
+                                                    {
+                                                      "title": "Image path",
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                    },
+                                                    {
+                                                      "title": "Image (detailed)",
+                                                      "type": "object",
+                                                      "additionalProperties": false,
+                                                      "oneOf": [
+                                                        {
+                                                          "required": [
+                                                            "path"
+                                                          ]
+                                                        },
+                                                        {
+                                                          "required": [
+                                                            "base64"
+                                                          ]
+                                                        }
+                                                      ],
+                                                      "properties": {
+                                                        "path": {
+                                                          "type": "string",
+                                                          "minLength": 1,
+                                                          "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                        },
+                                                        "base64": {
+                                                          "type": "string",
+                                                          "minLength": 1,
+                                                          "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                        },
+                                                        "threshold": {
+                                                          "type": "number",
+                                                          "exclusiveMinimum": 0,
+                                                          "maximum": 1,
+                                                          "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                        },
+                                                        "color": {
+                                                          "type": "string",
+                                                          "pattern": "^#[0-9a-fA-F]{6}$",
+                                                          "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                        }
+                                                      }
+                                                    }
+                                                  ],
+                                                  "components": {
+                                                    "schemas": {
+                                                      "path": {
+                                                        "title": "Image path",
+                                                        "type": "string",
+                                                        "minLength": 1,
+                                                        "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                      },
+                                                      "object": {
+                                                        "title": "Image (detailed)",
+                                                        "type": "object",
+                                                        "additionalProperties": false,
+                                                        "oneOf": [
+                                                          {
+                                                            "required": [
+                                                              "path"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "required": [
+                                                              "base64"
+                                                            ]
+                                                          }
+                                                        ],
+                                                        "properties": {
+                                                          "path": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "description": "Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`."
+                                                          },
+                                                          "base64": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "description": "The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value."
+                                                          },
+                                                          "threshold": {
+                                                            "type": "number",
+                                                            "exclusiveMinimum": 0,
+                                                            "maximum": 1,
+                                                            "description": "The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9."
+                                                          },
+                                                          "color": {
+                                                            "type": "string",
+                                                            "pattern": "^#[0-9a-fA-F]{6}$",
+                                                            "description": "The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color."
+                                                          }
+                                                        }
+                                                      }
+                                                    }
+                                                  },
+                                                  "examples": [
+                                                    "icons/save.svg",
+                                                    {
+                                                      "path": "icons/save.svg"
+                                                    },
+                                                    {
+                                                      "path": "chart.png",
+                                                      "threshold": 0.99
+                                                    },
+                                                    {
+                                                      "path": "icons/save.svg",
+                                                      "color": "#1a5fb4"
+                                                    },
+                                                    {
+                                                      "base64": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAAAAADRSSBWAAAAC0lEQVR4nGNg+A8AAQIBAEK+vGgAAAAASUVORK5CYII="
+                                                    }
+                                                  ]
+                                                },
+                                                "elementAria": {
+                                                  "type": "string",
+                                                  "description": "Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax."
+                                                },
+                                                "timeout": {
+                                                  "type": "integer",
+                                                  "minimum": 0,
+                                                  "description": "Max duration in milliseconds to wait for the element to exist. `0` checks once.",
+                                                  "default": 5000,
+                                                  "$comment": "Kept identical to find_v3's timeout, deliberately: annotation targets resolve through the same findElement, so a different name, unit, or default here would be a difference without a distinction. NOT listed in target_element_guard — a deadline can't be the only thing identifying an element. The `default` is safe despite the no-defaults rule on the sibling `style` component: that rule protects annotationDefaults' config->spec->test cascade, and annotationDefaults_v3 spells its own properties out rather than referencing this shape. It's inert at runtime either way (Ajv ignores `default` inside anyOf, which is how every target is reached) and exists to document the 5000 ms wait on the generated reference page."
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "title": "At least one element-finding field",
+                                              "type": "object",
+                                              "anyOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "selector"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "elementText"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "elementId"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "elementTestId"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "elementClass"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "elementAttribute"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "elementAria"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "elementImage"
+                                                  ]
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  },
                                   "sourceIntegration": {
                                     "description": "Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.",
                                     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -109693,6 +111688,25 @@
                                     ]
                                   }
                                 },
+                                "$comment": "The examples keep `crop` and `fullPage: true` apart: the wrapping `object` schema rejects them together.",
+                                "examples": [
+                                  {
+                                    "path": "pricing.png",
+                                    "maxVariation": 0.05,
+                                    "overwrite": "aboveVariation",
+                                    "fullPage": true,
+                                    "animations": "disabled",
+                                    "mask": [
+                                      ".last-updated"
+                                    ]
+                                  },
+                                  {
+                                    "path": "submit.png",
+                                    "crop": "#submit",
+                                    "style": "#chat-launcher { visibility: hidden !important; }",
+                                    "stable": true
+                                  }
+                                ],
                                 "title": "Capture screenshot fields"
                               },
                               "crop_element": {

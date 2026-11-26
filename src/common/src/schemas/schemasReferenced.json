@@ -6160,10 +6160,45 @@
                 },
                 "then": {
                   "not": {
-                    "required": [
-                      "crop"
+                    "anyOf": [
+                      {
+                        "required": [
+                          "crop"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "style"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "fullPage"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "animations"
+                        ]
+                      }
                     ]
                   }
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "crop",
+                    "fullPage"
+                  ],
+                  "properties": {
+                    "fullPage": {
+                      "const": true
+                    }
+                  }
+                },
+                "errorMessage": {
+                  "not": "set `crop` or `fullPage`, not both."
                 }
               }
             ]
@@ -6200,6 +6235,16 @@
                 "minimum": 0,
                 "maximum": 1
               },
+              "threshold": {
+                "type": "number",
+                "default": 0.1,
+                "minimum": 0,
+                "maximum": 1
+              },
+              "maxDiffPixels": {
+                "type": "integer",
+                "minimum": 0
+              },
               "overwrite": {
                 "type": "string",
                 "enum": [
@@ -6219,10 +6264,45 @@
                   }
                 ]
               },
+              "style": {
+                "type": "string",
+                "minLength": 1
+              },
+              "stable": {
+                "type": "boolean"
+              },
+              "fullPage": {
+                "type": "boolean"
+              },
+              "animations": {
+                "type": "string",
+                "enum": [
+                  "allow",
+                  "disabled"
+                ]
+              },
               "annotations": {
                 "type": "array",
                 "items": {
                   "$ref": "annotation_v3.schema.json#"
+                }
+              },
+              "mask": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "transform": [
+                        "trim"
+                      ]
+                    },
+                    {
+                      "$ref": "annotation_v3.nodefaults.schema.json#/components/schemas/target_element"
+                    }
+                  ]
                 }
               },
               "sourceIntegration": {
@@ -8356,6 +8436,14 @@
             "off"
           ],
           "default": "auto"
+        },
+        "overwriteScreenshots": {
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "aboveVariation"
+          ]
         },
         "retries": {
           "type": "integer",
@@ -14780,10 +14868,45 @@
                 },
                 "then": {
                   "not": {
-                    "required": [
-                      "crop"
+                    "anyOf": [
+                      {
+                        "required": [
+                          "crop"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "style"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "fullPage"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "animations"
+                        ]
+                      }
                     ]
                   }
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "crop",
+                    "fullPage"
+                  ],
+                  "properties": {
+                    "fullPage": {
+                      "const": true
+                    }
+                  }
+                },
+                "errorMessage": {
+                  "not": "set `crop` or `fullPage`, not both."
                 }
               }
             ]
@@ -14819,6 +14942,15 @@
                 "minimum": 0,
                 "maximum": 1
               },
+              "threshold": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "maxDiffPixels": {
+                "type": "integer",
+                "minimum": 0
+              },
               "overwrite": {
                 "type": "string",
                 "enum": [
@@ -14837,10 +14969,45 @@
                   }
                 ]
               },
+              "style": {
+                "type": "string",
+                "minLength": 1
+              },
+              "stable": {
+                "type": "boolean"
+              },
+              "fullPage": {
+                "type": "boolean"
+              },
+              "animations": {
+                "type": "string",
+                "enum": [
+                  "allow",
+                  "disabled"
+                ]
+              },
               "annotations": {
                 "type": "array",
                 "items": {
                   "$ref": "annotation_v3.nodefaults.schema.json#"
+                }
+              },
+              "mask": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "transform": [
+                        "trim"
+                      ]
+                    },
+                    {
+                      "$ref": "annotation_v3.nodefaults.schema.json#/components/schemas/target_element"
+                    }
+                  ]
                 }
               },
               "sourceIntegration": {
@@ -16883,6 +17050,14 @@
             "auto",
             "explicit",
             "off"
+          ]
+        },
+        "overwriteScreenshots": {
+          "type": "string",
+          "enum": [
+            "true",
+            "false",
+            "aboveVariation"
           ]
         },
         "retries": {

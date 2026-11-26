@@ -269,14 +269,15 @@ describeIfSharp("saveScreenshot unified assertions", function () {
 
   it("counts a one-level color change on every pixel (ADR 01142)", async function () {
     // pixelmatch 8 at the old threshold (0.0005) ignores this nudge; v7 counted
-    // it. Existing baselines must keep the v7 variation.
+    // it. `threshold: 0` keeps the v7 count; the 0.1 default (ADR 01220)
+    // deliberately ignores a nudge this small.
     const target = path.join(tmpDir, "shot.png");
     fs.writeFileSync(target, await makePngBuffer(100, 80, { r: 0, g: 128, b: 0 }));
     const result = await saveScreenshot({
       config,
       step: {
         stepId: "s3b",
-        screenshot: { path: target, maxVariation: 0.05, overwrite: "aboveVariation" },
+        screenshot: { path: target, maxVariation: 0.05, overwrite: "aboveVariation", threshold: 0 },
       },
       driver: fakeDriver(await makePngBuffer(100, 80, { r: 1, g: 128, b: 0 })),
     });
@@ -408,6 +409,33 @@ describeIfSharp("saveScreenshot unified assertions", function () {
     assert.deepEqual(result.assertions, []);
     assert.equal(result.outputs.changed, true);
     assert.equal(result.outputs.screenshotPath, target);
+  });
+
+  it("config overwriteScreenshots:false beats a step's overwrite:true -> SKIPPED, reference unchanged", async function () {
+    const target = path.join(tmpDir, "shot.png");
+    const refBuf = await makePngBuffer(100, 80, { r: 255, g: 0, b: 0 });
+    fs.writeFileSync(target, refBuf);
+    const result = await saveScreenshot({
+      config: { overwriteScreenshots: "false" },
+      step: { stepId: "s7", screenshot: { path: target, overwrite: "true" } },
+      driver: fakeDriver(await makePngBuffer(100, 80, { r: 0, g: 255, b: 0 })),
+    });
+    assert.equal(result.status, "SKIPPED");
+    assert.ok(fs.readFileSync(target).equals(refBuf));
+  });
+
+  it("config overwriteScreenshots:true beats a step's overwrite:aboveVariation -> reference replaced", async function () {
+    const target = path.join(tmpDir, "shot.png");
+    const newBuf = await makePngBuffer(100, 80, { r: 0, g: 255, b: 0 });
+    fs.writeFileSync(target, await makePngBuffer(100, 80, { r: 255, g: 0, b: 0 }));
+    const result = await saveScreenshot({
+      config: { overwriteScreenshots: "true" },
+      step: { stepId: "s8", screenshot: { path: target, maxVariation: 0.05, overwrite: "aboveVariation" } },
+      driver: fakeDriver(newBuf),
+    });
+    assert.equal(result.status, "PASS");
+    assert.deepEqual(result.assertions, []);
+    assert.ok(fs.readFileSync(target).equals(newBuf));
   });
 
   it("PNG decode error on a non-PNG reference -> EXECUTION FAIL, no assertions", async function () {

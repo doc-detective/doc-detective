@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Tall page</title>
+  <style>
+    body { margin: 0; background: linear-gradient(#fff, #36c); }
+    #end { position: absolute; left: 20px; bottom: 20px; width: 200px; height: 40px; background: #c33; }
+  </style>
+</head>
+<body>
+  <!-- 2400px tall by default; `?h=20000` makes it taller than any screen. -->
+  <div id="end"></div>
+  <script>
+    const height = Number(new URLSearchParams(location.search).get("h")) || 2400;
+    document.body.style.height = height + "px";
+  </script>
+</body>
+</html>

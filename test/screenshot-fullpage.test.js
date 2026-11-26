@@ -1,0 +1,836 @@
+// `screenshot.fullPage` and `screenshot.animations` (ADR 01224). Runs the real
+// saveScreenshot pipeline against fake drivers, one per capture path, so the
+// calls each browser gets are visible.
+
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { createRequire } from "node:module";
+import { saveScreenshot } from "../dist/core/tests/saveScreenshot.js";
+
+const require = createRequire(import.meta.url);
+
+let sharp;
+try {
+  const mod = require("sharp");
+  sharp = mod && (mod.default ?? mod);
+} catch {
+  sharp = null;
+}
+
+const WHITE = { r: 255, g: 255, b: 255 };
+
+async function makePng(width, height, block) {
+  let image = sharp({ create: { width, height, channels: 3, background: WHITE } });
+  if (block) {
+    const patch = await sharp({
+      create: { width: block.width, height: block.height, channels: 3, background: { r: 0, g: 0, b: 0 } },
+    })
+      .png()
+      .toBuffer();
+    image = image.composite([{ input: patch, left: block.x, top: block.y }]);
+  }
+  return image.png().toBuffer();
+}
+
+function fakeElement() {
+  return {
+    elementId: "el-1",
+    async waitForExist() {
+      return true;
+    },
+    async isExisting() {
+      return true;
+    },
+    async getText() {
+      return "3 December";
+    },
+    async getComputedLabel() {
+      return "3 December";
+    },
+    async getAttribute() {
+      return null;
+    },
+    async getLocation() {
+      return { x: 100, y: 100 };
+    },
+    async getSize() {
+      return { width: 200, height: 50 };
+    },
+    async getTagName() {
+      return "span";
+    },
+    async getHTML() {
+      return "<span>3 December</span>";
+    },
+    async getValue() {
+      return "";
+    },
+    async isClickable() {
+      return true;
+    },
+    async isEnabled() {
+      return true;
+    },
+    async isSelected() {
+      return false;
+    },
+    async isDisplayed() {
+      return true;
+    },
+  };
+}
+
+// An 800×600 viewport over a 1600px-tall page, scrolled to `scrollY`. The
+// window is the viewport plus 100px of browser chrome, and `maxViewport` caps
+// how tall the viewport can grow, like a headed browser on a small screen.
+function fakeDriver({
+  browserName = "chrome",
+  isBidi = false,
+  viewportCapture,
+  pageCapture,
+  pageHeight = 1600,
+  pageWidth = 800,
+  scrollY = 0,
+  maxViewport = Infinity,
+  maxViewportWidth = Infinity,
+  rect = { x: 100, y: 100, width: 200, height: 50 },
+  // Where the element is while animations are frozen, when that differs.
+  frozenRect,
+  // A rect that follows the viewport, like a responsive layout.
+  rectAt,
+  // The page height once animations are frozen, when finishing one grows it.
+  frozenHeight,
+  // The screen's available size, as `screen.availWidth`/`availHeight` report it.
+  screen,
+  throwOnCapture = false,
+  captureResetsScroll = false,
+  // The page height after the first screenshot, like content that loads late.
+  growOnCapture,
+  // The viewport cap the browser reveals once a screenshot fails.
+  shrinkOnCapture,
+  // Where a finish handler scrolls the page when animations freeze.
+  scrollOnFreeze,
+  // Throws on the nth page-extent read (1-based).
+  throwOnExtentRead,
+  liveBlur,
+} = {}) {
+  const calls = [];
+  const window = { width: 800, height: 700 };
+  let scroll = { x: 0, y: scrollY };
+  let frozen = false;
+  let styled = false;
+  let extentReads = 0;
+  const viewport = () => ({
+    width: Math.min(window.width, maxViewportWidth),
+    height: Math.min(window.height - 100, maxViewport),
+  });
+  // A function height grows with the viewport, like a `vh` layout.
+  const docHeight = () =>
+    frozen && frozenHeight !== undefined
+      ? frozenHeight
+      : typeof pageHeight === "function"
+        ? pageHeight(viewport())
+        : pageHeight;
+  const element = fakeElement();
+  return {
+    calls,
+    capabilities: { browserName },
+    isBidi,
+    state: liveBlur ? { annotations: [{}] } : undefined,
+    get scroll() {
+      return scroll;
+    },
+    window,
+    async takeScreenshot() {
+      calls.push({ kind: "takeScreenshot", viewport: viewport() });
+      if (throwOnCapture) {
+        if (shrinkOnCapture) maxViewport = shrinkOnCapture;
+        throw new Error("session gone");
+      }
+      const image = (viewport().height >= docHeight() && viewport().width >= pageWidth ? pageCapture : viewportCapture).toString(
+        "base64"
+      );
+      if (growOnCapture) pageHeight = growOnCapture;
+      return image;
+    },
+    async fullPageScreenshot() {
+      calls.push({ kind: "fullPageScreenshot" });
+      return pageCapture.toString("base64");
+    },
+    async browsingContextCaptureScreenshot(params) {
+      calls.push({ kind: "bidiCapture", params });
+      // Chrome on macOS leaves the page scrolled to the top after a document capture.
+      if (captureResetsScroll) scroll = { x: 0, y: 0 };
+      return { data: pageCapture.toString("base64") };
+    },
+    async getWindowHandle() {
+      return "ctx-1";
+    },
+    async getWindowSize() {
+      return { ...window };
+    },
+    async setWindowSize(width, height) {
+      calls.push({ kind: "setWindowSize", width, height });
+      window.width = width;
+      window.height = height;
+      // A viewport as tall as the page can't scroll.
+      if (viewport().height >= docHeight() && viewport().width >= pageWidth) scroll = { x: 0, y: 0 };
+    },
+    get frozen() {
+      return frozen;
+    },
+    get styled() {
+      return styled;
+    },
+    async pause() {},
+    async $$() {
+      return [element];
+    },
+    async $() {
+      return element;
+    },
+    async execute(fn, ...args) {
+      const source = String(fn);
+      calls.push({ kind: "execute", source, args, frozen, styled, viewport: viewport() });
+      if (source.includes("data-dd-capture")) {
+        styled = !source.includes("remove");
+        return undefined;
+      }
+      if (source.includes("getAnimations") && source.includes("finish")) {
+        frozen = true;
+        if (scrollOnFreeze) scroll = { ...scrollOnFreeze };
+        return undefined;
+      }
+      if (source.includes("data-dd-animations") && source.includes("remove")) {
+        frozen = false;
+        return undefined;
+      }
+      if (source.includes("scrollTo")) {
+        scroll = { x: args[0], y: args[1] };
+        return undefined;
+      }
+      if (source.includes("scrollHeight")) {
+        extentReads += 1;
+        if (extentReads === throwOnExtentRead) throw new Error("page gone");
+        return {
+          x: scroll.x,
+          y: scroll.y,
+          height: docHeight(),
+          width: pageWidth,
+          viewportHeight: viewport().height,
+          viewportWidth: viewport().width,
+          outerWidth: window.width,
+          outerHeight: window.height,
+          ...(screen ? { availWidth: screen.availWidth, availHeight: screen.availHeight } : {}),
+        };
+      }
+      if (liveBlur && source.includes("requestAnimationFrame(note)")) return true;
+      if (liveBlur && source.includes("__ddNote")) return { watched: true, viewportWidth: viewport().width, regions: [liveBlur], documentRegions: [liveBlur] };
+      if (source.includes("getBoundingClientRect")) {
+        const at = rectAt ? rectAt(viewport(), { styled }) : frozen && frozenRect ? frozenRect : rect;
+        // A document-relative read adds the scroll in the same evaluation.
+        return args[1] === true ? { ...at } : { ...at, y: at.y - scroll.y };
+      }
+      if (source.includes("innerHeight")) return viewport();
+      if (source.includes("innerWidth")) return viewport().width;
+      if (source.includes("devicePixelRatio")) return 1;
+      return undefined;
+    },
+  };
+}
+
+describe("screenshot fullPage and animations", function () {
+  this.timeout(20000);
+
+  let dir;
+  let viewportCapture;
+  let pageCapture;
+  before(async function () {
+    if (!sharp) this.skip();
+    viewportCapture = await makePng(800, 600);
+    pageCapture = await makePng(800, 1600);
+  });
+  beforeEach(function () {
+    if (!sharp) this.skip();
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-fullpage-"));
+  });
+  afterEach(function () {
+    if (dir) fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  function run(screenshot, driver) {
+    return saveScreenshot({
+      config: {},
+      step: { stepId: "f1", screenshot: { path: path.join(dir, "page.png"), ...screenshot } },
+      driver,
+    });
+  }
+
+  async function savedHeight() {
+    return (await sharp(path.join(dir, "page.png")).metadata()).height;
+  }
+
+  const kinds = (driver) => driver.calls.map((c) => c.kind).filter((k) => k !== "execute");
+
+  // Every call, with the page scripts named by what they do.
+  const steps = (driver) =>
+    driver.calls.map((c) => {
+      if (c.kind !== "execute") return c.kind;
+      if (c.source.includes("getAnimations") && c.source.includes("finish")) return "freeze";
+      if (c.source.includes("data-dd-animations") && c.source.includes("remove")) return "thaw";
+      if (c.source.includes("fonts")) return "fonts";
+      return "execute";
+    });
+
+  it("captures the whole page through geckodriver in Firefox", async function () {
+    const driver = fakeDriver({ browserName: "firefox", viewportCapture, pageCapture });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.deepEqual(kinds(driver), ["fullPageScreenshot"]);
+    assert.equal(await savedHeight(), 1600);
+  });
+
+  it("captures the whole page through geckodriver when Appium reports `MozillaFirefox`", async function () {
+    const driver = fakeDriver({ browserName: "MozillaFirefox", viewportCapture, pageCapture });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.deepEqual(kinds(driver), ["fullPageScreenshot"]);
+  });
+
+  it("captures the document over BiDi when the session has a socket", async function () {
+    const driver = fakeDriver({ isBidi: true, viewportCapture, pageCapture });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    const bidi = driver.calls.find((c) => c.kind === "bidiCapture");
+    assert.deepEqual(bidi.params, { context: "ctx-1", origin: "document" });
+    assert.ok(!driver.calls.some((c) => c.kind === "setWindowSize"));
+    assert.equal(await savedHeight(), 1600);
+  });
+
+  it("puts the scroll back when the BiDi document capture moves it", async function () {
+    const driver = fakeDriver({ isBidi: true, viewportCapture, pageCapture, scrollY: 500, captureResetsScroll: true });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.deepEqual(driver.scroll, { x: 0, y: 500 });
+    assert.ok(!driver.calls.some((c) => c.kind === "setWindowSize"));
+  });
+
+  it("a session without BiDi (Safari) grows the window to the page, captures, and puts the window and scroll back", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture, scrollY: 300 });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(await savedHeight(), 1600);
+    const resizes = driver.calls.filter((c) => c.kind === "setWindowSize");
+    assert.deepEqual(resizes[0], { kind: "setWindowSize", width: 800, height: 1700 });
+    assert.deepEqual(resizes.at(-1), { kind: "setWindowSize", width: 800, height: 700 });
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+    assert.deepEqual(driver.scroll, { x: 0, y: 300 });
+  });
+
+  it("skips when the screen caps the window below the page height", async function () {
+    const driver = fakeDriver({ browserName: "Safari", viewportCapture, pageCapture, maxViewport: 900 });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.equal(result.description, "Skipped: `safari` can't capture a page larger than the screen.");
+    assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+    assert.ok(!fs.existsSync(path.join(dir, "page.png")));
+  });
+
+  it("doesn't resize a page that already fits the viewport", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture: viewportCapture, pageHeight: 500 });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.deepEqual(kinds(driver), ["takeScreenshot"]);
+  });
+
+  it("without fullPage, captures the viewport as before", async function () {
+    const driver = fakeDriver({ browserName: "firefox", viewportCapture, pageCapture });
+    const result = await run({}, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.deepEqual(kinds(driver), ["takeScreenshot"]);
+    assert.equal(await savedHeight(), 600);
+  });
+
+  it("places masks at their page position, adding the scroll offset", async function () {
+    // The date sits at page y 1100. The viewport is scrolled 1000px, so the
+    // element reports y 100. Without the offset the mask misses the date.
+    const target = path.join(dir, "page.png");
+    fs.writeFileSync(target, await makePng(800, 1600));
+    const capture = await makePng(800, 1600, { x: 100, y: 1100, width: 200, height: 50 });
+    const screenshot = { path: target, maxVariation: 0.001, overwrite: "aboveVariation", fullPage: true };
+    const compared = await saveScreenshot({
+      config: {},
+      step: {
+        stepId: "f3",
+        screenshot: { ...screenshot, mask: ["#date"] },
+      },
+      driver: fakeDriver({
+        browserName: "firefox",
+        viewportCapture,
+        pageCapture: capture,
+        scrollY: 1000,
+        rect: { x: 100, y: 1100, width: 200, height: 50 },
+      }),
+    });
+    assert.equal(compared.status, "PASS", compared.description);
+    assert.equal(compared.outputs.maskTargetsFound, true);
+    assert.equal(compared.outputs.overwritten ?? false, false);
+  });
+
+  it("`animations: disabled` freezes animations before the capture and thaws them after", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture });
+    const result = await run({ animations: "disabled" }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    const order = driver.calls.map((c) =>
+      c.kind === "execute"
+        ? c.source.includes("getAnimations") && c.source.includes("finish")
+          ? "freeze"
+          : c.source.includes("data-dd-animations") && c.source.includes("remove")
+            ? "thaw"
+            : "execute"
+        : c.kind
+    );
+    const freeze = order.indexOf("freeze");
+    const shot = order.indexOf("takeScreenshot");
+    const thaw = order.indexOf("thaw");
+    assert.ok(freeze >= 0 && freeze < shot && shot < thaw, order.join(","));
+  });
+
+  it("`animations: disabled` freezes after the web fonts load", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture });
+    const result = await run({ animations: "disabled" }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    const order = steps(driver);
+    const fonts = order.indexOf("fonts");
+    const freeze = order.indexOf("freeze");
+    assert.ok(fonts >= 0 && fonts < freeze, order.join(","));
+  });
+
+  it("`fullPage` with `animations: disabled` grows the window, freezes, captures, restores, then thaws", async function () {
+    // Freezing after the resize also stops animations the taller viewport starts.
+    const driver = fakeDriver({ viewportCapture, pageCapture, scrollY: 300 });
+    const result = await run({ fullPage: true, animations: "disabled" }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(await savedHeight(), 1600);
+    const order = steps(driver);
+    const fonts = order.indexOf("fonts");
+    const freeze = order.indexOf("freeze");
+    const grow = order.indexOf("setWindowSize");
+    const shot = order.indexOf("takeScreenshot");
+    const restore = order.lastIndexOf("setWindowSize");
+    const thaw = order.indexOf("thaw");
+    assert.ok(
+      fonts < grow && grow < freeze && freeze < shot && shot < restore && restore < thaw,
+      order.join(",")
+    );
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+    assert.deepEqual(driver.scroll, { x: 0, y: 300 });
+  });
+
+  it("`animations: disabled` thaws animations even when the capture fails", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture, throwOnCapture: true });
+    const result = await run({ animations: "disabled" }, driver);
+    assert.equal(result.status, "FAIL");
+    assert.ok(driver.calls.some((c) => c.kind === "execute" && c.source.includes("data-dd-animations") && c.source.includes("remove")));
+  });
+
+  it("grows the window's width too when the page overflows sideways", async function () {
+    const wide = await makePng(1600, 500);
+    const driver = fakeDriver({ viewportCapture, pageCapture: wide, pageHeight: 500, pageWidth: 1600 });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    const resizes = driver.calls.filter((c) => c.kind === "setWindowSize");
+    assert.deepEqual(resizes[0], { kind: "setWindowSize", width: 1600, height: 700 });
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+    assert.equal((await sharp(path.join(dir, "page.png")).metadata()).width, 1600);
+  });
+
+  it("skips when the screen caps the window below the page width", async function () {
+    const driver = fakeDriver({
+      viewportCapture,
+      pageCapture,
+      pageHeight: 500,
+      pageWidth: 1600,
+      maxViewportWidth: 1200,
+    });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.equal(result.description, "Skipped: `chrome` can't capture a page larger than the screen.");
+    assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("skips a page that grows with the viewport past the realized height", async function () {
+    // `height: calc(100vh + 1000px)`: 1600px at a 600px viewport, 2600px at 1600px.
+    const driver = fakeDriver({ viewportCapture, pageCapture, pageHeight: (vp) => vp.height + 1000 });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("restores the window when the page can't be measured after the resize", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture, throwOnExtentRead: 2 });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "FAIL");
+    assert.match(result.description, /page gone/);
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("`animations: disabled` reads mask geometry while the page is still frozen", async function () {
+    // The freeze finishes an animation that moves the date to y 300. Thawed,
+    // it jumps back to y 100, so a mask read after the thaw misses it.
+    const target = path.join(dir, "page.png");
+    fs.writeFileSync(target, await makePng(800, 600));
+    const capture = await makePng(800, 600, { x: 100, y: 300, width: 200, height: 50 });
+    const driver = fakeDriver({
+      viewportCapture: capture,
+      pageCapture: capture,
+      rect: { x: 100, y: 100, width: 200, height: 50 },
+      frozenRect: { x: 100, y: 300, width: 200, height: 50 },
+    });
+    const result = await saveScreenshot({
+      config: {},
+      step: {
+        stepId: "f4",
+        screenshot: { path: target, maxVariation: 0.001, overwrite: "aboveVariation", animations: "disabled", mask: ["#date"] },
+      },
+      driver,
+    });
+    assert.equal(result.status, "PASS", result.description);
+    const reads = driver.calls.filter((c) => c.kind === "execute" && c.source.includes("getBoundingClientRect"));
+    assert.ok(reads.length > 0 && reads.every((c) => c.frozen), "every rect read happens while frozen");
+    assert.equal(driver.frozen, false, "thawed when the step ends");
+  });
+
+  it("reads mask geometry at the capture size, then restores the window", async function () {
+    // A responsive date: at y 300 in the grown 1600px viewport the capture
+    // shows, at y 100 once the window is back at 600px.
+    const target = path.join(dir, "page.png");
+    fs.writeFileSync(target, await makePng(800, 1600));
+    const capture = await makePng(800, 1600, { x: 100, y: 300, width: 200, height: 50 });
+    const driver = fakeDriver({
+      viewportCapture,
+      pageCapture: capture,
+      rectAt: (vp) => ({ x: 100, y: vp.height >= 1600 ? 300 : 100, width: 200, height: 50 }),
+    });
+    const result = await saveScreenshot({
+      config: {},
+      step: {
+        stepId: "f5",
+        screenshot: { path: target, maxVariation: 0.001, overwrite: "aboveVariation", fullPage: true, mask: ["#date"] },
+      },
+      driver,
+    });
+    assert.equal(result.status, "PASS", result.description);
+    const reads = driver.calls.filter((c) => c.kind === "execute" && c.source.includes("getBoundingClientRect"));
+    assert.ok(reads.length > 0 && reads.every((c) => c.viewport.height === 1600), "every rect read is at the capture size");
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("grows the window again when freezing makes the page taller", async function () {
+    // Finishing an animation adds 400px; the first resize only fit 1600.
+    const tall = await makePng(800, 2000);
+    const driver = fakeDriver({ viewportCapture, pageCapture: tall, frozenHeight: 2000 });
+    const result = await run({ fullPage: true, animations: "disabled" }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(await savedHeight(), 2000);
+    const shot = driver.calls.find((c) => c.kind === "takeScreenshot");
+    assert.equal(shot.viewport.height, 2000);
+    const freezes = driver.calls.filter((c) => c.kind === "execute" && c.source.includes("getAnimations") && c.source.includes("finish"));
+    assert.equal(freezes.length, 2, "frozen again after the second resize");
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("skips without resizing when the page needs more than the screen's available height", async function () {
+    // A 1000px screen less 100px of window chrome leaves a 900px viewport at most.
+    const driver = fakeDriver({
+      browserName: "Safari",
+      viewportCapture,
+      pageCapture,
+      screen: { availWidth: 1920, availHeight: 1000 },
+    });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.equal(result.description, "Skipped: `safari` can't capture a page larger than the screen.");
+    assert.ok(!driver.calls.some((c) => c.kind === "setWindowSize"), "no resize");
+    assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
+  });
+
+  it("still grows the window when the page fits the screen's available size", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture, screen: { availWidth: 1920, availHeight: 2000 } });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(await savedHeight(), 1600);
+  });
+
+  it("skips, with the window restored, when the screenshot fails after the window grew", async function () {
+    // safaridriver can refuse a screenshot of a window grown past the screen.
+    const driver = fakeDriver({
+      browserName: "Safari",
+      viewportCapture,
+      pageCapture,
+      throwOnCapture: true,
+      shrinkOnCapture: 900,
+    });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.equal(result.description, "Skipped: `safari` can't capture a page larger than the screen.");
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("fails, with the window restored, when the screenshot fails after a grow with no sign of a cap", async function () {
+    // A lost session isn't a screen cap: the viewport still fits the page.
+    const driver = fakeDriver({ browserName: "Safari", viewportCapture, pageCapture, throwOnCapture: true });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "FAIL", result.description);
+    assert.match(result.description, /session gone/);
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("places masks by the scroll read with the rects, even when the freeze scrolls the page", async function () {
+    // A finish handler scrolls to y 200 after the capture code read y 0.
+    const target = path.join(dir, "page.png");
+    fs.writeFileSync(target, await makePng(800, 1600));
+    const capture = await makePng(800, 1600, { x: 100, y: 300, width: 200, height: 50 });
+    const result = await saveScreenshot({
+      config: {},
+      step: {
+        stepId: "f8",
+        screenshot: {
+          path: target,
+          maxVariation: 0.001,
+          overwrite: "aboveVariation",
+          fullPage: true,
+          animations: "disabled",
+          mask: ["#date"],
+        },
+      },
+      driver: fakeDriver({
+        browserName: "firefox",
+        viewportCapture,
+        pageCapture: capture,
+        rect: { x: 100, y: 300, width: 200, height: 50 },
+        scrollOnFreeze: { x: 0, y: 200 },
+      }),
+    });
+    assert.equal(result.status, "PASS", result.description);
+  });
+
+  it("grows the window when freezing makes a page that fit outgrow the viewport", async function () {
+    // 500px fits the 600px viewport until a finished animation adds 1000px.
+    const tall = await makePng(800, 1500);
+    const driver = fakeDriver({ viewportCapture, pageCapture: tall, pageHeight: 500, frozenHeight: 1500 });
+    const result = await run({ fullPage: true, animations: "disabled" }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(await savedHeight(), 1500);
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("skips when freezing makes a page that fit outgrow the screen", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture, pageHeight: 500, frozenHeight: 1500, maxViewport: 1000 });
+    const result = await run({ fullPage: true, animations: "disabled" }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+  });
+
+  it("skips when freezing grows the page past the screen", async function () {
+    const driver = fakeDriver({ viewportCapture, pageCapture, frozenHeight: 2000, maxViewport: 1800 });
+    const result = await run({ fullPage: true, animations: "disabled" }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.equal(result.description, "Skipped: `chrome` can't capture a page larger than the screen.");
+    assert.ok(!driver.calls.some((c) => c.kind === "takeScreenshot"));
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+    assert.equal(driver.frozen, false);
+  });
+
+  it("reads mask geometry while the `style` is still applied, then removes it", async function () {
+    // The style hides a banner above the date, which moves up from y 300 to y 100.
+    const target = path.join(dir, "page.png");
+    fs.writeFileSync(target, await makePng(800, 600));
+    const capture = await makePng(800, 600, { x: 100, y: 100, width: 200, height: 50 });
+    const driver = fakeDriver({
+      viewportCapture: capture,
+      pageCapture: capture,
+      rectAt: (vp, { styled }) => ({ x: 100, y: styled ? 100 : 300, width: 200, height: 50 }),
+    });
+    const result = await saveScreenshot({
+      config: {},
+      step: {
+        stepId: "f7",
+        screenshot: {
+          path: target,
+          maxVariation: 0.001,
+          overwrite: "aboveVariation",
+          style: "#banner { display: none !important; }",
+          mask: ["#date"],
+        },
+      },
+      driver,
+    });
+    assert.equal(result.status, "PASS", result.description);
+    const reads = driver.calls.filter((c) => c.kind === "execute" && c.source.includes("getBoundingClientRect"));
+    assert.ok(reads.length > 0 && reads.every((c) => c.styled), "every rect read happens with the style applied");
+    assert.equal(driver.styled, false, "the style is gone when the step ends");
+  });
+
+  it("blurs a `style`-shifted target where the capture shows it", async function () {
+    // The style hides a banner, moving the secret from y 300 to y 100. The
+    // capture has the same black mark at both places; only the target's is blurred.
+    const marks = await makePng(800, 600, { x: 190, y: 115, width: 20, height: 20 });
+    const capture = await sharp(marks)
+      .composite([
+        {
+          input: await sharp({ create: { width: 20, height: 20, channels: 3, background: { r: 0, g: 0, b: 0 } } })
+            .png()
+            .toBuffer(),
+          left: 190,
+          top: 315,
+        },
+      ])
+      .png()
+      .toBuffer();
+    const driver = fakeDriver({
+      viewportCapture: capture,
+      pageCapture: capture,
+      rectAt: (vp, { styled }) => ({ x: 100, y: styled ? 100 : 300, width: 200, height: 50 }),
+    });
+    const result = await run(
+      { style: "#banner { display: none !important; }", annotations: [{ blur: "#secret" }] },
+      driver
+    );
+    assert.equal(result.status, "PASS", result.description);
+    const { data, info } = await sharp(path.join(dir, "page.png")).raw().toBuffer({ resolveWithObject: true });
+    const at = (x, y) => data[(y * info.width + x) * info.channels];
+    assert.ok(at(190, 115) > 0, "the mark at the target's captured position is blurred");
+    assert.equal(at(190, 315), 0, "the mark where the target sits without the style is untouched");
+    assert.equal(driver.styled, false);
+  });
+
+  it("scales live blurs on a whole-page image by the pixel density, not the viewport width", async function () {
+    // A 1600px-wide document in an 800px viewport. The blur covers x 100–200;
+    // dividing the image width by the viewport width would double it onto the
+    // black block at x 300.
+    // A mark inside the blur at x 140–160 shows the blur ran.
+    const blocks = await makePng(1600, 1600, { x: 300, y: 300, width: 100, height: 100 });
+    const mark = await sharp({ create: { width: 20, height: 20, channels: 3, background: { r: 0, g: 0, b: 0 } } })
+      .png()
+      .toBuffer();
+    const capture = await sharp(blocks).composite([{ input: mark, left: 140, top: 140 }]).png().toBuffer();
+    const driver = fakeDriver({
+      browserName: "firefox",
+      viewportCapture,
+      pageCapture: capture,
+      pageWidth: 1600,
+      liveBlur: { x: 100, y: 100, width: 100, height: 100, intensity: 14 },
+    });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    const { data, info } = await sharp(path.join(dir, "page.png")).raw().toBuffer({ resolveWithObject: true });
+    const at = (x, y) => data[(y * info.width + x) * info.channels];
+    assert.ok(at(141, 150) > 0, "the mark inside the blur is blurred");
+    assert.equal(at(302, 350), 0, "the block's edge isn't blurred");
+  });
+
+  // A surface-less step whose active surface is an app resolves only at run
+  // time, so the schema can't reject these there.
+  for (const [screenshot, message] of [
+    [{ fullPage: true }, "`fullPage` isn't supported on app captures; it captures a scrollable web page. Omit `fullPage`."],
+    [
+      { animations: "disabled" },
+      "`animations` isn't supported on app captures; it stops a web page's animations. Omit `animations`.",
+    ],
+  ]) {
+    it(`rejects ${JSON.stringify(screenshot)} when the surface resolves to an app`, async function () {
+      const appSession = { surfaces: new Map([["calc", { name: "calc", appId: "calc", driver: {} }]]) };
+      const result = await saveScreenshot({
+        config: {},
+        step: { stepId: "a1", screenshot: { path: path.join(dir, "app.png"), ...screenshot } },
+        driver: fakeDriver({ viewportCapture, pageCapture }),
+        appSession,
+        surfaceTracker: { mru: [{ kind: "app", name: "calc" }] },
+      });
+      assert.equal(result.status, "FAIL");
+      assert.equal(result.description, message);
+    });
+  }
+
+  it("thaws each animation back to the play state it had: paused stays paused", async function () {
+    // Runs the real page code against stand-in animations. A spec animation
+    // that `finish()` ends runs again when its time moves back, unless paused.
+    const { freezeAnimations, thawAnimations } = await import("../dist/core/tests/saveScreenshot.js");
+    const make = (playState) => {
+      const anim = {
+        playState,
+        time: 100,
+        effect: { getComputedTiming: () => ({ endTime: 1000 }) },
+        get currentTime() {
+          return this.time;
+        },
+        set currentTime(value) {
+          this.time = value;
+          if (this.playState === "finished") this.playState = "running";
+        },
+        finish() {
+          this.playState = "finished";
+          this.time = 1000;
+        },
+        cancel() {
+          this.playState = "idle";
+        },
+        play() {
+          this.playState = "running";
+        },
+        pause() {
+          this.playState = "paused";
+        },
+      };
+      return anim;
+    };
+    const paused = make("paused");
+    const running = make("running");
+    const saved = ["document", "window"].map((key) => [key, global[key]]);
+    Object.assign(global, {
+      window: {},
+      document: {
+        getAnimations: () => [paused, running],
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        createElement: () => ({ setAttribute() {} }),
+        head: { appendChild() {} },
+      },
+    });
+    try {
+      freezeAnimations();
+      assert.equal(paused.playState, "finished");
+      thawAnimations();
+      assert.deepEqual([paused.playState, paused.time], ["paused", 100]);
+      assert.deepEqual([running.playState, running.time], ["running", 100]);
+    } finally {
+      for (const [key, value] of saved) global[key] = value;
+    }
+  });
+
+  it("skips when the page outgrows the grown viewport between stable captures", async function () {
+    // The page is 1600px when the window grows, then 2000px after the first capture.
+    const driver = fakeDriver({ browserName: "Safari", viewportCapture, pageCapture, growOnCapture: 2000 });
+    const result = await run({ fullPage: true, stable: true }, driver);
+    assert.equal(result.status, "SKIPPED", result.description);
+    assert.equal(result.description, "Skipped: `safari` can't capture a page larger than the screen.");
+    assert.deepEqual(driver.window, { width: 800, height: 700 });
+    assert.ok(!fs.existsSync(path.join(dir, "page.png")));
+  });
+
+  for (const animations of [undefined, "allow"]) {
+    it(`\`animations: ${animations}\` leaves animations alone`, async function () {
+      const driver = fakeDriver({ viewportCapture, pageCapture });
+      const result = await run(animations ? { animations } : {}, driver);
+      assert.equal(result.status, "PASS", result.description);
+      assert.ok(!driver.calls.some((c) => c.kind === "execute" && c.source.includes("getAnimations")));
+    });
+  }
+});

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screenshot mask</title>
+    <style>
+        /* Large timestamps written at load, so captures from two page loads
+           differ unless the changing parts are masked. The page doesn't keep
+           ticking: constant DOM changes would fail goTo's DOM-stability wait. */
+        html, body { margin: 0; background: #fff; font: 32px monospace; }
+        #panel { margin: 20px; padding: 20px; border: 2px solid #000; width: 640px; }
+        p { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div id="panel">
+        <p>Billing</p>
+        <p>Next invoice: <span id="clock"></span></p>
+    </div>
+    <div id="stamps">
+        <p>Updated <span class="stamp"></span></p>
+        <p>Synced <span class="stamp"></span></p>
+    </div>
+    <script>
+        // A timestamp alone changes only its last digits between quick reloads,
+        // so a random suffix makes every character change.
+        const now = new Date().toISOString() + " " + Math.random().toString(36).slice(2, 10);
+        document.getElementById("clock").textContent = now;
+        for (const el of document.querySelectorAll(".stamp")) el.textContent = now;
+    </script>
+</body>
+</html>

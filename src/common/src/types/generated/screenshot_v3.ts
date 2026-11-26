@@ -16,7 +16,9 @@ export type CaptureScreenshot = boolean;
  * File path of the PNG file. Accepts absolute paths. A relative path resolves against `directory` if set, else against the spec file, or against `outputDir` for a spec loaded from a URL. If not specified, the file is `<stepId>.png`, in `directory` if set, else in `outputDir`. If an `http(s)` URL is supplied, the remote image is downloaded and used as a read-only reference for comparison; the new capture is written to the context's `screenshots/` folder inside the run folder (`<runDir>/specs/<specId>/tests/<testId>/contexts/<contextId>/screenshots/`) instead of being uploaded back to the URL.
  */
 export type ScreenshotSimple = string;
-export type CaptureScreenshotDetailed = CaptureScreenshotFields & AppCapturesDonTSupportCrop;
+export type CaptureScreenshotDetailed = CaptureScreenshotFields &
+  AppCapturesDonTSupportCropStyleFullPageOrAnimations &
+  CropAndFullPageAreExclusive;
 /**
  * Browser engine keyword. Targets that browser. Steps that can only ever act on a browser (not a background process) restrict the bare-string form to this enum, so a process name here is rejected at validation time instead of failing at runtime.
  */
@@ -412,10 +414,76 @@ export type NamedRegion6 =
 export type ExactlyOneAnnotationType = {
   [k: string]: unknown;
 };
+/**
+ * Display text or selector of the element to mask. Masks the first match.
+ */
+export type MaskByElementSimple = string;
+/**
+ * Element to annotate. Mirrors the element-finding fields used elsewhere. On app surfaces only the natively-mappable fields are supported (`elementText`, `elementId`, `elementTestId`, `elementAria`); `selector`, `elementClass`, and `elementAttribute` have no native equivalent.
+ */
+export type TargetByElementDetailed6 = ElementFindingFields6 & AtLeastOneElementFindingField6;
+/**
+ * A picture of the element to find. Doc Detective looks for it on screen, matching both its shape and its color. Works on browser surfaces on desktop. If combined with other element finding fields, the match must lie inside an element that meets them.
+ */
+export type ElementImage7 = ImagePath7 | ImageDetailed7;
+/**
+ * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+ */
+export type ImagePath7 = string;
+export type ImageDetailed7 = (
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+) & {
+  /**
+   * Path to a PNG, JPEG, or SVG file. A relative path resolves against the spec file, unless `relativePathBase` is `cwd`.
+   */
+  path?: string;
+  /**
+   * The image's bytes as base64, with or without a `data:image/png;base64,` prefix. Failure messages call it the `base64` image rather than printing the value.
+   */
+  base64?: string;
+  /**
+   * The lowest score that counts as a match. A location's score is the lower of its shape score and its color score, and 1 is a perfect match. Defaults to 0.9.
+   */
+  threshold?: number;
+  /**
+   * The icon's color on the page, as a six-digit hex value. Use this for a file drawn in `currentColor`, which renders black, or to find a one-color icon in another color. Works only with a transparent file in one color.
+   */
+  color?: string;
+};
+export type AtLeastOneElementFindingField6 =
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    }
+  | {
+      [k: string]: unknown;
+    };
 
 export interface CaptureScreenshotFields {
   /**
-   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop`.
+   * The browser window/tab or app window to capture. Omit to capture the active surface — the most recently opened, focused, or explicitly targeted surface, whatever its kind (a background process can't be captured). Specifying a surface switches the active surface for the steps that follow. App surfaces use the object form ({ "app": … }). App captures don't support `crop`, `style`, `fullPage`, or `animations`.
    */
   surface?: SurfaceByBrowserEngine | BrowserSurface | AppSurface;
   path?: ScreenshotSimple1;
@@ -428,15 +496,45 @@ export interface CaptureScreenshotFields {
    */
   maxVariation?: number;
   /**
+   * How different two pixels' colors must be, from 0 to 1, before the pixel counts as changed when comparing with the existing screenshot at `path`. Higher numbers ignore anti-aliasing and font-smoothing noise. `0` counts any color change.
+   */
+  threshold?: number;
+  /**
+   * Most changed pixels allowed between the new screenshot and the existing screenshot at `path`. Applies alongside `maxVariation`: when both are set, both must hold, or the step returns a warning. If a screenshot doesn't exist at `path`, this value is ignored.
+   */
+  maxDiffPixels?: number;
+  /**
    * If `true`, overwrites the existing screenshot at `path` if it exists.
-   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`.
+   * If `aboveVariation`, overwrites the existing screenshot at `path` if the difference between the new screenshot and the existing screenshot is greater than `maxVariation`. It also overwrites when `maxDiffPixels` is set and more pixels than that changed.
    */
   overwrite?: "true" | "false" | "aboveVariation";
   crop?: CropByElementSimple | CropByElementDetailed;
   /**
+   * CSS applied to the page only while the screenshot is taken, then removed, so later steps see the page unchanged. Use it to hide chat widgets, cookie banners, or badges, for example `#chat-launcher, .cookie-banner { visibility: hidden !important; }`. Browser captures only.
+   */
+  style?: string;
+  /**
+   * If `true`, captures the screenshot repeatedly, 100 milliseconds apart, until two captures in a row are identical, and saves that one. If the page is still changing after 5 seconds, saves the last capture and returns a warning. If unset, captures once.
+   */
+  stable?: boolean;
+  /**
+   * If `true`, captures the whole scrollable page, not only the visible viewport. Can't be combined with `crop`. Browser captures only. If unset, captures the viewport.
+   */
+  fullPage?: boolean;
+  /**
+   * If `disabled`, finishes finite CSS and Web Animations, stops infinite ones, turns off CSS transitions, and hides the text caret while the screenshot is taken, then puts them back. If unset or `allow`, the page animates as usual. Browser captures only.
+   */
+  animations?: "allow" | "disabled";
+  /**
    * Visual annotations to draw onto the screenshot. Annotations are composited into the image and never touch the page, so they can't disturb the page under test or appear in a recording that's running at the same time. Each annotation is resolved against the capture after any `crop`. To keep annotations on screen across steps and in recordings, use an `annotate` step instead.
    */
   annotations?: Annotation[];
+  /**
+   * Areas to ignore when comparing the screenshot with the existing screenshot at `path`, such as a date or counter that changes every run. Doc Detective paints each area the same solid color on both images before comparing them, so changes inside a mask never count toward `maxVariation`. The saved screenshot isn't changed. An element object masks every matching element; a string masks the first match. Masks apply only when a comparison runs. If a mask's element can't be found, the step fails.
+   *
+   * @minItems 1
+   */
+  mask?: [MaskByElementSimple | TargetByElementDetailed6, ...(MaskByElementSimple | TargetByElementDetailed6)[]];
   sourceIntegration?: SourceIntegration;
 }
 export interface BrowserSurface {
@@ -998,6 +1096,43 @@ export interface AnnotationTransition {
    */
   durationMs?: number;
 }
+export interface ElementFindingFields6 {
+  /**
+   * Selector of the element to annotate. Browser surfaces only.
+   */
+  selector?: string;
+  /**
+   * Display text of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementText?: string;
+  /**
+   * ID attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementId?: string;
+  /**
+   * data-testid attribute of the element to annotate. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementTestId?: string;
+  /**
+   * Class or array of classes that the element must have. Each class supports exact match or regex pattern using /pattern/ syntax. Element must have all specified classes. Browser surfaces only.
+   */
+  elementClass?: string | string[];
+  /**
+   * Object of attribute key-value pairs that the element must have. Values can be strings (supporting /pattern/ regex), numbers, or booleans. Boolean true matches attribute presence, false matches absence.
+   */
+  elementAttribute?: {
+    [k: string]: boolean | number | string;
+  };
+  elementImage?: ElementImage7;
+  /**
+   * Computed accessible name of the element per ARIA specification. Supports exact match or regex pattern using /pattern/ syntax.
+   */
+  elementAria?: string;
+  /**
+   * Max duration in milliseconds to wait for the element to exist. `0` checks once.
+   */
+  timeout?: number;
+}
 /**
  * Information about the source integration for this screenshot, enabling upload of changed files back to the source CMS. Set automatically during test resolution for files from integrations.
  */
@@ -1023,6 +1158,9 @@ export interface SourceIntegration {
    */
   contentPath?: string;
 }
-export interface AppCapturesDonTSupportCrop {
+export interface AppCapturesDonTSupportCropStyleFullPageOrAnimations {
+  [k: string]: unknown;
+}
+export interface CropAndFullPageAreExclusive {
   [k: string]: unknown;
 }
