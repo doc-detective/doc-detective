@@ -60,7 +60,7 @@ different. No new report fields: the resolved context already echoes `browser`.
 |---|---|---|---|
 | `colorScheme` | arg `--blink-settings=preferredColorScheme=0\|1` | pref `layout.css.prefers-color-scheme.content-override` | Skipped |
 | `locale` | arg `--lang` + pref `intl.accept_languages` | prefs `intl.locale.requested`, `intl.accept_languages` | Skipped |
-| `timezone` | BiDi `emulation.setTimezoneOverride` | `moz:firefoxOptions.env.TZ` on Linux and macOS; Skipped on Windows | Skipped |
+| `timezone` | BiDi `emulation.setTimezoneOverride` | Skipped | Skipped |
 | `deviceScaleFactor` | arg `--force-device-scale-factor` | pref `layout.css.devPixelsPerPx` | Skipped |
 | `reducedMotion` | arg `--force-prefers-reduced-motion` or `--force-prefers-no-reduced-motion` | pref `ui.prefersReducedMotion` | Skipped |
 | `clock` | BiDi `script.addPreloadScript`, which replaces `Date` | Skipped | Skipped |
@@ -68,13 +68,13 @@ different. No new report fields: the resolved context already echoes `browser`.
 Android and iOS browsers skip every key.
 
 * `emulationCapabilities(browser)` in [src/core/utils.ts](../src/core/utils.ts) returns the Chrome
-  args and prefs and the Firefox prefs and env. `getDriverCapabilities` merges them.
+  args and prefs and the Firefox prefs. `getDriverCapabilities` merges them.
 * `unsupportedEmulation(browser, platform)` returns the skip message for the first key the browser
   can't set. `runContext` calls it before any browser starts. It also filters the cross-browser
   fallback candidates, so a fallback engine must set every key too.
-* `timezone` and `clock` run over BiDi only in a browser in `BIDI_BROWSERS`, which always has the
-  socket (ADR 01219). `BIDI_BROWSERS` and `hasBidi()` live once, in `utils.ts`, and `tests.ts` re-exports them. Outside the set,
-  `timezone` uses the Firefox `TZ` fallback or skips, and `clock` skips.
+* `timezone` and `clock` run over BiDi only in a browser in `BIDI_BROWSERS`. Those browsers always
+  have the socket (ADR 01219). Everywhere else, both keys skip. There's no fallback.
+* `BIDI_BROWSERS` and `hasBidi()` live once, in `utils.ts`. `tests.ts` re-exports them.
 * `applyEmulation(driver, browser)` runs right after `applyBrowserSize`, for the context's session
   and for every later session a `startSurface` step opens. It sends the BiDi commands.
 * `emulation.setTimezoneOverride` targets `userContexts: ["default"]`. Chrome rejects the global
@@ -88,7 +88,6 @@ Android and iOS browsers skip every key.
 | Case | Result | Message |
 |---|---|---|
 | The browser can't set a key | Context SKIPPED | ``Skipped: `safari` can't set `colorScheme`.`` |
-| Firefox `timezone` on Windows | Context SKIPPED | ``Skipped: `firefox` can't set `timezone` on Windows.`` |
 | A managed-device browser | Context SKIPPED | ``Skipped: `chrome` can't set `colorScheme` on Android.`` |
 | A later session's engine can't set a key | Step FAIL | ``Couldn't open `firefox`: `firefox` can't set `clock`.`` |
 | Chrome rejects a BiDi command | Context FAIL | ``Couldn't set `timezone` to `Europe/Berlin` in `chrome`.`` |
@@ -99,8 +98,7 @@ Android and iOS browsers skip every key.
 * Good: dark-mode, localized and fixed-date screenshots run on one machine, one context each.
 * Good: no row runs wrong. A browser that can't set a key skips the context.
 * Neutral: `timezone` and `clock` reuse the socket every Chrome session already has. They add none.
-* Bad: Firefox `clock` and Windows Firefox `timezone` stay Skipped until Firefox joins
-  `BIDI_BROWSERS`.
+* Bad: Firefox `timezone` and `clock` stay Skipped until Firefox joins `BIDI_BROWSERS`.
 * Bad: Safari sets nothing, because safaridriver takes neither args nor prefs.
 
 ### Confirmation
@@ -120,11 +118,24 @@ Android and iOS browsers skip every key.
 Every launch-time row held: the page saw the requested `prefers-color-scheme` (both values),
 `navigator.language`, `devicePixelRatio` and `prefers-reduced-motion` (both values), in Chrome and
 in Firefox. Chrome `timezone` and `clock` held over BiDi, alone and together with every other key.
-Firefox `clock` and Windows Firefox `timezone` skipped with their messages.
+Firefox `timezone` and `clock` skipped with their messages.
 
 Linux and macOS rows, including the riskiest, Linux `--lang` and `--blink-settings`, are confirmed
 by the fixture matrix in CI. A row that fails there moves to Skipped for that browser and
 platform, and this section records it.
+
+#### Firefox `timezone` moved to Skipped
+
+The first design set Firefox `timezone` through `moz:firefoxOptions.env.TZ` on Linux and macOS.
+It skipped on Windows, where Firefox doesn't read `TZ`.
+
+CI then disproved the Linux row. In `fixtures / general (ubuntu-latest)`, headless Firefox 163
+ignored `TZ`. `Intl` didn't report `Asia/Tokyo`, so `firefox-timezone` failed.
+
+Decision: drop the `TZ` fallback entirely. Firefox `timezone` is Skipped on every platform, with
+``Skipped: `firefox` can't set `timezone`.`` The maintainer chose the simplest stack: one rule per
+browser, no per-platform message, no env plumbing. Firefox gets `timezone` when it joins
+`BIDI_BROWSERS`.
 
 ## Pros and Cons of the Options
 

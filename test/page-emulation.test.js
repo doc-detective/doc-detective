@@ -14,7 +14,6 @@ describe("emulationCapabilities", function () {
       assert.deepEqual(emulationCapabilities({ name }), {
         args: [],
         prefs: {},
-        env: {},
       });
     }
   });
@@ -55,7 +54,7 @@ describe("emulationCapabilities", function () {
     it("leaves timezone and clock to BiDi", function () {
       assert.deepEqual(
         caps({ timezone: "Europe/Berlin", clock: "2026-12-03T09:00:00Z" }),
-        { args: [], prefs: {}, env: {} }
+        { args: [], prefs: {} }
       );
     });
   });
@@ -94,10 +93,11 @@ describe("emulationCapabilities", function () {
       });
     });
 
-    it("maps timezone to the TZ environment variable", function () {
-      assert.deepEqual(caps({ timezone: "Asia/Tokyo" }).env, {
-        TZ: "Asia/Tokyo",
-      });
+    it("sets nothing for timezone or clock, which skip", function () {
+      assert.deepEqual(
+        caps({ timezone: "Asia/Tokyo", clock: "2026-12-03T09:00:00Z" }),
+        { args: [], prefs: {} }
+      );
     });
   });
 });
@@ -136,20 +136,14 @@ describe("unsupportedEmulation", function () {
     }
   });
 
-  it("allows firefox timezone on Linux and macOS", function () {
-    for (const platform of ["mac", "linux"]) {
+  // Headless Firefox on Linux ignored `TZ` in CI, so there's no fallback.
+  it("skips firefox timezone on every platform", function () {
+    for (const platform of ["windows", "mac", "linux"]) {
       assert.equal(
         unsupportedEmulation({ name: "firefox", timezone: "UTC" }, platform),
-        null
+        "Skipped: `firefox` can't set `timezone`."
       );
     }
-  });
-
-  it("skips firefox timezone on Windows", function () {
-    assert.equal(
-      unsupportedEmulation({ name: "firefox", timezone: "UTC" }, "windows"),
-      "Skipped: `firefox` can't set `timezone` on Windows."
-    );
   });
 
   it("skips firefox clock on every platform", function () {
@@ -230,7 +224,7 @@ describe("getDriverCapabilities with page emulation", function () {
     assert.equal(opts.prefs["download.prompt_for_download"], false);
   });
 
-  it("adds firefox prefs and env alongside the defaults", function () {
+  it("adds firefox prefs alongside the defaults, and no env", function () {
     const caps = getDriverCapabilities({
       runnerDetails,
       name: "firefox",
@@ -245,16 +239,7 @@ describe("getDriverCapabilities with page emulation", function () {
       opts.prefs["toolkit.legacyUserProfileCustomizations.stylesheets"],
       true
     );
-    assert.deepEqual(opts.env, { TZ: "UTC" });
-  });
-
-  it("adds no env key to firefox without a timezone", function () {
-    const caps = getDriverCapabilities({
-      runnerDetails,
-      name: "firefox",
-      options: { headless: true },
-    });
-    assert.equal(caps["moz:firefoxOptions"].env, undefined);
+    assert.equal(opts.env, undefined);
   });
 });
 

@@ -77,7 +77,7 @@ export interface Browser {
    */
   locale?: string;
   /**
-   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Firefox sets it only on Linux and macOS, and Safari can't set it, so those contexts are skipped.
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.
    */
   timezone?: string;
   /**
@@ -150,7 +150,7 @@ export interface Browser1 {
    */
   locale?: string;
   /**
-   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Firefox sets it only on Linux and macOS, and Safari can't set it, so those contexts are skipped.
+   * IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.
    */
   timezone?: string;
   /**

@@ -1,6 +1,6 @@
 {
   "specId": "page-emulation",
-  "description": "Page emulation keys on the context `browser` object (ADR 01223). One test per key per browser asserts what the page sees through `runBrowserScript`. A key the browser can't set skips the context: Safari for every key, Firefox `clock`, and Firefox `timezone` on Windows.",
+  "description": "Page emulation keys on the context `browser` object (ADR 01223). One test per key per browser asserts what the page sees through `runBrowserScript`. A key the browser can't set skips the context: Safari for every key, and Firefox `timezone` and `clock`.",
   "tests": [
     {
       "testId": "chrome-colorScheme-dark",
@@ -344,36 +344,6 @@
       ]
     },
     {
-      "testId": "firefox-timezone",
-      "description": "Firefox sets `timezone` to `Asia/Tokyo`, and the page sees it.",
-      "runOn": [
-        {
-          "platforms": [
-            "mac",
-            "linux"
-          ],
-          "browsers": [
-            {
-              "headless": true,
-              "name": "firefox",
-              "timezone": "Asia/Tokyo"
-            }
-          ]
-        }
-      ],
-      "steps": [
-        {
-          "goTo": "http://localhost:8092"
-        },
-        {
-          "runBrowserScript": {
-            "script": "return Intl.DateTimeFormat().resolvedOptions().timeZone;",
-            "output": "/^Asia\\/Tokyo$/"
-          }
-        }
-      ]
-    },
-    {
       "testId": "firefox-deviceScaleFactor",
       "description": "Firefox sets `deviceScaleFactor` to `2`, and the page sees it.",
       "runOn": [
@@ -467,12 +437,14 @@
       ]
     },
     {
-      "testId": "firefox-timezone-windows-skipped",
-      "description": "Firefox can't set `timezone` on Windows, so the context is SKIPPED, never run in the host's time zone.",
+      "testId": "firefox-timezone-skipped",
+      "description": "Firefox can't set `timezone`, so the context is SKIPPED, never run in the host's time zone.",
       "runOn": [
         {
           "platforms": [
-            "windows"
+            "windows",
+            "mac",
+            "linux"
           ],
           "browsers": [
             {

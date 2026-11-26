@@ -117,7 +117,7 @@ A browser object can also set what the page sees about the user's device. Every 
 }
 ```
 
-Chrome sets every key. Firefox sets every key except `clock`, and sets `timezone` only on Linux and macOS. Safari, Android, and iOS browsers set none of them.
+Chrome sets every key. Firefox sets every key except `timezone` and `clock`. Safari, Android, and iOS browsers set none of them.
 
 A context that asks for a key its browser can't set reports `SKIPPED`. A fallback browser must also set every key, or it isn't used. The skip reads like this:
 

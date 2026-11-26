@@ -491,7 +491,6 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
             "toolkit.legacyUserProfileCustomizations.stylesheets": true, // Enable userChrome.css and userContent.css
             ...emulation.prefs,
           },
-          ...(Object.keys(emulation.env).length ? { env: emulation.env } : {}),
           binary: firefox.path,
         },
       };

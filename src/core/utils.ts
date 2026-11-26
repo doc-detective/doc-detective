@@ -2539,18 +2539,16 @@ const EMULATION_KEYS = [
 
 /**
  * Launch-time options for a context's page emulation keys (ADR 01223):
- * Chrome args and prefs, Firefox prefs and env. `timezone` and `clock` in
- * Chrome go over BiDi instead (applyEmulation). Other browsers get nothing;
+ * Chrome args and prefs, Firefox prefs. `timezone` and `clock` in Chrome go
+ * over BiDi instead (applyEmulation). Other browsers get nothing;
  * unsupportedEmulation skips them first.
  */
 export function emulationCapabilities(browser: any): {
   args: string[];
   prefs: Record<string, any>;
-  env: Record<string, string>;
 } {
   const args: string[] = [];
   const prefs: Record<string, any> = {};
-  const env: Record<string, string> = {};
   const b = browser ?? {};
   if (b.name === "chrome") {
     if (b.colorScheme)
@@ -2581,9 +2579,8 @@ export function emulationCapabilities(browser: any): {
       prefs["layout.css.devPixelsPerPx"] = String(b.deviceScaleFactor);
     if (b.reducedMotion)
       prefs["ui.prefersReducedMotion"] = b.reducedMotion === "reduce" ? 1 : 0;
-    if (b.timezone) env.TZ = b.timezone;
   }
-  return { args, prefs, env };
+  return { args, prefs };
 }
 
 /**
@@ -2603,14 +2600,10 @@ export function unsupportedEmulation(
   if (onDevice)
     return `Skipped: \`${name}\` can't set \`${keys[0]}\` on ${onDevice}.`;
   for (const key of keys) {
-    // `timezone` and `clock` need BiDi. Without it, only Firefox has a
-    // fallback: `TZ` for `timezone`, which Windows ignores.
+    // `timezone` and `clock` need BiDi. There's no fallback: headless
+    // Firefox on Linux ignored a `TZ` env in CI (ADR 01223).
     if (key === "timezone" || key === "clock") {
       if (hasBidi(name)) continue;
-      if (name === "firefox" && key === "timezone") {
-        if (platform !== "windows") continue;
-        return `Skipped: \`firefox\` can't set \`timezone\` on Windows.`;
-      }
       return `Skipped: \`${name}\` can't set \`${key}\`.`;
     }
     // Launch-time keys: Chrome args and Firefox prefs.
@@ -2642,9 +2635,8 @@ export function freezeDateSource(ms: number): string {
 
 /**
  * Session-start emulation that needs BiDi (ADR 01223): `timezone` and
- * `clock`, in browsers in BIDI_BROWSERS. Firefox's `timezone` is the `TZ`
- * env from emulationCapabilities. Throws the context FAIL message when the
- * browser rejects a command.
+ * `clock`, in browsers in BIDI_BROWSERS. Throws the context FAIL message
+ * when the browser rejects a command.
  */
 export async function applyEmulation(driver: any, browser: any): Promise<void> {
   if (!hasBidi(browser?.name)) return;

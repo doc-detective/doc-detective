@@ -135,12 +135,12 @@ Not every browser can set every key:
 
 | Key | Chrome | Firefox | Safari |
 |---|---|---|---|
-| `colorScheme` | Yes | Yes | Skipped |
-| `locale` | Yes | Yes | Skipped |
-| `timezone` | Yes | Linux and macOS. Skipped on Windows. | Skipped |
-| `deviceScaleFactor` | Yes | Yes | Skipped |
-| `reducedMotion` | Yes | Yes | Skipped |
-| `clock` | Yes | Skipped | Skipped |
+| `colorScheme` | Yes | Yes | Not supported |
+| `locale` | Yes | Yes | Not supported |
+| `timezone` | Yes | Not supported | Not supported |
+| `deviceScaleFactor` | Yes | Yes | Not supported |
+| `reducedMotion` | Yes | Yes | Not supported |
+| `clock` | Yes | Not supported | Not supported |
 
 A context that asks for a key its browser can't set reports `SKIPPED`. Doc Detective never runs it without the emulation, because a light-mode capture in a dark-mode test would replace your reference image.
 
