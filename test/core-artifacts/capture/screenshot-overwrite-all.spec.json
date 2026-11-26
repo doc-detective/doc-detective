@@ -27,6 +27,19 @@
           }
         }
       ]
+    },
+    {
+      "testId": "config-above-variation-replaces-drifted",
+      "description": "Config `overwriteScreenshots: \"aboveVariation\"` beats a step's `overwrite: \"false\"`: a capture that drifts past `maxVariation` returns WARNING and replaces the reference. The outer step asserts that inside the nested run, so this spec itself resolves PASS.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/capture/overwrite-all.cjs config-above-variation-replaces-drifted",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
     }
   ]
 }
