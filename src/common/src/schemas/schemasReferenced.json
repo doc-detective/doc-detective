@@ -4314,7 +4314,9 @@
         "loadCookie": {},
         "swipe": {},
         "wait": {},
-        "annotate": {}
+        "annotate": {},
+        "saveState": {},
+        "loadState": {}
       },
       "additionalProperties": false,
       "oneOf": [
@@ -4696,9 +4698,143 @@
               }
             }
           ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "saveState"
+              ],
+              "properties": {
+                "saveState": {
+                  "$ref": "saveState_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "loadState"
+              ],
+              "properties": {
+                "loadState": {
+                  "$ref": "loadState_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
         }
       ],
       "$id": "step_v3.schema.json"
+    },
+    "loadState_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "loadState_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "loadState_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "pattern": "^.*\\S.*\\.json$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^.*\\S.*\\.json$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "directory": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      "$id": "loadState_v3.schema.json"
+    },
+    "saveState_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "saveState_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "saveState_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "pattern": "^.*\\S.*\\.json$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^.*\\S.*\\.json$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "directory": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "overwrite": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      "$id": "saveState_v3.schema.json"
     },
     "annotate_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12735,7 +12871,9 @@
         "loadCookie": {},
         "swipe": {},
         "wait": {},
-        "annotate": {}
+        "annotate": {},
+        "saveState": {},
+        "loadState": {}
       },
       "additionalProperties": false,
       "oneOf": [
@@ -13116,9 +13254,142 @@
               }
             }
           ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "saveState"
+              ],
+              "properties": {
+                "saveState": {
+                  "$ref": "saveState_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "loadState"
+              ],
+              "properties": {
+                "loadState": {
+                  "$ref": "loadState_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
         }
       ],
       "$id": "step_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "loadState_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "loadState_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "pattern": "^.*\\S.*\\.json$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^.*\\S.*\\.json$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "directory": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      "$id": "loadState_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "saveState_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "saveState_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "pattern": "^.*\\S.*\\.json$",
+            "transform": [
+              "trim"
+            ]
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^.*\\S.*\\.json$",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "directory": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "transform": [
+                  "trim"
+                ]
+              },
+              "overwrite": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "path"
+            ]
+          }
+        }
+      },
+      "$id": "saveState_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",

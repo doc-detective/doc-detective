@@ -61,6 +61,7 @@ json
 Kanban
 keypresses
 loadCookie
+loadState
 loadVariables
 logLevel
 manni
@@ -100,6 +101,7 @@ runShell
 runTests
 sandboxed
 saveCookie
+saveState
 saveDirectory
 savePath
 saveScreenshot
