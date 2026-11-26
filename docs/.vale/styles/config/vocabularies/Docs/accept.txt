@@ -67,6 +67,7 @@ logLevel
 manni
 matchText
 maxVariation
+mockRequest
 mockResponse
 moveTo
 NULL
