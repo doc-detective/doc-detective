@@ -2551,33 +2551,33 @@ export function emulationCapabilities(browser: any): {
   const prefs: Record<string, any> = {};
   const b = browser ?? {};
   if (b.name === "chrome") {
-    if (b.colorScheme)
+    if (b.colorScheme !== undefined)
       args.push(
         `--blink-settings=preferredColorScheme=${b.colorScheme === "dark" ? 0 : 1}`
       );
-    if (b.locale) {
+    if (b.locale !== undefined) {
       args.push(`--lang=${b.locale}`);
       prefs["intl.accept_languages"] = b.locale;
     }
     if (b.deviceScaleFactor !== undefined)
       args.push(`--force-device-scale-factor=${b.deviceScaleFactor}`);
-    if (b.reducedMotion)
+    if (b.reducedMotion !== undefined)
       args.push(
         b.reducedMotion === "reduce"
           ? "--force-prefers-reduced-motion"
           : "--force-prefers-no-reduced-motion"
       );
   } else if (b.name === "firefox") {
-    if (b.colorScheme)
+    if (b.colorScheme !== undefined)
       prefs["layout.css.prefers-color-scheme.content-override"] =
         b.colorScheme === "dark" ? 0 : 1;
-    if (b.locale) {
+    if (b.locale !== undefined) {
       prefs["intl.locale.requested"] = b.locale;
       prefs["intl.accept_languages"] = b.locale;
     }
     if (b.deviceScaleFactor !== undefined)
       prefs["layout.css.devPixelsPerPx"] = String(b.deviceScaleFactor);
-    if (b.reducedMotion)
+    if (b.reducedMotion !== undefined)
       prefs["ui.prefersReducedMotion"] = b.reducedMotion === "reduce" ? 1 : 0;
   }
   return { args, prefs };
@@ -2610,6 +2610,33 @@ export function keepEmulationCapabilities(
 }
 
 /**
+ * Why this browser can't set one of its emulation keys on this platform, as
+ * "`<browser>` can't set `<key>`" (plus " on <device OS>"), or null when it
+ * can set every key it has (ADR 01223). The skip and open-failure messages
+ * both wrap it.
+ */
+function emulationGap(browser: any, platform: string): string | null {
+  const keys = EMULATION_KEYS.filter((k) => browser?.[k] !== undefined);
+  if (keys.length === 0) return null;
+  const name = browser.name === "webkit" ? "safari" : browser.name;
+  const cantSet = (key: string) => `\`${name}\` can't set \`${key}\``;
+  const onDevice = ({ android: "Android", ios: "iOS" } as any)[platform];
+  if (onDevice) return `${cantSet(keys[0])} on ${onDevice}`;
+  for (const key of keys) {
+    // `timezone` and `clock` need BiDi. There's no fallback: headless
+    // Firefox on Linux ignored a `TZ` env in CI (ADR 01223).
+    if (key === "timezone" || key === "clock") {
+      if (hasBidi(name)) continue;
+      return cantSet(key);
+    }
+    // Launch-time keys: Chrome args and Firefox prefs.
+    if (name === "chrome" || name === "firefox") continue;
+    return cantSet(key);
+  }
+  return null;
+}
+
+/**
  * The skip message for the first emulation key this browser can't set on
  * this platform, or null when it can set every key it has (ADR 01223).
  * Running a dark-mode test in light mode would quietly overwrite its
@@ -2619,24 +2646,21 @@ export function unsupportedEmulation(
   browser: any,
   platform: string
 ): string | null {
-  const keys = EMULATION_KEYS.filter((k) => browser?.[k] !== undefined);
-  if (keys.length === 0) return null;
-  const name = browser.name === "webkit" ? "safari" : browser.name;
-  const onDevice = ({ android: "Android", ios: "iOS" } as any)[platform];
-  if (onDevice)
-    return `Skipped: \`${name}\` can't set \`${keys[0]}\` on ${onDevice}.`;
-  for (const key of keys) {
-    // `timezone` and `clock` need BiDi. There's no fallback: headless
-    // Firefox on Linux ignored a `TZ` env in CI (ADR 01223).
-    if (key === "timezone" || key === "clock") {
-      if (hasBidi(name)) continue;
-      return `Skipped: \`${name}\` can't set \`${key}\`.`;
-    }
-    // Launch-time keys: Chrome args and Firefox prefs.
-    if (name === "chrome" || name === "firefox") continue;
-    return `Skipped: \`${name}\` can't set \`${key}\`.`;
-  }
-  return null;
+  const gap = emulationGap(browser, platform);
+  return gap ? `Skipped: ${gap}.` : null;
+}
+
+/**
+ * The step failure for a later `startSurface` session whose engine can't set
+ * one of the context browser's emulation keys, or null when it can.
+ */
+export function emulationOpenError(
+  engine: string,
+  browser: any,
+  platform: string
+): string | null {
+  const gap = emulationGap({ ...browser, name: engine }, platform);
+  return gap ? `Couldn't open \`${engine}\`: ${gap}.` : null;
 }
 
 /**
@@ -2683,7 +2707,10 @@ export async function applyEmulation(driver: any, browser: any): Promise<void> {
     }
   }
   if (browser.clock) {
-    const source = freezeDateSource(Date.parse(browser.clock));
+    // A value that skipped schema validation must never freeze pages at NaN.
+    const ms = Date.parse(browser.clock);
+    if (!Number.isFinite(ms)) throw fail("clock");
+    const source = freezeDateSource(ms);
     try {
       // The preload covers every later document. The one already open
       // predates it, so it gets the same replacement directly.

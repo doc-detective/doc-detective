@@ -6,6 +6,7 @@ import {
   applyEmulation,
   freezeDateSource,
   keepEmulationCapabilities,
+  emulationOpenError,
 } from "../dist/core/utils.js";
 import { getDriverCapabilities } from "../dist/core/tests.js";
 
@@ -199,6 +200,28 @@ describe("unsupportedEmulation", function () {
   });
 });
 
+// A later startSurface session whose engine can't set a context key fails
+// the step instead of skipping it.
+describe("emulationOpenError", function () {
+  it("is null when the engine can set every key", function () {
+    assert.equal(
+      emulationOpenError("chrome", { name: "firefox", clock: "2026-12-03T09:00:00Z" }, "linux"),
+      null
+    );
+  });
+
+  it("names the engine and the key it can't set", function () {
+    assert.equal(
+      emulationOpenError("firefox", { name: "chrome", clock: "2026-12-03T09:00:00Z" }, "linux"),
+      "Couldn't open `firefox`: `firefox` can't set `clock`."
+    );
+    assert.equal(
+      emulationOpenError("webkit", { name: "chrome", colorScheme: "dark" }, "mac"),
+      "Couldn't open `webkit`: `safari` can't set `colorScheme`."
+    );
+  });
+});
+
 describe("getDriverCapabilities with page emulation", function () {
   const runnerDetails = {
     environment: { platform: "linux" },
@@ -337,6 +360,16 @@ describe("applyEmulation", function () {
           "Couldn't set `clock` to `2026-12-03T09:00:00Z` in `chrome`.",
       }
     );
+  });
+
+  // A value that skipped schema validation must never freeze pages at NaN.
+  it("fails an unparseable clock before sending anything", async function () {
+    const d = fakeDriver();
+    await assert.rejects(
+      applyEmulation(d, { name: "chrome", clock: "not a date" }),
+      { message: "Couldn't set `clock` to `not a date` in `chrome`." }
+    );
+    assert.deepEqual(d.calls, []);
   });
 });
 

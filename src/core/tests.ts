@@ -58,6 +58,7 @@ import {
   emulationCapabilities,
   keepEmulationCapabilities,
   unsupportedEmulation,
+  emulationOpenError,
   applyEmulation,
   isViewportFloored,
   loadAxios,
@@ -5233,16 +5234,12 @@ async function runContext({
           open: async (engine: string, overrides?: BrowserOpenOverrides) => {
             // A later session gets the context's page emulation too, so an
             // engine that can't set a key fails rather than run unemulated.
-            const emulationSkip = unsupportedEmulation(
-              { ...context.browser, name: engine },
+            const emulationError = emulationOpenError(
+              engine,
+              context.browser,
               platform
             );
-            if (emulationSkip)
-              throw new Error(
-                `Couldn't open \`${engine}\`: ${emulationSkip
-                  .replace(/^Skipped: /, "")
-                  .replace(/\.$/, "")}.`
-              );
+            if (emulationError) throw new Error(emulationError);
             const res = await startDriverForBrowser(engine, overrides);
             if (!res.ok) throw new Error(res.error);
             // A later session takes the context's size unless its
