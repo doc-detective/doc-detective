@@ -103,10 +103,16 @@ function main() {
     console.error(`No examples folder at ${examplesDir}`);
     process.exit(1);
   }
+  // Bare arguments name the examples to check; none means all of them.
+  const only = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
   const files = fs
     .readdirSync(examplesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
+    .filter((d) => d.isDirectory() && (!only.length || only.includes(d.name)))
     .flatMap((d) => fs.readdirSync(path.join(examplesDir, d.name)).map((f) => path.join(examplesDir, d.name, f)));
+  if (!files.length) {
+    console.error(`Couldn't find examples to check in ${examplesDir}.`);
+    process.exit(1);
+  }
   const prose = files.filter((f) => path.basename(f).startsWith("prose."));
   const tested = files.filter((f) => /^(detected|inline|standalone)\./.test(path.basename(f)));
 
