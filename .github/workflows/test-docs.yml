@@ -46,6 +46,21 @@ jobs:
       - name: Link local build
         run: npm link
 
+      # The docs-as-tests reference shows each example as prose, detected,
+      # inline, and standalone files. Its snippets must match the files, and
+      # the variants must resolve to the same steps.
+      - name: Check docs-as-tests examples
+        run: |
+          npm run docs:build-docs-as-tests -- --check
+          npm run docs:check-docs-as-tests
+
+      # The run below uses the docs config, which turns detection off, so it runs
+      # the examples' inline and standalone files but not the detected ones. A
+      # test can't turn detection back on (ADR 00088), so run those here with
+      # the examples' own config.
+      - name: Run the docs-as-tests detected examples
+        run: npx doc-detective run docs/fern/pages/reference/docs-as-tests/examples/*/detected.* -c docs/fern/pages/reference/docs-as-tests/examples/.doc-detective.json
+
       - name: Run Doc Detective on the docs
         uses: doc-detective/github-action@55ba39bc460e809c279179421fb26a8c76fc2539 # v2.2.0
         with:

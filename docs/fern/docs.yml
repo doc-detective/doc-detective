@@ -375,6 +375,12 @@ navigation:
               - page: install
                 path: pages/reference/cli/install.mdx
                 slug: install
+      - section: Docs as tests
+        slug: docs-as-tests
+        contents:
+          - page: Navigation and interaction
+            path: pages/reference/docs-as-tests/navigation-interaction.mdx
+            slug: navigation-interaction
       - folder: pages/reference/schemas
         title: Schemas
 

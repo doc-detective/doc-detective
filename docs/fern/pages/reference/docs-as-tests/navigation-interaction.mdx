@@ -1,0 +1,37 @@
+---
+title: Navigation and interaction, written as tests
+sidebar-title: Navigation and interaction
+description: One procedure that opens a page, clicks, types, and checks the result, shown as plain prose, as detected tests, as inline tests, and as a standalone spec, in every supported format.
+---
+
+Each example on this page shows one documented procedure four ways:
+
+| Tab | What the file holds |
+|---|---|
+| Prose | The documentation as a reader sees it, with no test statements. |
+| Detected | The same prose inside a `test` statement. Doc Detective's default detection turns the links, bold text, and quoted text into steps. |
+| Inline | The same prose with a `step` statement after each instruction, and detection off. |
+| Standalone | A spec file, in JSON or YAML, with no documentation source. |
+
+Every variant is a real file that Doc Detective runs, and a check confirms that the variants resolve to the same steps. For how each mode works, see [Detected tests](/docs/test-docs/detected), [Inline tests](/docs/test-docs/inline), and [Standalone tests](/docs/test-docs/standalone).
+
+## Open a page, type, and check the result
+
+This procedure uses [`goTo`](/docs/actions/goto), [`click`](/docs/actions/click), [`type`](/docs/actions/type), and [`find`](/docs/actions/find).
+
+<Markdown src="examples/type-echo/_variants.mdx" />
+
+### What detection finds
+
+In every format, default detection resolves the prose to six steps:
+
+| Prose | Detected steps |
+|---|---|
+| Go to a link | `goTo` the URL, then `checkLink` the same URL |
+| Click a bold phrase | `click` the phrase, then `find` the same phrase |
+| `Type "…"` | `type` the quoted text |
+| A bold phrase | `find` the phrase |
+
+Detection matches each link and bold phrase against every default rule. A link after "Go to" is both opened and checked, and a bold phrase after "Click" is both clicked and found. The inline and standalone variants list only the four steps the procedure needs.
+
+In DITA, the quoted text and the `<b>` element follow the shared rules, so DITA detects the same steps as the other formats. A `<uicontrol>` element is DITA's own way to mark the control to click.
