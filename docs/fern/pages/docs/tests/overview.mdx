@@ -43,12 +43,12 @@ When Doc Detective runs a test, the result is one of four statuses:
 
 ### Skipped tests
 
-When Doc Detective runs tests, it checks if each [context](/docs/test-docs/platforms-and-browsers) matches your current environment. A context may specify a platform or browser that doesn't match the system running the test. Doc Detective then skips that context. The test itself is marked SKIPPED only when every one of its contexts is skipped.
+When Doc Detective runs tests, it checks if each [context](/docs/test-docs/platforms-and-browsers) matches your current environment. A context may specify a platform that doesn't match the system running the test. Doc Detective then skips that context. When a context's browser isn't available, Doc Detective can run the context on another browser instead, depending on the [`browserFallback`](/docs/test-docs/platforms-and-browsers#browser-fallback) setting. The test itself is marked SKIPPED only when every one of its contexts is skipped.
 
 Doc Detective skips tests when:
 
 - **Platform mismatch**: The context specifies a platform (Windows, macOS, or Linux) that doesn't match your current operating system.
-- **Browser unavailable**: The context specifies a browser that isn't installed or available on your system after an automatic installation attempt (see [Automatic browser installation](#automatic-browser-installation)).
+- **Browser unavailable**: The context's browser can't start, and Doc Detective can't [install it](#automatic-browser-installation) or [fall back](/docs/test-docs/platforms-and-browsers#browser-fallback).
 - **All contexts skipped**: If all contexts for a test are skipped, the entire test is marked as SKIPPED (not PASS). If every spec in a run skips, the run exits `2`, because nothing was tested.
 - **Condition not met**: A spec, test, or step has an [`if` condition](#conditional-execution) that evaluates to false.
 
@@ -103,9 +103,9 @@ The installation process:
 1. Detects that the specified browser isn't available
 2. Downloads and installs the browser and its driver
 3. Re-checks available browsers
-4. Proceeds with the test if installation succeeded, or skips if it failed
+4. Proceeds with the test if installation succeeded. If it failed, Doc Detective falls back to another available browser, or skips the context when it can't.
 
-Safari doesn't support automatic installation because it ships with macOS. If Safari isn't available on your system, Doc Detective skips those contexts without attempting installation. (Doc Detective resolves the `webkit` browser name to Safari, so `webkit` contexts follow the same rule.)
+Safari doesn't support automatic installation because it ships with macOS. If Safari isn't available on your system, Doc Detective doesn't try to install it. With the default `browserFallback: auto`, the context runs on another available browser and reports `WARNING`. Doc Detective skips the context instead when `browserFallback` is `off` or `explicit`, or when no other browser is available. (Doc Detective resolves the `webkit` browser name to Safari, so `webkit` contexts follow the same rule.)
 
 ### Warning results
 

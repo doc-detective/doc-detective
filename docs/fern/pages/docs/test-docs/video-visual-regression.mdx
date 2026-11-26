@@ -11,7 +11,7 @@ Make sure you have the following:
 
 - [Doc Detective installed](/docs/get-started/installation).
 - A directory where you can create a `.spec.json` file.
-- A headed, visible context to capture a *fresh* recording. Checkpoints and `verify` guards need a real recording from a visible display. Staleness detection against committed baselines still runs headless. See [Detect staleness without re-recording](#detect-staleness-without-re-recording).
+- A context that can record a *fresh* video, such as Chrome (headless or headed), headed Firefox, or Safari. Checkpoints and `verify` guards need a real recording. Staleness detection against committed baselines runs without one. See [Detect staleness without re-recording](#detect-staleness-without-re-recording).
 - A committed baseline folder alongside the recording (the first run seeds it).
 
 The steps in this guide work the same in every authoring style. Write them in a standalone `.spec.json`, [inline in a doc source file](/docs/test-docs/inline), or let Doc Detective [detect them from prose](/docs/test-docs/detected).
@@ -87,12 +87,12 @@ Unlike checkpoint drift, which returns `WARNING`, a violated `verify` guard fail
 
 ### Detect staleness without re-recording
 
-Doc Detective skips the capture in two situations. The first is a headless run, which has no visible display. The second is a target file that already exists under the default `overwrite: "false"`. In both, a span with `checkpoints` (or `aboveVariation`, which implies them) still compares its checkpoints against the committed baselines and reports whether the recording has gone stale. `stopRecord` returns `WARNING` with `stale: true`, and a post-run hint points at the fix, which depends on the skip:
+Doc Detective skips the capture in two situations. The first is a headless run that the engine can't record, such as headless Firefox. Headless Chrome records with the default `browser` engine, so it skips only when the `record` step sets the [`ffmpeg` engine](/docs/actions/record#recording-engines). The second is a target file that already exists under the default `overwrite: "false"`. In both, a span with `checkpoints` (or `aboveVariation`, which implies them) still compares its checkpoints against the committed baselines and reports whether the recording has gone stale. `stopRecord` returns `WARNING` with `stale: true`, and a post-run hint points at the fix, which depends on the skip:
 
-- **Headless run:** re-run the test on a headed context to refresh the recording.
+- **Headless run:** for headless Chrome, remove the `ffmpeg` engine setting from the `record` step, so the `browser` engine records it. For other browsers, re-run the test on a headed context to refresh the recording.
 - **Target already exists:** set `overwrite` to `"true"` or `"aboveVariation"`, or remove the file.
 
-Detection is cheap and continuous, so headless CI watches recording freshness on every run and you only re-record when something actually changed. Skipped spans never write: no video, no baseline seeding, no baseline updates.
+Detection is cheap and continuous, so headless CI watches recording freshness on every run and you only re-record when something actually changed. Skipped spans never write: no video, no baseline seeding, no baseline updates. So if you commit a recording without its baseline folder, every run skips the capture, finds no baselines, and reports the recording stale. To fix it, set `overwrite` to `"aboveVariation"` or remove the file, so the next run records the span and seeds the baselines. Then commit the baseline folder with the video.
 
 `stopRecord` reports the outcome of all of this in its outputs: `$$checkpoints` and `$$maxCheckpointVariation`, `$$seededBaselines`, `$$changed` and `$$changeReasons`, `$$stale`, `$$duration` / `$$width` / `$$height`, and `$$resolutionMatches` / `$$allBlack`. For the full list, see [Recording checkpoints](/docs/actions/record#recording-checkpoints), the [`stopRecord`](/docs/actions/stoprecord) action reference, and the [`stopRecord`](/reference/schemas/stoprecord) schema.
 
@@ -106,9 +106,9 @@ Detection is cheap and continuous, so headless CI watches recording freshness on
 
 ### `stopRecord` returns WARNING with `stale: true`
 
-**Cause:** the capture was skipped, from a headless run or an existing file, while the committed baselines diverged from the current content.
+**Cause:** Doc Detective skipped the recording, because of a headless run (headless Firefox, or headless Chrome with the `ffmpeg` engine) or an existing file. Meanwhile, the committed baselines diverged from the current content, or they were never committed. When the `stopRecord` description says checkpoints `have no baseline`, the baselines are missing, and the warning repeats on every run.
 
-**Solution:** re-run on a headed context to refresh the recording, or set `overwrite` to `"true"` or `"aboveVariation"`.
+**Solution:** set `overwrite` to `"aboveVariation"`, or remove the file, so the next run records the span and seeds its baselines. Commit the baseline folder with the recording. For headless Chrome, remove the `ffmpeg` engine setting from the `record` step instead. For other headless browsers, re-run on a headed context.
 
 ### A `record` step is skipped and the file isn't refreshed
 
