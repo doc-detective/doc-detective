@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-wait-load">
+  <title>Wait for a slow page</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/wait-delay.html" scope="external" format="html">the wait delay page</xref>.</cmd></step>
+      <step><cmd>Wait until the page shows <b>Loaded after 2 seconds</b>.</cmd></step>
+      <step><cmd>Click <b>Trigger delayed action</b>.</cmd></step>
+      <step><cmd>Wait half a second for the action to finish.</cmd></step>
+      <step><cmd>Check that the page shows <b>Action complete!</b>.</cmd></step>
+      <step><cmd>Confirm that <xref href="http://localhost:8092/status/200" scope="external" format="html">the server's status endpoint</xref> responds.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

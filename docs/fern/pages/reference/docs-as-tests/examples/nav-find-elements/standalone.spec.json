@@ -1,0 +1,55 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "nav-find-elements",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "find": {
+            "elementId": "submit-button",
+            "elementText": "Submit by ID",
+            "elementAria": "Submit form button",
+            "moveTo": true
+          }
+        },
+        {
+          "find": {
+            "selector": "input",
+            "elementTestId": "username-field",
+            "click": true,
+            "type": {
+              "keys": [
+                "kittens"
+              ]
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "find": {
+            "selector": "button",
+            "elementText": "/^Submit Ord/",
+            "elementTestId": "checkout-button",
+            "elementClass": [
+              "btn",
+              "/^btn-prim/"
+            ],
+            "elementAttribute": {
+              "data-enabled": "true",
+              "disabled": false
+            }
+          }
+        },
+        {
+          "click": "Save"
+        },
+        {
+          "find": "Operation successful"
+        }
+      ]
+    }
+  ]
+}

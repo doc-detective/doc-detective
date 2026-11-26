@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-wait-load">
+  <title>Wait for a slow page</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-wait-load","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/wait-delay.html" scope="external" format="html">the wait delay page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"/wait-delay.html","origin":"http://localhost:8092","timeout":30000,"waitUntil":{"networkIdleTime":500,"domIdleTime":500,"find":{"selector":"#auto-message","elementText":"Loaded after 2 seconds"}}}}'/></info></step>
+      <step><cmd>Wait until the page shows <b>Loaded after 2 seconds</b>.</cmd>
+        <info><data name="doc-detective" value='step {"find":{"selector":"#auto-message","elementText":"/^Loaded after \\d+ seconds$/","timeout":5000}}'/></info></step>
+      <step><cmd>Click <b>Trigger delayed action</b>.</cmd>
+        <info><data name="doc-detective" value='step {"click":"Trigger delayed action"}'/></info></step>
+      <step><cmd>Wait half a second for the action to finish.</cmd>
+        <info><data name="doc-detective" value='step {"wait":500}'/></info></step>
+      <step><cmd>Check that the page shows <b>Action complete!</b>.</cmd>
+        <info><data name="doc-detective" value='step {"find":"Action complete!"}'/></info></step>
+      <step><cmd>Confirm that <xref href="http://localhost:8092/status/200" scope="external" format="html">the server's status endpoint</xref> responds.</cmd>
+        <info><data name="doc-detective" value='step {"checkLink":{"url":"http://localhost:8092/status/200","statusCodes":[200,204],"headers":{"Accept":"application/json"},"timeout":5000}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

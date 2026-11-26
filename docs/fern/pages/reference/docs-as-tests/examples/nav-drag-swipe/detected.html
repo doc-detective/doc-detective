@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Drag a widget and scroll the page</title></head>
+<body>
+<!-- test {"testId":"nav-drag-swipe","detectSteps":true} -->
+<h1>Drag a widget and scroll the page</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/drag-drop-test.html">the drag and drop page</a>.
+    <!-- step {"goTo":"http://localhost:8092/drag-drop-test.html"} --></li>
+  <li>Drag <strong>Table</strong> onto <strong>Drop Zone 1</strong>.
+    <!-- step {"dragAndDrop":{"source":"Table","target":{"selector":".drop-zone","elementText":"Drop Zone 1"},"duration":500}} --></li>
+  <li>Check that <strong>Table (dropped)</strong> appears in the drop zone.</li>
+  <li>Press and hold <strong>Chart</strong> for one second.
+    <!-- step {"click":{"selector":".draggable[data-widget=\"chart\"]","button":"left","duration":1000}} --></li>
+  <li>Swipe up to scroll toward the bottom of the page.
+    <!-- step {"swipe":"up"} --></li>
+  <li>Swipe down a third of the screen to scroll back.
+    <!-- step {"swipe":{"direction":"down","distance":0.3,"duration":300}} --></li>
+  <li>Swipe from the middle of the page toward the top.
+    <!-- step {"swipe":{"from":{"x":400,"y":400},"to":{"x":400,"y":250},"duration":300}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

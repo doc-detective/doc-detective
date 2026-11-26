@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: nav-search-icons
+    steps:
+      - goTo: http://localhost:8092/find-image.html
+      - click:
+          elementImage: search.svg
+      - type:
+          - doc detective
+          - $ENTER$
+      - find:
+          selector: "#echo"
+          elementText: doc detective
+      - type:
+          keys: -docs
+          selector: "#query"
+          inputDelay: 100
+      - find:
+          selector: "#echo"
+          elementText: doc detective-docs
+      - find:
+          elementImage:
+            path: save.svg
+            threshold: 0.95
+          click:
+            button: right
+            duration: 500
+      - find:
+          selector: "#log"
+          elementText: /^click button=2/

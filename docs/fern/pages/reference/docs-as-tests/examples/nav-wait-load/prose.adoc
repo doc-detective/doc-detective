@@ -1,0 +1,8 @@
+= Wait for a slow page
+
+. Go to http://localhost:8092/wait-delay.html[the wait delay page].
+. Wait until the page shows *Loaded after 2 seconds*.
+. Click *Trigger delayed action*.
+. Wait half a second for the action to finish.
+. Check that the page shows *Action complete!*.
+. Confirm that http://localhost:8092/status/200[the server's status endpoint] responds.

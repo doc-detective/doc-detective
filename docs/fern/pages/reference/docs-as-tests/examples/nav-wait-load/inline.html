@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Wait for a slow page</title></head>
+<body>
+<!-- test {"testId":"nav-wait-load","detectSteps":false} -->
+<h1>Wait for a slow page</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/wait-delay.html">the wait delay page</a>.
+    <!-- step {"goTo":{"url":"/wait-delay.html","origin":"http://localhost:8092","timeout":30000,"waitUntil":{"networkIdleTime":500,"domIdleTime":500,"find":{"selector":"#auto-message","elementText":"Loaded after 2 seconds"}}}} --></li>
+  <li>Wait until the page shows <strong>Loaded after 2 seconds</strong>.
+    <!-- step {"find":{"selector":"#auto-message","elementText":"/^Loaded after \\d+ seconds$/","timeout":5000}} --></li>
+  <li>Click <strong>Trigger delayed action</strong>.
+    <!-- step {"click":"Trigger delayed action"} --></li>
+  <li>Wait half a second for the action to finish.
+    <!-- step {"wait":500} --></li>
+  <li>Check that the page shows <strong>Action complete!</strong>.
+    <!-- step {"find":"Action complete!"} --></li>
+  <li>Confirm that <a href="http://localhost:8092/status/200">the server's status endpoint</a> responds.
+    <!-- step {"checkLink":{"url":"http://localhost:8092/status/200","statusCodes":[200,204],"headers":{"Accept":"application/json"},"timeout":5000}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

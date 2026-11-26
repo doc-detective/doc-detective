@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Find elements by their attributes</title></head>
+<body>
+<!-- test {"testId":"nav-find-elements","detectSteps":false} -->
+<h1>Find elements by their attributes</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/enhanced-elements.html">the element test page</a>.
+    <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} --></li>
+  <li>Find the <strong>Submit by ID</strong> button near the top of the page.
+    <!-- step {"find":{"elementId":"submit-button","elementText":"Submit by ID","elementAria":"Submit form button","moveTo":true}} --></li>
+  <li>Click the username field and type "kittens".
+    <!-- step {"find":{"selector":"input","elementTestId":"username-field","click":true,"type":{"keys":["kittens"]},"timeout":10000}} --></li>
+  <li>Check that the <strong>Submit Order</strong> button is enabled.
+    <!-- step {"find":{"selector":"button","elementText":"/^Submit Ord/","elementTestId":"checkout-button","elementClass":["btn","/^btn-prim/"],"elementAttribute":{"data-enabled":"true","disabled":false}}} --></li>
+  <li>Click <strong>Save</strong>.
+    <!-- step {"click":"Save"} --></li>
+  <li>Confirm that the page shows <strong>Operation successful</strong>.
+    <!-- step {"find":"Operation successful"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

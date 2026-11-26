@@ -1,0 +1,30 @@
+Find elements by their attributes
+=================================
+
+.. test {"testId":"nav-find-elements","detectSteps":false}
+
+#. Go to `the element test page <http://localhost:8092/enhanced-elements.html>`_.
+
+   .. step {"goTo":"http://localhost:8092/enhanced-elements.html"}
+
+#. Find the **Submit by ID** button near the top of the page.
+
+   .. step {"find":{"elementId":"submit-button","elementText":"Submit by ID","elementAria":"Submit form button","moveTo":true}}
+
+#. Click the username field and type "kittens".
+
+   .. step {"find":{"selector":"input","elementTestId":"username-field","click":true,"type":{"keys":["kittens"]},"timeout":10000}}
+
+#. Check that the **Submit Order** button is enabled.
+
+   .. step {"find":{"selector":"button","elementText":"/^Submit Ord/","elementTestId":"checkout-button","elementClass":["btn","/^btn-prim/"],"elementAttribute":{"data-enabled":"true","disabled":false}}}
+
+#. Click **Save**.
+
+   .. step {"click":"Save"}
+
+#. Confirm that the page shows **Operation successful**.
+
+   .. step {"find":"Operation successful"}
+
+.. test end

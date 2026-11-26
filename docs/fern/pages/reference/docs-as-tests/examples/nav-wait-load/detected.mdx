@@ -1,0 +1,13 @@
+{/* test {"testId":"nav-wait-load","detectSteps":true} */}
+
+# Wait for a slow page
+
+1. Go to [the wait delay page](http://localhost:8092/wait-delay.html).
+2. Wait until the page shows **Loaded after 2 seconds**.
+3. Click **Trigger delayed action**.
+4. Wait half a second for the action to finish.
+   {/* step {"wait":500} */}
+5. Check that the page shows **Action complete!**.
+6. Confirm that [the server's status endpoint](http://localhost:8092/status/200) responds.
+
+{/* test end */}
