@@ -310,7 +310,6 @@ function scrollPageTo(x: number, y: number) {
 // A capture that can't happen here, reported as SKIPPED rather than FAIL.
 class CaptureSkipped extends Error {}
 
-type Point = { x: number; y: number };
 type FullPage = {
   // An image whose top-left is the document's, so element rects read with the
   // page scroll land on it.
@@ -340,12 +339,17 @@ type CaptureOptions = {
 async function fullPageCapture(driver: any, options: CaptureOptions): Promise<FullPage> {
   const page = await driver.execute(readPageExtent);
   const scroll = { x: Number(page?.x) || 0, y: Number(page?.y) || 0 };
-  const browser = String(driver.capabilities?.browserName ?? "").toLowerCase();
+  // Appium reports Firefox as `MozillaFirefox`.
+  const reported = String(driver.capabilities?.browserName ?? "").toLowerCase();
+  const browser = reported.includes("firefox") ? "firefox" : reported;
   const kept = { restore: async () => {} };
+  const note = (how: string) => log(options.config ?? {}, "debug", `${options.label ?? "Screenshot"}: \`fullPage\` ${how}.`);
   if (browser === "firefox") {
+    note("captures through geckodriver's whole-page command, with no resize");
     return { ...kept, capture: async () => Buffer.from(await driver.fullPageScreenshot(), "base64") };
   }
   if (driver.isBidi) {
+    note("captures the document over BiDi, with no resize");
     const context = await driver.getWindowHandle();
     return {
       ...kept,
@@ -409,6 +413,7 @@ async function fullPageCapture(driver: any, options: CaptureOptions): Promise<Fu
       height: Math.max(Number(extent?.height) || 0, realized.height),
     };
     if (wanted.width > limit.width + 1 || wanted.height > limit.height + 1) throw tooLarge();
+    note(`resizes the window to a ${wanted.width}×${wanted.height} viewport`);
     original ??= await driver.getWindowSize();
     realized = await realizeViewport(driver, wanted, options.config, options.label, "debug");
     return await driver.execute(readPageExtent);
@@ -523,12 +528,11 @@ async function takeBrowserScreenshot(
     throw new Error("Couldn't read where the live `blur` annotations are on the page. The page changed during the screenshot.");
   }
   // A whole-page image is as wide as the document, so its scale is the pixel
-  // density, as for annotations.
+  // density, as for annotations. Without one, the page's own default of 1.
   const dpr =
     fullPage && page?.regions?.length > 0 ? Number(await driver.execute(() => window.devicePixelRatio)) : NaN;
   return {
-    // The scroll comes from the same read as the blurs' rects.
-    buffer: await burnInLiveBlurs(sharp, buffer, page, fullPage ? page?.scroll : undefined, dpr > 0 ? dpr : undefined),
+    buffer: await burnInLiveBlurs(sharp, buffer, page, fullPage ? (dpr > 0 ? dpr : 1) : undefined),
     stable: captured!.stable,
     fullPage: !!fullPage,
   };
@@ -557,25 +561,19 @@ async function liveBlurs(driver: any, call: (driver: any) => Promise<any>): Prom
 // twice: stronger, never weaker. Hiding the layer's blurs for the capture would
 // avoid that, but a running recording would catch the page unblurred. Fails
 // closed, like the secret blur: no capture beats an unredacted one.
-// A whole-page capture adds the scroll the blurs were drawn at.
-async function burnInLiveBlurs(
-  sharp: any,
-  buffer: Buffer,
-  page: any,
-  scroll: Point = { x: 0, y: 0 },
-  pageScale?: number
-): Promise<Buffer> {
+// A whole-page capture (`pageScale` set) uses the blurs in document pixels,
+// each frame with its own scroll.
+async function burnInLiveBlurs(sharp: any, buffer: Buffer, page: any, pageScale?: number): Promise<Buffer> {
+  const source = pageScale ? page?.documentRegions : page?.regions;
   // Weakest first: where blurs overlap, the last one composited is what shows.
-  const regions: any[] = Array.isArray(page?.regions)
-    ? [...page.regions].sort((a, b) => a.intensity - b.intensity)
-    : [];
+  const regions: any[] = Array.isArray(source) ? [...source].sort((a, b) => a.intensity - b.intensity) : [];
   if (regions.length === 0) return buffer;
   const meta = await sharp(buffer).metadata();
   const scale = pageScale ?? computeScale(meta.width, page.viewportWidth);
   const { blurRegions } = annotationsToSvg(
     regions.map((region) => ({
       type: "blur",
-      rect: toCanvasRect(region, scale, { x: -scroll.x * scale, y: -scroll.y * scale }),
+      rect: toCanvasRect(region, scale),
       style: { intensity: region.intensity * scale },
     })) as any,
     { width: meta.width, height: meta.height }

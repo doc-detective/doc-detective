@@ -220,7 +220,7 @@ function fakeDriver({
         };
       }
       if (liveBlur && source.includes("requestAnimationFrame(note)")) return true;
-      if (liveBlur && source.includes("__ddNote")) return { watched: true, viewportWidth: viewport().width, regions: [liveBlur] };
+      if (liveBlur && source.includes("__ddNote")) return { watched: true, viewportWidth: viewport().width, regions: [liveBlur], documentRegions: [liveBlur] };
       if (source.includes("getBoundingClientRect")) {
         const at = rectAt ? rectAt(viewport(), { styled }) : frozen && frozenRect ? frozenRect : rect;
         // A document-relative read adds the scroll in the same evaluation.
@@ -283,6 +283,13 @@ describe("screenshot fullPage and animations", function () {
     assert.equal(result.status, "PASS", result.description);
     assert.deepEqual(kinds(driver), ["fullPageScreenshot"]);
     assert.equal(await savedHeight(), 1600);
+  });
+
+  it("captures the whole page through geckodriver when Appium reports `MozillaFirefox`", async function () {
+    const driver = fakeDriver({ browserName: "MozillaFirefox", viewportCapture, pageCapture });
+    const result = await run({ fullPage: true }, driver);
+    assert.equal(result.status, "PASS", result.description);
+    assert.deepEqual(kinds(driver), ["fullPageScreenshot"]);
   });
 
   it("captures the document over BiDi when the session has a socket", async function () {
