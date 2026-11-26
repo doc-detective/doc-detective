@@ -11,7 +11,7 @@ If no supported browser is available, Doc Detective skips contexts that require 
 
 ## Browser fallback
 
-A browser context can fail to start for reasons beyond "not installed," most commonly a **broken driver**. For example, a partially downloaded `geckodriver` can exist on disk yet fail to run. That would otherwise make a Firefox context fail and skip. To stay resilient, Doc Detective validates each browser's driver by *executing* it, not just checking that it's present. When the requested browser can't start, Doc Detective first tries to **repair** it once, reinstalling the browser and its driver. The run can then stay on the browser you asked for. It falls back to another available browser only when the repair doesn't help.
+A browser context can fail to start for reasons beyond "not installed," most commonly a **broken driver**. For example, a partially downloaded `geckodriver` can exist on disk yet fail to run. That would otherwise make a Firefox context fail and skip. To stay resilient, Doc Detective validates each browser's driver by *executing* it, not just checking that it's present. When the requested browser can't start, Doc Detective first tries to **repair** it once, reinstalling the browser and its driver. The run can then stay on the browser you asked for. It falls back to another available browser only when the repair doesn't help. Fallback also applies when the browser isn't available at all, such as Safari on Linux or Windows.
 
 The [`browserFallback`](/reference/schemas/config) config option (or the `--browser-fallback` CLI flag) controls this fallback:
 

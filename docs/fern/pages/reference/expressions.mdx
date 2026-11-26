@@ -27,7 +27,7 @@ The references you can use depend on the action that produced them. For example,
 
 ### JSON pointer
 
-To drill into a resolved value, append a JSON pointer with `#/`:
+To drill into a resolved value, append a JSON pointer with `#/`. For example, in a step's `if` condition, after a step with the `stepId` `fetch-user` captures a response:
 
 ```text
 $$steps.fetch-user.outputs.body#/data/0/email
@@ -35,15 +35,21 @@ $$steps.fetch-user.outputs.body#/data/0/email
 
 ## Interpolation
 
-To embed an expression inside a larger string, wrap it in double curly braces. Doc Detective replaces each `{{...}}` with the resolved value and leaves the surrounding text intact.
-
-For example, after a prior step with the `stepId` `fetch-user` captures a response, interpolate one of its outputs into a later step:
+To embed an expression inside a larger string, wrap it in double curly braces. Doc Detective replaces each `{{...}}` with the resolved value and leaves the surrounding text intact. Interpolation works in the values of a step's `variables` object, where the expression reads that step's own outputs:
 
 ```json
 {
-  "goTo": "https://example.com/users/{{$$steps.fetch-user.outputs.body.id}}"
+  "httpRequest": {
+    "url": "https://example.com/api/users",
+    "method": "post"
+  },
+  "variables": {
+    "USER_PATH": "/users/{{$$response.body.id}}"
+  }
 }
 ```
+
+Doc Detective doesn't interpolate `{{...}}` in other step fields, such as a `goTo` or `httpRequest` URL. There, the text stays as you wrote it. To use a captured value in a later step, reference the variable as `$NAME`, such as `"goTo": "https://example.com$USER_PATH"`. References to other steps' outputs, `$$steps.<stepId>.outputs`, work only in step `if` conditions and routing handlers. See [Reference values in conditions](/docs/get-started/how-testing-works#reference-values-in-conditions) and [Routing handlers](/docs/get-started/how-testing-works#routing-handlers).
 
 Doc Detective sometimes can't resolve an embedded expression, such as one containing a malformed `jq` query. It then leaves the original `{{...}}` text in place instead of substituting a partial or internal value, and logs a warning. Any other `{{...}}` expressions in the same string still resolve normally.
 
