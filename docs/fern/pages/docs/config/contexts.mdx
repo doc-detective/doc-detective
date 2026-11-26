@@ -125,6 +125,8 @@ A context that asks for a key its browser can't set reports `SKIPPED`. A fallbac
 Skipped: `firefox` can't set `clock`.
 ```
 
+Browser sessions that a [`startSurface`](/docs/actions/startsurface) step opens get the same keys. If that session's browser can't set one of them, the step fails rather than skipping.
+
 When Chrome rejects a `timezone` or `clock` value at start, the context fails:
 
 ```text
