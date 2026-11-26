@@ -24,6 +24,7 @@ const uiSpec = (id, browser, keys = {}, testKeys = {}) => ({
   ...keys,
   tests: [{ testId: `${id}-t`, runOn: runOn(browser), ...testKeys, steps: uiSteps }],
 });
+const headedChrome = [{ platforms: everywhere, browsers: { name: "chrome", headless: false } }];
 const shellSpec = { specId: "shell", tests: [{ testId: "shell-t", steps: [{ runShell: "echo hi" }] }] };
 
 const steps = (report) =>
@@ -60,9 +61,9 @@ function pathWithout(binary, dir) {
   }
   return links;
 }
-// A headed context records the screen with ffmpeg where the host can capture
-// it. A host that can't adds no recording (or skips a start that fails), and
-// the context passes either way.
+// A headed Firefox context records the screen with ffmpeg where the host can
+// capture it. A host that can't adds no recording (or skips a start that
+// fails), and the context passes either way.
 function expectScreenRecording(report, check, dir, stderr) {
   check(contexts(report).length === 1 && contexts(report)[0].result === "PASS", "the context passed");
   const rec = autoRecording(report);
@@ -71,6 +72,31 @@ function expectScreenRecording(report, check, dir, stderr) {
     return;
   }
   if (rec.result === "PASS") check(savedRecording(report, rec), "its MP4 exists under runDir");
+}
+// A Chrome context with its own record step gets no automatic recording.
+function authoredRecordCase(id, runOnEntries) {
+  return {
+    spec: {
+      specId: id,
+      tests: [
+        {
+          testId: `${id}-t`,
+          runOn: runOnEntries,
+          steps: [
+            { stepId: "open", goTo: "http://localhost:8092" },
+            { stepId: "rec", record: { path: "authored.mp4", overwrite: "true" } },
+            { stepId: "body", find: { selector: "body", timeout: 5000 } },
+            { stepId: "stop", stopRecord: true },
+          ],
+        },
+      ],
+    },
+    check(report, check, dir) {
+      check(contexts(report).length === 1 && contexts(report)[0].result === "PASS", "the context passed");
+      check(!autoRecording(report), "there's no autoRecording");
+      check(fs.existsSync(path.join(dir, "authored.mp4")), "the authored recording exists");
+    },
+  };
 }
 function expectNoScreenshots(report, check) {
   check(steps(report).every((s) => !s.autoScreenshotPath && !s.autoScreenshot), "no step has an autoScreenshotPath");
@@ -202,39 +228,29 @@ const cases = {
     },
   },
   // The recording default per context (recording/autorecord-defaults.spec.json).
-  // A headed browser records the screen with ffmpeg where the host can
-  // capture it; a host that can't adds no step, warns, and still passes.
+  // Headed Chrome records with the browser engine (ADR 01227), which needs no
+  // screen capture, so every host records it: one with no display starts
+  // Chrome headless and records the tab.
   "headed-chrome-record": {
-    spec: uiSpec("hcr", "chrome", {}, { runOn: [{ platforms: everywhere, browsers: { name: "chrome", headless: false } }] }),
-    check: expectScreenRecording,
+    spec: uiSpec("hcr", "chrome", {}, { runOn: headedChrome }),
+    check(report, check, dir, stderr) {
+      check(contexts(report).length === 1 && contexts(report)[0].result === "PASS", "the context passed");
+      const rec = autoRecording(report);
+      check(rec?.result === "PASS", `the context's autoRecording passed (${rec?.result}: ${rec?.resultDescription})`);
+      check(savedRecording(report, rec), "its MP4 exists under runDir");
+      check(!stderr.includes("Not recording automatically:"), "no host check failed for it");
+    },
   },
+  // A headed Firefox context records the screen with ffmpeg where the host can
+  // capture it; a host that can't adds no step, warns, and still passes.
   "headed-firefox-record": {
     spec: uiSpec("hfr", "firefox", {}, { runOn: [{ platforms: everywhere, browsers: { name: "firefox", headless: false } }] }),
     check: expectScreenRecording,
   },
-  // Headless Chrome with an authored record: the author's recording wins.
-  "headless-chrome-authored-record": {
-    spec: {
-      specId: "har",
-      tests: [
-        {
-          testId: "har-t",
-          runOn: runOn("chrome"),
-          steps: [
-            { stepId: "open", goTo: "http://localhost:8092" },
-            { stepId: "rec", record: { path: "authored.mp4", overwrite: "true" } },
-            { stepId: "body", find: { selector: "body", timeout: 5000 } },
-            { stepId: "stop", stopRecord: true },
-          ],
-        },
-      ],
-    },
-    check(report, check, dir) {
-      check(contexts(report).length === 1 && contexts(report)[0].result === "PASS", "the context passed");
-      check(!autoRecording(report), "there's no autoRecording");
-      check(fs.existsSync(path.join(dir, "authored.mp4")), "the authored recording exists");
-    },
-  },
+  // Chrome with an authored record, headless or headed: the author's
+  // recording wins.
+  "headless-chrome-authored-record": authoredRecordCase("har", runOn("chrome")),
+  "headed-chrome-authored-record": authoredRecordCase("hdar", headedChrome),
   "autorecord-false": {
     spec: uiSpec("arf", "chrome", { autoRecord: false }),
     check(report, check) {

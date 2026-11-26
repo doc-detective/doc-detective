@@ -1712,7 +1712,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
   const routedSpecs: Array<{ spec: any; specReport: any; specGuardSkip: boolean }> =
     [];
   const routedSizingJobs: any[] = [];
-  // Set when at least one context gets a synthetic autoRecord (ffmpeg) step.
+  // Set when at least one context gets a synthetic autoRecord step.
   // It opts the run into overlapping ffmpeg captures (parallel anyway) rather
   // than the safe-serial default reserved for explicit-only ffmpeg recordings.
   // A holder object so the shared prepareContextSlot helper can flip it from
@@ -4006,17 +4006,17 @@ function resolveAutoRecord({
   return test?.autoRecord ?? spec?.autoRecord ?? config?.autoRecord;
 }
 
-// The engine autoRecord's synthetic step uses in a context (ADR 01177, DA2),
+// The engine autoRecord's synthetic step uses in a context (ADR 01177, DA2,
+// amended by ADR 01227),
 // or null when the context gets none: "device" on Android and iOS, the
-// browser engine for headless Chrome (whose tab it captures), and ffmpeg for
-// everything else on a desktop. Headless Chrome with an authored `record`
-// gets none — the browser engine allows one recording per context, and the
-// author's wins. `context.browser` is already the default browser when the
-// context names none (prepareContextSlot).
+// browser engine for Chrome, headed or headless, as an authored `record`
+// defaults to, and ffmpeg for everything else on a desktop. Chrome with an
+// authored `record` gets none — the browser engine allows one recording per
+// context, and the author's wins. `context.browser` is already the default
+// browser when the context names none (prepareContextSlot).
 function autoRecordEngine(context: any): "device" | "browser" | "ffmpeg" | null {
   if (isMobileTargetPlatform(context?.platform)) return "device";
-  const browser = context?.browser;
-  if (browser?.name === "chrome" && browser.headless !== false) {
+  if (context?.browser?.name === "chrome") {
     const authored = (Array.isArray(context?.steps) ? context.steps : []).some(
       (s: any) => !s?.__autoRecord && s?.record !== undefined && s.record !== false
     );

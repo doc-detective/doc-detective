@@ -21,8 +21,9 @@ With no setting at all, Doc Detective records each context from its first step t
 | Context | How it's recorded |
 |---|---|
 | Headless Chrome, the default browser | The `browser` engine records the tab. It needs no display. |
-| Headless Chrome with its own `record` step | Not recorded automatically. Your `record` step wins, since a Chrome context records one tab at a time. |
-| Headed Chrome, Firefox, or Safari | The `ffmpeg` engine records the screen. |
+| Headed Chrome | The `browser` engine records the Chrome window, not the whole screen. It doesn't record the screen, so the Windows and macOS checks below don't apply. When the host has no display, Chrome starts headless instead and the `browser` engine records its tab. |
+| Any Chrome context with its own `record` step | Not recorded automatically. Your `record` step wins, since a Chrome context records one window or tab at a time. |
+| Headed Firefox or Safari | The `ffmpeg` engine records the screen. |
 | Headless Firefox | Runs headed so the `ffmpeg` engine can record it, when the host can capture the screen. On Linux with Xvfb installed, it runs on an Xvfb display, so no window appears. With only `DISPLAY`, the window opens on that display. Otherwise it stays headless and isn't recorded. |
 | A native app on Windows or macOS | The `ffmpeg` engine records the whole display. |
 | An Android or iOS app, or mobile web | The device records its own screen. |
@@ -91,7 +92,7 @@ The field is absent when Doc Detective didn't try to record the context. That me
 
 - `autoRecord` is `false`.
 - The context drives no browser, app, or device.
-- A headless Chrome context has its own `record` step.
+- A Chrome context has its own `record` step.
 - `autoRecord` is unset and the host check below failed.
 
 Each reporter points at the video its own way:
@@ -110,7 +111,7 @@ To watch a recording, open `testResults.html` in the run folder. The run prints 
 
 ## Before you record
 
-Once per run, before any test, Doc Detective checks what its recordings need on this host:
+Once per run, before any test, Doc Detective checks what its recordings need on this host. The Windows, macOS, and Linux checks apply only to recordings that capture the screen with the `ffmpeg` engine, not to Chrome:
 
 | Host | What it checks |
 |---|---|

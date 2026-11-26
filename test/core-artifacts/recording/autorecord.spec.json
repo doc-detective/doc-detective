@@ -1,10 +1,10 @@
 {
   "specId": "autorecord",
-  "description": "Exercises autoRecord and the multiple-overlapping-recordings model end-to-end: a synthetic full-context ffmpeg recording (autoRecord), a synthetic recording overlapping an explicit named recording stopped by name, the browser-engine-to-ffmpeg fallback when a second browser recording would overlap, and the static name-conflict preflight that skips a test before it runs. Recording tests need a visible display (Windows/macOS, and Linux via the per-runner Xvfb display); the browser engine additionally requires headed Chrome (Windows/macOS).",
+  "description": "Exercises autoRecord and the multiple-overlapping-recordings model end-to-end: a synthetic full-context recording (autoRecord; the browser engine in headed Chrome, ADR 01227), a synthetic ffmpeg recording overlapping an explicit named recording stopped by name (headed Firefox, since Chrome with an authored record gets no synthetic one), the browser-engine-to-ffmpeg fallback when a second browser recording would overlap, and the static name-conflict preflight that skips a test before it runs. Recording tests need a visible display (Windows/macOS, and Linux via the per-runner Xvfb display); the browser engine additionally requires headed Chrome (Windows/macOS).",
   "tests": [
     {
       "testId": "autorecord-full-context",
-      "description": "autoRecord (test-level) injects a synthetic full-context ffmpeg recording that is auto-stopped at the end of the context.",
+      "description": "autoRecord (test-level) injects a synthetic full-context browser-engine recording in headed Chrome that is auto-stopped at the end of the context. On a Linux host with no display, Chrome starts headless and the browser engine records the tab.",
       "autoRecord": true,
       "runOn": [
         {
@@ -33,7 +33,7 @@
     },
     {
       "testId": "autorecord-overlap-named",
-      "description": "A synthetic autoRecord (ffmpeg) recording overlaps an explicit, named browser-engine recording; the explicit one is stopped by name mid-context while the synthetic one runs to the end.",
+      "description": "In headed Firefox, a synthetic autoRecord (ffmpeg) recording overlaps an explicit, named ffmpeg recording; the explicit one is stopped by name mid-context while the synthetic one runs to the end.",
       "autoRecord": true,
       "runOn": [
         {
@@ -42,7 +42,7 @@
             "mac"
           ],
           "browsers": {
-            "name": "chrome",
+            "name": "firefox",
             "headless": false
           }
         }
@@ -53,7 +53,7 @@
         },
         {
           "record": {
-            "path": "autorecord-section.webm",
+            "path": "autorecord-section.mp4",
             "name": "section",
             "overwrite": "true"
           }

@@ -1,10 +1,10 @@
 {
   "specId": "recording-autorecord-defaults",
-  "description": "The autoRecord default per context (ADR 01177). The group config sets autoRecord false (DA8), and a spec can't unset a key, so each test runs one case of cli/auto-capture.cjs: a nested doc-detective run with no auto-capture keys, in .tmp/fac/<case>/. Headed Chrome and Firefox record with ffmpeg where the host can capture, and a host that can't adds no step and still passes; headless Firefox runs headed where the host can capture; headless Chrome with an authored record keeps only the author's; false records nothing.",
+  "description": "The autoRecord default per context (ADR 01177). The group config sets autoRecord false (DA8), and a spec can't unset a key, so each test runs one case of cli/auto-capture.cjs: a nested doc-detective run with no auto-capture keys, in .tmp/fac/<case>/. Headed Chrome records with the browser engine on every host (ADR 01227); headed Firefox records with ffmpeg where the host can capture, and a host that can't adds no step and still passes; headless Firefox runs headed where the host can capture; Chrome with an authored record, headless or headed, keeps only the author's; false records nothing.",
   "tests": [
     {
       "testId": "headed-chrome",
-      "description": "Unset in a headed Chrome context: an ffmpeg MP4 where the host can capture.",
+      "description": "Unset in a headed Chrome context: a browser-engine MP4 on every host, with no host check; a host with no display starts Chrome headless and records the tab.",
       "steps": [
         {
           "runShell": {
@@ -48,6 +48,19 @@
         {
           "runShell": {
             "command": "node test/core-artifacts/cli/auto-capture.cjs headless-chrome-authored-record",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "headed-chrome-authored-record",
+      "description": "Headed Chrome with an authored record: one recording, the author's.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs headed-chrome-authored-record",
             "workingDirectory": "../../..",
             "timeout": 300000
           }

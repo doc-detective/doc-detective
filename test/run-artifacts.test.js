@@ -1150,8 +1150,8 @@ describe("buildAutoRecordStep", function () {
     expect(step.record.engine).to.equal("ffmpeg");
   });
 
-  // ADR 01177, DA2: headless Chrome records its tab with the browser engine;
-  // everything else on a desktop records the screen with ffmpeg.
+  // ADR 01177, DA2, as amended: Chrome, headed or headless, records with the
+  // browser engine; everything else on a desktop records the screen with ffmpeg.
   describe("engine table", function () {
     const goTo = { goTo: { url: "https://example.com" } };
     const ctx = (browser, steps = [goTo]) => ({
@@ -1161,21 +1161,26 @@ describe("buildAutoRecordStep", function () {
       steps,
     });
 
-    it("records headless Chrome with the browser engine", function () {
-      for (const browser of [{ name: "chrome", headless: true }, { name: "chrome" }]) {
+    it("records Chrome, headed or headless, with the browser engine", function () {
+      for (const browser of [
+        { name: "chrome", headless: true },
+        { name: "chrome" },
+        { name: "chrome", headless: false },
+      ]) {
         const step = buildAutoRecordStep({ config, spec, test, context: ctx(browser) });
         expect(step.record.engine, JSON.stringify(browser)).to.equal("browser");
       }
     });
 
-    it("adds nothing to headless Chrome with an authored record: the author's recording wins", function () {
-      const context = ctx({ name: "chrome", headless: true }, [goTo, { record: true }]);
-      expect(buildAutoRecordStep({ config, spec, test, context })).to.equal(null);
+    it("adds nothing to Chrome with an authored record: the author's recording wins", function () {
+      for (const headless of [true, false]) {
+        const context = ctx({ name: "chrome", headless }, [goTo, { record: true }]);
+        expect(buildAutoRecordStep({ config, spec, test, context }), `headless: ${headless}`).to.equal(null);
+      }
     });
 
-    it("records headed Chrome, Firefox, and Safari with ffmpeg", function () {
+    it("records Firefox and Safari with ffmpeg", function () {
       for (const browser of [
-        { name: "chrome", headless: false },
         { name: "firefox", headless: false },
         { name: "firefox", headless: true },
         { name: "safari" },

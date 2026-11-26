@@ -61,6 +61,9 @@ Chosen option: **A**.
 | Headless Firefox, when the preflight fails | Stays headless. Unset: none. `true`: SKIPPED with the preflight's reason |
 | No driver steps | None |
 
+[ADR 01227](01227-auto-record-headed-chrome-with-the-browser-engine.md) amends this table: headed Chrome records with
+the browser engine too, and gets no automatic recording when it has an authored `record`.
+
 - **Where the defaults live.** At the consumption site, not in `config_v3`, so unset is detectable (the
   `exitOnFail` pattern). `resolveAutoScreenshot` and `resolveAutoRecord` return `undefined` when unset, and every
   caller treats it as on. The schema descriptions lead with "Defaults to `true`."
