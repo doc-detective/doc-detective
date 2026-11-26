@@ -47,6 +47,18 @@ describe("docs-as-tests equivalence", function () {
     assert.match(findMismatches(specs).join("\n"), /detected\.dita/);
   });
 
+  it("compares the steps a dry run puts under each test's contexts", function () {
+    const resolved = (file, steps) => ({
+      contentPath: `/repo/examples/echo/${file}`,
+      tests: [{ testId: "echo", contexts: [{ steps }] }],
+    });
+    const specs = [
+      resolved("standalone.spec.json", [{ goTo: "http://x" }]),
+      resolved("inline.md", [{ goTo: "http://y" }]),
+    ];
+    assert.match(findMismatches(specs).join("\n"), /inline\.md/);
+  });
+
   it("flags an example with no standalone spec", function () {
     assert.match(findMismatches([spec("inline.md", [goTo])]).join("\n"), /echo.*standalone/);
   });

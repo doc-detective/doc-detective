@@ -28,6 +28,7 @@ const FORMATS = [
   ["html", "HTML", "html"],
   ["rst", "reStructuredText", "rst"],
   ["dita", "DITA", "xml"],
+  ["txt", "Plain text", "text"],
   ["json", "JSON", "json"],
   ["yaml", "YAML", "yaml"],
 ];

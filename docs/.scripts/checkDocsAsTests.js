@@ -29,7 +29,8 @@ const IGNORED_STEP_KEYS = ["stepId", "description", "location"];
 function normalizeSteps(tests) {
   return JSON.stringify(
     tests.map((test) =>
-      (test.steps || []).map((step) => {
+      // A dry run puts each test's steps under its contexts; a parsed spec has them on the test.
+      (test.contexts?.[0]?.steps ?? test.steps ?? []).map((step) => {
         const copy = { ...step };
         for (const key of IGNORED_STEP_KEYS) delete copy[key];
         return copy;
@@ -135,8 +136,9 @@ function main() {
   const sharedConfig = path.join(examplesDir, ".doc-detective.json");
   if (process.argv.includes("--run")) {
     // Run the detected variants for real. The docs run covers inline and
-    // standalone with the site config, which turns detection off.
-    const detected = tested.filter((f) => path.basename(f).startsWith("detected."));
+    // standalone with the site config, which turns detection off and has no
+    // file type for plain text, so `inline.txt` runs here too.
+    const detected = tested.filter((f) => /^(detected\.|inline\.txt$)/.test(path.basename(f)));
     let failed = false;
     for (const [config, inputs] of groupByConfig(detected, sharedConfig)) {
       for (const batch of batches(inputs)) {
