@@ -3,7 +3,7 @@ title: Detect visual regressions in screenshots
 description: Compare a screenshot capture against a committed reference image to catch visual drift.
 ---
 
-Turn a screenshot into a regression test by comparing each capture against a saved reference image. When the two drift apart by more than a threshold you set, Doc Detective flags it for review. New to capturing screenshots? Start with [Capture screenshots](/docs/test-docs/capture-screenshots-guide). The comparison runs fine in a headless or CI context.
+Turn a screenshot into a regression test by comparing each capture against a saved reference image. When the two drift apart by more than `maxVariation` allows, Doc Detective flags it for review. New to capturing screenshots? Start with [Capture screenshots](/docs/test-docs/capture-screenshots-guide). The comparison runs fine in a headless or CI context.
 
 ## Before you begin
 
@@ -21,7 +21,7 @@ The steps in this guide work the same in every authoring style. Write them in a 
 
 A screenshot becomes a regression test when you compare it against a saved reference image.
 
-Set `maxVariation` to a value from `0` to `1` to enable comparison. It's the maximum acceptable fractional difference between the new capture and the reference at `path`. A difference beyond the threshold returns `WARNING` rather than `FAIL`, because visual drift is a signal to review rather than a hard break:
+The comparison runs whenever a reference image exists at `path` and `overwrite` is `"aboveVariation"`, the default. `maxVariation`, from `0` to `1`, is the maximum acceptable fractional difference between the new capture and the reference (default: `0.05`). A difference beyond `maxVariation` returns `WARNING` rather than `FAIL`, because visual drift is a signal to review rather than a hard break. A `WARNING` doesn't fail the run or change its [exit code](/reference/reference/cli#exit-codes), so check the results for `WARNING` steps:
 
 {/* test {"testId":"capture-guide-regression","detectSteps":false} */}
 
@@ -133,7 +133,7 @@ doc-detective --overwrite-screenshots
 
 Given alone, the flag means `true`: every `screenshot` step with a local reference replaces it with the new capture and passes. Review the changed images in your diff before you commit them.
 
-The flag takes the same values as a step's `overwrite` and replaces the value on every step. That includes automatic screenshots that compare against a reference:
+The flag takes the same values as a step's `overwrite` and replaces the value on every step:
 
 - `true`: replace every local reference.
 - `false`: never replace a reference, even where a step says `"overwrite": "true"`. A step whose local reference exists returns `SKIPPED` before it takes a screenshot or compares, so it never reports drift. Use it when a run must leave every reference untouched. To catch drift in CI, use `aboveVariation` instead: a step whose new screenshot drifts returns `WARNING` and replaces its local reference in the CI workspace.
@@ -160,9 +160,16 @@ When you list inputs, put them before the flag, or give the flag a value: `doc-d
 
 ### Visual comparison never runs
 
-**Cause:** `maxVariation` isn't set, so the step only captures an image without comparing it.
+**Cause:** the step has nothing to compare against, or it's told to replace the reference without comparing:
 
-**Solution:** set `maxVariation` to a value from `0` to `1` to enable comparison against the reference at `path`.
+- No reference image exists at `path` yet, so the step saves the new screenshot as the reference.
+- The step's `overwrite` is `"true"`, or the run sets `--overwrite-screenshots` or `overwriteScreenshots` to `true`. The step then replaces the reference on every run without comparing.
+- The step's `overwrite` is `"false"`, or the run sets `--overwrite-screenshots` or `overwriteScreenshots` to `false`. A step whose reference exists then returns `SKIPPED` before it takes a screenshot.
+
+**Solution:**
+
+1. Check that `path` points at the committed reference image. If it doesn't exist yet, run the test once locally to create it, then commit it.
+2. Leave the step's `overwrite` unset, or set it to `"aboveVariation"`, and check that the run doesn't set `--overwrite-screenshots` or `overwriteScreenshots` to `true` or `false`.
 
 ### A remote reference URL fails with "Couldn't follow the redirect"
 

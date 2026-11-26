@@ -384,7 +384,7 @@ The results show these steps' effective forms. A `find.click` appears as the cli
 - You set `outputDir`.
 - You run with a config file in another folder, such as `--config sub/doc-detective.json`, and don't set `outputDir`. The screenshots and recordings move from the current folder to `sub/`.
 
-Results show each `screenshot`, `record`, and `stopRecord` step in its object form, with its full path. For example, `{"stepId": "home", "screenshot": true}` appears as `{"stepId": "home", "screenshot": {"path": "<outputDir>/home.png", "maxVariation": 0.05, "overwrite": "aboveVariation"}}`, with `<outputDir>` spelled out.
+Results show each `screenshot`, `record`, and `stopRecord` step in its object form, with its full path. For example, `{"stepId": "home", "screenshot": true}` appears as `{"stepId": "home", "screenshot": {"path": "<outputDir>/home.png", "maxVariation": 0.05, "overwrite": "aboveVariation", "threshold": 0.1}}`, with `<outputDir>` spelled out.
 
 **What to do:** If reference images from `screenshot: true` sit in the current folder and `outputDir` is elsewhere, move them to `outputDir`. You can also give the step a `path`. For a URL reference, collect the new screenshot from the run folder. Give `getRunner()` steps a `stepId` or a `path`.
 
