@@ -1666,11 +1666,15 @@ async function captureScreenshot({
     if (step.screenshot.maxVariation != null) {
       let img1: any;
       let img2: any;
+      // The reference as compared, kept so the archived previous image is
+      // these bytes even if another step rewrites the file meanwhile.
+      let referenceBytes: Buffer;
       try {
         // Decode the existing reference from disk and the freshly captured
         // (optionally cropped) buffer directly — no read-back of a file we
         // just wrote.
-        img1 = PNG.sync.read(fs.readFileSync(existFilePath));
+        referenceBytes = fs.readFileSync(existFilePath);
+        img1 = PNG.sync.read(referenceBytes);
         img2 = PNG.sync.read(finalBuffer);
       } catch (error) {
         result.status = "FAIL";
@@ -1874,7 +1878,7 @@ async function captureScreenshot({
           const name = sanitizeFilesystemName([base, step.stepId].filter(Boolean).join("-"), base);
           const { diffPath, previousPath } = diffArtifactPaths(outDir, name);
           fs.writeFileSync(diffPath, PNG.sync.write({ width, height, data: diffImage } as any));
-          fs.copyFileSync(existFilePath, previousPath);
+          fs.writeFileSync(previousPath, referenceBytes!);
           result.outputs.diffPath = diffPath;
           result.outputs.previousPath = previousPath;
           seeDiff = ` See \`${diffPath}\`.`;

@@ -131,13 +131,15 @@ After an intentional redesign, every reference image is out of date. Instead of 
 doc-detective --overwrite-screenshots
 ```
 
-Given alone, the flag means `true`: every `screenshot` step replaces its reference with the new capture and passes. Review the changed images in your diff before you commit them.
+Given alone, the flag means `true`: every `screenshot` step with a local reference replaces it with the new capture and passes. Review the changed images in your diff before you commit them.
 
 The flag takes the same values as a step's `overwrite` and replaces the value on every step. That includes automatic screenshots that compare against a reference:
 
-- `true`: replace every reference.
-- `false`: never replace a reference, even where a step says `"overwrite": "true"`. A step whose reference exists returns `SKIPPED` before it takes a screenshot or compares, so it never reports drift. Use it when a run must leave every reference untouched. To catch drift in CI, use `aboveVariation` instead: a step whose new screenshot drifts returns `WARNING` and replaces the reference in the CI workspace.
-- `aboveVariation`: replace a reference only when the capture differs by more than `maxVariation`, or `maxDiffPixels` when set.
+- `true`: replace every local reference.
+- `false`: never replace a reference, even where a step says `"overwrite": "true"`. A step whose local reference exists returns `SKIPPED` before it takes a screenshot or compares, so it never reports drift. Use it when a run must leave every reference untouched. To catch drift in CI, use `aboveVariation` instead: a step whose new screenshot drifts returns `WARNING` and replaces the reference in the CI workspace.
+- `aboveVariation`: replace a local reference only when the capture differs by more than `maxVariation`, or `maxDiffPixels` when set.
+
+A URL reference is read-only in every mode. Doc Detective captures the screenshot, compares it with the downloaded reference, and reports the result.
 
 To set it for every run, add `overwriteScreenshots` to your config. The flag beats the config key, which beats each step's own `overwrite`:
 
