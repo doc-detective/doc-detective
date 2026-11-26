@@ -2619,6 +2619,18 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(false);
+    // Already using loadState -> skip.
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          usedStepTypes: new Set(["loadVariables", "type", "click", "loadState"]),
+        })
+      )
+    ).to.equal(false);
+    // It suggests the whole login, in a step that validates.
+    expect(h.markdown).to.include('{ "saveState": "auth.json" }');
+    expect(h.markdown).to.include('{ "loadState": "auth.json" }');
     // No browser -> skip (not a login-driven flow).
     expect(
       h.when(

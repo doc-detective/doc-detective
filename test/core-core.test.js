@@ -744,6 +744,48 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("saveState's string form won't replace a file, and loadState before goTo FAILs (sessions/state.spec.json's expected FAILs)", async () => {
+    // These FAIL by design, so the PASS/SKIPPED fixture gate can't carry them.
+    // A fresh outputDir lets the string-form save run first and then hit its
+    // own file.
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "state-fails-"));
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/cookies/set/dd_state_fail/1" },
+            { saveState: "auth.json" },
+            { saveState: "auth.json" },
+          ],
+        },
+        { steps: [{ loadState: "seeded.json" }] },
+      ],
+    };
+    fs.writeFileSync(
+      path.join(tempDir, "seeded.json"),
+      JSON.stringify({ cookies: [{ name: "sid", value: "1", domain: "localhost", path: "/" }], origins: [] })
+    );
+    const tempFilePath = path.join(tempDir, "state-fails.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, outputDir: tempDir, logLevel: "debug", ...NO_AUTO_CAPTURE });
+      const ran = (test) => test.contexts.find((c) => c.steps && c.steps.length);
+      const file = path.join(tempDir, "auth.json");
+
+      const [, saved, again] = ran(result.specs[0].tests[0]).steps;
+      assert.equal(saved.result, "PASS", saved.resultDescription);
+      assert.equal(saved.outputs.path, file);
+      assert.equal(again.result, "FAIL");
+      assert.equal(again.resultDescription, `Couldn't save state: \`${file}\` exists. Set \`overwrite\` to \`true\` to replace it.`);
+
+      const [load] = ran(result.specs[0].tests[1]).steps;
+      assert.equal(load.result, "FAIL");
+      assert.equal(load.resultDescription, "Couldn't load state: no site is open. Use `goTo` first.");
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("A cropped screenshot shows the element, not a fixed header that overlaps it (#145)", async () => {
     // The page's red fixed header covers the top of the viewport. Scrolling the
     // crop target to the top edge put it under the header, so the crop showed
