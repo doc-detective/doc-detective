@@ -90,6 +90,11 @@ describe("screenshot tolerance and diff images (ADR 01220)", function () {
       result.assertions.find((a) => a.statement.includes("diffPixels")),
       { statement: "$$outputs.diffPixels <= 20", source: "implicit", result: "PASS" }
     );
+    // 10 pixels changed, so the diff images are written even on a PASS (ADR 01220).
+    assert.ok(result.outputs.diffPath, "diffPath set even when the comparison passes");
+    assert.ok(result.outputs.previousPath, "previousPath set even when the comparison passes");
+    assert.ok(fs.existsSync(result.outputs.diffPath), "the diff image exists");
+    assert.ok(fs.existsSync(result.outputs.previousPath), "the previous image exists");
   });
 
   it("warns when changed pixels exceed `maxDiffPixels`, even within `maxVariation`", async function () {
