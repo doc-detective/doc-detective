@@ -1,0 +1,87 @@
+---
+title: saveState
+description: Save the open site's cookies and localStorage to a file, so later tests can reuse a sign-in.
+---
+
+The `saveState` action saves the open site's cookies and `localStorage` to a JSON file. Load the file in a later test with [`loadState`](/docs/actions/loadstate), so you sign in once instead of in every test. For the whole pattern, see [Sign in once, reuse it](/docs/test-docs/sign-in).
+
+The file uses Playwright's `storageState` format, so a file Playwright wrote works with `loadState`, and Playwright can read a file `saveState` wrote.
+
+**Secrets in output:** A state file holds real session cookies and tokens, because `loadState` reads them back. It isn't masked, and it works like a password. Add its folder (`directory`, or `outputDir` by default) to `.gitignore`, and leave it out of uploaded CI artifacts. See [Keep secrets out of logs, reports, and captures](/docs/ci/secrets).
+
+> For comprehensive options, see the [`saveState`](/reference/schemas/savestate) reference.
+
+## What it saves
+
+- Every cookie the browser exposes for the open site.
+- The open origin's `localStorage`.
+
+Open the site with [`goTo`](/docs/actions/goto) and sign in first. One `saveState` captures one site, because the browser only exposes the open site's cookies and storage. `sessionStorage` isn't saved.
+
+## Formats
+
+### String format
+
+A path ending in `.json`. A relative path resolves against `outputDir`. It doesn't replace an existing file.
+
+```json
+{
+  "saveState": "auth.json"
+}
+```
+
+### Object format
+
+```json
+{
+  "saveState": {
+    "path": "auth.json",
+    "directory": "../.auth",
+    "overwrite": true
+  }
+}
+```
+
+| Field | Type | Description | Default |
+|-------|------|-------------|---------|
+| `path` | string | **Required.** File to write, ending in `.json`. A relative path resolves against `directory`, or against `outputDir` when `directory` is omitted. | |
+| `directory` | string | Directory to save the file in. A relative directory resolves against the spec file. | `outputDir` |
+| `overwrite` | boolean | Whether to replace an existing file. | `false` |
+
+## Outputs
+
+| Output | Description |
+|--------|-------------|
+| `path` | Absolute path of the saved file. |
+| `cookies` | Number of cookies saved. |
+| `localStorage` | Number of `localStorage` entries saved. |
+
+## Failures
+
+| Message | Fix |
+|---------|-----|
+| ``Couldn't save state: `/abs/auth.json` exists. Set `overwrite` to `true` to replace it.`` | Set `overwrite` to `true`, or pick another `path`. |
+| ``Couldn't save state: no site is open. Use `goTo` first.`` | Add a `goTo` to the site before `saveState`. |
+
+## Example
+
+{/* test {"testId":"savestate-round-trip","detectSteps":false} */}
+
+```json
+{
+  "steps": [
+    { "goTo": "https://app.example.com/login" },
+    { "find": { "selector": "#user", "click": true, "type": "$USERNAME" } },
+    { "find": { "selector": "#password", "click": true, "type": ["$PASSWORD", "$ENTER$"] } },
+    { "saveState": { "path": "auth.json", "overwrite": true } }
+  ]
+}
+```
+
+{/* step {"stepId":"savestate-goto","description":"Open the local test server, which sets a cookie","goTo":"http://localhost:8092/cookies/set/dd_docs_state/1"} */}
+{/* step {"stepId":"savestate-storage","description":"Add a localStorage entry","runBrowserScript":"localStorage.setItem('dd_docs_state', 'signed-in')"} */}
+{/* step {"stepId":"savestate-save","description":"Save the state","saveState":{"path":"dd-docs-state.json","overwrite":true}} */}
+{/* step {"stepId":"savestate-clear","description":"Clear the cookie and localStorage","runBrowserScript":"document.cookie = 'dd_docs_state=; Max-Age=0; path=/'; localStorage.clear();"} */}
+{/* step {"stepId":"savestate-load","description":"Load the state back","loadState":"dd-docs-state.json"} */}
+{/* step {"stepId":"savestate-verify","description":"localStorage holds the saved entry again","runBrowserScript":{"script":"return localStorage.getItem('dd_docs_state')","output":"signed-in"}} */}
+{/* test end */}

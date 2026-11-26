@@ -104,6 +104,10 @@ No custom React components at this time.
 
 - Documentation must follow the [Google Developer Style Guide](https://developers.google.com/style).
 - The Vale linter implements these style rules.
+- Describe browser support by browser, never by protocol. Users don't need WebDriver BiDi, CDP, or
+  classic WebDriver to understand a feature. Say "works in Chrome; other browsers skip the step",
+  not "needs a BiDi connection". This applies to docs pages, schema descriptions, and messages. ADRs
+  and code comments may name the protocol.
 
 ### User-impact lens (applies to every docs change, including bot-authored PRs)
 

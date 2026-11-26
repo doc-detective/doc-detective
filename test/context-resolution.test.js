@@ -9,6 +9,7 @@ import {
   contextRequirementsSkipMessage,
   prepareContextSlot,
   forcedHeadedMessage,
+  hasBidi,
 } from "../dist/core/tests.js";
 import {
   GECKODRIVER_EXECUTABLE_ARGS,
@@ -620,16 +621,44 @@ describe("getDriverCapabilities", function () {
     assert.ok(args.includes("--auto-select-desktop-capture-source=T"));
   });
 
-  it("keeps chrome on classic WebDriver with no BiDi socket", function () {
-    // ADR 01072 (rejected): a BiDi `webSocketUrl` socket for viewport emulation
-    // crashed headed recording contexts, so chrome stays classic with no socket.
-    const caps = getDriverCapabilities({
-      runnerDetails: baseRunner,
-      name: "chrome",
-      options,
-    });
-    assert.equal(caps["wdio:enforceWebDriverClassic"], true);
-    assert.equal(caps["webSocketUrl"], undefined);
+  // ADR 01219: every session of a browser in BIDI_BROWSERS runs fully on
+  // BiDi; every other browser stays classic with no socket.
+  it("runs every chrome session fully on BiDi", function () {
+    for (const headless of [true, false]) {
+      const caps = getDriverCapabilities({
+        runnerDetails: baseRunner,
+        name: "chrome",
+        options: { ...options, headless },
+      });
+      assert.equal(caps["webSocketUrl"], true);
+      assert.equal(caps["wdio:enforceWebDriverClassic"], false);
+    }
+  });
+
+  it("never opens a BiDi socket on firefox or safari", function () {
+    const runner = {
+      ...baseRunner,
+      availableApps: [
+        ...baseRunner.availableApps,
+        { name: "firefox", path: "/usr/bin/firefox", driver: "/usr/bin/geckodriver" },
+      ],
+    };
+    for (const name of ["firefox", "safari", "webkit"]) {
+      const caps = getDriverCapabilities({ runnerDetails: runner, name, options });
+      assert.ok(caps["appium:automationName"], name);
+      assert.equal(caps["webSocketUrl"], undefined, name);
+      assert.equal(caps["wdio:enforceWebDriverClassic"], true, name);
+    }
+  });
+
+  it("hasBidi reports whether a browser runs with the BiDi socket", function () {
+    assert.equal(hasBidi("chrome"), true);
+    assert.equal(hasBidi("Chrome"), true);
+    assert.equal(hasBidi("CHROME"), true);
+    assert.equal(hasBidi("firefox"), false);
+    assert.equal(hasBidi("safari"), false);
+    assert.equal(hasBidi("webkit"), false);
+    assert.equal(hasBidi(undefined), false);
   });
 
   it("builds safari capabilities for the webkit alias", function () {
