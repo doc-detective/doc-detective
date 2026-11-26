@@ -1,0 +1,5 @@
+Create a user with the echo API
+
+1. Check that http://localhost:8092/api/users responds before you start.
+2. Send a POST request to http://localhost:8092/api/users with the body {"name":"Ada"}.
+   The API returns the user it created.

@@ -1,0 +1,11 @@
+TEST {"testId":"custom-plain-text","detectSteps":false}
+
+Create a user with the echo API
+
+1. Check that http://localhost:8092/api/users responds before you start.
+   STEP {"checkLink":"http://localhost:8092/api/users"}
+2. Send a POST request to http://localhost:8092/api/users with the body {"name":"Ada"}.
+   The API returns the user it created.
+   STEP {"httpRequest":{"method":"post","url":"http://localhost:8092/api/users","request":{"body":{"name":"Ada"}},"response":{"body":{"name":"Ada"}}}}
+
+END TEST

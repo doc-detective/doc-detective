@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: http-api
+    steps:
+      - httpRequest: http://localhost:8092/api/health
+      - httpRequest:
+          url: http://localhost:8093/api/users
+          method: post
+          request:
+            headers: "Content-Type: application/json"
+            body: '{"name": "Ada", "job": "engineer"}'
+          statusCodes:
+            - 200
+            - 201
+          response:
+            body:
+              name: Ada
+              job: engineer
+          allowAdditionalFields: false
+      - httpRequest:
+          url: http://localhost:8092/api/users
+          method: get
+          request:
+            headers:
+              X-Test: docs
+            parameters:
+              page: "2"
+          timeout: 10000
+          response:
+            headers:
+              x-echo-test: docs
+            body:
+              page: "2"
+            required:
+              - page
+          path: users-page-2.json
+          maxVariation: 0.1
+          overwrite: aboveVariation

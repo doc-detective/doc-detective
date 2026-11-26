@@ -1,0 +1,19 @@
+<!-- test {"testId":"custom-markdown-extend","detectSteps":false} -->
+
+# Echo text back
+
+**Note:** The field echoes each keystroke below it.
+
+1. Go to the [Type Echo Test Page](http://localhost:8092/type-echo.html).
+   <!-- step {"goTo":"http://localhost:8092/type-echo.html"} -->
+   <!-- step {"find":"Type Echo Test Page"} -->
+2. Click **Type here:**.
+   <!-- step {"click":"Type here:"} -->
+3. Enter <kbd>Hello, Doc Detective</kbd>.
+   <!-- step {"type":"Hello, Doc Detective"} -->
+4. Wait _500 ms_ for the echo.
+   <!-- step {"wait":500} -->
+5. Check that the page shows **Hello, Doc Detective** below the field.
+   <!-- step {"find":"Hello, Doc Detective"} -->
+
+<!-- test end -->

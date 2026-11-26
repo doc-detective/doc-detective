@@ -1,0 +1,39 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": false,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "beforeAll": "../../../../../../test-setup/start-server.spec.json",
+  "afterAll": "../../../../../../test-setup/stop-server.spec.json",
+  "telemetry": {
+    "send": false
+  },
+  "fileTypes": [
+    {
+      "name": "plain-text",
+      "extensions": ["txt"],
+      "inlineStatements": {
+        "testStart": ["(?:^|\\n)[ \\t]*TEST (\\{.*\\})"],
+        "testEnd": ["(?:^|\\n)[ \\t]*END TEST"],
+        "step": ["(?:^|\\n)[ \\t]*STEP (\\{.*\\})"]
+      },
+      "markup": [
+        {
+          "name": "checkUrl",
+          "regex": ["\\bCheck that (https?://\\S+) responds\\b"],
+          "actions": ["checkLink"]
+        },
+        {
+          "name": "sendRequest",
+          "regex": ["\\bSend an? (GET|POST|PUT|PATCH|DELETE) request to (https?://\\S+) with the body (\\{.*\\})\\.(?=\\s|$)"],
+          "actions": [{ "httpRequest": { "method": "$1", "url": "$2", "request": { "body": "$3" } } }]
+        }
+      ]
+    },
+    "markdown",
+    "asciidoc",
+    "html",
+    "dita",
+    "rst"
+  ]
+}

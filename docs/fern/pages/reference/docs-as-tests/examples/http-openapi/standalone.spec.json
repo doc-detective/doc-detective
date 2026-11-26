@@ -1,0 +1,67 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "openApi": [
+    {
+      "name": "users",
+      "descriptionPath": "users.openapi.json",
+      "validateAgainstSchema": "both",
+      "headers": {
+        "X-Test": "docs"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "testId": "http-openapi",
+      "steps": [
+        {
+          "httpRequest": {
+            "openApi": {
+              "name": "users",
+              "operationId": "createUser",
+              "useExample": "both",
+              "server": "http://localhost:8093/api",
+              "statusCode": 200
+            }
+          }
+        },
+        {
+          "httpRequest": {
+            "openApi": "createUser",
+            "request": {
+              "body": {
+                "name": "Grace",
+                "job": "admiral"
+              }
+            },
+            "response": {
+              "body": {
+                "name": "Grace"
+              },
+              "required": [
+                "name",
+                "job"
+              ]
+            }
+          }
+        },
+        {
+          "httpRequest": {
+            "openApi": {
+              "operationId": "getUser",
+              "mockResponse": true,
+              "useExample": "response",
+              "exampleKey": "ada",
+              "validateAgainstSchema": "response"
+            },
+            "response": {
+              "body": {
+                "name": "Ada"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

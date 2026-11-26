@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Preview invoices against a stubbed API</title></head>
+<body>
+<h1>Preview invoices against a stubbed API</h1>
+<p>Stub the invoices endpoint so that every <code>GET</code> request returns the invoices in <code>invoices.json</code>.</p>
+<p>Stub invoice creation too, so that a <code>POST</code> request returns a new invoice ID.</p>
+<p>Open the test site at <code>http://localhost:8092/</code>.</p>
+<p>In the browser console, fetch <code>/api/invoices?page=1</code>. The response lists invoice <code>inv-1</code>.</p>
+<p>Send a <code>POST</code> request to <code>/api/invoices</code>. The response status is <code>201</code>.</p>
+<p>Check the page title by evaluating <code>document.title</code> in the console.</p>
+</body>
+</html>

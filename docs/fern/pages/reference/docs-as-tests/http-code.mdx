@@ -1,0 +1,90 @@
+---
+title: HTTP requests and code, written as tests
+sidebar-title: HTTP requests and code
+description: Procedures that call an API, use an OpenAPI description, stub browser requests, and run shell commands and code, shown as prose, detected tests, inline tests, and a standalone spec.
+---
+
+Each example on this page shows one documented procedure as prose, detected tests, inline tests, and a standalone spec. For what each tab holds, see [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).
+
+The examples call the echo API that the docs test server runs at `http://localhost:8092/api/` and `http://localhost:8093/api/`. Each returns the request's body, or its query parameters for a `GET` request. The `8092` server also adds an `extraField` field to each response.
+
+## Create and list users with an API
+
+This procedure uses [`httpRequest`](/docs/actions/httprequest) as a URL string and as an object with `url`, `method`, `request.headers`, `request.parameters`, `request.body`, `statusCodes`, `response.headers`, `response.body`, `response.required`, `allowAdditionalFields`, `timeout`, `path`, `maxVariation`, and `overwrite`. See the [`httpRequest`](/reference/schemas/httprequest) reference.
+
+<Markdown src="examples/http-api/_variants.mdx" />
+
+### What detection finds
+
+Default detection turns each code block that holds a raw HTTP request into an `httpRequest` step, whether the block is tagged `http` or has no language. The detected step takes the method, the URL, the headers, and the body from the block, and parses a JSON body into an object. It doesn't check the response, so it passes on any `200` or `201` status.
+
+The health check sits in inline code, which detection skips, so the detected variant adds it with a `step` statement.
+
+The inline and standalone variants also check each response:
+
+- The `POST` step sends its headers as a `Name: value` string and its body as a JSON string. With `allowAdditionalFields` set to `false`, the response must hold only the fields in `response.body`. That's why this step calls the `8093` server, which adds no fields.
+- The `GET` step sends its headers as an object and its query as `request.parameters`. It saves the response to `users-page-2.json` next to the test file and compares later responses to that file. A response that differs by more than `maxVariation`, 10% here, returns a warning and, with `overwrite` set to `aboveVariation`, replaces the file.
+
+## Call operations from an OpenAPI description
+
+This procedure loads an OpenAPI description with the test's [`openApi`](/reference/schemas/openapi) list, then calls its operations from [`httpRequest`](/docs/actions/httprequest) steps. The steps set `openApi` as an operation ID string and as an object with `name`, `operationId`, `useExample`, `server`, `statusCode`, `mockResponse`, `exampleKey`, and `validateAgainstSchema`. The description entry sets `name`, `descriptionPath`, `validateAgainstSchema`, and `headers`.
+
+The example's description, `users.openapi.json`, sits next to the test files and points at the `8093` server.
+
+<Markdown src="examples/http-openapi/_variants.mdx" />
+
+### Notes
+
+- Detection finds no steps here, so each variant carries its steps in statements. The `test` statement holds the `openApi` list, and the standalone spec sets the same list on the [spec](/reference/schemas/specification) instead, where every test in the spec shares it.
+- The first step sends the operation's request example and checks the response against its response example. The second sends its own body, and validates both against the description's schema.
+- The third step sets `mockResponse`, so Doc Detective sends no request. It returns the `ada` response example as the response instead, which lets you test against an operation before it's live.
+
+## Stub API responses in the browser
+
+This procedure stubs requests with [`mockRequest`](/docs/actions/mockrequest), using `url`, `method`, and `response` with `statusCode`, `headers`, `body`, and `bodyPath`. It then opens a page with [`goTo`](/docs/actions/goto) and runs JavaScript in it with [`runBrowserScript`](/docs/actions/runbrowserscript), as a script string and as an object with `script`, `args`, `output`, and `timeout`. See the [`mockRequest`](/reference/schemas/mockrequest) and [`runBrowserScript`](/reference/schemas/runbrowserscript) references.
+
+The `invoices.json` file next to the test files holds the stubbed response body.
+
+<Markdown src="examples/http-mock-request/_variants.mdx" />
+
+### Notes
+
+- Only Chrome can stub requests, so the test's [`runOn`](/reference/schemas/test) runs it on headless Chrome on Windows, macOS, and Linux. In another browser, `mockRequest` is skipped.
+- The `GET` stub's `url` is a glob, so it also matches the query string. The `POST` stub's `url` is the whole URL, so it matches only that address.
+- A `runBrowserScript` step's `output` checks the script's return value. The first script returns the stub's `x-mock` header and body, and `/^docs .*inv-1/` is a regular expression that matches both.
+- Detection finds no steps here. The site's address is inline code rather than a link, so each variant opens it with a `goTo` statement.
+
+## Run shell commands
+
+This procedure uses [`runShell`](/docs/actions/runshell) as a command string and as an object with `command`, `args`, `stdio`, `shell`, `exitCodes`, `timeout`, `workingDirectory`, `path`, `maxVariation`, `overwrite`, and `background` with `name` and `waitUntil`. A [`closeSurface`](/docs/actions/closesurface) step stops the background process. See the [`runShell`](/reference/schemas/runshell) reference.
+
+<Markdown src="examples/http-run-shell/_variants.mdx" />
+
+### Notes
+
+- Default detection runs code blocks tagged `bash`, `python`, `py`, `javascript`, or `js` with `runCode`. These blocks are tagged `shell`, so detection skips them, and each variant carries its `runShell` steps in statements.
+- Every command runs in Bash, the default shell on every platform. On Windows, Doc Detective uses Git Bash. Each command runs `node -e`, so the procedure works wherever Node.js does.
+- `stdio` accepts a string or a regular expression between slashes, such as `/^v\d+\./`.
+- The fourth step sets `workingDirectory` to `.`, the folder that holds the test file, and saves its output to `folder-name.txt` in that folder.
+- The fifth step starts a background process and returns once the process prints `Preview ready` and 250 milliseconds pass. Its `timeout` limits how long it waits for both.
+
+## Run code blocks
+
+This procedure uses [`runCode`](/docs/actions/runcode) with `language` set to `javascript`, `python`, and `bash`, along with `code`, `stdio`, and `exitCodes`. Default detection makes the same steps from the code blocks. See the [`runCode`](/reference/schemas/runcode) reference.
+
+<Markdown src="examples/http-run-code/_variants.mdx" />
+
+### What detection finds
+
+Default detection turns each code block tagged `javascript`, `python`, or `bash` into a `runCode` step, with the block's language and content. It marks each detected step `unsafe`, because the code runs on your machine. An unsafe step runs only when the config sets [`allowUnsafeSteps`](/reference/schemas/config) to `true`, or you pass `--allow-unsafe`. Otherwise, the step is skipped. So the detected variants run with this config:
+
+```json title="doc-detective.json"
+{
+  "detectSteps": true,
+  "allowUnsafeSteps": true
+}
+```
+
+The detected steps don't check output, so they pass when the code exits with code `0`. The inline and standalone variants aren't unsafe, so they run without `allowUnsafeSteps`, and they check each block's output.
+
+To keep a code block from running, mark it to be ignored. In Markdown, MDX, and AsciiDoc, add `testIgnore` after the language, as in `` ```bash testIgnore `` or `[source,bash,testIgnore]`. In reStructuredText, add `:class: testIgnore` to the directive. HTML and DITA code blocks have no place for it, so wrap the block in `test ignore start` and `test ignore end` statements. The inline variants turn detection off, so they don't need either.

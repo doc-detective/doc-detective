@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-mock-request">
+  <title>Preview invoices against a stubbed API</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-mock-request","detectSteps":true,"runOn":[{"platforms":["windows","mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}'/>
+    <p>Stub the invoices endpoint so that every <codeph>GET</codeph> request returns the invoices in <codeph>invoices.json</codeph>.</p>
+    <data name="doc-detective" value='step {"mockRequest":{"url":"**/api/invoices*","method":"GET","response":{"statusCode":200,"headers":{"x-mock":"docs"},"bodyPath":"invoices.json"}}}'/>
+    <p>Stub invoice creation too, so that a <codeph>POST</codeph> request returns a new invoice ID.</p>
+    <data name="doc-detective" value='step {"mockRequest":{"url":"http://localhost:8092/api/invoices","method":"POST","response":{"statusCode":201,"body":{"id":"inv-2"}}}}'/>
+    <p>Open the test site at <codeph>http://localhost:8092/</codeph>.</p>
+    <data name="doc-detective" value='step {"goTo":"http://localhost:8092/"}'/>
+    <p>In the browser console, fetch <codeph>/api/invoices?page=1</codeph>. The response lists invoice <codeph>inv-1</codeph>.</p>
+    <data name="doc-detective" value='step {"runBrowserScript":{"script":"return fetch(arguments[0]).then(async (r) => r.headers.get(&apos;x-mock&apos;) + &apos; &apos; + JSON.stringify(await r.json()));","args":["/api/invoices?page=1"],"output":"/^docs .*inv-1/","timeout":10000}}'/>
+    <p>Send a <codeph>POST</codeph> request to <codeph>/api/invoices</codeph>. The response status is <codeph>201</codeph>.</p>
+    <data name="doc-detective" value='step {"runBrowserScript":{"script":"return fetch(&apos;/api/invoices&apos;, { method: &apos;POST&apos; }).then((r) => r.status);","output":"201"}}'/>
+    <p>Check the page title by evaluating <codeph>document.title</codeph> in the console.</p>
+    <data name="doc-detective" value='step {"runBrowserScript":"return document.title;"}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

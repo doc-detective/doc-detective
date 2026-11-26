@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-mock-request">
+  <title>Preview invoices against a stubbed API</title>
+  <body>
+    <p>Stub the invoices endpoint so that every <codeph>GET</codeph> request returns the invoices in <codeph>invoices.json</codeph>.</p>
+    <p>Stub invoice creation too, so that a <codeph>POST</codeph> request returns a new invoice ID.</p>
+    <p>Open the test site at <codeph>http://localhost:8092/</codeph>.</p>
+    <p>In the browser console, fetch <codeph>/api/invoices?page=1</codeph>. The response lists invoice <codeph>inv-1</codeph>.</p>
+    <p>Send a <codeph>POST</codeph> request to <codeph>/api/invoices</codeph>. The response status is <codeph>201</codeph>.</p>
+    <p>Check the page title by evaluating <codeph>document.title</codeph> in the console.</p>
+  </body>
+</topic>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-run-code">
+  <title>Print a greeting</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-run-code","detectSteps":true}'/>
+    <p>Run this JavaScript with Node.js:</p>
+    <codeblock outputclass="language-javascript">console.log("Hello from JavaScript");</codeblock>
+    <p>Run the same greeting in Python:</p>
+    <codeblock outputclass="language-python">print("Hello from Python")</codeblock>
+    <p>Or in Bash:</p>
+    <codeblock outputclass="language-bash">echo "Hello from Bash"</codeblock>
+    <p>To install the greeter for every project on your machine, run:</p>
+    <data name="doc-detective" value="test ignore start"/>
+    <codeblock outputclass="language-bash">npm install --global ./greeter</codeblock>
+    <data name="doc-detective" value="test ignore end"/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-openapi">
+  <title>Create a user from the API description</title>
+  <body>
+    <p>The Users API description, <codeph>users.openapi.json</codeph>, defines each operation with an example.</p>
+    <p>Call the <codeph>createUser</codeph> operation with its example request. The response matches the example user, Ada.</p>
+    <p>Call <codeph>createUser</codeph> again with your own user. The response includes the <codeph>name</codeph> and <codeph>job</codeph> fields.</p>
+    <p>The <codeph>getUser</codeph> operation isn't live yet, so preview its response from the description's <codeph>ada</codeph> example.</p>
+  </body>
+</topic>
