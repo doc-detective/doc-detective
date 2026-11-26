@@ -5,6 +5,7 @@ import {
   unsupportedEmulation,
   applyEmulation,
   freezeDateSource,
+  keepEmulationCapabilities,
 } from "../dist/core/utils.js";
 import { getDriverCapabilities } from "../dist/core/tests.js";
 
@@ -256,6 +257,10 @@ describe("applyEmulation", function () {
         if (fail === "clock") throw new Error("unsupported");
         calls.push(["clock", p]);
       },
+      execute: async (script) => {
+        if (fail === "clock-now") throw new Error("no page");
+        calls.push(["execute", script]);
+      },
     };
   };
 
@@ -284,11 +289,23 @@ describe("applyEmulation", function () {
   it("adds a preload script that freezes Date in chrome", async function () {
     const d = fakeDriver();
     await applyEmulation(d, { name: "chrome", clock: "2026-12-03T09:00:00Z" });
-    assert.equal(d.calls.length, 1);
     assert.equal(d.calls[0][0], "clock");
     assert.equal(
       d.calls[0][1].functionDeclaration,
       freezeDateSource(Date.parse("2026-12-03T09:00:00Z"))
+    );
+  });
+
+  // The preload runs only for documents created after it's added, so the
+  // document already open gets the same replacement directly.
+  it("also freezes Date in the document that's already open", async function () {
+    const d = fakeDriver();
+    await applyEmulation(d, { name: "chrome", clock: "2026-12-03T09:00:00Z" });
+    assert.equal(d.calls.length, 2);
+    assert.equal(d.calls[1][0], "execute");
+    assert.equal(
+      d.calls[1][1],
+      `(${freezeDateSource(Date.parse("2026-12-03T09:00:00Z"))})();`
     );
   });
 
@@ -302,6 +319,16 @@ describe("applyEmulation", function () {
     );
     await assert.rejects(
       applyEmulation(fakeDriver("clock"), {
+        name: "chrome",
+        clock: "2026-12-03T09:00:00Z",
+      }),
+      {
+        message:
+          "Couldn't set `clock` to `2026-12-03T09:00:00Z` in `chrome`.",
+      }
+    );
+    await assert.rejects(
+      applyEmulation(fakeDriver("clock-now"), {
         name: "chrome",
         clock: "2026-12-03T09:00:00Z",
       }),
@@ -328,5 +355,72 @@ describe("freezeDateSource", function () {
     assert.ok(new D() instanceof D);
     assert.equal(typeof D(), "string");
     assert.equal(D.UTC(2020, 0, 1), Date.UTC(2020, 0, 1));
+  });
+
+  it("keeps Date subclasses", function () {
+    const T = Date.parse("2026-12-03T09:00:00Z");
+    const scope = { Date };
+    new Function("globalThis", `return (${freezeDateSource(T)})();`)(scope);
+    class CustomDate extends scope.Date {
+      label() {
+        return "date";
+      }
+    }
+    const now = new CustomDate();
+    assert.equal(now.label(), "date");
+    assert.equal(now.getTime(), T);
+    assert.ok(now instanceof CustomDate);
+    assert.equal(new CustomDate(0).getTime(), 0);
+    assert.equal(new CustomDate(0).label(), "date");
+  });
+});
+
+describe("keepEmulationCapabilities", function () {
+  it("restores chrome emulation args and prefs after authored options replace them", function () {
+    const caps = {
+      "goog:chromeOptions": {
+        args: ["--disable-extensions"],
+        prefs: { "intl.accept_languages": "en-US", "custom.pref": 1 },
+      },
+    };
+    keepEmulationCapabilities(caps, {
+      name: "chrome",
+      colorScheme: "dark",
+      locale: "de-DE",
+    });
+    assert.deepEqual(caps["goog:chromeOptions"].args, [
+      "--disable-extensions",
+      "--blink-settings=preferredColorScheme=0",
+      "--lang=de-DE",
+    ]);
+    assert.deepEqual(caps["goog:chromeOptions"].prefs, {
+      "intl.accept_languages": "de-DE",
+      "custom.pref": 1,
+    });
+  });
+
+  it("doesn't duplicate args that are already there", function () {
+    const caps = {
+      "goog:chromeOptions": { args: ["--blink-settings=preferredColorScheme=0"] },
+    };
+    keepEmulationCapabilities(caps, { name: "chrome", colorScheme: "dark" });
+    assert.deepEqual(caps["goog:chromeOptions"].args, [
+      "--blink-settings=preferredColorScheme=0",
+    ]);
+  });
+
+  it("restores firefox emulation prefs and keeps authored ones", function () {
+    const caps = { "moz:firefoxOptions": { prefs: { "custom.pref": true } } };
+    keepEmulationCapabilities(caps, { name: "firefox", reducedMotion: "reduce" });
+    assert.deepEqual(caps["moz:firefoxOptions"].prefs, {
+      "custom.pref": true,
+      "ui.prefersReducedMotion": 1,
+    });
+  });
+
+  it("leaves capabilities alone without emulation keys", function () {
+    const caps = { "goog:chromeOptions": { args: ["--x"] } };
+    keepEmulationCapabilities(caps, { name: "chrome" });
+    assert.deepEqual(caps, { "goog:chromeOptions": { args: ["--x"] } });
   });
 });

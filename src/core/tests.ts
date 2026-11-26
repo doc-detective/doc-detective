@@ -56,6 +56,7 @@ import {
   BIDI_BROWSERS,
   hasBidi,
   emulationCapabilities,
+  keepEmulationCapabilities,
   unsupportedEmulation,
   applyEmulation,
   isViewportFloored,
@@ -5060,6 +5061,12 @@ async function runContext({
             applyDriverOptions(caps, overrides.driverOptions, (message) =>
               log(config, "warning", message)
             );
+            // Authored browser options replace the computed ones; put the
+            // context's emulation args and prefs back (ADR 01223).
+            keepEmulationCapabilities(caps, {
+              ...context.browser,
+              name: browserName,
+            });
           }
           return caps;
         };

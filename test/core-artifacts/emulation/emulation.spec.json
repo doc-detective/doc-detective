@@ -240,6 +240,12 @@
       ],
       "steps": [
         {
+          "runBrowserScript": {
+            "script": "return String(Date.now()) + ' ' + new Date().toISOString();",
+            "output": "/^1796288400000 2026-12-03T09:00:00\\.000Z$/"
+          }
+        },
+        {
           "goTo": "http://localhost:8092"
         },
         {

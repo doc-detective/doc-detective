@@ -2584,6 +2584,32 @@ export function emulationCapabilities(browser: any): {
 }
 
 /**
+ * Put a browser's emulation args and prefs back into capabilities after an
+ * authored `driverOptions` replaced `goog:chromeOptions` or
+ * `moz:firefoxOptions`. Authored args and prefs stay; emulation wins a
+ * conflicting pref, so a dark context never opens a light session.
+ * Mutates and returns `caps`.
+ */
+export function keepEmulationCapabilities(
+  caps: Record<string, any>,
+  browser: any
+): Record<string, any> {
+  const { args, prefs } = emulationCapabilities(browser);
+  if (args.length === 0 && Object.keys(prefs).length === 0) return caps;
+  const key =
+    browser?.name === "chrome" ? "goog:chromeOptions" : "moz:firefoxOptions";
+  const options = { ...(caps[key] ?? {}) };
+  if (args.length) {
+    const authored: string[] = Array.isArray(options.args) ? options.args : [];
+    options.args = [...authored, ...args.filter((a) => !authored.includes(a))];
+  }
+  if (Object.keys(prefs).length)
+    options.prefs = { ...(options.prefs ?? {}), ...prefs };
+  caps[key] = options;
+  return caps;
+}
+
+/**
  * The skip message for the first emulation key this browser can't set on
  * this platform, or null when it can set every key it has (ADR 01223).
  * Running a dark-mode test in light mode would quietly overwrite its
@@ -2623,7 +2649,7 @@ export function freezeDateSource(ms: number): string {
   const D = globalThis.Date;
   function F(...a) {
     if (!new.target) return new D(T).toString();
-    return a.length ? new D(...a) : new D(T);
+    return Reflect.construct(D, a.length ? a : [T], new.target);
   }
   F.prototype = D.prototype;
   F.now = () => T;
@@ -2657,10 +2683,12 @@ export async function applyEmulation(driver: any, browser: any): Promise<void> {
     }
   }
   if (browser.clock) {
+    const source = freezeDateSource(Date.parse(browser.clock));
     try {
-      await driver.scriptAddPreloadScript({
-        functionDeclaration: freezeDateSource(Date.parse(browser.clock)),
-      });
+      // The preload covers every later document. The one already open
+      // predates it, so it gets the same replacement directly.
+      await driver.scriptAddPreloadScript({ functionDeclaration: source });
+      await driver.execute(`(${source})();`);
     } catch {
       throw fail("clock");
     }

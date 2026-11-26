@@ -79,7 +79,12 @@ Android and iOS browsers skip every key.
   and for every later session a `startSurface` step opens. It sends the BiDi commands.
 * `emulation.setTimezoneOverride` targets `userContexts: ["default"]`. Chrome rejects the global
   form ("Either user contexts or browsing contexts must be provided").
-* The `clock` preload script keeps explicit dates, `Date.parse` and `Date.UTC` working.
+* The `clock` preload script keeps explicit dates, `Date.parse`, `Date.UTC` and `Date` subclasses
+  working. A preload script runs only in documents created after it, so setup also runs the
+  replacement in the document already open.
+* A `startSurface` browser's `driverOptions` can replace `goog:chromeOptions` or
+  `moz:firefoxOptions`. `keepEmulationCapabilities` then adds the emulation args and prefs back.
+  Authored args and prefs stay, and emulation wins a conflicting pref.
 * goTo's in-page idle monitors now time with `performance.now()`. Timed with `Date.now()`, a frozen
   clock stalled every goTo wait until its timeout.
 
