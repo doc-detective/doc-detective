@@ -53,6 +53,14 @@ On Windows and macOS, opening two app surfaces with the same `name` in one conte
 - `viewport`: (Optional) Page-content dimensions, which win over `size`. Doc Detective sizes the viewport by resizing the window, so the ~500px minimum window width applies (in headless mode too). A smaller requested viewport renders at the larger realized size. The step still passes, but Doc Detective logs a `warning` and reports both sizes in the step's `viewport` output as `{ requested, actual }`. Trust the rendered size over the request. To render content at true sub-500px widths, run the test on an `android` or `ios` platform, where the device's own screen sets the dimensions.
 - `driverOptions`: (Optional) Escape-hatch capability passthrough.
 
+A browser session also gets the context's [page emulation](/docs/test-docs/platforms-and-browsers#page-emulation) keys, such as `colorScheme`, `locale`, and `clock`, so every session in the context shows the same variant. A descriptor can't change them. If the descriptor names a browser that can't set one of the keys, the step fails instead of opening a session without it:
+
+```text
+Couldn't open `firefox`: `firefox` can't set `clock`.
+```
+
+To fix it, open a browser that sets every key the context uses. Or move the step to a test whose context doesn't set them.
+
 The browser descriptor deliberately has no `url`, because [`goTo`](goto) stays the navigation step. It has no `waitUntil` either, since a browser session is ready the moment it opens.
 
 ## Process descriptors
