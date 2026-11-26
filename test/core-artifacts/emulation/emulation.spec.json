@@ -1,0 +1,748 @@
+{
+  "specId": "page-emulation",
+  "description": "Page emulation keys on the context `browser` object (ADR 01223). One test per key per browser asserts what the page sees through `runBrowserScript`. A key the browser can't set skips the context: Safari for every key, and Firefox `timezone` and `clock`.",
+  "tests": [
+    {
+      "testId": "chrome-colorScheme-dark",
+      "description": "Chrome sets `colorScheme` to `dark`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "chrome",
+              "colorScheme": "dark"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-color-scheme: dark)').matches);",
+            "output": "/^true$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "chrome-colorScheme-light",
+      "description": "Chrome sets `colorScheme` to `light`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "chrome",
+              "colorScheme": "light"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-color-scheme: light)').matches);",
+            "output": "/^true$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "chrome-locale",
+      "description": "Chrome sets `locale` to `de-DE`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "chrome",
+              "locale": "de-DE"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return navigator.language;",
+            "output": "/^de-DE$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "chrome-timezone",
+      "description": "Chrome sets `timezone` to `Asia/Tokyo`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "chrome",
+              "timezone": "Asia/Tokyo"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return Intl.DateTimeFormat().resolvedOptions().timeZone;",
+            "output": "/^Asia\\/Tokyo$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "chrome-deviceScaleFactor",
+      "description": "Chrome sets `deviceScaleFactor` to `2`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "chrome",
+              "deviceScaleFactor": 2
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(devicePixelRatio);",
+            "output": "/^2$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "chrome-reducedMotion-reduce",
+      "description": "Chrome sets `reducedMotion` to `reduce`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "chrome",
+              "reducedMotion": "reduce"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-reduced-motion: reduce)').matches);",
+            "output": "/^true$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "chrome-reducedMotion-no-preference",
+      "description": "Chrome sets `reducedMotion` to `no-preference`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "chrome",
+              "reducedMotion": "no-preference"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-reduced-motion: no-preference)').matches);",
+            "output": "/^true$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "chrome-clock",
+      "description": "Chrome sets `clock` to `2026-12-03T09:00:00Z`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "chrome",
+              "clock": "2026-12-03T09:00:00Z"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runBrowserScript": {
+            "script": "return String(Date.now()) + ' ' + new Date().toISOString();",
+            "output": "/^1796288400000 2026-12-03T09:00:00\\.000Z$/"
+          }
+        },
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(Date.now()) + ' ' + new Date().toISOString();",
+            "output": "/^1796288400000 2026-12-03T09:00:00\\.000Z$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "firefox-colorScheme-dark",
+      "description": "Firefox sets `colorScheme` to `dark`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "firefox",
+              "colorScheme": "dark"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-color-scheme: dark)').matches);",
+            "output": "/^true$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "firefox-colorScheme-light",
+      "description": "Firefox sets `colorScheme` to `light`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "firefox",
+              "colorScheme": "light"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-color-scheme: light)').matches);",
+            "output": "/^true$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "firefox-locale",
+      "description": "Firefox sets `locale` to `de-DE`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "firefox",
+              "locale": "de-DE"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return navigator.language;",
+            "output": "/^de-DE$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "firefox-deviceScaleFactor",
+      "description": "Firefox sets `deviceScaleFactor` to `2`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "firefox",
+              "deviceScaleFactor": 2
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(devicePixelRatio);",
+            "output": "/^2$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "firefox-reducedMotion-reduce",
+      "description": "Firefox sets `reducedMotion` to `reduce`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "firefox",
+              "reducedMotion": "reduce"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-reduced-motion: reduce)').matches);",
+            "output": "/^true$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "firefox-reducedMotion-no-preference",
+      "description": "Firefox sets `reducedMotion` to `no-preference`, and the page sees it.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "firefox",
+              "reducedMotion": "no-preference"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-reduced-motion: no-preference)').matches);",
+            "output": "/^true$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "firefox-timezone-skipped",
+      "description": "Firefox can't set `timezone`, so the context is SKIPPED, never run in the host's time zone.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "firefox",
+              "timezone": "Asia/Tokyo"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return Intl.DateTimeFormat().resolvedOptions().timeZone;",
+            "output": "/^Asia\\/Tokyo$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "firefox-clock-skipped",
+      "description": "Firefox can't set `clock`, so the context is SKIPPED, never run at the real time.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "firefox",
+              "clock": "2026-12-03T09:00:00Z"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(Date.now()) + ' ' + new Date().toISOString();",
+            "output": "/^1796288400000 2026-12-03T09:00:00\\.000Z$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "safari-colorScheme-skipped",
+      "description": "Safari can't set `colorScheme`, so the context is SKIPPED.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "safari",
+              "colorScheme": "dark"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-color-scheme: dark)').matches);",
+            "output": "/^true$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "safari-locale-skipped",
+      "description": "Safari can't set `locale`, so the context is SKIPPED.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "safari",
+              "locale": "de-DE"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return navigator.language;",
+            "output": "/^de-DE$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "safari-timezone-skipped",
+      "description": "Safari can't set `timezone`, so the context is SKIPPED.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "safari",
+              "timezone": "Asia/Tokyo"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return Intl.DateTimeFormat().resolvedOptions().timeZone;",
+            "output": "/^Asia\\/Tokyo$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "safari-deviceScaleFactor-skipped",
+      "description": "Safari can't set `deviceScaleFactor`, so the context is SKIPPED.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "safari",
+              "deviceScaleFactor": 2
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(devicePixelRatio);",
+            "output": "/^2$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "safari-reducedMotion-skipped",
+      "description": "Safari can't set `reducedMotion`, so the context is SKIPPED.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "safari",
+              "reducedMotion": "reduce"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-reduced-motion: reduce)').matches);",
+            "output": "/^true$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "safari-clock-skipped",
+      "description": "Safari can't set `clock`, so the context is SKIPPED.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "safari",
+              "clock": "2026-12-03T09:00:00Z"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(Date.now()) + ' ' + new Date().toISOString();",
+            "output": "/^1796288400000 2026-12-03T09:00:00\\.000Z$/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "chrome-every-key",
+      "description": "Chrome sets every emulation key at once, and the page sees each one.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "headless": true,
+              "name": "chrome",
+              "colorScheme": "dark",
+              "locale": "de-DE",
+              "timezone": "Asia/Tokyo",
+              "deviceScaleFactor": 2,
+              "reducedMotion": "reduce",
+              "clock": "2026-12-03T09:00:00Z"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-color-scheme: dark)').matches);",
+            "output": "/^true$/"
+          }
+        },
+        {
+          "runBrowserScript": {
+            "script": "return navigator.language;",
+            "output": "/^de-DE$/"
+          }
+        },
+        {
+          "runBrowserScript": {
+            "script": "return Intl.DateTimeFormat().resolvedOptions().timeZone;",
+            "output": "/^Asia\\/Tokyo$/"
+          }
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(devicePixelRatio);",
+            "output": "/^2$/"
+          }
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(matchMedia('(prefers-reduced-motion: reduce)').matches);",
+            "output": "/^true$/"
+          }
+        },
+        {
+          "runBrowserScript": {
+            "script": "return String(Date.now()) + ' ' + new Date().toISOString();",
+            "output": "/^1796288400000 2026-12-03T09:00:00\\.000Z$/"
+          }
+        }
+      ]
+    }
+  ]
+}

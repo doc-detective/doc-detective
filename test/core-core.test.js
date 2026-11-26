@@ -88,6 +88,39 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("Page emulation a browser can't do SKIPs the context before any browser starts (ADR 01223)", async () => {
+    const platform = { win32: "windows", darwin: "mac" }[process.platform] ?? "linux";
+    const spec = {
+      tests: [
+        {
+          testId: "firefox-clock",
+          runOn: [
+            {
+              platforms: platform,
+              browsers: { name: "firefox", clock: "2026-12-03T09:00:00Z" },
+            },
+          ],
+          steps: [{ goTo: "http://localhost:8092" }],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "emulation-skip-"));
+    const tempFilePath = path.join(tempDir, "emulation-skip.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "error" });
+      const contexts = result.specs[0].tests[0].contexts;
+      assert.equal(contexts.length, 1);
+      assert.equal(contexts[0].result, "SKIPPED");
+      assert.equal(
+        contexts[0].resultDescription,
+        "Skipped: `firefox` can't set `clock`."
+      );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("An unmet context `requires` gate SKIPs the context with the unmet-requirements reason (and a met gate runs)", async () => {
     // Two tests: one gated on a command that cannot exist (context must land
     // SKIPPED with a reason naming the missing command — never FAIL), and one

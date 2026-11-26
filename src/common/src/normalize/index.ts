@@ -27,6 +27,7 @@ import httpRequest from "./httpRequest.js";
 import loadCookie from "./loadCookie.js";
 import loadState from "./loadState.js";
 import loadVariables from "./loadVariables.js";
+import mockRequest from "./mockRequest.js";
 import record from "./record.js";
 import runBrowserScript from "./runBrowserScript.js";
 import runCode from "./runCode.js";
@@ -58,6 +59,7 @@ export const normalizers: Record<string, (value: any, path: string, literal: boo
   loadCookie,
   loadState,
   loadVariables,
+  mockRequest,
   record,
   runBrowserScript,
   runCode,
