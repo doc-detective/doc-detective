@@ -1,0 +1,18 @@
+## v3.6.2
+
+### New features
+
+- In Markdown, CommonMark comment statements can use single or double quotes, such as `[comment]: # 'step {"goTo": "https://example.com"}'`. The parenthesized form also supports `test ignore start` and `test ignore end`.
+
+### Bug fixes
+
+- Fixed inline statements that contain escaped quotes, such as `\"`, failing to parse as JSON.
+- Fixed test-level `detectSteps` values written as the strings `"true"` or `"false"` not being treated as booleans.
+
+## v3.6.1
+
+### Bug fixes
+
+- Fixed `maxVariation` checks on `screenshot` and `runShell`, which compared a percentage difference against the `0` to `1` `maxVariation` value. Doc Detective now compares a fractional difference, so results within the allowed variation no longer get flagged.
+- When an [`httpRequest`](/docs/actions/httprequest) response differs from the saved response by more than `maxVariation`, the step now reports a `WARNING` instead of failing.
+- [`wait`](/docs/actions/wait) pauses through the browser session when one is active, so the session doesn't go stale during the wait.

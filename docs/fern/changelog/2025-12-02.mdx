@@ -1,0 +1,14 @@
+## v3.6.0
+
+### New features
+
+- Element-finding steps, such as [`find`](/docs/actions/find), [`click`](/docs/actions/click), and [`dragAndDrop`](/docs/actions/draganddrop), can match an element by `elementId`, `elementTestId`, `elementClass`, `elementAttribute`, or `elementAria`. Combine these with `selector` and `elementText`, and the element must match all of them. Most of these fields accept a regular expression written as `/pattern/`.
+- The `find` and `click` string shorthand matches an element by selector, display text, accessible name, ID, or test ID.
+
+### Behavior changes
+
+- The message about skipping a context that the current system doesn't support is now logged at the `info` level instead of `warning`.
+
+### Bug fixes
+
+- Fixed inline statements written as JSON or YAML being parsed as XML attributes.

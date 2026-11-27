@@ -1,0 +1,5 @@
+## v4.14.0
+
+### New features
+
+- Added the [`runBrowserScript`](/docs/actions/runbrowserscript) action, which runs JavaScript in the current page and saves the return value in `outputs.result`. You can check the result against an expected `output` string or regular expression, pass `args` to the script, save the result to a file, and set a `timeout`. Unlike `runCode`, which runs code on your machine, `runBrowserScript` runs in the browser.

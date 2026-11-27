@@ -1,0 +1,6 @@
+## v4.38.7
+
+### Behavior changes
+
+- Runs start faster, because Doc Detective loads and compiles schemas only when it needs them. The unpacked package is also smaller, about 77 MB instead of 138 MB.
+- If you use `doc-detective-common` validation results, the `schemaPath` values in `errorObjects` now name the referenced schema file, such as `step_v3.schema.json#/...`.

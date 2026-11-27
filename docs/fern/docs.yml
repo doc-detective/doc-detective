@@ -471,6 +471,13 @@ navigation:
           - page: Privacy policy (Companion app)
             path: pages/legal/privacy-policy-companion.mdx
             slug: /legal/privacy-policy-companion
+      # Fern changelog section: one YYYY-MM-DD.mdx per release day, and each
+      # `## vX.Y.Z` heading is one release entry. Keep the folder named
+      # `changelog`. Fern doesn't recognize a changelog folder by any other name:
+      # https://buildwithfern.com/learn/docs/configuration/changelogs
+      - changelog: ./changelog
+        title: Changelog
+        slug: changelog
 
 ###########
 # Redirects

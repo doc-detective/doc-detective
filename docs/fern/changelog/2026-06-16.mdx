@@ -1,0 +1,21 @@
+## v4.11.1
+
+### Bug fixes
+
+- Fixed the Doc Detective GitHub Action failing to find the results file after the `runFolder` reporter began printing the path of its HTML report. The per-run JSON results path is again the last results path in the output.
+
+## v4.11.0
+
+### New features
+
+- Added an `engine` field to [`record`](/docs/actions/record) steps. The `browser` engine records a Chrome tab. The `ffmpeg` engine records the screen for any application, and its `target` option captures the full `display`, the active `window`, or the browser `viewport`. When you don't set `engine`, Doc Detective uses the `browser` engine if a visible Chrome context is available and `ffmpeg` otherwise.
+
+### Behavior changes
+
+- The `browser` engine is now safe with concurrent runners. Each context records its own window and saves to its own folder.
+- The `ffmpeg` engine needs exclusive use of the display, so on Windows and macOS a run that uses it runs one context at a time. On Linux, each runner records its own Xvfb virtual display, so recordings stay concurrent and also work headless.
+- Recordings are now video-only.
+
+### Bug fixes
+
+- Fixed recordings that could be converted before the browser finished writing the file.

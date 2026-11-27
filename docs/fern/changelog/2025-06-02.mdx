@@ -1,0 +1,24 @@
+## v3.0.14
+
+### Behavior changes
+
+- HTTP request code blocks are detected whether or not they have the `http` language tag.
+
+## v3.0.13
+
+### Behavior changes
+
+- Doc Detective detects HTTP requests only in code blocks with the `http` language tag.
+
+## v3.0.12
+
+### New features
+
+- In Markdown, Doc Detective detects code blocks that contain a raw HTTP request. The block starts with a method and URL line, followed by optional headers and a body. Each one becomes an [`httpRequest`](/docs/actions/httprequest) step.
+
+## v3.0.11
+
+### New features
+
+- [`httpRequest`](/docs/actions/httprequest) accepts `request.headers` as a string with one `Name: value` header per line, such as `Content-Type: application/json`.
+- When `request.body` is a string that contains a JSON object, `httpRequest` sends it as JSON. If the string isn't valid JSON, the step sends it as a string.

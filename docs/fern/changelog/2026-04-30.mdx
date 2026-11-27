@@ -1,0 +1,9 @@
+## v4.3.0
+
+### New features
+
+- Added the `--test` (`-t`) and `--spec` (`-s`) CLI flags and the matching `testFilter` and `specFilter` [config](/reference/schemas/config) fields, which run only the tests or specs whose IDs match. Each accepts comma-separated, case-insensitive regular expressions, and CLI values override config values. See the [CLI reference](/reference/reference/cli).
+
+### Behavior changes
+
+- When a run executes no tests, for example because filters excluded every test, the terminal reporter shows a warning instead of a passing summary. The exit code stays `0`.

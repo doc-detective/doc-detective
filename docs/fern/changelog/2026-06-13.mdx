@@ -1,0 +1,9 @@
+## v4.7.0
+
+### New features
+
+- Added the `debug` command, which writes a redacted diagnostic report about your system, tools, browsers, environment, and config to timestamped files in `.doc-detective/`. To write the same report during a run, set `DOC_DETECTIVE_DEBUG=true`. See [Setup issues](/docs/troubleshooting/setup-issues).
+
+### Behavior changes
+
+- The `debug` [config](/reference/schemas/config) field is deprecated and ignored. Existing configs that set it still validate. For diagnostics, use the `debug` command or `DOC_DETECTIVE_DEBUG`.

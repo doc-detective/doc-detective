@@ -1,0 +1,19 @@
+## v5.3.1
+
+### Bug fixes
+
+- The official Docker image keeps the browsers it ships with instead of downloading newer ones on each run.
+- The iOS driver installs on its own, so a failed iOS driver build no longer stops Appium and the browser drivers from installing.
+
+## v5.3.0
+
+### New features
+
+- Doc Detective replaces outdated cached Chrome, ChromeDriver, Firefox, and geckodriver builds with the latest build and deletes the old one. It checks at most once a day. Before, it only warned until you ran `install browsers --force`. If a check or download fails, Doc Detective warns, keeps the installed build, and waits a day before it tries again. To keep the cached builds, set `DOC_DETECTIVE_SKIP_BROWSER_UPDATE=1`. See [`install`](/reference/reference/cli/install).
+
+## v5.2.1
+
+### Behavior changes
+
+- Doc Detective needs Node.js 24.22.1 or later on the 24 line, or 26.12.1 or later on the 26 line. Node.js 25 isn't supported. Before, Doc Detective accepted Node.js 24.15 or later. The Node.js upgrade hint names both ranges.
+- Doc Detective installs Appium 4 and the Appium 4 releases of its browser and device drivers.

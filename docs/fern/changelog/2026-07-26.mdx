@@ -1,0 +1,12 @@
+## v4.37.0
+
+### New features
+
+- Added the `--exit-on-fail` (`-e`) CLI flag and the `exitOnFail` config field. When set, the CLI exits with code `1` if any spec fails, so any CI system can fail the build on the exit code. `WARNING` and `SKIPPED` results, and runs with no specs, don't trigger it. It's off by default. See the [CLI reference](/reference/reference/cli).
+- Added the `retries` field to the [config](/reference/schemas/config) and to contexts. Doc Detective reruns a whole context on a fresh session when the context fails because its session died. It also retries when the page crashed or never left the blank starting page. `retries` defaults to `1`. Set it to `0` to turn retries off. Real assertion failures are never retried.
+- Report nodes for the run, specs, tests, contexts, and steps now include `durationMs`, the elapsed time in milliseconds.
+- Annotation element targets accept `timeout`, like [`find`](/docs/actions/find). This applies to `annotate` steps and to a screenshot's `annotations`. A new hint suggests a longer `timeout` when a target wasn't found.
+
+### Bug fixes
+
+- The `find` schema and docs now state that `moveTo` defaults to `false`, which matches how `find` has always behaved. Previously, they listed `true`.

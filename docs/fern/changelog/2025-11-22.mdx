@@ -1,0 +1,15 @@
+## v3.5.0
+
+### New features
+
+- [`goTo`](/docs/actions/goto) waits for the page to be ready after it navigates. Use `waitUntil` to set `networkIdleTime` and `domIdleTime` in milliseconds, or to wait for an element with `find`. `timeout` sets how long to wait, 30 seconds by default.
+- [`httpRequest`](/docs/actions/httprequest) accepts `response.required`, a list of field paths that must exist in the response body, such as `user.name` or `items[0].id`.
+
+### Behavior changes
+
+- When a `screenshot`, `runShell`, or `runCode` result differs from the saved file by more than `maxVariation`, the step reports a `WARNING` instead of failing.
+- Element-finding steps keep checking for the element until it appears or the timeout ends, instead of failing on the first check.
+
+### Bug fixes
+
+- Fixed tests reporting `PASS` when all of their contexts were skipped.

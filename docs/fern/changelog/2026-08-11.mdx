@@ -1,0 +1,12 @@
+## v4.38.0
+
+### New features
+
+- Added the `junit` and `markdown` [reporters](/docs/ci/reporters-and-artifacts). Add them to `reporters` in your config.
+  - `junit` writes `junit.xml` for CI test summaries, such as GitLab, GitHub, Jenkins, and CircleCI. A `WARNING` result counts as a passing test case, with its details in the case's output.
+  - `markdown` writes `doc-detective-summary.md` for a CI job summary or a merge request comment.
+  - Both files go in the output directory, or beside `output` when it names a file.
+
+## v4.37.5
+
+Maintenance release; no user-facing changes.

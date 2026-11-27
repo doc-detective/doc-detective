@@ -1,0 +1,16 @@
+## v3.4.1
+
+### New features
+
+- You can pass a config as JSON in the `DOC_DETECTIVE_CONFIG` environment variable. Its values override your config file, and command-line flags override both.
+- Added the `integrations.docDetectiveApi.apiKey` config option. When you set it, Doc Detective sends your resolved tests to the Doc Detective Orchestration API to run instead of running them locally. See the [Doc Detective Orchestration API reference](/reference/schemas/doc-detective-orchestration-api).
+- When you set the `DOC_DETECTIVE_API` environment variable, the CLI fetches resolved tests from the API URL it names. The CLI runs those tests and reports the results back to that API.
+
+### Behavior changes
+
+- OpenAPI descriptions in your config's `integrations.openApi` are available to every context, alongside any that a spec or test defines.
+
+### Bug fixes
+
+- Fixed [`httpRequest`](/docs/actions/httprequest) steps passing when the response didn't include the expected headers. These steps now fail.
+- Fixed some `http://` and `https://` URLs in configs and specs still being resolved as file paths.

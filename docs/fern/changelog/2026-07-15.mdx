@@ -1,0 +1,17 @@
+## v4.30.0
+
+### New features
+
+- Added a Doc Detective language server. Run `doc-detective lsp --stdio`, or the `doc-detective-lsp` command, to get diagnostics, completion, and hover in your editor. It covers JSON and YAML specs and config files, and inline tests in your documentation files.
+
+## v4.29.1
+
+### Behavior changes
+
+- Doc Detective no longer prints the full results JSON at the default `info` log level, because reporters already show results. Set the log level to `debug` to see it.
+- Runs start faster. Browser detection checks for installed Appium drivers directly instead of running `appium driver list`.
+
+### Bug fixes
+
+- [`find`](/docs/actions/find) now matches `elementText` against an element's whole text. Previously, it matched only the first text node. Headings that frameworks split into several text nodes couldn't match.
+- Errors and warnings from expression and assertion evaluation now print. Previously, Doc Detective dropped these messages.

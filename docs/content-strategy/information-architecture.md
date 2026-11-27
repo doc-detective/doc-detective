@@ -68,7 +68,7 @@ Home — "What do you want to do?" router + 60-second proof
 │                                          Input formats · Schemas
 │
 ├─ Contribute (own tab)                 → C1
-└─ Support
+└─ Support                             → Changelog (all personas)
 ```
 
 Both surface sub-sections sit **inside** the one "Test your docs" track. A reader whose docs mix UI
@@ -87,7 +87,7 @@ Six header tabs keep the bar legible while honoring "AI as a pillar" and "Contri
 | **AI & Agents** | A1, A2 (pillar) |
 | **Reference** | the lookup shelf |
 | **Contribute** | C1 |
-| **Support** | Support · Resources · Legal |
+| **Support** | Support · Resources · Legal · Changelog |
 
 The surface split becomes **sub-sections within the "Test your docs" sidebar section**, not separate
 top-level sections. Those sub-sections are UI procedures, and CLI, code, and APIs. They are visual groupers. Page
@@ -116,7 +116,7 @@ slug.
 | Build with AI agents | `ai/` |
 | Reference | `reference/` |
 | Contribute | `contribute/` |
-| Support | `support.mdx`, `legal/` |
+| Support | `support.mdx`, `legal/`, plus `../changelog/` (Fern changelog folder) |
 
 ---
 
@@ -280,11 +280,15 @@ bundle and emits the field/type/default tables.
 Existing 18 pages (guides, content templates, repo guides) keep their content. They move to a
 dedicated tab so they don't sit inside the user-facing Documentation tab.
 
-### Support: `support.mdx`, `legal/`
+### Support: `support.mdx`, `legal/`, `../changelog/`
 
-Support · Resources · Legal / Privacy policy · Telemetry and data collection. The telemetry page
+Support · Resources · Legal / Privacy policy · Telemetry and data collection · Changelog. The telemetry page
 covers what anonymous telemetry Doc Detective collects and how to turn it off. It's a cross-cutting
 trust concern that serves all personas.
+
+| Page | CUJ | ★ | Notes |
+|---|---|---|---|
+| Changelog | All | | Authored: `/support/changelog`. Fern changelog in `docs/fern/changelog/`, not `pages/`: one `YYYY-MM-DD.mdx` file per release day, one `## vX.Y.Z` heading per release, from v3.0.0 on. Each entry is user-facing: new features, then behavior and breaking changes, then notable fixes. A release with no user-facing change gets "Maintenance release; no user-facing changes." Majors link their upgrade guide. Hand-written from the repo-root `CHANGELOG.md` (semantic-release output), which stays the commit-level record. Serves every persona deciding whether to upgrade. |
 
 ---
 

@@ -1,0 +1,36 @@
+## v4.35.0
+
+### New features
+
+- Added the [`annotate`](/docs/actions/annotate) action, which draws annotations on the page that stay up until you clear them. Use `add`, `update`, and `clear` to manage them by `id`. They survive navigation and appear in recordings and in any screenshot taken while they're up. On app surfaces, `annotate` skips; use screenshot annotations there instead.
+- [`screenshot`](/docs/actions/screenshot) steps accept `annotations`, which Doc Detective draws into the captured image. Each annotation has one type: `outline`, `arrow`, `badge`, `callout`, `blur`, or `text`. Annotations regenerate with the image, so callouts stay in step with the UI. See [Annotate screenshots](/docs/test-docs/annotate-screenshots).
+- A new hint fires when a browser renders a viewport larger than requested. It suggests the `android` or `ios` platform, where the device's screen sets the size. Context reports now record when a context-level `browser.viewport` request couldn't be met.
+
+## v4.34.0
+
+### New features
+
+- [`record`](/docs/actions/record) has a new `verify` object with checks on the produced video: `minDuration`, `maxDuration`, `resolution`, and `notBlack`. A failed check fails the `stopRecord` step, and the measured values appear in the step's outputs. See [recording verify guards](/reference/schemas/recording-verify-guards).
+
+## v4.33.0
+
+### New features
+
+- [`record`](/docs/actions/record) has a new `checkpoints` field. While a recording runs, each step captures a screenshot and compares it with a saved baseline beside the recording. The first run saves the baselines. Later runs report drift beyond `maxVariation` as a `WARNING` on [`stopRecord`](/docs/actions/stoprecord), never as a failure. See [recording checkpoints](/reference/schemas/recording-checkpoints-detailed).
+- `record` now accepts `overwrite: "aboveVariation"`. Doc Detective records to a staging file and replaces the saved recording and its baselines only when checkpoints drift or the steps changed. Otherwise, the existing recording stays untouched.
+- In headless runs, where recording isn't possible, checkpoints still compare against the saved baselines. When the recording looks stale, `stopRecord` reports a `WARNING` and a hint suggests rerunning headed.
+
+### Bug fixes
+
+- Two Doc Detective runs on the same machine no longer share browser recording files. Previously, concurrent runs with the same context ID could save each other's video and still pass.
+- [`screenshot`](/docs/actions/screenshot) paths now accept any characters, such as spaces, parentheses, and non-ASCII letters, as long as the path ends in `.png`. Previously, these paths failed validation unless they were absolute Windows paths.
+
+## v4.32.0
+
+### New features
+
+- [`stopRecord`](/docs/actions/stoprecord) now reports the recording in its outputs: `recordingPath`, `format`, and, when Doc Detective can read them, `duration`, `width`, `height`, and `fps`.
+
+### Bug fixes
+
+- The HTML report now attaches the saved video when a test uses the `stopRecord: null` form.

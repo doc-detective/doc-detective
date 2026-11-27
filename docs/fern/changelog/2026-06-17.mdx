@@ -1,0 +1,23 @@
+## v4.13.0
+
+### New features
+
+- Added the `autoRecord` [config](/reference/schemas/config) field and the `--auto-record` CLI flag, which record a video of every test context that runs in a browser. Specs and tests can set their own `autoRecord` to override the config. Videos use the `ffmpeg` engine and land at `recordings/<specId>/<testId>/<contextId>.mp4` in the run folder. See [Automatic recording](/docs/test-docs/automatic-recording).
+- A context can now have several recordings running at once. Give a [`record`](/docs/actions/record) step a `name`, then stop that recording with a [`stopRecord`](/docs/actions/stoprecord) step set to the name or to `{ "name": "..." }`. A `stopRecord` step set to `true` stops the most recent recording.
+
+### Behavior changes
+
+- A test that reuses the name of a recording that's still active is now skipped with a warning instead of failing partway through.
+- A second `browser` engine recording in the same context switches to the `ffmpeg` engine and records the viewport, with a warning.
+
+## v4.12.1
+
+### Bug fixes
+
+- Doc Detective no longer creates an empty run folder when nothing writes to it, such as when `autoScreenshot` is off and the `runFolder` reporter isn't selected.
+
+## v4.12.0
+
+### New features
+
+- The `debug` command's report adds install status, cache locations, proxy and npm network settings, config sources, and Appium driver registration. It opens with a list of findings and the commands that fix them. See [Setup issues](/docs/troubleshooting/setup-issues).

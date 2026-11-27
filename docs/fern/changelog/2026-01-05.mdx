@@ -1,0 +1,11 @@
+## v3.6.3
+
+### New features
+
+- Added a [Heretto](/docs/test-docs/heretto) integration. Configure an instance and a publishing scenario under `integrations.heretto`, then pass `heretto:<name>` as an input. Doc Detective builds the scenario and tests the content. See the [Heretto integration reference](/reference/schemas/heretto-cms-integration).
+- With `uploadOnChange` set to `true`, Doc Detective uploads changed screenshots back to Heretto after the run.
+
+### Bug fixes
+
+- Fixed [`checkLink`](/docs/actions/checklink) failures on sites that reject requests without browser-like headers. Requests now send a browser `User-Agent` and time out after 10 seconds. When a link returns an unexpected status code, the result names that code.
+- Fixed DITA map processing. Doc Detective now builds `.ditamap` inputs with the `dita` command and tests the generated files, unless you set `processDitaMaps` to `false`.

@@ -1,0 +1,6 @@
+## v4.40.6
+
+### Bug fixes
+
+- `doc-detective install android` now retries after a temporary `sdkmanager` failure. Previously, the process could exit with code `0` during the retry wait, without retrying.
+- `find` with `all: true` is faster when many elements match.

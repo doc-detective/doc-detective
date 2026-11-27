@@ -1,0 +1,10 @@
+## v5.4.0
+
+### New features
+
+- Doc Detective tests reStructuredText (`.rst`) files with no extra config. Inline statements are RST comments, such as `.. test {...}`, `.. step {...}`, and `.. test end`. With step detection on, links, bold text, images, and code blocks become steps, and nothing inside code, literals, or raw blocks does. `rst` is part of the default `fileTypes` list. See [input formats](/docs/test-docs/input-formats/overview).
+
+### Bug fixes
+
+- Fixed reStructuredText detection of escaped markup, quoted literal blocks, and inline literals that wrap across lines.
+- Fixed slow scanning of reStructuredText lines with long runs of whitespace.

@@ -1,0 +1,15 @@
+## v4.27.0
+
+### New features
+
+- [`runShell`](/docs/actions/runshell) has a new `shell` field that takes `bash`, `cmd`, or `powershell`. Set a project-wide default with the root-level `shell` field in your [config](/reference/schemas/config). A step's `shell` overrides the config default.
+- On Windows, `bash` runs through Git Bash. Doc Detective uses an existing Git for Windows install, or downloads a portable MinGit when none exists. To install it ahead of time, run `doc-detective install bash`. See [`install`](/reference/reference/cli/install).
+- [`runCode`](/docs/actions/runcode) steps with `language` set to `bash` now run on Windows. Previously, they failed there.
+
+### Behavior changes
+
+- `runShell` now runs commands in `bash` by default on every platform, so a spec behaves the same on macOS, Linux, and Windows. Previously, Windows used `cmd.exe` and other platforms used `/bin/sh`. If a Windows spec relies on `cmd` syntax, set `shell` to `cmd` on the step or in your config.
+
+### Bug fixes
+
+- `doc-detective install all` no longer stops when one browser or driver can't install on the host, such as Chrome on native ARM64 Linux. Doc Detective skips that asset, records why in the install report, and installs the rest.

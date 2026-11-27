@@ -1,0 +1,16 @@
+## v4.38.10
+
+Maintenance release; no user-facing changes.
+
+## v4.38.9
+
+### Bug fixes
+
+- Fixed concurrent Firefox sessions that failed with `Got unexpected session id` because two sessions picked the same `geckodriver` port.
+
+## v4.38.8
+
+### Behavior changes
+
+- The default install cache is now `~/.doc-detective` in your home directory. Previously, it was a `doc-detective` folder in the OS temporary directory. Doc Detective's cleanup after each run removed Android SDK, Java, and iOS downloads from there, and OS cleanup removed the rest on reboot.
+- If you set `cacheDir` to a temporary directory, the cleanup after each run now keeps every cache entry.

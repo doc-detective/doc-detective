@@ -1,0 +1,7 @@
+## v4.0.2
+
+### Bug fixes
+
+- Fixed running Doc Detective with `npx doc-detective`.
+- Fixed v2-format [`wait`](/docs/actions/wait) steps (`"action": "wait"`) failing to convert to the current step format. A v2 `wait` step without a `duration` now waits 5,000 milliseconds.
+- Step conversion errors now say that the step couldn't be converted.

@@ -1,0 +1,13 @@
+## v3.1.0
+
+### New features
+
+- Tests and steps accept an `unsafe` property that marks them as able to modify the system or environment. Doc Detective skips tests that are unsafe or contain unsafe steps unless you allow them. To allow them, set `allowUnsafeTests` to `true` in your config or pass the `--allow-unsafe` flag. They also run when the `DOC_DETECTIVE` environment variable sets `container` to `true`.
+- In Markdown, Doc Detective detects code blocks tagged `bash`, `python`, `py`, `javascript`, or `js` as [`runCode`](/docs/actions/runcode) steps and marks them unsafe. To keep a code block from being detected, add `testIgnore` to its opening fence line.
+- [`find`](/docs/actions/find) and [`click`](/docs/actions/click) output more details about the matched element for use in `variables` expressions. These are `text`, `html`, `tag`, `value`, `location`, `size`, `clickable`, `enabled`, `selected`, `displayed`, and `displayedInViewport`.
+- You can override config values with the `DOC_DETECTIVE` environment variable. Set it to a JSON object with a `config` property, and Doc Detective merges that object into your config.
+- A custom file type can set `extends` to the name of a built-in file type, such as `markdown`, and add to its definitions.
+
+### Behavior changes
+
+- When a step fails, Doc Detective skips the remaining steps in that context and reports them as `SKIPPED`.

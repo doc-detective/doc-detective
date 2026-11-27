@@ -1,0 +1,6 @@
+## v4.14.1
+
+### Bug fixes
+
+- Test-level `after` cleanup steps now run even when an earlier step fails, and a failing cleanup step no longer skips the cleanup steps after it.
+- With `concurrentRunners` greater than `1`, all `beforeAny` specs now finish before other tests start, and `afterAll` specs run only after every test finishes.
