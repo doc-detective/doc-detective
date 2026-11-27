@@ -2427,6 +2427,47 @@ export async function realizeViewport(
 }
 
 /**
+ * Keep a page at `viewport` (CSS px) while Chrome's tab-sharing bar shows on
+ * it. The bar appears once a capture starts and shortens the page by its
+ * height, so wait up to `waitMs` for the viewport to change, then resize the
+ * window until the page is `viewport` again. Returns the window size to
+ * restore when the capture stops, or undefined when nothing changed.
+ */
+export async function holdViewportUnderSharingBar(
+  driver: any,
+  viewport: { width: number; height: number } | undefined,
+  config: any = {},
+  waitMs = 1000
+): Promise<{ width: number; height: number } | undefined> {
+  if (!viewport || !(viewport.width > 0) || !(viewport.height > 0)) return undefined;
+  const deadline = Date.now() + waitMs;
+  let current = await readViewport(driver);
+  while (
+    current.width === viewport.width &&
+    current.height === viewport.height &&
+    Date.now() < deadline
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    current = await readViewport(driver);
+  }
+  if (!Number.isFinite(current.width) || !Number.isFinite(current.height)) return undefined;
+  if (current.width === viewport.width && current.height === viewport.height) return undefined;
+  const windowSize = await driver.getWindowSize();
+  // Debug for the generic mismatch line: the warning below names the cause.
+  const actual = await realizeViewport(driver, viewport, config, "record", "debug");
+  // A headed window the display can't grow still records, just short.
+  const short = Math.round(viewport.height - actual.height);
+  if (short > VIEWPORT_TOLERANCE_PX) {
+    await log(
+      config,
+      "warning",
+      `Couldn't make the window tall enough for Chrome's sharing bar, so the recording is about ${short} pixels shorter than the viewport. Run headless or use a smaller viewport.`
+    );
+  }
+  return { width: windowSize.width, height: windowSize.height };
+}
+
+/**
  * Viewport for a desktop browser session nobody sized. Without it the size is
  * whatever the engine and host pick (headless Chrome renders 758×426 on
  * Windows, headless Firefox 1366×683), which drifts between runner images.

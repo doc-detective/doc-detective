@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log, hasVariable, invalidStepMessage } from "../utils.js";
+import { log, hasVariable, invalidStepMessage, holdViewportUnderSharingBar } from "../utils.js";
 import { maskString } from "../masking.js";
 import { instantiateCursor } from "./moveTo.js";
 import {
@@ -451,10 +451,15 @@ async function beginRecording({
     // Tab capture defaults to 800x600, so ask for the viewport's size in device
     // pixels. Without an answer, getDisplayMedia picks its own size.
     const readViewport = () => ({
-      width: Math.round(window.innerWidth * window.devicePixelRatio),
-      height: Math.round(window.innerHeight * window.devicePixelRatio),
+      width: window.innerWidth,
+      height: window.innerHeight,
+      dpr: window.devicePixelRatio,
     });
-    const viewportSize = await driver.execute(readViewport).catch(() => undefined);
+    const viewport = await driver.execute(readViewport).catch(() => undefined);
+    const viewportSize = viewport && {
+      width: Math.round(viewport.width * viewport.dpr),
+      height: Math.round(viewport.height * viewport.dpr),
+    };
     // Set document title to the per-context capture title so the launch flag
     // --auto-select-desktop-capture-source (headed) or
     // --auto-select-tab-capture-source-by-title (headless) picks this tab.
@@ -575,9 +580,18 @@ async function beginRecording({
     await driver.execute((documentTitle: any) => {
       document.title = documentTitle;
     }, documentTitle);
+    // Chrome's sharing bar now shortens the page. Grow the window by its
+    // height, so the page and the video keep the viewport's size. stopRecord
+    // puts the window back.
+    const restoreWindow = await holdViewportUnderSharingBar(
+      driver,
+      viewport && { width: viewport.width, height: viewport.height },
+      config
+    ).catch(() => undefined);
     // Set recorder
     result.recording = {
       type: "MediaRecorder",
+      restoreWindow,
       tab: recorderTab.handle,
       downloadPath, // Where the recording will be downloaded.
       targetPath: filePath, // Where the recording will be saved.
