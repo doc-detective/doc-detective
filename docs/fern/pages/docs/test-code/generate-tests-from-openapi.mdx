@@ -241,9 +241,12 @@ Each step that resolved its operation, sent the request (or returned a mock), an
 
 ### The response fails schema validation unexpectedly
 
-**Cause:** `validateAgainstSchema` defaults to `both`, so a response that doesn't match the operation's schema fails the step. The check enforces [`format` keywords](https://ajv.js.org/packages/ajv-formats.html) too, so an `id` that isn't a UUID fails when the schema declares `format: uuid`. Earlier versions ignored `format`, so a step that passed before an upgrade can fail with a `format` error.
+**Cause:** `validateAgainstSchema` defaults to `both`, so a response that doesn't match the operation's schema fails the step. The check is stricter than in earlier versions in two ways, so a step that passed before an upgrade can fail:
 
-**Solution:** Fix the API or the description so the two agree. To check one step against a different shape, set [`httpRequest.response.schema`](/docs/actions/httprequest#check-types-formats-and-patterns) on that step. Doc Detective checks it instead of the operation's response schema. As a last resort, set `validateAgainstSchema` to `request` or `none`, which stops checking the response against the description.
+- It enforces [`format` keywords](https://ajv.js.org/packages/ajv-formats.html). An `id` that isn't a UUID fails when the schema declares `format: uuid`.
+- It doesn't count a schema `default` as a value the response has. A response that leaves out a `required` field fails, even when the schema gives that field a default.
+
+**Solution:** Fix the API or the description so the two agree. For a missing `required` field, have the API return it, or remove it from `required` if it's optional. To check one step against a different shape, set [`httpRequest.response.schema`](/docs/actions/httprequest#check-types-formats-and-patterns) on that step. Doc Detective checks it instead of the operation's response schema. As a last resort, set `validateAgainstSchema` to `request` or `none`, which stops checking the response against the description.
 
 ### The description fails to load with "a public document can't refer to…"
 
