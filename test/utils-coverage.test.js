@@ -364,7 +364,7 @@ describe("utils.ts coverage", function () {
         }
       });
 
-      // ADR 01233: tags, a Fixed list, and the closing sentence, only when compared.
+      // ADR 01244: tags, a Fixed list, and the closing sentence, only when compared.
       const comparedRun = () => {
         const results = mixed({
           comparison: { previous: { runId: "r0" }, summary: { new: 0, existing: 1, fixed: 1 } },

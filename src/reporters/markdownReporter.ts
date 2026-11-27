@@ -153,7 +153,7 @@ function buildMarkdown(results: any, outputFile?: string): string {
     return ["", `<details><summary>${heading} (${count})</summary>`, "", ...lines, "", "</details>"];
   };
   const failed = table("FAIL");
-  // What an earlier run failed and this one passed (ADR 01233). It's cut with the failures.
+  // What an earlier run failed and this one passed (ADR 01244). It's cut with the failures.
   const fixedList = fixedPaths(results);
   const fixed =
     fixedList.length > 0
