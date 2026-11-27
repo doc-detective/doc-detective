@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Give a slow page more time to load</title></head>
+<body>
+<!-- test {"testId":"nav-goto-timeout","detectSteps":true} -->
+<h1>Give a slow page more time to load</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/waitUntil-test-static.html">the static page</a>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/waitUntil-test-static.html","timeout":60000}} --></li>
+  <li>Check that the page shows <strong>Static Page</strong>.</li>
+</ol>
+<!-- test end -->
+</body>
+</html>

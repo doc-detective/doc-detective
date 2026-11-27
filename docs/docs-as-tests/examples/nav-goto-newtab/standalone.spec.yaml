@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: nav-goto-newtab
+    steps:
+      - goTo: http://localhost:8092/multi-tab.html
+      - goTo:
+          url: http://localhost:8092/multi-tab-child.html?page=docs
+          newTab: true
+      - find: PAGE docs

@@ -1,0 +1,13 @@
+= Type into a field by its selector
+
+// (test {"testId":"nav-type-selector","detectSteps":true})
+
+. Go to http://localhost:8092/type-echo.html[the type echo page].
++
+// (step {"goTo":"http://localhost:8092/type-echo.html"})
+. Type `Hello` into the *Type here:* field.
++
+// (step {"type":{"keys":"Hello","selector":"#type-input"}})
+. Check that the page shows *Hello* below the field.
+
+// (test end)

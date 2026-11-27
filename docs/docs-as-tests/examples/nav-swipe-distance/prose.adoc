@@ -1,0 +1,5 @@
+= Swipe most of the screen
+
+. Go to http://localhost:8092/enhanced-elements.html[the element test page].
+. Swipe up across most of the screen.
+. Check that *Submit by ID* is still on the page.

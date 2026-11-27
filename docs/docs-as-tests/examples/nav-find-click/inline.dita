@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-find-click">
+  <title>Find an element and click it</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-find-click","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/find-click.html" scope="external" format="html">the click counter page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/find-click.html"}'/></info></step>
+      <step><cmd>Find <b>Count clicks</b> and click it.</cmd>
+        <info><data name="doc-detective" value='step {"find":{"selector":"#counter","click":true}}'/></info></step>
+      <step><cmd>Check that the button counted one left click.</cmd>
+        <info><data name="doc-detective" value='step {"find":{"selector":"#counter","elementAttribute":{"data-left":"1"}}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

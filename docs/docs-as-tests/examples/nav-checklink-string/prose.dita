@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-checklink-string">
+  <title>Check a link</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Check that <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the element test page</xref> responds.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

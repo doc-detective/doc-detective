@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: nav-goto-waituntil-networkidle
+    steps:
+      - goTo:
+          url: http://localhost:8092/waitUntil-test-network.html
+          waitUntil:
+            networkIdleTime: 500
+      - find: Content loaded from API
