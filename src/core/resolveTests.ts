@@ -61,6 +61,7 @@ function expandMatrix({ staticContext, matrix, test, authoredOnTest }: { staticC
   }
   if (referenced.size === 0) return [fields];
   const expanding = keys.filter((key) => referenced.has(key));
+  // The first problem only, like every other matrix error: one message per test.
   const [pathProblem] = checkMatrixPaths(test.steps, matrix, expanding);
   if (pathProblem) throw new Error(pathProblem);
   const seen = new Map<string, any>();

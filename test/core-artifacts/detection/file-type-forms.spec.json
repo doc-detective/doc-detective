@@ -1,0 +1,51 @@
+{
+  "specId": "file-type-forms",
+  "description": "The string and Windows-path forms of a custom fileType, through the real CLI. Each test runs one case of dry-run-detect.cjs, which writes its files under .tmp/fixture-detection/ and checks the detected or run steps. No browser or network, so every case runs on Windows, macOS, and Linux.",
+  "tests": [
+    {
+      "testId": "string-extensions",
+      "description": "`extensions` as a string, without `extends`, matches by whole extension: `cjs` doesn't claim a `.js` file.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs string-extensions",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "runshell-path",
+      "description": "A runShell fileType's `$1` takes the file's absolute path, including a Windows path's backslashes, and the command runs.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs runshell-path",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "string-actions",
+      "description": "A markup definition's `actions` as a string detects one step.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs string-actions",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
