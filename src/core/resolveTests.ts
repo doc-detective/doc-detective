@@ -5,6 +5,7 @@
  */
 
 import crypto from "node:crypto";
+import path from "node:path";
 import { log, logLevelEnabled } from "./utils.js";
 import { generateSpecId, noteInvalidSpec } from "./detectTests.js";
 import { contentHash } from "../common/src/textUtils.js";
@@ -22,6 +23,22 @@ import {
   matrixIdSuffix,
   checkMatrixPaths,
 } from "../common/src/matrix.js";
+import { loadMatrixValues } from "../common/src/matrixFile.js";
+
+// A matrix with each `{ file }` key replaced by its values (ADR 01241). Each
+// file is read once per run; resolvePaths already made its path absolute.
+function loadMatrixFiles(matrix: any, config: any) {
+  if (!matrix) return matrix;
+  const cache: Map<string, unknown[]> = config._matrixFileCache || (config._matrixFileCache = new Map());
+  return Object.fromEntries(
+    Object.entries(matrix).map(([key, source]: [string, any]) => {
+      if (typeof source?.file !== "string") return [key, source];
+      const file = path.resolve(source.file);
+      if (!cache.has(file)) cache.set(file, loadMatrixValues(key, { file }, path.dirname(file)));
+      return [key, cache.get(file)];
+    })
+  );
+}
 
 // Detection tags `before`/`after` steps with non-enumerable markers the runner
 // reads (`_fromAfter` hard-routes cleanup). Substitution copies only
@@ -184,8 +201,9 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
       }
     });
     // A matrix is a third expansion axis (ADR 01240).
+    const matrix = loadMatrixFiles(context.matrix, config);
     const expandedContexts = staticContexts.flatMap((staticContext) =>
-      expandMatrix({ staticContext, matrix: context.matrix, test, authoredOnTest: Boolean(test.runOn) })
+      expandMatrix({ staticContext, matrix, test, authoredOnTest: Boolean(test.runOn) })
     );
     // For each static context, check if a matching object already exists in
     // resolvedContexts. `requires` participates in identity: two entries that
@@ -375,6 +393,9 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
     });
     resolvedTest.contexts.push(resolvedContext);
   }
+  // One sitemap can expand a test into hundreds of contexts, so say how many.
+  const fromMatrix = resolvedTest.contexts.filter((context: any) => context.matrix).length;
+  if (fromMatrix) log(config, "info", `${testId}: ${fromMatrix} contexts from matrix.`);
   if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED TEST ${testId}:\n${JSON.stringify(resolvedTest, null, 2)}`);
   return resolvedTest;
 }
@@ -446,6 +467,8 @@ async function resolveTests({ config, detectedTests }: { config: any; detectedTe
   // per resolveTests call so a config reused across runs never serves a stale
   // description.
   config._openApiDescriptionCache = new Map();
+  // Same for `matrix` files (ADR 01241).
+  config._matrixFileCache = new Map();
 
   log(config, "info", "Resolving test specs.");
   for (const spec of detectedTests) {

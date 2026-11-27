@@ -1535,6 +1535,23 @@ import { schemas } from "../dist/index.js";
         });
       }
 
+      it("accepts values from a file (ADR 01241)", function () {
+        expect(check({ matrix: { page: { file: "pages.json" }, url: { file: "sitemap.xml" } } }).valid).to.be.true;
+      });
+
+      it("rejects a file object with another key, or an empty path (ADR 01241)", function () {
+        expect(check({ matrix: { page: { file: "pages.json", url: "x" } } }).valid).to.be.false;
+        expect(check({ matrix: { page: { file: "" } } }).valid).to.be.false;
+      });
+
+      it("accepts a goTo URL that starts with a matrix reference (ADR 01241)", function () {
+        for (const goTo of ["$$matrix.url", { url: "$$matrix.url" }]) {
+          const result = validate({ schemaKey: "step_v3", object: { goTo } });
+          expect(result.valid, result.errors).to.be.true;
+        }
+        expect(validate({ schemaKey: "step_v3", object: { goTo: "$$matrix" } }).valid).to.be.false;
+      });
+
       it("still rejects a bad emulation value that isn't a reference", function () {
         expect(check({ browsers: { name: "chrome", colorScheme: "$$matrix" } }).valid).to.be.false;
       });
@@ -1847,7 +1864,7 @@ import { schemas } from "../dist/index.js";
           for (const object of [{ goTo: url }, { checkLink: { url } }, { httpRequest: url }, { httpRequest: { url } }]) {
             const result = step(object);
             expect(result.valid, `expected invalid: ${JSON.stringify(object)}`).to.be.false;
-            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)"');
+            expect(result.errors).to.include('must match pattern "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)"');
           }
         }
       });

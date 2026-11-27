@@ -337,13 +337,42 @@ This test runs four times, once for each locale with each variant.
 
 Each `matrix` key is letters, digits, and `_`. Its value is a list of unique items: either all strings, numbers, or booleans, or all objects whose values are strings, numbers, or booleans. An object value keeps related settings together, such as a theme and its pixel density.
 
+### Values from a file
+
+A key can read its list from a file instead, so a page list or sitemap your site already has drives the test:
+
+```json
+{
+  "matrix": {
+    "page": { "file": "pages.json" },
+    "url": { "file": "public/sitemap.xml" }
+  }
+}
+```
+
+- A `.json` file holds an array, under the same rules as a list in the spec.
+- An `.xml` file is a sitemap. Each `<loc>` entry is one value.
+- A relative path resolves against the spec or config file that declares the `runOn`, or against the working directory with `relativePathBase: "cwd"`.
+- Doc Detective reads each file once, before any test runs. For each test a `matrix` expands, the log says how many contexts it made, such as `login: 12 contexts from matrix.`
+
+A file that doesn't load stops the run, and the CLI exits `2`:
+
+```text
+tests[0]: Couldn't read `matrix` file `/docs/pages.json`.
+tests[0]: Couldn't load `matrix` key `page`: `/docs/pages.json` isn't a JSON array.
+tests[0]: Couldn't load `matrix` key `page`: `/docs/pages.json` has no values.
+tests[0]: Couldn't load `matrix` key `page`: `/docs/pages.json` has values `matrix` doesn't accept.
+tests[0]: Couldn't load `matrix` key `url`: `/docs/public/sitemap.xml` has no `<loc>` entries.
+tests[0]: Couldn't load `matrix` key `page`: `/docs/pages.txt` must be `.json` or `.xml`.
+```
+
 ### References
 
 - `$$matrix.<key>` is the key's value. `$$matrix.<key>.<field>` is one field of an object value.
 - A whole-string reference becomes the value, with its type. In the example, `deviceScaleFactor` gets the number `2`.
 - Doc Detective splices a reference inside a longer string in as text. An object value without a field splices in its values joined with `-`, such as `dark-2`.
 - A reference ends at the first character that isn't a letter, digit, `_`, or `.`. After a string, number, or boolean value, a `.` starts plain text again, so `$$matrix.locale.png` is the locale followed by `.png`. After an object value, a `.` names a field.
-- References work in the context's own fields and in every step, including the steps a `before` or `after` file adds. The `before` and `after` paths themselves, and a test's own `if` and `description`, take no references. The page emulation keys on a browser take a reference in place of a value.
+- References work in the context's own fields and in every step, including the steps a `before` or `after` file adds. The `before` and `after` paths themselves, and a test's own `if` and `description`, take no references. The page emulation keys on a browser, and a `goTo` URL, take a reference in place of a value.
 - Doc Detective substitutes each combination's values into that context's copy of the steps. Combinations never see each other's values, even when they run at the same time.
 
 ### Which tests a `matrix` multiplies

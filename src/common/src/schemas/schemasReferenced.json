@@ -3216,7 +3216,7 @@
         "schemas": {
           "url": {
             "type": "string",
-            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
             "transform": [
               "trim"
             ]
@@ -3836,6 +3836,19 @@
       },
       "additionalProperties": {
         "anyOf": [
+          {
+            "type": "object",
+            "required": [
+              "file"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "file": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
           {
             "type": "array",
             "minItems": 1,
@@ -12216,7 +12229,7 @@
         "schemas": {
           "url": {
             "type": "string",
-            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
             "transform": [
               "trim"
             ]
@@ -12828,6 +12841,19 @@
       },
       "additionalProperties": {
         "anyOf": [
+          {
+            "type": "object",
+            "required": [
+              "file"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "file": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
           {
             "type": "array",
             "minItems": 1,

@@ -769,7 +769,7 @@ export type CheckLink1 = CheckLinkSimple | CheckLinkDetailed;
  */
 export type CheckLinkSimple = string;
 /**
- * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.
  */
 export type TargetURL = string;
 /**
@@ -1878,7 +1878,7 @@ export type StepRouting19 = (
 export type Condition34 = string | [string, ...string[]];
 export type GoTo1 = GoToURLSimple | GoToURLDetailed;
 /**
- * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
+ * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable or a `$$matrix.<key>` reference. A path is joined to `origin` from the config.
  */
 export type GoToURLSimple = string;
 /**
@@ -2038,7 +2038,7 @@ export type ByIndex10 = number;
  */
 export type ByName10 = string;
 /**
- * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.
  */
 export type TargetURL1 = string;
 /**
@@ -2281,7 +2281,7 @@ export type HTTPRequestDetailed = (
   overwrite?: "true" | "false" | "aboveVariation";
 };
 /**
- * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.
  */
 export type TargetURL2 = string;
 /**
@@ -8559,7 +8559,7 @@ export type CheckLink3 = CheckLinkSimple1 | CheckLinkDetailed1;
  */
 export type CheckLinkSimple1 = string;
 /**
- * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.
  */
 export type TargetURL3 = string;
 /**
@@ -9419,7 +9419,7 @@ export type StepRouting119 = {
 export type Condition184 = string | [string, ...string[]];
 export type GoTo3 = GoToURLSimple1 | GoToURLDetailed1;
 /**
- * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
+ * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable or a `$$matrix.<key>` reference. A path is joined to `origin` from the config.
  */
 export type GoToURLSimple1 = string;
 /**
@@ -9556,7 +9556,7 @@ export type ByIndex46 = number;
  */
 export type ByName46 = string;
 /**
- * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.
  */
 export type TargetURL4 = string;
 /**
@@ -9745,7 +9745,7 @@ export type HTTPRequestDetailed1 = {
   overwrite?: "true" | "false" | "aboveVariation";
 };
 /**
- * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.
  */
 export type TargetURL5 = string;
 /**
@@ -14611,9 +14611,10 @@ export interface BrowserViewport1 {
  */
 export interface Matrix {
   /**
-   * The values for this key: a non-empty list of unique items, either all scalars (string, number, or boolean) or all objects whose values are scalars.
+   * The values for this key: a non-empty list of unique items, either all scalars (string, number, or boolean) or all objects whose values are scalars. Or `{ "file": "<path>" }` to read the list from a file.
    */
   [k: string]:
+    | ValuesFromAFile
     | [string | number | boolean, ...(string | number | boolean)[]]
     | [
         {
@@ -14623,6 +14624,12 @@ export interface Matrix {
           [k: string]: string | number | boolean;
         }[],
       ];
+}
+export interface ValuesFromAFile {
+  /**
+   * Path of a `.json` file that holds the list, or of an `.xml` sitemap whose `<loc>` entries are the values. A relative path resolves against the file that declares this `runOn`, or the working directory with `relativePathBase: "cwd"`. Doc Detective reads it before any test runs.
+   */
+  file: string;
 }
 export interface Requirements {
   /**
