@@ -363,6 +363,58 @@
       "page": "/reference/docs-as-tests/capture#point-out-the-controls-on-a-toolbar"
     }
   ],
+  "checkFile.content": [
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    }
+  ],
+  "checkFile.download": [
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    }
+  ],
+  "checkFile.path": [
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    }
+  ],
+  "checkFile.timeout": [
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    }
+  ],
   "checkLink.headers (object)": [
     {
       "example": "nav-checklink-headers-object",
@@ -5759,6 +5811,10 @@
   ],
   "context.browsers (array)": [
     {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
       "example": "http-mock-body-array",
       "page": "/reference/docs-as-tests/http-code#responsebody-as-an-array"
     },
@@ -6099,6 +6155,10 @@
       "page": "/reference/docs-as-tests/capture#check-pages-for-visual-changes"
     },
     {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
       "example": "http-mock-body-array",
       "page": "/reference/docs-as-tests/http-code#responsebody-as-an-array"
     },
@@ -6311,6 +6371,10 @@
       "page": "/reference/docs-as-tests/capture#check-pages-for-visual-changes"
     },
     {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
       "example": "http-mock-body-array",
       "page": "/reference/docs-as-tests/http-code#responsebody-as-an-array"
     },
@@ -6489,6 +6553,10 @@
   ],
   "context.browsers[] (object)": [
     {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
       "example": "http-mock-body-array",
       "page": "/reference/docs-as-tests/http-code#responsebody-as-an-array"
     },
@@ -6633,6 +6701,10 @@
     {
       "example": "data-route-test-onpass-stop-spec",
       "page": "/reference/docs-as-tests/data-control-flow#onpass-stop-spec"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
     },
     {
       "example": "http-mock-body-array",
@@ -7613,6 +7685,34 @@
     {
       "example": "http-api",
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
+    },
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
     },
     {
       "example": "http-code-background",
@@ -10765,6 +10865,34 @@
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
     },
     {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
+    {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
     },
@@ -12493,6 +12621,34 @@
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
     },
     {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
+    {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
     },
@@ -14109,6 +14265,34 @@
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
     },
     {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
+    {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
     },
@@ -15649,6 +15833,34 @@
     {
       "example": "http-api",
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
+    },
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
     },
     {
       "example": "http-code-background",
@@ -17267,6 +17479,34 @@
     {
       "example": "http-api",
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
+    },
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
     },
     {
       "example": "http-code-background",
@@ -18993,6 +19233,34 @@
     {
       "example": "http-api",
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
+    },
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
     },
     {
       "example": "http-code-background",
@@ -20875,6 +21143,34 @@
     {
       "example": "http-api",
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
+    },
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
     },
     {
       "example": "http-code-background",
@@ -25187,6 +25483,10 @@
   ],
   "runShell.background": [
     {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
+    {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
     },
@@ -25224,6 +25524,10 @@
     }
   ],
   "runShell.background.name": [
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
     {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
@@ -25396,6 +25700,30 @@
     }
   ],
   "runShell.command": [
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
     {
       "example": "http-code-unsafe-blocked",
       "page": "/reference/docs-as-tests/http-code#allowunsafesteps-false"
@@ -25594,6 +25922,30 @@
     }
   ],
   "runShell.workingDirectory": [
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
     {
       "example": "http-run-shell",
       "page": "/reference/docs-as-tests/http-code#run-shell-commands"
@@ -28453,6 +28805,34 @@
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
     },
     {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
+    {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
     },
@@ -29681,6 +30061,42 @@
       "page": "/reference/docs-as-tests/data-control-flow#wait-for-a-service-then-echo-text-through-it"
     }
   ],
+  "step.checkFile (object)": [
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    }
+  ],
+  "step.checkFile (string)": [
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    }
+  ],
   "step.checkLink (object)": [
     {
       "example": "nav-checklink-headers-object",
@@ -30803,6 +31219,10 @@
     {
       "example": "formats-markdown",
       "page": "/reference/docs-as-tests/formats#echo-text-in-md-and-mdx-files"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
     },
     {
       "example": "nav-click-button-left",
@@ -32203,6 +32623,10 @@
       "page": "/reference/docs-as-tests/formats#echo-text-in-md-and-mdx-files"
     },
     {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
       "example": "http-mock-body-array",
       "page": "/reference/docs-as-tests/http-code#responsebody-as-an-array"
     },
@@ -33516,6 +33940,30 @@
     }
   ],
   "step.runShell (object)": [
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
     {
       "example": "http-code-unsafe-blocked",
       "page": "/reference/docs-as-tests/http-code#allowunsafesteps-false"
@@ -35927,6 +36375,34 @@
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
     },
     {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
+    },
+    {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
     },
@@ -37061,6 +37537,10 @@
       "page": "/reference/docs-as-tests/data-control-flow#onpass-stop-spec"
     },
     {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
       "example": "http-mock-body-array",
       "page": "/reference/docs-as-tests/http-code#responsebody-as-an-array"
     },
@@ -38105,6 +38585,34 @@
     {
       "example": "http-api",
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
+    },
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
     },
     {
       "example": "http-code-background",
@@ -39831,6 +40339,34 @@
     {
       "example": "http-api",
       "page": "/reference/docs-as-tests/http-code#create-and-list-users-with-an-api"
+    },
+    {
+      "example": "http-checkfile",
+      "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
+    },
+    {
+      "example": "http-checkfile-content-regex",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-regular-expression"
+    },
+    {
+      "example": "http-checkfile-content-string",
+      "page": "/reference/docs-as-tests/http-code#content-as-a-string"
+    },
+    {
+      "example": "http-checkfile-download",
+      "page": "/reference/docs-as-tests/http-code#download"
+    },
+    {
+      "example": "http-checkfile-path",
+      "page": "/reference/docs-as-tests/http-code#path-as-a-glob"
+    },
+    {
+      "example": "http-checkfile-string",
+      "page": "/reference/docs-as-tests/http-code#checkfile-as-a-string"
+    },
+    {
+      "example": "http-checkfile-timeout",
+      "page": "/reference/docs-as-tests/http-code#timeout-15000"
     },
     {
       "example": "http-code-background",
