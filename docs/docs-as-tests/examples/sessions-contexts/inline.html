@@ -14,7 +14,7 @@
   <li>Check that the page's language is <code>de-DE</code> and its time zone is <code>Europe/Berlin</code>.
     <!-- step {"runBrowserScript":{"script":"return navigator.language;","output":"de-DE"}} -->
     <!-- step {"runBrowserScript":{"script":"return Intl.DateTimeFormat().resolvedOptions().timeZone;","output":"Europe/Berlin"}} --></li>
-  <li>Check that the device pixel ratio is <code>2</code>, and that the clock reads 3 December 2026, 09:00 UTC.
+  <li>Check that the device pixel ratio is <code>2</code>, and that the clock reads December 3, 2026, 09:00 UTC.
     <!-- step {"runBrowserScript":{"script":"return String(devicePixelRatio);","output":"2"}} -->
     <!-- step {"runBrowserScript":{"script":"return new Date().toISOString();","output":"/^2026-12-03T09:00/"}} --></li>
 </ol>

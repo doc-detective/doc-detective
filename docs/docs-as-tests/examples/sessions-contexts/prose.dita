@@ -8,7 +8,7 @@
       <step><cmd>Start at <xref href="http://localhost:8092/index.html" scope="external" format="html">the test site's home page</xref>.</cmd></step>
       <step><cmd>Check that the page prefers the dark color scheme and reduced motion.</cmd></step>
       <step><cmd>Check that the page's language is <codeph>de-DE</codeph> and its time zone is <codeph>Europe/Berlin</codeph>.</cmd></step>
-      <step><cmd>Check that the device pixel ratio is <codeph>2</codeph>, and that the clock reads 3 December 2026, 09:00 UTC.</cmd></step>
+      <step><cmd>Check that the device pixel ratio is <codeph>2</codeph>, and that the clock reads December 3, 2026, 09:00 UTC.</cmd></step>
     </steps>
   </taskbody>
 </task>

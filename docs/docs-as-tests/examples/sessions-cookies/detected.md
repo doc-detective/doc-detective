@@ -4,7 +4,7 @@
 
 1. Sign in at [the sign-in page](http://localhost:8092/cookies/set/sessions_demo/signed-in). The server sets the `sessions_demo` cookie.
    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_demo/signed-in"} -->
-2. Save the `sessions_demo` cookie four ways: to the `sessions_demo` and `SESSIONS_DEMO_COOKIE` environment variables, to `sessions_demo.txt` in the output folder, and to `sessions_demo.txt` in a `tmp` folder next to this file, keeping only the `localhost` cookie.
+2. Save the `sessions_demo` cookie four ways. Save it to the `sessions_demo` and `SESSIONS_DEMO_COOKIE` environment variables, and to `sessions_demo.txt` in the output folder. Save it to `sessions_demo.txt` in a `tmp` folder next to this file, keeping only the `localhost` cookie.
    <!-- step {"saveCookie":"sessions_demo"} -->
    <!-- step {"saveCookie":{"name":"sessions_demo","variable":"SESSIONS_DEMO_COOKIE"}} -->
    <!-- step {"saveCookie":{"name":"sessions_demo","path":"sessions_demo.txt","overwrite":true}} -->

@@ -21,7 +21,7 @@ Run these steps in headless Chrome set to dark mode, German, Berlin time, a 2x d
 
    .. step {"runBrowserScript":{"script":"return Intl.DateTimeFormat().resolvedOptions().timeZone;","output":"Europe/Berlin"}}
 
-#. Check that the device pixel ratio is ``2``, and that the clock reads 3 December 2026, 09:00 UTC.
+#. Check that the device pixel ratio is ``2``, and that the clock reads December 3, 2026, 09:00 UTC.
 
    .. step {"runBrowserScript":{"script":"return String(devicePixelRatio);","output":"2"}}
 

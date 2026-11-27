@@ -9,7 +9,7 @@ INCLUDE prerequisites.txt
 
 IGNORE START
 To remove a user later, send a request like this one. Don't run it against
-data you want to keep:
+data you want to keep.
    Send a DELETE request to http://localhost:8092/api/users/1 with the body {"confirm":true}.
 IGNORE END
 

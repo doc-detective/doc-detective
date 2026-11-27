@@ -3,7 +3,7 @@ Keep a session cookie
 
 #. Sign in at `the sign-in page <http://localhost:8092/cookies/set/sessions_demo/signed-in>`__. The server sets the ``sessions_demo`` cookie.
 
-#. Save the ``sessions_demo`` cookie four ways: to the ``sessions_demo`` and ``SESSIONS_DEMO_COOKIE`` environment variables, to ``sessions_demo.txt`` in the output folder, and to ``sessions_demo.txt`` in a ``tmp`` folder next to this file, keeping only the ``localhost`` cookie.
+#. Save the ``sessions_demo`` cookie four ways. Save it to the ``sessions_demo`` and ``SESSIONS_DEMO_COOKIE`` environment variables, and to ``sessions_demo.txt`` in the output folder. Save it to ``sessions_demo.txt`` in a ``tmp`` folder next to this file, keeping only the ``localhost`` cookie.
 
 #. Go to `the sign-out page <http://localhost:8092/cookies/set/sessions_demo/signed-out>`__, which replaces the cookie.
 
