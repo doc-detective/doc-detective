@@ -1,6 +1,6 @@
 {
   "specId": "reporters",
-  "description": "End-to-end coverage of the `junit` and `markdown` reporters through the real CLI. A reporter only runs after every spec in its own run finishes, so a spec can never observe its own reporter output — each test seeds a tiny inner spec, spawns a nested `doc-detective` run with both reporters selected, and asserts on the files it wrote. Everything is `node -e` shell work, so no browser or device is needed and every permutation runs on Windows, macOS and Linux. Scratch output goes to `.tmp/` at the repo root, never inside `test/core-artifacts/`: a stray `.doc-detective/` breaks the fixture-bundle coverage test, and `.xml`/`.md` leftovers would be detected as documentation on later runs.",
+  "description": "End-to-end coverage of the `junit`, `markdown`, and `cucumber` reporters through the real CLI. A reporter only runs after every spec in its own run finishes, so a spec can never observe its own reporter output — each test seeds a tiny inner spec, spawns a nested `doc-detective` run with both reporters selected, and asserts on the files it wrote. Everything is `node -e` shell work, so no browser or device is needed and every permutation runs on Windows, macOS and Linux. Scratch output goes to `.tmp/` at the repo root, never inside `test/core-artifacts/`: a stray `.doc-detective/` breaks the fixture-bundle coverage test, and `.xml`/`.md` leftovers would be detected as documentation on later runs.",
   "tests": [
     {
       "testId": "reporters-passing-run",

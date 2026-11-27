@@ -59,11 +59,6 @@ function buildCucumberJson(results: any): any[] {
           if (shot) out.embeddings = [{ mime_type: "image/png", data: fs.readFileSync(shot).toString("base64") }];
           return out;
         });
-        const recording = existingFile(context.autoRecording?.recordingPath, runDir);
-        if (recording && steps.length > 0) {
-          const last = steps[steps.length - 1];
-          last.embeddings = [...(last.embeddings ?? []), { mime_type: "text/plain", data: Buffer.from(recording).toString("base64") }];
-        }
         // A context can fail after every step passed, as when its recording fails.
         if (context.result === "FAIL" && !steps.some((step) => step.result.status === "failed")) {
           steps.push({
@@ -75,6 +70,12 @@ function buildCucumberJson(results: any): any[] {
               error_message: context.autoRecording?.resultDescription || context.resultDescription || "",
             },
           });
+        }
+        // After the context step, so a failed recording sits on the failed step.
+        const recording = existingFile(context.autoRecording?.recordingPath, runDir);
+        if (recording && steps.length > 0) {
+          const last = steps[steps.length - 1];
+          last.embeddings = [...(last.embeddings ?? []), { mime_type: "text/plain", data: Buffer.from(recording).toString("base64") }];
         }
         elements.push({
           type: "scenario",

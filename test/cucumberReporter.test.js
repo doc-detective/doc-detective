@@ -218,6 +218,26 @@ describe("cucumber reporter", function () {
         specs: [{ specId: "s", tests: [{ testId: "t", contexts: [{ result: "PASS", steps: [{ stepId: "x", result: "PASS", outputs: { screenshotPath: "secret.txt" } }] }] }] }],
       };
       assert.equal(buildCucumberJson(report)[0].elements[0].steps[0].embeddings, undefined);
+      fs.writeFileSync(path.join(dir, "shot.png"), "png");
+      report.specs[0].tests[0].contexts[0].steps[0].outputs.screenshotPath = "shot.png";
+      assert.deepEqual(buildCucumberJson(report)[0].elements[0].steps[0].embeddings, [
+        { mime_type: "image/png", data: Buffer.from("png").toString("base64") },
+      ]);
+      fs.rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("embeds a failed context's recording on its failed context step", function () {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-cucumber-"));
+      fs.writeFileSync(path.join(dir, "run.mp4"), "partial");
+      const context = {
+        result: "FAIL",
+        autoRecording: { result: "FAIL", recordingPath: "run.mp4", resultDescription: "Couldn't finish the recording." },
+        steps: [{ stepId: "s", wait: 100, result: "PASS" }],
+      };
+      const steps = buildCucumberJson({ runDir: dir, specs: [{ specId: "s", tests: [{ testId: "t", contexts: [context] }] }] })[0].elements[0].steps;
+      assert.equal(steps[0].embeddings, undefined);
+      assert.equal(steps[1].name, "context");
+      assert.equal(steps[1].embeddings[0].mime_type, "text/plain");
       fs.rmSync(dir, { recursive: true, force: true });
     });
   });
