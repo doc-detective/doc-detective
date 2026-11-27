@@ -1,4 +1,4 @@
-// Run comparison and `failOn` permutations (ADRs 01233 and 01234), run by compare-runs.spec.json in
+// Run comparison and `failOn` permutations (ADRs 01244 and 01245), run by compare-runs.spec.json in
 // this directory.
 //
 //   node test/core-artifacts/cli/compare-runs.cjs <case>
@@ -90,7 +90,7 @@ const cases = {
   "usage-blank": [usage(["--compare-to", ""], "`--compare-to` needs a path or `previous`.")],
   "usage-both": [usage(["--compare-to", "x", "--no-compare-to"], "set `--compare-to` or `--no-compare-to`, not both.")],
   "usage-dry-run": [usage(["--dry-run", "--compare-to", "x"], "set `--dry-run` or `--compare-to`, not both.")],
-  // `failOn: new` (ADR 01234).
+  // `failOn: new` (ADR 01245).
   "fail-on-existing": [
     run(FAIL, [], { exit: 1 }),
     run(FAIL, ["--fail-on", "new"], {
