@@ -238,37 +238,151 @@ function canonicalKey(root, p, rootFields = {}) {
  * collapsed fields per schema.
  */
 function findGaps(fieldsByRoot, usage, canon = () => null) {
-  const units = new Map();
+  const { units, shared } = buildUnits(fieldsByRoot, canon);
+  let total = 0;
+  let covered = 0;
+  const gaps = {};
+  for (const unit of units) {
+    const used = usedForms(unit, usage);
+    const where = unit.shared ? ` — in ${unit.roots.join(", ")}` : "";
+    for (const form of unit.forms) {
+      total++;
+      if (form ? used.has(form) : used.size) covered++;
+      else (gaps[unit.group] ||= []).push(`${form ? `${unit.label} (${form})` : unit.label}${where}`);
+    }
+  }
+  return { total, covered, gaps, shared };
+}
+
+/**
+ * Groups fields into counting units: one per field, or one per shared key
+ * that `canon` collapses fields onto. Each unit has its report `group` and
+ * `label`, the `members` (`<schema>:<path>`) it covers, and its `forms`
+ * (`[null]` when it takes one type). `shared` counts collapsed fields per schema.
+ */
+function buildUnits(fieldsByRoot, canon = () => null) {
+  const byId = new Map();
   const shared = {};
   for (const [root, fields] of Object.entries(fieldsByRoot)) {
     for (const [p, types] of Object.entries(fields)) {
       const key = canon(root, p);
       if (key) shared[root] = (shared[root] || 0) + 1;
       const id = key || `${root}:${p}`;
-      if (!units.has(id)) units.set(id, { key, root, p, types: new Set(), used: new Set(), roots: new Set() });
-      const unit = units.get(id);
+      if (!byId.has(id)) {
+        const [group, label] = key ? [`shared:${key.split(":")[0]}`, key.slice(key.indexOf(":") + 1)] : [root, p];
+        byId.set(id, { group, label, shared: Boolean(key), types: new Set(), roots: new Set(), members: [] });
+      }
+      const unit = byId.get(id);
       for (const t of types) unit.types.add(t);
-      for (const t of usage[`${root}:${p}`] || []) unit.used.add(t);
       unit.roots.add(root);
+      unit.members.push(`${root}:${p}`);
     }
   }
-  let total = 0;
-  let covered = 0;
-  const gaps = {};
-  for (const unit of units.values()) {
-    const types = [...unit.types].sort();
-    const forms = types.length > 1 ? types : [null];
-    const [group, label] = unit.key
-      ? [`shared:${unit.key.split(":")[0]}`, unit.key.slice(unit.key.indexOf(":") + 1)]
-      : [unit.root, unit.p];
-    const where = unit.key ? ` — in ${[...unit.roots].sort().join(", ")}` : "";
-    for (const form of forms) {
-      total++;
-      if (form ? unit.used.has(form) : unit.used.size) covered++;
-      else (gaps[group] ||= []).push(`${form ? `${label} (${form})` : label}${where}`);
+  const units = [...byId.values()].map((u) => {
+    const types = [...u.types].sort();
+    return { ...u, roots: [...u.roots].sort(), forms: types.length > 1 ? types : [null] };
+  });
+  return { units, shared };
+}
+
+const usedForms = (unit, usage) => new Set(unit.members.flatMap((m) => usage[m] || []));
+
+const PAGE_BASE = "/reference/docs-as-tests";
+
+/** Slugs a heading the way the docs site anchors it. */
+function slugify(heading) {
+  return heading
+    .toLowerCase()
+    .replace(/[^a-z0-9 -]/g, "")
+    .trim()
+    .replace(/ +/g, "-");
+}
+
+/**
+ * Maps each example ID to the page section that includes its
+ * `examples/<id>/_variants.mdx`: `pages` is [{ slug, text }], and the anchor
+ * is the nearest H2 or H3 above the include.
+ */
+function mapExamplesToPages(pages) {
+  const map = {};
+  for (const { slug, text } of pages) {
+    let anchor = "";
+    for (const line of text.split(/\r?\n/)) {
+      const heading = /^#{2,3} (.+)$/.exec(line);
+      if (heading) anchor = slugify(heading[1]);
+      const include = /examples\/([^/]+)\/_variants\.mdx/.exec(line);
+      if (include && !map[include[1]]) map[include[1]] = `${PAGE_BASE}/${slug}${anchor ? `#${anchor}` : ""}`;
     }
   }
-  return { total, covered, gaps, shared };
+  return map;
+}
+
+/**
+ * Builds the examples-by-feature index: `<group>.<field> (<form>)` → the
+ * examples that use that field in that form, as [{ example, page }] sorted
+ * by example. `usageByExample` holds each example's usage, `pages` maps
+ * example to page section, and `extra` adds keys found another way, such as
+ * feature needles.
+ */
+function buildIndex(fieldsByRoot, usageByExample, canon, pages, extra = {}) {
+  const entry = (example) => ({ example, page: pages[example] || null });
+  const index = {};
+  const examples = Object.keys(usageByExample).sort();
+  for (const unit of buildUnits(fieldsByRoot, canon).units) {
+    for (const form of unit.forms) {
+      const users = examples.filter((ex) => {
+        const used = usedForms(unit, usageByExample[ex]);
+        return form ? used.has(form) : used.size > 0;
+      });
+      if (users.length) index[`${unit.group}.${form ? `${unit.label} (${form})` : unit.label}`] = users.map(entry);
+    }
+  }
+  for (const [key, users] of Object.entries(extra)) if (users.length) index[key] = [...users].sort().map(entry);
+  return index;
+}
+
+const sortedKeys = (index) => Object.keys(index).sort((a, b) => a.localeCompare(b, "en"));
+
+function renderIndexJson(index) {
+  return JSON.stringify(Object.fromEntries(sortedKeys(index).map((k) => [k, index[k]])), null, 2) + "\n";
+}
+
+function renderIndexMdx(index) {
+  const groups = new Map();
+  for (const key of sortedKeys(index)) {
+    const dot = key.indexOf(".");
+    const group = key.slice(0, dot);
+    if (!groups.has(group)) groups.set(group, []);
+    groups.get(group).push([key.slice(dot + 1), index[key]]);
+  }
+  const lines = [
+    "---",
+    "title: Examples by feature",
+    "sidebar-title: Examples by feature",
+    "description: Every field and form the docs-as-tests examples use, with links to the examples that use it.",
+    "---",
+    "",
+    "{/* Generated by `npm run docs:coverage-docs-as-tests -- --write-index`. Don't edit by hand. */}",
+    "",
+    "Look up a field or form to find each example that uses it.",
+    "Groups follow the schemas.",
+    "A `shared:` group holds a key that many actions share, such as an element locator.",
+    "The `features` group holds statement forms and other patterns, listed in `docs/.scripts/docs-as-tests-features.yaml`.",
+    "",
+    // The tables are long lists of example IDs, which the prose linter reads as run-on sentences.
+    "{/* vale off */}",
+    "",
+  ];
+  for (const [group, rows] of groups) {
+    lines.push(`## \`${group}\``, "", "| Field | Examples |", "|---|---|");
+    for (const [field, users] of rows) {
+      const links = users.map((u) => (u.page ? `[${u.example}](${u.page})` : u.example)).join(", ");
+      lines.push(`| \`${field}\` | ${links} |`);
+    }
+    lines.push("");
+  }
+  lines.push("{/* vale on */}", "");
+  return lines.join("\n");
 }
 
 /**
@@ -339,11 +453,14 @@ const RESOLVER_TEST_KEYS = ["contexts", "runOn", "openApi", "contentPath", "loca
 function corpusUsage(boundaries, problems) {
   // `_` partials repeat what the variants that include them show, and folders hold run output.
   const files = listExampleFiles().filter((f) => !path.basename(f).startsWith("_") && fs.statSync(f).isFile());
-  const usage = {};
+  // Usage is kept per example, so the feature index can name who uses each field.
+  const usageByExample = {};
+  const exampleOf = (file) => path.relative(examplesDir, path.resolve(file)).split(path.sep)[0];
+  const usageOf = (file) => (usageByExample[exampleOf(file)] ||= {});
 
   for (const file of files.filter((f) => /^standalone\.spec\.(json|ya?ml)$/.test(path.basename(f)))) {
     try {
-      collectUsage(YAML.parse(fs.readFileSync(file, "utf8")), "spec", boundaries, usage);
+      collectUsage(YAML.parse(fs.readFileSync(file, "utf8")), "spec", boundaries, usageOf(file));
     } catch (error) {
       problems.push(`Couldn't parse ${file}: ${error.message}`);
     }
@@ -361,31 +478,73 @@ function corpusUsage(boundaries, problems) {
       for (const test of spec.tests || []) {
         const authored = { ...test, steps: test.contexts?.[0]?.steps || [] };
         for (const key of RESOLVER_TEST_KEYS) delete authored[key];
-        collectUsage(authored, "test", boundaries, usage);
+        collectUsage(authored, "test", boundaries, usageOf(spec.contentPath));
       }
     }
   }
 
   for (const file of files.filter((f) => path.basename(f) === "doc-detective.json")) {
     try {
-      collectUsage(JSON.parse(fs.readFileSync(file, "utf8")), "config", boundaries, usage);
+      collectUsage(JSON.parse(fs.readFileSync(file, "utf8")), "config", boundaries, usageOf(file));
     } catch (error) {
       problems.push(`Couldn't parse ${file}: ${error.message}`);
     }
   }
 
-  const docs = files.map((file) => ({ file, text: fs.readFileSync(file, "utf8") }));
-  return { usage, docs };
+  const usage = {};
+  for (const exampleUsage of Object.values(usageByExample)) {
+    for (const [key, types] of Object.entries(exampleUsage)) usage[key] = [...new Set([...(usage[key] || []), ...types])].sort();
+  }
+  const docs = files.map((file) => ({ file, example: exampleOf(file), text: fs.readFileSync(file, "utf8") }));
+  return { usage, usageByExample, docs };
+}
+
+const pagesDir = path.resolve(__dirname, "../fern/pages/reference/docs-as-tests");
+const indexMdx = path.join(pagesDir, "feature-index.mdx");
+const indexJson = path.resolve(__dirname, "../docs-as-tests/feature-index.json");
+
+function readPages() {
+  return fs
+    .readdirSync(pagesDir)
+    .filter((f) => f.endsWith(".mdx") && f !== "feature-index.mdx")
+    .sort()
+    .map((f) => ({ slug: f.replace(/\.mdx$/, ""), text: fs.readFileSync(path.join(pagesDir, f), "utf8") }));
+}
+
+/** Writes the feature index with `--write-index`; otherwise returns a problem for each stale file. */
+function syncIndex(index, write) {
+  const problems = [];
+  for (const [file, content] of [[indexMdx, renderIndexMdx(index)], [indexJson, renderIndexJson(index)]]) {
+    if (write) fs.writeFileSync(file, content);
+    else if (!fs.existsSync(file) || fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n") !== content) {
+      problems.push(
+        `Couldn't confirm ${file} is current: it doesn't match the examples. ` +
+          "Run `npm run docs:coverage-docs-as-tests -- --write-index`."
+      );
+    }
+  }
+  return problems;
 }
 
 function main() {
   const problems = [];
   const { fields, boundaries, via } = schemaFields();
-  const { usage, docs } = corpusUsage(boundaries, problems);
-  const coverage = findGaps(fields, usage, (root, p) => canonicalKey(root, p, fields[root]));
+  const { usage, usageByExample, docs } = corpusUsage(boundaries, problems);
+  const canon = (root, p) => canonicalKey(root, p, fields[root]);
+  const coverage = findGaps(fields, usage, canon);
   const list = YAML.parse(fs.readFileSync(featuresFile, "utf8"));
   const features = list.features || [];
   const missing = findMissingNeedles(features, docs);
+
+  const exampleIds = Object.keys(usageByExample);
+  const needleUsers = Object.fromEntries(
+    features.map((f) => [
+      `features.${f.id}`,
+      exampleIds.filter((ex) => !findMissingNeedles([f], docs.filter((d) => d.example === ex)).length),
+    ])
+  );
+  const index = buildIndex(fields, usageByExample, canon, mapExamplesToPages(readPages()), needleUsers);
+  problems.push(...syncIndex(index, process.argv.includes("--write-index")));
   // Features join the field gaps as `features.<id>`, so knownGaps can list them too.
   const allGaps = { ...coverage.gaps, ...(missing.length ? { features: missing.map((f) => f.id) } : {}) };
   const split = splitKnownGaps(allGaps, list.knownGaps || []);
@@ -435,4 +594,5 @@ if (require.main === module) main();
 
 module.exports = {
   walkSchema, collectUsage, findGaps, findMissingNeedles, canonicalKey, splitKnownGaps, AUTHORING_CONFIG_KEYS,
+  slugify, mapExamplesToPages, buildIndex, renderIndexJson, renderIndexMdx,
 };
