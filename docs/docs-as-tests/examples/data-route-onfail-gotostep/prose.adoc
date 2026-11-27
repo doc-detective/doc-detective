@@ -1,0 +1,20 @@
+= Find Node.js if the version check fails
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
+. Print the npm version:
++
+[source,shell]
+----
+npm --version
+----
+. Find the Node.js executable:
++
+[source,shell]
+----
+command -v node
+----

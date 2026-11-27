@@ -1,0 +1,14 @@
+= Retry after a warning
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
+. Print the npm version:
++
+[source,shell]
+----
+npm --version
+----

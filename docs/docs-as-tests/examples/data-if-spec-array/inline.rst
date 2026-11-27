@@ -1,0 +1,10 @@
+Check the API on desktop platforms
+==================================
+
+.. test {"testId":"data-if-spec-array","detectSteps":false}
+
+#. Check the API. Send a ``GET`` request to ``http://localhost:8092/api/health``.
+
+   .. step {"httpRequest":{"url":"http://localhost:8092/api/health","method":"get"}}
+
+.. test end

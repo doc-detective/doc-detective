@@ -1,0 +1,14 @@
+= Print the npm version after Node.js
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
+. If that worked, print the npm version:
++
+[source,shell]
+----
+npm --version
+----

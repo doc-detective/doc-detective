@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-context-retries-0">
+  <title>Echo a name on a page</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-context-retries-0","contexts":[{"retries":0}],"detectSteps":false}'/>
+    <steps>
+      <step><cmd>Open <codeph>http://localhost:8092/type-echo.html</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
+      <step><cmd>Type <codeph>Wren</codeph> in the field.</cmd>
+        <info><data name="doc-detective" value='step {"type":{"keys":"Wren","selector":"#type-input"}}'/></info></step>
+      <step><cmd>Check that the page shows <codeph>Wren</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"find":{"selector":"#echo","elementText":"Wren"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

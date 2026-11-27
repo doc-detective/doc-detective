@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-if-spec-string">
+  <title>Check the API on desktop platforms</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-if-spec-string","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Check the API. Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/api/health</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/health","method":"get"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

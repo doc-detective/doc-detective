@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Print the Node.js version twice</title></head>
+<body>
+<!-- test {"testId":"data-route-onpass-retry","detectSteps":false} -->
+<h1>Print the Node.js version twice</h1>
+<ol>
+  <li>Print the Node.js version:
+    <pre><code class="language-shell">node --version</code></pre>
+    <!-- step {"runShell":"node --version","onPass":[{"retry":{"limit":1}}]} --></li>
+  <li>Print the npm version:
+    <pre><code class="language-shell">npm --version</code></pre>
+    <!-- step {"stepId":"npm","runShell":"npm --version"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

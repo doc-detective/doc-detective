@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: data-assertions-comparison
+    steps:
+      - httpRequest:
+          url: http://localhost:8092/api/accounts
+          method: post
+          request:
+            body:
+              name: Wren
+              plan: team
+        assertions:
+          - $$outputs.response.statusCode == 200
+          - $$outputs.response.statusCode != 404
+          - $$outputs.response.statusCode > 199
+          - $$outputs.response.statusCode < 300
+          - $$outputs.response.statusCode >= 200
+          - $$outputs.response.statusCode <= 299

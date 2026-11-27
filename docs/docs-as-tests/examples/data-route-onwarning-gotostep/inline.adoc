@@ -1,0 +1,30 @@
+= Jump ahead after a warning
+
+// (test {"testId":"data-route-onwarning-gotostep","detectSteps":false})
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
++
+// (step {"runShell":"node --version","onWarning":[{"goToStep":"path"}]})
+. Print the npm version:
++
+[source,shell]
+----
+npm --version
+----
++
+// (step {"stepId":"npm","runShell":"npm --version"})
+. Find the Node.js executable:
++
+[source,shell]
+----
+command -v node
+----
++
+// (step {"stepId":"path","runShell":"command -v node"})
+
+// (test end)

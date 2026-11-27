@@ -1,0 +1,26 @@
+= Jump past the help steps
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
+. If that failed, print the help for `+node+`:
++
+[source,shell]
+----
+node --help
+----
+. Print the npm version:
++
+[source,shell]
+----
+npm --version
+----
+. Find the Node.js executable:
++
+[source,shell]
+----
+command -v node
+----

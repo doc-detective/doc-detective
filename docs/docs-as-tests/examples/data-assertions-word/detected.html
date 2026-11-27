@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the account fields</title></head>
+<body>
+<!-- test {"testId":"data-assertions-word","detectSteps":true} -->
+<h1>Check the account fields</h1>
+<ol>
+  <li>Create an account. Send a <code>POST</code> request to <code>http://localhost:8092/api/accounts</code> with this body:
+    <pre><code class="language-json">{"name":"Wren","plan":"team"}</code></pre>
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/accounts","method":"post","request":{"body":{"name":"Wren","plan":"team"}}},"assertions":["$$outputs.response.body.name contains \"Wr\"","$$outputs.response.body.plan oneOf [free, team, enterprise]","$$outputs.response.body.name matches /^W[a-z]+$/"]} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

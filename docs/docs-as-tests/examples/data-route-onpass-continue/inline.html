@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Print tool versions</title></head>
+<body>
+<!-- test {"testId":"data-route-onpass-continue","detectSteps":false} -->
+<h1>Print tool versions</h1>
+<ol>
+  <li>Print the Node.js version:
+    <pre><code class="language-shell">node --version</code></pre>
+    <!-- step {"runShell":"node --version","onPass":[{"continue":true}]} --></li>
+  <li>Print the npm version:
+    <pre><code class="language-shell">npm --version</code></pre>
+    <!-- step {"stepId":"npm","runShell":"npm --version"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

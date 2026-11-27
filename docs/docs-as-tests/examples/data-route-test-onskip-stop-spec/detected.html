@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Find Node.js, then check the API</title></head>
+<body>
+<h1>Find Node.js, then check the API</h1>
+<!-- test {"testId":"data-route-test-onskip-stop-spec-windows","if":"$$platform == windows","onSkip":[{"stop":"spec"}],"detectSteps":true} -->
+<h2>Find Node.js on Windows</h2>
+
+<ol>
+  <li>Find the Node.js executable:
+    <pre><code class="language-shell">where node</code></pre>
+    <!-- step {"runShell":"where node"} --></li>
+</ol>
+<!-- test end -->
+<!-- test {"testId":"data-route-test-onskip-stop-spec-cart","detectSteps":true} -->
+<h2>Check the cart</h2>
+
+<ol>
+  <li>Send a <code>GET</code> request to <code>http://localhost:8092/api/carts</code>.
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/carts","method":"get"}} --></li>
+</ol>
+<!-- test end -->
+<!-- test {"testId":"data-route-test-onskip-stop-spec-products","detectSteps":true} -->
+<h2>Check the products</h2>
+
+<ol>
+  <li>Send a <code>GET</code> request to <code>http://localhost:8092/api/products</code>.
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/products","method":"get"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>
