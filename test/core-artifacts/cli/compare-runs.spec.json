@@ -1,6 +1,6 @@
 {
   "specId": "cli-compare-runs",
-  "description": "Each run compares with an earlier one and marks failures new, existing, or fixed (ADR 01233), and `failOn: new` exits 1 only for a new failure (ADR 01234), through the real CLI. Each test runs one case of compare-runs.cjs, which sets up a folder under .tmp/fixture-compare-runs/, runs doc-detective there once or twice, and checks the exit codes, stdout, stderr, results JSON, and testResults.md. No browser or network.",
+  "description": "Each run compares with an earlier one and marks failures new, existing, or fixed (ADR 01244), and `failOn: new` exits 1 only for a new failure (ADR 01245), through the real CLI. Each test runs one case of compare-runs.cjs, which sets up a folder under .tmp/fixture-compare-runs/, runs doc-detective there once or twice, and checks the exit codes, stdout, stderr, results JSON, and testResults.md. No browser or network.",
   "tests": [
     {
       "testId": "compare-default-no-earlier-run",
