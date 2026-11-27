@@ -1,0 +1,15 @@
+= Open a page in a new tab
+
+// (test {"testId":"nav-goto-newtab","detectSteps":false})
+
+. Go to http://localhost:8092/multi-tab.html[the multi-tab page].
++
+// (step {"goTo":"http://localhost:8092/multi-tab.html"})
+. Open http://localhost:8092/multi-tab-child.html?page=docs[the child page] in a new tab.
++
+// (step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=docs","newTab":true}})
+. Check that the new tab shows *PAGE docs*.
++
+// (step {"find":"PAGE docs"})
+
+// (test end)

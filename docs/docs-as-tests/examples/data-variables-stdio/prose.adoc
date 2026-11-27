@@ -1,0 +1,14 @@
+= Save the Node.js version
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
+. Check that the saved version starts with `+v+`:
++
+[source,shell]
+----
+node -e "process.exit(process.env.NODE_VERSION.startsWith('v') ? 0 : 1)"
+----

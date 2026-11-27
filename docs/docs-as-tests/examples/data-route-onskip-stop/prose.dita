@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-route-onskip-stop">
+  <title>Stop when the help step is skipped</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock></info></step>
+      <step><cmd>If that failed, print the help for <codeph>node</codeph>:</cmd>
+        <info><codeblock outputclass="language-shell">node --help</codeblock></info></step>
+      <step><cmd>Print the npm version:</cmd>
+        <info><codeblock outputclass="language-shell">npm --version</codeblock></info></step>
+    </steps>
+  </taskbody>
+</task>

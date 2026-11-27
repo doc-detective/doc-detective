@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-response-required">
+  <title>Require nested response fields</title>
+  <body>
+    <p>Send a <codeph>POST</codeph> request to <codeph>http://localhost:8093/api/orders</codeph> with a user and one item. The response has <codeph>user.name</codeph> and <codeph>items[0].id</codeph>.</p>
+  </body>
+</topic>

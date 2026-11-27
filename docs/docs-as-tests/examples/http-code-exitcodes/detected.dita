@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-exitcodes">
+  <title>Expect a failing exit code</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-code-exitcodes","detectSteps":true}'/>
+    <p>This script exits with code <codeph>2</codeph>:</p>
+    <data name="doc-detective" value="test ignore start"/>
+    <codeblock outputclass="language-js">process.exit(2);</codeblock>
+    <data name="doc-detective" value="test ignore end"/>
+    <data name="doc-detective" value='step {"runCode":{"language":"js","code":"process.exit(2);","exitCodes":[2]}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-requires-array">
+  <title>Check Node.js and npm, if both are installed</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-runon-requires-array","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":["node","npm"]}]}'/>
+    <steps>
+      <step><cmd>Run <codeph>node --version</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"runShell":"node --version"}'/></info></step>
+      <step><cmd>Run <codeph>npm --version</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"runShell":"npm --version"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

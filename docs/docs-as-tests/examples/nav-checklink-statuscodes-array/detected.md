@@ -1,0 +1,8 @@
+<!-- test {"testId":"nav-checklink-statuscodes-array","detectSteps":true} -->
+
+# Accept several status codes
+
+1. Check that [the element test page](http://localhost:8092/enhanced-elements.html) responds.
+   <!-- step {"checkLink":{"url":"http://localhost:8092/enhanced-elements.html","statusCodes":[200,304]}} -->
+
+<!-- test end -->

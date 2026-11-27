@@ -1,0 +1,255 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-apps-windows",
+      "runOn": [
+        {
+          "platforms": "windows"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "name": "charmap",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "click": "Select"
+        },
+        {
+          "find": "Copy"
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "surface": {
+              "app": "charmap",
+              "window": {
+                "title": "Character Map"
+              }
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "surface": {
+              "app": "charmap",
+              "window": "Character Map"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "surface": {
+              "app": "charmap",
+              "window": {
+                "name": "Character Map"
+              }
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "surface": {
+              "app": "charmap",
+              "window": -1
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "surface": {
+              "app": "charmap",
+              "window": {
+                "index": -1
+              }
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "surface": {
+              "app": "charmap"
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "sessions-apps-mac",
+      "runOn": [
+        {
+          "platforms": "mac"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "/System/Applications/Calculator.app",
+            "name": "calculator",
+            "env": {
+              "SESSIONS_DOCS": "1"
+            },
+            "timeout": 180000,
+            "waitUntil": {
+              "find": {
+                "elementAria": "1"
+              }
+            }
+          }
+        },
+        {
+          "click": {
+            "elementAria": "1",
+            "surface": {
+              "app": "calculator",
+              "window": {
+                "index": 0
+              }
+            }
+          }
+        },
+        {
+          "closeSurface": "calculator"
+        }
+      ]
+    },
+    {
+      "testId": "sessions-apps-android",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "name": "settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Network & internet"
+              }
+            }
+          }
+        },
+        {
+          "click": "Network & internet"
+        },
+        {
+          "find": "Internet"
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "sessions-apps-android-install",
+      "runOn": [
+        {
+          "platforms": "android",
+          "device": "sessions-pixel",
+          "requires": {
+            "files": [
+              "build/sessions-demo.apk"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.example.sessionsdemo",
+            "name": "demo",
+            "install": "build/sessions-demo.apk",
+            "activity": ".MainActivity",
+            "device": {
+              "platform": "android",
+              "name": "sessions-pixel",
+              "deviceType": "phone",
+              "osVersion": "14",
+              "headless": true
+            },
+            "driverOptions": {
+              "appium:newCommandTimeout": 300
+            },
+            "timeout": 300000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Welcome"
+              }
+            }
+          }
+        },
+        {
+          "closeSurface": {
+            "app": "demo"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "sessions-apps-ios",
+      "runOn": [
+        {
+          "platforms": "ios",
+          "device": {
+            "platform": "ios",
+            "name": "sessions-iphone",
+            "deviceType": "phone",
+            "osVersion": "18.0",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences",
+            "name": "preferences",
+            "device": "sessions-iphone",
+            "timeout": 180000,
+            "waitUntil": {
+              "find": {
+                "elementText": "General"
+              }
+            }
+          }
+        },
+        {
+          "click": "General"
+        },
+        {
+          "find": "About"
+        },
+        {
+          "closeSurface": {
+            "app": "preferences"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "data-variables-element",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/type-echo.html"
+        },
+        {
+          "type": {
+            "keys": "Wren",
+            "selector": "#type-input"
+          }
+        },
+        {
+          "find": {
+            "selector": "#echo",
+            "elementText": "Wren"
+          },
+          "variables": {
+            "ECHOED": "$$element.text"
+          }
+        },
+        {
+          "httpRequest": {
+            "url": "http://localhost:8093/api/names",
+            "method": "post",
+            "request": {
+              "body": {
+                "name": "$ECHOED"
+              }
+            },
+            "response": {
+              "body": {
+                "name": "Wren"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

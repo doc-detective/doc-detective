@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-mock-method">
+  <title>Stub an API response</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-mock-method","detectSteps":false,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}'/>
+    <p>Stub the plans endpoint.</p>
+    <data name="doc-detective" value='step {"mockRequest":{"url":"**/api/plans","method":"POST","response":{"body":"mocked-post"}}}'/>
+    <p>Open the test site at <codeph>http://localhost:8092/</codeph>.</p>
+    <data name="doc-detective" value='step {"goTo":"http://localhost:8092/"}'/>
+    <p>Fetch <codeph>/api/plans</codeph> with <codeph>GET</codeph> and with <codeph>POST</codeph>. Only the <codeph>POST</codeph> request is stubbed.</p>
+    <data name="doc-detective" value='step {"runBrowserScript":{"script":"const u = &apos;/api/plans&apos;; return Promise.all([fetch(u).then((r) => r.text()), fetch(u, { method: &apos;POST&apos; }).then((r) => r.text())]).then(([get, post]) => (get === &apos;mocked-post&apos; ? &apos;GET was mocked&apos; : &apos;GET passed&apos;) + &apos;, POST &apos; + post);","output":"GET passed, POST mocked-post"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

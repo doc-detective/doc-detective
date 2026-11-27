@@ -1,0 +1,4 @@
+Send query parameters
+=====================
+
+Send a ``GET`` request to ``http://localhost:8093/api/users`` with the ``page`` parameter set to ``2``. The response echoes it.

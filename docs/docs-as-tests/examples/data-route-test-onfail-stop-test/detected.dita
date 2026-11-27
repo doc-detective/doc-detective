@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="data-route-test-onfail-stop-test">
+  <title>Check the API, then the shop</title>
+  <body>
+    <section>
+      <title>Check the API</title>
+      <data name="doc-detective" value='test {"testId":"data-route-test-onfail-stop-test-api","onFail":[{"stop":"test"}],"detectSteps":true}'/>
+      <ol>
+        <li>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/api/health</codeph>.
+          <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/health","method":"get"}}'/></li>
+      </ol>
+      <data name="doc-detective" value="test end"/>
+    </section>
+    <section>
+      <title>Check the cart</title>
+      <data name="doc-detective" value='test {"testId":"data-route-test-onfail-stop-test-cart","detectSteps":true}'/>
+      <ol>
+        <li>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/api/carts</codeph>.
+          <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/carts","method":"get"}}'/></li>
+      </ol>
+      <data name="doc-detective" value="test end"/>
+    </section>
+    <section>
+      <title>Check the products</title>
+      <data name="doc-detective" value='test {"testId":"data-route-test-onfail-stop-test-products","detectSteps":true}'/>
+      <ol>
+        <li>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/api/products</codeph>.
+          <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/products","method":"get"}}'/></li>
+      </ol>
+      <data name="doc-detective" value="test end"/>
+    </section>
+  </body>
+</topic>

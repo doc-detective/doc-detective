@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "capture-screenshot-form-object",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/screenshot-banner.html"
+        },
+        {
+          "screenshot": {
+            "path": "banner.png",
+            "directory": ".dd-output"
+          }
+        }
+      ]
+    }
+  ]
+}

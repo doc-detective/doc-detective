@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dita PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
+<dita>
+  <topic id="sessions-apps">
+    <title>Open a built-in app</title>
+  </topic>
+  <task id="sessions-apps-windows">
+    <title>Windows: Character Map</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"sessions-apps-windows","detectSteps":false,"runOn":[{"platforms":"windows"}]}'/>
+      <steps>
+        <step><cmd>Open Character Map, and wait for its Select button.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":{"app":"C:\\Windows\\System32\\charmap.exe","name":"charmap","timeout":120000,"waitUntil":{"find":{"elementText":"Select"}}}}'/></info></step>
+        <step><cmd>Click <uicontrol>Select</uicontrol>.</cmd>
+          <info><data name="doc-detective" value='step {"click":"Select"}'/></info></step>
+        <step><cmd>Check that the window shows the <b>Copy</b> button.</cmd>
+          <info><data name="doc-detective" value='step {"find":"Copy"}'/></info></step>
+        <step><cmd>Check the Copy button again, picking the window by its title, by name, and as the newest window.</cmd>
+          <info><data name="doc-detective" value='step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":{"title":"Character Map"}}}}'/><data name="doc-detective" value='step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":"Character Map"}}}'/><data name="doc-detective" value='step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":{"name":"Character Map"}}}}'/><data name="doc-detective" value='step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":-1}}}'/><data name="doc-detective" value='step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":{"index":-1}}}}'/><data name="doc-detective" value='step {"find":{"elementText":"Copy","surface":{"app":"charmap"}}}'/></info></step>
+        <step><cmd>Close Character Map.</cmd>
+          <info><data name="doc-detective" value='step {"closeSurface":{"app":"charmap"}}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+  <task id="sessions-apps-mac">
+    <title>macOS: Calculator</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"sessions-apps-mac","detectSteps":false,"runOn":[{"platforms":"mac"}]}'/>
+      <steps>
+        <step><cmd>Open Calculator with <codeph>SESSIONS_DOCS=1</codeph> in its environment, and wait for its <codeph>1</codeph> button.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":{"app":"/System/Applications/Calculator.app","name":"calculator","env":{"SESSIONS_DOCS":"1"},"timeout":180000,"waitUntil":{"find":{"elementAria":"1"}}}}'/></info></step>
+        <step><cmd>In the first window, press the <codeph>1</codeph> button.</cmd>
+          <info><data name="doc-detective" value='step {"click":{"elementAria":"1","surface":{"app":"calculator","window":{"index":0}}}}'/></info></step>
+        <step><cmd>Close Calculator.</cmd>
+          <info><data name="doc-detective" value='step {"closeSurface":"calculator"}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+  <task id="sessions-apps-android">
+    <title>Android: Settings</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"sessions-apps-android","detectSteps":false,"runOn":[{"platforms":"android"}]}'/>
+      <steps>
+        <step><cmd>Open the Settings app, and wait for the Network &amp; internet entry.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":{"app":"com.android.settings","name":"settings","timeout":180000,"waitUntil":{"find":{"elementText":"Network &amp; internet"}}}}'/></info></step>
+        <step><cmd>Tap the Network &amp; internet entry.</cmd>
+          <info><data name="doc-detective" value='step {"click":"Network &amp; internet"}'/></info></step>
+        <step><cmd>Check that the screen shows <b>Internet</b>.</cmd>
+          <info><data name="doc-detective" value='step {"find":"Internet"}'/></info></step>
+        <step><cmd>Close the Settings app.</cmd>
+          <info><data name="doc-detective" value='step {"closeSurface":{"app":"settings"}}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+  <task id="sessions-apps-android-install">
+    <title>Android: your own app</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"sessions-apps-android-install","detectSteps":false,"runOn":[{"platforms":"android","device":"sessions-pixel","requires":{"files":["build/sessions-demo.apk"]}}]}'/>
+      <steps>
+        <step><cmd>Install <codeph>build/sessions-demo.apk</codeph> on a headless Android 14 phone emulator named <codeph>sessions-pixel</codeph>, open its main activity, and wait for the Welcome screen.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":{"app":"com.example.sessionsdemo","name":"demo","install":"build/sessions-demo.apk","activity":".MainActivity","device":{"platform":"android","name":"sessions-pixel","deviceType":"phone","osVersion":"14","headless":true},"driverOptions":{"appium:newCommandTimeout":300},"timeout":300000,"waitUntil":{"find":{"elementText":"Welcome"}}}}'/></info></step>
+        <step><cmd>Close the app.</cmd>
+          <info><data name="doc-detective" value='step {"closeSurface":{"app":"demo"}}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+  <task id="sessions-apps-ios">
+    <title>iOS: Settings</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"sessions-apps-ios","detectSteps":false,"runOn":[{"platforms":"ios","device":{"platform":"ios","name":"sessions-iphone","deviceType":"phone","osVersion":"18.0","headless":true}}]}'/>
+      <steps>
+        <step><cmd>On the iPhone simulator named <codeph>sessions-iphone</codeph>, open the Settings app, and wait for the General entry.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":{"app":"com.apple.Preferences","name":"preferences","device":"sessions-iphone","timeout":180000,"waitUntil":{"find":{"elementText":"General"}}}}'/></info></step>
+        <step><cmd>Tap the General entry.</cmd>
+          <info><data name="doc-detective" value='step {"click":"General"}'/></info></step>
+        <step><cmd>Check that the screen shows <b>About</b>.</cmd>
+          <info><data name="doc-detective" value='step {"find":"About"}'/></info></step>
+        <step><cmd>Close the Settings app.</cmd>
+          <info><data name="doc-detective" value='step {"closeSurface":{"app":"preferences"}}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+</dita>

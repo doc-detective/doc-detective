@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the page on Berlin time</title></head>
+<body>
+<!-- test {"testId":"sessions-runon-timezone","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"timezone":"Europe/Berlin"}}]} -->
+<h1>Check the page on Berlin time</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Check that the page's time zone is <code>Europe/Berlin</code>.
+    <!-- step {"runBrowserScript":{"script":"return Intl.DateTimeFormat().resolvedOptions().timeZone;","output":"Europe/Berlin"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

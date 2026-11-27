@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-goto-new-string">
+  <title>Open named tabs and windows</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd></step>
+      <step><cmd>Load <xref href="http://localhost:8092/multi-tab-child.html?page=notes" scope="external" format="html">the notes page</xref> in a new tab named <codeph>notes</codeph>.</cmd></step>
+      <step><cmd>Check that the <codeph>notes</codeph> tab reads "PAGE notes".</cmd></step>
+      <step><cmd>Load <xref href="http://localhost:8092/multi-tab-child.html?page=about" scope="external" format="html">the about page</xref> in a new window named <codeph>about</codeph>.</cmd></step>
+      <step><cmd>Check that the new window reads "PAGE about".</cmd></step>
+    </steps>
+  </taskbody>
+</task>

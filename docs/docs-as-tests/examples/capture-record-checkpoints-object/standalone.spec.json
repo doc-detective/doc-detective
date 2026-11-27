@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "capture-record-checkpoints-object",
+      "autoRecord": false,
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": {
+            "name": "chrome",
+            "headless": true
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/type-echo.html"
+        },
+        {
+          "record": {
+            "path": "checkpoints-object.webm",
+            "directory": ".dd-output",
+            "overwrite": "true",
+            "checkpoints": {
+              "maxVariation": 0.5,
+              "directory": ".dd-output/typing-checkpoints"
+            }
+          }
+        },
+        {
+          "click": "Type here:"
+        },
+        {
+          "type": "Hello"
+        },
+        {
+          "wait": 1000
+        },
+        {
+          "stopRecord": true
+        }
+      ]
+    }
+  ]
+}

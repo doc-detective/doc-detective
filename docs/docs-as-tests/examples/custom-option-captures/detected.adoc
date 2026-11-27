@@ -1,0 +1,7 @@
+= Check a link
+
+// (test {"testId":"custom-option-captures","detectSteps":true})
+
+Open http://localhost:8092/type-echo.html[the type echo page].
+
+// (test end)

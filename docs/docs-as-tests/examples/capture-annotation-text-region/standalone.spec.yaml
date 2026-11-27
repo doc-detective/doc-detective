@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: capture-annotation-text-region
+    steps:
+      - goTo: http://localhost:8092/enhanced-elements.html
+      - screenshot:
+          path: annotation-text-region.png
+          directory: .dd-output
+          overwrite: "true"
+          annotations:
+            - text:
+                position: top-right
+              label: Sample data

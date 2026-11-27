@@ -234,6 +234,36 @@ describe("unknown keys", function () {
       expect(await detect(content)).to.have.lengthOf(1);
     });
 
+    it("reports a test statement it can't parse", async function () {
+      const reasons = [];
+      await detect(
+        '<!-- test testId: two description: Two keys -->\n<!-- step {"goTo":"https://example.com"} -->\n<!-- test end -->',
+        (reason) => reasons.push(reason)
+      );
+      expect(reasons).to.have.lengthOf(1);
+      expect(reasons[0]).to.include("Couldn't parse the inline `test` statement on line 1.");
+      // The statement's text can hold a secret, so it stays out of the message.
+      expect(reasons[0]).not.to.include("Two keys");
+    });
+
+    it("reports a step statement it can't parse", async function () {
+      const reasons = [];
+      await detect('text\n\n<!-- step find: selector: "#a" click: true -->', (reason) => reasons.push(reason));
+      expect(reasons).to.have.lengthOf(1);
+      expect(reasons[0]).to.include("Couldn't parse the inline `step` statement on line 3.");
+      expect(reasons[0]).not.to.include("#a");
+    });
+
+    it("parses a YAML flow mapping and doesn't report it", async function () {
+      const reasons = [];
+      const tests = await detect(
+        '<!-- test {testId: two, description: Two keys} -->\n<!-- step {goTo: "https://example.com"} -->\n<!-- test end -->',
+        (reason) => reasons.push(reason)
+      );
+      expect(reasons).to.deep.equal([]);
+      expect(tests[0]).to.include({ testId: "two", description: "Two keys" });
+    });
+
     it("works without an onInvalid callback", async function () {
       for (const content of [
         '<!-- step {"goTo":"https://example.com","asertions":[]} -->',

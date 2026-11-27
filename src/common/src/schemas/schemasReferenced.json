@@ -2799,6 +2799,23 @@
               "contextId": {
                 "type": "string"
               },
+              "matrix": {
+                "type": "object",
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/scalar"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/scalar"
+                      }
+                    }
+                  ]
+                },
+                "readOnly": true
+              },
               "unsafe": {
                 "type": "boolean",
                 "readOnly": true
@@ -3203,7 +3220,7 @@
         "schemas": {
           "url": {
             "type": "string",
-            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
             "transform": [
               "trim"
             ]
@@ -3602,6 +3619,9 @@
           "minimum": 0,
           "maximum": 10
         },
+        "matrix": {
+          "$ref": "matrix_v3.schema.json#"
+        },
         "requires": {
           "anyOf": [
             {
@@ -3733,41 +3753,147 @@
                 }
               },
               "colorScheme": {
-                "type": "string",
-                "enum": [
-                  "light",
-                  "dark"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "light",
+                      "dark"
+                    ]
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
                 ]
               },
               "locale": {
-                "type": "string",
-                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
+                ]
               },
               "timezone": {
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
+                ]
               },
               "deviceScaleFactor": {
-                "type": "number",
-                "minimum": 0.5,
-                "maximum": 4
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 4
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
+                ]
               },
               "reducedMotion": {
-                "type": "string",
-                "enum": [
-                  "reduce",
-                  "no-preference"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "reduce",
+                      "no-preference"
+                    ]
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
                 ]
               },
               "clock": {
-                "type": "string",
-                "format": "date-time"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
+                ]
               }
             }
           }
         }
       },
       "$id": "context_v3.schema.json"
+    },
+    "matrix_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9_]+$"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "object",
+            "required": [
+              "file"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "file": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/scalar"
+            }
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {
+                "pattern": "^[A-Za-z0-9_]+$"
+              },
+              "additionalProperties": {
+                "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/scalar"
+              }
+            }
+          }
+        ]
+      },
+      "components": {
+        "schemas": {
+          "scalar": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "reference": {
+            "type": "string",
+            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+          }
+        }
+      },
+      "$id": "matrix_v3.schema.json"
     },
     "startSurface_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -5488,9 +5614,44 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "url"
+      "anyOf": [
+        {
+          "required": [
+            "url"
+          ]
+        },
+        {
+          "required": [
+            "harPath"
+          ]
+        }
       ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "response",
+              "responses"
+            ]
+          },
+          {
+            "required": [
+              "response",
+              "harPath"
+            ]
+          },
+          {
+            "required": [
+              "responses",
+              "harPath"
+            ]
+          }
+        ]
+      },
+      "errorMessage": {
+        "anyOf": "set `url` or `harPath`.",
+        "not": "set one of `response`, `responses`, or `harPath`."
+      },
       "properties": {
         "url": {
           "type": "string",
@@ -5509,45 +5670,67 @@
           ]
         },
         "response": {
-          "type": "object",
-          "additionalProperties": false,
-          "not": {
-            "required": [
-              "body",
-              "bodyPath"
-            ]
-          },
-          "errorMessage": {
-            "not": "set `body` or `bodyPath`, not both."
-          },
-          "properties": {
-            "statusCode": {
-              "type": "integer",
-              "minimum": 100,
-              "maximum": 599
-            },
-            "headers": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
-            },
-            "body": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "object"
-                },
-                {
-                  "type": "array"
-                }
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/response"
+            }
+          ]
+        },
+        "responses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/components/schemas/response"
+          }
+        },
+        "harPath": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "components": {
+        "schemas": {
+          "response": {
+            "type": "object",
+            "additionalProperties": false,
+            "not": {
+              "required": [
+                "body",
+                "bodyPath"
               ]
             },
-            "bodyPath": {
-              "type": "string",
-              "minLength": 1
+            "errorMessage": {
+              "not": "set `body` or `bodyPath`, not both."
+            },
+            "properties": {
+              "statusCode": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "body": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "type": "array"
+                  }
+                ]
+              },
+              "bodyPath": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         }
@@ -8047,7 +8230,8 @@
               "html",
               "runFolder",
               "junit",
-              "markdown"
+              "markdown",
+              "cucumber"
             ]
           },
           "default": [
@@ -8186,7 +8370,8 @@
             "asciidoc",
             "html",
             "dita",
-            "rst"
+            "rst",
+            "gherkin"
           ],
           "anyOf": [
             {
@@ -8201,7 +8386,8 @@
                       "asciidoc",
                       "html",
                       "dita",
-                      "rst"
+                      "rst",
+                      "gherkin"
                     ]
                   },
                   {
@@ -8230,7 +8416,8 @@
                           "asciidoc",
                           "html",
                           "dita",
-                          "rst"
+                          "rst",
+                          "gherkin"
                         ]
                       },
                       "extensions": {
@@ -11649,6 +11836,23 @@
               "contextId": {
                 "type": "string"
               },
+              "matrix": {
+                "type": "object",
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/scalar"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/scalar"
+                      }
+                    }
+                  ]
+                },
+                "readOnly": true
+              },
               "unsafe": {
                 "type": "boolean",
                 "readOnly": true
@@ -12033,7 +12237,7 @@
         "schemas": {
           "url": {
             "type": "string",
-            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_]+)",
             "transform": [
               "trim"
             ]
@@ -12425,6 +12629,9 @@
           "minimum": 0,
           "maximum": 10
         },
+        "matrix": {
+          "$ref": "matrix_v3.nodefaults.schema.json#"
+        },
         "requires": {
           "anyOf": [
             {
@@ -12555,41 +12762,147 @@
                 }
               },
               "colorScheme": {
-                "type": "string",
-                "enum": [
-                  "light",
-                  "dark"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "light",
+                      "dark"
+                    ]
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
                 ]
               },
               "locale": {
-                "type": "string",
-                "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
+                ]
               },
               "timezone": {
-                "type": "string",
-                "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
+                ]
               },
               "deviceScaleFactor": {
-                "type": "number",
-                "minimum": 0.5,
-                "maximum": 4
+                "anyOf": [
+                  {
+                    "type": "number",
+                    "minimum": 0.5,
+                    "maximum": 4
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
+                ]
               },
               "reducedMotion": {
-                "type": "string",
-                "enum": [
-                  "reduce",
-                  "no-preference"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "reduce",
+                      "no-preference"
+                    ]
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
                 ]
               },
               "clock": {
-                "type": "string",
-                "format": "date-time"
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  {
+                    "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/reference"
+                  }
+                ]
               }
             }
           }
         }
       },
       "$id": "context_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9_]+$"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "object",
+            "required": [
+              "file"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "file": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/scalar"
+            }
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "minProperties": 1,
+              "propertyNames": {
+                "pattern": "^[A-Za-z0-9_]+$"
+              },
+              "additionalProperties": {
+                "$ref": "matrix_v3.nodefaults.schema.json#/components/schemas/scalar"
+              }
+            }
+          }
+        ]
+      },
+      "components": {
+        "schemas": {
+          "scalar": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "reference": {
+            "type": "string",
+            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+          }
+        }
+      },
+      "$id": "matrix_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -14288,9 +14601,44 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "url"
+      "anyOf": [
+        {
+          "required": [
+            "url"
+          ]
+        },
+        {
+          "required": [
+            "harPath"
+          ]
+        }
       ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "response",
+              "responses"
+            ]
+          },
+          {
+            "required": [
+              "response",
+              "harPath"
+            ]
+          },
+          {
+            "required": [
+              "responses",
+              "harPath"
+            ]
+          }
+        ]
+      },
+      "errorMessage": {
+        "anyOf": "set `url` or `harPath`.",
+        "not": "set one of `response`, `responses`, or `harPath`."
+      },
       "properties": {
         "url": {
           "type": "string",
@@ -14309,45 +14657,67 @@
           ]
         },
         "response": {
-          "type": "object",
-          "additionalProperties": false,
-          "not": {
-            "required": [
-              "body",
-              "bodyPath"
-            ]
-          },
-          "errorMessage": {
-            "not": "set `body` or `bodyPath`, not both."
-          },
-          "properties": {
-            "statusCode": {
-              "type": "integer",
-              "minimum": 100,
-              "maximum": 599
-            },
-            "headers": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
-            },
-            "body": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "object"
-                },
-                {
-                  "type": "array"
-                }
+          "allOf": [
+            {
+              "$ref": "mockRequest_v3.nodefaults.schema.json#/components/schemas/response"
+            }
+          ]
+        },
+        "responses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "mockRequest_v3.nodefaults.schema.json#/components/schemas/response"
+          }
+        },
+        "harPath": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "components": {
+        "schemas": {
+          "response": {
+            "type": "object",
+            "additionalProperties": false,
+            "not": {
+              "required": [
+                "body",
+                "bodyPath"
               ]
             },
-            "bodyPath": {
-              "type": "string",
-              "minLength": 1
+            "errorMessage": {
+              "not": "set `body` or `bodyPath`, not both."
+            },
+            "properties": {
+              "statusCode": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "body": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "type": "array"
+                  }
+                ]
+              },
+              "bodyPath": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         }
@@ -16785,7 +17155,8 @@
               "html",
               "runFolder",
               "junit",
-              "markdown"
+              "markdown",
+              "cucumber"
             ]
           }
         },
@@ -16921,7 +17292,8 @@
                       "asciidoc",
                       "html",
                       "dita",
-                      "rst"
+                      "rst",
+                      "gherkin"
                     ]
                   },
                   {
@@ -16950,7 +17322,8 @@
                           "asciidoc",
                           "html",
                           "dita",
-                          "rst"
+                          "rst",
+                          "gherkin"
                         ]
                       },
                       "extensions": {

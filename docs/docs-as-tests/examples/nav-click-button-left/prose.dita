@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-click-button-left">
+  <title>Left-click a button</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/find-click.html" scope="external" format="html">the click counter page</xref>.</cmd></step>
+      <step><cmd>Left-click <b>Count clicks</b>.</cmd></step>
+      <step><cmd>Check that the button counted the click.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

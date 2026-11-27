@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-loadvariables-config">
+  <title>Check a service with variables from the config</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Check the service. Send a <codeph>GET</codeph> request to <codeph>$SERVICE_URL/health</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

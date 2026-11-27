@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-response-required">
+  <title>Require nested response fields</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-request-response-required","detectSteps":true}'/>
+    <p>Send a <codeph>POST</codeph> request to <codeph>http://localhost:8093/api/orders</codeph> with a user and one item. The response has <codeph>user.name</codeph> and <codeph>items[0].id</codeph>.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8093/api/orders","method":"post","request":{"body":{"user":{"name":"Ada"},"items":[{"id":"inv-1"}]}},"response":{"required":["user.name","items[0].id"]}}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

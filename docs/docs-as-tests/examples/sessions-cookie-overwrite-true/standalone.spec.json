@@ -1,0 +1,45 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-cookie-overwrite-true",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_pover/first"
+        },
+        {
+          "saveCookie": {
+            "name": "sessions_pover",
+            "path": "sessions_pover.txt",
+            "overwrite": true
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_pover/second"
+        },
+        {
+          "saveCookie": {
+            "name": "sessions_pover",
+            "path": "sessions_pover.txt",
+            "overwrite": true
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_pover/signed-out"
+        },
+        {
+          "loadCookie": {
+            "name": "sessions_pover",
+            "path": "sessions_pover.txt"
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "sessions_pover=second"
+        }
+      ]
+    }
+  ]
+}

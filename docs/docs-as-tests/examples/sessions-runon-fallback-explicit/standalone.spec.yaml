@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: sessions-runon-fallback-explicit
+    runOn:
+      - browsers:
+          name: firefox
+          headless: true
+        browserFallback: explicit
+        retries: 0
+    steps:
+      - goTo: http://localhost:8092/multi-tab.html
+      - find: MULTI-TAB HOME

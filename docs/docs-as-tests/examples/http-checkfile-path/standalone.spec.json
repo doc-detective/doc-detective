@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-checkfile-path",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/app.log','started')\"",
+            "workingDirectory": "."
+          }
+        },
+        {
+          "checkFile": {
+            "path": "output/*.log"
+          }
+        }
+      ]
+    }
+  ]
+}

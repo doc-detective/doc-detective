@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "data-substitution-body",
+      "steps": [
+        {
+          "loadVariables": "shop.env"
+        },
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/orders",
+            "method": "post",
+            "request": {
+              "body": {
+                "client": "$SHOP_CLIENT"
+              }
+            },
+            "response": {
+              "body": {
+                "client": "docs"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-openapi-useexample-none">
+  <title>Call an operation with its examples</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-openapi-useexample-none","detectSteps":false,"openApi":[{"name":"users","descriptionPath":"../http-openapi/users.openapi.json"}]}'/>
+    <p>Call the <codeph>createUser</codeph> operation with Ada as the user.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"openApi":{"operationId":"createUser","useExample":"none"},"request":{"body":{"name":"Ada","job":"engineer"}}}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-origin">
+  <title>Test pages on your own site</title>
+  <taskbody>
+    <context><p>These steps use paths, not full URLs. The run's config sets the site's origin.</p></context>
+    <data name="doc-detective" value='test {"testId":"sessions-origin","detectSteps":false,"runOn":[{"platforms":["linux","mac"],"browsers":"chrome","requires":{"env":["SESSIONS_ORIGIN"]}}]}'/>
+    <steps>
+      <step><cmd>Go to <codeph>/cookies/set/sessions_origin/visited</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"/cookies/set/sessions_origin/visited"}'/></info></step>
+      <step><cmd>Go to <codeph>/cookies</codeph>, and check that the page shows <codeph>sessions_origin=visited</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"/cookies"}'/><data name="doc-detective" value='step {"find":"sessions_origin=visited"}'/></info></step>
+      <step><cmd>Go to <codeph>/api/echo</codeph>, and check that the response echoes the <codeph>from</codeph> parameter that the config adds: <codeph>"from":"docs"</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"/api/echo"}'/><data name="doc-detective" value='step {"find":"/\"from\":\"docs\"/"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

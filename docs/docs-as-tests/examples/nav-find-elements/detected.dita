@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-find-elements">
+  <title>Fill in a form by element attributes</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-find-elements","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the element test page</xref>.</cmd></step>
+      <step><cmd>Find the <b>Submit by ID</b> button near the top of the page.</cmd></step>
+      <step><cmd>Click the username field and type "kittens".</cmd></step>
+      <step><cmd>Click the password field and type "hunter2".</cmd></step>
+      <step><cmd>Click the contact email field and type "you@example.com".</cmd></step>
+      <step><cmd>Type "-cat" at the end of the username.</cmd></step>
+      <step><cmd>Type "docs" in the search field, and wait for the page to settle.</cmd></step>
+      <step><cmd>Check that the <b>Submit Order</b> button is enabled.</cmd></step>
+      <step><cmd>Click <b>Save</b>.</cmd></step>
+      <step><cmd>Click <b>Login Submit</b>.</cmd></step>
+      <step><cmd>Confirm that the page shows <b>Operation successful</b>.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

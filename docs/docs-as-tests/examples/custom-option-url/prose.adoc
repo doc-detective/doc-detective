@@ -1,0 +1,3 @@
+= Check the page's links
+
+Open http://localhost:8092/type-echo.html[the type echo page]. For more, see link:#next-steps[Next steps].

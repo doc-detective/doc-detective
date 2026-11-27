@@ -48,7 +48,7 @@ Inline tests offer several advantages:
 - **Documentation as code**: Tests become part of the documentation source, ensuring that documentation and testing evolve together.
 - **Quick validation**: Small, focused tests can be quickly added to validate specific instructions or procedures.
 
-Combine inline tests with [detected tests](/docs/test-docs/detected) to create comprehensive test coverage with minimal manual test definition.
+Combine inline tests with [detected tests](/docs/test-docs/detected) to create comprehensive test coverage with minimal manual test definition. To compare the same procedure written as detected, inline, and standalone tests in every format, see [Docs as tests](/reference/docs-as-tests/overview).
 
 ## Comment patterns by file type
 
@@ -154,6 +154,14 @@ You can use single or double quotes for either attribute. Use `<data>` elements 
 
 Put a blank line before and after each statement. An RST statement can span lines. A comment's indented block belongs to it, so a step can continue on the lines below `.. step`. See [reStructuredText](/docs/test-docs/input-formats/rst).
 
+**Gherkin files** (`.feature`):
+
+- Test comments: `# test {"testId": "my-test-feature"}`, above a scenario or its tags
+- Step comments: `# step {"goTo": "https://example.com"}`
+- Ignore blocks: `# test ignore start` and `# test ignore end`
+
+Each scenario is already a test. A `# test` comment adds its settings to the scenario below it, and a scenario needs no `# test end`. Gherkin test comments take JSON only. An ignore block covers steps inside one scenario, so to skip steps in several scenarios, put an ignore block in each. See [Gherkin](/docs/test-docs/input-formats/gherkin).
+
 ## Examples
 
 {/* The examples below document inline-test syntax; they aren't runnable tests (they navigate real
@@ -204,7 +212,7 @@ To search for American Shorthair kittens,
 
 2. In the search bar, enter "American Shorthair kittens", then press Enter.
 
-   {/* step find: selector: "[title=Search]" click: true */} {/* step type: - "American Shorthair kittens" - "$ENTER$" */} {/* step wait: 5000 */}
+   {/* step find: {selector: "[title=Search]", click: true} */} {/* step type: ["American Shorthair kittens", "$ENTER$"] */} {/* step wait: 5000 */}
 
 ![Search results](search-results.png)
 
@@ -268,6 +276,22 @@ Click the **Start** button:
 .. step {"click": "Start"}
 
 .. test end
+```
+
+{/* test ignore end */}
+
+**Gherkin example**:
+
+{/* test ignore start */}
+
+```gherkin
+Feature: Getting started
+
+  # test {"testId": "doc-test"}
+  Scenario: Start the app
+    Given I go to "https://app.example.com"
+    # step {"find": "Welcome"}
+    When I click "Start"
 ```
 
 {/* test ignore end */}

@@ -1,0 +1,24 @@
+<!-- test {"testId":"data-route-onfail-gotostep","detectSteps":false} -->
+
+# Find Node.js if the version check fails
+
+1. Print the Node.js version:
+
+   ```shell
+   node --version
+   ```
+   <!-- step {"runShell":"node --version","onFail":[{"goToStep":"path"}]} -->
+2. Print the npm version:
+
+   ```shell
+   npm --version
+   ```
+   <!-- step {"stepId":"npm","runShell":"npm --version"} -->
+3. Find the Node.js executable:
+
+   ```shell
+   command -v node
+   ```
+   <!-- step {"stepId":"path","runShell":"command -v node"} -->
+
+<!-- test end -->

@@ -1,0 +1,14 @@
+= Show help only when Node.js fails
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
+. If that failed, print the help for `+node+`:
++
+[source,shell]
+----
+node --help
+----

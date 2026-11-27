@@ -1,0 +1,7 @@
+= Check a link
+
+// (test {"testId":"nav-checklink-string","detectSteps":true})
+
+. Check that http://localhost:8092/enhanced-elements.html[the element test page] responds.
+
+// (test end)

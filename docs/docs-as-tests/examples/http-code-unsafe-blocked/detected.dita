@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-unsafe-blocked">
+  <title>Skip an unsafe step</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-code-unsafe-blocked","detectSteps":true}'/>
+    <p>Run this code:</p>
+    <codeblock outputclass="language-javascript">console.log("ready");</codeblock>
+    <p>Then confirm that Node.js runs:</p>
+    <codeblock outputclass="language-shell">node -e "console.log('done')"</codeblock>
+    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(&apos;done&apos;)\"","stdio":"done"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

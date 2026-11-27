@@ -1,0 +1,7 @@
+= Wait for the echo
+
+Open the type echo page.
+
+Type Hello, Doc Detective.
+
+Wait _a moment_ for the echo.

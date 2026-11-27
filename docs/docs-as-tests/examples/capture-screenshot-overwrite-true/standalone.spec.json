@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "capture-screenshot-overwrite-true",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/screenshot-banner.html"
+        },
+        {
+          "screenshot": {
+            "path": "overwrite-true.png",
+            "directory": ".dd-output",
+            "overwrite": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "data-context-retries-2",
+      "contexts": [
+        {
+          "retries": 2
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/type-echo.html"
+        },
+        {
+          "type": {
+            "keys": "Wren",
+            "selector": "#type-input"
+          }
+        },
+        {
+          "find": {
+            "selector": "#echo",
+            "elementText": "Wren"
+          }
+        }
+      ]
+    }
+  ]
+}

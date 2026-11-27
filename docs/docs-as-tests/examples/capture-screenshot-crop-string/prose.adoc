@@ -1,0 +1,4 @@
+= Save a screenshot of one button
+
+. Go to http://localhost:8092/enhanced-elements.html[the sample form].
+. The *Submit by ID* button is at the top of the form.

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the page with reduced motion</title></head>
+<body>
+<!-- test {"testId":"sessions-runon-reducedmotion","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"reducedMotion":"reduce"}}]} -->
+<h1>Check the page with reduced motion</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Check that the page prefers reduced motion.
+    <!-- step {"runBrowserScript":{"script":"return String(matchMedia(\"(prefers-reduced-motion: reduce)\").matches);","output":"true"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

@@ -1,0 +1,9 @@
+<!-- test {"testId":"http-request-method-get","detectSteps":false} -->
+
+# GET a user
+
+Send a `GET` request to `http://localhost:8093/api/users?page=2`.
+
+<!-- step {"httpRequest":{"url":"http://localhost:8093/api/users?page=2","method":"get","response":{"body":{"page":"2"}}}} -->
+
+<!-- test end -->

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the session cookie</title></head>
+<body>
+<h1>Check the session cookie</h1>
+<!-- test {"testId":"structure-before-after","description":"Check the session cookie while signed in.","detectSteps":true,"before":"sign-in.spec.json","after":"sign-out.spec.json"} -->
+<ol>
+  <li>Start at <a href="http://localhost:8092/cookies">the cookies page</a>.
+    <!-- step {"goTo":"http://localhost:8092/cookies"} --></li>
+  <li>Check that the page lists <code>structure-session=signed-in</code>.
+    <!-- step {"find":"structure-session=signed-in"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

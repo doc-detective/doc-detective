@@ -1,0 +1,4 @@
+= Open the elements demo
+
+. Open http://localhost:8092/index.html[the elements demo].
+. Check that the page shows *Common HTML Elements*.

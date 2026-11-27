@@ -1,0 +1,12 @@
+= Send a raw request from a plain block
+
+// (test {"testId":"http-request-block-untagged","detectSteps":true})
+
+Send this request:
+
+----
+GET http://localhost:8093/api/users?page=2
+X-Test: docs
+----
+
+// (test end)

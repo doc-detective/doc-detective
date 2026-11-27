@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-origin">
+  <title>Test pages on your own site</title>
+  <taskbody>
+    <context><p>These steps use paths, not full URLs. The run's config sets the site's origin.</p></context>
+    <steps>
+      <step><cmd>Go to <codeph>/cookies/set/sessions_origin/visited</codeph>.</cmd></step>
+      <step><cmd>Go to <codeph>/cookies</codeph>, and check that the page shows <codeph>sessions_origin=visited</codeph>.</cmd></step>
+      <step><cmd>Go to <codeph>/api/echo</codeph>, and check that the response echoes the <codeph>from</codeph> parameter that the config adds: <codeph>"from":"docs"</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

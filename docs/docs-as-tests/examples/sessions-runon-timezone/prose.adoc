@@ -1,0 +1,4 @@
+= Check the page on Berlin time
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
+. Check that the page's time zone is `Europe/Berlin`.

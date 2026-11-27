@@ -1,0 +1,10 @@
+Check for any log file
+======================
+
+Write a log to the ``output`` folder next to this page:
+
+.. code-block:: shell
+
+   node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/app.log','started')"
+
+Check that the ``output`` folder holds a log file.

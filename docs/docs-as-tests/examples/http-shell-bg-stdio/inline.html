@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Start a background process</title></head>
+<body>
+<!-- test {"testId":"http-shell-bg-stdio","detectSteps":false} -->
+<h1>Start a background process</h1>
+<p>Start the process:</p>
+<pre><code class="language-shell">node -e "console.log('Preview ready'); setInterval(() =&gt; {}, 1000)"</code></pre>
+<!-- step {"runShell":{"command":"node -e \"console.log('Preview ready'); setInterval(() => {}, 1000)\"","background":{"name":"http-shell-bg-stdio","waitUntil":{"stdio":"Preview ready"}},"timeout":15000}} -->
+<p>Stop it when you're done.</p>
+<!-- step {"closeSurface":"http-shell-bg-stdio"} -->
+<!-- test end -->
+</body>
+</html>

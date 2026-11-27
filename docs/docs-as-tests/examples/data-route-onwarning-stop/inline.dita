@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-route-onwarning-stop">
+  <title>Stop after a warning</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-route-onwarning-stop","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock>
+          <data name="doc-detective" value='step {"runShell":"node --version","onWarning":[{"stop":"test"}]}'/></info></step>
+      <step><cmd>Print the npm version:</cmd>
+        <info><codeblock outputclass="language-shell">npm --version</codeblock>
+          <data name="doc-detective" value='step {"stepId":"npm","runShell":"npm --version"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

@@ -1,0 +1,5 @@
+= Skip a pause
+
+. Go to http://localhost:8092/wait-delay.html[the wait delay page].
+. Skip the pause.
+. Check that the page shows *Loaded after 2 seconds*.

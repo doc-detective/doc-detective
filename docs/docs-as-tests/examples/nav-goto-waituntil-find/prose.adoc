@@ -1,0 +1,4 @@
+= Wait for an element to appear
+
+. Go to http://localhost:8092/waitUntil-test-late-element.html[the late element page].
+. Check that the page shows *Dashboard*.

@@ -1,0 +1,6 @@
+= Echo text back
+
+. Go to http://localhost:8092/type-echo.html[the type echo page].
+. Click *Type here:*.
+. Type "Hello, Doc Detective".
+. Check that the page shows *Hello, Doc Detective* below the field.

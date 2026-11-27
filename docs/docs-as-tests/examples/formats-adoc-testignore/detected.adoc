@@ -1,0 +1,14 @@
+= Check the demo pages
+
+// (test {"testId":"formats-adoc-testignore","detectSteps":true})
+
+. Check that http://localhost:8092/index.html[the elements demo] loads.
+
+To fetch the page from a terminal instead, run:
+
+[source,bash,testIgnore]
+----
+curl http://localhost:8092/index.html
+----
+
+// (test end)

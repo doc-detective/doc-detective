@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-openapi-validate-none">
+  <title>Validate against the description</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-openapi-validate-none","detectSteps":false,"openApi":[{"name":"users","descriptionPath":"../http-openapi/users.openapi.json"}]}'/>
+    <p>Call the <codeph>createUser</codeph> operation with only a name.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"openApi":{"operationId":"createUser","validateAgainstSchema":"none"},"request":{"body":{"name":"Ada"}}}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

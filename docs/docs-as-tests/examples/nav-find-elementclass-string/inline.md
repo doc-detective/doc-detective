@@ -1,0 +1,10 @@
+<!-- test {"testId":"nav-find-elementclass-string","detectSteps":false} -->
+
+# Find an element by one class
+
+1. Go to [the element test page](http://localhost:8092/enhanced-elements.html).
+   <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} -->
+2. Find the **Login Submit** button.
+   <!-- step {"find":{"elementClass":"btn-large"}} -->
+
+<!-- test end -->

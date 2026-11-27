@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Move a mark to the next field</title></head>
+<body>
+<!-- test {"testId":"capture-annotate-update","detectSteps":true} -->
+<h1>Move a mark to the next field</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/enhanced-elements.html">the sample form</a>.
+    <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} --></li>
+  <li>The username field is marked 1.
+    <!-- step {"annotate":{"add":[{"id":"step","badge":"#username-input","label":"1"}]}} --></li>
+  <li>Then the button is marked 2.
+    <!-- step {"annotate":{"update":[{"id":"step","badge":"#submit-button","label":"2"}]}} -->
+    <!-- step {"screenshot":{"path":"annotate-update.png","directory":".dd-output","overwrite":"true"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

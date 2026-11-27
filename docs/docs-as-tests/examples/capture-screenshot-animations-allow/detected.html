@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Save a screenshot of an animated page with animations allow</title></head>
+<body>
+<!-- test {"testId":"capture-screenshot-animations-allow","detectSteps":true} -->
+<h1>Save a screenshot of an animated page with animations allow</h1>
+<ol>
+  <li>Open the page at <code>http://localhost:8092/screenshot-loop.html</code>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/screenshot-loop.html","waitUntil":{"networkIdleTime":0,"domIdleTime":0}}} --></li>
+  <li>A spinner turns in the middle of the page.
+    <!-- step {"screenshot":{"path":"animations-allow.png","directory":".dd-output","overwrite":"true","animations":"allow"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>
