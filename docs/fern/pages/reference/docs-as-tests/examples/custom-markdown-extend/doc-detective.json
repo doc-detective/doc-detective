@@ -19,9 +19,14 @@
       "markup": [
         {
           "name": "goToUrl",
-          "link": { "url": "^https?://", "precededBy": "\\b[Gg]o to(?: the)?\\s+$" },
+          "link": { "url": "^https?://", "precededBy": "\\b[Gg]o to(?: the)?\\s+$", "excludes": "^\\s*$" },
           "captures": ["url", "text"],
           "actions": ["goTo", { "find": "$2" }]
+        },
+        {
+          "name": "clickOnscreenText",
+          "strong": { "precededBy": "\\b(?:[Cc]lick|[Ss]elect)\\s+$" },
+          "actions": ["click"]
         },
         {
           "name": "findOnscreenText",
@@ -29,16 +34,27 @@
           "actions": ["find"]
         },
         {
+          "name": "typeText",
+          "text": { "excludes": "^\\s*For example\\b" },
+          "regex": "\\b(?:[Pp]ress|[Ee]nter|[Tt]ype)\\b\\s+\"([^\"]+)\"",
+          "actions": ["type"]
+        },
+        {
           "name": "typeKeyboardInput",
-          "element": { "tag": ["kbd"], "precededBy": "\\b[Ee]nter\\s+$" },
+          "element": { "tag": ["kbd"], "precededBy": "\\b[Ee]nter\\s+$", "excludes": "^(?:Enter|Tab|Esc|Ctrl|Shift|Alt)\\b" },
           "captures": ["content"],
           "actions": ["type"]
         },
         {
           "name": "waitForUpdate",
-          "emphasis": { "precededBy": "\\b[Ww]ait\\s+$" },
+          "emphasis": { "precededBy": "\\b[Ww]ait\\s+$", "excludes": "^0 ms$" },
           "regex": "^(\\d+) ms$",
           "actions": ["wait"]
+        },
+        {
+          "name": "findSampleOutput",
+          "element": "samp",
+          "actions": ["find"]
         }
       ]
     },

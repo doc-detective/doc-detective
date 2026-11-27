@@ -2,10 +2,15 @@ TEST {"testId":"custom-plain-text","detectSteps":false}
 
 Create a user with the echo API
 
-1. Check that http://localhost:8092/api/users responds before you start.
-   STEP {"checkLink":"http://localhost:8092/api/users"}
-2. Send a POST request to http://localhost:8092/api/users with the body {"name":"Ada"}.
+INCLUDE prerequisites.txt
+STEP {"checkLink":"http://localhost:8092/api/users"}
+
+1. Send a POST request to http://localhost:8092/api/users with the body {"name":"Ada"}.
    The API returns the user it created.
    STEP {"httpRequest":{"method":"post","url":"http://localhost:8092/api/users","request":{"body":{"name":"Ada"}},"response":{"body":{"name":"Ada"}}}}
+
+To remove a user later, send a request like this one. Don't run it against
+data you want to keep:
+   Send a DELETE request to http://localhost:8092/api/users/1 with the body {"confirm":true}.
 
 END TEST

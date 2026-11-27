@@ -1,6 +1,6 @@
 {
   "detectSteps": true,
-  "resolveIncludes": false,
+  "resolveIncludes": true,
   "autoScreenshot": false,
   "autoRecord": false,
   "beforeAll": "../../../../../../test-setup/start-server.spec.json",
@@ -13,14 +13,17 @@
       "name": "plain-text",
       "extensions": ["txt"],
       "inlineStatements": {
-        "testStart": ["(?:^|\\n)[ \\t]*TEST (\\{.*\\})"],
-        "testEnd": ["(?:^|\\n)[ \\t]*END TEST"],
-        "step": ["(?:^|\\n)[ \\t]*STEP (\\{.*\\})"]
+        "testStart": "(?:^|\\n)[ \\t]*TEST (\\{.*\\})",
+        "testEnd": "(?:^|\\n)[ \\t]*END TEST",
+        "ignoreStart": "(?:^|\\n)[ \\t]*IGNORE START",
+        "ignoreEnd": "(?:^|\\n)[ \\t]*IGNORE END",
+        "step": "(?:^|\\n)[ \\t]*STEP (\\{.*\\})"
       },
+      "includeStatements": "^[ \\t]*INCLUDE (\\S+)[ \\t]*$",
       "markup": [
         {
           "name": "checkUrl",
-          "regex": ["\\bCheck that (https?://\\S+) responds\\b"],
+          "regex": ["\\b[Cc]heck that (https?://\\S+) responds\\b"],
           "actions": ["checkLink"]
         },
         {

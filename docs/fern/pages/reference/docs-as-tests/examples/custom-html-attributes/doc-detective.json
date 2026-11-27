@@ -16,8 +16,20 @@
       },
       "markup": [
         {
+          "name": "goToUrl",
+          "link": { "url": "^https?://", "precededBy": "\\b[Gg]o to\\s+$" },
+          "captures": ["url"],
+          "actions": ["goTo"]
+        },
+        {
+          "name": "checkHyperlink",
+          "link": { "url": "^https?://", "attributes": { "data-check": true }, "excludes": "^\\s*$" },
+          "captures": ["url"],
+          "actions": ["checkLink"]
+        },
+        {
           "name": "checkHostedImage",
-          "image": { "src": "^https?://", "attributes": { "class": "(^|\\s)hosted(\\s|$)" } },
+          "image": { "src": "^https?://", "attributes": { "class": "(^|\\s)hosted(\\s|$)" }, "precededBy": "(?:^|>)\\s*$", "excludes": "^\\s*$" },
           "captures": ["src"],
           "actions": ["checkLink"]
         },
@@ -28,7 +40,7 @@
         },
         {
           "name": "waitComment",
-          "comment": {},
+          "comment": { "excludes": "\\bTODO\\b" },
           "regex": "^\\s*wait (\\d+)\\s*$",
           "actions": ["wait"]
         },
@@ -45,7 +57,7 @@
       "markup": [
         {
           "name": "checkHostedImage",
-          "image": { "src": "^https?://", "attributes": { "class": "(^|\\s)hosted(\\s|$)" } },
+          "image": { "src": "^https?://", "attributes": { "class": "(^|\\s)hosted(\\s|$)" }, "precededBy": "(?:^|>)\\s*$", "excludes": "^\\s*$" },
           "captures": ["src"],
           "actions": ["checkLink"]
         },
@@ -56,7 +68,7 @@
         },
         {
           "name": "waitComment",
-          "comment": {},
+          "comment": { "excludes": "\\bTODO\\b" },
           "regex": "^\\s*wait (\\d+)\\s*$",
           "actions": ["wait"]
         },
