@@ -609,8 +609,12 @@ async function spawnPtyBackgroundCommand(
     ? " " + args.map((arg) => quoteShellArg(arg, quoteStyle)).join(" ")
     : "";
   const fullCommand = cmd + argstr;
+  // cmd.exe gets a pre-escaped command line (node-pty takes a string on
+  // Windows), built the way Node builds it for `{ shell }`: `/d /s /c "<cmd>"`.
+  // As an argv array, node-pty would re-escape the quoted args as `\"`, which
+  // cmd doesn't understand, so the program got a mangled argv.
   const shellArgs = isCmdShell
-    ? ["/d", "/s", "/c", fullCommand]
+    ? `/d /s /c "${fullCommand}"`
     : ["-c", fullCommand];
 
   let ptyProcess: any;
