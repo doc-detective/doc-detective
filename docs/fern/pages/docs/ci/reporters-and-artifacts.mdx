@@ -14,7 +14,7 @@ For the full list of reporter and output options, see the [`config`](/reference/
 
 ## Step 1: Choose your reporters
 
-Doc Detective ships six reporters: `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`. By default, it runs `terminal` and `runFolder`. To choose a different combination, set the `reporters` option.
+Doc Detective ships seven reporters: `terminal`, `json`, `html`, `runFolder`, `junit`, `markdown`, and `cucumber`. By default, it runs `terminal` and `runFolder`. To choose a different combination, set the `reporters` option.
 
 The run folder holds the screenshots and recordings Doc Detective takes by default. So the `runFolder` reporter runs whenever [`autoScreenshot`](/docs/test-docs/automatic-screenshots) or [`autoRecord`](/docs/test-docs/automatic-recording) is on, even if `reporters` leaves it out:
 
@@ -33,6 +33,7 @@ The run folder holds the screenshots and recordings Doc Detective takes by defau
 | `runFolder` | A per-run folder containing the results (JSON, HTML, and a Markdown summary) alongside the screenshots and recordings the run captured. |
 | `junit` | A `junit.xml` report that CI platforms render in their test summary views, with each failure's screenshot and recording attached. See [Read the JUnit report](#read-the-junit-report). |
 | `markdown` | A `doc-detective-summary.md` run summary for a CI job summary or a merge request comment. See [Read the Markdown summary](#read-the-markdown-summary). |
+| `cucumber` | A `cucumber.json` report in Cucumber JSON, for test-management tools such as Xray and Allure, with screenshots embedded. See [Read the Cucumber report](#read-the-cucumber-report). |
 
 Doc Detective doesn't look for tests in folders named `.doc-detective`. That keeps a run from testing the files an earlier run saved there.
 
@@ -74,11 +75,11 @@ Or set them in your config file so every run uses the same combination:
 
 To keep the defaults, leave `reporters` out of your config. An empty list, `"reporters": []`, runs no reporters you choose, so the run prints no summary. While `autoScreenshot` or `autoRecord` is on, the run folder still archives the results. Set both to `false` to write nothing.
 
-Each name must match one of the six built-in reporters exactly, in your config or in `--reporters`. Any other name, such as `"JSON"` or `"htm"`, stops the run with exit code `2` and an error that lists the allowed names. In a config file, the error looks like this:
+Each name must match one of the seven built-in reporters exactly, in your config or in `--reporters`. Any other name, such as `"JSON"` or `"htm"`, stops the run with exit code `2` and an error that lists the allowed names. In a config file, the error looks like this:
 
 ```text
 Error: Invalid config in .doc-detective.json:
-reporters[0]: must be one of terminal, json, html, runFolder, junit, markdown (got "htm").
+reporters[0]: must be one of terminal, json, html, runFolder, junit, markdown, cucumber (got "htm").
 See https://docs.doc-detective.com/reference/schemas/config
 ```
 
@@ -136,6 +137,44 @@ Element not found within timeout
 - **Warnings.** JUnit has no warning state, so the case passes, and each warning is a `Warning:` line in `<system-err>`.
 - **Skips.** A skipped context is `<skipped message="<reason>"><reason></skipped>`. A skipped step in a case that ran is a `Skipped:` line in `<system-out>`.
 - **Properties.** Each suite has a `timestamp` and `<properties>` with the run ID and the [run's environment](#tell-environment-changes-from-product-changes). They include only the fields the report has.
+
+### Read the Cucumber report
+
+The `cucumber` reporter writes `cucumber.json` in Cucumber JSON, which Xray, Allure, and other test-management tools import. Each spec is a feature, each test in each context is a scenario, and each step is a step:
+
+```json title="cucumber.json"
+[
+  {
+    "uri": "/home/runner/work/docs/install.md",
+    "id": "install-guide",
+    "keyword": "Feature",
+    "name": "The install guide",
+    "elements": [
+      {
+        "type": "scenario",
+        "keyword": "Scenario",
+        "id": "install;linux-chrome",
+        "name": "Install the CLI (chrome/linux)",
+        "steps": [
+          { "keyword": "* ", "name": "goTo: https://example.com", "result": { "status": "passed", "duration": 1500000000 } },
+          {
+            "keyword": "* ",
+            "name": "Click Save",
+            "result": { "status": "failed", "duration": 2000000, "error_message": "Couldn't find element `#save`.\nCheck the selector." },
+            "embeddings": [{ "mime_type": "image/png", "data": "iVBORw0KGgo..." }]
+          }
+        ]
+      }
+    ]
+  }
+]
+```
+
+- **Names.** A feature's `uri` is the spec's source file, or its ID when there's no source file. Its `name` is the spec's description or ID. A scenario's `name` is the test's description or ID, then the browser and platform. A step's `name` is its description, or else its action and main value.
+- **Statuses.** `PASS` is `passed`, `FAIL` is `failed`, and `SKIPPED` is `skipped`. Cucumber has no warning state, so a `WARNING` step is `passed`, with the warning in the step's `output`.
+- **Errors.** A failed or warning step's `error_message` is its reason, then its hint when it has one.
+- **Durations.** `duration` is in nanoseconds, as Cucumber JSON expects.
+- **Embeddings.** The report embeds each step's screenshot as base64 PNG, so it stands on its own. A screenshot-heavy run makes a large file. The context's recording is a `text/plain` embedding on the scenario's last step, holding the recording's absolute path.
 
 ### Read the Markdown summary
 
@@ -197,10 +236,11 @@ Reporters that write a file name it on stderr, with its absolute path:
 | `html` | `<outputDir>/testResults-<runId>.html` | `HTML report: <path>` |
 | `junit` | `<outputDir>/junit.xml` | `JUnit report: <path>` |
 | `markdown` | `<outputDir>/doc-detective-summary.md` | `Markdown summary: <path>` |
+| `cucumber` | `<outputDir>/cucumber.json` | `Cucumber report: <path>` |
 
 These lines are info-level logs, so `-l warning` and quieter hide them. They never reach stdout, so `--json` stdout holds only JSON, whichever reporters run.
 
-`junit.xml` and `doc-detective-summary.md` have fixed names and are overwritten on each run, so a CI artifact path stays stable. The `json` and `html` names carry the run ID, so each run keeps its own file.
+`junit.xml`, `doc-detective-summary.md`, and `cucumber.json` have fixed names and are overwritten on each run, so a CI artifact path stays stable. The `json` and `html` names carry the run ID, so each run keeps its own file.
 
 `outputDir` normally names a folder. A path that ends in `.json`, `.html`, `.htm`, `.xml`, or `.md` counts as a file, and reports land beside it. If the `json` or `html` reporter matches that extension, it writes to that file, and it overwrites a file that's already there.
 

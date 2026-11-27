@@ -102,6 +102,7 @@ Each reporter points at the video its own way:
 | `terminal` | A `Recording:` line with the absolute path, on each item the context lists. |
 | `markdown`, and the run folder's `testResults.md` | A `Recording:` path, relative to the summary file, on each item the context lists. |
 | `junit` | A `[[ATTACHMENT…]]` line holding the path, relative to `junit.xml`, on every test case that isn't skipped. |
+| `cucumber` | A `text/plain` embedding holding the absolute path, on the last step of the scenario. |
 | `json`, and the run folder's `testResults.json` | The context's `autoRecording` field, with `recordingPath` relative to `runDir`. |
 
 The `terminal`, `markdown`, and `junit` reporters list a recording that didn't pass as an item of its own, named `<specId> › <testId> › <contextId> › autoRecording`, with its reason. See [What every reporter lists](/docs/ci/reporters-and-artifacts#what-every-reporter-lists).
