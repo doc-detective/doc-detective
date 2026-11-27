@@ -47,13 +47,16 @@ Chosen option: **A**, because it's the only one that gives the configured size w
   before. When it doesn't change, it does nothing.
 - `startRecording` stores that size on the recording handle as `restoreWindow`. `stopRecording` restores it after it
   closes the recorder tab, on every exit path.
-- A headed window the display can't grow logs at debug level, and records a little short, as before.
+- In headed Chrome, the display can be too small for the taller window. Then the video stays about 58 px short, as
+  before, and the runner logs it at debug level only.
 
 ### Consequences
 
 - Good: a browser recording is the viewport's size, and `verify.resolution` can assert it.
 - Good: screenshots during a recording match screenshots outside it.
 - Bad: the window is taller than before while a recording runs. A page that reads `outerHeight` sees the change.
+- Bad: an exact `verify.resolution` still fails in headed Chrome when the display can't fit the taller window. The
+  `record` page says to run headless, use a smaller viewport, or use `verify.resolution: true` there.
 - Bad: when no bar appears, starting a recording waits up to 1 second longer.
 - Neutral: frames from before the resize are the bar-shortened size. ADR 01197's transcode sizes the video by the
   frames that cover the most time, so they're scaled to the viewport's size.
