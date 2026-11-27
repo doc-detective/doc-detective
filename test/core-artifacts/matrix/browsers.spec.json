@@ -1,6 +1,6 @@
 {
   "specId": "matrix-browsers",
-  "description": "A `matrix` crosses with the entry's browsers: two pages × Chrome and Firefox give four contexts (ADR 01234).",
+  "description": "A `matrix` crosses with the entry's browsers: two pages × Chrome and Firefox give four contexts (ADR 01240).",
   "tests": [
     {
       "testId": "matrix-times-browsers",

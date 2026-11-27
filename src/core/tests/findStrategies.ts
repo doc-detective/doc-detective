@@ -578,6 +578,9 @@ async function findElementByCriteria({
   // populated, so `element` stays the first match either way.
   all?: boolean;
 }) {
+  // The step normalizer lists a `find` step's classes, but annotation, mask,
+  // and crop targets arrive as authored: one class is a list of one.
+  if (typeof elementClass === "string") elementClass = [elementClass];
   // Validate at least one criterion is provided
   if (
     !selector &&

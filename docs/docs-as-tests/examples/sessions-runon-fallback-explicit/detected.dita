@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-fallback-explicit">
+  <title>Check the page in Firefox</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-runon-fallback-explicit","detectSteps":true,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"explicit","retries":0}]}'/>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/multi-tab.html"}'/></info></step>
+      <step><cmd>Check that the page reads <b>MULTI-TAB HOME</b>.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

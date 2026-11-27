@@ -1464,7 +1464,7 @@ import { schemas } from "../dist/index.js";
       });
     });
 
-    describe("runOn matrix (ADR 01234)", function () {
+    describe("runOn matrix (ADR 01240)", function () {
       const check = (context) => validate({ schemaKey: "context_v3", object: context });
 
       it("accepts scalar and object values, and references in emulation fields", function () {
@@ -1501,16 +1501,16 @@ import { schemas } from "../dist/index.js";
         });
       }
 
-      it("accepts values from a file (ADR 01235)", function () {
+      it("accepts values from a file (ADR 01241)", function () {
         expect(check({ matrix: { page: { file: "pages.json" }, url: { file: "sitemap.xml" } } }).valid).to.be.true;
       });
 
-      it("rejects a file object with another key, or an empty path (ADR 01235)", function () {
+      it("rejects a file object with another key, or an empty path (ADR 01241)", function () {
         expect(check({ matrix: { page: { file: "pages.json", url: "x" } } }).valid).to.be.false;
         expect(check({ matrix: { page: { file: "" } } }).valid).to.be.false;
       });
 
-      it("accepts a goTo URL that starts with a matrix reference (ADR 01235)", function () {
+      it("accepts a goTo URL that starts with a matrix reference (ADR 01241)", function () {
         for (const goTo of ["$$matrix.url", { url: "$$matrix.url" }]) {
           const result = validate({ schemaKey: "step_v3", object: { goTo } });
           expect(result.valid, result.errors).to.be.true;
@@ -2529,12 +2529,12 @@ import { schemas } from "../dist/index.js";
       });
     });
 
-    // ADR 01166: config `reporters` takes the six public names, exactly.
+    // ADR 01166: config `reporters` takes the seven public names, exactly.
     describe("config reporters", function () {
       const reporters = (list) => validate({ schemaKey: "config_v3", object: { reporters: list } }).valid;
 
       it("accepts each public reporter name", function () {
-        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown"])).to.be.true;
+        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown", "cucumber"])).to.be.true;
       });
 
       it("rejects other spellings and internal reporters", function () {
@@ -4182,11 +4182,26 @@ import { schemas } from "../dist/index.js";
           expect(result.valid, result.errors).to.be.true;
         }
         const defaults = validate({ schemaKey: "config_v3", object: {} });
-        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst"]);
+        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst", "gherkin"]);
       });
 
       it("rejects restructuredtext as a predefined fileType or extends base", function () {
         for (const fileTypes of [["restructuredtext"], [{ extends: "restructuredtext", extensions: ["txt"] }]]) {
+          expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
+        }
+      });
+    });
+
+    describe("config_v3 gherkin fileType", function () {
+      it("accepts gherkin as a predefined fileType and as an extends base", function () {
+        for (const fileTypes of [["gherkin"], [{ extends: "gherkin", extensions: ["story"] }]]) {
+          const result = validate({ schemaKey: "config_v3", object: { fileTypes } });
+          expect(result.valid, result.errors).to.be.true;
+        }
+      });
+
+      it("rejects cucumber as a predefined fileType or extends base", function () {
+        for (const fileTypes of [["cucumber"], [{ extends: "cucumber", extensions: ["story"] }]]) {
           expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
         }
       });

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-openapi-mockresponse">
+  <title>Preview an operation's response</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-openapi-mockresponse","detectSteps":true,"openApi":[{"name":"users","descriptionPath":"../http-openapi/users.openapi.json"}]}'/>
+    <p>Preview the <codeph>getUser</codeph> response from its <codeph>ada</codeph> example.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"openApi":{"operationId":"getUser","mockResponse":true,"useExample":"response","exampleKey":"ada","validateAgainstSchema":"response"},"response":{"body":{"name":"Ada"}}}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

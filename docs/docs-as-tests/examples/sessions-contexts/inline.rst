@@ -1,0 +1,30 @@
+Check what the page sees in an emulated browser
+===============================================
+
+.. test {"testId":"sessions-contexts","detectSteps":false,"runOn":[{"contextId":"sessions-emulated-chrome","platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"colorScheme":"dark","locale":"de-DE","timezone":"Europe/Berlin","deviceScaleFactor":2,"reducedMotion":"reduce","clock":"2026-12-03T09:00:00Z"}}]}
+
+Run these steps in headless Chrome set to dark mode, German, Berlin time, a 2x display, reduced motion, and a fixed clock.
+
+#. Start at `the test site's home page <http://localhost:8092/index.html>`__.
+
+   .. step {"goTo":"http://localhost:8092/index.html"}
+
+#. Check that the page prefers the dark color scheme and reduced motion.
+
+   .. step {"runBrowserScript":{"script":"return String(matchMedia(\"(prefers-color-scheme: dark)\").matches);","output":"true"}}
+
+   .. step {"runBrowserScript":{"script":"return String(matchMedia(\"(prefers-reduced-motion: reduce)\").matches);","output":"true"}}
+
+#. Check that the page's language is ``de-DE`` and its time zone is ``Europe/Berlin``.
+
+   .. step {"runBrowserScript":{"script":"return navigator.language;","output":"de-DE"}}
+
+   .. step {"runBrowserScript":{"script":"return Intl.DateTimeFormat().resolvedOptions().timeZone;","output":"Europe/Berlin"}}
+
+#. Check that the device pixel ratio is ``2``, and that the clock reads December 3, 2026, 09:00 UTC.
+
+   .. step {"runBrowserScript":{"script":"return String(devicePixelRatio);","output":"2"}}
+
+   .. step {"runBrowserScript":{"script":"return new Date().toISOString();","output":"/^2026-12-03T09:00/"}}
+
+.. test end

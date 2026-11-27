@@ -333,6 +333,21 @@
       ]
     },
     {
+      "testId": "selectors-builtin-dita-indented-yaml",
+      "description": "A DITA processing instruction with an indented multi-line YAML body sets the test's `testId` and `detectSteps`.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/detection/dry-run-detect.cjs builtin-dita-indented-yaml",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
       "testId": "selectors-builtin-rst",
       "description": "The reStructuredText built-in detects the same steps as Markdown.",
       "steps": [

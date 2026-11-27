@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Find a field and type in it</title></head>
+<body>
+<!-- test {"testId":"nav-find-type","detectSteps":true} -->
+<h1>Find a field and type in it</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/type-echo.html">the type echo page</a>.
+    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
+  <li>Find the <strong>Type here:</strong> field, click it, and type <code>Hello</code>.
+    <!-- step {"find":{"selector":"#type-input","click":true,"type":"Hello"}} --></li>
+  <li>Check that the page shows <strong>Hello</strong> below the field.</li>
+</ol>
+<!-- test end -->
+</body>
+</html>

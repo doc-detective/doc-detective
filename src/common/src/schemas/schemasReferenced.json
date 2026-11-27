@@ -8169,7 +8169,8 @@
               "html",
               "runFolder",
               "junit",
-              "markdown"
+              "markdown",
+              "cucumber"
             ]
           },
           "default": [
@@ -8308,7 +8309,8 @@
             "asciidoc",
             "html",
             "dita",
-            "rst"
+            "rst",
+            "gherkin"
           ],
           "anyOf": [
             {
@@ -8323,7 +8325,8 @@
                       "asciidoc",
                       "html",
                       "dita",
-                      "rst"
+                      "rst",
+                      "gherkin"
                     ]
                   },
                   {
@@ -8352,7 +8355,8 @@
                           "asciidoc",
                           "html",
                           "dita",
-                          "rst"
+                          "rst",
+                          "gherkin"
                         ]
                       },
                       "extensions": {
@@ -17029,7 +17033,8 @@
               "html",
               "runFolder",
               "junit",
-              "markdown"
+              "markdown",
+              "cucumber"
             ]
           }
         },
@@ -17165,7 +17170,8 @@
                       "asciidoc",
                       "html",
                       "dita",
-                      "rst"
+                      "rst",
+                      "gherkin"
                     ]
                   },
                   {
@@ -17194,7 +17200,8 @@
                           "asciidoc",
                           "html",
                           "dita",
-                          "rst"
+                          "rst",
+                          "gherkin"
                         ]
                       },
                       "extensions": {

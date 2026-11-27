@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-describe("matrix values from a file (ADR 01235)", function () {
+describe("matrix values from a file (ADR 01241)", function () {
   let dir;
   before(function () {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-file-"));
@@ -87,7 +87,7 @@ describe("matrix values from a file (ADR 01235)", function () {
   });
 });
 
-describe("resolvePaths leaves `matrix` values alone (ADR 01234)", function () {
+describe("resolvePaths leaves `matrix` values alone (ADR 01240)", function () {
   for (const objectType of ["spec", "config"]) {
     it(`doesn't treat a ${objectType} matrix key named like a path key as paths`, async function () {
       const object = {
@@ -110,7 +110,7 @@ const variant = [
   { theme: "dark", dpr: 2 },
 ];
 
-describe("resolveTests with a matrix (ADR 01234)", function () {
+describe("resolveTests with a matrix (ADR 01240)", function () {
   const config = { logLevel: "silent" };
   const spec = (tests, extra = {}) => ({ specId: "s", contentPath: "/abs/s.spec.json", openApi: [], tests, ...extra });
   const resolve = async (specs) => {

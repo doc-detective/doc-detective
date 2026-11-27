@@ -1,0 +1,13 @@
+<!-- test {"testId":"http-shell-string","detectSteps":true} -->
+
+# Run a command
+
+Run this command:
+
+```shell
+node -e "console.log('ready')"
+```
+
+<!-- step {"runShell":"node -e \"console.log('ready')\""} -->
+
+<!-- test end -->

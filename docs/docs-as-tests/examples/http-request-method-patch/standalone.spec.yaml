@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: http-request-method-patch
+    steps:
+      - httpRequest:
+          url: http://localhost:8093/api/users/2
+          method: patch
+          request:
+            body: &a1
+              job: lead
+          response:
+            body: *a1

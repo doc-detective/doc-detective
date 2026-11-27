@@ -2,6 +2,7 @@ import { expect } from "chai";
 import sinon from "sinon";
 import { detectTests } from "../dist/index.js";
 import { validate } from "../dist/validate.js";
+import { defaultFileTypes } from "../dist/fileTypes.js";
 import { parseMarkdown, parseAttributeList } from "../dist/detect/markdown.js";
 import { parseStatementText, collectStatements, mainText, matches } from "../dist/detect/selectors.js";
 
@@ -108,6 +109,22 @@ describe("selectors", function () {
       expect(parseStatementText("test ignore start")).to.deep.equal({ type: "ignoreStart", payload: "" });
       expect(parseStatementText("test ignore end")).to.deep.equal({ type: "ignoreEnd", payload: "" });
       expect(parseStatementText('step {"find": "x"}')).to.deep.equal({ type: "step", payload: '{"find": "x"}' });
+    });
+
+    it("dedents a multi-line body as a block", function () {
+      // The documented DITA form: every key indented under the keyword line.
+      expect(parseStatementText("test\n  testId: x\n  detectSteps: false")).to.deep.equal({
+        type: "testStart",
+        payload: "testId: x\ndetectSteps: false",
+      });
+      // Un-indented bodies are unchanged.
+      expect(parseStatementText("test\ntestId: x\ndetectSteps: false").payload).to.equal("testId: x\ndetectSteps: false");
+      // Nested keys keep their relative indentation; blank lines don't count.
+      expect(parseStatementText("step\n    httpRequest:\n      url: https://example.com\n\n      method: get").payload).to.equal(
+        "httpRequest:\n  url: https://example.com\n\n  method: get"
+      );
+      // Tabs count as indentation too.
+      expect(parseStatementText("test\n\ttestId: x\n\tdetectSteps: false").payload).to.equal("testId: x\ndetectSteps: false");
     });
 
     it("needs the keyword to end at a word boundary", function () {
@@ -264,6 +281,19 @@ describe("selectors", function () {
       const { tests, steps } = await detect(content, md({ inlineStatements: { in: ["comment"] } }));
       expect(tests.map((t) => t.testId)).to.deep.equal(["t"]);
       expect(strip(steps)).to.deep.equal([{ find: "a" }]);
+    });
+
+    it("reads multi-line YAML statements whose keys are indented", async function () {
+      // The documented DITA processing-instruction form.
+      const dita = '<topic id="t"><title>T</title><body>\n<?doc-detective test\n  testId: x\n  detectSteps: false\n?>\n<?doc-detective step\n  goTo: https://example.com\n?>\n</body></topic>\n';
+      const fromDita = await detect(dita, defaultFileTypes.dita, { filePath: "doc.dita" });
+      expect(fromDita.tests.map((t) => ({ testId: t.testId, detectSteps: t.detectSteps }))).to.deep.equal([{ testId: "x", detectSteps: false }]);
+      expect(strip(fromDita.steps)).to.deep.equal([{ goTo: "https://example.com" }]);
+      // The same body in a Markdown comment.
+      const markdown = "<!-- test\n  testId: y\n  detectSteps: false\n-->\n\n<!-- step\n  find: a\n-->\n";
+      const fromMarkdown = await detect(markdown, defaultFileTypes.markdown);
+      expect(fromMarkdown.tests.map((t) => t.testId)).to.deep.equal(["y"]);
+      expect(strip(fromMarkdown.steps)).to.deep.equal([{ find: "a" }]);
     });
 
     it("honors ignore statements from containers", async function () {

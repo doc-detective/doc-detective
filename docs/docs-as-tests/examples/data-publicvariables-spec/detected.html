@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>List products and show the URL in reports</title></head>
+<body>
+<!-- test {"testId":"data-publicvariables-spec","detectSteps":true} -->
+<h1>List products and show the URL in reports</h1>
+<ol>
+  <li>Load the variables in <code>shop.env</code>.
+    <!-- step {"loadVariables":"shop.env"} --></li>
+  <li>List the products. Send a <code>GET</code> request to <code>$SHOP_URL/products</code>.
+    <!-- step {"httpRequest":{"url":"$SHOP_URL/products","method":"get"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

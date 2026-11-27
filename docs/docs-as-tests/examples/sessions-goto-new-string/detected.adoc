@@ -1,0 +1,21 @@
+= Open named tabs and windows
+
+// (test {"testId":"sessions-goto-new-string","detectSteps":true,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]})
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
++
+// (step {"goTo":"http://localhost:8092/multi-tab.html"})
+. Load http://localhost:8092/multi-tab-child.html?page=notes[the notes page] in a new tab named `notes`.
++
+// (step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=notes","newTab":"notes"}})
+. Check that the `notes` tab reads "PAGE notes".
++
+// (step {"find":{"elementText":"PAGE notes","surface":{"browser":"firefox","tab":"notes"}}})
+. Load http://localhost:8092/multi-tab-child.html?page=about[the about page] in a new window named `about`.
++
+// (step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=about","newWindow":"about"}})
+. Check that the new window reads "PAGE about".
++
+// (step {"find":"PAGE about"})
+
+// (test end)

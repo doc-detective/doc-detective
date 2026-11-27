@@ -1,0 +1,21 @@
+# Preview invoices against a stubbed API
+
+Stub the invoices endpoint so that every `GET` request returns the invoices in `invoices.json`.
+
+Stub invoice creation too, so that a `POST` request returns a new invoice ID.
+
+Stub the notices endpoint with one billing notice.
+
+Stub the status endpoint so that it reports `OK`.
+
+Open the test site at `http://localhost:8092/`.
+
+In the browser console, fetch `/api/invoices?page=1`. The response lists invoice `inv-1`.
+
+Send a `POST` request to `/api/invoices`. The response status is `201`, and the body is the new ID, `inv-2`.
+
+Fetch `/api/notices`. The notice says when invoices are due, and matches the copy saved in `output/notices.json`.
+
+Fetch `/api/status`. The response is the text `OK`.
+
+Check the page title by evaluating `document.title` in the console.

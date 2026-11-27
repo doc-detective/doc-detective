@@ -163,6 +163,47 @@
       ]
     },
     {
+      "testId": "mock-request-navigations",
+      "description": "Navigations while a mock is active (ADR 01233). The mock's full URL can't match the pages, but Chrome pauses every request once any mock exists, so both navigations go through the paused-request path, and the mock still answers afterward.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "http://localhost:8092/api/mock-nav",
+            "response": {
+              "body": "mocked-nav"
+            }
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "goTo": "http://localhost:8092/find-click.html"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return fetch('/api/mock-nav').then(async (r) => location.pathname + ' ' + r.status + ' ' + (await r.text()));",
+            "output": "/find-click.html 200 mocked-nav"
+          }
+        }
+      ]
+    },
+    {
       "testId": "mock-request-replacement",
       "description": "A later mockRequest for the same `url` and `method` replaces the earlier one, and `outputs.matched` counts the requests answered for that pair so far.",
       "runOn": [

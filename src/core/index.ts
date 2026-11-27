@@ -50,7 +50,7 @@ async function detectAndResolveFromConfig(config: any, { strictSpecs = false } =
     return null;
   }
   const resolvedTests = await resolveTests({ config, detectedTests });
-  // Resolving can find more, such as a `matrix` mistake (ADR 01234).
+  // Resolving can find more, such as a `matrix` mistake (ADR 01240).
   rejectInvalidSpecs(config, strictSpecs);
   // Carry the full qualified input set forward so the verification
   // write-back can reach prose-only files that produced no spec (see

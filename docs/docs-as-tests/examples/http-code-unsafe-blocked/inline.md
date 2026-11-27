@@ -1,0 +1,21 @@
+<!-- test {"testId":"http-code-unsafe-blocked","detectSteps":false} -->
+
+# Skip an unsafe step
+
+Run this code:
+
+```javascript
+console.log("ready");
+```
+
+<!-- step {"unsafe":true,"runCode":{"language":"javascript","code":"console.log(\"ready\");"}} -->
+
+Then confirm that Node.js runs:
+
+```shell
+node -e "console.log('done')"
+```
+
+<!-- step {"runShell":{"command":"node -e \"console.log('done')\"","stdio":"done"}} -->
+
+<!-- test end -->

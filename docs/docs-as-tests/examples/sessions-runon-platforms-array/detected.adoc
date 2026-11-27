@@ -1,0 +1,10 @@
+= Check the page on Linux and macOS
+
+// (test {"testId":"sessions-runon-platforms-array","detectSteps":true,"runOn":[{"platforms":["linux","mac"]}]})
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
++
+// (step {"goTo":"http://localhost:8092/multi-tab.html"})
+. Check that the page reads *MULTI-TAB HOME*.
+
+// (test end)

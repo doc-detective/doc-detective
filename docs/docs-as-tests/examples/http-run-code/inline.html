@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Print a greeting</title></head>
+<body>
+<!-- test {"testId":"http-run-code","detectSteps":false} -->
+<h1>Print a greeting</h1>
+<p>Run this JavaScript with Node.js:</p>
+<pre><code class="language-javascript">console.log("Hello from JavaScript");</code></pre>
+<!-- step {"runCode":{"language":"javascript","code":"console.log(\"Hello from JavaScript\");","stdio":"Hello from JavaScript","exitCodes":[0],"workingDirectory":".","timeout":10000,"path":"greeting.txt","directory":"output","maxVariation":0,"overwrite":"false"}} -->
+<p>Run the same greeting in Python:</p>
+<pre><code class="language-py">print("Hello from Python")</code></pre>
+<!-- step {"runCode":{"language":"py","code":"print(\"Hello from Python\")","stdio":"/^Hello from Python/"}} -->
+<p>Or in Bash:</p>
+<pre><code class="language-bash">echo "Hello from Bash"</code></pre>
+<!-- step {"runCode":{"language":"bash","code":"echo \"Hello from Bash\"","stdio":"Hello from Bash"}} -->
+<p>To install the greeter for every project on your machine, run:</p>
+<pre><code class="language-bash">npm install --global ./greeter</code></pre>
+<!-- test end -->
+</body>
+</html>

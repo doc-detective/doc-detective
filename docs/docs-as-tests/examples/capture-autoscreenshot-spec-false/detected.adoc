@@ -1,0 +1,11 @@
+= Type text with autoScreenshot off for a spec
+
+// (test {"testId":"capture-autoscreenshot-spec-false","detectSteps":true,"autoScreenshot":false})
+
+. Go to http://localhost:8092/type-echo.html[the type echo page].
++
+// (step {"goTo":"http://localhost:8092/type-echo.html"})
+. Click *Type here:*.
+. Type "Hello".
+
+// (test end)

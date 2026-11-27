@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: sessions-runon-clock
+    runOn:
+      - platforms:
+          - linux
+          - mac
+          - windows
+        browsers:
+          name: chrome
+          headless: true
+          clock: 2026-12-03T09:00:00Z
+    steps:
+      - goTo: http://localhost:8092/multi-tab.html
+      - runBrowserScript:
+          script: return new Date().toISOString();
+          output: /^2026-12-03T09:00/

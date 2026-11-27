@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-requires-array">
+  <title>Check Node.js and npm, if both are installed</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Run <codeph>node --version</codeph>.</cmd></step>
+      <step><cmd>Run <codeph>npm --version</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

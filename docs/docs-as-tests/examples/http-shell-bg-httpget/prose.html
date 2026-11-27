@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Start a background process</title></head>
+<body>
+<h1>Start a background process</h1>
+<p>Start a server on port 8242:</p>
+<pre><code class="language-shell">node -e "require('http').createServer((q, r) =&gt; r.end('ok')).listen(8242)"</code></pre>
+<p>Stop it when you're done.</p>
+</body>
+</html>

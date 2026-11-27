@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check a page in another tab or window</title></head>
+<body>
+<!-- test {"testId":"sessions-select-tab-url","detectSteps":false,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]} -->
+<h1>Check a page in another tab or window</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Load <a href="http://localhost:8092/multi-tab-child.html?page=second">the second page</a> in a new tab named <code>second</code>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=second","newTab":"second"}} --></li>
+  <li>Check that the selected page reads "PAGE second".
+    <!-- step {"find":{"elementText":"PAGE second","surface":{"browser":"firefox","tab":{"url":"http://localhost:8092/multi-tab-child.html?page=second"}}}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

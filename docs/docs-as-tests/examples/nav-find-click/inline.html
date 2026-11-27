@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Find an element and click it</title></head>
+<body>
+<!-- test {"testId":"nav-find-click","detectSteps":false} -->
+<h1>Find an element and click it</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/find-click.html">the click counter page</a>.
+    <!-- step {"goTo":"http://localhost:8092/find-click.html"} --></li>
+  <li>Find <strong>Count clicks</strong> and click it.
+    <!-- step {"find":{"selector":"#counter","click":true}} --></li>
+  <li>Check that the button counted one left click.
+    <!-- step {"find":{"selector":"#counter","elementAttribute":{"data-left":"1"}}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

@@ -1,0 +1,14 @@
+= Match code output
+
+// (test {"testId":"http-code-stdio-regex","detectSteps":true})
+
+This script prints a number:
+
+[source,js,testIgnore]
+----
+console.log(6 * 7);
+----
+
+// (step {"runCode":{"language":"js","code":"console.log(6 * 7);","stdio":"/^\\d+$/"}})
+
+// (test end)

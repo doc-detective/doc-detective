@@ -1,0 +1,4 @@
+Release notes for version 2.1
+
+- The search box now matches part of a word.
+- Exports keep the column order you set.

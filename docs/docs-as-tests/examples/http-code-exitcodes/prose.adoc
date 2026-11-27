@@ -1,0 +1,8 @@
+= Expect a failing exit code
+
+This script exits with code `2`:
+
+[source,js]
+----
+process.exit(2);
+----

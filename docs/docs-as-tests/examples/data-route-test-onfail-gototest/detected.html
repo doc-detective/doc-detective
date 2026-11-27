@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the API, then the shop</title></head>
+<body>
+<h1>Check the API, then the shop</h1>
+<!-- test {"testId":"data-route-test-onfail-gototest-api","onFail":[{"goToTest":"data-route-test-onfail-gototest-products"}],"detectSteps":true} -->
+<h2>Check the API</h2>
+
+<ol>
+  <li>Send a <code>GET</code> request to <code>http://localhost:8092/api/health</code>.
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/health","method":"get"}} --></li>
+</ol>
+<!-- test end -->
+<!-- test {"testId":"data-route-test-onfail-gototest-cart","detectSteps":true} -->
+<h2>Check the cart</h2>
+
+<ol>
+  <li>Send a <code>GET</code> request to <code>http://localhost:8092/api/carts</code>.
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/carts","method":"get"}} --></li>
+</ol>
+<!-- test end -->
+<!-- test {"testId":"data-route-test-onfail-gototest-products","detectSteps":true} -->
+<h2>Check the products</h2>
+
+<ol>
+  <li>Send a <code>GET</code> request to <code>http://localhost:8092/api/products</code>.
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/products","method":"get"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

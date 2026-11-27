@@ -1,0 +1,26 @@
+{/* test {"testId":"custom-script-blocks","detectSteps":true} */}
+
+# Print a greeting with Node.js
+
+Define the name to greet:
+
+```javascript
+const name = "Doc Detective";
+```
+
+Don't declare `name` a second time. A script that does throws a `SyntaxError`:
+
+```javascript
+// Don't run: this redeclares name.
+const name = "someone else";
+```
+
+Print the greeting:
+
+```javascript
+console.log(`Hello, ${name}!`);
+```
+
+The script prints `Hello, Doc Detective!`.
+
+{/* test end */}

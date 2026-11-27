@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-body-array">
+  <title>Send an array body</title>
+  <body>
+    <p>Send a <codeph>POST</codeph> request to <codeph>http://localhost:8093/api/users/batch</codeph> with two users in an array. The response echoes the array.</p>
+  </body>
+</topic>

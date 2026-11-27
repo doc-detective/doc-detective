@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-openapi-level-step">
+  <title>Load a description in the step</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-openapi-level-step","detectSteps":true}'/>
+    <p>Call the <codeph>createUser</codeph> operation with Ada as the user.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"openApi":{"descriptionPath":"../http-openapi/users.openapi.json","operationId":"createUser"},"request":{"body":{"name":"Ada","job":"engineer"}}}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

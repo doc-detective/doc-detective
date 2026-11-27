@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: capture-annotate-clear-ids
+    steps:
+      - goTo: http://localhost:8092/enhanced-elements.html
+      - annotate:
+          add:
+            - id: step
+              badge: "#username-input"
+              label: "1"
+            - id: hint
+              callout: "#username-input"
+              label: Your account name
+              position: right
+      - annotate:
+          clear:
+            - hint
+      - screenshot:
+          path: annotate-clear-ids.png
+          directory: .dd-output
+          overwrite: "true"

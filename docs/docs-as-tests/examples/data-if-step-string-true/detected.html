@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Print the npm version after Node.js</title></head>
+<body>
+<!-- test {"testId":"data-if-step-string-true","detectSteps":true} -->
+<h1>Print the npm version after Node.js</h1>
+<ol>
+  <li>Print the Node.js version:
+    <pre><code class="language-shell">node --version</code></pre>
+    <!-- step {"runShell":"node --version","stepId":"version"} --></li>
+  <li>If that worked, print the npm version:
+    <pre><code class="language-shell">npm --version</code></pre>
+    <!-- step {"if":"$$steps.version.outputs.exitCode == 0","runShell":"npm --version"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

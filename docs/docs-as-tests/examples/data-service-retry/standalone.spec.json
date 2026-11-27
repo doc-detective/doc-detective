@@ -1,0 +1,135 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "if": "$$platform oneOf [linux, mac, windows]",
+  "tests": [
+    {
+      "testId": "data-service-ready",
+      "onPass": [
+        {
+          "if": [
+            "$$platform oneOf [linux, mac, windows]"
+          ],
+          "goToTest": "data-echo-text"
+        }
+      ],
+      "onFail": [
+        {
+          "if": "$$platform oneOf [linux, mac, windows]",
+          "stop": "spec"
+        }
+      ],
+      "steps": [
+        {
+          "wait": true
+        },
+        {
+          "runShell": "node -e \"const fs=require('fs'),f=require('path').join(require('os').tmpdir(),'doc-detective-docs-ready');if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,'');console.error('Not ready yet.');process.exit(1)}\"",
+          "onFail": [
+            {
+              "if": "$$outputs.exitCode == 1",
+              "retry": {
+                "limit": 3,
+                "delay": 500,
+                "backoff": "exponential"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "testId": "data-service-restart",
+      "steps": [
+        {
+          "runShell": "node -e \"console.log('Restarting the service.')\""
+        }
+      ]
+    },
+    {
+      "testId": "data-echo-text",
+      "publicVariables": [
+        "ECHOED"
+      ],
+      "contexts": [
+        {
+          "retries": 2
+        }
+      ],
+      "onWarning": [
+        {
+          "continue": true
+        }
+      ],
+      "onSkip": [
+        {
+          "stop": "spec"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/type-echo.html"
+        },
+        {
+          "click": "Type here:"
+        },
+        {
+          "type": "Hello, Doc Detective"
+        },
+        {
+          "stepId": "read-echo",
+          "find": {
+            "selector": "#echo",
+            "elementText": "Hello, Doc Detective"
+          },
+          "variables": {
+            "ECHOED": "$$element.text"
+          },
+          "onPass": [
+            {
+              "if": [
+                "$$outputs.element.text == \"Hello, Doc Detective\""
+              ],
+              "goToStep": "send-echo"
+            }
+          ],
+          "onFail": [
+            {
+              "retry": {
+                "limit": 2,
+                "delay": 500
+              }
+            }
+          ]
+        },
+        {
+          "stepId": "retype",
+          "type": "Hello, Doc Detective"
+        },
+        {
+          "stepId": "send-echo",
+          "if": "$$steps.read-echo.outputs.element.text == \"Hello, Doc Detective\"",
+          "httpRequest": {
+            "url": "http://localhost:8093/api/messages",
+            "method": "post",
+            "request": {
+              "body": {
+                "text": "$ECHOED"
+              }
+            },
+            "response": {
+              "body": {
+                "text": "Hello, Doc Detective"
+              }
+            }
+          },
+          "assertions": "$$outputs.response.body.text == \"$ECHOED\"",
+          "onWarning": [
+            {
+              "continue": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

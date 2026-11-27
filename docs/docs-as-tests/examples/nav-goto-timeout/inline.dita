@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-goto-timeout">
+  <title>Give a slow page more time to load</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-goto-timeout","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/waitUntil-test-static.html" scope="external" format="html">the static page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/waitUntil-test-static.html","timeout":60000}}'/></info></step>
+      <step><cmd>Check that the page shows <b>Static Page</b>.</cmd>
+        <info><data name="doc-detective" value='step {"find":"Static Page"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

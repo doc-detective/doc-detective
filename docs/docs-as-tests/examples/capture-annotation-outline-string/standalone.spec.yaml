@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: capture-annotation-outline-string
+    steps:
+      - goTo: http://localhost:8092/enhanced-elements.html
+      - screenshot:
+          path: annotation-outline-string.png
+          directory: .dd-output
+          overwrite: "true"
+          annotations:
+            - outline: "#username-input"

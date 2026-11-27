@@ -1,0 +1,9 @@
+# Start a background process
+
+Start a server on port 8242:
+
+```shell
+node -e "require('http').createServer((q, r) => r.end('ok')).listen(8242)"
+```
+
+Stop it when you're done.

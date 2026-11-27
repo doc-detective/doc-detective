@@ -103,6 +103,7 @@ const DOC_EXTENSIONS_BY_TYPE: Record<string, string[]> = {
   html: ["html", "htm"],
   dita: ["dita", "ditamap", "xml"],
   rst: ["rst"],
+  gherkin: ["feature"],
 };
 
 // Resolve `config.fileTypes` into the set of lowercase extensions (no

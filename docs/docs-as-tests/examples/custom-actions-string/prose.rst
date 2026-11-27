@@ -1,0 +1,6 @@
+Click the field
+===============
+
+Open the type echo page.
+
+Click **Type here:**.

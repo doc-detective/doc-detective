@@ -1,0 +1,17 @@
+{/* test {"testId":"sessions-state-form-string","detectSteps":true} */}
+
+# Keep the browser state in a file
+
+1. Delete any `sessions-pstate.json` that an earlier run left in the output folder.
+   {/* step {"runShell":"node -e \"require('fs').rmSync('docs/docs-as-tests/examples/.dd-output/sessions-pstate.json', { force: true })\""} */}
+2. Sign in at [the sign-in page](http://localhost:8092/cookies/set/sessions_pstate/signed-in). The server sets the `sessions_pstate` cookie.
+   {/* step {"goTo":"http://localhost:8092/cookies/set/sessions_pstate/signed-in"} */}
+3. Save the browser state to `sessions-pstate.json`.
+   {/* step {"saveState":"sessions-pstate.json"} */}
+4. Sign out at [the sign-out page](http://localhost:8092/cookies/set/sessions_pstate/signed-out), which replaces the cookie.
+   {/* step {"goTo":"http://localhost:8092/cookies/set/sessions_pstate/signed-out"} */}
+5. Load the browser state from `sessions-pstate.json`.
+   {/* step {"loadState":"sessions-pstate.json"} */}
+6. Open [the cookie report](http://localhost:8092/cookies), and check that it shows **sessions_pstate=signed-in**.
+
+{/* test end */}

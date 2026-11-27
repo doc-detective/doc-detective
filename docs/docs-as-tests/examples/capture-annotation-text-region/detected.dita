@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-annotation-text-region">
+  <title>Mark the sign-in form</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-annotation-text-region","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the sample form</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/enhanced-elements.html"}'/></info></step>
+      <step><cmd>The username field comes first.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"annotation-text-region.png","directory":".dd-output","overwrite":"true","annotations":[{"text":{"position":"top-right"},"label":"Sample data"}]}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

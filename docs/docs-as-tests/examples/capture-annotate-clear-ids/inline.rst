@@ -1,0 +1,20 @@
+Remove one mark
+===============
+
+.. test {"testId":"capture-annotate-clear-ids","detectSteps":false}
+
+#. Go to `the sample form <http://localhost:8092/enhanced-elements.html>`_.
+
+   .. step {"goTo":"http://localhost:8092/enhanced-elements.html"}
+
+#. The username field is marked 1, with a hint beside it.
+
+   .. step {"annotate":{"add":[{"id":"step","badge":"#username-input","label":"1"},{"id":"hint","callout":"#username-input","label":"Your account name","position":"right"}]}}
+
+#. The hint goes away, and the mark stays.
+
+   .. step {"annotate":{"clear":["hint"]}}
+
+   .. step {"screenshot":{"path":"annotate-clear-ids.png","directory":".dd-output","overwrite":"true"}}
+
+.. test end

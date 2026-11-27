@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-autoscreenshot-spec-false">
+  <title>Type text with autoScreenshot off for a spec</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-autoscreenshot-spec-false","detectSteps":false,"autoScreenshot":false}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
+      <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd>
+        <info><data name="doc-detective" value='step {"click":"Type here:"}'/></info></step>
+      <step><cmd>Type "Hello".</cmd>
+        <info><data name="doc-detective" value='step {"type":"Hello"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

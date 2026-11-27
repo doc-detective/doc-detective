@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshot-overwrite-true">
+  <title>Save a screenshot with overwrite true</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-screenshot-overwrite-true","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/screenshot-banner.html" scope="external" format="html">the banner page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/screenshot-banner.html"}'/></info></step>
+      <step><cmd>The page opens with a cookie banner at the bottom.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"overwrite-true.png","directory":".dd-output","overwrite":"true"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

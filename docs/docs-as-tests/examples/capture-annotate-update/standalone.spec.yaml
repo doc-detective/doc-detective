@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: capture-annotate-update
+    steps:
+      - goTo: http://localhost:8092/enhanced-elements.html
+      - annotate:
+          add:
+            - id: step
+              badge: "#username-input"
+              label: "1"
+      - annotate:
+          update:
+            - id: step
+              badge: "#submit-button"
+              label: "2"
+      - screenshot:
+          path: annotate-update.png
+          directory: .dd-output
+          overwrite: "true"

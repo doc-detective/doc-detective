@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-select-window-tab">
+  <title>Check a page in another tab or window</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-select-window-tab","detectSteps":true,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]}'/>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/multi-tab.html"}'/></info></step>
+      <step><cmd>Click the Open child in new tab link. The child page opens in a new tab.</cmd>
+        <info><data name="doc-detective" value='step {"click":"Open child in new tab"}'/></info></step>
+      <step><cmd>In the first window, check that the second tab reads "PAGE linked".</cmd>
+        <info><data name="doc-detective" value='step {"find":{"elementText":"PAGE linked","surface":{"browser":"firefox","window":0,"tab":1}}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

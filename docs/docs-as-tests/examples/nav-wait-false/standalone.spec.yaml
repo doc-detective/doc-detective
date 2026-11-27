@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: nav-wait-false
+    steps:
+      - goTo: http://localhost:8092/wait-delay.html
+      - wait: false
+      - find: Loaded after 2 seconds

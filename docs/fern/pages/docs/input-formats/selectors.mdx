@@ -181,6 +181,7 @@ The file's extension picks the parser:
 | `.dita`, `.ditamap`, `.xml` | DITA |
 | `.adoc`, `.asciidoc`, `.asc` | AsciiDoc |
 | `.rst` | reStructuredText |
+| `.feature` | Gherkin. Each step is an `element` node with the tag `step`. See [Gherkin](gherkin#step-phrases) |
 
 For any other extension, Doc Detective uses the format in `extends`, so a file type that extends `markdown` parses its `.txt` files as Markdown. The HTML and DITA parsers accept broken markup, so they never stop detection.
 

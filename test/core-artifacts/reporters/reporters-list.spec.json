@@ -108,7 +108,7 @@
             "exitCodes": [
               2
             ],
-            "stdio": "Allowed choices are terminal, json, html, runFolder, junit, markdown."
+            "stdio": "Allowed choices are terminal, json, html, runFolder, junit, markdown, cucumber."
           }
         }
       ]

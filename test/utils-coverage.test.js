@@ -806,7 +806,7 @@ describe("utils.ts coverage", function () {
       await outputResults({ reporters: ["doesNotExist"] }, "out", { x: 1 }, {});
       assert.ok(
         cap.error.includes(
-          "Couldn't find reporter `doesNotExist`. Available reporters: terminal, json, html, runFolder, junit, markdown."
+          "Couldn't find reporter `doesNotExist`. Available reporters: terminal, json, html, runFolder, junit, markdown, cucumber."
         )
       );
     });

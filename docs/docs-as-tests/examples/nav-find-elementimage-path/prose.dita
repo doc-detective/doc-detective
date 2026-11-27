@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-find-elementimage-path">
+  <title>Find an element by an image file</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/find-image.html" scope="external" format="html">the toolbar page</xref>.</cmd></step>
+      <step><cmd>Find the save icon in the toolbar.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

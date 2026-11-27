@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-shell-tty-true",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"",
+            "background": {
+              "name": "http-shell-tty-true",
+              "tty": true,
+              "waitUntil": {
+                "stdio": "Terminal: 120x30"
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "closeSurface": "http-shell-tty-true"
+        }
+      ]
+    }
+  ]
+}

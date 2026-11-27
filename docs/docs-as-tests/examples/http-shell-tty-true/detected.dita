@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-shell-tty-true">
+  <title>Run a process in a terminal</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-shell-tty-true","detectSteps":true}'/>
+    <p>Print the terminal size the process sees. It's <codeph>120x30</codeph>:</p>
+    <codeblock outputclass="language-shell">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</codeblock>
+    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(&apos;Terminal: &apos; + process.stdout.columns + &apos;x&apos; + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-shell-tty-true","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}'/>
+    <p>Stop it when you're done.</p>
+    <data name="doc-detective" value='step {"closeSurface":"http-shell-tty-true"}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

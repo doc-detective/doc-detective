@@ -1,0 +1,10 @@
+{/* test {"testId":"sessions-runon-colorscheme","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"colorScheme":"dark"}}]} */}
+
+# Check the page in dark mode
+
+1. Start at [the multi-tab page](http://localhost:8092/multi-tab.html).
+   {/* step {"goTo":"http://localhost:8092/multi-tab.html"} */}
+2. Check that the page prefers the dark color scheme.
+   {/* step {"runBrowserScript":{"script":"return String(matchMedia(\"(prefers-color-scheme: dark)\").matches);","output":"true"}} */}
+
+{/* test end */}

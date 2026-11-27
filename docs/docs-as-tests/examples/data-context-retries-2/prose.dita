@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-context-retries-2">
+  <title>Echo a name on a page</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Open <codeph>http://localhost:8092/type-echo.html</codeph>.</cmd></step>
+      <step><cmd>Type <codeph>Wren</codeph> in the field.</cmd></step>
+      <step><cmd>Check that the page shows <codeph>Wren</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

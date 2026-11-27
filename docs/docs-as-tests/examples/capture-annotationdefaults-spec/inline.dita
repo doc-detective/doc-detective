@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-annotationdefaults-spec">
+  <title>Outline a field with the spec theme</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-annotationdefaults-spec","detectSteps":false,"annotationDefaults":{"color":"#0EA5E9","strokeWidth":4}}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the sample form</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/enhanced-elements.html"}'/></info></step>
+      <step><cmd>The username field is outlined.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"defaults-spec.png","directory":".dd-output","overwrite":"true","annotations":[{"outline":"#username-input"}]}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

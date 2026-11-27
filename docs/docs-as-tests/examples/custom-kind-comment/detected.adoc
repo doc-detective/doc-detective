@@ -1,0 +1,13 @@
+= Check the page heading
+
+// (test {"testId":"custom-kind-comment","detectSteps":true})
+
+Open the type echo page.
+
+// (step {"goTo":"http://localhost:8092/type-echo.html"})
+
+The heading names the page.
+
+// expect: Type Echo Test Page
+
+// (test end)

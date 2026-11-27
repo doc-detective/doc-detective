@@ -1,0 +1,43 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-mock-url-exact",
+      "runOn": [
+        {
+          "platforms": [
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "http://localhost:8092/api/plans",
+            "response": {
+              "body": {
+                "plan": "pro"
+              }
+            }
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return fetch('/api/plans').then((r) => r.json());",
+            "output": "pro"
+          }
+        }
+      ]
+    }
+  ]
+}

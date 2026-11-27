@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-method-post">
+  <title>POST a user</title>
+  <body>
+    <p>Send a <codeph>POST</codeph> request to <codeph>http://localhost:8093/api/users</codeph> with the body <codeph>{"name":"Ada"}</codeph>.</p>
+  </body>
+</topic>

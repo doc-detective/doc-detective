@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: sessions-surface-browser
+    steps:
+      - startSurface:
+          browser: firefox
+          name: reviewer
+          headless: true
+      - goTo:
+          url: http://localhost:8092/multi-tab-child.html?page=review
+          surface:
+            browser: firefox
+            name: reviewer
+      - find:
+          elementText: PAGE review
+          surface:
+            browser: firefox
+            name: reviewer
+      - closeSurface:
+          browser: firefox
+          name: reviewer

@@ -1,0 +1,10 @@
+Match a build number in a file
+==============================
+
+Write the build result to the ``output`` folder next to this page:
+
+.. code-block:: shell
+
+   node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/build.txt','build 42 passed')"
+
+Check that the result names a passing build.

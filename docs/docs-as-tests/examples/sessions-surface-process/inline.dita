@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-surface-process">
+  <title>Evaluate an expression in the Node.js REPL</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-surface-process","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]}'/>
+    <steps>
+      <step><cmd>Start <codeph>node -i</codeph> as a process named <codeph>sessions-prepl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd>
+        <info><data name="doc-detective" value='step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-prepl","waitUntil":{"stdio":"/>/"},"timeout":30000}}'/></info></step>
+      <step><cmd>In <codeph>sessions-prepl</codeph>, enter <codeph>40 + 2</codeph> and press Enter. Wait for the REPL to print <codeph>42</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-prepl","waitUntil":{"stdio":"/42/"},"timeout":10000}}'/></info></step>
+      <step><cmd>Close <codeph>sessions-prepl</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"closeSurface":"sessions-prepl"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Expect a failing exit code</title></head>
+<body>
+<!-- test {"testId":"http-code-exitcodes","detectSteps":true} -->
+<h1>Expect a failing exit code</h1>
+<p>This script exits with code <code>2</code>:</p>
+<!-- test ignore start -->
+<pre><code class="language-js">process.exit(2);</code></pre>
+<!-- test ignore end -->
+<!-- step {"runCode":{"language":"js","code":"process.exit(2);","exitCodes":[2]}} -->
+<!-- test end -->
+</body>
+</html>

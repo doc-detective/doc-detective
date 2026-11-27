@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-directory">
+  <title>Save a greeting from code</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-code-directory","detectSteps":false}'/>
+    <p>Print a greeting with Node.js, and save the output to <filepath>greeting.txt</filepath> in the <filepath>output</filepath> folder:</p>
+    <codeblock outputclass="language-js">console.log('Hello from the output folder');</codeblock>
+    <data name="doc-detective" value='step {"runCode":{"language":"js","code":"console.log(&apos;Hello from the output folder&apos;);","path":"greeting.txt","directory":"output"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

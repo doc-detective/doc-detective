@@ -19,7 +19,7 @@ By default, Doc Detective writes only where you've named a check. To have it nam
 
 - A test or spec with a stable `id`. You name a [test](/reference/schemas/test) `testId` or a [spec](/reference/schemas/specification) `specId`.
 - The page you want to date, in a [supported format](/docs/test-docs/input-formats/overview): Markdown or MDX, AsciiDoc, HTML, or DITA (`.dita` or `.ditamap`).
-- If your tests live in reStructuredText (`.rst`) files, also name the test's `testId` in a `verified-by` entry on a page in one of the supported formats. Doc Detective doesn't write dates into `.rst` files, so that page holds the date.
+- Doc Detective doesn't write dates into reStructuredText (`.rst`) or Gherkin (`.feature`) files. If your tests live in those files, also name the test's `testId` in a `verified-by` entry on a page in one of the supported formats. That page holds the date.
 
 ## How it works
 

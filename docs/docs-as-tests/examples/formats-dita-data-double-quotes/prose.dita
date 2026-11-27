@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="formats-dita-data-double-quotes">
+  <title>Check the demo pages</title>
+  <body>
+    <ol>
+      <li>Check that <xref href="http://localhost:8092/index.html" scope="external" format="html">the elements demo</xref> loads.</li>
+      <li>Check that <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref> loads.</li>
+    </ol>
+  </body>
+</topic>

@@ -1,0 +1,45 @@
+= Preview invoices against a stubbed API
+
+// (test {"testId":"http-mock-request","detectSteps":true,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]})
+
+Stub the invoices endpoint so that every `GET` request returns the invoices in `invoices.json`.
+
+// (step {"mockRequest":{"url":"**/api/invoices*","method":"GET","response":{"statusCode":200,"headers":{"x-mock":"docs"},"bodyPath":"invoices.json"}}})
+
+Stub invoice creation too, so that a `POST` request returns a new invoice ID.
+
+// (step {"mockRequest":{"url":"http://localhost:8092/api/invoices","method":"POST","response":{"statusCode":201,"body":{"id":"inv-2"}}}})
+
+Stub the notices endpoint with one billing notice.
+
+// (step {"mockRequest":{"url":"**/api/notices","response":{"body":["Invoices are due on the 3rd of each month."]}}})
+
+Stub the status endpoint so that it reports `OK`.
+
+// (step {"mockRequest":{"url":"**/api/status","response":{"body":"OK"}}})
+
+Open the test site at `http://localhost:8092/`.
+
+// (step {"goTo":"http://localhost:8092/"})
+
+In the browser console, fetch `/api/invoices?page=1`. The response lists invoice `inv-1`.
+
+// (step {"runBrowserScript":{"surface":"chrome","script":"return fetch(arguments[0]).then(async (r) => r.headers.get('x-mock') + ' ' + JSON.stringify(await r.json()));","args":["/api/invoices?page=1"],"output":"/^docs .*inv-1/","timeout":10000}})
+
+Send a `POST` request to `/api/invoices`. The response status is `201`, and the body is the new ID, `inv-2`.
+
+// (step {"runBrowserScript":{"script":"return fetch('/api/invoices', { method: 'POST' }).then(async (r) => r.status + ' ' + (await r.json()).id);","output":"201 inv-2"}})
+
+Fetch `/api/notices`. The notice says when invoices are due, and matches the copy saved in `output/notices.json`.
+
+// (step {"runBrowserScript":{"surface":{"browser":"chrome"},"script":"return fetch('/api/notices').then((r) => r.json());","output":"due on the 3rd","path":"notices.json","directory":"output","maxVariation":0,"overwrite":"false"}})
+
+Fetch `/api/status`. The response is the text `OK`.
+
+// (step {"runBrowserScript":{"script":"return fetch('/api/status').then((r) => r.text());","output":"OK"}})
+
+Check the page title by evaluating `document.title` in the console.
+
+// (step {"runBrowserScript":"return document.title;"})
+
+// (test end)
