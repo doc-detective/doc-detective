@@ -125,6 +125,44 @@
       ]
     },
     {
+      "testId": "mock-request-passthrough-headers",
+      "description": "While a glob mock is active, a request it doesn't match reaches the server and keeps its response headers.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "**/api/mock-glob*",
+            "response": {
+              "body": "mocked"
+            }
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return Promise.all([fetch('/api/mock-glob-1').then((r) => r.text()), fetch('/api/mock-passthrough').then((r) => r.headers.get('x-server') + ' ' + r.headers.get('content-type'))]).then((v) => v.join(', '));",
+            "output": "mocked, doc-detective-echo-server application/json; charset=utf-8"
+          }
+        }
+      ]
+    },
+    {
       "testId": "mock-request-replacement",
       "description": "A later mockRequest for the same `url` and `method` replaces the earlier one, and `outputs.matched` counts the requests answered for that pair so far.",
       "runOn": [
