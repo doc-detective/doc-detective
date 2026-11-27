@@ -103,12 +103,12 @@ Each entry in `sweep.specs` has a `specId` and a `result` of `PASS`, `FAIL`, `WA
 
 ## Get reports for your doc tests
 
-`runTests()` returns results to your code. It doesn't run [reporters](/docs/ci/reporters-and-artifacts), and it ignores the `reporters` setting, so it writes no `junit` or `html` report. Cucumber's own reports list the scenario, not each doc test.
+`runTests()` returns results to your code. It doesn't run [reporters](/docs/ci/reporters-and-artifacts), and it ignores the `reporters` setting, so it writes no report files. Cucumber's own reports list the scenario, not each doc test.
 
-To get a `junit` or `html` report for your docs, run the CLI with `--reporters` in your CI job, next to your Cucumber run:
+To get reports for your docs, run the CLI with `--reporters` in your CI job, next to your Cucumber run. If you import Cucumber results into Xray, Allure, or a similar tool, add `cucumber`. It writes a [`cucumber.json` report](/docs/ci/reporters-and-artifacts#read-the-cucumber-report) with a scenario for each doc test in each context. The tool then lists your doc tests as well as your features. If your Cucumber run also writes `cucumber.json` to the same folder, set `--output-dir` so one report doesn't overwrite the other:
 
 ```bash
-npx doc-detective --input docs --reporters terminal,junit,html
+npx doc-detective --input docs --reporters terminal,junit,html,cucumber
 ```
 
 See [Reporters and artifacts](/docs/ci/reporters-and-artifacts) for where each reporter writes its output.
