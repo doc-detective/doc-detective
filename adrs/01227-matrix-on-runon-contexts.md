@@ -53,8 +53,8 @@ Chosen option: **A**.
   `contextId` gets the same suffix. Characters that aren't filename-safe become `-`.
 - The duplicate-context check includes the combination, so two combinations never merge.
 - Each resolved and reported context carries a read-only `matrix` with its combination.
-- An explicit output path (`screenshot`, `record`, `saveState`, `saveCookie`) that doesn't reference every expanding
-  key with more than one value is an error, because every combination would overwrite the same file. Paths the
+- An explicit output path (`screenshot`, `record`, `saveState`, `saveCookie`) must reference every expanding key
+  with more than one value. Otherwise every combination would overwrite the same file, so it's an error. Paths the
   runner derives already land under each context ID.
 
 Errors are raised while tests resolve. Each marks its spec invalid, so the CLI exits `2` and prints it under
