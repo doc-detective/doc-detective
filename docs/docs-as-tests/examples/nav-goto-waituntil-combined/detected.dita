@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-goto-waituntil-combined">
+  <title>Wait for the network, the page, and an element</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-goto-waituntil-combined","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/waitUntil-test-late-element.html" scope="external" format="html">the late element page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/waitUntil-test-late-element.html","timeout":10000,"waitUntil":{"networkIdleTime":500,"domIdleTime":1000,"find":{"selector":".status","elementText":"/.*operational.*/"}}}}'/></info></step>
+      <step><cmd>Check that the page shows <b>System operational</b>.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

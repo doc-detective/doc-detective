@@ -26,12 +26,12 @@ Terminal apps size their output to the terminal. To see the size an app gets in 
 node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
 ```
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
-```bash
-node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+```js
+console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 ```
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 Stop that process too.

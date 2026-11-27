@@ -1,0 +1,9 @@
+Check the field label
+
+TEST {"testId":"custom-statements-string","detectSteps":true}
+
+Open the type echo page at http://localhost:8092/type-echo.html.
+STEP {"goTo":"http://localhost:8092/type-echo.html"}
+Check that the page shows Type here:.
+
+END TEST

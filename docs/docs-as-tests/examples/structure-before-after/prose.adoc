@@ -1,0 +1,4 @@
+= Check the session cookie
+
+. Start at http://localhost:8092/cookies[the cookies page].
+. Check that the page lists `structure-session=signed-in`.

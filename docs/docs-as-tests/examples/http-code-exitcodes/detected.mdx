@@ -1,0 +1,13 @@
+{/* test {"testId":"http-code-exitcodes","detectSteps":true} */}
+
+# Expect a failing exit code
+
+This script exits with code `2`:
+
+```js testIgnore
+process.exit(2);
+```
+
+{/* step {"runCode":{"language":"js","code":"process.exit(2);","exitCodes":[2]}} */}
+
+{/* test end */}

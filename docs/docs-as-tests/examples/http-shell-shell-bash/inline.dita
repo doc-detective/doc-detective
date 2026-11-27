@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-shell-shell-bash">
+  <title>Run a command in Bash</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-shell-shell-bash","detectSteps":false}'/>
+    <p>Print a word:</p>
+    <codeblock outputclass="language-shell">echo ready</codeblock>
+    <data name="doc-detective" value='step {"runShell":{"command":"echo ready","shell":"bash","stdio":"ready"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

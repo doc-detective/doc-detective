@@ -1,0 +1,10 @@
+<!-- test {"testId":"nav-goto-timeout","detectSteps":false} -->
+
+# Give a slow page more time to load
+
+1. Go to [the static page](http://localhost:8092/waitUntil-test-static.html).
+   <!-- step {"goTo":{"url":"http://localhost:8092/waitUntil-test-static.html","timeout":60000}} -->
+2. Check that the page shows **Static Page**.
+   <!-- step {"find":"Static Page"} -->
+
+<!-- test end -->

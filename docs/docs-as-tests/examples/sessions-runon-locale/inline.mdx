@@ -1,0 +1,10 @@
+{/* test {"testId":"sessions-runon-locale","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"locale":"de-DE"}}]} */}
+
+# Check the page in German
+
+1. Start at [the multi-tab page](http://localhost:8092/multi-tab.html).
+   {/* step {"goTo":"http://localhost:8092/multi-tab.html"} */}
+2. Check that the page's language is `de-DE`.
+   {/* step {"runBrowserScript":{"script":"return navigator.language;","output":"de-DE"}} */}
+
+{/* test end */}

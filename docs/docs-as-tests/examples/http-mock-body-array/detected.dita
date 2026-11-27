@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-mock-body-array">
+  <title>Stub an API response</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-mock-body-array","detectSteps":true,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}'/>
+    <p>Stub the plans endpoint.</p>
+    <data name="doc-detective" value='step {"mockRequest":{"url":"**/api/plans","response":{"body":["pro","team"]}}}'/>
+    <p>Open the test site at <codeph>http://localhost:8092/</codeph>.</p>
+    <data name="doc-detective" value='step {"goTo":"http://localhost:8092/"}'/>
+    <p>Fetch <codeph>/api/plans</codeph>. The response lists <codeph>pro</codeph> and <codeph>team</codeph>.</p>
+    <data name="doc-detective" value='step {"runBrowserScript":{"script":"return fetch(&apos;/api/plans&apos;).then((r) => r.json());","output":"team"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

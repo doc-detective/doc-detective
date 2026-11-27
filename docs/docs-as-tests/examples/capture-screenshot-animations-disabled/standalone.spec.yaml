@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: capture-screenshot-animations-disabled
+    steps:
+      - goTo:
+          url: http://localhost:8092/screenshot-loop.html
+          waitUntil:
+            networkIdleTime: 0
+            domIdleTime: 0
+      - screenshot:
+          path: animations-disabled.png
+          directory: .dd-output
+          overwrite: "true"
+          animations: disabled

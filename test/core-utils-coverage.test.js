@@ -36,6 +36,7 @@ import {
   probeStuckOnBlankDocument,
   guardBlankDocumentNavigation,
   classifyContextRetry,
+  goToTargetOf,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -1472,6 +1473,34 @@ describe("core/utils coverage", function () {
         await classifyContextRetry([alive("data:,")], { navigated: true }),
         "unnavigated"
       );
+    });
+
+    it("retries a primary still on `about:blank` when no goTo targeted it", async function () {
+      // A Chrome session with a BiDi socket (ADR 01219) starts on about:blank,
+      // not `data:,`. A goTo that never left it, like a navigation Chrome left
+      // paused under a request mock, retries on a fresh session (ADR 01233).
+      assert.equal(
+        await classifyContextRetry([alive("about:blank")], { aboutBlankIsInitial: true }),
+        "unnavigated"
+      );
+      // A context that navigated to about:blank on purpose keeps its FAIL.
+      assert.equal(await classifyContextRetry([alive("about:blank")]), null);
+      assert.equal(
+        await classifyContextRetry([alive("about:blank")], {
+          navigated: false,
+          aboutBlankIsInitial: true,
+        }),
+        null
+      );
+    });
+
+    it("reads a goTo step's target, normalized, unless the step was skipped", function () {
+      // Read from the unmasked step report, so a target that equals a secret
+      // value still reads as `about:blank`.
+      assert.equal(goToTargetOf({ goTo: { url: " About:Blank " }, result: "FAIL" }), "about:blank");
+      assert.equal(goToTargetOf({ goTo: "http://localhost:8092/", result: "PASS" }), "http://localhost:8092/");
+      assert.equal(goToTargetOf({ goTo: "about:blank", result: "SKIPPED" }), null);
+      assert.equal(goToTargetOf({ find: "x", result: "PASS" }), null);
     });
 
     it("prefers a dead session over an unnavigated primary", async function () {

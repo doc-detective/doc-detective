@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-cookie-overwrite-true">
+  <title>Replace a saved cookie</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-cookie-overwrite-true","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_pover/first" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_pover</codeph> cookie.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_pover/first"}'/></info></step>
+      <step><cmd>Save the <codeph>sessions_pover</codeph> cookie to <codeph>sessions_pover.txt</codeph>, replacing any earlier file.</cmd>
+        <info><data name="doc-detective" value='step {"saveCookie":{"name":"sessions_pover","path":"sessions_pover.txt","overwrite":true}}'/></info></step>
+      <step><cmd>Sign in again at <xref href="http://localhost:8092/cookies/set/sessions_pover/second" scope="external" format="html">the second sign-in page</xref>, and save the cookie to the same file.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_pover/second"}'/><data name="doc-detective" value='step {"saveCookie":{"name":"sessions_pover","path":"sessions_pover.txt","overwrite":true}}'/></info></step>
+      <step><cmd>Sign out at <xref href="http://localhost:8092/cookies/set/sessions_pover/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_pover/signed-out"}'/></info></step>
+      <step><cmd>Load the cookie from <codeph>sessions_pover.txt</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"loadCookie":{"name":"sessions_pover","path":"sessions_pover.txt"}}'/></info></step>
+      <step><cmd>Open <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_pover=second</b>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies"}'/><data name="doc-detective" value='step {"find":"sessions_pover=second"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

@@ -1,0 +1,74 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": false,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "outputDir": ".dd-output",
+  "beforeAll": "../../../test-setup/start-server.spec.json",
+  "afterAll": "../../../test-setup/stop-server.spec.json",
+  "telemetry": {
+    "send": false
+  },
+  "fileTypes": [
+    {
+      "extends": "markdown",
+      "markup": [
+        {
+          "name": "clickBoldText",
+          "strong": {},
+          "actions": [
+            "click"
+          ]
+        }
+      ]
+    },
+    {
+      "extends": "asciidoc",
+      "markup": [
+        {
+          "name": "clickBoldText",
+          "strong": {},
+          "actions": [
+            "click"
+          ]
+        }
+      ]
+    },
+    {
+      "extends": "html",
+      "markup": [
+        {
+          "name": "clickBoldText",
+          "strong": {},
+          "actions": [
+            "click"
+          ]
+        }
+      ]
+    },
+    {
+      "extends": "rst",
+      "markup": [
+        {
+          "name": "clickBoldText",
+          "strong": {},
+          "actions": [
+            "click"
+          ]
+        }
+      ]
+    },
+    {
+      "extends": "dita",
+      "markup": [
+        {
+          "name": "clickBoldText",
+          "strong": {},
+          "actions": [
+            "click"
+          ]
+        }
+      ]
+    }
+  ]
+}

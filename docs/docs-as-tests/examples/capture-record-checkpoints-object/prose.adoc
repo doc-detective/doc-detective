@@ -1,0 +1,7 @@
+= Record typing in a field
+
+. Go to http://localhost:8092/type-echo.html[the type echo page].
+. Start recording.
+. Click *Type here:*.
+. Type "Hello".
+. Wait a moment, then stop the recording.

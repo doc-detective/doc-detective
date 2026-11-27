@@ -1,0 +1,12 @@
+= Run a code block
+
+// (test {"testId":"http-code-language-python","detectSteps":true})
+
+Run this code. It prints `ready`:
+
+[source,python]
+----
+print("ready")
+----
+
+// (test end)

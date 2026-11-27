@@ -1047,7 +1047,7 @@ function badge(status) {
 
 function tag(text) { return '<span class="tag">' + esc(text) + '</span>'; }
 
-// How a context reads against an earlier run (ADR 01233).
+// How a context reads against an earlier run (ADR 01244).
 // Extracted by test/htmlReporter.test.js, like mediaHref.
 function failureTag(ctx) {
   var tags = { new: "new", existing: "already failing", fixed: "fixed" };

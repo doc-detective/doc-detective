@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-openapi-useexample-request">
+  <title>Call an operation with its examples</title>
+  <body>
+    <p>Call the <codeph>createUser</codeph> operation with its example user.</p>
+  </body>
+</topic>

@@ -334,3 +334,720 @@ This example uses every container at once so you can compare them. A real projec
 - `"comment"` as a string reads every comment. The built-in Markdown file type has it too. The inline variant's plain `test` comments therefore work with this config and with the default one.
 - The `bash` definition's `name` is `runCode`, so it replaces the built-in `runCode` definition. A `bash` block then runs as a `runShell` step and isn't marked `unsafe`.
 - This example is Markdown only. MDX reads `{.dd}` as a JavaScript expression, so it needs JSX attributes instead, and the other formats write links, images, and elements their own ways.
+
+## Selector kind permutations
+
+Each example detects steps with one selector kind and no selector options. Its file types don't use `extends`, so no built-in definition adds steps. `step` statements open the page where the procedure needs it. Each definition below is the one entry in `markup`, and the config repeats it in one file type per format. An example leaves out the formats that don't produce its kind.
+
+### `comment`
+
+**Varies:** `markup.comment` · **Value:** `{}` · **Effect:** every comment is a candidate, and `regex` picks the ones that start with `expect:`.
+
+```json
+{
+  "name": "findExpected",
+  "comment": {},
+  "regex": "^\\s*expect:\\s*(.+?)\\s*$",
+  "actions": [
+    "find"
+  ]
+}
+```
+
+<Markdown src="examples/custom-kind-comment/_variants.mdx" />
+
+The `expect:` comment is in the detected variants only. A bare `comment: {}` would also match the `test` and `step` comments, so a comment definition needs `regex`.
+
+### `codeBlock`
+
+**Varies:** `markup.codeBlock` · **Value:** `{}` · **Effect:** every code block runs, whatever its language.
+
+```json
+{
+  "name": "runBlock",
+  "codeBlock": {},
+  "actions": [
+    "runShell"
+  ]
+}
+```
+
+<Markdown src="examples/custom-kind-codeblock/_variants.mdx" />
+
+### `link`
+
+**Varies:** `markup.link` · **Value:** `{}` · **Effect:** each link's text, its main text, becomes `$1`.
+
+```json
+{
+  "name": "findLinkText",
+  "link": {},
+  "actions": [
+    "find"
+  ]
+}
+```
+
+<Markdown src="examples/custom-kind-link/_variants.mdx" />
+
+DITA has no `link` nodes, so this example leaves it out. Select `<xref>` as an `element` instead.
+
+### `image`
+
+**Varies:** `markup.image` · **Value:** `{}` · **Effect:** every image matches, and `captures` uses its source.
+
+```json
+{
+  "name": "checkImage",
+  "image": {},
+  "captures": [
+    "src"
+  ],
+  "actions": [
+    "checkLink"
+  ]
+}
+```
+
+<Markdown src="examples/custom-kind-image/_variants.mdx" />
+
+Without `captures`, `$1` is the image's alt text.
+
+### `strong`
+
+**Varies:** `markup.strong` · **Value:** `{}` · **Effect:** every bold phrase becomes a `find`.
+
+```json
+{
+  "name": "findBold",
+  "strong": {},
+  "actions": [
+    "find"
+  ]
+}
+```
+
+<Markdown src="examples/custom-kind-strong/_variants.mdx" />
+
+### `emphasis`
+
+**Varies:** `markup.emphasis` · **Value:** `{}` · **Effect:** every italic phrase becomes a `find`.
+
+```json
+{
+  "name": "findItalic",
+  "emphasis": {},
+  "actions": [
+    "find"
+  ]
+}
+```
+
+<Markdown src="examples/custom-kind-emphasis/_variants.mdx" />
+
+### `text`
+
+**Varies:** `markup.text` · **Value:** `{}` · **Effect:** each run of prose is a candidate, and `regex` finds the heading name inside it.
+
+```json
+{
+  "name": "findHeading",
+  "text": {},
+  "regex": "\\bheading reads ([^.]+)\\.",
+  "actions": [
+    "find"
+  ]
+}
+```
+
+<Markdown src="examples/custom-kind-text/_variants.mdx" />
+
+A bare `text: {}` matches every run of prose, so a text definition needs `regex`.
+
+### `element`
+
+**Varies:** `markup.element` · **Value:** `"samp"` · **Effect:** each `<samp>` element becomes a `find`. A string names one tag.
+
+```json
+{
+  "name": "findSample",
+  "element": "samp",
+  "actions": [
+    "find"
+  ]
+}
+```
+
+<Markdown src="examples/custom-kind-element/_variants.mdx" />
+
+Only Markdown, MDX, and HTML produce `<samp>`. AsciiDoc and reStructuredText produce no `element` nodes. DITA's equivalent tag is in the `tag` example below.
+
+## Selector option permutations
+
+Each example adds one option to a selector, and leaves out the content the option skips or keeps. The file types don't use `extends`, as in the kind examples.
+
+### `precededBy`
+
+**Varies:** `markup.strong.precededBy` · **Value:** `\\b[Cc]lick\\s+$` · **Effect:** only a bold phrase right after `Click` becomes a `click`.
+
+```json
+{
+  "name": "clickBold",
+  "strong": {
+    "precededBy": "\\b[Cc]lick\\s+$"
+  },
+  "actions": [
+    "click"
+  ]
+}
+```
+
+<Markdown src="examples/custom-option-precededby/_variants.mdx" />
+
+The second bold phrase isn't after `Click`, so detection skips it. A `step` statement checks it instead.
+
+### `attributes`
+
+**Varies:** `markup.image.attributes` · **Value:** `{ "class": "(^|\\s)check(\\s|$)" }` · **Effect:** only the image with the `check` class gets a `checkLink`.
+
+```json
+{
+  "name": "checkMarkedImage",
+  "image": {
+    "attributes": {
+      "class": "(^|\\s)check(\\s|$)"
+    }
+  },
+  "captures": [
+    "src"
+  ],
+  "actions": [
+    "checkLink"
+  ]
+}
+```
+
+<Markdown src="examples/custom-option-attributes/_variants.mdx" />
+
+Each format sets `class` its own way: `{.check}` in Markdown, `className` in MDX, `role=` in AsciiDoc, `:class:` in reStructuredText, and `outputclass` in DITA.
+
+### `excludes`
+
+**Varies:** `markup.strong.excludes` · **Value:** `^(?:Note|Tip):?$` · **Effect:** the `Note:` label isn't turned into a `find`.
+
+```json
+{
+  "name": "findBold",
+  "strong": {
+    "excludes": "^(?:Note|Tip):?$"
+  },
+  "actions": [
+    "find"
+  ]
+}
+```
+
+<Markdown src="examples/custom-option-excludes/_variants.mdx" />
+
+### `captures`
+
+**Varies:** `markup.captures` · **Value:** `["url"]` · **Effect:** `$1` is the link's URL instead of its text, so the step checks the link.
+
+```json
+{
+  "name": "checkLinkUrl",
+  "link": {},
+  "captures": [
+    "url"
+  ],
+  "actions": [
+    "checkLink"
+  ]
+}
+```
+
+<Markdown src="examples/custom-option-captures/_variants.mdx" />
+
+Compare the `link` kind example, where `$1` is the link text. DITA has no `link` nodes, so this example leaves it out.
+
+### `batchMatches`
+
+**Varies:** `markup.batchMatches` · **Value:** `true` · **Effect:** the two code blocks join into one `runCode` step, so the second block can use the first block's variable.
+
+```json
+{
+  "name": "runScript",
+  "codeBlock": {
+    "language": [
+      "javascript"
+    ]
+  },
+  "batchMatches": true,
+  "actions": [
+    {
+      "runCode": {
+        "language": "javascript",
+        "code": "$1"
+      }
+    }
+  ]
+}
+```
+
+<Markdown src="examples/custom-option-batchmatches/_variants.mdx" />
+
+### `regex` without a selector
+
+**Varies:** `markup.regex` · **Value:** `\\bheading reads ([^.<]+)\\.` · **Effect:** the pattern runs on the file's raw text, including markup, and its first group becomes `$1`.
+
+```json
+{
+  "name": "findHeading",
+  "regex": "\\bheading reads ([^.<]+)\\.",
+  "actions": [
+    "find"
+  ]
+}
+```
+
+<Markdown src="examples/custom-option-regex/_variants.mdx" />
+
+Compare the `text` kind example, where the same kind of pattern runs only on prose. `[^.<]` keeps an HTML or DITA match from running into the closing tag.
+
+### `language`
+
+**Varies:** `markup.codeBlock.language` · **Value:** `["bash"]` · **Effect:** only the `bash` block runs. The `text` block that shows the output doesn't.
+
+```json
+{
+  "name": "runBash",
+  "codeBlock": {
+    "language": [
+      "bash"
+    ]
+  },
+  "actions": [
+    "runShell"
+  ]
+}
+```
+
+<Markdown src="examples/custom-option-language/_variants.mdx" />
+
+### `metaExcludes`
+
+**Varies:** `markup.codeBlock.metaExcludes` · **Value:** `\\bno-run\\b` · **Effect:** the `bash` block marked `no-run` doesn't run.
+
+```json
+{
+  "name": "runBash",
+  "codeBlock": {
+    "language": [
+      "bash"
+    ],
+    "metaExcludes": "\\bno-run\\b"
+  },
+  "actions": [
+    "runShell"
+  ]
+}
+```
+
+<Markdown src="examples/custom-option-metaexcludes/_variants.mdx" />
+
+HTML and DITA code blocks have no text after the language, so this example leaves them out. The meta is `bash no-run` in Markdown, `[source,bash,no-run]` in AsciiDoc, and `:class: no-run` in reStructuredText.
+
+### `url`
+
+**Varies:** `markup.link.url` · **Value:** `^http://localhost:8092/` · **Effect:** only the link to the test server gets a `checkLink`. The `#next-steps` link doesn't.
+
+```json
+{
+  "name": "checkLocalLinks",
+  "link": {
+    "url": "^http://localhost:8092/"
+  },
+  "captures": [
+    "url"
+  ],
+  "actions": [
+    "checkLink"
+  ]
+}
+```
+
+<Markdown src="examples/custom-option-url/_variants.mdx" />
+
+DITA has no `link` nodes, so this example leaves it out.
+
+### `src`
+
+**Varies:** `markup.image.src` · **Value:** `\\.svg$` · **Effect:** only the SVG icon gets a `checkLink`. The PNG chart doesn't.
+
+```json
+{
+  "name": "checkSvg",
+  "image": {
+    "src": "\\.svg$"
+  },
+  "captures": [
+    "src"
+  ],
+  "actions": [
+    "checkLink"
+  ]
+}
+```
+
+<Markdown src="examples/custom-option-src/_variants.mdx" />
+
+### `tag`
+
+**Varies:** `markup.element.tag` · **Value:** `["samp", "systemoutput"]` · **Effect:** a `<samp>` element in Markdown, MDX, and HTML, or a `<systemoutput>` element in DITA, becomes a `find`.
+
+```json
+{
+  "name": "findSample",
+  "element": {
+    "tag": [
+      "samp",
+      "systemoutput"
+    ]
+  },
+  "actions": [
+    "find"
+  ]
+}
+```
+
+<Markdown src="examples/custom-option-tag/_variants.mdx" />
+
+AsciiDoc and reStructuredText produce no `element` nodes, so this example leaves them out.
+
+## `actions` permutations
+
+Each example uses a bold phrase or an italic phrase and changes only the form of `actions`.
+
+### An action name
+
+**Varies:** `markup.actions` · **Value:** `["click"]` · **Effect:** the action takes `$1` as its value, so detection clicks the bold phrase.
+
+```json
+{
+  "name": "clickBold",
+  "strong": {},
+  "actions": [
+    "click"
+  ]
+}
+```
+
+<Markdown src="examples/custom-actions-name/_variants.mdx" />
+
+### An action name as a string
+
+**Varies:** `markup.actions` · **Value:** `"click"` · **Effect:** a single action can skip the array. Detection clicks the bold phrase, as with `["click"]`.
+
+```json
+{
+  "name": "clickBold",
+  "strong": {},
+  "actions": "click"
+}
+```
+
+<Markdown src="examples/custom-actions-string/_variants.mdx" />
+
+### A step template
+
+**Varies:** `markup.actions` · **Value:** `[{ "find": { "elementText": "$1", "timeout": 5000 } }]` · **Effect:** `$1` fills a field of a full step, so the `find` sets its own `timeout`.
+
+```json
+{
+  "name": "findBold",
+  "strong": {},
+  "actions": [
+    {
+      "find": {
+        "elementText": "$1",
+        "timeout": 5000
+      }
+    }
+  ]
+}
+```
+
+<Markdown src="examples/custom-actions-template/_variants.mdx" />
+
+### A step with no `$1`
+
+**Varies:** `markup.actions` · **Value:** `[{ "wait": 500 }]` · **Effect:** each match adds the same step. The italic phrase only marks where the wait goes.
+
+```json
+{
+  "name": "waitForEcho",
+  "emphasis": {},
+  "actions": [
+    {
+      "wait": 500
+    }
+  ]
+}
+```
+
+<Markdown src="examples/custom-actions-object/_variants.mdx" />
+
+## `extends` permutations
+
+Both examples use the same procedure and the same definition, which finds italic text. Only the file type's form changes.
+
+### `extends`
+
+**Varies:** `fileTypes.extends` · **Value:** `markdown` · **Effect:** the built-in definitions run too, so the bold label also becomes a `find`.
+
+```json
+{
+  "extends": "markdown",
+  "markup": [
+    {
+      "name": "findItalic",
+      "emphasis": {},
+      "actions": [
+        "find"
+      ]
+    }
+  ]
+}
+```
+
+<Markdown src="examples/custom-filetype-extends/_variants.mdx" />
+
+### From scratch
+
+**Varies:** `fileTypes.extends` · **Value:** `(not set)` · **Effect:** only the custom definition runs, so the bold label is plain text. The file type needs its own `extensions` and `inlineStatements`.
+
+```json
+{
+  "name": "markdown-custom",
+  "extensions": [
+    "md",
+    "mdx"
+  ],
+  "inlineStatements": {
+    "in": [
+      "comment"
+    ]
+  },
+  "markup": [
+    {
+      "name": "findItalic",
+      "emphasis": {},
+      "actions": [
+        "find"
+      ]
+    }
+  ]
+}
+```
+
+<Markdown src="examples/custom-filetype-scratch/_variants.mdx" />
+
+## `runShell` file type permutations
+
+A file type with `runShell` doesn't detect steps. Each matching file becomes one test with one [`runShell`](/docs/actions/runshell) step, and `$1` is the file's absolute path. These examples run a Node.js check that fails when a release-notes file still says `TODO`. The detected variant is the whole file, so prose and detected are the same text. The examples leave out the other formats and the inline variant, because the file type runs every `.txt` file it matches.
+
+### `runShell` as a string
+
+**Varies:** `fileTypes.runShell` · **Value:** `"node -e \"…\" $1"` · **Effect:** runs the command with `$1` unquoted. On Windows, `$1` uses forward slashes, so Bash reads the path intact.
+
+```json title="doc-detective.json (fileTypes)"
+{
+  "fileTypes": [
+    {
+      "name": "release-notes",
+      "extensions": ["txt"],
+      "runShell": "node -e \"process.exit(require('fs').readFileSync(process.argv[1], 'utf8').includes('TODO') ? 1 : 0)\" $1"
+    }
+  ]
+}
+```
+
+<Markdown src="examples/custom-filetype-runshell-string/_variants.mdx" />
+
+### `runShell` as an object
+
+**Varies:** `fileTypes.runShell` · **Value:** `{ "command": "node -e \"…\" '$1'", "timeout": 10000 }` · **Effect:** takes any `runShell` field, here a `timeout`. Quoting `'$1'` keeps a path with spaces in one argument.
+
+```json title="doc-detective.json (fileTypes)"
+{
+  "fileTypes": [
+    {
+      "name": "release-notes",
+      "extensions": ["txt"],
+      "runShell": {
+        "command": "node -e \"process.exit(require('fs').readFileSync(process.argv[1], 'utf8').includes('TODO') ? 1 : 0)\" '$1'",
+        "timeout": 10000
+      }
+    }
+  ]
+}
+```
+
+<Markdown src="examples/custom-filetype-runshell-object/_variants.mdx" />
+
+The standalone variants run the same check on `detected.txt`, with `workingDirectory` set to the folder that holds the spec.
+
+## Replace or add a definition
+
+Both examples extend the built-in formats with one definition that clicks bold text. Only the definition's `name` changes.
+
+### A built-in `name`
+
+**Varies:** `markup.name` · **Value:** `findOnscreenText` · **Effect:** the definition replaces the built-in one of that name, so detection clicks the bold label and doesn't find it.
+
+```json
+{
+  "name": "findOnscreenText",
+  "strong": {},
+  "actions": [
+    "click"
+  ]
+}
+```
+
+<Markdown src="examples/custom-markup-replace/_variants.mdx" />
+
+### A new `name`
+
+**Varies:** `markup.name` · **Value:** `clickBoldText` · **Effect:** the definition runs beside the built-in ones, so detection clicks the bold label and then finds it.
+
+```json
+{
+  "name": "clickBoldText",
+  "strong": {},
+  "actions": [
+    "click"
+  ]
+}
+```
+
+<Markdown src="examples/custom-markup-add/_variants.mdx" />
+
+## `inlineStatements` permutations
+
+The plain-text examples change the form of the regex statement keys. The others keep the built-in statements for the inline variants and add one `in` container that the detected variants use.
+
+### Regex keys as strings
+
+**Varies:** `inlineStatements.testStart` · **Value:** `(?:^|\\n)TEST (\\{.*\\})` · **Effect:** each key holds one pattern.
+
+```json
+{
+  "testStart": "(?:^|\\n)TEST (\\{.*\\})",
+  "testEnd": "(?:^|\\n)END TEST",
+  "step": "(?:^|\\n)STEP (\\{.*\\})"
+}
+```
+
+<Markdown src="examples/custom-statements-string/_variants.mdx" />
+
+### Regex keys as arrays
+
+**Varies:** `inlineStatements.testStart` · **Value:** `["…TEST…", "…Test…"]` · **Effect:** each key holds several patterns, so `TEST` and `Test` both start a test. The detected and inline variants use the `Test`, `Step`, and `End test` forms.
+
+```json
+{
+  "testStart": [
+    "(?:^|\\n)TEST (\\{.*\\})",
+    "(?:^|\\n)Test (\\{.*\\})"
+  ],
+  "testEnd": [
+    "(?:^|\\n)END TEST",
+    "(?:^|\\n)End test"
+  ],
+  "step": [
+    "(?:^|\\n)STEP (\\{.*\\})",
+    "(?:^|\\n)Step (\\{.*\\})"
+  ]
+}
+```
+
+<Markdown src="examples/custom-statements-array/_variants.mdx" />
+
+### An `in` code block
+
+**Varies:** `inlineStatements.in[].codeBlock` · **Value:** `"dd"` · **Effect:** a code block whose language is `dd` holds a statement.
+
+```json
+{
+  "codeBlock": "dd"
+}
+```
+
+<Markdown src="examples/custom-statements-in-codeblock/_variants.mdx" />
+
+### An `in` comment with `regex`
+
+**Varies:** `inlineStatements.in[].regex` · **Value:** `^\\s*dd:\\s*([\\s\\S]*)$` · **Effect:** a comment that starts with `dd:` holds a statement, and `regex` keeps the text after the prefix.
+
+```json
+{
+  "comment": {},
+  "regex": "^\\s*dd:\\s*([\\s\\S]*)$"
+}
+```
+
+<Markdown src="examples/custom-statements-in-comment/_variants.mdx" />
+
+### An `in` element with `value`
+
+**Varies:** `inlineStatements.in[].value` · **Value:** `attributes.data-dd` · **Effect:** an empty `<span>` holds its statement in the `data-dd` attribute.
+
+```json
+{
+  "element": {
+    "tag": [
+      "span"
+    ],
+    "attributes": {
+      "data-dd": true
+    }
+  },
+  "value": "attributes.data-dd"
+}
+```
+
+<Markdown src="examples/custom-statements-in-value/_variants.mdx" />
+
+This example shows Markdown, MDX, and HTML. DITA's built-in statements already use this form, with `<data>` and `value`.
+
+## `includeStatements` permutations
+
+Each example includes a shared file whose line detection turns into a `find`. Includes need `resolveIncludes`, which is on by default.
+
+### One pattern
+
+**Varies:** `fileTypes.includeStatements` · **Value:** `^INCLUDE (\\S+)$` · **Effect:** an `INCLUDE` line pulls in `check-label.txt`.
+
+```json
+{
+  "includeStatements": "^INCLUDE (\\S+)$"
+}
+```
+
+<Markdown src="examples/custom-include-string/_variants.mdx" />
+
+### Several patterns
+
+**Varies:** `fileTypes.includeStatements` · **Value:** `["^INCLUDE (\\S+)$", …]` · **Effect:** an `INCLUDE` line and a `#include` line each pull in a file.
+
+```json
+{
+  "includeStatements": [
+    "^INCLUDE (\\S+)$",
+    "^#include \"([^\"]+)\"$"
+  ]
+}
+```
+
+<Markdown src="examples/custom-include-array/_variants.mdx" />

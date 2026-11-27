@@ -375,7 +375,7 @@ describe("HTML Reporter media and view", function () {
     )({ hrefs, ...view }, (status) => `<badge ${status}>`, esc, escAttr, () => "<icon>", (text) => `<tag ${text}>`);
   }
 
-  describe("the comparison (ADR 01233)", function () {
+  describe("the comparison (ADR 01244)", function () {
     it("tags a context new, already failing, or fixed, and nothing else", async function () {
       const { failureTag } = await pageFunctions();
       expect(failureTag({ failureStatus: "new" })).to.equal("<tag new>");
@@ -668,7 +668,7 @@ describe("HTML Reporter media and view", function () {
       expect(html).to.not.include("</script><script>alert(1)");
     });
 
-    // ADR 01233: the view carries what the comparison found, only when there was one.
+    // ADR 01244: the view carries what the comparison found, only when there was one.
     it("puts the comparison's sentence and fixed contexts in the view", function () {
       const report = {
         comparison: { previous: { runId: "r0" }, summary: { new: 0, existing: 0, fixed: 1 } },

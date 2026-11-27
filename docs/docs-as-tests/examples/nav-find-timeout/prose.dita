@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-find-timeout">
+  <title>Give a late element more time</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/waitUntil-test-late-element.html" scope="external" format="html">the late element page</xref>.</cmd></step>
+      <step><cmd>Wait for the status line to read <b>System operational</b>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

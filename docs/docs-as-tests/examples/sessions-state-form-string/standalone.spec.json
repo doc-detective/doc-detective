@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-state-form-string",
+      "steps": [
+        {
+          "runShell": "node -e \"require('fs').rmSync('docs/docs-as-tests/examples/.dd-output/sessions-pstate.json', { force: true })\""
+        },
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_pstate/signed-in"
+        },
+        {
+          "saveState": "sessions-pstate.json"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_pstate/signed-out"
+        },
+        {
+          "loadState": "sessions-pstate.json"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "sessions_pstate=signed-in"
+        }
+      ]
+    }
+  ]
+}

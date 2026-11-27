@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Swipe between two points</title></head>
+<body>
+<!-- test {"testId":"nav-swipe-points","detectSteps":false} -->
+<h1>Swipe between two points</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/enhanced-elements.html">the element test page</a>.
+    <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} --></li>
+  <li>Swipe from the middle of the page toward the top.
+    <!-- step {"swipe":{"from":{"x":400,"y":400},"to":{"x":400,"y":250}}} --></li>
+  <li>Check that <strong>Submit by ID</strong> is still on the page.
+    <!-- step {"find":"Submit by ID"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

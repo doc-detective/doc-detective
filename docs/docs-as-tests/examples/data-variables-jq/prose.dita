@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-variables-jq">
+  <title>Count the items in a cart</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Create a cart. Send a <codeph>POST</codeph> request to <codeph>http://localhost:8092/api/carts</codeph> with this body:</cmd>
+        <info><codeblock outputclass="language-json">{"items":[{"sku":"A1","qty":2},{"sku":"B2","qty":1}]}</codeblock></info></step>
+      <step><cmd>Send the count in a <codeph>GET</codeph> request to <codeph>http://localhost:8092/api/carts?count=&lt;count&gt;</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

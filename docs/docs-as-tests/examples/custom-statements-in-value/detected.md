@@ -1,0 +1,13 @@
+<!-- test {"testId":"custom-statements-in-value","detectSteps":true} -->
+
+# Check the field label
+
+Open the type echo page.
+
+<span data-dd='step {"goTo":"http://localhost:8092/type-echo.html"}'></span>
+
+The field is labeled Type here:.
+
+<span data-dd='step {"find":"Type here:"}'></span>
+
+<!-- test end -->

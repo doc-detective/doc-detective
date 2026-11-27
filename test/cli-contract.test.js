@@ -268,7 +268,7 @@ describe("CLI contract", function () {
       });
     }
 
-    // ADR 01233.
+    // ADR 01244.
     for (const { name, args, line } of [
       { name: '--compare-to ""', args: ["--compare-to", ""], line: "`--compare-to` needs a path or `previous`." },
       {
@@ -299,7 +299,7 @@ describe("CLI contract", function () {
       });
     }
 
-    // ADR 01234.
+    // ADR 01245.
     const failOnNeedsComparison = "`failOn: new` needs a comparison. Remove `compareTo: false` or `--no-compare-to`.";
     for (const { name, args, config } of [
       { name: "--fail-on new --no-compare-to", args: ["--fail-on", "new", "--no-compare-to"] },
@@ -1191,14 +1191,14 @@ describe("CLI contract", function () {
     it("names the reporters it allows", function () {
       usage(
         run(["-r", "foo"]),
-        "error: option '-r, --reporters <names>' argument 'foo' is invalid. Allowed choices are terminal, json, html, runFolder, junit, markdown."
+        "error: option '-r, --reporters <names>' argument 'foo' is invalid. Allowed choices are terminal, json, html, runFolder, junit, markdown, cucumber."
       );
     });
 
     it("names the one bad reporter in a list", function () {
       usage(
         run(["-r", "terminal, bogus,json"]),
-        "error: option '-r, --reporters <names>' argument 'bogus' is invalid. Allowed choices are terminal, json, html, runFolder, junit, markdown."
+        "error: option '-r, --reporters <names>' argument 'bogus' is invalid. Allowed choices are terminal, json, html, runFolder, junit, markdown, cucumber."
       );
     });
 
@@ -1240,7 +1240,7 @@ describe("CLI contract", function () {
       expect(r.stderr).to.equal(
         [
           "Error: Invalid config in DOC_DETECTIVE_CONFIG:",
-          'reporters[0]: must be one of terminal, json, html, runFolder, junit, markdown (got "htm").',
+          'reporters[0]: must be one of terminal, json, html, runFolder, junit, markdown, cucumber (got "htm").',
           "See https://docs.doc-detective.com/reference/schemas/config",
           "",
         ].join("\n")

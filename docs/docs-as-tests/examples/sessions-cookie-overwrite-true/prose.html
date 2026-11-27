@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Replace a saved cookie</title></head>
+<body>
+<h1>Replace a saved cookie</h1>
+<ol>
+  <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_pover/first">the sign-in page</a>. The server sets the <code>sessions_pover</code> cookie.</li>
+  <li>Save the <code>sessions_pover</code> cookie to <code>sessions_pover.txt</code>, replacing any earlier file.</li>
+  <li>Sign in again at <a href="http://localhost:8092/cookies/set/sessions_pover/second">the second sign-in page</a>, and save the cookie to the same file.</li>
+  <li>Sign out at <a href="http://localhost:8092/cookies/set/sessions_pover/signed-out">the sign-out page</a>, which replaces the cookie.</li>
+  <li>Load the cookie from <code>sessions_pover.txt</code>.</li>
+  <li>Open <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_pover=second</strong>.</li>
+</ol>
+</body>
+</html>

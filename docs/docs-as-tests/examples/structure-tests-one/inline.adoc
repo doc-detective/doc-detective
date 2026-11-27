@@ -1,0 +1,15 @@
+= Check the demo pages
+
+// (test {"testId":"structure-tests-one","detectSteps":false})
+
+. Check that http://localhost:8092/index.html[the elements demo] loads.
++
+// (step {"checkLink":"http://localhost:8092/index.html"})
+. Check that http://localhost:8092/type-echo.html[the type echo page] loads.
++
+// (step {"checkLink":"http://localhost:8092/type-echo.html"})
+. Check that http://localhost:8092/status/200[the status endpoint] answers.
++
+// (step {"checkLink":"http://localhost:8092/status/200"})
+
+// (test end)

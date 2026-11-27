@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "custom-option-language",
+      "steps": [
+        {
+          "runShell": "curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8092/type-echo.html"
+        }
+      ]
+    }
+  ]
+}

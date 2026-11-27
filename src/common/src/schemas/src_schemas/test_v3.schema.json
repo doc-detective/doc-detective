@@ -313,7 +313,18 @@
           },
           "contextId": {
             "type": "string",
-            "description": "Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one."
+            "description": "Unique ID of this context within its test. Doc Detective derives it from the platform and browser, such as `linux-chrome`, unless the `runOn` entry sets one. A `matrix` combination adds `~<key>=<value>` for each key, such as `linux-chrome~locale=de-DE`."
+          },
+          "matrix": {
+            "type": "object",
+            "description": "The `matrix` values this context ran with, one per key the test references. System-populated.",
+            "additionalProperties": {
+              "anyOf": [
+                { "$ref": "matrix_v3.schema.json#/components/schemas/scalar" },
+                { "type": "object", "additionalProperties": { "$ref": "matrix_v3.schema.json#/components/schemas/scalar" } }
+              ]
+            },
+            "readOnly": true
           },
           "unsafe": {
             "type": "boolean",

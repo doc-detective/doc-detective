@@ -314,7 +314,7 @@ describe("reporters/model", function () {
       assert.equal(item.reason, "");
     });
 
-    it("carries the context's failureStatus on its FAIL items only (ADR 01233)", function () {
+    it("carries the context's failureStatus on its FAIL items only (ADR 01244)", function () {
       const items = nonPassItems(
         report(
           [

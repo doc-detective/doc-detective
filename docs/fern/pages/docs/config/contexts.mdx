@@ -133,7 +133,7 @@ When Chrome rejects a `timezone` or `clock` value at start, the context fails:
 Couldn't set `timezone` to `Europe/Berlin` in `chrome`.
 ```
 
-These keys are part of the context, so a dark context and a light context of the same browser run separately. To take a screenshot of each variant, see [Capture dark-mode and localized screenshots](/docs/test-docs/capture-screenshots-guide#capture-dark-mode-and-localized-screenshots).
+These keys are part of the context, so a dark context and a light context of the same browser run separately. To run every variant from one test, use a [`matrix`](#run-once-per-value-with-matrix). To take a screenshot of each variant, see [Capture dark-mode and localized screenshots](/docs/test-docs/capture-screenshots-guide#capture-dark-mode-and-localized-screenshots).
 
 ### Chrome (`chrome`)
 
@@ -300,6 +300,104 @@ Things that work differently on a device browser:
 - **`localhost` is the device's own loopback.** An Android emulator reaches the host machine at `10.0.2.2`, so a local test server at `http://localhost:8092` is `http://10.0.2.2:8092` from the emulator. iOS simulators share the host network, so `localhost` works directly.
 
 Host requirements match native mobile app testing, and Doc Detective checks them automatically. `android` needs any capable host with the Android SDK and hardware acceleration, which `doc-detective install android` prepares. `ios` needs a macOS host with Xcode, which `doc-detective install ios` prepares. Incapable hosts skip with actionable guidance. On Android, Chrome ships with `google_apis` system images, the kind `doc-detective install android` installs. Images without Chrome skip with a pointer.
+
+## Run once per value with `matrix`
+
+To run one test once per locale, theme, or page, list the values in a `matrix` on a context, and reference them as `$$matrix.<key>`. Doc Detective runs the test once per combination of the keys it references. Each combination is its own context, with its own browser session, results, and artifact folder.
+
+```json
+{
+  "testId": "login",
+  "runOn": [
+    {
+      "platforms": "linux",
+      "browsers": {
+        "name": "chrome",
+        "colorScheme": "$$matrix.variant.theme",
+        "deviceScaleFactor": "$$matrix.variant.dpr",
+        "locale": "$$matrix.locale"
+      },
+      "matrix": {
+        "locale": ["en-US", "de-DE"],
+        "variant": [
+          { "theme": "light", "dpr": 1 },
+          { "theme": "dark", "dpr": 2 }
+        ]
+      }
+    }
+  ],
+  "steps": [
+    { "goTo": "http://localhost:3000/$$matrix.locale/login" },
+    { "screenshot": "login-$$matrix.locale-$$matrix.variant.theme.png" }
+  ]
+}
+```
+
+This test runs four times, once for each locale with each variant.
+
+Each `matrix` key is letters, digits, and `_`. Its value is a list of unique items: either all strings, numbers, or booleans, or all objects whose values are strings, numbers, or booleans. An object value keeps related settings together, such as a theme and its pixel density.
+
+### Values from a file
+
+A key can read its list from a file instead, so a page list or sitemap your site already has drives the test:
+
+```json
+{
+  "matrix": {
+    "page": { "file": "pages.json" },
+    "url": { "file": "public/sitemap.xml" }
+  }
+}
+```
+
+- A `.json` file holds an array, under the same rules as a list in the spec.
+- An `.xml` file is a sitemap. Each `<loc>` entry is one value.
+- A relative path resolves against the spec or config file that declares the `runOn`, or against the working directory with `relativePathBase: "cwd"`.
+- Doc Detective reads each file once, before any test runs. For each test a `matrix` expands, the log says how many contexts it made, such as `login: 12 contexts from matrix.`
+
+A file that doesn't load stops the run, and the CLI exits `2`:
+
+```text
+tests[0]: Couldn't read `matrix` file `/docs/pages.json`.
+tests[0]: Couldn't load `matrix` key `page`: `/docs/pages.json` isn't a JSON array.
+tests[0]: Couldn't load `matrix` key `page`: `/docs/pages.json` has no values.
+tests[0]: Couldn't load `matrix` key `page`: `/docs/pages.json` has values `matrix` doesn't accept.
+tests[0]: Couldn't load `matrix` key `url`: `/docs/public/sitemap.xml` has no `<loc>` entries.
+tests[0]: Couldn't load `matrix` key `page`: `/docs/pages.txt` must be `.json` or `.xml`.
+```
+
+### References
+
+- `$$matrix.<key>` is the key's value. `$$matrix.<key>.<field>` is one field of an object value.
+- A whole-string reference becomes the value, with its type. In the example, `deviceScaleFactor` gets the number `2`.
+- Doc Detective splices a reference inside a longer string in as text. An object value without a field splices in its values joined with `-`, such as `dark-2`.
+- A reference ends at the first character that isn't a letter, digit, `_`, or `.`. After a string, number, or boolean value, a `.` starts plain text again, so `$$matrix.locale.png` is the locale followed by `.png`. After an object value, a `.` names a field.
+- References work in the context's own fields and in every step, including the steps a `before` or `after` file adds. The `before` and `after` paths themselves, and a test's own `if` and `description`, take no references. The page emulation keys on a browser, and a `goTo` URL, take a reference in place of a value.
+- Doc Detective substitutes each combination's values into that context's copy of the steps. Combinations never see each other's values, even when they run at the same time.
+
+### Which tests a `matrix` multiplies
+
+A test runs once per combination of only the keys that its steps or its context reference. A `matrix` in a config or spec `runOn` reaches every test without a `runOn` of its own, and a test that references none of its keys runs once. On a `runOn` that a test sets itself, a key the test doesn't reference is an error.
+
+### Context IDs and files
+
+Each combination's context ID ends in `~<key>=<value>` for each key, such as `linux-chrome~locale=de-DE~variant=dark-2`. An object value's part is its values joined with `-`. Characters that can't be in a file name become `-`. Results, artifact folders, and `junit` report cases use this ID, and each context in the results lists its values under `matrix`.
+
+A `screenshot`, `record`, `saveState`, or `saveCookie` path must reference every key that has more than one value. Otherwise every combination would write the same file. A path Doc Detective picks itself, such as `"screenshot": true`, is already unique per context.
+
+### Errors
+
+A `matrix` mistake stops the run before any test runs, and the CLI exits `2`. With `exitOnFail: false`, Doc Detective skips the spec and warns instead. The messages:
+
+```text
+tests[0]: `$$matrix.foo` names no `matrix` key in context `linux-firefox`.
+tests[0]: `$$matrix.variant.size` names no field of `matrix` key `variant`.
+tests[0]: `matrix` key `theme` isn't used. Reference it as `$$matrix.theme` or remove it.
+tests[0]: step 3's `path` `/docs/login.png` is the same for every `matrix` combination. Add `$$matrix.variant` to it.
+tests[0]: `matrix` values `a/b` and `a-b` give the same context ID.
+```
+
+To take a screenshot of each variant, see [Screenshot every variant from one test](/docs/test-docs/capture-screenshots-guide#screenshot-every-variant-from-one-test).
 
 ## Platforms
 

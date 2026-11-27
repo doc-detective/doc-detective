@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Wait for a slow file</title></head>
+<body>
+<h1>Wait for a slow file</h1>
+<p>Start a job that writes its result to the <code>output</code> folder after one second:</p>
+<pre><code class="language-shell">node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});setTimeout(()=&gt;fs.writeFileSync('output/late.txt','done'),1000)"</code></pre>
+<p>Wait up to 15 seconds for <code>output/late.txt</code>.</p>
+</body>
+</html>

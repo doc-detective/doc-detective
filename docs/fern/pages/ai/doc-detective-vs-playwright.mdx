@@ -1,0 +1,56 @@
+---
+title: Doc Detective or Playwright for documentation testing
+sidebar-title: Doc Detective vs. Playwright
+description: Choose between Doc Detective and Playwright to test documented procedures, take screenshots, and record videos.
+---
+
+Doc Detective and Playwright can both drive a browser through a procedure, take screenshots, and record video. They start from different places. Doc Detective starts from your documentation. The tests live in or beside the docs, and you write them as JSON or YAML steps instead of code. Playwright starts from code. You write tests in TypeScript, JavaScript, Python, Java, or .NET, with the full power of the language.
+
+Use this page to decide which tool fits a task. When a project already uses one tool, keep using it for what it does well, and add the other only where it fills a gap.
+
+## Use Doc Detective when
+
+- The test checks a procedure that your docs describe, and you want the test to live in the doc source. Doc Detective reads [inline tests](/docs/test-docs/inline) from comments in Markdown, MDX, AsciiDoc, reStructuredText, DITA, and HTML. It also [detects tests](/docs/test-docs/detected) from the procedure's own text, such as links, UI labels, and code blocks.
+- The people who maintain the tests are writers, not developers. Steps are declarative JSON or YAML, such as `{ "click": "Export CSV" }`. There's no code to write or build. See [How testing works](/docs/get-started/how-testing-works).
+- You need screenshots for the docs, and you want to know when they go out of date. A [`screenshot`](/docs/actions/screenshot) step compares each new screenshot with the committed image, returns WARNING when the difference exceeds `maxVariation`, and can replace the image only when it drifts. See [Screenshot visual regression](/docs/test-docs/screenshot-visual-regression).
+- You need videos of procedures for the docs. A [`record`](/docs/actions/record) step records headless Chrome without a display. On Linux with no display, Doc Detective runs headed contexts on Xvfb, so Firefox and `ffmpeg` recordings work too. The Docker image includes Xvfb. Recordings can also report when they've gone stale against committed checkpoints, without re-recording. See [Video visual regression](/docs/test-docs/video-visual-regression).
+- Screenshots must show a fixed state, such as dark mode, another locale or time zone, a fixed clock, a pixel density, or reduced motion. Set these per context with [page emulation](/docs/test-docs/platforms-and-browsers#page-emulation).
+- A procedure ends with a file. [`checkFile`](/docs/actions/checkfile) with `download` waits for a browser download in Chrome or Firefox and checks its text.
+- A screenshot needs stable data from an API, or you want to show an error state. [`mockRequest`](/docs/actions/mockrequest) answers matching browser requests with a fixed response in Chrome.
+- You want doc-oriented results in CI. The [GitHub Action](/docs/ci/github-action) runs the tests on a pull request or schedule. It can open an issue on failure, or a pull request with refreshed screenshots. [Reporters](/docs/ci/reporters-and-artifacts) produce JUnit, Markdown, JSON, and HTML reports with each failure's screenshot and recording.
+- An AI agent writes and maintains the tests. Each step is a small JSON object that validates against a schema, so an agent can check its own output before it runs. See [AI and agents](/ai/ai-agents/overview).
+
+## Use Playwright when
+
+- The test needs arbitrary programmatic logic, such as loops over data, computed values, custom helpers, or control flow beyond what steps express. Doc Detective covers [variables, conditions, and routing on a step's result](/reference/docs-as-tests/data-control-flow), and [`runShell`](/docs/actions/runshell), [`runCode`](/docs/actions/runcode), and [`runBrowserScript`](/docs/actions/runbrowserscript) run scripts. Playwright gives you a full programming language in the test itself.
+- The test needs complex fixtures, such as per-worker setup, dependency injection, or shared authenticated state across many tests.
+- The test needs rich network control. Playwright can change requests and responses in flight, block requests, replay a HAR file, and intercept in Firefox and WebKit. Doc Detective's `mockRequest` answers matching requests with one fixed response per `url` and `method`, in Chrome only.
+- You test UI components in isolation. Playwright has component testing for React, Vue, and Svelte. Doc Detective tests pages, apps, and commands as a reader uses them.
+- The team already has a large Playwright suite. Keep product tests there, and use Doc Detective for the procedures that the docs describe.
+
+## Capability comparison
+
+| Capability | Doc Detective | Playwright |
+|---|---|---|
+| Where tests live | In doc source as inline comments, detected from Markdown and other formats, or in standalone `*.spec.json` and YAML files. | In code files, such as `*.spec.ts`. |
+| How you write tests | Declarative JSON or YAML steps, validated against a schema. No code required. | Code in TypeScript, JavaScript, Python, Java, or .NET. |
+| Browsers | Chrome and Firefox, headed or headless, and Safari. Browsers on Android and iOS devices. | Chromium, Firefox, and WebKit, headed or headless. Device emulation for mobile viewports. |
+| Beyond the browser | Shell commands, code, HTTP requests, and native apps on Windows, macOS, Android, and iOS (experimental). | HTTP requests through its API client. Electron apps (experimental). |
+| Screenshots | `screenshot` step with crop, padding, masks, and annotations. Compares with the committed image and returns WARNING when the difference exceeds `maxVariation` or `maxDiffPixels`. Can refresh the image only when it drifts. Takes a screenshot after every browser step by default. | `page.screenshot()`, and `toHaveScreenshot()` assertions that fail the test when the difference exceeds a pixel or ratio threshold. Updates reference images with `--update-snapshots`. |
+| Recordings | `record` step to MP4. Headless Chrome records its tab. On Linux with no display, headed contexts run on Xvfb, so Firefox and `ffmpeg` recordings work too. Staleness checks against committed checkpoints. Records each context by default. | Video per test through the `video` option, including headless. Trace viewer for step-by-step debugging. |
+| Page emulation | `colorScheme`, `locale`, `timezone`, `deviceScaleFactor`, `reducedMotion`, and `clock` per context. A context whose browser can't set a key reports SKIPPED. | Color scheme, locale, time zone, device scale factor, reduced motion, geolocation, and permissions per context, plus a clock API. |
+| Network mocking | `mockRequest` answers matching requests with a fixed status, headers, and body, or a file, until the test ends. Chrome only. | `page.route()` to fulfill, change, or block requests in every browser, and HAR replay. |
+| Downloads | `checkFile` with `download` waits for a finished download in Chrome or Firefox and checks its text. | `page.waitForEvent('download')` returns the download to save or inspect in code. |
+| Control flow | Variables, conditions, and routing on a step's result. Scripts through `runShell`, `runCode`, and `runBrowserScript`. | Anything the language supports. |
+| Fixtures and setup | `beforeAll` and `afterAll` specs, saved state and cookies, and `loadVariables`. | Built-in and custom fixtures, projects, and global setup. |
+| CI | The Doc Detective GitHub Action, which can open issues on failure and pull requests with changed files. Runs in any CI through the CLI or Docker image. | Runs in any CI through its CLI, with sharding and parallel workers. |
+| Reports | Terminal, JSON, HTML, JUnit, Markdown, and a run folder with every screenshot and recording, organized by spec, test, and context. | List, HTML, JSON, JUnit, and other reporters, plus traces. |
+
+## Use both
+
+The tools don't conflict. A common split:
+
+- Product engineers keep end-to-end and component tests in Playwright.
+- Docs authors keep procedure tests, screenshots, and recordings in Doc Detective, next to the docs they check.
+
+When a procedure needs logic that steps can't express, put that logic in a script and call it from a [`runShell`](/docs/actions/runshell) step. Or keep that one check in Playwright.

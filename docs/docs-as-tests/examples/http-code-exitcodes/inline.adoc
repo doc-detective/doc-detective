@@ -1,0 +1,14 @@
+= Expect a failing exit code
+
+// (test {"testId":"http-code-exitcodes","detectSteps":false})
+
+This script exits with code `2`:
+
+[source,js]
+----
+process.exit(2);
+----
+
+// (step {"runCode":{"language":"js","code":"process.exit(2);","exitCodes":[2]}})
+
+// (test end)

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "data-variables-stdio",
+      "steps": [
+        {
+          "runShell": "node --version",
+          "variables": {
+            "NODE_VERSION": "$$stdio.stdout"
+          }
+        },
+        {
+          "runShell": "node -e \"process.exit(process.env.NODE_VERSION.startsWith('v') ? 0 : 1)\""
+        }
+      ]
+    }
+  ]
+}

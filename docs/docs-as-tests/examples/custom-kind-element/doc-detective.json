@@ -1,0 +1,55 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": false,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "outputDir": ".dd-output",
+  "beforeAll": "../../../test-setup/start-server.spec.json",
+  "afterAll": "../../../test-setup/stop-server.spec.json",
+  "telemetry": {
+    "send": false
+  },
+  "fileTypes": [
+    {
+      "name": "markdown-custom",
+      "extensions": [
+        "md",
+        "mdx"
+      ],
+      "inlineStatements": {
+        "in": [
+          "comment"
+        ]
+      },
+      "markup": [
+        {
+          "name": "findSample",
+          "element": "samp",
+          "actions": [
+            "find"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "html-custom",
+      "extensions": [
+        "html"
+      ],
+      "inlineStatements": {
+        "in": [
+          "comment"
+        ]
+      },
+      "markup": [
+        {
+          "name": "findSample",
+          "element": "samp",
+          "actions": [
+            "find"
+          ]
+        }
+      ]
+    }
+  ]
+}

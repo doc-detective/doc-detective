@@ -1,0 +1,10 @@
+= Wait for an element to appear
+
+// (test {"testId":"nav-goto-waituntil-find","detectSteps":true})
+
+. Go to http://localhost:8092/waitUntil-test-late-element.html[the late element page].
++
+// (step {"goTo":{"url":"http://localhost:8092/waitUntil-test-late-element.html","waitUntil":{"find":{"selector":".dashboard-loaded"}}}})
+. Check that the page shows *Dashboard*.
+
+// (test end)

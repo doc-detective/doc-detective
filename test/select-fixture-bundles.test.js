@@ -16,7 +16,8 @@ const {
 
 // Directories under test/core-artifacts/ that are NOT fixture-gate groups:
 // they hold specs/data consumed by the mocha suite, not this matrix.
-const NON_GROUP_DIRS = new Set(["ordering", "output"]);
+// cucumber-recipe is the sample suite that docs/fern/pages/docs/ci/cucumber.mdx runs.
+const NON_GROUP_DIRS = new Set(["ordering", "output", "cucumber-recipe"]);
 
 describe("select-fixture-bundles", function () {
   describe("selectBundles (names)", function () {
@@ -72,7 +73,7 @@ describe("select-fixture-bundles", function () {
       // fixtures run in 2-4 min, so splitting them spent more on setup than on
       // tests and filled the 5-slot macOS pool ahead of the iOS critical path.
       const fast = ["navigation", "capture", "interactions", "routing", "http",
-        "guards", "reporters", "cli", "process", "sessions", "emulation"];
+        "guards", "reporters", "cli", "process", "sessions", "emulation", "gherkin"];
       const owners = new Set(
         fast.map((dir) => BUNDLES.find((b) => b.dirs.includes(dir))?.name)
       );

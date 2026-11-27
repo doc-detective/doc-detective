@@ -259,7 +259,7 @@ async function runTestsHandler(args: any) {
   // preserves any non-zero code an earlier stage already set.
   if (!process.exitCode) {
     process.exitCode = runExitCode(results, config);
-    // failOn: new passed a run that has failures; say why (ADR 01234).
+    // failOn: new passed a run that has failures; say why (ADR 01245).
     const existing = results?.comparison?.summary?.existing;
     if (
       process.exitCode === 0 &&

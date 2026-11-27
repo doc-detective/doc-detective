@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-script-args">
+  <title>Run a script in the page</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-script-args","detectSteps":false}'/>
+    <p>Open the test site at <codeph>http://localhost:8092/</codeph>.</p>
+    <data name="doc-detective" value='step {"goTo":"http://localhost:8092/"}'/>
+    <p>Join <codeph>foo</codeph> and <codeph>bar</codeph> in the console. The result is <codeph>foobar</codeph>.</p>
+    <data name="doc-detective" value='step {"runBrowserScript":{"script":"return arguments[0] + arguments[1];","args":["foo","bar"],"output":"foobar"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: sessions-state-overwrite-true
+    steps:
+      - goTo: http://localhost:8092/cookies/set/sessions_pstateo/signed-in
+      - saveState:
+          path: sessions-pstateo.json
+          overwrite: true
+      - goTo: http://localhost:8092/cookies/set/sessions_pstateo/signed-out
+      - loadState:
+          path: sessions-pstateo.json
+      - goTo: http://localhost:8092/cookies
+      - find: sessions_pstateo=signed-in

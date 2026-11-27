@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-language-python">
+  <title>Run a code block</title>
+  <body>
+    <p>Run this code. It prints <codeph>ready</codeph>:</p>
+    <codeblock outputclass="language-python">print("ready")</codeblock>
+  </body>
+</topic>

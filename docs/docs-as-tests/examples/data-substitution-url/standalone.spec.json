@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "data-substitution-url",
+      "steps": [
+        {
+          "loadVariables": "shop.env"
+        },
+        {
+          "httpRequest": {
+            "url": "$SHOP_URL/products",
+            "method": "get"
+          }
+        }
+      ]
+    }
+  ]
+}

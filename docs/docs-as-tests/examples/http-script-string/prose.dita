@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-script-string">
+  <title>Run a script in the page</title>
+  <body>
+    <p>Open the test site at <codeph>http://localhost:8092/</codeph>.</p>
+    <p>Evaluate <codeph>document.title</codeph> in the console.</p>
+  </body>
+</topic>

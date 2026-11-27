@@ -56,7 +56,7 @@
       "type": "string"
     },
     "outputDir": {
-      "description": "Path of the folder that holds the run folder and the html, junit, and markdown reports.",
+      "description": "Path of the folder that holds the run folder and the html, junit, markdown, and cucumber reports.",
       "type": "string",
       "default": "."
     },
@@ -77,7 +77,7 @@
       ]
     },
     "reporters": {
-      "description": "Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), and `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.",
+      "description": "Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory), and `cucumber` (Cucumber JSON for test-management tools such as Xray and Allure, written as `cucumber.json` in the output directory). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.",
       "type": "array",
       "items": {
         "type": "string",
@@ -87,7 +87,8 @@
           "html",
           "runFolder",
           "junit",
-          "markdown"
+          "markdown",
+          "cucumber"
         ]
       },
       "default": [
@@ -376,17 +377,35 @@
                         "title": "Browser Viewport"
                       },
                       "colorScheme": {
-                        "type": "string",
-                        "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
-                        "enum": [
-                          "light",
-                          "dark"
+                        "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "light",
+                              "dark"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                          }
                         ]
                       },
                       "locale": {
-                        "type": "string",
-                        "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
-                        "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                        "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                          },
+                          {
+                            "type": "string",
+                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                          }
+                        ],
                         "examples": [
                           "de-DE",
                           "fr",
@@ -394,9 +413,18 @@
                         ]
                       },
                       "timezone": {
-                        "type": "string",
-                        "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
-                        "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                        "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                          },
+                          {
+                            "type": "string",
+                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                          }
+                        ],
                         "examples": [
                           "Europe/Berlin",
                           "America/New_York",
@@ -404,23 +432,50 @@
                         ]
                       },
                       "deviceScaleFactor": {
-                        "type": "number",
-                        "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
-                        "minimum": 0.5,
-                        "maximum": 4
+                        "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                        "anyOf": [
+                          {
+                            "type": "number",
+                            "minimum": 0.5,
+                            "maximum": 4
+                          },
+                          {
+                            "type": "string",
+                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                          }
+                        ]
                       },
                       "reducedMotion": {
-                        "type": "string",
-                        "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
-                        "enum": [
-                          "reduce",
-                          "no-preference"
+                        "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "enum": [
+                              "reduce",
+                              "no-preference"
+                            ]
+                          },
+                          {
+                            "type": "string",
+                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                          }
                         ]
                       },
                       "clock": {
-                        "type": "string",
-                        "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
-                        "format": "date-time"
+                        "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          {
+                            "type": "string",
+                            "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                            "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                          }
+                        ]
                       }
                     },
                     "examples": [
@@ -522,17 +577,35 @@
                               "title": "Browser Viewport"
                             },
                             "colorScheme": {
-                              "type": "string",
-                              "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
-                              "enum": [
-                                "light",
-                                "dark"
+                              "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "light",
+                                    "dark"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                  "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                }
                               ]
                             },
                             "locale": {
-                              "type": "string",
-                              "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
-                              "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                              "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                                },
+                                {
+                                  "type": "string",
+                                  "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                  "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                }
+                              ],
                               "examples": [
                                 "de-DE",
                                 "fr",
@@ -540,9 +613,18 @@
                               ]
                             },
                             "timezone": {
-                              "type": "string",
-                              "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
-                              "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                              "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                                },
+                                {
+                                  "type": "string",
+                                  "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                  "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                }
+                              ],
                               "examples": [
                                 "Europe/Berlin",
                                 "America/New_York",
@@ -550,23 +632,50 @@
                               ]
                             },
                             "deviceScaleFactor": {
-                              "type": "number",
-                              "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
-                              "minimum": 0.5,
-                              "maximum": 4
+                              "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                              "anyOf": [
+                                {
+                                  "type": "number",
+                                  "minimum": 0.5,
+                                  "maximum": 4
+                                },
+                                {
+                                  "type": "string",
+                                  "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                  "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                }
+                              ]
                             },
                             "reducedMotion": {
-                              "type": "string",
-                              "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
-                              "enum": [
-                                "reduce",
-                                "no-preference"
+                              "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "reduce",
+                                    "no-preference"
+                                  ]
+                                },
+                                {
+                                  "type": "string",
+                                  "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                  "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                }
                               ]
                             },
                             "clock": {
-                              "type": "string",
-                              "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
-                              "format": "date-time"
+                              "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                {
+                                  "type": "string",
+                                  "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                                  "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                                }
+                              ]
                             }
                           },
                           "examples": [
@@ -605,6 +714,107 @@
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 10
+              },
+              "matrix": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "title": "matrix",
+                "type": "object",
+                "description": "Values to run this context once per combination of. Each key names a list of values. Reference a value in the context's fields or in the test's steps as `$$matrix.<key>`, or `$$matrix.<key>.<field>` for a field of an object value. The context runs once per combination of the keys it references, and each combination's context ID ends in `~<key>=<value>`. A reference that is the whole string keeps the value's type; one inside a longer string is spliced in as text. A key that the test doesn't reference doesn't multiply its contexts, but on a `runOn` the test sets itself, an unreferenced key is an error.",
+                "minProperties": 1,
+                "propertyNames": {
+                  "pattern": "^[A-Za-z0-9_]+$"
+                },
+                "additionalProperties": {
+                  "description": "The values for this key: a non-empty list of unique items, either all scalars (string, number, or boolean) or all objects whose values are scalars. Or `{ \"file\": \"<path>\" }` to read the list from a file.",
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "title": "Values from a file",
+                      "required": [
+                        "file"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "file": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Path of a `.json` file that holds the list, or of an `.xml` sitemap whose `<loc>` entries are the values. A relative path resolves against the file that declares this `runOn`, or the working directory with `relativePathBase: \"cwd\"`. Doc Detective reads it before any test runs."
+                        }
+                      }
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      }
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 1,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "object",
+                        "minProperties": 1,
+                        "propertyNames": {
+                          "pattern": "^[A-Za-z0-9_]+$"
+                        },
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "number",
+                            "boolean"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                "components": {
+                  "schemas": {
+                    "scalar": {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean"
+                      ]
+                    },
+                    "reference": {
+                      "type": "string",
+                      "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                      "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                    }
+                  }
+                },
+                "examples": [
+                  {
+                    "locale": [
+                      "en-US",
+                      "de-DE"
+                    ]
+                  },
+                  {
+                    "locale": [
+                      "en-US",
+                      "de-DE"
+                    ],
+                    "variant": [
+                      {
+                        "theme": "light",
+                        "dpr": 1
+                      },
+                      {
+                        "theme": "dark",
+                        "dpr": 2
+                      }
+                    ]
+                  }
+                ]
               },
               "requires": {
                 "description": "Capabilities the environment must provide for this context to run. A string names a required command; an array names several; the object form checks commands (on PATH), files (paths, with `$VAR`/`$HOME` expansion), and environment variables. All entries are AND-ed. Any unmet requirement marks the context as SKIPPED — the same non-failing outcome as a `platforms` mismatch.",
@@ -883,17 +1093,35 @@
                       "title": "Browser Viewport"
                     },
                     "colorScheme": {
-                      "type": "string",
-                      "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped.",
-                      "enum": [
-                        "light",
-                        "dark"
+                      "description": "The `prefers-color-scheme` value pages see. Without it, the system's setting applies. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "light",
+                            "dark"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                          "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                        }
                       ]
                     },
                     "locale": {
-                      "type": "string",
-                      "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped.",
-                      "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$",
+                      "description": "BCP 47 language tag, such as `de-DE`, that sets `navigator.language`, `Intl` formatting, and the `Accept-Language` header. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$"
+                        },
+                        {
+                          "type": "string",
+                          "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                          "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                        }
+                      ],
                       "examples": [
                         "de-DE",
                         "fr",
@@ -901,9 +1129,18 @@
                       ]
                     },
                     "timezone": {
-                      "type": "string",
-                      "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped.",
-                      "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$",
+                      "description": "IANA time zone name, such as `Europe/Berlin`, that `Date` and `Intl` use. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+                        },
+                        {
+                          "type": "string",
+                          "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                          "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                        }
+                      ],
                       "examples": [
                         "Europe/Berlin",
                         "America/New_York",
@@ -911,23 +1148,50 @@
                       ]
                     },
                     "deviceScaleFactor": {
-                      "type": "number",
-                      "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped.",
-                      "minimum": 0.5,
-                      "maximum": 4
+                      "description": "The `devicePixelRatio` pages see. Screenshots come out at that pixel density. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "minimum": 0.5,
+                          "maximum": 4
+                        },
+                        {
+                          "type": "string",
+                          "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                          "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                        }
+                      ]
                     },
                     "reducedMotion": {
-                      "type": "string",
-                      "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped.",
-                      "enum": [
-                        "reduce",
-                        "no-preference"
+                      "description": "The `prefers-reduced-motion` value pages see. Safari can't set it, so its context is skipped. Also takes a `$$matrix.<key>` reference.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "reduce",
+                            "no-preference"
+                          ]
+                        },
+                        {
+                          "type": "string",
+                          "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                          "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                        }
                       ]
                     },
                     "clock": {
-                      "type": "string",
-                      "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped.",
-                      "format": "date-time"
+                      "description": "ISO 8601 date-time, such as `2026-12-03T09:00:00Z`. `Date.now()` and `new Date()` stay at that instant on every page. Only Chrome can set it; other browsers' contexts are skipped. Also takes a `$$matrix.<key>` reference.",
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        {
+                          "type": "string",
+                          "description": "A `$$matrix.<key>` or `$$matrix.<key>.<field>` reference, replaced by the context's matrix value.",
+                          "pattern": "^\\$\\$matrix\\.[A-Za-z0-9_.]+$"
+                        }
+                      ]
                     }
                   },
                   "examples": [
@@ -1073,7 +1337,8 @@
         "asciidoc",
         "html",
         "dita",
-        "rst"
+        "rst",
+        "gherkin"
       ],
       "anyOf": [
         {
@@ -1090,7 +1355,8 @@
                   "asciidoc",
                   "html",
                   "dita",
-                  "rst"
+                  "rst",
+                  "gherkin"
                 ]
               },
               {
@@ -1131,7 +1397,8 @@
                       "asciidoc",
                       "html",
                       "dita",
-                      "rst"
+                      "rst",
+                      "gherkin"
                     ]
                   },
                   "extensions": {

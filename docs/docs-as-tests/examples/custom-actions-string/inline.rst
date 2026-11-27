@@ -1,0 +1,14 @@
+Click the field
+===============
+
+.. test {"testId":"custom-actions-string","detectSteps":false}
+
+Open the type echo page.
+
+.. step {"goTo":"http://localhost:8092/type-echo.html"}
+
+Click **Type here:**.
+
+.. step {"click":"Type here:"}
+
+.. test end

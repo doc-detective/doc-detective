@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-if-step-array">
+  <title>Print the npm version after a valid Node.js version</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-if-step-array","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock>
+          <data name="doc-detective" value='step {"runShell":"node --version","stepId":"version"}'/></info></step>
+      <step><cmd>If that printed a version, print the npm version:</cmd>
+        <info><codeblock outputclass="language-shell">npm --version</codeblock>
+          <data name="doc-detective" value='step {"if":["$$steps.version.outputs.exitCode == 0","$$steps.version.outputs.stdio.stdout matches /^v/"],"runShell":"npm --version"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

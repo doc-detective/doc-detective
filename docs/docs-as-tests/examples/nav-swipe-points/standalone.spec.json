@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "nav-swipe-points",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "swipe": {
+            "from": {
+              "x": 400,
+              "y": 400
+            },
+            "to": {
+              "x": 400,
+              "y": 250
+            }
+          }
+        },
+        {
+          "find": "Submit by ID"
+        }
+      ]
+    }
+  ]
+}

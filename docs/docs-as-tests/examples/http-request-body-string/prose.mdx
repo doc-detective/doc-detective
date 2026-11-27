@@ -1,0 +1,3 @@
+# Send a JSON string body
+
+Send a `POST` request to `http://localhost:8093/api/users` with the JSON body `{"name": "Ada"}`. The response echoes it.

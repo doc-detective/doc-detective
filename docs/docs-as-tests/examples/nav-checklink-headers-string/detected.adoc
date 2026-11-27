@@ -1,0 +1,9 @@
+= Send headers as text
+
+// (test {"testId":"nav-checklink-headers-string","detectSteps":true})
+
+. Check that http://localhost:8092/api/health[the API health check] responds.
++
+// (step {"checkLink":{"url":"http://localhost:8092/api/health","headers":"Accept: application/json\nX-Test: docs"}})
+
+// (test end)

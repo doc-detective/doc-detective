@@ -1,0 +1,18 @@
+Count the items in a cart
+=========================
+
+.. test {"testId":"data-variables-jq","detectSteps":false}
+
+#. Create a cart. Send a ``POST`` request to ``http://localhost:8092/api/carts`` with this body:
+
+   .. code-block:: json
+
+      {"items":[{"sku":"A1","qty":2},{"sku":"B2","qty":1}]}
+
+   .. step {"httpRequest":{"url":"http://localhost:8092/api/carts","method":"post","request":{"body":{"items":[{"sku":"A1","qty":2},{"sku":"B2","qty":1}]}}},"variables":{"ITEM_COUNT":"jq($$response.body, \".items | length\")"}}
+
+#. Send the count in a ``GET`` request to ``http://localhost:8092/api/carts?count=<count>``.
+
+   .. step {"httpRequest":{"url":"http://localhost:8092/api/carts?count=$ITEM_COUNT","method":"get","response":{"body":{"count":"2"}}}}
+
+.. test end

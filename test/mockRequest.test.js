@@ -6,6 +6,7 @@ import path from "node:path";
 import { mockRequest, restoreMocks } from "../dist/core/tests/mockRequest.js";
 import { resolvePaths } from "../dist/core/files.js";
 import { hasBidi } from "../dist/core/tests.js";
+import { harToMocks } from "../dist/core/utils.js";
 
 // ADR 01225: hermetic coverage for the mockRequest action. The driver is a fake
 // with webdriverio's `mock()` shape; no browser, no BiDi socket.
@@ -29,9 +30,18 @@ function fakeMock() {
       mock.restored = true;
       return mock;
     },
-    // Simulate the browser answering one request.
+    // Simulate the browser answering one request. Like webdriverio, read the
+    // latest respond() call: body first, then headers, then status.
     answer() {
+      const last = mock.responds.at(-1);
+      const call = (v) => (typeof v === "function" ? v({}) : v);
+      const answered = last && {
+        body: call(last.body),
+        headers: call(last.params.headers),
+        statusCode: call(last.params.statusCode),
+      };
       handlers.overwrite?.({});
+      return answered;
     },
   };
   return mock;
@@ -228,6 +238,242 @@ describe("mockRequest action", function () {
   });
 });
 
+// ADR 01242: answer in sequence, and replay a HAR file.
+describe("mockRequest responses sequence", function () {
+  let dir;
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-mock-seq-"));
+  });
+  afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+  it("answers in order and keeps answering with the last entry", async function () {
+    const { result, driver } = await run({
+      url: "**/jobs/1",
+      responses: [
+        { body: { status: "running" } },
+        { statusCode: 202, headers: { "x-n": "2" }, body: "second" },
+        { statusCode: 404 },
+      ],
+    });
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(driver.mocks.length, 1);
+    const mock = driver.mocks[0];
+    const answers = [mock.answer(), mock.answer(), mock.answer(), mock.answer()];
+    assert.deepEqual(answers[0], { body: { status: "running" }, headers: {}, statusCode: 200 });
+    assert.deepEqual(answers[1], { body: "second", headers: { "x-n": "2" }, statusCode: 202 });
+    assert.deepEqual(answers[2], { body: "", headers: {}, statusCode: 404 });
+    assert.deepEqual(answers[3], answers[2]);
+    assert.equal(mock.responds.at(-1).params.fetchResponse, false);
+  });
+
+  it("counts a sequence's answers in outputs.matched", async function () {
+    const driver = fakeDriver();
+    await run({ url: "**/x", responses: [{ body: "a" }, { body: "b" }] }, { driver });
+    driver.mocks[0].answer();
+    driver.mocks[0].answer();
+    driver.mocks[0].answer();
+    const { result } = await run({ url: "**/x", response: { body: "c" } }, { driver });
+    assert.equal(result.outputs.matched, 3);
+  });
+
+  it("reads each entry's bodyPath, and fails on a missing one", async function () {
+    const file = path.join(dir, "done.json");
+    fs.writeFileSync(file, '{"status":"done"}');
+    const { driver } = await run({ url: "**/x", responses: [{ body: "a" }, { bodyPath: file }] });
+    driver.mocks[0].answer();
+    assert.equal(driver.mocks[0].answer().body.toString(), '{"status":"done"}');
+
+    const missing = path.join(dir, "nope.json");
+    const failed = await run({ url: "**/x", responses: [{ body: "a" }, { bodyPath: missing }] });
+    assert.equal(failed.result.status, "FAIL");
+    assert.equal(failed.result.description, `Couldn't read \`bodyPath\` \`${missing}\`.`);
+    assert.equal(failed.driver.mockCalls.length, 0);
+  });
+});
+
+const har = (entries) => ({ log: { version: "1.2", entries } });
+const harEntry = (method, url, { status = 200, text, encoding, headers = [] } = {}) => ({
+  request: { method, url },
+  response: { status, headers, content: { mimeType: "application/json", ...(text === undefined ? {} : { text }), ...(encoding ? { encoding } : {}) } },
+});
+
+describe("harToMocks", function () {
+  it("groups repeated url and method pairs into a sequence, in file order", function () {
+    const mocks = harToMocks(
+      har([
+        harEntry("GET", "http://localhost:8092/api/jobs/1", { text: '{"s":"running"}' }),
+        harEntry("POST", "http://localhost:8092/api/jobs/1", { status: 201, text: "made" }),
+        harEntry("GET", "http://localhost:8092/api/jobs/1", { text: '{"s":"done"}' }),
+      ])
+    );
+    assert.deepEqual(
+      mocks.map((m) => [m.method, m.url, m.responses.map((r) => [r.statusCode, r.body])]),
+      [
+        ["GET", "http://localhost:8092/api/jobs/1", [[200, '{"s":"running"}'], [200, '{"s":"done"}']]],
+        ["POST", "http://localhost:8092/api/jobs/1", [[201, "made"]]],
+      ]
+    );
+  });
+
+  it("decodes base64 bodies, sends an empty body without text, and drops wire-format headers", function () {
+    const [mock] = harToMocks(
+      har([
+        harEntry("GET", "https://x.test/a", {
+          text: Buffer.from("hi").toString("base64"),
+          encoding: "base64",
+          headers: [
+            { name: "Content-Type", value: "text/plain" },
+            { name: "Content-Length", value: "99" },
+            { name: "content-encoding", value: "gzip" },
+            { name: "Transfer-Encoding", value: "chunked" },
+          ],
+        }),
+        harEntry("GET", "https://x.test/a"),
+      ])
+    );
+    assert.ok(Buffer.isBuffer(mock.responses[0].body));
+    assert.equal(mock.responses[0].body.toString(), "hi");
+    assert.deepEqual(mock.responses[0].headers, { "Content-Type": "text/plain" });
+    assert.equal(mock.responses[1].body, "");
+  });
+
+  it("keeps only entries matching the url glob and method", function () {
+    const entries = har([
+      harEntry("GET", "http://localhost:8092/api/a?x=1"),
+      harEntry("POST", "http://localhost:8092/api/b"),
+      harEntry("GET", "http://localhost:8092/static/app.js"),
+    ]);
+    const urls = (filter) => harToMocks(entries, filter).map((m) => `${m.method} ${m.url}`);
+    assert.deepEqual(urls({ url: "**/api/**" }), ["GET http://localhost:8092/api/a?x=1", "POST http://localhost:8092/api/b"]);
+    assert.deepEqual(urls({ url: "**/api/**", method: "POST" }), ["POST http://localhost:8092/api/b"]);
+    assert.deepEqual(urls({ url: "http://localhost:8092/static/*" }), ["GET http://localhost:8092/static/app.js"]);
+    assert.equal(urls({}).length, 3);
+  });
+
+  it("returns undefined for JSON that isn't HAR", function () {
+    assert.equal(harToMocks({}), undefined);
+    assert.equal(harToMocks({ log: {} }), undefined);
+    assert.equal(harToMocks(null), undefined);
+    assert.equal(harToMocks(undefined), undefined);
+  });
+});
+
+describe("mockRequest harPath", function () {
+  let dir;
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "dd-mock-har-"));
+  });
+  afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const writeHar = (content) => {
+    const file = path.join(dir, "app.har");
+    fs.writeFileSync(file, typeof content === "string" ? content : JSON.stringify(content));
+    return file;
+  };
+
+  it("matches a recorded URL with brackets in its query literally", async function () {
+    const recorded = "http://localhost:8092/api/items?ids[]=1&ids[]=2";
+    const file = writeHar(har([harEntry("GET", recorded, { text: "items" })]));
+    const { result, driver } = await run({ harPath: file });
+    assert.equal(result.status, "PASS", result.description);
+    const [{ url }] = driver.mockCalls;
+    // The browser sends brackets percent-encoded or as recorded; both must match.
+    assert.ok(url.test(recorded));
+    assert.ok(url.test(new URL(recorded).href));
+    assert.equal(url.test("http://localhost:8092/api/items?ids=1"), false);
+  });
+
+  it("mocks each recorded url and method with a literal pattern", async function () {
+    const file = writeHar(
+      har([
+        harEntry("GET", "http://localhost:8092/api/a?x=1", { text: "one" }),
+        harEntry("GET", "http://localhost:8092/api/a?x=1", { text: "two" }),
+        harEntry("POST", "http://localhost:8092/api/b", { status: 201, text: "made" }),
+      ])
+    );
+    const { result, driver } = await run({ harPath: file });
+    assert.equal(result.status, "PASS", result.description);
+    assert.equal(driver.mockCalls.length, 2);
+    const [a, b] = driver.mockCalls;
+    assert.ok(a.url.test("http://localhost:8092/api/a?x=1"));
+    assert.equal(a.url.test("http://localhost:8092/api/a?x=2"), false);
+    assert.deepEqual(a.filter, { method: "GET" });
+    assert.deepEqual(b.filter, { method: "POST" });
+    assert.deepEqual([driver.mocks[0].answer().body, driver.mocks[0].answer().body], ["one", "two"]);
+    assert.equal(driver.mocks[1].answer().statusCode, 201);
+  });
+
+  it("reports the total answered across the HAR's mocks", async function () {
+    const file = writeHar(har([harEntry("GET", "https://x.test/a"), harEntry("GET", "https://x.test/b")]));
+    const driver = fakeDriver();
+    await run({ harPath: file }, { driver });
+    driver.mocks[0].answer();
+    driver.mocks[1].answer();
+    const { result } = await run({ harPath: file }, { driver });
+    assert.equal(result.outputs.matched, 2);
+  });
+
+  it("fails on an unreadable file, non-HAR JSON, and no matching entries", async function () {
+    const missing = path.join(dir, "nope.har");
+    let { result } = await run({ harPath: missing });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, `Couldn't read \`harPath\` \`${missing}\`.`);
+
+    for (const bad of ["not json", { log: { entries: "x" } }]) {
+      const file = writeHar(bad);
+      ({ result } = await run({ harPath: file }));
+      assert.equal(result.description, `Couldn't parse \`harPath\` \`${file}\`: it isn't HAR JSON.`);
+    }
+
+    const file = writeHar(har([harEntry("GET", "https://x.test/a")]));
+    ({ result } = await run({ harPath: file, url: "**/other" }));
+    assert.equal(result.description, `Couldn't find HAR entries matching \`**/other\` in \`${file}\`.`);
+    ({ result } = await run({ harPath: writeHar(har([])) }));
+    assert.equal(result.description, `Couldn't find HAR entries matching \`*\` in \`${file}\`.`);
+  });
+
+  it("names the method filter when no HAR entry matches it", async function () {
+    const file = writeHar(har([harEntry("GET", "https://x.test/api/a")]));
+    const { result, driver } = await run({ harPath: file, url: "**/api/a", method: "POST" });
+    assert.equal(result.status, "FAIL");
+    assert.equal(
+      result.description,
+      `Couldn't find HAR entries matching \`**/api/a\` with method \`POST\` in \`${file}\`.`
+    );
+    assert.equal(driver.mockCalls.length, 0);
+  });
+
+  it("fails, mocking nothing, on a `url` filter that isn't a valid pattern", async function () {
+    const file = writeHar(har([harEntry("GET", "https://x.test/api/a")]));
+    const { result, driver } = await run({ harPath: file, url: "**/api/(" });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, "Couldn't parse `url` pattern `**/api/(`.");
+    assert.equal(driver.mockCalls.length, 0);
+  });
+
+  it("fails, mocking nothing, on a relative or malformed recorded URL", async function () {
+    for (const bad of ["/api/relative", "http://[bad"]) {
+      const file = writeHar(har([harEntry("GET", "https://x.test/ok"), harEntry("GET", bad)]));
+      const { result, driver } = await run({ harPath: file });
+      assert.equal(result.status, "FAIL");
+      assert.equal(result.description, `Couldn't parse a URL in \`harPath\` \`${file}\`.`);
+      assert.equal(driver.mockCalls.length, 0);
+    }
+  });
+
+  it("counts answers that arrive while later HAR mocks register", async function () {
+    const file = writeHar(har([harEntry("GET", "https://x.test/a"), harEntry("GET", "https://x.test/b")]));
+    const driver = fakeDriver();
+    const mock = driver.mock;
+    driver.mock = async (...args) => {
+      // The first mock answers a request while the second registers.
+      driver.mocks[0]?.answer();
+      return mock(...args);
+    };
+    const { result } = await run({ harPath: file }, { driver });
+    assert.equal(result.outputs.matched, 1);
+  });
+});
+
 describe("mockRequest bodyPath resolution", function () {
   const specFile = path.resolve("/specs/sub/mock.spec.json");
   const resolveSpec = (mock, relativePathBase = "file") =>
@@ -254,6 +500,19 @@ describe("mockRequest bodyPath resolution", function () {
     assert.equal(mock.url, "fixtures/x");
     assert.equal(mock.response.bodyPath, abs);
     assert.deepEqual(mock.response.headers, { path: "a" });
+  });
+
+  it("resolves harPath and every responses bodyPath against the spec file", async function () {
+    const mock = await resolveSpec({ harPath: "fixtures/app.har", responses: [{ body: "a" }, { bodyPath: "b.json" }] });
+    assert.equal(mock.harPath, path.resolve("/specs/sub/fixtures/app.har"));
+    assert.equal(mock.responses[1].bodyPath, path.resolve("/specs/sub/b.json"));
+    assert.equal(mock.responses[0].body, "a");
+  });
+
+  it("leaves a responses entry's body alone, even when it has path-like keys", async function () {
+    const body = { path: "report.csv", directory: "out" };
+    const mock = await resolveSpec({ url: "**/u", responses: [{ body }] });
+    assert.deepEqual(mock.responses[0].body, { path: "report.csv", directory: "out" });
   });
 });
 

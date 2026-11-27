@@ -1,0 +1,30 @@
+= Skip ahead after a valid version
+
+// (test {"testId":"data-route-if-array","detectSteps":true})
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
++
+// (step {"runShell":"node --version","onPass":[{"if":["$$outputs.exitCode == 0","$$outputs.stdio.stdout matches /^v/"],"goToStep":"path"}]})
+. Print the npm version:
++
+[source,shell]
+----
+npm --version
+----
++
+// (step {"stepId":"npm","runShell":"npm --version"})
+. Find the Node.js executable:
++
+[source,shell]
+----
+command -v node
+----
++
+// (step {"stepId":"path","runShell":"command -v node"})
+
+// (test end)

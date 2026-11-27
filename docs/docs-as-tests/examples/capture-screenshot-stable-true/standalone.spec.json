@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "capture-screenshot-stable-true",
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/screenshot-late-reveal.html",
+            "waitUntil": {
+              "networkIdleTime": 0,
+              "domIdleTime": 0
+            }
+          }
+        },
+        {
+          "screenshot": {
+            "path": "stable-true.png",
+            "directory": ".dd-output",
+            "overwrite": "true",
+            "stable": true
+          }
+        }
+      ]
+    }
+  ]
+}

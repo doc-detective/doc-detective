@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "data-route-onfail-stop",
+      "steps": [
+        {
+          "runShell": "node --version",
+          "onFail": [
+            {
+              "stop": "test"
+            }
+          ]
+        },
+        {
+          "stepId": "npm",
+          "runShell": "npm --version"
+        }
+      ]
+    }
+  ]
+}

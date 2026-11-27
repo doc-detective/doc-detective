@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Send a header as a string</title></head>
+<body>
+<!-- test {"testId":"http-request-headers-string","detectSteps":true} -->
+<h1>Send a header as a string</h1>
+<p>Send a <code>GET</code> request to <code>http://localhost:8093/api/users</code> with the header <code>X-Test: docs</code>. The response's <code>x-echo-test</code> header is <code>docs</code>.</p>
+<!-- step {"httpRequest":{"url":"http://localhost:8093/api/users","request":{"headers":"X-Test: docs"},"response":{"headers":{"x-echo-test":"docs"}}}} -->
+<!-- test end -->
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Stub an API response</title></head>
+<body>
+<!-- test {"testId":"http-mock-url-glob","detectSteps":false,"runOn":[{"platforms":["mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]} -->
+<h1>Stub an API response</h1>
+<p>Stub the plans endpoint.</p>
+<!-- step {"mockRequest":{"url":"**/api/plans*","response":{"body":{"plan":"pro"}}}} -->
+<p>Open the test site at <code>http://localhost:8092/</code>.</p>
+<!-- step {"goTo":"http://localhost:8092/"} -->
+<p>Fetch <code>/api/plans?page=1</code>. The response's plan is <code>pro</code>.</p>
+<!-- step {"runBrowserScript":{"script":"return fetch('/api/plans?page=1').then((r) => r.json());","output":"pro"}} -->
+<!-- test end -->
+</body>
+</html>

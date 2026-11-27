@@ -1,0 +1,3 @@
+= Check a link
+
+. Check that http://localhost:8092/enhanced-elements.html[the element test page] responds.

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-background">
+  <title>Start a server from code</title>
+  <body>
+    <p>Start a server on port 8251:</p>
+    <codeblock outputclass="language-js">require('http').createServer((q, r) =&gt; r.end('ok')).listen(8251);</codeblock>
+    <p>Stop it when you're done.</p>
+  </body>
+</topic>

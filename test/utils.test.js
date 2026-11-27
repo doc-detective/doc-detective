@@ -142,7 +142,7 @@ describe("Util tests", function () {
       "error: option '-r, --reporters <names>' argument 'html' is invalid. Give it once, as a comma-separated list: json,html."
     );
     expect(() => setArgs(["node", "runTests.js", "-r", "json,bogus"])).to.throw(
-      "Allowed choices are terminal, json, html, runFolder, junit, markdown."
+      "Allowed choices are terminal, json, html, runFolder, junit, markdown, cucumber."
     );
   });
 

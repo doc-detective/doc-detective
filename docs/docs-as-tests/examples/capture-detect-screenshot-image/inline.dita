@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-detect-screenshot-image">
+  <title>Mark an image as a screenshot</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-detect-screenshot-image","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/screenshot-banner.html" scope="external" format="html">the banner page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/screenshot-banner.html"}'/></info></step>
+      <step><cmd>The page opens with a cookie banner at the bottom.</cmd>
+        <info><image href=".dd-output/detected-banner.png" outputclass="screenshot"><alt>The banner page</alt></image>
+          <data name="doc-detective" value='step {"screenshot":".dd-output/detected-banner.png"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

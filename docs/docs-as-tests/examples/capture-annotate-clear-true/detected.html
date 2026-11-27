@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Remove every mark</title></head>
+<body>
+<!-- test {"testId":"capture-annotate-clear-true","detectSteps":true} -->
+<h1>Remove every mark</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/enhanced-elements.html">the sample form</a>.
+    <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} --></li>
+  <li>The username field is marked 1.
+    <!-- step {"annotate":{"add":[{"id":"step","badge":"#username-input","label":"1"}]}} --></li>
+  <li>All marks go away.
+    <!-- step {"annotate":{"clear":true}} -->
+    <!-- step {"screenshot":{"path":"annotate-clear-true.png","directory":".dd-output","overwrite":"true"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

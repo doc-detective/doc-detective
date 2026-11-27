@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-draganddrop-strings">
+  <title>Drag by text and selector strings</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-draganddrop-strings","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/drag-drop-test.html" scope="external" format="html">the drag and drop page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/drag-drop-test.html"}'/></info></step>
+      <step><cmd>Drag <b>Table</b> onto <b>Drop Zone 1</b>.</cmd>
+        <info><data name="doc-detective" value='step {"dragAndDrop":{"source":"Table","target":".drop-zone[data-drop=\"zone1\"]"}}'/></info></step>
+      <step><cmd>Check that <b>Table (dropped)</b> appears in the drop zone.</cmd>
+        <info><data name="doc-detective" value='step {"find":{"selector":".drop-zone .dropped-item","elementText":"Table (dropped)"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

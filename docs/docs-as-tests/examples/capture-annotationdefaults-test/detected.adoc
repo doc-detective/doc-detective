@@ -1,0 +1,12 @@
+= Outline a field with the test theme
+
+// (test {"testId":"capture-annotationdefaults-test","detectSteps":true,"annotationDefaults":{"color":"#0EA5E9","strokeWidth":4}})
+
+. Go to http://localhost:8092/enhanced-elements.html[the sample form].
++
+// (step {"goTo":"http://localhost:8092/enhanced-elements.html"})
+. The username field is outlined.
++
+// (step {"screenshot":{"path":"defaults-test.png","directory":".dd-output","overwrite":"true","annotations":[{"outline":"#username-input"}]}})
+
+// (test end)

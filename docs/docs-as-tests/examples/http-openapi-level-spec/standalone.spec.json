@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "openApi": [
+    {
+      "name": "users",
+      "descriptionPath": "../http-openapi/users.openapi.json"
+    }
+  ],
+  "tests": [
+    {
+      "testId": "http-openapi-level-spec",
+      "steps": [
+        {
+          "httpRequest": {
+            "openApi": "createUser",
+            "request": {
+              "body": {
+                "name": "Ada",
+                "job": "engineer"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

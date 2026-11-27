@@ -1,0 +1,4 @@
+= Outline a field with the config theme
+
+. Go to http://localhost:8092/enhanced-elements.html[the sample form].
+. The username field is outlined.

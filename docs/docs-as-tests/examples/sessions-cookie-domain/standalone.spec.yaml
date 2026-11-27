@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: sessions-cookie-domain
+    steps:
+      - goTo: http://localhost:8092/cookies/set/sessions_pdomain/signed-in
+      - saveCookie:
+          name: sessions_pdomain
+          path: sessions_pdomain.txt
+          domain: localhost
+          overwrite: true
+      - goTo: http://localhost:8092/cookies/set/sessions_pdomain/signed-out
+      - loadCookie:
+          name: sessions_pdomain
+          path: sessions_pdomain.txt
+          domain: localhost
+      - goTo: http://localhost:8092/cookies
+      - find: sessions_pdomain=signed-in

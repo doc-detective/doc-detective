@@ -52,6 +52,7 @@ import {
   isRetryableSessionError,
   classifyStepFailure,
   classifyContextRetry,
+  goToTargetOf,
   guardBlankDocumentNavigation,
   applyBrowserSize,
   BIDI_BROWSERS,
@@ -2341,6 +2342,7 @@ async function runSpecs({ resolvedTests }: { resolvedTests: any }) {
           contextId: job.context.contextId,
           platform: job.context.platform,
           browser: job.context.browser,
+          ...(job.context.matrix && { matrix: job.context.matrix }),
           result: "FAIL",
           resultDescription: `Unexpected error: ${detail}`,
           steps: [],
@@ -2783,6 +2785,7 @@ async function runRoutedSpec({
           contextId: context.contextId,
           platform: context.platform,
           browser: context.browser,
+          ...(context.matrix && { matrix: context.matrix }),
           result: "SKIPPED",
           resultDescription:
             "Skipped: a prior test stopped the spec (routing).",
@@ -2873,6 +2876,7 @@ async function runRoutedSpec({
           contextId: job.context.contextId,
           platform: job.context.platform,
           browser: job.context.browser,
+          ...(job.context.matrix && { matrix: job.context.matrix }),
           result: "FAIL",
           resultDescription: `Unexpected error: ${detail}`,
           steps: [],
@@ -3869,6 +3873,7 @@ function prepareContextSlot({
         contextId: context.contextId,
         platform: context.platform,
         browser: context.browser,
+        ...(context.matrix && { matrix: context.matrix }),
         result: "SKIPPED",
         resultDescription: "Skipped: spec guard `if` condition not met.",
         steps: [],
@@ -3885,6 +3890,7 @@ function prepareContextSlot({
         contextId: context.contextId,
         platform: context.platform,
         browser: context.browser,
+        ...(context.matrix && { matrix: context.matrix }),
         result: "SKIPPED",
         resultDescription: "Skipped: test guard `if` condition not met.",
         steps: [],
@@ -3899,6 +3905,7 @@ function prepareContextSlot({
         contextId: context.contextId,
         platform: context.platform,
         browser: context.browser,
+        ...(context.matrix && { matrix: context.matrix }),
         result: "SKIPPED",
         resultDescription: `Skipped: recording name \`${recordingNameConflict}\` is reused while a recording with that name is still active. Names must be unique among recordings that overlap in time.`,
         steps: [],
@@ -4528,6 +4535,7 @@ async function runContext({
     contextId: context.contextId,
     platform: context.platform,
     browser: context.browser,
+    ...(context.matrix && { matrix: context.matrix }),
     steps: [],
   };
   // Set meta values (create-if-missing — ids aren't guaranteed unique)
@@ -4859,10 +4867,18 @@ async function runContext({
   // session was found dead mid-run. The caller (runContextWithRetries) reads
   // this off the returned report to decide whether to retry on a fresh session.
   let sessionDiedMidRun = false;
+  // The goTo targets of the step reports, read before masking, for the retry
+  // probe (ADR 01233).
+  const goToTargets: string[] = [];
+  const recordGoToTarget = (rep: any) => {
+    const target = goToTargetOf(rep);
+    if (target !== null) goToTargets.push(target);
+  };
   // Every step report goes through this. The step loop below replaces it with
   // the full version; this one serves the cleanup sweep in `finally` when the
   // context threw before the loop began.
   let pushStepReport = (rep: any) => {
+    recordGoToTarget(rep);
     contextReport.steps.push(maskDeep(rep));
   };
   if (driverRequired && !appiumPool) {
@@ -5448,6 +5464,7 @@ async function runContext({
       Object.assign(rep, classifyStepFailure(rep));
       // The report gets a masked copy; routing, `$$`, and `variables` keep
       // reading the real outputs (ADR 01178).
+      recordGoToTarget(rep);
       contextReport.steps.push(maskDeep(rep));
     };
     // A routing failure belongs to the step that routed (ADR 01186). Its report
@@ -5876,9 +5893,8 @@ async function runContext({
       // because "the session responded and we retried anyway" is otherwise
       // surprising in a log.
       const retryReason = await classifyContextRetry(probeDrivers, {
-        navigated: contextReport.steps.some(
-          (s: any) => s.goTo !== undefined && s.result !== "SKIPPED"
-        ),
+        navigated: goToTargets.length > 0,
+        aboutBlankIsInitial: !goToTargets.includes("about:blank"),
       });
       if (retryReason) {
         sessionDiedMidRun = true;

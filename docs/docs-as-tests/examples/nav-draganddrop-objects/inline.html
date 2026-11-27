@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Drag by element objects</title></head>
+<body>
+<!-- test {"testId":"nav-draganddrop-objects","detectSteps":false} -->
+<h1>Drag by element objects</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/drag-drop-test.html">the drag and drop page</a>.
+    <!-- step {"goTo":"http://localhost:8092/drag-drop-test.html"} --></li>
+  <li>Drag <strong>Table</strong> onto <strong>Drop Zone 1</strong>.
+    <!-- step {"dragAndDrop":{"source":{"selector":".draggable","elementText":"Table"},"target":{"selector":".drop-zone[data-drop=\"zone1\"]"}}} --></li>
+  <li>Check that <strong>Table (dropped)</strong> appears in the drop zone.
+    <!-- step {"find":{"selector":".drop-zone .dropped-item","elementText":"Table (dropped)"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

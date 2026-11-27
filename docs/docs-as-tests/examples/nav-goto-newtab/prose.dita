@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-goto-newtab">
+  <title>Open a page in a new tab</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd></step>
+      <step><cmd>Open <xref href="http://localhost:8092/multi-tab-child.html?page=docs" scope="external" format="html">the child page</xref> in a new tab.</cmd></step>
+      <step><cmd>Check that the new tab shows <b>PAGE docs</b>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

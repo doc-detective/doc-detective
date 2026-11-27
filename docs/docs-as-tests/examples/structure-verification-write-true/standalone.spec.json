@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "badge": true,
+      "steps": [
+        {
+          "checkLink": "http://localhost:8092/index.html"
+        },
+        {
+          "checkLink": "http://localhost:8092/type-echo.html"
+        }
+      ]
+    }
+  ]
+}

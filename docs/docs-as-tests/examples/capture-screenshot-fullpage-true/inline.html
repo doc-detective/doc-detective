@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Save a screenshot of a long page with fullPage true</title></head>
+<body>
+<!-- test {"testId":"capture-screenshot-fullpage-true","detectSteps":false} -->
+<h1>Save a screenshot of a long page with fullPage true</h1>
+<ol>
+  <li>Open the page at <code>http://localhost:8092/screenshot-tall.html</code>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/screenshot-tall.html","waitUntil":{"networkIdleTime":0,"domIdleTime":0}}} --></li>
+  <li>The page ends with a red box at the bottom.
+    <!-- step {"screenshot":{"path":"fullpage-true.png","directory":".dd-output","overwrite":"true","fullPage":true}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Open pages in a new tab and a new window</title></head>
+<body>
+<!-- test {"testId":"sessions-goto-new-boolean","detectSteps":true} -->
+<h1>Open pages in a new tab and a new window</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Load <a href="http://localhost:8092/multi-tab-child.html?page=tab">the tab page</a> in a new tab.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=tab","newTab":true}} --></li>
+  <li>Check that the page reads "PAGE tab".
+    <!-- step {"find":"PAGE tab"} --></li>
+  <li>Load <a href="http://localhost:8092/multi-tab-child.html?page=window">the window page</a> in a new window.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=window","newWindow":true}} --></li>
+  <li>Check that the page reads "PAGE window".
+    <!-- step {"find":"PAGE window"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

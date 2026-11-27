@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-substitution-selector">
+  <title>Type into a field named by a variable</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-substitution-selector","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Load the variables in <codeph>shop.env</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"loadVariables":"shop.env"}'/></info></step>
+      <step><cmd>Open <codeph>http://localhost:8092/type-echo.html</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
+      <step><cmd>Type <codeph>Wren</codeph> in the field.</cmd>
+        <info><data name="doc-detective" value='step {"type":{"keys":"Wren","selector":"$INPUT_SELECTOR"}}'/></info></step>
+      <step><cmd>Check that the page shows <codeph>Wren</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"find":{"selector":"$ECHO_SELECTOR","elementText":"Wren"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

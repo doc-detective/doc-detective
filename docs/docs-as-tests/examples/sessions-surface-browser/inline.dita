@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-surface-browser">
+  <title>Review a page in a second browser session</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-surface-browser","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Start a headless Firefox session named <codeph>reviewer</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"startSurface":{"browser":"firefox","name":"reviewer","headless":true}}'/></info></step>
+      <step><cmd>In that session, load <xref href="http://localhost:8092/multi-tab-child.html?page=review" scope="external" format="html">the review page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=review","surface":{"browser":"firefox","name":"reviewer"}}}'/></info></step>
+      <step><cmd>Check that the page reads "PAGE review".</cmd>
+        <info><data name="doc-detective" value='step {"find":{"elementText":"PAGE review","surface":{"browser":"firefox","name":"reviewer"}}}'/></info></step>
+      <step><cmd>Close the <codeph>reviewer</codeph> session.</cmd>
+        <info><data name="doc-detective" value='step {"closeSurface":{"browser":"firefox","name":"reviewer"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

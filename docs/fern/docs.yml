@@ -134,6 +134,11 @@ navigation:
           - page: Sample tests
             path: pages/docs/get-started/sample-tests.mdx
             slug: sample-tests
+          # Reachable by URL only: kept out of the sidebar on purpose.
+          - page: Cucumber and Doc Detective
+            path: pages/docs/get-started/cucumber-comparison.mdx
+            slug: cucumber-comparison
+            hidden: true
 
       - section: Test your docs
         slug: test-docs
@@ -262,6 +267,9 @@ navigation:
                   - page: reStructuredText
                     path: pages/docs/input-formats/rst.mdx
                     slug: rst
+                  - page: Gherkin
+                    path: pages/docs/input-formats/gherkin.mdx
+                    slug: gherkin
                   - page: Custom
                     path: pages/docs/input-formats/custom.mdx
                     slug: custom
@@ -287,6 +295,9 @@ navigation:
           - page: GitHub Action
             path: pages/docs/ci/github-action.mdx
             slug: github-action
+          - page: Cucumber (cucumber-js)
+            path: pages/docs/ci/cucumber.mdx
+            slug: cucumber
           - page: AI issue mentions
             path: pages/docs/ci/issue-mentions.mdx
             slug: issue-mentions
@@ -356,6 +367,18 @@ navigation:
           - page: Hand off failures
             path: pages/docs/get-started/self-healing.mdx
             slug: hand-off-failures
+          # Agent-facing pages: out of the sidebar, reachable by URL and as
+          # `.md`. Fern leaves hidden pages, and pages in a hidden section,
+          # out of llms.txt. Agents find them through `<llms-only>` links on
+          # pages/index.mdx and pages/docs/agent-tools/overview.mdx. See
+          # docs/content-strategy/information-architecture.md.
+          - section: Agent-facing pages
+            hidden: true
+            skip-slug: true
+            contents:
+              - page: Doc Detective vs. Playwright
+                path: pages/ai/doc-detective-vs-playwright.mdx
+                slug: doc-detective-vs-playwright
 
   - tab: reference
     layout:
@@ -381,6 +404,9 @@ navigation:
           - page: Overview
             path: pages/reference/docs-as-tests/index.mdx
             slug: overview
+          - page: Examples by feature
+            path: pages/reference/docs-as-tests/feature-index.mdx
+            slug: feature-index
           - page: Navigation and interaction
             path: pages/reference/docs-as-tests/navigation-interaction.mdx
             slug: navigation-interaction
