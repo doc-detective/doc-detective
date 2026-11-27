@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-response-string">
+  <title>Expect a text response</title>
+  <body>
+    <p>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/cookies/set/theme/dark</codeph>. The response is the text <codeph>Cookie set.</codeph></p>
+  </body>
+</topic>

@@ -1,0 +1,17 @@
+<!-- test {"testId":"http-mock-body-array","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]} -->
+
+# Stub an API response
+
+Stub the plans endpoint.
+
+<!-- step {"mockRequest":{"url":"**/api/plans","response":{"body":["pro","team"]}}} -->
+
+Open the test site at `http://localhost:8092/`.
+
+<!-- step {"goTo":"http://localhost:8092/"} -->
+
+Fetch `/api/plans`. The response lists `pro` and `team`.
+
+<!-- step {"runBrowserScript":{"script":"return fetch('/api/plans').then((r) => r.json());","output":"team"}} -->
+
+<!-- test end -->

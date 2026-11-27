@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-method-delete">
+  <title>DELETE a user</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-request-method-delete","detectSteps":true}'/>
+    <p>Send a <codeph>DELETE</codeph> request to <codeph>http://localhost:8093/api/users/2</codeph>.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8093/api/users/2","method":"delete"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

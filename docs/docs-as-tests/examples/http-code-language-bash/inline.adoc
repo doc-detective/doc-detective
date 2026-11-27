@@ -1,0 +1,14 @@
+= Run a code block
+
+// (test {"testId":"http-code-language-bash","detectSteps":false})
+
+Run this code. It prints `ready`:
+
+[source,bash]
+----
+echo "ready"
+----
+
+// (step {"runCode":{"language":"bash","code":"echo \"ready\"","stdio":"ready"}})
+
+// (test end)

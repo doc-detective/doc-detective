@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Expect a 404 status</title></head>
+<body>
+<!-- test {"testId":"http-request-statuscodes-number","detectSteps":true} -->
+<h1>Expect a 404 status</h1>
+<p>Send a <code>GET</code> request to <code>http://localhost:8092/status/404</code>. The status is <code>404</code>.</p>
+<!-- step {"httpRequest":{"url":"http://localhost:8092/status/404","statusCodes":404}} -->
+<!-- test end -->
+</body>
+</html>

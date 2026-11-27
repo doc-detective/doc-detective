@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Limit the wait for a response</title></head>
+<body>
+<!-- test {"testId":"http-request-timeout","detectSteps":true} -->
+<h1>Limit the wait for a response</h1>
+<p>Send a <code>GET</code> request to <code>http://localhost:8093/api/users?page=2</code>. The API answers within 5 seconds.</p>
+<!-- step {"httpRequest":{"url":"http://localhost:8093/api/users?page=2","timeout":5000}} -->
+<!-- test end -->
+</body>
+</html>

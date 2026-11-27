@@ -1,0 +1,13 @@
+<!-- test {"testId":"http-code-language-python","detectSteps":false} -->
+
+# Run a code block
+
+Run this code. It prints `ready`:
+
+```python
+print("ready")
+```
+
+<!-- step {"runCode":{"language":"python","code":"print(\"ready\")","stdio":"ready"}} -->
+
+<!-- test end -->

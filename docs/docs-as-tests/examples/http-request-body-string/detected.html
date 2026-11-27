@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Send a JSON string body</title></head>
+<body>
+<!-- test {"testId":"http-request-body-string","detectSteps":true} -->
+<h1>Send a JSON string body</h1>
+<p>Send a <code>POST</code> request to <code>http://localhost:8093/api/users</code> with the JSON body <code>{"name": "Ada"}</code>. The response echoes it.</p>
+<!-- step {"httpRequest":{"url":"http://localhost:8093/api/users","method":"post","request":{"headers":{"Content-Type":"application/json"},"body":"{\"name\": \"Ada\"}"},"response":{"body":{"name":"Ada"}}}} -->
+<!-- test end -->
+</body>
+</html>

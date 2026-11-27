@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Run a script in the page</title></head>
+<body>
+<!-- test {"testId":"http-script-string","detectSteps":false} -->
+<h1>Run a script in the page</h1>
+<p>Open the test site at <code>http://localhost:8092/</code>.</p>
+<!-- step {"goTo":"http://localhost:8092/"} -->
+<p>Evaluate <code>document.title</code> in the console.</p>
+<!-- step {"runBrowserScript":"return document.title;"} -->
+<!-- test end -->
+</body>
+</html>

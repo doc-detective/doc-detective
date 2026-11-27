@@ -1,0 +1,9 @@
+<!-- test {"testId":"http-request-timeout","detectSteps":true} -->
+
+# Limit the wait for a response
+
+Send a `GET` request to `http://localhost:8093/api/users?page=2`. The API answers within 5 seconds.
+
+<!-- step {"httpRequest":{"url":"http://localhost:8093/api/users?page=2","timeout":5000}} -->
+
+<!-- test end -->
