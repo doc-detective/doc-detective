@@ -1,0 +1,17 @@
+<!-- test {"testId":"custom-actions-object","detectSteps":false} -->
+
+# Wait for the echo
+
+Open the type echo page.
+
+<!-- step {"goTo":"http://localhost:8092/type-echo.html"} -->
+
+Type Hello, Doc Detective.
+
+<!-- step {"type":"Hello, Doc Detective"} -->
+
+Wait _a moment_ for the echo.
+
+<!-- step {"wait":500} -->
+
+<!-- test end -->

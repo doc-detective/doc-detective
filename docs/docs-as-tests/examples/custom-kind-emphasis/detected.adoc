@@ -1,0 +1,11 @@
+= Check the page heading
+
+// (test {"testId":"custom-kind-emphasis","detectSteps":true})
+
+Open the type echo page.
+
+// (step {"goTo":"http://localhost:8092/type-echo.html"})
+
+The heading reads _Type Echo Test Page_.
+
+// (test end)

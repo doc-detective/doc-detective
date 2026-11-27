@@ -1,0 +1,10 @@
+Check the field label
+
+TEST {"testId":"custom-include-string","detectSteps":false}
+
+Open the type echo page at http://localhost:8092/type-echo.html.
+STEP {"goTo":"http://localhost:8092/type-echo.html"}
+INCLUDE check-label.txt
+STEP {"find":"Type here:"}
+
+END TEST

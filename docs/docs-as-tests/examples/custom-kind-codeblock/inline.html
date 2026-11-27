@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check that the page server is up</title></head>
+<body>
+<!-- test {"testId":"custom-kind-codeblock","detectSteps":false} -->
+<h1>Check that the page server is up</h1>
+<p>Request the type echo page. The command fails if the server doesn't answer:</p>
+<pre><code class="language-bash">curl -sf -o /dev/null http://localhost:8092/type-echo.html</code></pre>
+<!-- step {"runShell":"curl -sf -o /dev/null http://localhost:8092/type-echo.html"} -->
+<!-- test end -->
+</body>
+</html>

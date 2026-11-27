@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="custom-kind-strong">
+  <title>Check the field label</title>
+  <body>
+    <p>Open the type echo page.</p>
+    <p>The field is labeled <b>Type here:</b>.</p>
+  </body>
+</topic>

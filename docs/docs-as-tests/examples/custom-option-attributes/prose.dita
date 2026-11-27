@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="custom-option-attributes">
+  <title>Check the icons a page uses</title>
+  <body>
+    <p>The page uses these icons:</p>
+    <image href="http://localhost:8092/find-image-target.svg" outputclass="check"><alt>Target icon</alt></image>
+    <image href="http://localhost:8092/find-image-gear.svg"><alt>Gear icon</alt></image>
+  </body>
+</topic>
