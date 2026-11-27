@@ -268,7 +268,7 @@ describe("CLI contract", function () {
       });
     }
 
-    // ADR 01216.
+    // ADR 01233.
     for (const { name, args, line } of [
       { name: '--compare-to ""', args: ["--compare-to", ""], line: "`--compare-to` needs a path or `previous`." },
       {

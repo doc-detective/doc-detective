@@ -1,4 +1,4 @@
-// Run comparison permutations (ADR 01216), run by compare-runs.spec.json in
+// Run comparison permutations (ADR 01233), run by compare-runs.spec.json in
 // this directory.
 //
 //   node test/core-artifacts/cli/compare-runs.cjs <case>

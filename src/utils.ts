@@ -563,7 +563,7 @@ async function setConfig({
     const other = modes.find(([on]) => on)?.[1];
     if (other) throw new Error(`set \`${other}\` or \`--plain\`, not both.`);
   }
-  // Comparison with an earlier run (ADR 01216). The flag resolves against the
+  // Comparison with an earlier run (ADR 01233). The flag resolves against the
   // working directory; `previous` stays a keyword.
   if (args.compareToConflict) throw new Error("set `--compare-to` or `--no-compare-to`, not both.");
   if (typeof args.compareTo === "string") {
