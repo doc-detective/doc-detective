@@ -11,6 +11,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
+const spacedRoot = /\s/.test(path.resolve(__dirname, "../../.."));
 const shell = (s) => ({ runShell: `echo ${s}` });
 const step = (s) => JSON.stringify(shell(s));
 const fence = (lang, body) => "```" + lang + "\n" + body + "\n```";
@@ -716,14 +717,28 @@ const cases = {
       return JSON.stringify(ran) === JSON.stringify(["doc.cjs: echo cjs", "doc.js: echo js"]) ? undefined : `steps ${JSON.stringify(ran)}`;
     },
   },
-  // `$1` takes the file's absolute path, backslashes and all on Windows. Single
-  // quotes keep the default bash shell from reading them as escapes.
+  // `$1` takes the file's absolute path, with forward slashes on Windows
+  // (ADR 01232), so the default bash shell runs it quoted or unquoted. The
+  // shell splits an unquoted path with spaces, so that file runs only without.
   "runshell-path": {
     file: "doc.cjs",
+    input: ".",
     run: true,
-    config: { fileTypes: [{ name: "node", extensions: ["cjs"], runShell: { command: "node", args: ["'$1'"] } }] },
+    files: spacedRoot ? {} : { "bare.js": 'console.log("ran");\n' },
+    config: {
+      fileTypes: [
+        { name: "node", extensions: ["cjs"], runShell: { command: "node", args: ["'$1'"] } },
+        { name: "node-bare", extensions: ["js"], runShell: { command: "node $1" } },
+      ],
+    },
     content: 'require("fs").statSync(__filename);\n',
-    expect: ["node"],
+    check: (json, dir) => {
+      const p = (name) => path.join(dir, name).split(path.sep).join("/");
+      const ran = json.specs.map((s) => s.tests[0].contexts[0].steps[0]).map((s) => `${s.result}: ${s.runShell.command} ${s.runShell.args ?? ""}`).sort();
+      if (spacedRoot) console.log("Skipped: the unquoted `$1` file, because the checkout path contains whitespace.");
+      const want = [`PASS: node '${p("doc.cjs")}'`, ...(spacedRoot ? [] : [`PASS: node ${p("bare.js")} `])].sort();
+      return JSON.stringify(ran) === JSON.stringify(want) ? undefined : `steps ${JSON.stringify(ran)}, expected ${JSON.stringify(want)}`;
+    },
   },
   "string-actions": {
     file: "doc.md",
@@ -774,7 +789,7 @@ const fail = (message) => {
 if (run.error) fail(`didn't finish: ${run.error.message}`);
 if (run.status !== (c.exit ?? 0)) fail(`exited ${run.status}, expected ${c.exit ?? 0}.`);
 if (c.stderr && !run.stderr.includes(c.stderr)) fail(`stderr doesn't include ${JSON.stringify(c.stderr)}.`);
-if (c.run) {
+if (c.run && c.expect) {
   // A run compares the commands of the steps that ran, which must all pass.
   const steps = JSON.parse(fs.readFileSync(results, "utf8")).specs.flatMap((s) => s.tests.flatMap((t) => t.contexts.flatMap((x) => x.steps)));
   const ran = steps.map((s) => (s.result === "PASS" ? s.runShell?.command ?? s.runShell : `${s.result}: ${JSON.stringify(s)}`));

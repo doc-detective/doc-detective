@@ -55,6 +55,13 @@ function fakeDriver() {
     driver.mocks.push(mock);
     return mock;
   };
+  // webdriverio's command overrides and the two BiDi release commands.
+  driver.overrides = {};
+  driver.overwriteCommand = (name, fn) => {
+    driver.overrides[name] = fn;
+  };
+  driver.sent = [];
+  driver.networkContinueResponse = async (params) => driver.sent.push(["continueResponse", params]);
   return driver;
 }
 
@@ -189,6 +196,35 @@ describe("mockRequest action", function () {
     assert.equal(again.result.outputs.matched, 3);
   });
 
+  // webdriverio 10.2.0 releases a response no mock answers with a bare
+  // network.provideResponse, which makes Chrome drop the response's headers.
+  it("releases a pass-through response with continueResponse, keeping its headers", async function () {
+    const driver = fakeDriver();
+    await run({ url: "**/api/mocked", response: { body: "x" } }, { driver });
+    const override = driver.overrides.networkProvideResponse;
+    assert.equal(typeof override, "function");
+    const orig = async (params) => driver.sent.push(["provideResponse", params]);
+    await override(orig, { request: "r1" });
+    await override(orig, { request: "r2", statusCode: 200, body: { type: "string", value: "x" } });
+    assert.deepEqual(driver.sent, [
+      ["continueResponse", { request: "r1" }],
+      ["provideResponse", { request: "r2", statusCode: 200, body: { type: "string", value: "x" } }],
+    ]);
+  });
+
+  it("installs the release override once per session", async function () {
+    const driver = fakeDriver();
+    let installs = 0;
+    const overwrite = driver.overwriteCommand;
+    driver.overwriteCommand = (...args) => {
+      installs += 1;
+      return overwrite(...args);
+    };
+    await run({ url: "**/a" }, { driver });
+    await run({ url: "**/b" }, { driver });
+    assert.equal(installs, 1);
+  });
+
   it("restoreMocks restores every live mock and forgets them", async function () {
     const driver = fakeDriver();
     await run({ url: "**/a" }, { driver });
@@ -318,6 +354,7 @@ describe("harToMocks", function () {
     assert.equal(harToMocks({}), undefined);
     assert.equal(harToMocks({ log: {} }), undefined);
     assert.equal(harToMocks(null), undefined);
+    assert.equal(harToMocks(undefined), undefined);
   });
 });
 
@@ -332,6 +369,18 @@ describe("mockRequest harPath", function () {
     fs.writeFileSync(file, typeof content === "string" ? content : JSON.stringify(content));
     return file;
   };
+
+  it("matches a recorded URL with brackets in its query literally", async function () {
+    const recorded = "http://localhost:8092/api/items?ids[]=1&ids[]=2";
+    const file = writeHar(har([harEntry("GET", recorded, { text: "items" })]));
+    const { result, driver } = await run({ harPath: file });
+    assert.equal(result.status, "PASS", result.description);
+    const [{ url }] = driver.mockCalls;
+    // The browser sends brackets percent-encoded or as recorded; both must match.
+    assert.ok(url.test(recorded));
+    assert.ok(url.test(new URL(recorded).href));
+    assert.equal(url.test("http://localhost:8092/api/items?ids=1"), false);
+  });
 
   it("mocks each recorded url and method with a literal pattern", async function () {
     const file = writeHar(
@@ -380,6 +429,14 @@ describe("mockRequest harPath", function () {
     assert.equal(result.description, `Couldn't find HAR entries matching \`**/other\` in \`${file}\`.`);
     ({ result } = await run({ harPath: writeHar(har([])) }));
     assert.equal(result.description, `Couldn't find HAR entries matching \`*\` in \`${file}\`.`);
+  });
+
+  it("fails, mocking nothing, on a `url` filter that isn't a valid pattern", async function () {
+    const file = writeHar(har([harEntry("GET", "https://x.test/api/a")]));
+    const { result, driver } = await run({ harPath: file, url: "**/api/(" });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, "Couldn't parse `url` pattern `**/api/(`.");
+    assert.equal(driver.mockCalls.length, 0);
   });
 
   it("fails, mocking nothing, on a relative or malformed recorded URL", async function () {
