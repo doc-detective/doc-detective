@@ -12,7 +12,7 @@ Amends the "flat handles" trade-off of [ADR 01016](01016-target-browser-windows-
 
 ADR 01016 registered a tab the page opens (a `target="_blank"` link, `window.open`) without a parent
 window, because the W3C handle model has no window grouping. A `window` selector narrows the tab
-search to that window's lead and the tabs recorded under it, so a page-opened tab was reachable only
+search to that window's lead and the tabs recorded under it. So a page-opened tab was reachable only
 without `window`:
 
 - `{ "browser": "firefox", "tab": 1 }` found the tab.
@@ -38,8 +38,8 @@ shows the tab. Which window should a page-opened tab belong to?
 
 ## Decision Outcome
 
-Chosen option: **A**. Doc Detective never moves focus to a tab the page opens, so the focused tab
-when a sync first sees a new handle is the tab whose page opened it. The new tab's parent is that
+Chosen option: **A**. Doc Detective never moves focus to a tab the page opens. So when a sync first
+sees a new handle, the focused tab is the one whose page opened it. The new tab's parent is that
 tab's window lead: the tab itself when it's a lead, else its recorded parent. That's the rule
 `goTo` `newTab` already uses. When focus can't be read, the tab stays parentless, as before.
 
@@ -61,10 +61,13 @@ tab's window lead: the tab itself when it's a lead, else its recorded parent. Th
 
 ### Confirmation
 
-- `test/browserSurface.test.js`: sync files page-opened tabs under the focused tab's window, a tab
-  opened from a page-opened tab inherits its window, unreadable focus leaves the tab parentless, an
-  upgrade to a window lead drops the guessed parent, and `window` + `tab` selectors (integer, `-1`,
-  `{ index }`, title) and `resolveCloseTargets` reach a page-opened tab.
+- `test/browserSurface.test.js` checks four cases:
+  - sync files page-opened tabs under the focused tab's window, and a tab opened from a page-opened
+    tab inherits its window;
+  - unreadable focus leaves the tab parentless;
+  - an upgrade to a window lead drops the guessed parent;
+  - `window` + `tab` selectors (integer, `-1`, `{ index }`, title) and `resolveCloseTargets` reach a
+    page-opened tab.
 - Fixture `test/core-artifacts/sessions/window-scoped-tabs.spec.json`: a link and `window.open` tab
   reached, typed into, and closed through `window` + `tab` selectors, and a tab opened from a named
   window filed under it.
