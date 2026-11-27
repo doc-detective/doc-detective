@@ -341,6 +341,24 @@ describe("detectTests coverage", function () {
       const specs = await parseTests({ config, files: [script] });
       assert.deepEqual(specs, []);
     });
+
+    it("matches a fileType whose `extensions` is a string, by whole extension", async function () {
+      // Without `extends`. A string must not substring-match: "cjs" isn't "js".
+      write("run.cjs", "");
+      write("run.js", "");
+      const config = await makeConfig({
+        input: [tmpDir],
+        fileTypes: [
+          { name: "cjs", extensions: "cjs", runShell: { command: "echo", args: ["cjs"] } },
+          { name: "js", extensions: "js", runShell: { command: "echo", args: ["js"] } },
+        ],
+      });
+      const specs = await detectTests({ config });
+      const ran = Object.fromEntries(
+        specs.map((s) => [path.basename(s.contentPath), s.tests[0].steps[0].runShell.args[0]])
+      );
+      assert.deepEqual(ran, { "run.cjs": "cjs", "run.js": "js" });
+    });
   });
 
   describe("parseTests JSON/YAML branches", function () {
