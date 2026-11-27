@@ -1,0 +1,329 @@
+---
+title: Formats, written as tests
+sidebar-title: Formats
+description: What differs from one documentation format to the next, with one procedure per format that uses each of its statement forms, its ignore blocks, and its way to keep a code block from running.
+---
+
+Doc Detective reads the same tests and detects the same kinds of steps in every format. What changes is the syntax: where a statement goes, how you mark a code block, and which markup detection reads. Each example below uses one format and several of its syntax variants. Its inline variants still resolve to the same steps as its standalone spec. For what each tab holds, see [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).
+
+## Statements at a glance
+
+A statement is the keyword `test`, `step`, `test end`, `test ignore start`, or `test ignore end`, inside a comment. The `test` and `step` keywords take a JSON object, a YAML mapping, or XML-style attributes such as `find="Save"`. A YAML statement on one line holds one key, or a flow mapping such as `{testId: my-test, detectSteps: false}`.
+
+| Format | Extensions | Statement syntax |
+|---|---|---|
+| Markdown | `md`, `markdown`, `mdx` | `<!-- … -->`, `{/* … */}`, and `[comment]: # (…)`, `[comment]: # '…'`, or `[comment]: # "…"` |
+| AsciiDoc | `adoc`, `asciidoc`, `asc` | `// (…)` on one line, or `(…)` inside a `////` comment block |
+| HTML | `html`, `htm` | `<!-- … -->` |
+| reStructuredText | `rst` | `.. …` comment, with a blank line before and after. An indented block below continues it. |
+| DITA | `dita`, `ditamap`, `xml` | `<?doc-detective … ?>`, `<!-- … -->`, and `<data name="doc-detective" value="…"/>` |
+
+A comment can span lines in every format. Doc Detective doesn't read a statement inside a code block or inline code, so a page can show a statement without running it.
+
+## Default detection by format
+
+With detection on, each format turns the same kinds of markup into steps. For the full list, see [What gets detected](/docs/test-docs/input-formats/overview#what-gets-detected).
+
+| Step | Markdown | AsciiDoc | HTML | reStructuredText | DITA |
+|---|---|---|---|---|---|
+| `goTo` and `checkLink` | `[text](https://…)` | `https://…[text]`, `link:https://…[text]` | `<a href="https://…">` | `` `text <https://…>`_ `` | `<xref href="https://…">` |
+| `click` and `find` | `**text**` | `*text*`, `**text**` | `<strong>`, `<b>` | `**text**` | `<b>`, `<uicontrol>` |
+| `screenshot` | `![alt](path){.screenshot}` | `role=screenshot` | `class="screenshot"` | `:class: screenshot` | `outputclass="screenshot"` |
+| `httpRequest` | ` ```http ` | `[source,http]` | `class="language-http"` | `.. code-block:: http` | `outputclass="language-http"` |
+| `runCode` | ` ```bash ` | `[source,bash]` | `class="language-bash"` | `.. code-block:: bash` | `outputclass="language-bash"` |
+| Keep a code block from running | ` ```bash testIgnore ` | `[source,bash,testIgnore]` | An ignore block | `:class: testIgnore` | An ignore block |
+
+In every format, a link right after a navigation verb, such as "Go to," also becomes a `goTo` step. Bold text right after a click verb, such as "Click," also becomes a `click` step. Quoted text after "Type," "Enter," or "Press" becomes a `type` step.
+
+DITA also reads its semantic elements. A `<uicontrol>` becomes a `find` step, and after a click verb, a `click` step too. A `<uicontrol>` after a `Type <userinput>…</userinput> into the` phrase becomes a `type` step into that control. A `<wintitle>` becomes a `find` step, and a `<link>` to a web URL becomes a `checkLink` step.
+
+HTML and DITA code blocks carry no `testIgnore` marker, so wrap a code block you don't want to run in an ignore block.
+
+## Echo text in `.md` and `.mdx` files
+
+This procedure uses [`goTo`](/docs/actions/goto), [`click`](/docs/actions/click), [`type`](/docs/actions/type), and [`find`](/docs/actions/find). The Markdown file uses each `[comment]: #` form, an HTML comment with a YAML body, and an HTML comment that spans lines. The MDX file uses `{/* */}` comments the same way.
+
+<Markdown src="examples/formats-markdown/_variants.mdx" />
+
+- A `[comment]: #` statement is a Markdown link reference definition, so it needs a blank line before it. Inside a list item, indent it to the item's text.
+- Its body can sit in parentheses, single quotes, or double quotes. Inside double quotes, use YAML, as in `[comment]: # "step type: Hello, Markdown"`, because a JSON object holds double quotes.
+- MDX builds fail on HTML comments, so an `.mdx` page uses `{/* */}` or `[comment]: #` statements.
+- ` ```bash testIgnore ` keeps the `curl` block from becoming a `runCode` step. The ignore block keeps the link to the elements demo from becoming `goTo` and `checkLink` steps.
+
+### What detection finds
+
+The link becomes a `goTo` step and a `checkLink` step. **Type here:** becomes a `click` step and a `find` step. The quoted text becomes a `type` step, and **Hello, Markdown** becomes a `find` step.
+
+## Create a user in AsciiDoc
+
+This procedure uses [`httpRequest`](/docs/actions/httprequest). The test statement is a YAML flow mapping. One step spans several lines in a `////` comment block, and the rest are `// (…)` line comments.
+
+<Markdown src="examples/formats-asciidoc/_variants.mdx" />
+
+- A `//` comment counts only at the start of a line, and its statement sits in parentheses.
+- In a `////` block, the whole block is the statement, so a long step can span lines.
+- `[source,bash,testIgnore]` keeps the `curl` listing from becoming a `runCode` step. The ignore block skips the rename request.
+
+### What detection finds
+
+The `[source,http]` listing becomes an `httpRequest` step with the listing's method, URL, header, and body. Detection doesn't add the `response` check, so the inline and standalone variants hold it.
+
+## Press a button in HTML
+
+This procedure uses [`goTo`](/docs/actions/goto), [`find`](/docs/actions/find), and [`click`](/docs/actions/click). The statements use a JSON body, a YAML body, XML-style attributes, and a comment that spans lines.
+
+<Markdown src="examples/formats-html/_variants.mdx" />
+
+- HTML reads statements only from `<!-- -->` comments.
+- A `<code class="language-bash">` block has no `testIgnore` marker, so the ignore block keeps the `curl` block from becoming a `runCode` step.
+
+### What detection finds
+
+The link becomes a `goTo` step and a `checkLink` step, and **Buttons** becomes a `find` step. After "Click," **Standard Button** becomes a `click` step and a `find` step.
+
+## Look up a user in reStructuredText
+
+This procedure uses [`checkLink`](/docs/actions/checklink) and [`httpRequest`](/docs/actions/httprequest). The statements use a JSON body, a YAML body, and a step that continues on the indented lines below `.. step`.
+
+<Markdown src="examples/formats-rst/_variants.mdx" />
+
+- Put a blank line before and after each statement. A `..` line that continues a paragraph is prose, not a comment.
+- A comment holds its first line and the indented block below it, so a long step can span lines.
+- `:class: testIgnore` keeps the `curl` block from becoming a `runCode` step. The ignore block skips the link to the elements demo.
+
+### What detection finds
+
+The link becomes a `checkLink` step. "Check that" doesn't open a link, so there's no `goTo` step. The `http` code block becomes an `httpRequest` step. Its URL keeps the query string. Detection doesn't add the `response` check, so the inline and standalone variants hold it.
+
+## Echo text in DITA
+
+This procedure uses [`goTo`](/docs/actions/goto), [`click`](/docs/actions/click), [`type`](/docs/actions/type), and [`find`](/docs/actions/find). The statements use each DITA form. Processing instructions hold a JSON body, a YAML body across lines, and XML-style attributes. HTML comments hold an attribute step and the `test end` statement. The `<data>` elements use single and double quotes, and one has a closing tag.
+
+<Markdown src="examples/formats-dita/_variants.mdx" />
+
+- A processing instruction starts with `<?doc-detective`.
+- A `<data>` element's `name` is `doc-detective`, and its `value` holds the statement. Use one kind of quote for the attribute and the other inside it. Use `<data>` elements when your publishing workflow drops processing instructions, or when DITA-aware tools validate your topics.
+- XML-style attributes take dot notation for nested fields, as in `httpRequest.url="…" httpRequest.method="get"`, and convert `true`, `false`, and numbers.
+- A `<codeblock>` has no `testIgnore` marker, so the ignore block keeps the `curl` block from becoming a `runCode` step.
+
+### What detection finds
+
+The `<xref>` becomes a `goTo` step and a `checkLink` step. After "Click," the `<uicontrol>` becomes a `click` step and a `find` step. The quoted text becomes a `type` step, and the `<b>` text becomes a `find` step. For more DITA detection, see [DITA](/docs/test-docs/input-formats/dita).
+
+## Ways to write a statement in Markdown
+
+Each example checks two links, with every statement in one form. These examples have prose and inline variants only.
+
+### `<!-- -->` with a JSON body
+
+**Varies:** statement form · **Value:** `<!-- step {"checkLink": "…"} -->` · **Effect:** the form Doc Detective writes back in `.md` files.
+
+<Markdown src="examples/formats-md-html-comment-json/_variants.mdx" />
+
+### `<!-- -->` with a YAML body
+
+**Varies:** statement body · **Value:** `<!-- step checkLink: … -->` · **Effect:** a one-key step reads as YAML. A test with several keys uses a flow mapping.
+
+<Markdown src="examples/formats-md-html-comment-yaml/_variants.mdx" />
+
+### `<!-- -->` with attributes
+
+**Varies:** statement body · **Value:** `<!-- step checkLink="…" -->` · **Effect:** each XML-style attribute becomes a field. `false` and numbers convert to their types.
+
+<Markdown src="examples/formats-md-html-comment-attributes/_variants.mdx" />
+
+### `<!-- -->` across lines
+
+**Varies:** statement layout · **Value:** a comment that spans lines · **Effect:** the keyword and its body can sit on separate lines.
+
+<Markdown src="examples/formats-md-html-comment-multiline/_variants.mdx" />
+
+### `[comment]: # ( )`
+
+**Varies:** statement form · **Value:** `[comment]: # (step {…})` · **Effect:** a link reference definition, which Markdown leaves out of the page, with the statement in parentheses.
+
+<Markdown src="examples/formats-md-link-comment-parentheses/_variants.mdx" />
+
+### `[comment]: # ' '`
+
+**Varies:** statement form · **Value:** `[comment]: # 'step {…}'` · **Effect:** single quotes leave the JSON body's double quotes free.
+
+<Markdown src="examples/formats-md-link-comment-single-quotes/_variants.mdx" />
+
+### `[comment]: # " "`
+
+**Varies:** statement form · **Value:** `[comment]: # "step checkLink: …"` · **Effect:** double quotes can't hold a JSON body, so the statements use YAML.
+
+<Markdown src="examples/formats-md-link-comment-double-quotes/_variants.mdx" />
+
+## Ways to write a statement in MDX
+
+### `{/* */}` with a JSON body
+
+**Varies:** statement form · **Value:** `{/* step {"checkLink": "…"} */}` · **Effect:** the form Doc Detective writes back in `.mdx` files.
+
+<Markdown src="examples/formats-mdx-jsx-comment-json/_variants.mdx" />
+
+### `{/* */}` with a YAML body
+
+**Varies:** statement body · **Value:** `{/* step checkLink: … */}` · **Effect:** a one-key step reads as YAML.
+
+<Markdown src="examples/formats-mdx-jsx-comment-yaml/_variants.mdx" />
+
+### `{/* */}` across lines
+
+**Varies:** statement layout · **Value:** a JSX comment that spans lines · **Effect:** the keyword and its body can sit on separate lines.
+
+<Markdown src="examples/formats-mdx-jsx-comment-multiline/_variants.mdx" />
+
+### `[comment]: # ' '` in an MDX file
+
+**Varies:** statement form · **Value:** `[comment]: # 'step {…}'` · **Effect:** works in MDX too, where HTML comments break the build.
+
+<Markdown src="examples/formats-mdx-link-comment/_variants.mdx" />
+
+## Ways to write a statement in AsciiDoc
+
+### `// ( )` with a JSON body
+
+**Varies:** statement form · **Value:** `// (step {…})` · **Effect:** the statement sits in parentheses in a `//` comment at the start of a line.
+
+<Markdown src="examples/formats-adoc-line-comment-json/_variants.mdx" />
+
+### `// ( )` with a YAML body
+
+**Varies:** statement body · **Value:** `// (step checkLink: …)` · **Effect:** a one-key step reads as YAML, and the test uses a flow mapping.
+
+<Markdown src="examples/formats-adoc-line-comment-yaml/_variants.mdx" />
+
+### `////` block across lines
+
+**Varies:** statement form · **Value:** a `////` comment block · **Effect:** the whole block is the statement, so a step can span lines.
+
+<Markdown src="examples/formats-adoc-block-comment-multiline/_variants.mdx" />
+
+## Ways to write a statement in HTML
+
+### `<!-- -->` with a JSON body in HTML
+
+**Varies:** statement body · **Value:** `<!-- step {"checkLink": "…"} -->` · **Effect:** the form Doc Detective writes back in HTML files.
+
+<Markdown src="examples/formats-html-comment-json/_variants.mdx" />
+
+### Comment with a YAML body
+
+**Varies:** statement body · **Value:** `<!-- step checkLink: … -->` · **Effect:** a one-key step reads as YAML, and the test uses a flow mapping.
+
+<Markdown src="examples/formats-html-comment-yaml/_variants.mdx" />
+
+### `<!-- -->` with attributes in HTML
+
+**Varies:** statement body · **Value:** `<!-- step checkLink="…" -->` · **Effect:** each XML-style attribute becomes a field.
+
+<Markdown src="examples/formats-html-comment-attributes/_variants.mdx" />
+
+### `<!-- -->` across lines in HTML
+
+**Varies:** statement layout · **Value:** a comment that spans lines · **Effect:** the keyword and its body can sit on separate lines.
+
+<Markdown src="examples/formats-html-comment-multiline/_variants.mdx" />
+
+## Ways to write a statement in reStructuredText
+
+### `..` with a JSON body
+
+**Varies:** statement body · **Value:** `.. step {"checkLink": "…"}` · **Effect:** the statement fills one comment line, with a blank line before and after.
+
+<Markdown src="examples/formats-rst-comment-json/_variants.mdx" />
+
+### `..` with a YAML body
+
+**Varies:** statement body · **Value:** `.. step checkLink: …` · **Effect:** a one-key step reads as YAML, and the test uses a flow mapping.
+
+<Markdown src="examples/formats-rst-comment-yaml/_variants.mdx" />
+
+### `..` across lines
+
+**Varies:** statement layout · **Value:** an indented block below `.. step` · **Effect:** the indented lines belong to the comment, so the body can span lines.
+
+<Markdown src="examples/formats-rst-comment-multiline/_variants.mdx" />
+
+## Ways to write a statement in DITA
+
+### `<?doc-detective ?>` with a JSON body
+
+**Varies:** statement form · **Value:** `<?doc-detective step {…} ?>` · **Effect:** a processing instruction named `doc-detective` holds the statement.
+
+<Markdown src="examples/formats-dita-pi-json/_variants.mdx" />
+
+### `<?doc-detective ?>` with a YAML body across lines
+
+**Varies:** statement body · **Value:** a YAML body across lines in `<?doc-detective test … ?>` · **Effect:** each key sits on its own line.
+
+<Markdown src="examples/formats-dita-pi-yaml-multiline/_variants.mdx" />
+
+Start each YAML key at the beginning of its line. Doc Detective trims the first line of the body, so a key indented further than the first one breaks the YAML.
+
+### `<?doc-detective ?>` with attributes
+
+**Varies:** statement body · **Value:** `<?doc-detective step checkLink="…" ?>` · **Effect:** each XML-style attribute becomes a field.
+
+<Markdown src="examples/formats-dita-pi-attributes/_variants.mdx" />
+
+### `<!-- -->` with attributes in DITA
+
+**Varies:** statement form · **Value:** `<!-- step checkLink="…" -->` · **Effect:** an XML comment works the same as a processing instruction.
+
+<Markdown src="examples/formats-dita-html-comment-attributes/_variants.mdx" />
+
+### `<data>` with double quotes
+
+**Varies:** statement form · **Value:** `value="step checkLink='…'"` · **Effect:** the attribute takes double quotes, so the values inside take single quotes.
+
+<Markdown src="examples/formats-dita-data-double-quotes/_variants.mdx" />
+
+### `<data>` with single quotes
+
+**Varies:** statement form · **Value:** `value='step {"checkLink": "…"}'` · **Effect:** the attribute takes single quotes, so it can hold a JSON body.
+
+<Markdown src="examples/formats-dita-data-single-quotes/_variants.mdx" />
+
+## `testIgnore` permutations
+
+Each example has a `bash` code block that detection would turn into a `runCode` step. The detected variants show what keeps it from running.
+
+### `testIgnore` after a Markdown fence language
+
+**Varies:** code fence meta · **Value:** ` ```bash testIgnore ` · **Effect:** detection skips the block.
+
+<Markdown src="examples/formats-md-testignore/_variants.mdx" />
+
+### `testIgnore` after an MDX fence language
+
+**Varies:** code fence meta · **Value:** ` ```bash testIgnore ` · **Effect:** detection skips the block.
+
+<Markdown src="examples/formats-mdx-testignore/_variants.mdx" />
+
+### `testIgnore` in AsciiDoc source attributes
+
+**Varies:** listing attributes · **Value:** `[source,bash,testIgnore]` · **Effect:** detection skips the listing.
+
+<Markdown src="examples/formats-adoc-testignore/_variants.mdx" />
+
+### `:class: testIgnore` on a reStructuredText code block
+
+**Varies:** directive option · **Value:** `:class: testIgnore` · **Effect:** detection skips the code block.
+
+<Markdown src="examples/formats-rst-testignore/_variants.mdx" />
+
+### An ignore block in HTML
+
+**Varies:** code block marker · **Value:** an ignore block around the block · **Effect:** HTML has no `testIgnore` marker, so the ignore block keeps detection off the code.
+
+<Markdown src="examples/formats-html-code-ignore-block/_variants.mdx" />
+
+### An ignore block in DITA
+
+**Varies:** code block marker · **Value:** an ignore block around the `<codeblock>` · **Effect:** DITA has no `testIgnore` marker, so the ignore block keeps detection off the code.
+
+<Markdown src="examples/formats-dita-code-ignore-block/_variants.mdx" />

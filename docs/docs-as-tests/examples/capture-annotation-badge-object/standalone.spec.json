@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "capture-annotation-badge-object",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "screenshot": {
+            "path": "annotation-badge-object.png",
+            "directory": ".dd-output",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "badge": {
+                  "elementTestId": "password-field",
+                  "timeout": 10000
+                },
+                "label": "2"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

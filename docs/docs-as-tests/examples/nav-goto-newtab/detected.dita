@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-goto-newtab">
+  <title>Open a page in a new tab</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-goto-newtab","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/multi-tab.html"}'/></info></step>
+      <step><cmd>Open <xref href="http://localhost:8092/multi-tab-child.html?page=docs" scope="external" format="html">the child page</xref> in a new tab.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=docs","newTab":true}}'/></info></step>
+      <step><cmd>Check that the new tab shows <b>PAGE docs</b>.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

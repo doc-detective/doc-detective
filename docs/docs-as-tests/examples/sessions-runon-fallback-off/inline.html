@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the page in Firefox</title></head>
+<body>
+<!-- test {"testId":"sessions-runon-fallback-off","detectSteps":false,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]} -->
+<h1>Check the page in Firefox</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Check that the page reads <strong>MULTI-TAB HOME</strong>.
+    <!-- step {"find":"MULTI-TAB HOME"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

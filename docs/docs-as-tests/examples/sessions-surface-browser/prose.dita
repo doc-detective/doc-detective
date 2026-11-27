@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-surface-browser">
+  <title>Review a page in a second browser session</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Start a headless Firefox session named <codeph>reviewer</codeph>.</cmd></step>
+      <step><cmd>In that session, load <xref href="http://localhost:8092/multi-tab-child.html?page=review" scope="external" format="html">the review page</xref>.</cmd></step>
+      <step><cmd>Check that the page reads "PAGE review".</cmd></step>
+      <step><cmd>Close the <codeph>reviewer</codeph> session.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

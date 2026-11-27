@@ -1,0 +1,8 @@
+Stub an API response
+====================
+
+Stub the plans endpoint.
+
+Open the test site at ``http://localhost:8092/``.
+
+Fetch ``/api/plans`` with ``GET`` and with ``POST``. Only the ``POST`` request is stubbed.

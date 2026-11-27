@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Wait for the network, the page, and an element</title></head>
+<body>
+<!-- test {"testId":"nav-goto-waituntil-combined","detectSteps":true} -->
+<h1>Wait for the network, the page, and an element</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/waitUntil-test-late-element.html">the late element page</a>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/waitUntil-test-late-element.html","timeout":10000,"waitUntil":{"networkIdleTime":500,"domIdleTime":1000,"find":{"selector":".status","elementText":"/.*operational.*/"}}}} --></li>
+  <li>Check that the page shows <strong>System operational</strong>.</li>
+</ol>
+<!-- test end -->
+</body>
+</html>

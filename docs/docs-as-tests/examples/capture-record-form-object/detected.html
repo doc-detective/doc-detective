@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Record typing in a field</title></head>
+<body>
+<!-- test {"testId":"capture-record-form-object","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true}}]} -->
+<h1>Record typing in a field</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/type-echo.html">the type echo page</a>.
+    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
+  <li>Start recording.
+    <!-- step {"record":{"path":"record-object.webm","directory":".dd-output","overwrite":"true"}} --></li>
+  <li>Click <strong>Type here:</strong>.</li>
+  <li>Type "Hello".</li>
+  <li>Wait a moment, then stop the recording.
+    <!-- step {"wait":1000} -->
+    <!-- step {"stopRecord":true} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-method-put">
+  <title>PUT a user</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-request-method-put","detectSteps":false}'/>
+    <p>Send a <codeph>PUT</codeph> request to <codeph>http://localhost:8093/api/users/2</codeph> with the body <codeph>{"job":"lead"}</codeph>.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8093/api/users/2","method":"put","request":{"body":{"job":"lead"}},"response":{"body":{"job":"lead"}}}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

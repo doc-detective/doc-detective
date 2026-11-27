@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: capture-screenshot-crop-padding-object
+    steps:
+      - goTo: http://localhost:8092/enhanced-elements.html
+      - screenshot:
+          path: crop-padding-object.png
+          directory: .dd-output
+          overwrite: "true"
+          crop:
+            elementText: Submit by ID
+            padding:
+              top: 8
+              right: 16
+              bottom: 8
+              left: 16

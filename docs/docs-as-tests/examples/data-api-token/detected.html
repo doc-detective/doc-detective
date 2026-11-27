@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Create an account with an API token</title></head>
+<body>
+<!-- test {"testId":"data-api-token","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["ACCOUNT_*"],"detectSteps":true} -->
+<h1>Create an account with an API token</h1>
+<p>Keep the API address and your token in an <code>api.env</code> file next to this page:</p>
+
+<pre><code class="language-text">API_URL=http://localhost:8092/api
+API_TOKEN=your-api-token</code></pre>
+
+<ol>
+  <li>Load the variables from your <code>api.env</code> file.
+    <!-- step {"loadVariables":"api.env"} --></li>
+  <li>Send a <code>POST</code> request to <code>$API_URL/accounts</code> with the header <code>Authorization: Bearer $API_TOKEN</code> and this body:
+    <pre><code class="language-json">{"name": "Wren", "plan": "team", "seats": 5, "roles": ["admin", "billing"]}</code></pre>
+    <p>The API returns status <code>200</code> and the new account, with <code>plan</code> set to <code>team</code>. Note the account's <code>name</code>, its <code>seats</code>, and its first role.</p>
+    <!-- step {"httpRequest":{"url":"$API_URL/accounts","method":"post","request":{"headers":{"Authorization":"Bearer $API_TOKEN"},"body":{"name":"Wren","plan":"team","seats":5,"roles":["admin","billing"]}},"response":{"body":{"name":"Wren"}}},"assertions":["$$outputs.response.statusCode == 200","$$outputs.response.body.plan == \"team\""],"variables":{"ACCOUNT_NAME":"$$response.body.name","ACCOUNT_SEATS":"jq($$response.body, \".seats\")","ACCOUNT_ROLE":"$$response.body.roles[0]"}} --></li>
+  <li>Look up the account. Send a <code>GET</code> request to <code>$API_URL/accounts?name=&lt;name&gt;&amp;seats=&lt;seats&gt;&amp;role=&lt;role&gt;</code>. The response shows the same name, seat count, and role.
+    <!-- step {"httpRequest":{"url":"$API_URL/accounts?name=$ACCOUNT_NAME&seats=$ACCOUNT_SEATS&role=$ACCOUNT_ROLE","method":"get","response":{"body":{"name":"Wren","seats":"5","role":"admin"}}},"assertions":"$$outputs.response.body.seats == $ACCOUNT_SEATS"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: nav-find-elements
+    steps:
+      - goTo: http://localhost:8092/enhanced-elements.html
+      - find:
+          elementId: submit-button
+          elementText: Submit by ID
+          elementAria: Submit form button
+          moveTo: true
+      - find:
+          selector: input
+          elementTestId: username-field
+          click: true
+          type:
+            keys:
+              - kittens
+          timeout: 10000
+      - find:
+          elementTestId: password-field
+          elementClass: form-control
+          click: left
+          type: hunter2
+          surface: chrome
+      - find:
+          elementId: contact-email
+          elementAttribute:
+            data-validation: email-regex-validator
+          click: true
+          type:
+            - you@example.com
+      - type:
+          keys: -cat
+          elementId: username-input
+          elementTestId: username-field
+          elementAttribute:
+            placeholder: Username
+      - type:
+          keys:
+            - docs
+          elementAria: Search input field
+          elementClass:
+            - form-control
+          surface: chrome
+          timeout: 5000
+          waitUntil:
+            networkIdleTime: 100
+            domIdleTime: 100
+            find:
+              elementTestId: result-display
+              elementText: Operation successful
+      - find:
+          selector: button
+          elementText: /^Submit Ord/
+          elementTestId: checkout-button
+          elementClass:
+            - btn
+            - /^btn-prim/
+          elementAttribute:
+            data-enabled: "true"
+            disabled: false
+      - click:
+          elementText: Save
+          elementAttribute:
+            aria-label: Save document button
+          elementClass: btn-primary
+          timeout: 5000
+          surface: chrome
+      - click:
+          elementTestId: login-form-submit
+          elementClass:
+            - btn
+            - btn-large
+          surface:
+            browser: chrome
+      - find: Operation successful

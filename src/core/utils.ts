@@ -101,6 +101,7 @@ export {
   getRunOutputDir,
   reportOutputDir,
   runArchivesArtifacts,
+  stepsCheckDownloads,
   replaceEnvs,
   spawnCommand,
   spawnBackgroundCommand,
@@ -609,8 +610,12 @@ async function spawnPtyBackgroundCommand(
     ? " " + args.map((arg) => quoteShellArg(arg, quoteStyle)).join(" ")
     : "";
   const fullCommand = cmd + argstr;
+  // cmd.exe gets a pre-escaped command line (node-pty takes a string on
+  // Windows), built the way Node builds it for `{ shell }`: `/d /s /c "<cmd>"`.
+  // As an argv array, node-pty would re-escape the quoted args as `\"`, which
+  // cmd doesn't understand, so the program got a mangled argv.
   const shellArgs = isCmdShell
-    ? ["/d", "/s", "/c", fullCommand]
+    ? `/d /s /c "${fullCommand}"`
     : ["-c", fullCommand];
 
   let ptyProcess: any;
@@ -2422,6 +2427,47 @@ export async function realizeViewport(
 }
 
 /**
+ * Keep a page at `viewport` (CSS px) while Chrome's tab-sharing bar shows on
+ * it. The bar appears once a capture starts and shortens the page by its
+ * height, so wait up to `waitMs` for the viewport to change, then resize the
+ * window until the page is `viewport` again. Returns the window size to
+ * restore when the capture stops, or undefined when nothing changed.
+ */
+export async function holdViewportUnderSharingBar(
+  driver: any,
+  viewport: { width: number; height: number } | undefined,
+  config: any = {},
+  waitMs = 1000
+): Promise<{ width: number; height: number } | undefined> {
+  if (!viewport || !(viewport.width > 0) || !(viewport.height > 0)) return undefined;
+  const deadline = Date.now() + waitMs;
+  let current = await readViewport(driver);
+  while (
+    current.width === viewport.width &&
+    current.height === viewport.height &&
+    Date.now() < deadline
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    current = await readViewport(driver);
+  }
+  if (!Number.isFinite(current.width) || !Number.isFinite(current.height)) return undefined;
+  if (current.width === viewport.width && current.height === viewport.height) return undefined;
+  const windowSize = await driver.getWindowSize();
+  // Debug for the generic mismatch line: the warning below names the cause.
+  const actual = await realizeViewport(driver, viewport, config, "record", "debug");
+  // A headed window the display can't grow still records, just short.
+  const short = Math.round(viewport.height - actual.height);
+  if (short > VIEWPORT_TOLERANCE_PX) {
+    await log(
+      config,
+      "warning",
+      `Couldn't make the window tall enough for Chrome's sharing bar, so the recording is about ${short} pixels shorter than the viewport. Run headless or use a smaller viewport.`
+    );
+  }
+  return { width: windowSize.width, height: windowSize.height };
+}
+
+/**
  * Viewport for a desktop browser session nobody sized. Without it the size is
  * whatever the engine and host pick (headless Chrome renders 758×426 on
  * Windows, headless Firefox 1366×683), which drifts between runner images.
@@ -3489,6 +3535,11 @@ function getRunOutputDir(
 // switch lowercases) and the internal `runFolderReporter` key matches verbatim
 // (its default branch passes the token straight to the reporters map);
 // non-string (e.g. function) reporters are not the runFolder reporter.
+// Whether any step is a `checkFile` `download` check (ADR 01231).
+function stepsCheckDownloads(steps: any): boolean {
+  return Array.isArray(steps) && steps.some((step: any) => step?.checkFile?.download !== undefined);
+}
+
 function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
   const list = Array.isArray(specs) ? specs : [];
   if (list.length > 0) {
@@ -3506,6 +3557,15 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
       )
     );
     if (writesArtifact) return true;
+    // Downloads land in the run folder too (ADR 01231).
+    const checksDownload = list.some((spec: any) =>
+      (spec?.tests ?? []).some(
+        (test: any) =>
+          stepsCheckDownloads(test?.steps) ||
+          (test?.contexts ?? []).some((context: any) => stepsCheckDownloads(context?.steps))
+      )
+    );
+    if (checksDownload) return true;
   } else if (config?.autoScreenshot !== false || config?.autoRecord !== false) {
     return true;
   }

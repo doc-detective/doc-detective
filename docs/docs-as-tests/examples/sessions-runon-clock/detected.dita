@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-clock">
+  <title>Check the page at a fixed time</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-runon-clock","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"clock":"2026-12-03T09:00:00Z"}}]}'/>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/multi-tab.html"}'/></info></step>
+      <step><cmd>Check that the page's clock reads 3 December 2026, 09:00 UTC.</cmd>
+        <info><data name="doc-detective" value='step {"runBrowserScript":{"script":"return new Date().toISOString();","output":"/^2026-12-03T09:00/"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-requires-unmet">
+  <title>Run a tool only where it's installed</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-runon-requires-unmet","detectSteps":false,"runOn":[{"platforms":["linux","mac"],"requires":{"commands":["sessions-missing-tool"],"env":["PATH"]}}]}'/>
+    <steps>
+      <step><cmd>Run <codeph>sessions-missing-tool --version</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"runShell":"sessions-missing-tool --version"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

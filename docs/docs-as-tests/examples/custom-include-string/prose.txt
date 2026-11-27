@@ -1,0 +1,4 @@
+Check the field label
+
+Open the type echo page at http://localhost:8092/type-echo.html.
+INCLUDE check-label.txt

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-wait-number">
+  <title>Pause for a set time</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-wait-number","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/wait-delay.html" scope="external" format="html">the wait delay page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/wait-delay.html"}'/></info></step>
+      <step><cmd>Wait three seconds.</cmd>
+        <info><data name="doc-detective" value='step {"wait":3000}'/></info></step>
+      <step><cmd>Check that the page shows <b>Loaded after 2 seconds</b>.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

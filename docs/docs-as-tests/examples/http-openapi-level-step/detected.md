@@ -1,0 +1,9 @@
+<!-- test {"testId":"http-openapi-level-step","detectSteps":true} -->
+
+# Load a description in the step
+
+Call the `createUser` operation with Ada as the user.
+
+<!-- step {"httpRequest":{"openApi":{"descriptionPath":"../http-openapi/users.openapi.json","operationId":"createUser"},"request":{"body":{"name":"Ada","job":"engineer"}}}} -->
+
+<!-- test end -->

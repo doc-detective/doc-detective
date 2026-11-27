@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-detect-screenshot-image">
+  <title>Mark an image as a screenshot</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/screenshot-banner.html" scope="external" format="html">the banner page</xref>.</cmd></step>
+      <step><cmd>The page opens with a cookie banner at the bottom.</cmd>
+        <info><image href=".dd-output/detected-banner.png" outputclass="screenshot"><alt>The banner page</alt></image></info></step>
+    </steps>
+  </taskbody>
+</task>

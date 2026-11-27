@@ -1,0 +1,4 @@
+= Give a late element more time
+
+. Go to http://localhost:8092/waitUntil-test-late-element.html[the late element page].
+. Wait for the status line to read *System operational*.

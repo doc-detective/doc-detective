@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Press and hold a button</title></head>
+<body>
+<!-- test {"testId":"nav-click-duration","detectSteps":true} -->
+<h1>Press and hold a button</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/find-click.html">the click counter page</a>.
+    <!-- step {"goTo":"http://localhost:8092/find-click.html"} --></li>
+  <li>Press and hold <strong>Count clicks</strong> for one second.
+    <!-- step {"click":{"selector":"#counter","duration":1000}} --></li>
+  <li>Check that the button counted the click.</li>
+</ol>
+<!-- test end -->
+</body>
+</html>

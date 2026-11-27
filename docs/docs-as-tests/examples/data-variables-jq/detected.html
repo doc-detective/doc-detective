@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Count the items in a cart</title></head>
+<body>
+<!-- test {"testId":"data-variables-jq","detectSteps":true} -->
+<h1>Count the items in a cart</h1>
+<ol>
+  <li>Create a cart. Send a <code>POST</code> request to <code>http://localhost:8092/api/carts</code> with this body:
+    <pre><code class="language-json">{"items":[{"sku":"A1","qty":2},{"sku":"B2","qty":1}]}</code></pre>
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/carts","method":"post","request":{"body":{"items":[{"sku":"A1","qty":2},{"sku":"B2","qty":1}]}}},"variables":{"ITEM_COUNT":"jq($$response.body, \".items | length\")"}} --></li>
+  <li>Send the count in a <code>GET</code> request to <code>http://localhost:8092/api/carts?count=&lt;count&gt;</code>.
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/carts?count=$ITEM_COUNT","method":"get","response":{"body":{"count":"2"}}}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Wait for a page to settle before the screenshot</title></head>
+<body>
+<!-- test {"testId":"capture-screenshot-stable-true","detectSteps":true} -->
+<h1>Wait for a page to settle before the screenshot</h1>
+<ol>
+  <li>Open the page at <code>http://localhost:8092/screenshot-late-reveal.html</code>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/screenshot-late-reveal.html","waitUntil":{"networkIdleTime":0,"domIdleTime":0}}} --></li>
+  <li>A loading bar fills, then the page shows its content.
+    <!-- step {"screenshot":{"path":"stable-true.png","directory":".dd-output","overwrite":"true","stable":true}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

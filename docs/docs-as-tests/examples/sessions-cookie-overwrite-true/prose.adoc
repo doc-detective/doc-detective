@@ -1,0 +1,8 @@
+= Replace a saved cookie
+
+. Sign in at http://localhost:8092/cookies/set/sessions_pover/first[the sign-in page]. The server sets the `sessions_pover` cookie.
+. Save the `sessions_pover` cookie to `sessions_pover.txt`, replacing any earlier file.
+. Sign in again at http://localhost:8092/cookies/set/sessions_pover/second[the second sign-in page], and save the cookie to the same file.
+. Sign out at http://localhost:8092/cookies/set/sessions_pover/signed-out[the sign-out page], which replaces the cookie.
+. Load the cookie from `sessions_pover.txt`.
+. Open http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_pover=second*.

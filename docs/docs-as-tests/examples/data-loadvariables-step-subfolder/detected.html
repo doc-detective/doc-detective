@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check a service from an environment file in a child folder</title></head>
+<body>
+<!-- test {"testId":"data-loadvariables-step-subfolder","detectSteps":true} -->
+<h1>Check a service from an environment file in a child folder</h1>
+<ol>
+  <li>Load the variables in <code>env/service.env</code>.
+    <!-- step {"loadVariables":"env/service.env"} --></li>
+  <li>Check the service. Send a <code>GET</code> request to <code>$SERVICE_URL/health</code>.
+    <!-- step {"httpRequest":{"url":"$SERVICE_URL/health","method":"get"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

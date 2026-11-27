@@ -1,0 +1,4 @@
+= Check the page on a 2x display
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
+. Check that the device pixel ratio is `2`.

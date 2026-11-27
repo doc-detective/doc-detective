@@ -1,0 +1,14 @@
+# Check the demo pages
+
+<!-- test {"testId":"formats-md-testignore","detectSteps":false} -->
+
+1. Check that [the elements demo](http://localhost:8092/index.html) loads.
+   <!-- step {"checkLink":"http://localhost:8092/index.html"} -->
+
+To fetch the page from a terminal instead, run:
+
+```bash testIgnore
+curl http://localhost:8092/index.html
+```
+
+<!-- test end -->

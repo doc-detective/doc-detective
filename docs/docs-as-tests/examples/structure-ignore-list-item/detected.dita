@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="structure-ignore-list-item">
+  <title>Check the demo pages</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"structure-ignore-list-item","detectSteps":true}'/>
+    <ol>
+      <li>Check that <xref href="http://localhost:8092/index.html" scope="external" format="html">the elements demo</xref> loads.
+        <data name="doc-detective" value="test ignore start"/></li>
+      <li>Check that <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref> loads.
+        <data name="doc-detective" value="test ignore end"/></li>
+      <li>Check that <xref href="http://localhost:8092/status/200" scope="external" format="html">the status endpoint</xref> answers.</li>
+    </ol>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

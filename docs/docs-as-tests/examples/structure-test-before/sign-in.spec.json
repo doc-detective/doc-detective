@@ -1,0 +1,13 @@
+{
+  "tests": [
+    {
+      "testId": "sign-in",
+      "description": "Sign in by setting a session cookie.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/cookies/set/structure-session/signed-in"
+        }
+      ]
+    }
+  ]
+}

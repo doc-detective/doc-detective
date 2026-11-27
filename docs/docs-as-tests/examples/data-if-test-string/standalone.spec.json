@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "data-if-test-string",
+      "if": "$$platform oneOf [linux, mac, windows]",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/health",
+            "method": "get"
+          }
+        }
+      ]
+    }
+  ]
+}

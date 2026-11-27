@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: data-route-onskip-stop
+    steps:
+      - runShell: node --version
+        stepId: version
+      - if: $$steps.version.outputs.exitCode != 0
+        runShell: node --help
+        onSkip:
+          - stop: test
+      - stepId: npm
+        runShell: npm --version

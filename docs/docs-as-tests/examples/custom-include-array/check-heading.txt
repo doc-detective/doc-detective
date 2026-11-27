@@ -1,0 +1,1 @@
+Check that the page shows Type Echo Test Page.

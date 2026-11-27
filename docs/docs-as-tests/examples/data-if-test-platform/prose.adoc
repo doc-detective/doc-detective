@@ -1,0 +1,8 @@
+= Find Node.js on Windows
+
+. On Windows, find the Node.js executable:
++
+[source,shell]
+----
+where node
+----

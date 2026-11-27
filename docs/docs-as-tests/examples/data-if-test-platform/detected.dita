@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-if-test-platform">
+  <title>Find Node.js on Windows</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-if-test-platform","if":"$$platform == windows","detectSteps":true}'/>
+    <steps>
+      <step><cmd>On Windows, find the Node.js executable:</cmd>
+        <info><codeblock outputclass="language-shell">where node</codeblock>
+          <data name="doc-detective" value='step {"runShell":"where node"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

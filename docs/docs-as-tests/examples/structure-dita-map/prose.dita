@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="find-selection-elements">
+  <title>Find the selection elements</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Open <xref keyref="elements-demo">the elements demo</xref>.</cmd></step>
+      <step><cmd>Check that the page shows <b>Selection Elements</b>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

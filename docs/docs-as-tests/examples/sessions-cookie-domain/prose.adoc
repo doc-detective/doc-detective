@@ -1,0 +1,7 @@
+= Keep the cookie for one domain
+
+. Sign in at http://localhost:8092/cookies/set/sessions_pdomain/signed-in[the sign-in page]. The server sets the `sessions_pdomain` cookie.
+. Save the `localhost` cookie named `sessions_pdomain` to `sessions_pdomain.txt`.
+. Sign out at http://localhost:8092/cookies/set/sessions_pdomain/signed-out[the sign-out page], which replaces the cookie.
+. Load the `localhost` cookie from `sessions_pdomain.txt`.
+. Open http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_pdomain=signed-in*.

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-block-http">
+  <title>Send a raw HTTP request</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-request-block-http","detectSteps":false}'/>
+    <p>Send this request:</p>
+    <codeblock outputclass="language-http">GET http://localhost:8093/api/users?page=2 HTTP/1.1</codeblock>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8093/api/users?page=2","method":"get"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

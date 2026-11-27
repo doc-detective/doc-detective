@@ -1,0 +1,5 @@
+= Open a page in a new tab
+
+. Go to http://localhost:8092/multi-tab.html[the multi-tab page].
+. Open http://localhost:8092/multi-tab-child.html?page=docs[the child page] in a new tab.
+. Check that the new tab shows *PAGE docs*.

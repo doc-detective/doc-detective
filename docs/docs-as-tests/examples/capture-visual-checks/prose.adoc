@@ -1,0 +1,12 @@
+= Check pages for visual changes
+
+. Go to http://localhost:8092/mask.html[the billing page].
+. The page shows the next invoice date and when the account last synced. Those times change on every visit.
+. The billing panel sits at the top of the page.
+. Go to http://localhost:8092/screenshot-banner.html[the banner page].
+. With the cookie banner hidden, the page shows only its content.
+. With the banner showing, it covers the bottom of the page.
+. Go to http://localhost:8092/screenshot-tall.html[the long page].
+. Scroll to the red box at the bottom of the page.
+. Go to http://localhost:8092/find-image.html[the toolbar page].
+. Compare the sample chart with the published chart image.

@@ -1,0 +1,13 @@
+{
+  "tests": [
+    {
+      "testId": "sign-out",
+      "description": "Sign out by replacing the session cookie.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/cookies/set/structure-session/signed-out"
+        }
+      ]
+    }
+  ]
+}

@@ -72,13 +72,36 @@ function expectScreenRecording(report, check, dir, stderr) {
   }
   if (rec.result === "PASS") check(savedRecording(report, rec), "its MP4 exists under runDir");
 }
+const processSpec = (id, keys = {}) => ({
+  specId: id,
+  ...keys,
+  tests: [
+    {
+      testId: `${id}-t`,
+      runOn: [{ platforms: everywhere, requires: { commands: ["node"], env: ["PATH"] } }],
+      steps: [
+        { runShell: { command: "node -i", background: { name: `${id}-repl`, waitUntil: { stdio: "/>/" } }, timeout: 15000 } },
+        { type: { keys: ["6 * 7", "$ENTER$"], surface: { process: `${id}-repl` }, waitUntil: { stdio: "/42/" }, timeout: 10000 } },
+        { closeSurface: `${id}-repl` },
+      ],
+    },
+  ],
+});
+function expectProcessContextPasses(report, check) {
+  check(contexts(report).length === 1 && contexts(report)[0].result === "PASS", `the context passed (${contexts(report)[0]?.result})`);
+  const rec = autoRecording(report);
+  check(!rec || rec.result === "SKIPPED", `the automatic recording, if any, was SKIPPED (${rec?.result})`);
+  if (rec?.result === "SKIPPED") {
+    check(/^Skipped: .+\.$/.test(rec.resultDescription ?? ""), `it says why (${rec.resultDescription})`);
+  }
+}
 function expectNoScreenshots(report, check) {
   check(steps(report).every((s) => !s.autoScreenshotPath && !s.autoScreenshot), "no step has an autoScreenshotPath");
 }
 
 // cli/auto-capture-defaults.spec.json runs the cases through junit-run-folder,
 // plus junit-both-false. recording/autorecord-defaults.spec.json runs
-// headless-firefox and the cases from headed-chrome-record to autorecord-false.
+// headless-firefox and the cases from headed-chrome-record to process-surface-strict.
 const cases = {
   // Headless Chrome with no keys: a screenshot per step, and a tab recording.
   "headless-chrome": {
@@ -242,6 +265,11 @@ const cases = {
       check(!autoRecording(report), "there's no autoRecording");
     },
   },
+  // A context that only types into a background process has no browser, app,
+  // or device session to record. Unset or `true`, the automatic recording is
+  // SKIPPED (or, where the host can't capture, never added) and the context passes.
+  "process-surface-unset": { spec: processSpec("psu"), check: expectProcessContextPasses },
+  "process-surface-strict": { spec: processSpec("pss", { autoRecord: true }), check: expectProcessContextPasses },
   "junit-both-false": {
     spec: shellSpec,
     args: ["-r", "junit", "--no-auto-screenshot", "--no-auto-record"],

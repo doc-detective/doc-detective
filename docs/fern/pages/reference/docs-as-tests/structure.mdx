@@ -1,0 +1,495 @@
+---
+title: Test structure, written as tests
+sidebar-title: Test structure
+description: Procedures that name specs, tests, and steps, keep several tests in one file, skip part of a page, set up and clean up around tests, record when a test last passed, include shared files, and process DITA maps, shown as prose, detected tests, inline tests, and standalone specs.
+---
+
+Each example shows one procedure as prose, as detected tests, as inline tests, and as a standalone spec. For what each tab holds, see [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).
+
+## Create and look up users
+
+This procedure keeps two tests and an ignored section in one file. It uses [`httpRequest`](/docs/actions/httprequest), the [spec](/reference/schemas/specification) fields `specId` and `description`, the [test](/reference/schemas/test) fields `testId` and `description`, the [step](/reference/schemas/step) fields `stepId` and `description`, ignore blocks, and the [config](/reference/schemas/config) fields `beforeAll` and `afterAll`.
+
+<Markdown src="examples/structure-users/_variants.mdx" />
+
+### IDs and descriptions
+
+- **A spec's `specId` and `description`** live in a spec file. A documentation file's spec ID is its path from where you run Doc Detective, such as `docs/manage-users.md`.
+- **A test without a `testId`** gets one built from its spec ID and a hash of the test, such as `structure-users~1f7c37ef`. The ID stays the same from run to run until the test itself changes. In the example, every inline file gives its second test the same hash.
+- **Several tests in one file** run in order. A `test` statement that starts before the previous test ends closes that test first.
+- **`stepId` and `description`** name a step in results. They don't change what the step does.
+
+### Skip part of a page
+
+A `test ignore start` statement and a `test ignore end` statement skip everything between them: `step` statements and detected steps alike. Here, the ignore block skips the delete request, because cleanup deletes the user after every run. A `test end` statement also ends an ignore block that's still open.
+
+| Format | Ignore block |
+|---|---|
+| Markdown | `<!-- test ignore start -->` and `<!-- test ignore end -->` |
+| MDX | `{/* test ignore start */}` and `{/* test ignore end */}` |
+| AsciiDoc | `// (test ignore start)` and `// (test ignore end)` |
+| HTML | `<!-- test ignore start -->` and `<!-- test ignore end -->` |
+| reStructuredText | `.. test ignore start` and `.. test ignore end` |
+| DITA | `<data name="doc-detective" value="test ignore start"/>` and `<data name="doc-detective" value="test ignore end"/>` |
+
+### Set up and clean up the run
+
+The example's config runs one spec before every input and one after them all:
+
+```json title="doc-detective.json"
+{
+  "beforeAll": ["check-api.spec.json"],
+  "afterAll": ["delete-user.spec.json"]
+}
+```
+
+```json title="check-api.spec.json"
+{
+  "tests": [
+    {
+      "testId": "structure-users-check-api",
+      "description": "Check that the API answers before any test runs.",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/status/200",
+            "statusCodes": [200]
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json title="delete-user.spec.json"
+{
+  "tests": [
+    {
+      "testId": "structure-users-delete",
+      "description": "Delete the user that the tests created, after every test runs.",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/users/ada",
+            "method": "delete"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+`beforeAll` and `afterAll` each take a path or a list of paths, relative to the config file. Their specs run as separate specs: first the `beforeAll` specs, then your inputs, then the `afterAll` specs. `beforeAny` is a deprecated name for `beforeAll`.
+
+### What detection finds
+
+Each `http` code block becomes an `httpRequest` step with the block's method, URL, headers, and body. Detection doesn't add the `response` and `statusCodes` checks, so the inline and standalone variants hold them. The delete request sits in the ignore block, so detection skips it.
+
+## Run setup and cleanup steps around one test
+
+This test uses the [test](/reference/schemas/test) fields `before` and `after`, with [`goTo`](/docs/actions/goto) and [`find`](/docs/actions/find). The setup spec signs in by setting a cookie, and the cleanup spec signs out.
+
+<Markdown src="examples/structure-before-after/_variants.mdx" />
+
+`before` and `after` each name one spec file, relative to the spec that names them. Doc Detective uses the steps of the first test in that file. It runs them in the same context as the test, so the test shares their browser and cookies. The `before` steps run first. The `after` steps run last, even when a step of the test fails.
+
+The setup and cleanup specs:
+
+```json title="sign-in.spec.json"
+{
+  "tests": [
+    {
+      "testId": "structure-before-after-sign-in",
+      "description": "Sign in by setting a session cookie.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/cookies/set/structure-session/signed-in"
+        }
+      ]
+    }
+  ]
+}
+```
+
+```json title="sign-out.spec.json"
+{
+  "tests": [
+    {
+      "testId": "structure-before-after-sign-out",
+      "description": "Sign out by replacing the session cookie.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/cookies/set/structure-session/signed-out"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "structure-session=signed-out"
+        }
+      ]
+    }
+  ]
+}
+```
+
+This example has only a standalone spec. Doc Detective runs `before` and `after` for tests in spec files. A `before` or `after` field on an inline `test` statement has no effect.
+
+## Show when a procedure last passed
+
+This procedure uses [`goTo`](/docs/actions/goto) and [`find`](/docs/actions/find), the [test](/reference/schemas/test) field `badge`, and a `meta` statement with a `verified-by` entry.
+
+<Markdown src="examples/structure-verified/_variants.mdx" />
+
+After a passing run, Doc Detective fills in the `meta` statement and writes a badge above the `test` statement, in the same comment style:
+
+```markdown title="inline.md, after a passing run"
+<!-- meta sha256-97f2… {"verified-by":[{"tool":"doc-detective","check":"structure-verified","version":"5.7.0","passed":"2026-11-26"}],"last-verified":"2026-11-26"} -->
+![Last verified 2026-11-26](https://img.shields.io/badge/Last_verified-2026--11--26-brightgreen)
+<!-- test {"testId":"structure-verified","badge":true,"detectSteps":false} -->
+```
+
+AsciiDoc gets an `image:` macro, HTML an `<img>` tag, and DITA an `<image>` element. The `check` names the test's `testId`. A spec file has no line above a test, so the standalone spec can't hold a badge. A `meta` statement on a page can still name its `testId`.
+
+What Doc Detective writes depends on the [config](/reference/schemas/config) field `verification.write`:
+
+| Value | Writes |
+|---|---|
+| `"existing"` (default) | Fills the `verified-by` entries and badges the pages already have. |
+| `true` | Also adds the entries. A passing inline test gets a `meta` statement and, when its `test` statement has none, a `testId`. A passing Markdown or MDX page gets a `verified-by` entry in its front matter. |
+| `false` | Nothing. |
+
+The examples on this page set `verification.write` to `false`, so a run doesn't change the files. To see a write, run a copy:
+
+```bash
+npx doc-detective --input inline.md --verification true
+```
+
+The example leaves out reStructuredText. Doc Detective doesn't write into `.rst` files, so a badge and a `meta` statement have no effect there. For the full workflow, see [Show a "Last verified on" date](/docs/test-docs/last-verified-on).
+
+### Where a statement came from
+
+Each test and step in the results has a `location`: the line and the character offsets of its statement. Doc Detective fills it in. For the detected Markdown file, the test points at its `test` statement, and the `goTo` step at the link it came from:
+
+```json title="detected.md, in the results"
+{
+  "testId": "structure-verified",
+  "location": { "line": 4, "startIndex": 112, "endIndex": 189 },
+  "steps": [
+    {
+      "goTo": "http://localhost:8092/index.html",
+      "location": { "line": 6, "startIndex": 199, "endIndex": 252 }
+    }
+  ]
+}
+```
+
+## Include a shared check in a page
+
+Each page includes a shared file that holds its own test, then runs a test of its own. It uses [`httpRequest`](/docs/actions/httprequest), [`goTo`](/docs/actions/goto), and [`find`](/docs/actions/find), and the [config](/reference/schemas/config) fields `resolveIncludes` and `fileTypes` with `includeStatements`.
+
+<Markdown src="examples/structure-includes/_variants.mdx" />
+
+Each format includes its own shared file. The MDX page includes the Markdown file:
+
+````markdown title="_check-status.md"
+<!-- test {"testId":"structure-includes-status","detectSteps":false} -->
+
+Before you start, check that the API answers:
+
+```http
+GET http://localhost:8092/status/200
+```
+
+<!-- step {"httpRequest":{"url":"http://localhost:8092/status/200","statusCodes":[200]}} -->
+
+<!-- test end -->
+````
+
+| Format | Include |
+|---|---|
+| Markdown | `--8<-- "_check-status.md"` (MkDocs snippets) |
+| MDX | <code>{"<Markdown src=\"./_check-status.md\" />"}</code> |
+| AsciiDoc | `include::_check-status.adoc[]` |
+| HTML | `<!--#include file="_check-status.html" -->`, through `includeStatements` |
+| reStructuredText | `.. include:: _check-status.rst` |
+
+With `resolveIncludes` on, the default, the shared test runs inside each page, before the page's own test, so the standalone spec holds two tests. Its `location` gains a `file` field with the shared file's absolute path. The shared file doesn't run on its own. With `resolveIncludes` off, each page runs only its own test, and the shared file runs as its own spec.
+
+HTML has no include syntax of its own, so the example's config adds Apache-style server-side includes to HTML:
+
+```json title="doc-detective.json"
+{
+  "resolveIncludes": true,
+  "fileTypes": [
+    "markdown",
+    "asciidoc",
+    "rst",
+    "dita",
+    {
+      "extends": "html",
+      "extensions": "html",
+      "includeStatements": ["<!--#include\\s+file=\"([^\"]+)\"\\s*-->"]
+    }
+  ]
+}
+```
+
+Each `includeStatements` entry is a regular expression whose first group is the path to include. `extensions` and `includeStatements` each take a string or a list. A `fileTypes` list replaces the default list, so it names the other formats too.
+
+The example leaves out DITA. DITA reuses content through conrefs and keyrefs, which a later example covers. For every include syntax, see [Test pages that include other files](/docs/test-docs/input-formats/includes).
+
+## Include a shared check with mdBook or an MDX import
+
+The same procedure, with the shared file included the way mdBook and MDX component frameworks include it. It uses [`httpRequest`](/docs/actions/httprequest), [`goTo`](/docs/actions/goto), [`find`](/docs/actions/find), and the [config](/reference/schemas/config) field `resolveIncludes`.
+
+<Markdown src="examples/structure-include-imports/_variants.mdx" />
+
+| Format | Include |
+|---|---|
+| Markdown | `{{#include _check-status.md}}` (mdBook) |
+| MDX | `import CheckStatus from './_check-status.md';`, then `<CheckStatus />` (Docusaurus, Mintlify) |
+
+Doc Detective knows both forms, so the example's config only turns `resolveIncludes` on. An MDX import counts as an include only where the page renders the component. An `import` with no matching component tag includes nothing.
+
+## Test the topics in a DITA map
+
+This DITA topic uses a key that its map defines. It uses [`goTo`](/docs/actions/goto), [`find`](/docs/actions/find), and the [config](/reference/schemas/config) field `processDitaMaps`.
+
+<Markdown src="examples/structure-dita-map/_variants.mdx" />
+
+The map defines the `elements-demo` key and references the topic:
+
+```xml title="structure.ditamap"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
+<map>
+  <title>Elements demo guide</title>
+  <keydef keys="elements-demo" href="http://localhost:8092/index.html" scope="external" format="html"/>
+  <topicref href="inline.dita"/>
+</map>
+```
+
+When an input is a `.ditamap` file, Doc Detective runs DITA-OT on it (`dita -i <map> -f dita`) and tests the resolved topics. The `keyref` becomes a link with the key's URL, as a reader sees it. This needs the `dita` command on your `PATH`:
+
+```bash
+npx doc-detective --input structure.ditamap
+```
+
+Without the `dita` command, Doc Detective logs an error and skips the map. When you pass the topic or a folder, Doc Detective reads the topic as written, with its `keyref` unresolved. The inline steps name their URL, so they run either way.
+
+`processDitaMaps` is `true` by default, and the example's config sets it explicitly. To read a map as a plain DITA file instead, without DITA-OT, turn it off:
+
+```json title=".doc-detective.json"
+{
+  "processDitaMaps": false
+}
+```
+
+The example leaves out detected tests. A detected `goTo` comes from a link's `href`, and an unresolved `keyref` has none, so detection depends on whether DITA-OT ran. The example leaves out the other formats, which have no maps.
+
+## `detectSteps` permutations
+
+Each example checks two links. Its config sets `detectSteps`, and its `test` statement sets `detectSteps` or leaves it out. Detection runs only when both allow it. A `test` statement can turn detection off, but it can't turn detection on when the config has it off. When detection runs, each link becomes a `checkLink` step beside the inline step, so the test checks each link twice. These examples have prose and inline variants only.
+
+### `true` in config, unset in the test
+
+**Varies:** `detectSteps` · **Value:** config `true`, test unset · **Effect:** the test inherits detection, so each link gets a detected step and an inline step.
+
+<Markdown src="examples/structure-detectsteps-config-true-test-unset/_variants.mdx" />
+
+### `true` in config, `true` in the test
+
+**Varies:** `detectSteps` · **Value:** config `true`, test `true` · **Effect:** detection runs, so each link gets a detected step and an inline step.
+
+<Markdown src="examples/structure-detectsteps-config-true-test-true/_variants.mdx" />
+
+### `true` in config, `false` in the test
+
+**Varies:** `detectSteps` · **Value:** config `true`, test `false` · **Effect:** the test turns detection off, so only the inline steps run.
+
+<Markdown src="examples/structure-detectsteps-config-true-test-false/_variants.mdx" />
+
+### `false` in config, unset in the test
+
+**Varies:** `detectSteps` · **Value:** config `false`, test unset · **Effect:** the test inherits detection off, so only the inline steps run.
+
+<Markdown src="examples/structure-detectsteps-config-false-test-unset/_variants.mdx" />
+
+### `false` in config, `true` in the test
+
+**Varies:** `detectSteps` · **Value:** config `false`, test `true` · **Effect:** detection stays off, because a test can't turn on what the config turned off.
+
+<Markdown src="examples/structure-detectsteps-config-false-test-true/_variants.mdx" />
+
+### `false` in config, `false` in the test
+
+**Varies:** `detectSteps` · **Value:** config `false`, test `false` · **Effect:** detection stays off, so only the inline steps run.
+
+<Markdown src="examples/structure-detectsteps-config-false-test-false/_variants.mdx" />
+
+## `testId` permutations
+
+### `testId: "structure-testid-set"`
+
+**Varies:** `test.testId` · **Value:** `"structure-testid-set"` · **Effect:** results and `verified-by` entries name the test by this ID.
+
+<Markdown src="examples/structure-testid-set/_variants.mdx" />
+
+### `testId` omitted
+
+**Varies:** `test.testId` · **Value:** omitted · **Effect:** the ID joins the spec ID and a hash of the test, such as `<path>~92b45990`.
+
+<Markdown src="examples/structure-testid-omitted/_variants.mdx" />
+
+## Tests per file permutations
+
+### One test
+
+**Varies:** tests per file · **Value:** one · **Effect:** all three checks run in one test, so a failure stops the checks after it.
+
+<Markdown src="examples/structure-tests-one/_variants.mdx" />
+
+### Several tests
+
+**Varies:** tests per file · **Value:** two · **Effect:** each section runs as its own test, so a failure in one doesn't stop the other.
+
+<Markdown src="examples/structure-tests-several/_variants.mdx" />
+
+## `test end` permutations
+
+### `test end` explicit
+
+**Varies:** `test end` statement · **Value:** present · **Effect:** each test ends where its `test end` statement sits.
+
+<Markdown src="examples/structure-testend-explicit/_variants.mdx" />
+
+### `test end` implied
+
+**Varies:** `test end` statement · **Value:** omitted · **Effect:** the next `test` statement ends the previous test, and the end of the file ends the last one.
+
+<Markdown src="examples/structure-testend-implied/_variants.mdx" />
+
+## Ignore block permutations
+
+### Around a `step` statement
+
+**Varies:** ignore block placement · **Value:** around one `step` statement · **Effect:** the inline variant skips that step, but detection still finds the link before the block.
+
+<Markdown src="examples/structure-ignore-step/_variants.mdx" />
+
+### Around a list item
+
+**Varies:** ignore block placement · **Value:** around the second list item · **Effect:** both variants skip the item's link and step. The items around it still run.
+
+<Markdown src="examples/structure-ignore-list-item/_variants.mdx" />
+
+### Around a whole test
+
+**Varies:** ignore block placement · **Value:** around the second test · **Effect:** the second test has no steps, so Doc Detective drops it.
+
+<Markdown src="examples/structure-ignore-test/_variants.mdx" />
+
+A `test end` statement also ends an open ignore block, so in this example the `test ignore end` statement after it has no effect.
+
+## `before` and `after` permutations
+
+These examples are standalone specs. Doc Detective runs `before` and `after` for tests in spec files. A `before` or `after` field on an inline `test` statement has no effect. For both fields together, see [Run setup and cleanup steps around one test](#run-setup-and-cleanup-steps-around-one-test).
+
+### `before` only
+
+**Varies:** `test.before` · **Value:** `"sign-in.spec.json"` · **Effect:** the sign-in steps run first, in the test's own browser, so the test sees the cookie they set.
+
+<Markdown src="examples/structure-test-before/_variants.mdx" />
+
+### `after` only
+
+**Varies:** `test.after` · **Value:** `"sign-out.spec.json"` · **Effect:** the sign-out steps run last, in the test's own browser, even when a step of the test fails.
+
+<Markdown src="examples/structure-test-after/_variants.mdx" />
+
+## `beforeAll` and `afterAll` permutations
+
+Each example's config lists the server setup spec and one spec of its own. The shared config of these examples sets each field to a single path, the string form. For both lists together, see [Create and look up users](#create-and-look-up-users).
+
+### `beforeAll` list
+
+**Varies:** `beforeAll` · **Value:** `["../../../test-setup/start-server.spec.json", "check-api.spec.json"]` · **Effect:** both specs run, in order, before any input.
+
+<Markdown src="examples/structure-beforeall-list/_variants.mdx" />
+
+### `afterAll` list
+
+**Varies:** `afterAll` · **Value:** `["check-api.spec.json", "../../../test-setup/stop-server.spec.json"]` · **Effect:** both specs run, in order, after every input.
+
+<Markdown src="examples/structure-afterall-list/_variants.mdx" />
+
+## `resolveIncludes` permutations
+
+With `resolveIncludes` on, see [Include a shared check in a page](#include-a-shared-check-in-a-page) and [Include a shared check with mdBook or an MDX import](#include-a-shared-check-with-mdbook-or-an-mdx-import). Each page then runs two tests: the shared file's test and its own.
+
+| Include syntax | `resolveIncludes: true` | `resolveIncludes: false` |
+|---|---|---|
+| MkDocs `--8<--` | Shared test runs inside the page | Directive stays text |
+| mdBook `{{#include}}` | Shared test runs inside the page | Directive stays text |
+| Fern `<Markdown src>` | Shared test runs inside the page | Component isn't read |
+| MDX `import` with a component | Shared test runs inside the page | Component isn't read |
+| AsciiDoc `include::` | Shared test runs inside the page | Directive stays text |
+| reStructuredText `.. include::` | Shared test runs inside the page | Directive isn't read |
+| `includeStatements` match | Shared test runs inside the page | Comment isn't read |
+
+### `resolveIncludes: false`, built-in and custom syntax
+
+**Varies:** `resolveIncludes` · **Value:** `false` · **Effect:** each page runs only its own test, and the shared file runs only when it's an input itself.
+
+<Markdown src="examples/structure-includes-resolve-false/_variants.mdx" />
+
+### `resolveIncludes: false`, mdBook and MDX import
+
+**Varies:** `resolveIncludes` · **Value:** `false` · **Effect:** each page runs only its own test, and the shared file runs only when it's an input itself.
+
+<Markdown src="examples/structure-include-imports-resolve-false/_variants.mdx" />
+
+## `badge` permutations
+
+A badge appears only after a passing run that writes back. These examples use the default `verification.write`, `"existing"`.
+
+### `badge: true`
+
+**Varies:** `test.badge` · **Value:** `true` · **Effect:** a passing run writes a "Last verified" badge on the line above the `test` statement.
+
+<Markdown src="examples/structure-badge-true/_variants.mdx" />
+
+In reStructuredText, `badge` has no effect.
+
+### `badge: false`
+
+**Varies:** `test.badge` · **Value:** `false` · **Effect:** a passing run writes no badge, the same as leaving `badge` out.
+
+<Markdown src="examples/structure-badge-false/_variants.mdx" />
+
+## `verification.write` permutations
+
+Each example sets `verification.write` in its config and has a `test` statement with `badge: true`. The examples leave out reStructuredText, because Doc Detective doesn't write into `.rst` files. To try a value without changing your files, run a copy.
+
+### `verification.write: "existing"`
+
+**Varies:** `verification.write` · **Value:** `"existing"` · **Effect:** a passing run fills the `meta` statement and the badge the page already declares.
+
+<Markdown src="examples/structure-verification-write-existing/_variants.mdx" />
+
+### `verification.write: true`
+
+**Varies:** `verification.write` · **Value:** `true` · **Effect:** a passing run adds a `meta` statement and writes the generated `testId` into the `test` statement.
+
+<Markdown src="examples/structure-verification-write-true/_variants.mdx" />
+
+In Markdown and MDX, a passing run also adds a `verified-by` entry to the front matter.
+
+### `verification.write: false`
+
+**Varies:** `verification.write` · **Value:** `false` · **Effect:** a run writes nothing, so the `meta` statement and the badge stay unchanged.
+
+<Markdown src="examples/structure-verification-write-false/_variants.mdx" />

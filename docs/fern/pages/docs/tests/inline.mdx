@@ -48,7 +48,7 @@ Inline tests offer several advantages:
 - **Documentation as code**: Tests become part of the documentation source, ensuring that documentation and testing evolve together.
 - **Quick validation**: Small, focused tests can be quickly added to validate specific instructions or procedures.
 
-Combine inline tests with [detected tests](/docs/test-docs/detected) to create comprehensive test coverage with minimal manual test definition.
+Combine inline tests with [detected tests](/docs/test-docs/detected) to create comprehensive test coverage with minimal manual test definition. To compare the same procedure written as detected, inline, and standalone tests in every format, see [Docs as tests](/reference/docs-as-tests/overview).
 
 ## Comment patterns by file type
 
@@ -212,7 +212,7 @@ To search for American Shorthair kittens,
 
 2. In the search bar, enter "American Shorthair kittens", then press Enter.
 
-   {/* step find: selector: "[title=Search]" click: true */} {/* step type: - "American Shorthair kittens" - "$ENTER$" */} {/* step wait: 5000 */}
+   {/* step find: {selector: "[title=Search]", click: true} */} {/* step type: ["American Shorthair kittens", "$ENTER$"] */} {/* step wait: 5000 */}
 
 ![Search results](search-results.png)
 

@@ -1,5 +1,5 @@
 import { validate } from "../../common/src/validate.js";
-import { log, hasVariable, invalidStepMessage } from "../utils.js";
+import { log, hasVariable, invalidStepMessage, holdViewportUnderSharingBar } from "../utils.js";
 import { maskString } from "../masking.js";
 import { instantiateCursor } from "./moveTo.js";
 import {
@@ -37,7 +37,10 @@ import fs from "node:fs";
 import os from "node:os";
 import { RECORDER_SETTLE_MS } from "./timing.js";
 
-export { startRecording };
+const NO_SESSION_SKIP =
+  "Skipped: the context has no browser, app, or device session to record. Set `autoRecord: false` to turn off automatic recording.";
+
+export { startRecording, NO_SESSION_SKIP };
 
 // How a headless browser's name reads in a message. Safari has no headless
 // mode, so it never needs one.
@@ -108,6 +111,7 @@ async function beginRecording({
     description: "Started recording.",
   };
 
+  const autoRecordStep = Boolean(step?.__autoRecord);
   // Validate step payload
   // `__autoRecord` and `__autoRecordDefaulted` are the runner's own markers,
   // and step_v3 rejects unknown keys.
@@ -405,6 +409,16 @@ async function beginRecording({
     return result;
   }
 
+  // A context that drives only shell and process surfaces has no session to
+  // own the capture. Unset or `true`, autoRecord can't record it, so SKIP
+  // before spawning: a capture started and then killed can linger and hold
+  // the screen (ADR 01177).
+  if (autoRecordStep && !stateHolder) {
+    result.status = "SKIPPED";
+    result.description = NO_SESSION_SKIP;
+    return result;
+  }
+
   if (plan.name === "browser") {
     // Browser engine: capture the Chrome viewport via getDisplayMedia +
     // MediaRecorder. Concurrency-safe — each context auto-selects its own
@@ -437,10 +451,15 @@ async function beginRecording({
     // Tab capture defaults to 800x600, so ask for the viewport's size in device
     // pixels. Without an answer, getDisplayMedia picks its own size.
     const readViewport = () => ({
-      width: Math.round(window.innerWidth * window.devicePixelRatio),
-      height: Math.round(window.innerHeight * window.devicePixelRatio),
+      width: window.innerWidth,
+      height: window.innerHeight,
+      dpr: window.devicePixelRatio,
     });
-    const viewportSize = await driver.execute(readViewport).catch(() => undefined);
+    const viewport = await driver.execute(readViewport).catch(() => undefined);
+    const viewportSize = viewport && {
+      width: Math.round(viewport.width * viewport.dpr),
+      height: Math.round(viewport.height * viewport.dpr),
+    };
     // Set document title to the per-context capture title so the launch flag
     // --auto-select-desktop-capture-source (headed) or
     // --auto-select-tab-capture-source-by-title (headless) picks this tab.
@@ -561,9 +580,18 @@ async function beginRecording({
     await driver.execute((documentTitle: any) => {
       document.title = documentTitle;
     }, documentTitle);
+    // Chrome's sharing bar now shortens the page. Grow the window by its
+    // height, so the page and the video keep the viewport's size. stopRecord
+    // puts the window back.
+    const restoreWindow = await holdViewportUnderSharingBar(
+      driver,
+      viewport && { width: viewport.width, height: viewport.height },
+      config
+    ).catch(() => undefined);
     // Set recorder
     result.recording = {
       type: "MediaRecorder",
+      restoreWindow,
       tab: recorderTab.handle,
       downloadPath, // Where the recording will be downloaded.
       targetPath: filePath, // Where the recording will be saved.

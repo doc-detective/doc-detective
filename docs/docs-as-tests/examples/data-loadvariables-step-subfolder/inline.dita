@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-loadvariables-step-subfolder">
+  <title>Check a service from an environment file in a child folder</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-loadvariables-step-subfolder","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Load the variables in <codeph>env/service.env</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"loadVariables":"env/service.env"}'/></info></step>
+      <step><cmd>Check the service. Send a <codeph>GET</codeph> request to <codeph>$SERVICE_URL/health</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"httpRequest":{"url":"$SERVICE_URL/health","method":"get"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

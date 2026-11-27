@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-variables-response">
+  <title>Create an order and look it up</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-variables-response","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Create an order. Send a <codeph>POST</codeph> request to <codeph>http://localhost:8092/api/orders</codeph> with this body:</cmd>
+        <info><codeblock outputclass="language-json">{"id":"ord-1001"}</codeblock>
+          <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/orders","method":"post","request":{"body":{"id":"ord-1001"}}},"variables":{"ORDER_ID":"$$response.body.id"}}'/></info></step>
+      <step><cmd>Look up the order. Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/api/orders?id=&lt;id&gt;</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/orders?id=$ORDER_ID","method":"get","response":{"body":{"id":"ord-1001"}}}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

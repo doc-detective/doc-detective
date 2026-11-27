@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: custom-include-array
+    steps:
+      - goTo: http://localhost:8092/type-echo.html
+      - find: "Type here:"
+      - find: Type Echo Test Page

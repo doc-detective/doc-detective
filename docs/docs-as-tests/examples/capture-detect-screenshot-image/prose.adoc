@@ -1,0 +1,6 @@
+= Mark an image as a screenshot
+
+. Go to http://localhost:8092/screenshot-banner.html[the banner page].
+. The page opens with a cookie banner at the bottom.
++
+image:.dd-output/detected-banner.png[The banner page,role=screenshot]

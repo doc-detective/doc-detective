@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the page in German</title></head>
+<body>
+<!-- test {"testId":"sessions-runon-locale","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"locale":"de-DE"}}]} -->
+<h1>Check the page in German</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Check that the page's language is <code>de-DE</code>.
+    <!-- step {"runBrowserScript":{"script":"return navigator.language;","output":"de-DE"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

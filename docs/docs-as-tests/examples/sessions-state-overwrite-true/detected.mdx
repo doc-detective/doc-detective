@@ -1,0 +1,15 @@
+{/* test {"testId":"sessions-state-overwrite-true","detectSteps":true} */}
+
+# Replace a saved browser state
+
+1. Sign in at [the sign-in page](http://localhost:8092/cookies/set/sessions_pstateo/signed-in). The server sets the `sessions_pstateo` cookie.
+   {/* step {"goTo":"http://localhost:8092/cookies/set/sessions_pstateo/signed-in"} */}
+2. Save the browser state to `sessions-pstateo.json`, replacing any earlier file.
+   {/* step {"saveState":{"path":"sessions-pstateo.json","overwrite":true}} */}
+3. Sign out at [the sign-out page](http://localhost:8092/cookies/set/sessions_pstateo/signed-out), which replaces the cookie.
+   {/* step {"goTo":"http://localhost:8092/cookies/set/sessions_pstateo/signed-out"} */}
+4. Load the browser state from `sessions-pstateo.json`.
+   {/* step {"loadState":{"path":"sessions-pstateo.json"}} */}
+5. Open [the cookie report](http://localhost:8092/cookies), and check that it shows **sessions_pstateo=signed-in**.
+
+{/* test end */}

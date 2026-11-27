@@ -1,0 +1,7 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: structure-test-before
+    before: sign-in.spec.json
+    steps:
+      - goTo: http://localhost:8092/cookies
+      - find: structure-session=signed-in

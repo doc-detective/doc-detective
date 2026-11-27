@@ -1,0 +1,38 @@
+= Jump past the help steps
+
+// (test {"testId":"data-route-onskip-gotostep","detectSteps":false})
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
++
+// (step {"runShell":"node --version","stepId":"version"})
+. If that failed, print the help for `+node+`:
++
+[source,shell]
+----
+node --help
+----
++
+// (step {"if":"$$steps.version.outputs.exitCode != 0","runShell":"node --help","onSkip":[{"goToStep":"path"}]})
+. Print the npm version:
++
+[source,shell]
+----
+npm --version
+----
++
+// (step {"stepId":"npm","runShell":"npm --version"})
+. Find the Node.js executable:
++
+[source,shell]
+----
+command -v node
+----
++
+// (step {"stepId":"path","runShell":"command -v node"})
+
+// (test end)

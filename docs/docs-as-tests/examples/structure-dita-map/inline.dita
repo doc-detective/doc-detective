@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="find-selection-elements">
+  <title>Find the selection elements</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"structure-dita-map","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Open <xref keyref="elements-demo">the elements demo</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/index.html"}'/></info></step>
+      <step><cmd>Check that the page shows <b>Selection Elements</b>.</cmd>
+        <info><data name="doc-detective" value='step {"find":"Selection Elements"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

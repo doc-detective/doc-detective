@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-substitution-body">
+  <title>Send a client name in a request body</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Load the variables in <codeph>shop.env</codeph>.</cmd></step>
+      <step><cmd>Send a <codeph>POST</codeph> request to <codeph>http://localhost:8092/api/orders</codeph> with the body <codeph>{"client": "$SHOP_CLIENT"}</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

@@ -1,0 +1,4 @@
+= Find an element by its text
+
+. Go to http://localhost:8092/enhanced-elements.html[the element test page].
+. Find the *Submit Order* button.

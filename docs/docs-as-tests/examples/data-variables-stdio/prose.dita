@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-variables-stdio">
+  <title>Save the Node.js version</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock></info></step>
+      <step><cmd>Check that the saved version starts with <codeph>v</codeph>:</cmd>
+        <info><codeblock outputclass="language-shell">node -e "process.exit(process.env.NODE_VERSION.startsWith('v') ? 0 : 1)"</codeblock></info></step>
+    </steps>
+  </taskbody>
+</task>

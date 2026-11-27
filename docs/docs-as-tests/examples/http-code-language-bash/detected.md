@@ -1,0 +1,11 @@
+<!-- test {"testId":"http-code-language-bash","detectSteps":true} -->
+
+# Run a code block
+
+Run this code. It prints `ready`:
+
+```bash
+echo "ready"
+```
+
+<!-- test end -->

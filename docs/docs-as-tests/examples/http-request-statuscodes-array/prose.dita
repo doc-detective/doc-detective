@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-statuscodes-array">
+  <title>Accept either success status</title>
+  <body>
+    <p>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/status/201</codeph>. The status is <codeph>200</codeph> or <codeph>201</codeph>.</p>
+  </body>
+</topic>

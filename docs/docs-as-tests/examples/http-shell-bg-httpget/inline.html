@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Start a background process</title></head>
+<body>
+<!-- test {"testId":"http-shell-bg-httpget","detectSteps":false} -->
+<h1>Start a background process</h1>
+<p>Start a server on port 8242:</p>
+<pre><code class="language-shell">node -e "require('http').createServer((q, r) =&gt; r.end('ok')).listen(8242)"</code></pre>
+<!-- step {"runShell":{"command":"node -e \"require('http').createServer((q, r) => r.end('ok')).listen(8242)\"","background":{"name":"http-shell-bg-httpget","waitUntil":{"httpGet":"http://localhost:8242/"}},"timeout":15000}} -->
+<p>Stop it when you're done.</p>
+<!-- step {"closeSurface":"http-shell-bg-httpget"} -->
+<!-- test end -->
+</body>
+</html>

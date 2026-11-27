@@ -1,0 +1,14 @@
+= Stop when Node.js is missing
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
+. Print the npm version:
++
+[source,shell]
+----
+npm --version
+----

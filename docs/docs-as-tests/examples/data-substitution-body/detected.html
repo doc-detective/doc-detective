@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Send a client name in a request body</title></head>
+<body>
+<!-- test {"testId":"data-substitution-body","detectSteps":true} -->
+<h1>Send a client name in a request body</h1>
+<ol>
+  <li>Load the variables in <code>shop.env</code>.
+    <!-- step {"loadVariables":"shop.env"} --></li>
+  <li>Send a <code>POST</code> request to <code>http://localhost:8092/api/orders</code> with the body <code>{"client": "$SHOP_CLIENT"}</code>.
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/orders","method":"post","request":{"body":{"client":"$SHOP_CLIENT"}},"response":{"body":{"client":"docs"}}}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

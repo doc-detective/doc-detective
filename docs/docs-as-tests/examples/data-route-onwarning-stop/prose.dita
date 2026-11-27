@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-route-onwarning-stop">
+  <title>Stop after a warning</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock></info></step>
+      <step><cmd>Print the npm version:</cmd>
+        <info><codeblock outputclass="language-shell">npm --version</codeblock></info></step>
+    </steps>
+  </taskbody>
+</task>

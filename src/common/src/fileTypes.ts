@@ -181,8 +181,9 @@ const defaultFileTypesBase: Record<string, FileType> = {
         },
         // `content` is the control's name, and `precededBy.1` is precededBy's first group, the <userinput> text.
         // The name comes first, so this sorts before findUiControl's step for the same control.
+        // The name is the control's visible label, so it locates the field by accessible name, not as CSS (ADR 01227).
         captures: ["content", "precededBy.1"],
-        actions: [{ type: { keys: "$2", selector: "$1" } }],
+        actions: [{ type: { keys: "$2", elementAria: "$1" } }],
       },
       { name: "goToUrl", element: xrefSelector(GO_TO_VERBS), captures: ["attributes.href"], actions: ["goTo"] },
       { name: "findUiControl", element: "uicontrol", captures: ["content"], actions: ["find"] },

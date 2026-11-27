@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-draganddrop-strings">
+  <title>Drag by text and selector strings</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/drag-drop-test.html" scope="external" format="html">the drag and drop page</xref>.</cmd></step>
+      <step><cmd>Drag <b>Table</b> onto <b>Drop Zone 1</b>.</cmd></step>
+      <step><cmd>Check that <b>Table (dropped)</b> appears in the drop zone.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

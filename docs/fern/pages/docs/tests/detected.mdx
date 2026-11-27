@@ -3,7 +3,7 @@ title: Detected tests
 description: Automatically generate tests based on your documentation source files.
 ---
 
-Doc Detective can automatically generate tests based on your documentation source files and your `fileTypes` configuration. Detected tests are useful for large, complex test suites that you want to keep in sync with your documentation. Step detection is on by default. With no extra configuration, the built-in file types detect steps from links, bold text, images, code blocks, and quoted text after `Type`, `Enter`, or `Press`. They skip code samples. To detect other content, define markup patterns and their actions in the `fileTypes.markup` array of your [config](/reference/schemas/config), as described in [Detect tests with selectors](/docs/test-docs/input-formats/selectors). To turn detection off, set `detectSteps` to `false`.
+Doc Detective can automatically generate tests based on your documentation source files and your `fileTypes` configuration. Detected tests are useful for large, complex test suites that you want to keep in sync with your documentation. Step detection is on by default. With no extra configuration, the built-in file types detect steps from links, bold text, images, code blocks, and quoted text after `Type`, `Enter`, or `Press`. They skip code samples. To detect other content, define markup patterns and their actions in the `fileTypes.markup` array of your [config](/reference/schemas/config), as described in [Detect tests with selectors](/docs/test-docs/input-formats/selectors). To turn detection off, set `detectSteps` to `false`. A test can turn detection off for itself with `"detectSteps": false`, but it can't turn detection on when your config sets `detectSteps` to `false`.
 
 Detected tests are useful for keeping your tests in sync with your documentation. When you update your documentation, Doc Detective automatically updates the tests based on the new content. Detected tests are generated automatically. You can't edit detected tests directly, but you can update your config or documentation source files to change the tests.
 
@@ -18,7 +18,7 @@ Detected tests provide several advantages:
 - **Consistent coverage**: Ensures all documented procedures are tested
 - **Time savings**: Eliminates the need to write many test specifications manually
 
-Combine detected tests with [inline tests](/docs/test-docs/inline) for comprehensive test coverage with minimal manual effort.
+Combine detected tests with [inline tests](/docs/test-docs/inline) for comprehensive test coverage with minimal manual effort. To compare the same procedure written as detected, inline, and standalone tests in every format, see [Docs as tests](/reference/docs-as-tests/overview).
 
 ## Default markup patterns
 
@@ -35,7 +35,7 @@ In Markdown, for example:
 - **httpRequestFormat**: A code block tagged `http` that holds a request generates an `httpRequest` step.
 - **runCode**: A code block tagged `bash`, `python`, `py`, `javascript`, or `js` generates a `runCode` step.
 
-DITA also uses its semantic elements. `<cmd>Click the <uicontrol>Submit</uicontrol> button</cmd>` generates `click` and `find` steps, and `<cmd>Type <userinput>text</userinput> into the <uicontrol>Field</uicontrol></cmd>` generates a `type` step into that field.
+DITA also uses its semantic elements. `<cmd>Click the <uicontrol>Submit</uicontrol> button</cmd>` generates `click` and `find` steps, and `<cmd>Type <userinput>text</userinput> into the <uicontrol>Field</uicontrol></cmd>` generates a `type` step that finds the field by its accessible name, such as its `<label>`, through `elementAria`.
 
 For each format's syntax, see [Markdown](/docs/test-docs/input-formats/markdown), [HTML](/docs/test-docs/input-formats/html), [AsciiDoc](/docs/test-docs/input-formats/asciidoc), [DITA](/docs/test-docs/input-formats/dita), [reStructuredText](/docs/test-docs/input-formats/rst), and [Gherkin](/docs/test-docs/input-formats/gherkin).
 

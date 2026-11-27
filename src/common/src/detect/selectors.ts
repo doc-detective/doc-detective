@@ -67,10 +67,18 @@ export function parseStatementText(text: string | undefined): { type: StatementT
   const s = (text ?? "").trim();
   if (s === "test ignore start") return { type: "ignoreStart", payload: "" };
   if (s === "test ignore end") return { type: "ignoreEnd", payload: "" };
-  const m = /^(test end|test(?:\s+start)?|step)\b\s*([\s\S]*)$/.exec(s);
+  // Only spaces and tabs after the keyword, so a body on the following lines keeps its first line's indent.
+  const m = /^(test end|test(?:\s+start)?|step)\b[ \t]*([\s\S]*)$/.exec(s);
   if (!m) return null;
   const type = m[1] === "test end" ? "testEnd" : m[1] === "step" ? "step" : "testStart";
-  return { type, payload: m[2].trim() };
+  return { type, payload: dedent(m[2]).trim() };
+}
+
+/** Strips the indentation all non-blank lines share, as a YAML block needs. */
+function dedent(text: string): string {
+  const lines = text.split("\n");
+  const indent = Math.min(...lines.filter((l) => l.trim()).map((l) => /^[ \t]*/.exec(l)![0].length));
+  return Number.isFinite(indent) && indent > 0 ? lines.map((l) => l.slice(Math.min(indent, /^[ \t]*/.exec(l)![0].length))).join("\n") : text;
 }
 
 interface Selector {

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshot-maxvariation-high">
+  <title>Compare a screenshot with high tolerance</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-screenshot-maxvariation-high","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/screenshot-banner.html" scope="external" format="html">the banner page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/screenshot-banner.html"}'/></info></step>
+      <step><cmd>The page opens with a cookie banner at the bottom.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"maxvariation-high.png","directory":".dd-output","maxVariation":0.5,"overwrite":"aboveVariation"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

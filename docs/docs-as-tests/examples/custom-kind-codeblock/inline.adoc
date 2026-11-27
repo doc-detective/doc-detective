@@ -1,0 +1,14 @@
+= Check that the page server is up
+
+// (test {"testId":"custom-kind-codeblock","detectSteps":false})
+
+Request the type echo page. The command fails if the server doesn't answer:
+
+[source,bash]
+----
+curl -sf -o /dev/null http://localhost:8092/type-echo.html
+----
+
+// (step {"runShell":"curl -sf -o /dev/null http://localhost:8092/type-echo.html"})
+
+// (test end)

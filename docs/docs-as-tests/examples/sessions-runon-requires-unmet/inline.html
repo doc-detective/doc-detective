@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Run a tool only where it's installed</title></head>
+<body>
+<!-- test {"testId":"sessions-runon-requires-unmet","detectSteps":false,"runOn":[{"platforms":["linux","mac"],"requires":{"commands":["sessions-missing-tool"],"env":["PATH"]}}]} -->
+<h1>Run a tool only where it's installed</h1>
+<ol>
+  <li>Run <code>sessions-missing-tool --version</code>.
+    <!-- step {"runShell":"sessions-missing-tool --version"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

@@ -1,0 +1,122 @@
+{
+  "specId": "runCode-directory-tty",
+  "description": "runCode saves output to `path` inside `directory` (resolved once, like runShell), and runCode `background.tty` runs a non-bash interpreter to readiness. On Windows a non-bash runCode runs through cmd.exe, so the tty permutations also cover args passed to cmd.exe under a PTY. Where the optional node-pty dependency is unavailable, the start step is SKIPPED and `onSkip` stops the test, so it lands SKIPPED. Unique process names keep it safe under concurrentRunners.",
+  "tests": [
+    {
+      "testId": "runCode-path-in-directory",
+      "description": "`path` with a relative `directory` saves to `<spec folder>/<directory>/<path>`, not a doubled folder.",
+      "steps": [
+        {
+          "runCode": {
+            "language": "javascript",
+            "code": "console.log('runcode-directory')",
+            "path": "greeting.txt",
+            "directory": ".dd-output/runcode-directory",
+            "overwrite": "true"
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"process.exit(require('fs').readFileSync('.dd-output/runcode-directory/greeting.txt','utf8').trim()==='runcode-directory'?0:1)\"",
+            "workingDirectory": "."
+          }
+        }
+      ]
+    },
+    {
+      "testId": "runCode-tty-javascript",
+      "description": "A JavaScript `background.tty` runCode becomes ready (cmd.exe on Windows, bash elsewhere).",
+      "steps": [
+        {
+          "runCode": {
+            "language": "javascript",
+            "code": "console.log('runcode-tty-js'); setInterval(() => {}, 1000);",
+            "background": {
+              "name": "runcode-tty-js",
+              "tty": true,
+              "waitUntil": {
+                "stdio": "runcode-tty-js"
+              }
+            },
+            "timeout": 30000
+          },
+          "onSkip": [
+            {
+              "stop": "test"
+            }
+          ]
+        },
+        {
+          "closeSurface": "runcode-tty-js"
+        }
+      ]
+    },
+    {
+      "testId": "runCode-tty-bash",
+      "description": "A bash `background.tty` runCode becomes ready (runs through bash on every platform).",
+      "steps": [
+        {
+          "runCode": {
+            "language": "bash",
+            "code": "echo runcode-tty-bash; sleep 60",
+            "background": {
+              "name": "runcode-tty-bash",
+              "tty": true,
+              "waitUntil": {
+                "stdio": "runcode-tty-bash"
+              }
+            },
+            "timeout": 30000
+          },
+          "onSkip": [
+            {
+              "stop": "test"
+            }
+          ]
+        },
+        {
+          "closeSurface": "runcode-tty-bash"
+        }
+      ]
+    },
+    {
+      "testId": "runShell-cmd-tty-args",
+      "description": "runShell `shell: cmd` with `background.tty` passes quoted `args` through cmd.exe intact. Windows only; SKIPPED elsewhere via runOn.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows"
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "runShell": {
+            "command": "node",
+            "args": [
+              "-e",
+              "console.log('cmd-tty-' + 'args'); setInterval(() => {}, 1000);"
+            ],
+            "shell": "cmd",
+            "background": {
+              "name": "runshell-cmd-tty-args",
+              "tty": true,
+              "waitUntil": {
+                "stdio": "cmd-tty-args"
+              }
+            },
+            "timeout": 30000
+          },
+          "onSkip": [
+            {
+              "stop": "test"
+            }
+          ]
+        },
+        {
+          "closeSurface": "runshell-cmd-tty-args"
+        }
+      ]
+    }
+  ]
+}

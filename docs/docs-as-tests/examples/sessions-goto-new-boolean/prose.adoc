@@ -1,0 +1,7 @@
+= Open pages in a new tab and a new window
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
+. Load http://localhost:8092/multi-tab-child.html?page=tab[the tab page] in a new tab.
+. Check that the page reads "PAGE tab".
+. Load http://localhost:8092/multi-tab-child.html?page=window[the window page] in a new window.
+. Check that the page reads "PAGE window".

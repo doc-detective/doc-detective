@@ -1,0 +1,555 @@
+---
+title: Variables and control flow, written as tests
+sidebar-title: Variables and control flow
+description: Procedures that load variables, pass values from one step to the next, add custom assertions, run steps conditionally, and route on a step's result, in every supported format.
+---
+
+Each example on this page shows one procedure as prose, detected tests, inline tests, and a standalone spec. For what each tab holds, see [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).
+
+## Call an API with a token from an environment file
+
+This procedure uses [`loadVariables`](/docs/actions/loadvariables) and [`httpRequest`](/docs/actions/httprequest), with the step fields [`variables` and `assertions`](/reference/schemas/step), the [`jq()` function](/reference/expressions#function-operators), and [`publicVariables`](/reference/schemas/test) on the test and the [spec](/reference/schemas/specification).
+
+The example folder holds the `api.env` file the steps load:
+
+```text title="api.env"
+API_URL=http://localhost:8092/api
+API_TOKEN=docs-example-token
+```
+
+<Markdown src="examples/data-api-token/_variants.mdx" />
+
+### How the values flow
+
+- `$API_URL` and `$API_TOKEN` come from the `api.env` file. Doc Detective substitutes them into the URL and the `Authorization` header.
+- The first request's `variables` field sets `ACCOUNT_NAME` from `$$response.body.name`, and `ACCOUNT_SEATS` from `jq($$response.body, ".seats")`. It sets `ACCOUNT_ROLE` from `$$response.body.roles[0]`, the first item of the `roles` array. The second request uses all three in its URL, and its assertion reads `$ACCOUNT_SEATS` too.
+- `assertions` adds custom checks to a step. Each check is an [expression](/reference/expressions) over the step's `$$outputs`, given as one string or as an array whose checks must all pass.
+- Doc Detective masks every value it loads or substitutes as `***NAME***` in logs and reports. `publicVariables` lists the names to show: `ACCOUNT_*` on the test, and `API_URL` on the spec. A name listed in the config, any spec, or any test is public for the whole run. See [Keep secrets out of logs](/docs/ci/secrets).
+
+### What detection finds
+
+The prose has no links, bold text, or HTTP code blocks, so detection finds no steps. All three steps come from `step` statements.
+
+The detected run also loads the `api.env` file before any test starts. The example's own `doc-detective.json` sets the config-level [`loadVariables`](/reference/schemas/config) field, and lists `API_URL` in the config-level `publicVariables`:
+
+```json title="doc-detective.json"
+{
+  "detectSteps": true,
+  "loadVariables": "api.env",
+  "publicVariables": ["API_URL"]
+}
+```
+
+A config-level file only fills variables that aren't already set, while a `loadVariables` step replaces them.
+
+## Check your Node.js version
+
+This procedure uses [`runShell`](/docs/actions/runshell), the step and test [`if`](/reference/schemas/test) conditions, the [`extract()` function](/reference/expressions#function-operators), and the [`onSkip` and `onFail` step routing](/reference/schemas/step-routing) entries `continue` and `stop`.
+
+<Markdown src="examples/data-node-check/_variants.mdx" />
+
+### How the conditions work
+
+- The test's `if` runs the test only on Linux, macOS, and Windows. The standalone spec sets the same condition on the spec. Both give `if` as an array, whose conditions must all be true. A string `if` holds a single condition, as on the test in the API example and the spec in the next example. A false condition skips the spec, test, or step it's on.
+- The first step's `variables` field sets `NODE_MAJOR` from `extract($$stdio.stdout, "v([0-9]+)")`, the major version in the command's output. Its assertion checks the output with `matches`.
+- The second step runs only when both conditions in its `if` array hold: the first step exited `0` and its output starts with `v`. `$$steps.node-version.outputs` reads an earlier step's output by its `stepId`. Its assertion `$NODE_MAJOR >= 18` substitutes the variable the first step set.
+- The last two steps check `$$platform`, so each platform runs one of them and skips the other. `onSkip` with `continue: true` moves on after the skip, which is also the default. `onFail` with `stop: "test"` stops the test's remaining steps, which is also the default for a failure.
+
+### What detection finds
+
+The commands sit in `shell` code blocks, and default detection turns only `bash`, Python, and JavaScript code blocks into steps, so detection finds none here. Every step comes from a `step` statement, and the detected and inline variants differ only in `detectSteps`.
+
+## Wait for a service, then echo text through it
+
+This procedure has three tests. It uses [`wait`](/docs/actions/wait), [`runShell`](/docs/actions/runshell), [`goTo`](/docs/actions/goto), [`click`](/docs/actions/click), [`type`](/docs/actions/type), [`find`](/docs/actions/find), and [`httpRequest`](/docs/actions/httprequest). It routes with the [step routing](/reference/schemas/step-routing) entries `retry` and `goToStep`, and the [test routing](/reference/schemas/routing) entries `goToTest`, `stop: "spec"`, and `continue`. Several routing entries carry an `if` condition, as a string or an array. It also sets the [context](/reference/schemas/context) field `retries`.
+
+<Markdown src="examples/data-service-retry/_variants.mdx" />
+
+### How the routing works
+
+First, `wait: true` pauses for 5000 milliseconds, the default for `wait`. A number sets the pause in milliseconds instead.
+
+The readiness check then fails on purpose the first time it runs, and the test still passes:
+
+1. The check exits `1` and prints `Not ready yet.`
+2. Its `onFail` entry applies only when `$$outputs.exitCode == 1`, so a different exit code falls through to the default and stops the test. The entry's `retry` runs the check again after 500 milliseconds, up to 3 more times, with `exponential` backoff between runs.
+3. The second run exits `0`, so the step passes. Its result reports `"attempts": 2`.
+
+A step that a `retry` brings back to passing counts as passed. Other routing doesn't change a result: a step that fails and then routes with `continue` or `goToStep` still fails its test.
+
+The rest of the routing:
+
+- The first test's `onPass` entry `goToTest` jumps to `data-echo-text`, so `data-service-restart` doesn't run and doesn't appear in the results. If the check still fails after its retries, the `onFail` entry `stop: "spec"` skips the spec's remaining tests. A test routing entry's `if` reads `$$platform`. Here it's an array on `onPass` and a string on `onFail`, and both are true on every supported platform.
+- In `data-echo-text`, the `read-echo` step saves the element's text from `$$element.text`. When it passes and its text matches the `if` array of its `onPass` entry, `goToStep` jumps over the `retype` step to `send-echo`. When it fails, `retry` runs it again.
+- `send-echo` runs only when `$$steps.read-echo.outputs.element.text` matches, sends the saved `$ECHOED` value, and asserts that the response echoes it. The test's `publicVariables` shows `ECHOED` in output instead of masking it.
+- `onWarning` with `continue: true`, on `send-echo` and on the test, moves on after a warning, which is also the default. The test's `onSkip` entry `stop: "spec"` skips the spec's remaining tests if Doc Detective skips this test.
+- The context's `retries: 2` runs the whole test again on a fresh browser session, up to twice, when the session crashes or never loads a page. A real failure, such as a missing element, doesn't trigger it. A step's `retry` runs one step again on the same session.
+
+A step that `retry` or `goToStep` runs more than once reports `attempts` or `visit` in its result. A test that `goToTest` runs again reports `visit`. Doc Detective sets these fields. Don't set them in a test.
+
+### What detection finds
+
+In the first two tests, the commands sit in `shell` code blocks, which default detection doesn't run, so their steps come from `step` statements.
+
+In `data-echo-text`, detection resolves the prose to six steps:
+
+| Prose | Detected steps |
+|---|---|
+| Go to a link | `goTo` the URL, then `checkLink` the same URL |
+| Click a bold phrase | `click` the phrase, then `find` the same phrase |
+| `type "…"` | `type` the quoted text |
+| A bold phrase | `find` the phrase |
+
+A `step` statement adds the `httpRequest`, which sends the literal text because no detected step saves it. The detected `data-echo-text` has no `retype` step or step routing: those live on steps that only the inline and standalone variants write out.
+
+{/* Permutations start. */}
+
+## About the permutations
+
+Each example below varies one setting in a short procedure. Detection finds no steps in these procedures, because the URLs and commands sit in code. So every variant runs the same `step` statements, and the detected and inline files differ only in `detectSteps`.
+
+An `onFail` or `onWarning` entry on a step or test that passes never applies. Those examples show the shape, and their effect says what happens when the entry applies.
+
+## `loadVariables` permutations
+
+### Step, file next to the test
+
+**Varies:** `step.loadVariables` · **Value:** `"service.env"` · **Effect:** the step loads `service.env` from the test file's folder, and later steps substitute `$SERVICE_URL`.
+
+<Markdown src="examples/data-loadvariables-step/_variants.mdx" />
+
+### Step, file in a child folder
+
+**Varies:** `step.loadVariables` · **Value:** `"env/service.env"` · **Effect:** a relative path resolves from the test file's folder, so the step loads `env/service.env` below it.
+
+<Markdown src="examples/data-loadvariables-step-subfolder/_variants.mdx" />
+
+### In the config file
+
+**Varies:** `config.loadVariables` · **Value:** `"service.env"` · **Effect:** the example's `doc-detective.json` loads the file before any test runs, so no step loads it. A relative path resolves from the config file's folder.
+
+<Markdown src="examples/data-loadvariables-config/_variants.mdx" />
+
+## `variables` expression permutations
+
+### `$$response`
+
+**Varies:** `step.variables` · **Value:** `{"ORDER_ID": "$$response.body.id"}` · **Effect:** saves a field of the HTTP response body, and the next request sends it as a query parameter.
+
+<Markdown src="examples/data-variables-response/_variants.mdx" />
+
+### `$$stdio`
+
+**Varies:** `step.variables` · **Value:** `{"NODE_VERSION": "$$stdio.stdout"}` · **Effect:** saves the command's output, and the next command reads it from its environment.
+
+<Markdown src="examples/data-variables-stdio/_variants.mdx" />
+
+### `$$element`
+
+**Varies:** `step.variables` · **Value:** `{"ECHOED": "$$element.text"}` · **Effect:** saves the text of the element `find` matched, and the request sends it in its body.
+
+<Markdown src="examples/data-variables-element/_variants.mdx" />
+
+### `extract()`
+
+**Varies:** `step.variables` · **Value:** `{"NODE_MAJOR": "extract($$stdio.stdout, \"v([0-9]+)\")"}` · **Effect:** saves the first group in the regular expression, the major version number.
+
+<Markdown src="examples/data-variables-extract/_variants.mdx" />
+
+### `jq()`
+
+**Varies:** `step.variables` · **Value:** `{"ITEM_COUNT": "jq($$response.body, \".items | length\")"}` · **Effect:** saves the result of a jq query on the response body, the number of items.
+
+<Markdown src="examples/data-variables-jq/_variants.mdx" />
+
+### Array index
+
+**Varies:** `step.variables` · **Value:** `{"FIRST_SKU": "$$response.body.items[0].sku"}` · **Effect:** `[0]` picks the first item of an array in the response body.
+
+<Markdown src="examples/data-variables-array-index/_variants.mdx" />
+
+## `$VAR` substitution permutations
+
+### In `httpRequest.url`
+
+**Varies:** `httpRequest.url` · **Value:** `"$SHOP_URL/products"` · **Effect:** doc Detective replaces `$SHOP_URL` in the URL before it sends the request.
+
+<Markdown src="examples/data-substitution-url/_variants.mdx" />
+
+### In `httpRequest.request.headers`
+
+**Varies:** `httpRequest.request.headers` · **Value:** `{"X-Test": "$SHOP_CLIENT"}` · **Effect:** the header carries the variable's value, and the echo API returns it in `x-echo-test`.
+
+<Markdown src="examples/data-substitution-headers/_variants.mdx" />
+
+### In `httpRequest.request.body`
+
+**Varies:** `httpRequest.request.body` · **Value:** `{"client": "$SHOP_CLIENT"}` · **Effect:** the body carries the variable's value, and the echo API returns it.
+
+<Markdown src="examples/data-substitution-body/_variants.mdx" />
+
+### In `type.selector` and `find.selector`
+
+**Varies:** `type.selector` and `find.selector` · **Value:** `"$INPUT_SELECTOR"` · **Effect:** selectors take variables too, so one file can name the elements for several tests.
+
+<Markdown src="examples/data-substitution-selector/_variants.mdx" />
+
+## `publicVariables` permutations
+
+### Test, exact name
+
+**Varies:** `test.publicVariables` · **Value:** `["SHOP_URL"]` · **Effect:** reports show the value of `SHOP_URL`, and mask `SHOP_CLIENT` and the selectors as `***NAME***`.
+
+<Markdown src="examples/data-publicvariables-test-exact/_variants.mdx" />
+
+### Test, wildcard
+
+**Varies:** `test.publicVariables` · **Value:** `["SHOP_*"]` · **Effect:** `*` matches any characters, so reports show `SHOP_URL` and `SHOP_CLIENT`.
+
+<Markdown src="examples/data-publicvariables-test-wildcard/_variants.mdx" />
+
+### Spec
+
+**Varies:** `spec.publicVariables` · **Value:** `["SHOP_URL"]` · **Effect:** only the standalone spec can set it. A name listed on any spec is public for the whole run.
+
+<Markdown src="examples/data-publicvariables-spec/_variants.mdx" />
+
+### In the config file
+
+**Varies:** `config.publicVariables` · **Value:** `["SHOP_URL"]` · **Effect:** the example's `doc-detective.json` lists the name, so every file in the run shows it.
+
+<Markdown src="examples/data-publicvariables-config/_variants.mdx" />
+
+## `if` permutations
+
+### Step, string, true
+
+**Varies:** `step.if` · **Value:** `"$$steps.version.outputs.exitCode == 0"` · **Effect:** the condition reads an earlier step's output by its `stepId`. It's true, so the step runs.
+
+<Markdown src="examples/data-if-step-string-true/_variants.mdx" />
+
+### Step, string, false
+
+**Varies:** `step.if` · **Value:** `"$$steps.version.outputs.exitCode != 0"` · **Effect:** the condition is false, so Doc Detective skips the step. The test still passes.
+
+<Markdown src="examples/data-if-step-string-false/_variants.mdx" />
+
+### Step, array
+
+**Varies:** `step.if` · **Value:** `["$$steps.version.outputs.exitCode == 0", "$$steps.version.outputs.stdio.stdout matches /^v/"]` · **Effect:** every condition in the array must be true for the step to run.
+
+<Markdown src="examples/data-if-step-array/_variants.mdx" />
+
+### Test, string
+
+**Varies:** `test.if` · **Value:** `"$$platform oneOf [linux, mac, windows]"` · **Effect:** the test runs only when the condition is true. A test condition can read `$$platform`.
+
+<Markdown src="examples/data-if-test-string/_variants.mdx" />
+
+### Test, array
+
+**Varies:** `test.if` · **Value:** `["$$platform oneOf [linux, mac, windows]"]` · **Effect:** the array form takes one or more conditions, and all must be true.
+
+<Markdown src="examples/data-if-test-array/_variants.mdx" />
+
+### Test, by platform
+
+**Varies:** `test.if` · **Value:** `"$$platform == windows"` · **Effect:** the test runs on Windows and is skipped on macOS and Linux.
+
+<Markdown src="examples/data-if-test-platform/_variants.mdx" />
+
+### Spec, string
+
+**Varies:** `spec.if` · **Value:** `"$$platform oneOf [linux, mac, windows]"` · **Effect:** only the standalone spec can set it. When it's false, Doc Detective skips the whole spec.
+
+<Markdown src="examples/data-if-spec-string/_variants.mdx" />
+
+### Spec, array
+
+**Varies:** `spec.if` · **Value:** `["$$platform oneOf [linux, mac, windows]"]` · **Effect:** only the standalone spec can set it. Every condition must be true for the spec to run.
+
+<Markdown src="examples/data-if-spec-array/_variants.mdx" />
+
+## `assertions` permutations
+
+### String
+
+**Varies:** `step.assertions` · **Value:** `"$$outputs.response.statusCode == 200"` · **Effect:** one custom check runs after the request's own checks, and the step fails if it's false.
+
+<Markdown src="examples/data-assertions-string/_variants.mdx" />
+
+### Array
+
+**Varies:** `step.assertions` · **Value:** `["$$outputs.response.statusCode == 200", "$$outputs.response.body.plan == \"team\""]` · **Effect:** every check in the array must pass.
+
+<Markdown src="examples/data-assertions-array/_variants.mdx" />
+
+### Comparison operators
+
+**Varies:** `step.assertions` · **Value:** `==`, `!=`, `>`, `<`, `>=`, `<=` · **Effect:** each operator compares the status code with a number.
+
+<Markdown src="examples/data-assertions-comparison/_variants.mdx" />
+
+### Word operators
+
+**Varies:** `step.assertions` · **Value:** `contains`, `oneOf`, `matches` · **Effect:** `contains` checks a substring, `oneOf` checks a list, and `matches` checks a regular expression.
+
+<Markdown src="examples/data-assertions-word/_variants.mdx" />
+
+## Step routing permutations
+
+### `onPass`, `continue`
+
+**Varies:** `step.onPass` · **Value:** `[{"continue": true}]` · **Effect:** moves on to the next step. This is the default after a pass.
+
+<Markdown src="examples/data-route-onpass-continue/_variants.mdx" />
+
+### `onPass`, `stop`
+
+**Varies:** `step.onPass` · **Value:** `[{"stop": "test"}]` · **Effect:** stops the test after this step passes. The npm step is skipped, and the test passes.
+
+<Markdown src="examples/data-route-onpass-stop/_variants.mdx" />
+
+### `onPass`, `goToStep`
+
+**Varies:** `step.onPass` · **Value:** `[{"goToStep": "path"}]` · **Effect:** jumps to the step whose `stepId` is `path`. The npm step doesn't run and isn't in the results.
+
+<Markdown src="examples/data-route-onpass-gotostep/_variants.mdx" />
+
+### `onPass`, `retry`
+
+**Varies:** `step.onPass` · **Value:** `[{"retry": {"limit": 1}}]` · **Effect:** runs the passing step once more, then falls through to the default and continues. The result reports `"attempts": 2`.
+
+<Markdown src="examples/data-route-onpass-retry/_variants.mdx" />
+
+### `onFail`, `continue`
+
+**Varies:** `step.onFail` · **Value:** `[{"continue": true}]` · **Effect:** applies only if the step fails: the next step still runs, but the test fails. Here the step passes.
+
+<Markdown src="examples/data-route-onfail-continue/_variants.mdx" />
+
+### `onFail`, `stop`
+
+**Varies:** `step.onFail` · **Value:** `[{"stop": "test"}]` · **Effect:** applies only if the step fails, and stops the test's remaining steps. That's also the default. Here the step passes.
+
+<Markdown src="examples/data-route-onfail-stop/_variants.mdx" />
+
+### `onFail`, `goToStep`
+
+**Varies:** `step.onFail` · **Value:** `[{"goToStep": "path"}]` · **Effect:** applies only if the step fails, and jumps to `path`. The failure still fails the test. Here the step passes.
+
+<Markdown src="examples/data-route-onfail-gotostep/_variants.mdx" />
+
+### `onFail`, `retry` with `limit`
+
+**Varies:** `step.onFail` · **Value:** `[{"retry": {"limit": 2}}]` · **Effect:** the check fails once, and the first retry passes, so the step and the test pass with `"attempts": 2`. Retries run with no delay.
+
+<Markdown src="examples/data-route-onfail-retry-limit/_variants.mdx" />
+
+### `onFail`, `retry` with `delay`
+
+**Varies:** `step.onFail` · **Value:** `[{"retry": {"limit": 2, "delay": 500}}]` · **Effect:** waits 500 milliseconds before each retry.
+
+<Markdown src="examples/data-route-onfail-retry-delay/_variants.mdx" />
+
+### `onFail`, `retry` with `backoff: fixed`
+
+**Varies:** `step.onFail` · **Value:** `[{"retry": {"limit": 3, "delay": 500, "backoff": "fixed"}}]` · **Effect:** waits the same 500 milliseconds before every retry. This is the default backoff.
+
+<Markdown src="examples/data-route-onfail-retry-backoff-fixed/_variants.mdx" />
+
+### `onFail`, `retry` with `backoff: exponential`
+
+**Varies:** `step.onFail` · **Value:** `[{"retry": {"limit": 3, "delay": 500, "backoff": "exponential"}}]` · **Effect:** doubles the wait before each retry: 500, then 1000, then 2000 milliseconds.
+
+<Markdown src="examples/data-route-onfail-retry-backoff-exponential/_variants.mdx" />
+
+### `onFail`, `retry` then `continue`
+
+**Varies:** `step.onFail` · **Value:** `[{"retry": {"limit": 2}}, {"continue": true}]` · **Effect:** retries first. If the step still fails after its retries, the next entry applies and the test moves on. Here the first retry passes.
+
+<Markdown src="examples/data-route-onfail-retry-then-continue/_variants.mdx" />
+
+### `onSkip`, `continue`
+
+**Varies:** `step.onSkip` · **Value:** `[{"continue": true}]` · **Effect:** the help step's `if` is false, so it's skipped, and the test moves on. This is the default after a skip.
+
+<Markdown src="examples/data-route-onskip-continue/_variants.mdx" />
+
+### `onSkip`, `stop`
+
+**Varies:** `step.onSkip` · **Value:** `[{"stop": "test"}]` · **Effect:** the help step is skipped, so the test stops. The npm step is skipped too, and the test passes.
+
+<Markdown src="examples/data-route-onskip-stop/_variants.mdx" />
+
+### `onSkip`, `goToStep`
+
+**Varies:** `step.onSkip` · **Value:** `[{"goToStep": "path"}]` · **Effect:** the help step is skipped and jumps to `path`, so the npm step doesn't run.
+
+<Markdown src="examples/data-route-onskip-gotostep/_variants.mdx" />
+
+### `onSkip`, `retry`
+
+**Varies:** `step.onSkip` · **Value:** `[{"retry": {"limit": 1}}]` · **Effect:** a step skipped by its `if` never ran, so `retry` doesn't run it again. It re-runs only a step whose own action returned `SKIPPED`.
+
+<Markdown src="examples/data-route-onskip-retry/_variants.mdx" />
+
+### `onWarning`, `continue`
+
+**Varies:** `step.onWarning` · **Value:** `[{"continue": true}]` · **Effect:** applies only if the step ends with a warning, and moves on. That's also the default. Here the step passes.
+
+<Markdown src="examples/data-route-onwarning-continue/_variants.mdx" />
+
+### `onWarning`, `stop`
+
+**Varies:** `step.onWarning` · **Value:** `[{"stop": "test"}]` · **Effect:** applies only if the step ends with a warning, and stops the test. Here the step passes.
+
+<Markdown src="examples/data-route-onwarning-stop/_variants.mdx" />
+
+### `onWarning`, `goToStep`
+
+**Varies:** `step.onWarning` · **Value:** `[{"goToStep": "path"}]` · **Effect:** applies only if the step ends with a warning, and jumps to `path`. Here the step passes.
+
+<Markdown src="examples/data-route-onwarning-gotostep/_variants.mdx" />
+
+### `onWarning`, `retry`
+
+**Varies:** `step.onWarning` · **Value:** `[{"retry": {"limit": 1}}]` · **Effect:** applies only if the step ends with a warning, and runs it again. Here the step passes.
+
+<Markdown src="examples/data-route-onwarning-retry/_variants.mdx" />
+
+### Entry `if`, string
+
+**Varies:** `step.onPass[].if` · **Value:** `"$$platform oneOf [linux, mac, windows]"` · **Effect:** the entry applies only when its condition is true. It's true here, so the step jumps to `path`.
+
+<Markdown src="examples/data-route-if-string/_variants.mdx" />
+
+### Entry `if`, array
+
+**Varies:** `step.onPass[].if` · **Value:** `["$$outputs.exitCode == 0", "$$outputs.stdio.stdout matches /^v/"]` · **Effect:** every condition must be true. An entry's condition reads the step's own `$$outputs`.
+
+<Markdown src="examples/data-route-if-array/_variants.mdx" />
+
+### Entry `if`, false
+
+**Varies:** `step.onPass[].if` · **Value:** `"$$outputs.exitCode != 0"` · **Effect:** the condition is false, so the entry doesn't apply and the default runs: the test continues to the npm step.
+
+<Markdown src="examples/data-route-if-false/_variants.mdx" />
+
+## Test routing permutations
+
+### `onPass`, `continue`
+
+**Varies:** `test.onPass` · **Value:** `[{"continue": true}]` · **Effect:** the next test runs. This is the default after a pass.
+
+<Markdown src="examples/data-route-test-onpass-continue/_variants.mdx" />
+
+### `onPass`, `stop: test`
+
+**Varies:** `test.onPass` · **Value:** `[{"stop": "test"}]` · **Effect:** does nothing, because the test already finished. The next test runs.
+
+<Markdown src="examples/data-route-test-onpass-stop-test/_variants.mdx" />
+
+### `onPass`, `stop: spec`
+
+**Varies:** `test.onPass` · **Value:** `[{"stop": "spec"}]` · **Effect:** skips the spec's remaining tests after this one passes. The first test runs on macOS and Linux only, so on Windows the stop never applies and the other tests run.
+
+<Markdown src="examples/data-route-test-onpass-stop-spec/_variants.mdx" />
+
+### `onPass`, `goToTest`
+
+**Varies:** `test.onPass` · **Value:** `[{"goToTest": "data-route-test-onpass-gototest-products"}]` · **Effect:** jumps to the products test, so the cart test doesn't run and isn't in the results.
+
+<Markdown src="examples/data-route-test-onpass-gototest/_variants.mdx" />
+
+### `onFail`, `continue`
+
+**Varies:** `test.onFail` · **Value:** `[{"continue": true}]` · **Effect:** applies only if the test fails, and runs the next test. Here the test passes.
+
+<Markdown src="examples/data-route-test-onfail-continue/_variants.mdx" />
+
+### `onFail`, `stop: test`
+
+**Varies:** `test.onFail` · **Value:** `[{"stop": "test"}]` · **Effect:** applies only if the test fails, and does nothing more: the next test still runs. That's the default. Here the test passes.
+
+<Markdown src="examples/data-route-test-onfail-stop-test/_variants.mdx" />
+
+### `onFail`, `stop: spec`
+
+**Varies:** `test.onFail` · **Value:** `[{"stop": "spec"}]` · **Effect:** applies only if the test fails, and skips the spec's remaining tests. Here the test passes.
+
+<Markdown src="examples/data-route-test-onfail-stop-spec/_variants.mdx" />
+
+### `onFail`, `goToTest`
+
+**Varies:** `test.onFail` · **Value:** `[{"goToTest": "data-route-test-onfail-gototest-products"}]` · **Effect:** applies only if the test fails, and jumps to the products test. Here the test passes.
+
+<Markdown src="examples/data-route-test-onfail-gototest/_variants.mdx" />
+
+### `onWarning`, `continue`
+
+**Varies:** `test.onWarning` · **Value:** `[{"continue": true}]` · **Effect:** applies only if the test ends with a warning, and runs the next test. Here the test passes.
+
+<Markdown src="examples/data-route-test-onwarning-continue/_variants.mdx" />
+
+### `onWarning`, `stop: test`
+
+**Varies:** `test.onWarning` · **Value:** `[{"stop": "test"}]` · **Effect:** applies only if the test ends with a warning, and does nothing more. Here the test passes.
+
+<Markdown src="examples/data-route-test-onwarning-stop-test/_variants.mdx" />
+
+### `onWarning`, `stop: spec`
+
+**Varies:** `test.onWarning` · **Value:** `[{"stop": "spec"}]` · **Effect:** applies only if the test ends with a warning, and skips the spec's remaining tests. Here the test passes.
+
+<Markdown src="examples/data-route-test-onwarning-stop-spec/_variants.mdx" />
+
+### `onWarning`, `goToTest`
+
+**Varies:** `test.onWarning` · **Value:** `[{"goToTest": "data-route-test-onwarning-gototest-products"}]` · **Effect:** applies only if the test ends with a warning, and jumps to the products test. Here the test passes.
+
+<Markdown src="examples/data-route-test-onwarning-gototest/_variants.mdx" />
+
+### `onSkip`, `continue`
+
+**Varies:** `test.onSkip` · **Value:** `[{"continue": true}]` · **Effect:** on macOS and Linux the Windows test is skipped, and the next test runs. This is the default. On Windows every test runs.
+
+<Markdown src="examples/data-route-test-onskip-continue/_variants.mdx" />
+
+### `onSkip`, `stop: test`
+
+**Varies:** `test.onSkip` · **Value:** `[{"stop": "test"}]` · **Effect:** does nothing, because the skipped test already finished. The next test runs.
+
+<Markdown src="examples/data-route-test-onskip-stop-test/_variants.mdx" />
+
+### `onSkip`, `stop: spec`
+
+**Varies:** `test.onSkip` · **Value:** `[{"stop": "spec"}]` · **Effect:** on macOS and Linux the Windows test is skipped, so the spec's remaining tests are skipped too. On Windows every test runs.
+
+<Markdown src="examples/data-route-test-onskip-stop-spec/_variants.mdx" />
+
+### `onSkip`, `goToTest`
+
+**Varies:** `test.onSkip` · **Value:** `[{"goToTest": "data-route-test-onskip-gototest-products"}]` · **Effect:** on macOS and Linux the Windows test is skipped and jumps to the products test, so the cart test doesn't run. On Windows every test runs.
+
+<Markdown src="examples/data-route-test-onskip-gototest/_variants.mdx" />
+
+### `onSkip` entry `if`
+
+**Varies:** `test.onSkip` · **Value:** `[{"if": "$$platform != windows", "goToTest": "data-route-test-onskip-if-products"}]` · **Effect:** a test routing entry's `if` reads `$$platform`. It's true on macOS and Linux, where the Windows test is skipped.
+
+<Markdown src="examples/data-route-test-onskip-if/_variants.mdx" />
+
+## Context `retries` permutations
+
+### `retries: 0`
+
+**Varies:** `context.retries` · **Value:** `0` · **Effect:** turns off context retries, so a crashed browser session fails the test at once.
+
+<Markdown src="examples/data-context-retries-0/_variants.mdx" />
+
+### `retries: 2`
+
+**Varies:** `context.retries` · **Value:** `2` · **Effect:** runs the test again on a fresh browser session, up to twice, if the session crashes or never loads a page. A missing element isn't retried.
+
+<Markdown src="examples/data-context-retries-2/_variants.mdx" />

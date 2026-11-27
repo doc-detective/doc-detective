@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-variables-extract">
+  <title>Save the Node.js major version</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-variables-extract","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock>
+          <data name="doc-detective" value='step {"runShell":"node --version","variables":{"NODE_MAJOR":"extract($$stdio.stdout, \"v([0-9]+)\")"}}'/></info></step>
+      <step><cmd>Check that the major version is a number:</cmd>
+        <info><codeblock outputclass="language-shell">node -e "process.exit(/^[0-9]+$/.test(process.env.NODE_MAJOR) ? 0 : 1)"</codeblock>
+          <data name="doc-detective" value='step {"runShell":"node -e \"process.exit(/^[0-9]+$/.test(process.env.NODE_MAJOR) ? 0 : 1)\""}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

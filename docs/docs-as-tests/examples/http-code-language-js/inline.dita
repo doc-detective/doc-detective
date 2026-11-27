@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-language-js">
+  <title>Run a code block</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-code-language-js","detectSteps":false}'/>
+    <p>Run this code. It prints <codeph>ready</codeph>:</p>
+    <codeblock outputclass="language-js">console.log("ready");</codeblock>
+    <data name="doc-detective" value='step {"runCode":{"language":"js","code":"console.log(\"ready\");","stdio":"ready"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

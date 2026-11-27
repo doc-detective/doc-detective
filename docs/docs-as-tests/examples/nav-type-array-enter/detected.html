@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Type text and press Enter</title></head>
+<body>
+<!-- test {"testId":"nav-type-array-enter","detectSteps":true} -->
+<h1>Type text and press Enter</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/type-echo.html">the type echo page</a>.
+    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
+  <li>Click <strong>Type here:</strong>.</li>
+  <li>Type <code>Hello</code> and press Enter.
+    <!-- step {"type":["Hello","$ENTER$"]} --></li>
+  <li>Check that the page shows <strong>Hello</strong> below the field.</li>
+</ol>
+<!-- test end -->
+</body>
+</html>

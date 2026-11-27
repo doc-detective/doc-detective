@@ -1,0 +1,46 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-goto-new-string",
+      "runOn": [
+        {
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          },
+          "browserFallback": "off"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=notes",
+            "newTab": "notes"
+          }
+        },
+        {
+          "find": {
+            "elementText": "PAGE notes",
+            "surface": {
+              "browser": "firefox",
+              "tab": "notes"
+            }
+          }
+        },
+        {
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=about",
+            "newWindow": "about"
+          }
+        },
+        {
+          "find": "PAGE about"
+        }
+      ]
+    }
+  ]
+}

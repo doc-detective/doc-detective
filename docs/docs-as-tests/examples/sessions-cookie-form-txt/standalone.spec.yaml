@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: sessions-cookie-form-txt
+    steps:
+      - runShell: "node -e \"require('fs').rmSync('docs/docs-as-tests/examples/.dd-output/sessions_ptxt.txt', { force: true })\""
+      - goTo: http://localhost:8092/cookies/set/sessions_ptxt/signed-in
+      - saveCookie: sessions_ptxt.txt
+      - goTo: http://localhost:8092/cookies/set/sessions_ptxt/signed-out
+      - loadCookie: sessions_ptxt.txt
+      - goTo: http://localhost:8092/cookies
+      - find: sessions_ptxt=signed-in
