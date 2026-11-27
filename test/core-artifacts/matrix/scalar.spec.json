@@ -1,6 +1,6 @@
 {
   "specId": "matrix-scalar",
-  "description": "A `runOn` `matrix` with one scalar key runs the test once per value, and each context's steps see only their own value (ADR 01227).",
+  "description": "A `runOn` `matrix` with one scalar key runs the test once per value, and each context's steps see only their own value (ADR 01232).",
   "tests": [
     {
       "testId": "scalar-in-steps",

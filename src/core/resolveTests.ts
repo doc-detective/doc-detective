@@ -34,7 +34,7 @@ function keepMarkers(original: any, copy: any) {
   return copy;
 }
 
-// Expand one static context over its `matrix` (ADR 01227): one context per
+// Expand one static context over its `matrix` (ADR 01232): one context per
 // combination of the keys its own fields or the test's steps reference, with
 // the combination substituted into the context and its copy of the steps.
 // `authoredOnTest` makes an unreferenced key an error: there it can only be dead.
@@ -183,7 +183,7 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         });
       }
     });
-    // A matrix is a third expansion axis (ADR 01227).
+    // A matrix is a third expansion axis (ADR 01232).
     const expandedContexts = staticContexts.flatMap((staticContext) =>
       expandMatrix({ staticContext, matrix: context.matrix, test, authoredOnTest: Boolean(test.runOn) })
     );
@@ -307,7 +307,7 @@ async function resolveContext({ config, test, context, usedContextIds, openApi }
   // the same authored `contextId`, so the 2nd+ must be suffixed or they'd
   // collide in `metaValues` and other contextId-keyed structures.
   // A matrix combination's `~key=value` suffix keeps each combination's ID
-  // distinct, authored or derived (ADR 01227).
+  // distinct, authored or derived (ADR 01232).
   const suffix = context.matrixIdSuffix ?? "";
   context.contextId = context.contextId
     ? uniqueId(`${context.contextId}${suffix}`, usedContextIds)
@@ -324,7 +324,7 @@ async function resolveContext({ config, test, context, usedContextIds, openApi }
     // `test.openApi` carries no loaded definition and omits spec-level entries,
     // so httpRequest would receive an empty openApiDefinitions. See ADR 01044.
     openApi: openApi ?? test.openApi ?? [],
-    // A matrix context carries its own substituted copy (ADR 01227).
+    // A matrix context carries its own substituted copy (ADR 01232).
     steps: context.steps ?? [...test.steps],
     contextId: contextId,
   };
@@ -358,7 +358,7 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
       config: config,
     });
   } catch (error: any) {
-    // A `matrix` mistake makes the spec invalid (ADR 01227).
+    // A `matrix` mistake makes the spec invalid (ADR 01232).
     error.invalidSpec = true;
     throw error;
   }
