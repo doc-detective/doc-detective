@@ -1,0 +1,4 @@
+= Check the page in Firefox and Chrome
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
+. Check that the page reads *MULTI-TAB HOME*.

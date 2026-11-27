@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Keep the cookie for one domain</title></head>
+<body>
+<!-- test {"testId":"sessions-cookie-domain","detectSteps":false} -->
+<h1>Keep the cookie for one domain</h1>
+<ol>
+  <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_pdomain/signed-in">the sign-in page</a>. The server sets the <code>sessions_pdomain</code> cookie.
+    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_pdomain/signed-in"} --></li>
+  <li>Save the <code>localhost</code> cookie named <code>sessions_pdomain</code> to <code>sessions_pdomain.txt</code>.
+    <!-- step {"saveCookie":{"name":"sessions_pdomain","path":"sessions_pdomain.txt","domain":"localhost","overwrite":true}} --></li>
+  <li>Sign out at <a href="http://localhost:8092/cookies/set/sessions_pdomain/signed-out">the sign-out page</a>, which replaces the cookie.
+    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_pdomain/signed-out"} --></li>
+  <li>Load the <code>localhost</code> cookie from <code>sessions_pdomain.txt</code>.
+    <!-- step {"loadCookie":{"name":"sessions_pdomain","path":"sessions_pdomain.txt","domain":"localhost"}} --></li>
+  <li>Open <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_pdomain=signed-in</strong>.
+    <!-- step {"goTo":"http://localhost:8092/cookies"} -->
+    <!-- step {"find":"sessions_pdomain=signed-in"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

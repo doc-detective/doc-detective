@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-state-overwrite-true">
+  <title>Replace a saved browser state</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-state-overwrite-true","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_pstateo/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_pstateo</codeph> cookie.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_pstateo/signed-in"}'/></info></step>
+      <step><cmd>Save the browser state to <codeph>sessions-pstateo.json</codeph>, replacing any earlier file.</cmd>
+        <info><data name="doc-detective" value='step {"saveState":{"path":"sessions-pstateo.json","overwrite":true}}'/></info></step>
+      <step><cmd>Sign out at <xref href="http://localhost:8092/cookies/set/sessions_pstateo/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_pstateo/signed-out"}'/></info></step>
+      <step><cmd>Load the browser state from <codeph>sessions-pstateo.json</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"loadState":{"path":"sessions-pstateo.json"}}'/></info></step>
+      <step><cmd>Open <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_pstateo=signed-in</b>.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

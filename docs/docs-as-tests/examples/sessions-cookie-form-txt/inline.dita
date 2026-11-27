@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-cookie-form-txt">
+  <title>Keep a cookie in a file</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-cookie-form-txt","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Delete any <codeph>sessions_ptxt.txt</codeph> that an earlier run left in the output folder.</cmd>
+        <info><data name="doc-detective" value='step {"runShell":"node -e \"require(&apos;fs&apos;).rmSync(&apos;docs/docs-as-tests/examples/.dd-output/sessions_ptxt.txt&apos;, { force: true })\""}'/></info></step>
+      <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_ptxt/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_ptxt</codeph> cookie.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_ptxt/signed-in"}'/></info></step>
+      <step><cmd>Save the <codeph>sessions_ptxt</codeph> cookie to <codeph>sessions_ptxt.txt</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"saveCookie":"sessions_ptxt.txt"}'/></info></step>
+      <step><cmd>Sign out at <xref href="http://localhost:8092/cookies/set/sessions_ptxt/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_ptxt/signed-out"}'/></info></step>
+      <step><cmd>Load the cookie from <codeph>sessions_ptxt.txt</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"loadCookie":"sessions_ptxt.txt"}'/></info></step>
+      <step><cmd>Open <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_ptxt=signed-in</b>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies"}'/><data name="doc-detective" value='step {"find":"sessions_ptxt=signed-in"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

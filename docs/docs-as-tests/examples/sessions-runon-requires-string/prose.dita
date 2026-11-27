@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-requires-string">
+  <title>Check Node.js, if it's installed</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Run <codeph>node --version</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

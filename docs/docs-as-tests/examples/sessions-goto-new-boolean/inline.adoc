@@ -1,0 +1,21 @@
+= Open pages in a new tab and a new window
+
+// (test {"testId":"sessions-goto-new-boolean","detectSteps":false})
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
++
+// (step {"goTo":"http://localhost:8092/multi-tab.html"})
+. Load http://localhost:8092/multi-tab-child.html?page=tab[the tab page] in a new tab.
++
+// (step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=tab","newTab":true}})
+. Check that the page reads "PAGE tab".
++
+// (step {"find":"PAGE tab"})
+. Load http://localhost:8092/multi-tab-child.html?page=window[the window page] in a new window.
++
+// (step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=window","newWindow":true}})
+. Check that the page reads "PAGE window".
++
+// (step {"find":"PAGE window"})
+
+// (test end)

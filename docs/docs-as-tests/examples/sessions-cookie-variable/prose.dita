@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-cookie-variable">
+  <title>Keep a cookie in a named variable</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_pvar/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_pvar</codeph> cookie.</cmd></step>
+      <step><cmd>Save the <codeph>sessions_pvar</codeph> cookie to the <codeph>SESSIONS_PVAR</codeph> environment variable.</cmd></step>
+      <step><cmd>Sign out at <xref href="http://localhost:8092/cookies/set/sessions_pvar/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd></step>
+      <step><cmd>Load the cookie from <codeph>SESSIONS_PVAR</codeph>.</cmd></step>
+      <step><cmd>Open <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_pvar=signed-in</b>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-cookie-variable">
+  <title>Keep a cookie in a named variable</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-cookie-variable","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_pvar/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_pvar</codeph> cookie.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_pvar/signed-in"}'/></info></step>
+      <step><cmd>Save the <codeph>sessions_pvar</codeph> cookie to the <codeph>SESSIONS_PVAR</codeph> environment variable.</cmd>
+        <info><data name="doc-detective" value='step {"saveCookie":{"name":"sessions_pvar","variable":"SESSIONS_PVAR"}}'/></info></step>
+      <step><cmd>Sign out at <xref href="http://localhost:8092/cookies/set/sessions_pvar/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_pvar/signed-out"}'/></info></step>
+      <step><cmd>Load the cookie from <codeph>SESSIONS_PVAR</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"loadCookie":{"name":"sessions_pvar","variable":"SESSIONS_PVAR"}}'/></info></step>
+      <step><cmd>Open <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_pvar=signed-in</b>.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

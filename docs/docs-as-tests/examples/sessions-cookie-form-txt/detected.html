@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Keep a cookie in a file</title></head>
+<body>
+<!-- test {"testId":"sessions-cookie-form-txt","detectSteps":true} -->
+<h1>Keep a cookie in a file</h1>
+<ol>
+  <li>Delete any <code>sessions_ptxt.txt</code> that an earlier run left in the output folder.
+    <!-- step {"runShell":"node -e \"require('fs').rmSync('docs/docs-as-tests/examples/.dd-output/sessions_ptxt.txt', { force: true })\""} --></li>
+  <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_ptxt/signed-in">the sign-in page</a>. The server sets the <code>sessions_ptxt</code> cookie.
+    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_ptxt/signed-in"} --></li>
+  <li>Save the <code>sessions_ptxt</code> cookie to <code>sessions_ptxt.txt</code>.
+    <!-- step {"saveCookie":"sessions_ptxt.txt"} --></li>
+  <li>Sign out at <a href="http://localhost:8092/cookies/set/sessions_ptxt/signed-out">the sign-out page</a>, which replaces the cookie.
+    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_ptxt/signed-out"} --></li>
+  <li>Load the cookie from <code>sessions_ptxt.txt</code>.
+    <!-- step {"loadCookie":"sessions_ptxt.txt"} --></li>
+  <li>Open <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_ptxt=signed-in</strong>.</li>
+</ol>
+<!-- test end -->
+</body>
+</html>

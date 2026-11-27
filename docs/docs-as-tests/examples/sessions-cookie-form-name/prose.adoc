@@ -1,0 +1,7 @@
+= Keep a cookie in an environment variable
+
+. Sign in at http://localhost:8092/cookies/set/sessions_pname/signed-in[the sign-in page]. The server sets the `sessions_pname` cookie.
+. Save the `sessions_pname` cookie to the `sessions_pname` environment variable.
+. Sign out at http://localhost:8092/cookies/set/sessions_pname/signed-out[the sign-out page], which replaces the cookie.
+. Load the cookie from the `sessions_pname` environment variable.
+. Open http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_pname=signed-in*.

@@ -1,0 +1,22 @@
+Compare two Node.js REPLs
+=========================
+
+.. test {"testId":"sessions-surface-array","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]}
+
+#. Start two ``node -i`` processes, ``sessions-pleft`` and ``sessions-pright``, and wait for both prompts.
+
+   .. step {"startSurface":[{"process":"node","args":["-i"],"name":"sessions-pleft","waitUntil":{"stdio":"/>/"},"timeout":30000},{"process":"node","args":["-i"],"name":"sessions-pright","waitUntil":{"stdio":"/>/"},"timeout":30000}]}
+
+#. In ``sessions-pleft``, enter ``40 + 2`` and press Enter. Wait for the REPL to print ``42``.
+
+   .. step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-pleft","waitUntil":{"stdio":"/42/"},"timeout":10000}}
+
+#. In ``sessions-pright``, enter ``6 * 7`` and press Enter. Wait for the REPL to print ``42``.
+
+   .. step {"type":{"keys":["6 * 7","$ENTER$"],"surface":"sessions-pright","waitUntil":{"stdio":"/42/"},"timeout":10000}}
+
+#. Close both REPLs.
+
+   .. step {"closeSurface":["sessions-pleft",{"process":"sessions-pright"}]}
+
+.. test end

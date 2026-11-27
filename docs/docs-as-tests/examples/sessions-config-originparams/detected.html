@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Tag every request with a query parameter</title></head>
+<body>
+<!-- test {"testId":"sessions-config-originparams","detectSteps":true,"runOn":[{"browsers":"chrome"}]} -->
+<h1>Tag every request with a query parameter</h1>
+<ol>
+  <li>Go to <code>/api/echo</code> on the site.
+    <!-- step {"goTo":"/api/echo"} --></li>
+  <li>Check that the response echoes <code>"from":"docs"</code>.
+    <!-- step {"find":"/\"from\":\"docs\"/"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

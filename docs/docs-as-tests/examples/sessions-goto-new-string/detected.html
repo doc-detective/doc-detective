@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Open named tabs and windows</title></head>
+<body>
+<!-- test {"testId":"sessions-goto-new-string","detectSteps":true,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]} -->
+<h1>Open named tabs and windows</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Load <a href="http://localhost:8092/multi-tab-child.html?page=notes">the notes page</a> in a new tab named <code>notes</code>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=notes","newTab":"notes"}} --></li>
+  <li>Check that the <code>notes</code> tab reads "PAGE notes".
+    <!-- step {"find":{"elementText":"PAGE notes","surface":{"browser":"firefox","tab":"notes"}}} --></li>
+  <li>Load <a href="http://localhost:8092/multi-tab-child.html?page=about">the about page</a> in a new window named <code>about</code>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=about","newWindow":"about"}} --></li>
+  <li>Check that the new window reads "PAGE about".
+    <!-- step {"find":"PAGE about"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

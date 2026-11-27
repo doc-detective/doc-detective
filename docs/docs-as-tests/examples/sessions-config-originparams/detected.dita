@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-config-originparams">
+  <title>Tag every request with a query parameter</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-config-originparams","detectSteps":true,"runOn":[{"browsers":"chrome"}]}'/>
+    <steps>
+      <step><cmd>Go to <codeph>/api/echo</codeph> on the site.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"/api/echo"}'/></info></step>
+      <step><cmd>Check that the response echoes <codeph>"from":"docs"</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"find":"/\"from\":\"docs\"/"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>
