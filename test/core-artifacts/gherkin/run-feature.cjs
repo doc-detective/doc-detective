@@ -1,4 +1,4 @@
-// Gherkin permutations (ADR 01227), run by gherkin.spec.json.
+// Gherkin permutations (ADR 01232), run by gherkin.spec.json.
 //
 //   node test/core-artifacts/gherkin/run-feature.cjs <case>
 //

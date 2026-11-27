@@ -191,7 +191,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | Page | CUJ | ★ | Notes |
 |---|---|---|---|
 | Input formats (overview + Markdown/DITA/AsciiDoc/HTML/reStructuredText/Custom) | W3 | ★ | Applies to every surface. |
-| Gherkin (`input-formats/gherkin`) | D1, W3 | | Authored: `/docs/test-docs/input-formats/gherkin`. Runs `.feature` files: scenarios as tests, the step-phrase table, doc strings and data tables, tags, emulation steps, inline statements. Deep-links to action pages and contexts. Behavior: ADR 01227. |
+| Gherkin (`input-formats/gherkin`) | D1, W3 | | Authored: `/docs/test-docs/input-formats/gherkin`. Runs `.feature` files: scenarios as tests, the step-phrase table, doc strings and data tables, tags, emulation steps, inline statements. Deep-links to action pages and contexts. Behavior: ADR 01232. |
 | Includes (`input-formats/includes`) | W3, W1 | | Authored: `/docs/test-docs/input-formats/includes`. Include resolution during detection (AsciiDoc, MkDocs, mdBook, Fern, MDX imports, reStructuredText, custom `includeStatements`), partials, `location.file`, guard warnings, `resolveIncludes` opt-out. DITA reuse links to the DITA page. Behavior: ADR 01212. |
 | Selectors (`input-formats/selectors`) | W3 | | Structure-aware `markup` definitions and `inlineStatements.in`; deep-links to the `fileTypes` reference. |
 | Test across platforms & browsers | W3 | ★ | contexts / `runOn`; links to Reference. |

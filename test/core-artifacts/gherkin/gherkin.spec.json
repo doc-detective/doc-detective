@@ -1,6 +1,6 @@
 {
   "specId": "gherkin",
-  "description": "The built-in gherkin fileType through the real CLI (ADR 01227). The group config turns step detection off, so each test runs one case of run-feature.cjs, which copies this folder to .tmp/fixture-gherkin/<case>/, runs doc-detective on one .feature file with detection on, and checks each test's result and the warnings. Run directly with the group config, the .feature files here also run their inline `# step` statements on their own.",
+  "description": "The built-in gherkin fileType through the real CLI (ADR 01232). The group config turns step detection off, so each test runs one case of run-feature.cjs, which copies this folder to .tmp/fixture-gherkin/<case>/, runs doc-detective on one .feature file with detection on, and checks each test's result and the warnings. Run directly with the group config, the .feature files here also run their inline `# step` statements on their own.",
   "tests": [
     {
       "testId": "gherkin-phrases",

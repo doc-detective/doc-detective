@@ -1,4 +1,4 @@
-# Tags (ADR 01227): skip tags, browser and platform tags, @headless, and
+# Tags (ADR 01232): skip tags, browser and platform tags, @headless, and
 # @record. Platform-tagged scenarios are SKIPPED on other hosts.
 Feature: Tags
 
