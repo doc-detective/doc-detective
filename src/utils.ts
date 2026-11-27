@@ -880,7 +880,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       // The same items, in the same order, as every other reporter (ADR 01180).
       const items = nonPassItems(results);
       const withStatus = (status: string) => items.filter((item) => item.status === status);
-      // What an earlier run failed and this one passed (ADR 01216).
+      // What an earlier run failed and this one passed (ADR 01233).
       const fixed = fixedPaths(results).map((idPath) => ({ idPath }));
       for (const [listed, heading, color] of [
         [withStatus("FAIL"), "Failed", colors.red],
