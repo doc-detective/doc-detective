@@ -33411,6 +33411,12 @@
                   "type": "string"
                 },
                 "default": []
+              },
+              "schema": {
+                "type": "object",
+                "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                "additionalProperties": true,
+                "title": "Response schema"
               }
             },
             "title": "Response"
@@ -33848,6 +33854,12 @@
                     "type": "string"
                   },
                   "default": []
+                },
+                "schema": {
+                  "type": "object",
+                  "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                  "additionalProperties": true,
+                  "title": "Response schema"
                 }
               },
               "title": "Response"
@@ -64984,6 +64996,12 @@
                                                         "type": "string"
                                                       },
                                                       "default": []
+                                                    },
+                                                    "schema": {
+                                                      "type": "object",
+                                                      "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                                      "additionalProperties": true,
+                                                      "title": "Response schema"
                                                     }
                                                   },
                                                   "title": "Response"
@@ -65421,6 +65439,12 @@
                                                           "type": "string"
                                                         },
                                                         "default": []
+                                                      },
+                                                      "schema": {
+                                                        "type": "object",
+                                                        "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                                        "additionalProperties": true,
+                                                        "title": "Response schema"
                                                       }
                                                     },
                                                     "title": "Response"
@@ -133544,6 +133568,12 @@
                                                               "type": "string"
                                                             },
                                                             "default": []
+                                                          },
+                                                          "schema": {
+                                                            "type": "object",
+                                                            "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                                            "additionalProperties": true,
+                                                            "title": "Response schema"
                                                           }
                                                         },
                                                         "title": "Response"
@@ -133981,6 +134011,12 @@
                                                                 "type": "string"
                                                               },
                                                               "default": []
+                                                            },
+                                                            "schema": {
+                                                              "type": "object",
+                                                              "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                                              "additionalProperties": true,
+                                                              "title": "Response schema"
                                                             }
                                                           },
                                                           "title": "Response"
@@ -207076,6 +207112,12 @@
                                                         "type": "string"
                                                       },
                                                       "default": []
+                                                    },
+                                                    "schema": {
+                                                      "type": "object",
+                                                      "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                                      "additionalProperties": true,
+                                                      "title": "Response schema"
                                                     }
                                                   },
                                                   "title": "Response"
@@ -207513,6 +207555,12 @@
                                                           "type": "string"
                                                         },
                                                         "default": []
+                                                      },
+                                                      "schema": {
+                                                        "type": "object",
+                                                        "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                                        "additionalProperties": true,
+                                                        "title": "Response schema"
                                                       }
                                                     },
                                                     "title": "Response"
@@ -275636,6 +275684,12 @@
                                                               "type": "string"
                                                             },
                                                             "default": []
+                                                          },
+                                                          "schema": {
+                                                            "type": "object",
+                                                            "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                                            "additionalProperties": true,
+                                                            "title": "Response schema"
                                                           }
                                                         },
                                                         "title": "Response"
@@ -276073,6 +276127,12 @@
                                                                 "type": "string"
                                                               },
                                                               "default": []
+                                                            },
+                                                            "schema": {
+                                                              "type": "object",
+                                                              "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                                              "additionalProperties": true,
+                                                              "title": "Response schema"
                                                             }
                                                           },
                                                           "title": "Response"
@@ -363830,6 +363890,12 @@
                                               "type": "string"
                                             },
                                             "default": []
+                                          },
+                                          "schema": {
+                                            "type": "object",
+                                            "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                            "additionalProperties": true,
+                                            "title": "Response schema"
                                           }
                                         },
                                         "title": "Response"
@@ -364267,6 +364333,12 @@
                                                 "type": "string"
                                               },
                                               "default": []
+                                            },
+                                            "schema": {
+                                              "type": "object",
+                                              "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                              "additionalProperties": true,
+                                              "title": "Response schema"
                                             }
                                           },
                                           "title": "Response"
@@ -432390,6 +432462,12 @@
                                                     "type": "string"
                                                   },
                                                   "default": []
+                                                },
+                                                "schema": {
+                                                  "type": "object",
+                                                  "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                                  "additionalProperties": true,
+                                                  "title": "Response schema"
                                                 }
                                               },
                                               "title": "Response"
@@ -432827,6 +432905,12 @@
                                                       "type": "string"
                                                     },
                                                     "default": []
+                                                  },
+                                                  "schema": {
+                                                    "type": "object",
+                                                    "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                                    "additionalProperties": true,
+                                                    "title": "Response schema"
                                                   }
                                                 },
                                                 "title": "Response"
@@ -502972,6 +503056,12 @@
                               "type": "string"
                             },
                             "default": []
+                          },
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                            "additionalProperties": true,
+                            "title": "Response schema"
                           }
                         },
                         "title": "Response"
@@ -503409,6 +503499,12 @@
                                 "type": "string"
                               },
                               "default": []
+                            },
+                            "schema": {
+                              "type": "object",
+                              "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                              "additionalProperties": true,
+                              "title": "Response schema"
                             }
                           },
                           "title": "Response"
@@ -575660,6 +575756,12 @@
                                     "type": "string"
                                   },
                                   "default": []
+                                },
+                                "schema": {
+                                  "type": "object",
+                                  "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                  "additionalProperties": true,
+                                  "title": "Response schema"
                                 }
                               },
                               "title": "Response"
@@ -576097,6 +576199,12 @@
                                       "type": "string"
                                     },
                                     "default": []
+                                  },
+                                  "schema": {
+                                    "type": "object",
+                                    "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                    "additionalProperties": true,
+                                    "title": "Response schema"
                                   }
                                 },
                                 "title": "Response"
@@ -644220,6 +644328,12 @@
                                           "type": "string"
                                         },
                                         "default": []
+                                      },
+                                      "schema": {
+                                        "type": "object",
+                                        "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                        "additionalProperties": true,
+                                        "title": "Response schema"
                                       }
                                     },
                                     "title": "Response"
@@ -644657,6 +644771,12 @@
                                             "type": "string"
                                           },
                                           "default": []
+                                        },
+                                        "schema": {
+                                          "type": "object",
+                                          "description": "JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.",
+                                          "additionalProperties": true,
+                                          "title": "Response schema"
                                         }
                                       },
                                       "title": "Response"

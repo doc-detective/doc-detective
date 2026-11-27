@@ -96,6 +96,39 @@ import { schemas } from "../dist/index.js";
         expect(result.object.goTo.url).to.equal("https://example.com");
       });
 
+      it("accepts an inline JSON Schema in httpRequest.response.schema", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            httpRequest: {
+              url: "https://example.com",
+              response: {
+                schema: {
+                  type: "object",
+                  properties: { id: { type: "string", format: "uuid" } },
+                },
+              },
+            },
+          },
+        });
+
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("rejects a non-object httpRequest.response.schema", function () {
+        const result = validate({
+          schemaKey: "step_v3",
+          object: {
+            httpRequest: {
+              url: "https://example.com",
+              response: { schema: "object" },
+            },
+          },
+        });
+
+        expect(result.valid).to.be.false;
+      });
+
       it("should validate a valid config_v3 object", function () {
         const result = validate({
           schemaKey: "config_v3",

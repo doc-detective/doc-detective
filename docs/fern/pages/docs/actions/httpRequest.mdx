@@ -21,6 +21,7 @@ You can specify a basic GET request using a string shorthand or use an object fo
     - `headers`: (Optional) Key-value pairs for expected response headers. Values must be strings.
     - `body`: (Optional) Expected response body. Can be a string or JSON object.
     - `required`: (Optional) Array of field paths that must exist in the response body. Uses dot notation for nested fields (for example, `user.name`) and bracket notation for array indices (for example, `items[0].id`). Fields can have any value, including `null`.
+    - `schema`: (Optional) A JSON Schema the response body must match. Use it to check types, formats (such as `uuid`, `email`, or `date-time`), and patterns for values that change every run. If you also validate against an OpenAPI response schema, Doc Detective checks `response.schema` instead.
   - `allowAdditionalFields`: (Optional) Whether the response may contain fields beyond those declared in `response.body`. Defaults to `true`. Set it to `false` to fail the step when the response includes any field not declared in `response.body`. The check is recursive. It descends into nested objects and names each undeclared field by its dot-path, such as `user.extra`. It applies only when the top-level `response.body` declares fields. When `response.body` is unset or empty, the response has no key constraint and the check passes. A nested empty object still constrains. A `response.body` of `{ "user": {} }` requires `user` to be empty, so any field under it fails the step.
   - `statusCodes`: (Optional) An acceptable HTTP status code, or an array of them. If the response code isn't in this list, the step fails (default: `[200, 201]`).
   - `openApi`: (Optional) Define the request based on an OpenAPI definition. Can be a string (operation ID) or an object:
@@ -45,7 +46,7 @@ Depending on which validations you configure, the action also exposes the result
 - `$$bodyMatches`: whether the response body matched `response.body` (when `response.body` is set).
 - `$$headersMatch`: whether the expected `response.headers` were present (when `response.headers` is set).
 - `$$noUnexpectedFields`: whether the response contained only expected fields (when `allowAdditionalFields` is `false`).
-- `$$responseSchemaValid`: whether the response matched the OpenAPI schema (when validating the response against an OpenAPI definition).
+- `$$responseSchemaValid`: whether the response matched `response.schema`, or the OpenAPI schema when validating the response against an OpenAPI definition.
 - `$$variation`: the fractional difference between the new response and the reference file (when you save the response with `path` and a reference file already exists).
 
 > For comprehensive options, see the [`httpRequest`](/reference/schemas/httprequest) reference.
@@ -605,6 +606,37 @@ You can use both `response.required` and `response.body` together to validate th
 {/* test end */}
 
 > **Note:** Fields with `null`, `""`, `0`, or `false` values are considered to exist and will pass validation.
+
+### Check types, formats, and patterns
+
+Use `response.schema` when a value changes every run but must still have the right shape, such as a generated ID, a timestamp, or an invoice number. The step fails if the response body doesn't match the JSON Schema.
+
+{/* test {"testId":"httprequest-response-schema","detectSteps":false} */}
+
+```json
+{
+  "description": "Check that the invoice has a UUID, a timestamp, and an INV- code.",
+  "httpRequest": {
+    "url": "https://api.example.com/invoices/42",
+    "response": {
+      "schema": {
+        "type": "object",
+        "required": ["id", "created", "code"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "created": { "type": "string", "format": "date-time" },
+          "code": { "type": "string", "pattern": "^INV-\\d+$" }
+        }
+      }
+    }
+  }
+}
+```
+
+{/* step {"stepId":"httprequest-response-schema","description":"Check types, formats, and a pattern (the local echo API returns what's sent, so the values are in the request body)","httpRequest":{"url":"http://localhost:8092/api/invoices","method":"post","request":{"body":{"id":"3f2b8c1e-9a4d-4e6f-8b1a-2c3d4e5f6a7b","created":"2026-11-26T10:00:00Z","code":"INV-1042"}},"response":{"schema":{"type":"object","required":["id","created","code"],"properties":{"id":{"type":"string","format":"uuid"},"created":{"type":"string","format":"date-time"},"code":{"type":"string","pattern":"^INV-\\d+$"}}}},"statusCodes":[200]}} */}
+{/* test end */}
+
+Doc Detective enforces every [`ajv-formats`](https://ajv.js.org/packages/ajv-formats.html) format, both in `response.schema` and in OpenAPI response schemas. When a step sets `response.schema` and also validates against an OpenAPI response schema, Doc Detective checks only `response.schema`.
 
 ### Reject unexpected response fields
 

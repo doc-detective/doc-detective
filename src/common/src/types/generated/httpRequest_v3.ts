@@ -180,6 +180,7 @@ export interface Response {
    * Array of field paths that must exist in the response body. Uses dot notation for nested fields (e.g., 'user.name') and bracket notation for array indices (e.g., 'items[0].id'). Fields must be present but may have any value including null.
    */
   required?: string[];
+  schema?: ResponseSchema;
 }
 /**
  * Headers expected in the response, in key/value format. If one or more `response.headers` entries aren't present in the response, the step fails.
@@ -191,5 +192,11 @@ export interface ResponseHeaders {
  * JSON key/value pairs expected in the response.
  */
 export interface ResponseBodyObject {
+  [k: string]: unknown;
+}
+/**
+ * JSON Schema the response body must match. Checks types, formats (such as `uuid`, `email`, or `date-time`), and patterns rather than exact values. If set, it's used instead of the OpenAPI response schema. Omit it to skip the check.
+ */
+export interface ResponseSchema {
   [k: string]: unknown;
 }

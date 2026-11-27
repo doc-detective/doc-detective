@@ -3151,6 +3151,10 @@
                       "type": "string"
                     },
                     "default": []
+                  },
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": true
                   }
                 }
               },
@@ -11980,6 +11984,10 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": true
                   }
                 }
               },

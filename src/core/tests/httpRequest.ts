@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import _Ajv from "ajv";
 const Ajv = _Ajv as unknown as typeof _Ajv.default;
+import _addFormats from "ajv-formats";
+const addFormats = _addFormats as unknown as typeof _addFormats.default;
 import { getOperation, loadDescription } from "../openapi.js";
 import {
   log,
@@ -378,15 +380,19 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     }
   }
 
-  // (3) Response body matches OpenAPI schema. APPLICABLE only when
-  // validateAgainstSchema is response/both and a response schema exists.
+  // (3) Response body matches a schema. APPLICABLE when `response.schema` is
+  // set, or when validateAgainstSchema is response/both and the OpenAPI
+  // operation has a response schema. The inline schema wins over OpenAPI.
   // Structurally-complex check -> compute the boolean, EXPOSE it as
   // `outputs.responseSchemaValid`, assert a trivial expression over it.
-  if (
+  const inlineResponseSchema = step.httpRequest.response?.schema;
+  const openApiResponseSchema =
     (step.httpRequest.openApi?.validateAgainstSchema === "response" ||
       step.httpRequest.openApi?.validateAgainstSchema === "both") &&
-    operation.schemas.response
-  ) {
+    operation?.schemas?.response;
+  const responseSchema = inlineResponseSchema ?? openApiResponseSchema;
+  if (responseSchema) {
+    const schemaName = inlineResponseSchema ? "response" : "OpenAPI";
     const ajv = new Ajv({
       strictSchema: false,
       logger: false,
@@ -395,7 +401,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       allowUnionTypes: true,
       coerceTypes: false,
     });
-    const validateFn = ajv.compile(operation.schemas.response);
+    // Without formats, strictSchema: false silently ignores `format`.
+    addFormats(ajv);
+    const validateFn = ajv.compile(responseSchema);
     const valid = validateFn(response.data);
     result.outputs.responseSchemaValid = !!valid;
     specs.push({
@@ -403,10 +411,10 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
       severity: "fail",
     });
     if (valid) {
-      descriptions.push(`Response data matched the OpenAPI schema.`);
+      descriptions.push(`Response data matched the ${schemaName} schema.`);
     } else {
       descriptions.push(
-        `Response data didn't match the OpenAPI schema. ${JSON.stringify(
+        `Response data didn't match the ${schemaName} schema. ${JSON.stringify(
           validateFn.errors,
           null,
           2
