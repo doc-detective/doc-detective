@@ -1,0 +1,132 @@
+---
+title: Audit test coverage
+description: Find the procedure steps, code blocks, links, and images in your docs that no test step covers, without running anything.
+sidebar-title: Audit test coverage
+---
+
+`doc-detective audit` reports which parts of your docs a test step covers. It detects tests the same way a run does, but it runs nothing. Use it before you write your first test, and again each time you add one.
+
+```bash
+npx doc-detective audit docs/
+```
+
+```text
+Procedure steps      8 of 42 have a step (3 only by navigation or a link check)
+                     27 untested, 5 ignored, 2 skipped as unsafe
+Possible procedures  31 items in 10 lists, 4 have a step
+Code blocks          bash 61 (12 have a step), python 22 (0 have a step); 455 not runnable
+Links                32 of 750 testable, 32 have a step
+Images               3, 1 have a screenshot step
+Pages                48 of 71 have an authored step
+
+Untested procedure steps:
+  /home/wren/docs/get-started/first-test.md
+      42  Paste the code into the file.
+```
+
+The report leads with procedure steps, because those are what readers follow. There's no single percentage: each kind of content gets its own count.
+
+## Before you begin
+
+- Docs in a [supported format](/docs/test-docs/input-formats/overview), such as Markdown, MDX, AsciiDoc, HTML, or DITA.
+- Doc Detective 5 or later. `audit` reads the same `input`, `fileTypes`, `detectSteps`, `allowUnsafeSteps`, and `origin` settings as a run.
+
+## Run an audit
+
+1. Run `audit` on your docs folder:
+
+   ```bash
+   npx doc-detective audit docs/
+   ```
+
+   Without an argument, `audit` reads the `input` from your config, or the current folder.
+
+2. Read the **Untested procedure steps** list. Each entry is a file, a line number, and the step's text.
+
+3. Add a test for a step, then run `audit` again to see the count change. See [Inline tests](/docs/test-docs/inline) and [Standalone tests](/docs/test-docs/standalone).
+
+To get the full report as JSON, for a script or a CI summary, add `--json`. To print only the first line, add `-q`.
+
+`audit` exits 0 whenever it prints a report, whatever the coverage. It exits 2 for bad usage, a bad config, or no files to audit.
+
+## How `audit` finds procedures
+
+A procedure is a numbered list. `audit` decides whether a list is a procedure in this order:
+
+1. **You marked it.** A DITA `<steps>` element, an MDX `<Steps>` component, or a list right after a `procedure` statement always counts.
+2. **Its first item is an instruction.** A built-in grammar tagger reads the first item. "Open a terminal." and "In a terminal, run `npm test`." count. "Release notes" doesn't.
+3. **Anything else** goes in **Possible procedures**. These lists stay out of the headline, but you still see their counts.
+
+Only a list's top-level items are procedure steps. A nested list belongs to the item above it.
+
+The tagger reads English. Lists in other languages land in **Possible procedures**, so mark the ones that are procedures.
+
+### Mark a list as a procedure
+
+Put a `procedure` statement directly before the list, with nothing but blank lines between them:
+
+| Format | Statement |
+|---|---|
+| Markdown | `<!-- procedure -->` |
+| MDX | `{/* procedure */}` |
+| AsciiDoc | `// (procedure)` |
+| HTML | `<!-- procedure -->` |
+| DITA | `<?doc-detective procedure?>` |
+
+```markdown
+<!-- procedure -->
+1. Settings page
+2. Profile page
+```
+
+## What gives an item a step
+
+Each item gets one state:
+
+| State | Meaning |
+|---|---|
+| Has a step | A step belongs to the item. The report counts separately the items covered only by a `goTo` or `checkLink` step. |
+| Ignored | The item overlaps a `test ignore` block, or its code block carries the `testIgnore` tag. |
+| Skipped as unsafe | The item's only steps are unsafe, such as a detected code block, and `allowUnsafeSteps` is off. |
+| Untested | No step belongs to the item. |
+
+- **Procedure steps.** A step belongs to the item it sits in. An item runs from its marker to the next item, so put a step statement after the sentence it tests. A test wrapped around a whole list gives its items no credit. Steps that check nothing, such as `wait` and `loadVariables`, don't count.
+- **Code blocks.** Only runnable languages count: shell (`bash`, `sh`, `shell`, `console`, `zsh`, `powershell`, `pwsh`), Python, JavaScript, and `http`. A block has a step when detection finds a step inside it, when a step statement directly follows it, or when its `id` matches an authored `stepId`.
+- **Links.** Absolute links count, and relative links count when you set `origin`. A link has a step when any `goTo` or `checkLink` step targets the same URL. The comparison ignores fragments and trailing slashes.
+- **Images.** An image has a step when detection finds a `screenshot` step on it, or when a `screenshot` step writes to the same file.
+- **Pages.** A page counts when it has at least one step statement you wrote.
+
+With `detectSteps: false`, `audit` still counts every code block, link, and image. Only steps you wrote give credit.
+
+## Tag a code block
+
+A code block can carry an `id`, a `procedure` class, or a `testIgnore` class:
+
+- **`id`** links the block to a step with the same `stepId`, including a step in a standalone spec.
+- **`procedure`** counts the block as a procedure step, even outside a numbered list.
+- **`testIgnore`** marks the block ignored.
+
+| Format | Example |
+|---|---|
+| Markdown and MDX | ```` ```bash {#install .procedure} ```` |
+| AsciiDoc | `[source#install.procedure,bash]` |
+| HTML | `<pre id="install" class="procedure">` |
+| DITA | `<codeblock id="install" outputclass="procedure">` |
+
+A standalone spec then credits the block through the step's `stepId`:
+
+```json title="install.spec.json"
+{
+  "tests": [
+    {
+      "steps": [{ "stepId": "install", "runShell": "npm i -g doc-detective" }]
+    }
+  ]
+}
+```
+
+## Related
+
+- [CLI reference: `audit`](/reference/reference/cli#audit)
+- [Detected tests](/docs/test-docs/detected)
+- [Last verified on](/docs/test-docs/last-verified-on)

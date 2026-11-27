@@ -4,6 +4,18 @@ Status: **proposed** (2026-11-02). This expands item 5.3 of [v5-rollout.md](v5-r
 from a rough script run on this repository's `docs/fern/pages/docs`, not from shipped code. They're static
 unless a section says otherwise, so "has a step" means a step exists, not that it passed.
 
+Update (2026-11-14): the static view shipped as `doc-detective audit`
+([ADR 01213](../../adrs/01213-static-coverage-audit.md)). It departs from this design in three places:
+
+- **Procedures come in tiers instead of a verb list.** Explicit markers count first, then a grammar
+  tagger reads the first item. Lists the tagger rejects go to a separate "possible procedures" count.
+  That settles open question 1.
+- **HTTP examples fold into code blocks,** which are counted per language.
+- **The calculation lives in core, not `src/common`,** so the tagger stays out of the browser
+  package.
+
+Run results, the `report_v3` object, and the remaining rollout steps are still open.
+
 ## Summary
 
 - **Coverage answers one question: which documented instructions did a passing test exercise?** The headline
