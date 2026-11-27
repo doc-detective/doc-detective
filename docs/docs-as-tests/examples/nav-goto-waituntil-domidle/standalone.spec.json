@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "nav-goto-waituntil-domidle",
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/waitUntil-test-dom-mutations.html",
+            "waitUntil": {
+              "domIdleTime": 1000
+            }
+          }
+        },
+        {
+          "find": "All mutations complete"
+        }
+      ]
+    }
+  ]
+}

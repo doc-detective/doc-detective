@@ -1,0 +1,15 @@
+= Drag by text and selector strings
+
+// (test {"testId":"nav-draganddrop-strings","detectSteps":false})
+
+. Go to http://localhost:8092/drag-drop-test.html[the drag and drop page].
++
+// (step {"goTo":"http://localhost:8092/drag-drop-test.html"})
+. Drag *Table* onto *Drop Zone 1*.
++
+// (step {"dragAndDrop":{"source":"Table","target":".drop-zone[data-drop=\"zone1\"]"}})
+. Check that *Table (dropped)* appears in the drop zone.
++
+// (step {"find":{"selector":".drop-zone .dropped-item","elementText":"Table (dropped)"}})
+
+// (test end)

@@ -1,0 +1,8 @@
+= Run a code block
+
+Run this code. It prints `ready`:
+
+[source,py]
+----
+print("ready")
+----

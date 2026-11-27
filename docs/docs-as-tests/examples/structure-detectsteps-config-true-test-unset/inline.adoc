@@ -1,0 +1,12 @@
+= Check the demo pages
+
+// (test {"testId":"structure-detectsteps-config-true-test-unset"})
+
+. Check that http://localhost:8092/index.html[the elements demo] loads.
++
+// (step {"checkLink":"http://localhost:8092/index.html"})
+. Check that http://localhost:8092/type-echo.html[the type echo page] loads.
++
+// (step {"checkLink":"http://localhost:8092/type-echo.html"})
+
+// (test end)

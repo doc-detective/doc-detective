@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-surface-process">
+  <title>Evaluate an expression in the Node.js REPL</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Start <codeph>node -i</codeph> as a process named <codeph>sessions-prepl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd></step>
+      <step><cmd>In <codeph>sessions-prepl</codeph>, enter <codeph>40 + 2</codeph> and press Enter. Wait for the REPL to print <codeph>42</codeph>.</cmd></step>
+      <step><cmd>Close <codeph>sessions-prepl</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

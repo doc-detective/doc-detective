@@ -1,0 +1,93 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": false,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "outputDir": ".dd-output",
+  "beforeAll": "../../../test-setup/start-server.spec.json",
+  "afterAll": "../../../test-setup/stop-server.spec.json",
+  "telemetry": {
+    "send": false
+  },
+  "fileTypes": [
+    {
+      "name": "markdown-custom",
+      "extensions": [
+        "md",
+        "mdx"
+      ],
+      "inlineStatements": {
+        "in": [
+          "comment"
+        ]
+      },
+      "markup": [
+        {
+          "name": "runBash",
+          "codeBlock": {
+            "language": [
+              "bash"
+            ],
+            "metaExcludes": "\\bno-run\\b"
+          },
+          "actions": [
+            "runShell"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "asciidoc-custom",
+      "extensions": [
+        "adoc"
+      ],
+      "inlineStatements": {
+        "in": [
+          {
+            "comment": {},
+            "regex": "^\\(\\s*([\\s\\S]*?)\\s*\\)$"
+          }
+        ]
+      },
+      "markup": [
+        {
+          "name": "runBash",
+          "codeBlock": {
+            "language": [
+              "bash"
+            ],
+            "metaExcludes": "\\bno-run\\b"
+          },
+          "actions": [
+            "runShell"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rst-custom",
+      "extensions": [
+        "rst"
+      ],
+      "inlineStatements": {
+        "in": [
+          "comment"
+        ]
+      },
+      "markup": [
+        {
+          "name": "runBash",
+          "codeBlock": {
+            "language": [
+              "bash"
+            ],
+            "metaExcludes": "\\bno-run\\b"
+          },
+          "actions": [
+            "runShell"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-surface-process",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ],
+          "requires": "node"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "process": "node",
+            "args": [
+              "-i"
+            ],
+            "name": "sessions-prepl",
+            "waitUntil": {
+              "stdio": "/>/"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "40 + 2",
+              "$ENTER$"
+            ],
+            "surface": "sessions-prepl",
+            "waitUntil": {
+              "stdio": "/42/"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "closeSurface": "sessions-prepl"
+        }
+      ]
+    }
+  ]
+}

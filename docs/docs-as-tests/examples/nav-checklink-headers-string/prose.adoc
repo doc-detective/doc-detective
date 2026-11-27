@@ -1,0 +1,3 @@
+= Send headers as text
+
+. Check that http://localhost:8092/api/health[the API health check] responds.

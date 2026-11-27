@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-loadvariables-config">
+  <title>Check a service with variables from the config</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-loadvariables-config","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Check the service. Send a <codeph>GET</codeph> request to <codeph>$SERVICE_URL/health</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"httpRequest":{"url":"$SERVICE_URL/health","method":"get"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

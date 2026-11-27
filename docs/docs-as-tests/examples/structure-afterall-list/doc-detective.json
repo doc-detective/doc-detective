@@ -1,0 +1,14 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": false,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "beforeAll": "../../../test-setup/start-server.spec.json",
+  "afterAll": [
+    "check-api.spec.json",
+    "../../../test-setup/stop-server.spec.json"
+  ],
+  "telemetry": {
+    "send": false
+  }
+}

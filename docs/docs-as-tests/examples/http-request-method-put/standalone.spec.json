@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-request-method-put",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8093/api/users/2",
+            "method": "put",
+            "request": {
+              "body": {
+                "job": "lead"
+              }
+            },
+            "response": {
+              "body": {
+                "job": "lead"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

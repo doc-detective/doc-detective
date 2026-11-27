@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-variables-jq">
+  <title>Count the items in a cart</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"data-variables-jq","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Create a cart. Send a <codeph>POST</codeph> request to <codeph>http://localhost:8092/api/carts</codeph> with this body:</cmd>
+        <info><codeblock outputclass="language-json">{"items":[{"sku":"A1","qty":2},{"sku":"B2","qty":1}]}</codeblock>
+          <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/carts","method":"post","request":{"body":{"items":[{"sku":"A1","qty":2},{"sku":"B2","qty":1}]}}},"variables":{"ITEM_COUNT":"jq($$response.body, \".items | length\")"}}'/></info></step>
+      <step><cmd>Send the count in a <codeph>GET</codeph> request to <codeph>http://localhost:8092/api/carts?count=&lt;count&gt;</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/carts?count=$ITEM_COUNT","method":"get","response":{"body":{"count":"2"}}}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

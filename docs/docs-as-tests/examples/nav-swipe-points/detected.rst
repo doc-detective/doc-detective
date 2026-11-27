@@ -1,0 +1,16 @@
+Swipe between two points
+========================
+
+.. test {"testId":"nav-swipe-points","detectSteps":true}
+
+#. Go to `the element test page <http://localhost:8092/enhanced-elements.html>`_.
+
+   .. step {"goTo":"http://localhost:8092/enhanced-elements.html"}
+
+#. Swipe from the middle of the page toward the top.
+
+   .. step {"swipe":{"from":{"x":400,"y":400},"to":{"x":400,"y":250}}}
+
+#. Check that **Submit by ID** is still on the page.
+
+.. test end

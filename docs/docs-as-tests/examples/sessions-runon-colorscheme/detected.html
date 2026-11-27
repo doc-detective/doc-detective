@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check the page in dark mode</title></head>
+<body>
+<!-- test {"testId":"sessions-runon-colorscheme","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true,"colorScheme":"dark"}}]} -->
+<h1>Check the page in dark mode</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Check that the page prefers the dark color scheme.
+    <!-- step {"runBrowserScript":{"script":"return String(matchMedia(\"(prefers-color-scheme: dark)\").matches);","output":"true"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

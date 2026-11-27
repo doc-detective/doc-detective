@@ -1,0 +1,12 @@
+= Find an element by an attribute value
+
+// (test {"testId":"nav-find-elementattribute-string","detectSteps":true})
+
+. Go to http://localhost:8092/enhanced-elements.html[the element test page].
++
+// (step {"goTo":"http://localhost:8092/enhanced-elements.html"})
+. Find the *Count: 5* button.
++
+// (step {"find":{"elementAttribute":{"data-count":"5"}}})
+
+// (test end)

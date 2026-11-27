@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-code-exitcodes",
+      "steps": [
+        {
+          "runCode": {
+            "language": "js",
+            "code": "process.exit(2);",
+            "exitCodes": [
+              2
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

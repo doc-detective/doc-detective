@@ -1,0 +1,18 @@
+Check that a file exists
+========================
+
+.. test {"testId":"http-checkfile-string","detectSteps":true}
+
+Write the release notes to the ``output`` folder next to this page:
+
+.. code-block:: shell
+
+   node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/notes.txt','release notes')"
+
+.. step {"runShell":{"command":"node -e \"const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/notes.txt','release notes')\"","workingDirectory":"."}}
+
+Check that ``output/notes.txt`` exists.
+
+.. step {"checkFile":"output/notes.txt"}
+
+.. test end

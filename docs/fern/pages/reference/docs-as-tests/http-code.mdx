@@ -81,6 +81,58 @@ This procedure uses [`runShell`](/docs/actions/runshell) as a command string and
 - The fourth step sets `workingDirectory` to `.`, the folder that holds the test file, and saves its output to `folder-name.txt` in the `output` folder there.
 - The fifth step starts a background process and returns once the process prints `Preview ready` and 250 milliseconds pass. Its `timeout` limits how long it waits for both.
 
+## Check files a command writes
+
+This procedure writes a file with [`runShell`](/docs/actions/runshell), then checks it with [`checkFile`](/docs/actions/checkfile) as a glob string and as an object with `path`, `content`, and `timeout`. See the [`checkFile`](/reference/schemas/checkfile) reference.
+
+<Markdown src="examples/http-checkfile/_variants.mdx" />
+
+### Notes
+
+- Detection finds no steps here. The code block is tagged `shell`, and no detection rule makes a `checkFile` step, so each variant carries its steps in statements.
+- The command runs in the folder that holds the test file. A relative `checkFile` path resolves against that file, so both point at the same `output` folder.
+- A `content` value between slashes, such as `/build [0-9]+ passed/`, is a regular expression.
+
+## `checkFile` permutations
+
+### `checkFile` as a string
+
+**Varies:** `checkFile` · **Value:** `"output/notes.txt"` · **Effect:** waits for the file, with a relative path resolved against the test file.
+
+<Markdown src="examples/http-checkfile-string/_variants.mdx" />
+
+### `path` as a glob
+
+**Varies:** `checkFile.path` · **Value:** `"output/*.log"` · **Effect:** waits for any matching file, and the newest finished match counts.
+
+<Markdown src="examples/http-checkfile-path/_variants.mdx" />
+
+### `content` as a string
+
+**Varies:** `checkFile.content` · **Value:** `"succeeded"` · **Effect:** fails unless the file's text contains the string.
+
+<Markdown src="examples/http-checkfile-content-string/_variants.mdx" />
+
+### `content` as a regular expression
+
+**Varies:** `checkFile.content` · **Value:** `"/build [0-9]+ passed/"` · **Effect:** fails unless the file's text matches the regular expression.
+
+<Markdown src="examples/http-checkfile-content-regex/_variants.mdx" />
+
+### `timeout: 15000`
+
+**Varies:** `checkFile.timeout` · **Value:** `15000` · **Effect:** waits up to 15 seconds for a background job to write the file, instead of the default 30 seconds.
+
+<Markdown src="examples/http-checkfile-timeout/_variants.mdx" />
+
+### `download`
+
+**Varies:** `checkFile.download` · **Value:** `"report-*.csv"` · **Effect:** waits for a browser download in the context's download folder, so it needs an earlier step to open Chrome or Firefox.
+
+<Markdown src="examples/http-checkfile-download/_variants.mdx" />
+
+The test's [`runOn`](/reference/schemas/test) runs it on headless Chrome on every platform. In Safari, or in a test with no browser, the `download` step is skipped.
+
 ## Run code blocks
 
 This procedure uses [`runCode`](/docs/actions/runcode) with `language` set to `javascript`, `py`, and `bash`, along with `code`, `stdio`, `exitCodes`, `workingDirectory`, `timeout`, `path`, `maxVariation`, and `overwrite`. `py` runs as `python`, and `js` runs as `javascript`. Default detection makes the same steps from the code blocks. See the [`runCode`](/reference/schemas/runcode) reference.
@@ -115,3 +167,453 @@ This procedure starts background processes with [`runCode`](/docs/actions/runcod
 - `tty` runs a process in a terminal instead of a pipe, so apps that check for a terminal render.
 - With `tty` set to `true`, the terminal is 120 columns by 30 rows. An object with `cols` and `rows` sets the size.
 - The shell server also sets `tty` to `true`, and still answers on its port.
+
+## `httpRequest` permutations
+
+### `method: "get"`
+
+**Varies:** `httpRequest.method` · **Value:** `get` · **Effect:** sends a `GET` request, and the echo API returns the query parameters.
+
+<Markdown src="examples/http-request-method-get/_variants.mdx" />
+
+### `method: "post"`
+
+**Varies:** `httpRequest.method` · **Value:** `post` · **Effect:** sends a `POST` request with an object body, and the echo API returns the body.
+
+<Markdown src="examples/http-request-method-post/_variants.mdx" />
+
+### `method: "put"`
+
+**Varies:** `httpRequest.method` · **Value:** `put` · **Effect:** sends a `PUT` request, and the echo API returns the body.
+
+<Markdown src="examples/http-request-method-put/_variants.mdx" />
+
+### `method: "patch"`
+
+**Varies:** `httpRequest.method` · **Value:** `patch` · **Effect:** sends a `PATCH` request, and the echo API returns the body.
+
+<Markdown src="examples/http-request-method-patch/_variants.mdx" />
+
+### `method: "delete"`
+
+**Varies:** `httpRequest.method` · **Value:** `delete` · **Effect:** sends a `DELETE` request, and the step passes on a `200` status.
+
+<Markdown src="examples/http-request-method-delete/_variants.mdx" />
+
+### `request.headers` as a string
+
+**Varies:** `httpRequest.request.headers` · **Value:** `"X-Test: docs"` · **Effect:** sends one `Name: value` header per line, and the echo API repeats `X-Test` in its `x-echo-test` header.
+
+<Markdown src="examples/http-request-headers-string/_variants.mdx" />
+
+### `request.headers` as an object
+
+**Varies:** `httpRequest.request.headers` · **Value:** `{"X-Test": "docs"}` · **Effect:** sends each key as a header name, with the same result as the string form.
+
+<Markdown src="examples/http-request-headers-object/_variants.mdx" />
+
+### `request.parameters`
+
+**Varies:** `httpRequest.request.parameters` · **Value:** `{"page": "2"}` · **Effect:** adds `?page=2` to the URL.
+
+<Markdown src="examples/http-request-parameters/_variants.mdx" />
+
+### `request.body` as a string
+
+**Varies:** `httpRequest.request.body` · **Value:** `"{\"name\": \"Ada\"}"` · **Effect:** sends the string as is, so the `Content-Type` header tells the server it's JSON.
+
+<Markdown src="examples/http-request-body-string/_variants.mdx" />
+
+### `request.body` and `response.body` as arrays
+
+**Varies:** `httpRequest.request.body` · **Value:** `[{"name": "Ada"}, {"name": "Grace"}]` · **Effect:** sends a JSON array, and `response.body` expects the same array back.
+
+<Markdown src="examples/http-request-body-array/_variants.mdx" />
+
+### `statusCodes` as a number
+
+**Varies:** `httpRequest.statusCodes` · **Value:** `404` · **Effect:** accepts only `404`, so a missing page passes and a `200` would fail.
+
+<Markdown src="examples/http-request-statuscodes-number/_variants.mdx" />
+
+### `statusCodes` as an array
+
+**Varies:** `httpRequest.statusCodes` · **Value:** `[200, 201]` · **Effect:** accepts any status in the list.
+
+<Markdown src="examples/http-request-statuscodes-array/_variants.mdx" />
+
+### `allowAdditionalFields: true`
+
+**Varies:** `httpRequest.allowAdditionalFields` · **Value:** `true` · **Effect:** passes when the response holds fields that `response.body` doesn't list, such as the `8092` server's `extraField`.
+
+<Markdown src="examples/http-request-additional-fields-true/_variants.mdx" />
+
+### `allowAdditionalFields: false`
+
+**Varies:** `httpRequest.allowAdditionalFields` · **Value:** `false` · **Effect:** fails when the response holds a field that `response.body` doesn't list, so this step calls the `8093` server, which adds none.
+
+<Markdown src="examples/http-request-additional-fields-false/_variants.mdx" />
+
+### `response.body` as a string
+
+**Varies:** `httpRequest.response.body` · **Value:** `"Cookie set."` · **Effect:** compares a text response with the string.
+
+<Markdown src="examples/http-request-response-string/_variants.mdx" />
+
+### `response.required`
+
+**Varies:** `httpRequest.response.required` · **Value:** `["user.name", "items[0].id"]` · **Effect:** fails unless each field path exists in the response, whatever its value.
+
+<Markdown src="examples/http-request-response-required/_variants.mdx" />
+
+### `overwrite: "true"`
+
+**Varies:** `httpRequest.overwrite` · **Value:** `true` · **Effect:** saves the response to `page-2.json` next to the test file. Replaces `page-2.json` with each new response.
+
+<Markdown src="examples/http-request-overwrite-true/_variants.mdx" />
+
+### `overwrite: "false"`
+
+**Varies:** `httpRequest.overwrite` · **Value:** `false` · **Effect:** saves the response to `page-2.json` next to the test file. Keeps `page-2.json` as is, and returns a warning when a response differs from it.
+
+<Markdown src="examples/http-request-overwrite-false/_variants.mdx" />
+
+### `overwrite: "aboveVariation"`
+
+**Varies:** `httpRequest.overwrite` · **Value:** `aboveVariation` · **Effect:** saves the response to `page-2.json` next to the test file. Replaces `page-2.json` only when a response differs by more than `maxVariation`, 10% here.
+
+<Markdown src="examples/http-request-overwrite-abovevariation/_variants.mdx" />
+
+### `timeout`
+
+**Varies:** `httpRequest.timeout` · **Value:** `5000` · **Effect:** fails the step when the response takes longer than 5 seconds.
+
+<Markdown src="examples/http-request-timeout/_variants.mdx" />
+
+### Code block tagged `http`
+
+**Varies:** `codeBlock.language` · **Value:** `http` · **Effect:** detection turns the raw request in the block into an `httpRequest` step.
+
+<Markdown src="examples/http-request-block-http/_variants.mdx" />
+
+### Code block with no language
+
+**Varies:** `codeBlock.language` · **Value:** `(none)` · **Effect:** detection also reads a raw request from a block with no language.
+
+<Markdown src="examples/http-request-block-untagged/_variants.mdx" />
+
+## `openApi` permutations
+
+These examples load `users.openapi.json` from the [OpenAPI example](#call-operations-from-an-openapi-description). Its `createUser` operation requires `name` and `job`, and its servers list points at the `8093` echo API.
+
+### `openApi` as a string
+
+**Varies:** `httpRequest.openApi` · **Value:** `"createUser"` · **Effect:** looks up the operation by ID in the test's descriptions, and takes its method, URL, and schemas from it.
+
+<Markdown src="examples/http-openapi-operation-string/_variants.mdx" />
+
+### `openApi` as an object
+
+**Varies:** `httpRequest.openApi` · **Value:** `{"operationId": "createUser"}` · **Effect:** does the same as the string form, and leaves room for options such as `useExample`.
+
+<Markdown src="examples/http-openapi-operation-object/_variants.mdx" />
+
+### `useExample: "none"`
+
+**Varies:** `httpRequest.openApi.useExample` · **Value:** `none` · **Effect:** uses only the request and response the step sets.
+
+<Markdown src="examples/http-openapi-useexample-none/_variants.mdx" />
+
+### `useExample: "request"`
+
+**Varies:** `httpRequest.openApi.useExample` · **Value:** `request` · **Effect:** sends the operation's request example, so the step sets no body.
+
+<Markdown src="examples/http-openapi-useexample-request/_variants.mdx" />
+
+### `useExample: "response"`
+
+**Varies:** `httpRequest.openApi.useExample` · **Value:** `response` · **Effect:** checks the response against the operation's response example.
+
+<Markdown src="examples/http-openapi-useexample-response/_variants.mdx" />
+
+### `useExample: "both"`
+
+**Varies:** `httpRequest.openApi.useExample` · **Value:** `both` · **Effect:** sends the request example and checks the response against the response example.
+
+<Markdown src="examples/http-openapi-useexample-both/_variants.mdx" />
+
+### `mockResponse: true`
+
+**Varies:** `httpRequest.openApi.mockResponse` · **Value:** `true` · **Effect:** sends no request, and uses the operation's response example as the response.
+
+<Markdown src="examples/http-openapi-mockresponse/_variants.mdx" />
+
+### `validateAgainstSchema: "both"`
+
+**Varies:** `httpRequest.openApi.validateAgainstSchema` · **Value:** `both` · **Effect:** validates the request and the response against the operation's schemas.
+
+<Markdown src="examples/http-openapi-validate-both/_variants.mdx" />
+
+### `validateAgainstSchema: "request"`
+
+**Varies:** `httpRequest.openApi.validateAgainstSchema` · **Value:** `request` · **Effect:** validates only the request body against the schema.
+
+<Markdown src="examples/http-openapi-validate-request/_variants.mdx" />
+
+### `validateAgainstSchema: "response"`
+
+**Varies:** `httpRequest.openApi.validateAgainstSchema` · **Value:** `response` · **Effect:** validates only the response body against the schema.
+
+<Markdown src="examples/http-openapi-validate-response/_variants.mdx" />
+
+### `validateAgainstSchema: "none"`
+
+**Varies:** `httpRequest.openApi.validateAgainstSchema` · **Value:** `none` · **Effect:** skips validation, so a body without the required `job` field passes.
+
+<Markdown src="examples/http-openapi-validate-none/_variants.mdx" />
+
+### Description on the spec
+
+**Varies:** `spec.openApi` · **Value:** `[{"name": "users", ...}]` · **Effect:** every test in the spec can call the description's operations. Inline tests have no spec, so their `test` statement holds the list.
+
+<Markdown src="examples/http-openapi-level-spec/_variants.mdx" />
+
+### Description on the test
+
+**Varies:** `test.openApi` · **Value:** `[{"name": "users", ...}]` · **Effect:** only this test can call the description's operations.
+
+<Markdown src="examples/http-openapi-level-test/_variants.mdx" />
+
+### Description on the step
+
+**Varies:** `httpRequest.openApi.descriptionPath` · **Value:** `"../http-openapi/users.openapi.json"` · **Effect:** loads the description for this step only, with no `openApi` list on the test or spec.
+
+<Markdown src="examples/http-openapi-level-step/_variants.mdx" />
+
+## `mockRequest` permutations
+
+`mockRequest` needs Chrome, so each example runs on headless Chrome on macOS and Linux through `runOn`. Windows is left out, as in the example above. A `runBrowserScript` step fetches the stubbed URL from the test site to show the response.
+
+### `url` as a glob
+
+**Varies:** `mockRequest.url` · **Value:** `"**/api/plans*"` · **Effect:** answers every URL that ends in `/api/plans`, with or without a query string.
+
+<Markdown src="examples/http-mock-url-glob/_variants.mdx" />
+
+### `url` as a whole URL
+
+**Varies:** `mockRequest.url` · **Value:** `"http://localhost:8092/api/plans"` · **Effect:** answers only that exact address.
+
+<Markdown src="examples/http-mock-url-exact/_variants.mdx" />
+
+### `response.body` as an array
+
+**Varies:** `mockRequest.response.body` · **Value:** `["pro", "team"]` · **Effect:** sends the array as JSON.
+
+<Markdown src="examples/http-mock-body-array/_variants.mdx" />
+
+### `response.body` as a string
+
+**Varies:** `mockRequest.response.body` · **Value:** `"pro"` · **Effect:** sends the string as is.
+
+<Markdown src="examples/http-mock-body-string/_variants.mdx" />
+
+### `response.bodyPath`
+
+**Varies:** `mockRequest.response.bodyPath` · **Value:** `"plans.json"` · **Effect:** sends the file next to the test file as the body.
+
+<Markdown src="examples/http-mock-bodypath/_variants.mdx" />
+
+### `method`
+
+**Varies:** `mockRequest.method` · **Value:** `"POST"` · **Effect:** answers only `POST` requests, so a `GET` to the same URL reaches the server.
+
+<Markdown src="examples/http-mock-method/_variants.mdx" />
+
+## `runShell` permutations
+
+### `runShell` as a string
+
+**Varies:** `runShell` · **Value:** `"node -e \"console.log('ready')\""` · **Effect:** runs the command and passes when it exits with code `0`.
+
+<Markdown src="examples/http-shell-string/_variants.mdx" />
+
+### `runShell` as an object
+
+**Varies:** `runShell.command` · **Value:** `{"command": "node", "args": ["--version"]}` · **Effect:** runs `command` with `args`, and leaves room for options such as `stdio`.
+
+<Markdown src="examples/http-shell-object/_variants.mdx" />
+
+### `shell: "bash"`
+
+**Varies:** `runShell.shell` · **Value:** `bash` · **Effect:** runs the command in Bash, the default on every platform. On Windows, that's Git Bash.
+
+<Markdown src="examples/http-shell-shell-bash/_variants.mdx" />
+
+### `shell: "cmd"`
+
+**Varies:** `runShell.shell` · **Value:** `cmd` · **Effect:** runs the command in `cmd.exe`. It's Windows only, so `runOn` skips the test elsewhere.
+
+<Markdown src="examples/http-shell-shell-cmd/_variants.mdx" />
+
+### `shell: "powershell"`
+
+**Varies:** `runShell.shell` · **Value:** `powershell` · **Effect:** runs the command in Windows PowerShell. It's Windows only, so `runOn` skips the test elsewhere.
+
+<Markdown src="examples/http-shell-shell-powershell/_variants.mdx" />
+
+### `exitCodes`
+
+**Varies:** `runShell.exitCodes` · **Value:** `[1]` · **Effect:** passes only when the command exits with code `1`.
+
+<Markdown src="examples/http-shell-exitcodes/_variants.mdx" />
+
+### `stdio` as a string
+
+**Varies:** `runShell.stdio` · **Value:** `"ready"` · **Effect:** passes when the output contains the text.
+
+<Markdown src="examples/http-shell-stdio-string/_variants.mdx" />
+
+### `stdio` as a regular expression
+
+**Varies:** `runShell.stdio` · **Value:** `"/^v\\d+\\./"` · **Effect:** passes when the output matches the expression between the slashes.
+
+<Markdown src="examples/http-shell-stdio-regex/_variants.mdx" />
+
+### `workingDirectory`
+
+**Varies:** `runShell.workingDirectory` · **Value:** `"."` · **Effect:** runs the command in the folder that holds the test file.
+
+<Markdown src="examples/http-shell-workingdirectory/_variants.mdx" />
+
+### `waitUntil.stdio`
+
+**Varies:** `runShell.background.waitUntil.stdio` · **Value:** `{"stdio":"Preview ready"}` · **Effect:** starts the process in the background and returns once it's ready. Waits until the output contains the text.
+
+<Markdown src="examples/http-shell-bg-stdio/_variants.mdx" />
+
+### `waitUntil.port`
+
+**Varies:** `runShell.background.waitUntil.port` · **Value:** `{"port":8241}` · **Effect:** starts the process in the background and returns once it's ready. Waits until the port accepts connections.
+
+<Markdown src="examples/http-shell-bg-port/_variants.mdx" />
+
+### `waitUntil.httpGet`
+
+**Varies:** `runShell.background.waitUntil.httpGet` · **Value:** `{"httpGet":"http://localhost:8242/"}` · **Effect:** starts the process in the background and returns once it's ready. Waits until a `GET` request to the URL returns a `2xx` status.
+
+<Markdown src="examples/http-shell-bg-httpget/_variants.mdx" />
+
+### `waitUntil.delayMs`
+
+**Varies:** `runShell.background.waitUntil.delayMs` · **Value:** `{"delayMs":500}` · **Effect:** starts the process in the background and returns once it's ready. Waits half a second.
+
+<Markdown src="examples/http-shell-bg-delayms/_variants.mdx" />
+
+### `tty: true`
+
+**Varies:** `runShell.background.tty` · **Value:** `true` · **Effect:** runs the process in a 120-by-30 terminal instead of a pipe.
+
+<Markdown src="examples/http-shell-tty-true/_variants.mdx" />
+
+### `tty` as an object
+
+**Varies:** `runShell.background.tty` · **Value:** `{"cols":100,"rows":40}` · **Effect:** runs the process in a 100-by-40 terminal instead of a pipe.
+
+<Markdown src="examples/http-shell-tty-object/_variants.mdx" />
+
+## `runCode` permutations
+
+Default detection turns code blocks tagged `bash`, `python`, `py`, `javascript`, or `js` into unsafe `runCode` steps. Examples whose detected variants run detected steps set `allowUnsafeSteps` in their `doc-detective.json`.
+
+### `language: "javascript"`
+
+**Varies:** `runCode.language` · **Value:** `javascript` · **Effect:** runs the code with Node.js.
+
+<Markdown src="examples/http-code-language-javascript/_variants.mdx" />
+
+### `language: "js"`
+
+**Varies:** `runCode.language` · **Value:** `js` · **Effect:** runs the code with Node.js, like `javascript`.
+
+<Markdown src="examples/http-code-language-js/_variants.mdx" />
+
+### `language: "python"`
+
+**Varies:** `runCode.language` · **Value:** `python` · **Effect:** runs the code with Python.
+
+<Markdown src="examples/http-code-language-python/_variants.mdx" />
+
+### `language: "py"`
+
+**Varies:** `runCode.language` · **Value:** `py` · **Effect:** runs the code with Python, like `python`.
+
+<Markdown src="examples/http-code-language-py/_variants.mdx" />
+
+### `language: "bash"`
+
+**Varies:** `runCode.language` · **Value:** `bash` · **Effect:** runs the code with Bash.
+
+<Markdown src="examples/http-code-language-bash/_variants.mdx" />
+
+### `exitCodes`
+
+**Varies:** `runCode.exitCodes` · **Value:** `[2]` · **Effect:** passes only when the code exits with code `2`. The block is marked `testIgnore`, because a detected step expects code `0`.
+
+<Markdown src="examples/http-code-exitcodes/_variants.mdx" />
+
+### `stdio` as a regular expression
+
+**Varies:** `runCode.stdio` · **Value:** `"/^\\d+$/"` · **Effect:** passes when the output matches the expression between the slashes.
+
+<Markdown src="examples/http-code-stdio-regex/_variants.mdx" />
+
+### `background`
+
+**Varies:** `runCode.background` · **Value:** `{"name": "http-code-server", "waitUntil": {"port": 8251}}` · **Effect:** starts the code as a background process and returns once its port accepts connections. The block is marked `testIgnore`, because the server never exits.
+
+<Markdown src="examples/http-code-background/_variants.mdx" />
+
+### `testIgnore` on a code block
+
+**Varies:** `codeBlock.meta` · **Value:** `testIgnore` · **Effect:** detection skips the marked block and runs the other one. HTML and DITA wrap the block in `test ignore` statements instead.
+
+<Markdown src="examples/http-code-testignore/_variants.mdx" />
+
+### `allowUnsafeSteps: true`
+
+**Varies:** `config.allowUnsafeSteps` · **Value:** `true` · **Effect:** runs steps marked `unsafe`, including every detected `runCode` step.
+
+<Markdown src="examples/http-code-unsafe-allowed/_variants.mdx" />
+
+### `allowUnsafeSteps: false`
+
+**Varies:** `config.allowUnsafeSteps` · **Value:** `false` · **Effect:** skips steps marked `unsafe`, and the test runs its other steps. A test whose steps are all skipped reports `SKIPPED`.
+
+<Markdown src="examples/http-code-unsafe-blocked/_variants.mdx" />
+
+## `runBrowserScript` permutations
+
+### `runBrowserScript` as a string
+
+**Varies:** `runBrowserScript` · **Value:** `"return document.title;"` · **Effect:** runs the script in the page and passes unless it throws.
+
+<Markdown src="examples/http-script-string/_variants.mdx" />
+
+### `output` as a string
+
+**Varies:** `runBrowserScript.output` · **Value:** `"Basic HTML Elements Demo"` · **Effect:** passes when the script's return value contains the text.
+
+<Markdown src="examples/http-script-output-string/_variants.mdx" />
+
+### `output` as a regular expression
+
+**Varies:** `runBrowserScript.output` · **Value:** `"/^http:\\/\\/localhost:8092/"` · **Effect:** passes when the return value matches the expression between the slashes.
+
+<Markdown src="examples/http-script-output-regex/_variants.mdx" />
+
+### `args`
+
+**Varies:** `runBrowserScript.args` · **Value:** `["foo", "bar"]` · **Effect:** passes each value to the script, which reads it from `arguments`.
+
+<Markdown src="examples/http-script-args/_variants.mdx" />

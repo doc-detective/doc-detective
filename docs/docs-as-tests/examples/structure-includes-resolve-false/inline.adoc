@@ -1,0 +1,14 @@
+= Open the elements demo
+
+include::_check-status.adoc[]
+
+// (test {"testId":"structure-includes-resolve-false","detectSteps":false})
+
+. Open http://localhost:8092/index.html[the elements demo].
++
+// (step {"goTo":"http://localhost:8092/index.html"})
+. Check that the page shows *Text Inputs*.
++
+// (step {"find":"Text Inputs"})
+
+// (test end)

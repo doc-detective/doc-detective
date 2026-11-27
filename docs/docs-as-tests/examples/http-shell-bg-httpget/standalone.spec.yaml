@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: http-shell-bg-httpget
+    steps:
+      - runShell:
+          command: node -e "require('http').createServer((q, r) => r.end('ok')).listen(8242)"
+          background:
+            name: http-shell-bg-httpget
+            waitUntil:
+              httpGet: http://localhost:8242/
+          timeout: 15000
+      - closeSurface: http-shell-bg-httpget

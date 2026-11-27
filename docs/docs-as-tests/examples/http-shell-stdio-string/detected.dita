@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-shell-stdio-string">
+  <title>Check command output</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-shell-stdio-string","detectSteps":true}'/>
+    <p>Run this command. It prints <codeph>ready</codeph>:</p>
+    <codeblock outputclass="language-shell">node -e "console.log('ready')"</codeblock>
+    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(&apos;ready&apos;)\"","stdio":"ready"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="custom-option-precededby">
+  <title>Type into the field</title>
+  <body>
+    <p>Open the type echo page.</p>
+    <p>Click <b>Type here:</b>.</p>
+    <p>Type Hello, Doc Detective.</p>
+    <p>The page shows <b>Hello, Doc Detective</b> below the field.</p>
+  </body>
+</topic>

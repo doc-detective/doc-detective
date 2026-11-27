@@ -1,0 +1,5 @@
+= Move a mark to the next field
+
+. Go to http://localhost:8092/enhanced-elements.html[the sample form].
+. The username field is marked 1.
+. Then the button is marked 2.

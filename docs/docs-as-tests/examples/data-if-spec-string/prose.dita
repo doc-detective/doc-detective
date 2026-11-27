@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-if-spec-string">
+  <title>Check the API on desktop platforms</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Check the API. Send a <codeph>GET</codeph> request to <codeph>http://localhost:8092/api/health</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

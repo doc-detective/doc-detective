@@ -1,0 +1,10 @@
+= Check the demo pages
+
+. Check that http://localhost:8092/index.html[the elements demo] loads.
+
+To fetch the page from a terminal instead, run:
+
+[source,bash,testIgnore]
+----
+curl http://localhost:8092/index.html
+----

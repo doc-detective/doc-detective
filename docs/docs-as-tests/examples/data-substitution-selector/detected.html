@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Type into a field named by a variable</title></head>
+<body>
+<!-- test {"testId":"data-substitution-selector","detectSteps":true} -->
+<h1>Type into a field named by a variable</h1>
+<ol>
+  <li>Load the variables in <code>shop.env</code>.
+    <!-- step {"loadVariables":"shop.env"} --></li>
+  <li>Open <code>http://localhost:8092/type-echo.html</code>.
+    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
+  <li>Type <code>Wren</code> in the field.
+    <!-- step {"type":{"keys":"Wren","selector":"$INPUT_SELECTOR"}} --></li>
+  <li>Check that the page shows <code>Wren</code>.
+    <!-- step {"find":{"selector":"$ECHO_SELECTOR","elementText":"Wren"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

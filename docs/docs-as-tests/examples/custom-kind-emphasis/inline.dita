@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="custom-kind-emphasis">
+  <title>Check the page heading</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"custom-kind-emphasis","detectSteps":false}'/>
+    <p>Open the type echo page.</p>
+    <data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/>
+    <p>The heading reads <i>Type Echo Test Page</i>.</p>
+    <data name="doc-detective" value='step {"find":"Type Echo Test Page"}'/>
+    <data name="doc-detective" value='test end'/>
+  </body>
+</topic>

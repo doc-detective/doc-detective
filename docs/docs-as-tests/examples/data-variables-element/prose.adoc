@@ -1,0 +1,6 @@
+= Send the text a page shows
+
+. Open `+http://localhost:8092/type-echo.html+`.
+. Type `+Wren+` in the field.
+. Check that the page shows `+Wren+` below the field.
+. Send the text in a `+POST+` request to `+http://localhost:8093/api/names+`. The API returns it.

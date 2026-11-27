@@ -1,0 +1,5 @@
+= Remove every mark
+
+. Go to http://localhost:8092/enhanced-elements.html[the sample form].
+. The username field is marked 1.
+. All marks go away.

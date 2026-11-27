@@ -1,0 +1,12 @@
+= Send a client name in a request body
+
+// (test {"testId":"data-substitution-body","detectSteps":true})
+
+. Load the variables in `+shop.env+`.
++
+// (step {"loadVariables":"shop.env"})
+. Send a `+POST+` request to `+http://localhost:8092/api/orders+` with the body `+{"client": "$SHOP_CLIENT"}+`.
++
+// (step {"httpRequest":{"url":"http://localhost:8092/api/orders","method":"post","request":{"body":{"client":"$SHOP_CLIENT"}},"response":{"body":{"client":"docs"}}}})
+
+// (test end)

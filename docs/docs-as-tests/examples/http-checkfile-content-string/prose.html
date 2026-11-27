@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check a status file's text</title></head>
+<body>
+<h1>Check a status file's text</h1>
+<p>Write the deploy status to the <code>output</code> folder next to this page:</p>
+<pre><code class="language-shell">node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/status.txt','deploy succeeded')"</code></pre>
+<p>Check that the status file says <code>succeeded</code>.</p>
+</body>
+</html>

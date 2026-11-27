@@ -1,0 +1,23 @@
+= Record typing in a field
+
+// (test {"testId":"capture-record-verify-notblack","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true}}]})
+
+. Go to http://localhost:8092/type-echo.html[the type echo page].
++
+// (step {"goTo":"http://localhost:8092/type-echo.html"})
+. Start recording.
++
+// (step {"record":{"path":"verify-notblack.webm","directory":".dd-output","overwrite":"true","verify":{"notBlack":true}}})
+. Click *Type here:*.
++
+// (step {"click":"Type here:"})
+. Type "Hello".
++
+// (step {"type":"Hello"})
+. Wait a moment, then stop the recording.
++
+// (step {"wait":1000})
++
+// (step {"stopRecord":true})
+
+// (test end)

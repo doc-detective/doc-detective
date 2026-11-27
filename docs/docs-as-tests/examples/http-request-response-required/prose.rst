@@ -1,0 +1,4 @@
+Require nested response fields
+==============================
+
+Send a ``POST`` request to ``http://localhost:8093/api/orders`` with a user and one item. The response has ``user.name`` and ``items[0].id``.

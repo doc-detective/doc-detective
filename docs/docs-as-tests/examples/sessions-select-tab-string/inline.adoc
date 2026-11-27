@@ -1,0 +1,15 @@
+= Check a page in another tab or window
+
+// (test {"testId":"sessions-select-tab-string","detectSteps":false,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]})
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
++
+// (step {"goTo":"http://localhost:8092/multi-tab.html"})
+. Load http://localhost:8092/multi-tab-child.html?page=second[the second page] in a new tab named `second`.
++
+// (step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=second","newTab":"second"}})
+. Check that the selected page reads "PAGE second".
++
+// (step {"find":{"elementText":"PAGE second","surface":{"browser":"firefox","tab":"second"}}})
+
+// (test end)

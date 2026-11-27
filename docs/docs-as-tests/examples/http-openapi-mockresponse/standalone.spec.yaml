@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: http-openapi-mockresponse
+    openApi:
+      - name: users
+        descriptionPath: ../http-openapi/users.openapi.json
+    steps:
+      - httpRequest:
+          openApi:
+            operationId: getUser
+            mockResponse: true
+            useExample: response
+            exampleKey: ada
+            validateAgainstSchema: response
+          response:
+            body:
+              name: Ada

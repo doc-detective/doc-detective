@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshot-mask-string">
+  <title>Compare a screenshot with string masks</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-screenshot-mask-string","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/mask.html" scope="external" format="html">the billing page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/mask.html"}'/></info></step>
+      <step><cmd>The page shows the next invoice date and when the account last synced.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"mask-string.png","directory":".dd-output","maxVariation":0.001,"overwrite":"aboveVariation","mask":["#clock","#stamps"]}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

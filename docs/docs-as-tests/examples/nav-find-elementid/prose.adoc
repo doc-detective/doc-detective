@@ -1,0 +1,4 @@
+= Find an element by its ID
+
+. Go to http://localhost:8092/enhanced-elements.html[the element test page].
+. Find the *Submit by ID* button.

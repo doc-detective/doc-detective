@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "custom-actions-template",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/type-echo.html"
+        },
+        {
+          "find": {
+            "elementText": "Type here:",
+            "timeout": 5000
+          }
+        }
+      ]
+    }
+  ]
+}

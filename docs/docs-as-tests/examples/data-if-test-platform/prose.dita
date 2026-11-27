@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-if-test-platform">
+  <title>Find Node.js on Windows</title>
+  <taskbody>
+    <steps>
+      <step><cmd>On Windows, find the Node.js executable:</cmd>
+        <info><codeblock outputclass="language-shell">where node</codeblock></info></step>
+    </steps>
+  </taskbody>
+</task>

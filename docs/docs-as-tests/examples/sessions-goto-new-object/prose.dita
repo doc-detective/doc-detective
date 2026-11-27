@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-goto-new-object">
+  <title>Open a named window with a named tab</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd></step>
+      <step><cmd>Load <xref href="http://localhost:8092/multi-tab-child.html?page=report" scope="external" format="html">the report page</xref> in a new tab named <codeph>report</codeph>.</cmd></step>
+      <step><cmd>Load <xref href="http://localhost:8092/multi-tab-child.html?page=settings" scope="external" format="html">the settings page</xref> in a new window named <codeph>settings</codeph>, with its first tab named <codeph>general</codeph>.</cmd></step>
+      <step><cmd>Check that the <codeph>general</codeph> tab of the <codeph>settings</codeph> window reads "PAGE settings".</cmd></step>
+    </steps>
+  </taskbody>
+</task>

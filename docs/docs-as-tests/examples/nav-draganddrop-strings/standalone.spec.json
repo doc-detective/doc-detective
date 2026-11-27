@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "nav-draganddrop-strings",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/drag-drop-test.html"
+        },
+        {
+          "dragAndDrop": {
+            "source": "Table",
+            "target": ".drop-zone[data-drop=\"zone1\"]"
+          }
+        },
+        {
+          "find": {
+            "selector": ".drop-zone .dropped-item",
+            "elementText": "Table (dropped)"
+          }
+        }
+      ]
+    }
+  ]
+}

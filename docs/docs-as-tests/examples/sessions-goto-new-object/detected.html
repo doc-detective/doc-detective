@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Open a named window with a named tab</title></head>
+<body>
+<!-- test {"testId":"sessions-goto-new-object","detectSteps":true,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]} -->
+<h1>Open a named window with a named tab</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.
+    <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} --></li>
+  <li>Load <a href="http://localhost:8092/multi-tab-child.html?page=report">the report page</a> in a new tab named <code>report</code>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=report","newTab":{"name":"report"}}} --></li>
+  <li>Load <a href="http://localhost:8092/multi-tab-child.html?page=settings">the settings page</a> in a new window named <code>settings</code>, with its first tab named <code>general</code>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=settings","newWindow":{"name":"settings","tab":"general"}}} --></li>
+  <li>Check that the <code>general</code> tab of the <code>settings</code> window reads "PAGE settings".
+    <!-- step {"find":{"elementText":"PAGE settings","surface":{"browser":"firefox","window":{"name":"settings"},"tab":{"name":"general"}}}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

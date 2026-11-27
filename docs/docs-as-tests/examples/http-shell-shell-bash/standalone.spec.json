@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-shell-shell-bash",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo ready",
+            "shell": "bash",
+            "stdio": "ready"
+          }
+        }
+      ]
+    }
+  ]
+}

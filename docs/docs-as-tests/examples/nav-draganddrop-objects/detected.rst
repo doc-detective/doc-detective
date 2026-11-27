@@ -1,0 +1,16 @@
+Drag by element objects
+=======================
+
+.. test {"testId":"nav-draganddrop-objects","detectSteps":true}
+
+#. Go to `the drag and drop page <http://localhost:8092/drag-drop-test.html>`_.
+
+   .. step {"goTo":"http://localhost:8092/drag-drop-test.html"}
+
+#. Drag **Table** onto **Drop Zone 1**.
+
+   .. step {"dragAndDrop":{"source":{"selector":".draggable","elementText":"Table"},"target":{"selector":".drop-zone[data-drop=\"zone1\"]"}}}
+
+#. Check that **Table (dropped)** appears in the drop zone.
+
+.. test end

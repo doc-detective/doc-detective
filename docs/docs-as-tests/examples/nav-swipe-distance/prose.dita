@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-swipe-distance">
+  <title>Swipe most of the screen</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the element test page</xref>.</cmd></step>
+      <step><cmd>Swipe up across most of the screen.</cmd></step>
+      <step><cmd>Check that <b>Submit by ID</b> is still on the page.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

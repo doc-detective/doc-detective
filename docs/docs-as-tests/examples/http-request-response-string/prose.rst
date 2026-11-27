@@ -1,0 +1,4 @@
+Expect a text response
+======================
+
+Send a ``GET`` request to ``http://localhost:8092/cookies/set/theme/dark``. The response is the text ``Cookie set.``

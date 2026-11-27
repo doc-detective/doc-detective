@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: data-substitution-selector
+    steps:
+      - loadVariables: shop.env
+      - goTo: http://localhost:8092/type-echo.html
+      - type:
+          keys: Wren
+          selector: $INPUT_SELECTOR
+      - find:
+          selector: $ECHO_SELECTOR
+          elementText: Wren

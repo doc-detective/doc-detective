@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-checkfile-download">
+  <title>Download a report</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-checkfile-download","detectSteps":true,"runOn":[{"platforms":["windows","mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]}'/>
+    <p>In Chrome, open <codeph>http://localhost:8092/download.html</codeph>.</p>
+    <data name="doc-detective" value='step {"goTo":"http://localhost:8092/download.html"}'/>
+    <p>Click the first export link.</p>
+    <data name="doc-detective" value='step {"click":"Export first CSV"}'/>
+    <p>Check that Chrome saved a <codeph>report-*.csv</codeph> file.</p>
+    <data name="doc-detective" value='step {"checkFile":{"download":"report-*.csv"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

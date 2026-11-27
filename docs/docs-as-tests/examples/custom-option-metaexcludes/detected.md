@@ -1,0 +1,17 @@
+<!-- test {"testId":"custom-option-metaexcludes","detectSteps":true} -->
+
+# Check that the page server is up
+
+Request the type echo page:
+
+```bash
+curl -sf -o /dev/null http://localhost:8092/type-echo.html
+```
+
+If the request fails, start the server from the repository root:
+
+```bash no-run
+node test/server/start.js
+```
+
+<!-- test end -->

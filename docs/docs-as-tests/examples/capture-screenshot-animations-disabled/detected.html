@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Save a screenshot of an animated page with animations disabled</title></head>
+<body>
+<!-- test {"testId":"capture-screenshot-animations-disabled","detectSteps":true} -->
+<h1>Save a screenshot of an animated page with animations disabled</h1>
+<ol>
+  <li>Open the page at <code>http://localhost:8092/screenshot-loop.html</code>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/screenshot-loop.html","waitUntil":{"networkIdleTime":0,"domIdleTime":0}}} --></li>
+  <li>A spinner turns in the middle of the page.
+    <!-- step {"screenshot":{"path":"animations-disabled.png","directory":".dd-output","overwrite":"true","animations":"disabled"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

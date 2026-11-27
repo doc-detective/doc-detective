@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: nav-goto-waituntil-find
+    steps:
+      - goTo:
+          url: http://localhost:8092/waitUntil-test-late-element.html
+          waitUntil:
+            find:
+              selector: .dashboard-loaded
+      - find: Dashboard

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-shell-shell-cmd">
+  <title>Run a command in cmd</title>
+  <body>
+    <p>Print the Windows version:</p>
+    <codeblock outputclass="language-shell">ver</codeblock>
+  </body>
+</topic>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshot-stable-true">
+  <title>Wait for a page to settle before the screenshot</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Open the page at <codeph>http://localhost:8092/screenshot-late-reveal.html</codeph>.</cmd></step>
+      <step><cmd>A loading bar fills, then the page shows its content.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

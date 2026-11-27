@@ -1,0 +1,13 @@
+= Run a script in the page
+
+// (test {"testId":"http-script-output-string","detectSteps":true})
+
+Open the test site at `http://localhost:8092/`.
+
+// (step {"goTo":"http://localhost:8092/"})
+
+Evaluate `document.title` in the console. The title is `Basic HTML Elements Demo`.
+
+// (step {"runBrowserScript":{"script":"return document.title;","output":"Basic HTML Elements Demo"}})
+
+// (test end)

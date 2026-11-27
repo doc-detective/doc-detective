@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Drag by text and selector strings</title></head>
+<body>
+<!-- test {"testId":"nav-draganddrop-strings","detectSteps":true} -->
+<h1>Drag by text and selector strings</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/drag-drop-test.html">the drag and drop page</a>.
+    <!-- step {"goTo":"http://localhost:8092/drag-drop-test.html"} --></li>
+  <li>Drag <strong>Table</strong> onto <strong>Drop Zone 1</strong>.
+    <!-- step {"dragAndDrop":{"source":"Table","target":".drop-zone[data-drop=\"zone1\"]"}} --></li>
+  <li>Check that <strong>Table (dropped)</strong> appears in the drop zone.</li>
+</ol>
+<!-- test end -->
+</body>
+</html>

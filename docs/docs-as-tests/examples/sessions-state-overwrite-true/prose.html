@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Replace a saved browser state</title></head>
+<body>
+<h1>Replace a saved browser state</h1>
+<ol>
+  <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_pstateo/signed-in">the sign-in page</a>. The server sets the <code>sessions_pstateo</code> cookie.</li>
+  <li>Save the browser state to <code>sessions-pstateo.json</code>, replacing any earlier file.</li>
+  <li>Sign out at <a href="http://localhost:8092/cookies/set/sessions_pstateo/signed-out">the sign-out page</a>, which replaces the cookie.</li>
+  <li>Load the browser state from <code>sessions-pstateo.json</code>.</li>
+  <li>Open <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_pstateo=signed-in</strong>.</li>
+</ol>
+</body>
+</html>

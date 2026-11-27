@@ -1,0 +1,74 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": false,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "outputDir": ".dd-output",
+  "beforeAll": "../../../test-setup/start-server.spec.json",
+  "afterAll": "../../../test-setup/stop-server.spec.json",
+  "telemetry": {
+    "send": false
+  },
+  "fileTypes": [
+    {
+      "extends": "markdown",
+      "markup": [
+        {
+          "name": "findItalic",
+          "emphasis": {},
+          "actions": [
+            "find"
+          ]
+        }
+      ]
+    },
+    {
+      "extends": "asciidoc",
+      "markup": [
+        {
+          "name": "findItalic",
+          "emphasis": {},
+          "actions": [
+            "find"
+          ]
+        }
+      ]
+    },
+    {
+      "extends": "html",
+      "markup": [
+        {
+          "name": "findItalic",
+          "emphasis": {},
+          "actions": [
+            "find"
+          ]
+        }
+      ]
+    },
+    {
+      "extends": "rst",
+      "markup": [
+        {
+          "name": "findItalic",
+          "emphasis": {},
+          "actions": [
+            "find"
+          ]
+        }
+      ]
+    },
+    {
+      "extends": "dita",
+      "markup": [
+        {
+          "name": "findItalic",
+          "emphasis": {},
+          "actions": [
+            "find"
+          ]
+        }
+      ]
+    }
+  ]
+}

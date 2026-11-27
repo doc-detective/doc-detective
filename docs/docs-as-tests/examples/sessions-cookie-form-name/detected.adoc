@@ -1,0 +1,19 @@
+= Keep a cookie in an environment variable
+
+// (test {"testId":"sessions-cookie-form-name","detectSteps":true})
+
+. Sign in at http://localhost:8092/cookies/set/sessions_pname/signed-in[the sign-in page]. The server sets the `sessions_pname` cookie.
++
+// (step {"goTo":"http://localhost:8092/cookies/set/sessions_pname/signed-in"})
+. Save the `sessions_pname` cookie to the `sessions_pname` environment variable.
++
+// (step {"saveCookie":"sessions_pname"})
+. Sign out at http://localhost:8092/cookies/set/sessions_pname/signed-out[the sign-out page], which replaces the cookie.
++
+// (step {"goTo":"http://localhost:8092/cookies/set/sessions_pname/signed-out"})
+. Load the cookie from the `sessions_pname` environment variable.
++
+// (step {"loadCookie":"sessions_pname"})
+. Open http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_pname=signed-in*.
+
+// (test end)

@@ -1,0 +1,4 @@
+Run a tool only where it's installed
+====================================
+
+#. Run ``sessions-missing-tool --version``.

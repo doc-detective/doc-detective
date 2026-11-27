@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: data-variables-jq
+    steps:
+      - httpRequest:
+          url: http://localhost:8092/api/carts
+          method: post
+          request:
+            body:
+              items:
+                - sku: A1
+                  qty: 2
+                - sku: B2
+                  qty: 1
+        variables:
+          ITEM_COUNT: jq($$response.body, ".items | length")
+      - httpRequest:
+          url: http://localhost:8092/api/carts?count=$ITEM_COUNT
+          method: get
+          response:
+            body:
+              count: "2"

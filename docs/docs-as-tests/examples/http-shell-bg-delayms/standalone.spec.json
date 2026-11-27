@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-shell-bg-delayms",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"setInterval(() => {}, 1000)\"",
+            "background": {
+              "name": "http-shell-bg-delayms",
+              "waitUntil": {
+                "delayMs": 500
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": "http-shell-bg-delayms"
+        }
+      ]
+    }
+  ]
+}
