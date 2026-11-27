@@ -11,6 +11,7 @@ const {
   collectUsage,
   findGaps,
   findMissingNeedles,
+  canonicalKey,
 } = require("../docs/.scripts/docsAsTestsCoverage.js");
 
 // A tiny two-file schema set: a step whose `go` action is a string or an
@@ -110,6 +111,7 @@ describe("docs-as-tests coverage: usage and gaps", function () {
       total: 4,
       covered: 2,
       gaps: { step: ["go (string)", "stepId"] },
+      shared: {},
     });
   });
 
@@ -117,6 +119,50 @@ describe("docs-as-tests coverage: usage and gaps", function () {
     const fields = { step: { wait: ["boolean", "number"] } };
     const usage = { "step:wait": ["boolean", "number"] };
     assert.deepEqual(findGaps(fields, usage).gaps, {});
+  });
+});
+
+describe("docs-as-tests coverage: shared keys", function () {
+  const clickFields = { selector: ["string"], elementId: ["string"], timeout: ["number"], button: ["string"] };
+
+  it("collapses element locator keys, and a timeout beside them, onto one shared key", function () {
+    assert.equal(canonicalKey("click", "elementId", clickFields), "locator:elementId");
+    assert.equal(canonicalKey("dragAndDrop", "source.elementClass", { "source.elementClass": [] }), "locator:elementClass");
+    assert.equal(canonicalKey("click", "timeout", clickFields), "locator:timeout");
+    assert.equal(canonicalKey("goTo", "timeout", { url: ["string"], timeout: ["number"] }), null);
+    assert.equal(canonicalKey("click", "button", clickFields), null);
+    assert.equal(canonicalKey("config", "selector", { selector: [] }), null);
+  });
+
+  it("collapses annotation style and position keys, and surface selectors", function () {
+    assert.equal(canonicalKey("annotationDefaults", "arrow.color", {}), "style:color");
+    assert.equal(canonicalKey("annotationDefaults", "padding", {}), "style:padding");
+    assert.equal(canonicalKey("annotationDefaults", "blur", {}), "style:per-kind block");
+    assert.equal(canonicalKey("annotation", "style.opacity", {}), "style:opacity");
+    assert.equal(canonicalKey("annotation", "badge.position.offset.x", {}), "position:offset.x");
+    assert.equal(canonicalKey("annotation", "callout.position", {}), "position:position");
+    assert.equal(canonicalKey("surface#app", "window.title", {}), "surface:window.title");
+    assert.equal(canonicalKey("surface", "tab", {}), "surface:tab");
+    assert.equal(canonicalKey("swipe", "surface", {}), "surface:surface");
+    assert.equal(canonicalKey("surface", "name", {}), null);
+  });
+
+  it("counts a collapsed key once, with each form, covered by use in any of its places", function () {
+    const fields = {
+      click: { elementId: ["string"], surface: ["object", "string"], button: ["string"] },
+      find: { elementId: ["string"] },
+      swipe: { surface: ["object"] },
+    };
+    const usage = { "find:elementId": ["string"], "swipe:surface": ["object"] };
+    const canon = (root, p) => canonicalKey(root, p, fields[root]);
+    const result = findGaps(fields, usage, canon);
+    assert.equal(result.total, 4);
+    assert.equal(result.covered, 2);
+    assert.deepEqual(result.gaps, {
+      click: ["button"],
+      "shared:surface": ["surface (string) — in click, swipe"],
+    });
+    assert.deepEqual(result.shared, { click: 2, find: 1, swipe: 1 });
   });
 });
 

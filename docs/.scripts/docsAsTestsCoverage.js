@@ -197,23 +197,78 @@ function collectUsage(value, root, boundaries, usage, p = "", parent = p) {
   return usage;
 }
 
-/** Compares walked fields with usage. Each form of a multi-type field counts once. */
-function findGaps(fieldsByRoot, usage) {
+const LOCATOR_KEYS = new Set([
+  "selector", "elementText", "elementId", "elementTestId", "elementClass", "elementAttribute", "elementAria", "elementImage",
+]);
+const STYLE_KEYS = new Set([
+  "color", "background", "strokeWidth", "fontSize", "fontFamily", "opacity", "radius", "padding", "maxWidth", "intensity",
+]);
+const ANNOTATION_KINDS = new Set(["outline", "arrow", "badge", "callout", "blur", "text"]);
+
+/**
+ * Returns the shared key a field collapses onto, as `<family>:<key>`, or
+ * null for a field that counts on its own. One concept that many places
+ * accept, such as an element locator, an annotation style, or a surface
+ * selector, counts once, covered by an example of it anywhere.
+ * `rootFields` is the field map of `root`, used to spot a locator's `timeout`.
+ */
+function canonicalKey(root, p, rootFields = {}) {
+  if (root === "config") return null;
+  const segs = p.split(".");
+  const leaf = segs[segs.length - 1].replace(/\[\]$/, "");
+  const parent = segs.slice(0, -1).join(".");
+  const sibling = (key) => join(parent, key) in rootFields;
+  if (LOCATOR_KEYS.has(leaf)) return `locator:${leaf}`;
+  if (leaf === "timeout" && (sibling("selector") || sibling("elementText"))) return "locator:timeout";
+  if (root.startsWith("annotation")) {
+    const at = segs.indexOf("position");
+    if (at >= 0) return `position:${segs.slice(at + 1).join(".") || "position"}`;
+    if (STYLE_KEYS.has(leaf)) return `style:${leaf}`;
+    if (root === "annotationDefaults" && segs.length === 1 && ANNOTATION_KINDS.has(leaf)) return "style:per-kind block";
+  }
+  if (root.startsWith("surface") && (segs[0] === "window" || segs[0] === "tab")) return `surface:${p}`;
+  if (leaf === "surface") return "surface:surface";
+  return null;
+}
+
+/**
+ * Compares walked fields with usage. Each form of a multi-type field counts
+ * once. Fields that `canon(root, path)` maps to the same shared key count
+ * once together, reported under `shared:<family>`; `shared` counts the
+ * collapsed fields per schema.
+ */
+function findGaps(fieldsByRoot, usage, canon = () => null) {
+  const units = new Map();
+  const shared = {};
+  for (const [root, fields] of Object.entries(fieldsByRoot)) {
+    for (const [p, types] of Object.entries(fields)) {
+      const key = canon(root, p);
+      if (key) shared[root] = (shared[root] || 0) + 1;
+      const id = key || `${root}:${p}`;
+      if (!units.has(id)) units.set(id, { key, root, p, types: new Set(), used: new Set(), roots: new Set() });
+      const unit = units.get(id);
+      for (const t of types) unit.types.add(t);
+      for (const t of usage[`${root}:${p}`] || []) unit.used.add(t);
+      unit.roots.add(root);
+    }
+  }
   let total = 0;
   let covered = 0;
   const gaps = {};
-  for (const [root, fields] of Object.entries(fieldsByRoot)) {
-    for (const [p, types] of Object.entries(fields)) {
-      const used = usage[`${root}:${p}`] || [];
-      const forms = types.length > 1 ? types : [null];
-      for (const form of forms) {
-        total++;
-        if (form ? used.includes(form) : used.length) covered++;
-        else (gaps[root] ||= []).push(form ? `${p} (${form})` : p);
-      }
+  for (const unit of units.values()) {
+    const types = [...unit.types].sort();
+    const forms = types.length > 1 ? types : [null];
+    const [group, label] = unit.key
+      ? [`shared:${unit.key.split(":")[0]}`, unit.key.slice(unit.key.indexOf(":") + 1)]
+      : [unit.root, unit.p];
+    const where = unit.key ? ` — in ${[...unit.roots].sort().join(", ")}` : "";
+    for (const form of forms) {
+      total++;
+      if (form ? unit.used.has(form) : unit.used.size) covered++;
+      else (gaps[group] ||= []).push(`${form ? `${label} (${form})` : label}${where}`);
     }
   }
-  return { total, covered, gaps };
+  return { total, covered, gaps, shared };
 }
 
 function needleMatcher(needle) {
@@ -245,7 +300,12 @@ function schemaFields() {
   const configProps = loadSchema("config_v3.schema.json").properties;
   const missing = AUTHORING_CONFIG_KEYS.filter((k) => !configProps[k] || configProps[k].deprecated);
   if (missing.length) throw new Error(`Couldn't find config keys in config_v3: ${missing.map((k) => `\`${k}\``).join(", ")}.`);
-  return walkSchema(ENTRY_FILES, loadSchema, (root, key) => root !== "config" || AUTHORING_CONFIG_KEYS.includes(key));
+  // assertion_v3 describes result records; authored `assertions` are strings.
+  return walkSchema(
+    ENTRY_FILES,
+    loadSchema,
+    (root, key) => root !== "assertion" && (root !== "config" || AUTHORING_CONFIG_KEYS.includes(key))
+  );
 }
 
 // The resolver adds these to every test, so a dry run can't tell whether an
@@ -298,14 +358,14 @@ function main() {
   const problems = [];
   const { fields, boundaries, via } = schemaFields();
   const { usage, docs } = corpusUsage(boundaries, problems);
-  const coverage = findGaps(fields, usage);
+  const coverage = findGaps(fields, usage, (root, p) => canonicalKey(root, p, fields[root]));
   const features = YAML.parse(fs.readFileSync(featuresFile, "utf8")).features || [];
   const missing = findMissingNeedles(features, docs);
   const gapCount = coverage.total - coverage.covered + missing.length;
 
   if (process.argv.includes("--json")) {
     console.log(JSON.stringify({
-      fields: { total: coverage.total, covered: coverage.covered, gaps: coverage.gaps, via },
+      fields: { total: coverage.total, covered: coverage.covered, gaps: coverage.gaps, shared: coverage.shared, via },
       features: { total: features.length, covered: features.length - missing.length, gaps: missing },
       problems,
     }, null, 2));
@@ -313,7 +373,9 @@ function main() {
     for (const [root, gaps] of Object.entries(coverage.gaps)) {
       // A shared schema collects usage from every field that reaches it.
       const from = via[root]?.length ? `, reached from ${via[root].join(", ")}` : "";
-      console.log(`${root} (${gaps.length} not shown${from}):`);
+      // Keys collapsed onto a shared key are reported once under shared:*.
+      const collapsed = coverage.shared[root] ? `, ${coverage.shared[root]} keys counted under shared:*` : "";
+      console.log(`${root} (${gaps.length} not shown${collapsed}${from}):`);
       for (const gap of gaps) console.log(`  ${gap}`);
     }
     if (missing.length) {
@@ -331,4 +393,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { walkSchema, collectUsage, findGaps, findMissingNeedles, AUTHORING_CONFIG_KEYS };
+module.exports = { walkSchema, collectUsage, findGaps, findMissingNeedles, canonicalKey, AUTHORING_CONFIG_KEYS };
