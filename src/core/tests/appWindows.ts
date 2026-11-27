@@ -107,19 +107,36 @@ function rewriteXPathForScopedFind(selector: string): string {
   return selector;
 }
 
+// The index a selector names, as a bare integer or `{ index }`. The two forms
+// mean the same thing on every platform.
+function selectorIndex(selector: any): number | undefined {
+  if (typeof selector === "number") return selector;
+  if (selector && typeof selector === "object" && typeof selector.index === "number") {
+    return selector.index;
+  }
+  return undefined;
+}
+
+// The exact title (string or `{name}`) and title criteria a selector names.
+function selectorTitles(selector: any): { wantExact: string | null; wantTitle: any } {
+  return {
+    wantExact:
+      typeof selector === "string"
+        ? selector.trim()
+        : typeof selector?.name === "string"
+          ? selector.name
+          : null,
+    wantTitle:
+      selector && typeof selector === "object" && selector.title !== undefined
+        ? selector.title
+        : null,
+  };
+}
+
 // A selector form we can't honor on Windows: non-negative index (there is no
 // app-scoped creation order to index into).
 function isNonNegativeIndexSelector(selector: any): boolean {
-  if (typeof selector === "number" && selector >= 0) return true;
-  if (
-    selector &&
-    typeof selector === "object" &&
-    typeof selector.index === "number" &&
-    selector.index >= 0
-  ) {
-    return true;
-  }
-  return false;
+  return (selectorIndex(selector) ?? -1) >= 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -198,23 +215,18 @@ async function matchWindowsSelector(
   const driver = entry.driver;
   const known: string[] = entry.knownWindows ?? [];
   const seenTitles: string[] = [];
-  // Negative index: from the end of the adoption-ordered known list — the
-  // most recently adopted window is the newest (-1, the dialog case).
-  if (typeof selector === "number" && selector < 0) {
-    const handle = known.at(selector) ?? null;
-    return { handle, seenTitles };
+  const { wantExact, wantTitle } = selectorTitles(selector);
+  let pool = known;
+  // Negative index (`-1` or `{ index: -1 }`): from the end of the
+  // adoption-ordered known list — the most recently adopted window is the
+  // newest (-1, the dialog case). Title criteria then check that one window.
+  const index = selectorIndex(selector);
+  if (index !== undefined) {
+    const handle = known.at(index) ?? null;
+    if (wantExact === null && wantTitle === null) return { handle, seenTitles };
+    pool = handle ? [handle] : [];
   }
-  const wantExact =
-    typeof selector === "string"
-      ? selector.trim()
-      : typeof selector?.name === "string"
-        ? selector.name
-        : null;
-  const wantTitle =
-    selector && typeof selector === "object" && selector.title !== undefined
-      ? selector.title
-      : null;
-  for (const handle of known) {
+  for (const handle of pool) {
     try {
       await driver.switchToWindow(handle);
       const title = String(await driver.getTitle());
@@ -380,37 +392,41 @@ function macBaselineKeys(candidates: MacWindowCandidate[]): string[] {
   return candidates.map((c) => `${c.title}\u0000${c.frameKey}`);
 }
 
+function macWindowAt(
+  candidates: MacWindowCandidate[],
+  index: number,
+  baseline: string[] | undefined
+): MacWindowCandidate | null {
+  if (index >= 0) return candidates[index] ?? null;
+  if (index === -1) {
+    // Newest = the window that's new since the baseline (set-diff on
+    // title+frame). Exactly one new → it; several → the last in query
+    // order; none → last in query order (best-effort, the browser -1
+    // semantics degraded to what the driver exposes).
+    const base = new Set(baseline ?? []);
+    const fresh = candidates.filter(
+      (c) => !base.has(`${c.title}\u0000${c.frameKey}`)
+    );
+    if (fresh.length > 0) return fresh.at(-1)!;
+    return candidates.at(-1) ?? null;
+  }
+  return candidates.at(index) ?? null;
+}
+
 function matchMacSelector(
   candidates: MacWindowCandidate[],
   selector: any,
   baseline: string[] | undefined
 ): MacWindowCandidate | null {
-  if (typeof selector === "number") {
-    if (selector >= 0) return candidates[selector] ?? null;
-    if (selector === -1) {
-      // Newest = the window that's new since the baseline (set-diff on
-      // title+frame). Exactly one new → it; several → the last in query
-      // order; none → last in query order (best-effort, the browser -1
-      // semantics degraded to what the driver exposes).
-      const base = new Set(baseline ?? []);
-      const fresh = candidates.filter(
-        (c) => !base.has(`${c.title}\u0000${c.frameKey}`)
-      );
-      if (fresh.length > 0) return fresh.at(-1)!;
-      return candidates.at(-1) ?? null;
-    }
-    return candidates.at(selector) ?? null;
+  const { wantExact, wantTitle } = selectorTitles(selector);
+  // An index (`1` or `{ index: 1 }`) picks one window; title criteria then
+  // check that one.
+  const index = selectorIndex(selector);
+  if (index !== undefined) {
+    const hit = macWindowAt(candidates, index, baseline);
+    if (!hit || (wantExact === null && wantTitle === null)) return hit;
+    candidates = [hit];
   }
-  const wantExact =
-    typeof selector === "string"
-      ? selector.trim()
-      : typeof selector?.name === "string"
-        ? selector.name
-        : null;
-  const wantTitle =
-    selector && typeof selector === "object" && selector.title !== undefined
-      ? selector.title
-      : null;
   for (const candidate of candidates) {
     if (wantExact !== null && candidate.title !== wantExact) continue;
     if (
