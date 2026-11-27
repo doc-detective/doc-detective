@@ -244,7 +244,7 @@ export interface HintContext {
    */
   viewportFloored: boolean;
   /**
-   * True if the comparison with an earlier run (ADR 01233) marked a context
+   * True if the comparison with an earlier run (ADR 01244) marked a context
    * `failureStatus: "new"` in a test whose `testId` was generated
    * (`<specId>~<hash>`, so it contains `~`). Editing such a test changes its
    * ID, so its failure reads as new. Powers `setStableTestIds`. Sourced from

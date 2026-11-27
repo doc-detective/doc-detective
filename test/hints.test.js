@@ -1984,7 +1984,7 @@ describe("useMobilePlatforms hint", function () {
   });
 });
 
-// ADR 01233: editing a test without a `testId` changes its generated ID, so the
+// ADR 01244: editing a test without a `testId` changes its generated ID, so the
 // comparison reads its failure as new.
 describe("setStableTestIds hint", function () {
   const run = (testId, failureStatus) => ({
