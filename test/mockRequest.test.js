@@ -354,6 +354,7 @@ describe("harToMocks", function () {
     assert.equal(harToMocks({}), undefined);
     assert.equal(harToMocks({ log: {} }), undefined);
     assert.equal(harToMocks(null), undefined);
+    assert.equal(harToMocks(undefined), undefined);
   });
 });
 
@@ -416,6 +417,14 @@ describe("mockRequest harPath", function () {
     assert.equal(result.description, `Couldn't find HAR entries matching \`**/other\` in \`${file}\`.`);
     ({ result } = await run({ harPath: writeHar(har([])) }));
     assert.equal(result.description, `Couldn't find HAR entries matching \`*\` in \`${file}\`.`);
+  });
+
+  it("fails, mocking nothing, on a `url` filter that isn't a valid pattern", async function () {
+    const file = writeHar(har([harEntry("GET", "https://x.test/api/a")]));
+    const { result, driver } = await run({ harPath: file, url: "**/api/(" });
+    assert.equal(result.status, "FAIL");
+    assert.equal(result.description, "Couldn't parse `url` pattern `**/api/(`.");
+    assert.equal(driver.mockCalls.length, 0);
   });
 
   it("fails, mocking nothing, on a relative or malformed recorded URL", async function () {

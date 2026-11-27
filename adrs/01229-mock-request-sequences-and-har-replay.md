@@ -69,6 +69,7 @@ HAR mapping:
 |---|---|---|
 | `harPath` can't be read | FAIL | ``Couldn't read `harPath` `<absolute path>`.`` |
 | `harPath` isn't HAR JSON (`log.entries` isn't an array) | FAIL | ``Couldn't parse `harPath` `<absolute path>`: it isn't HAR JSON.`` |
+| With `harPath`, `url` isn't a valid pattern | FAIL | ``Couldn't parse `url` pattern `<url>`.`` |
 | A recorded URL isn't absolute or doesn't parse | FAIL | ``Couldn't parse a URL in `harPath` `<absolute path>`.`` |
 | No entry matches `url` and `method` | FAIL | ``Couldn't find HAR entries matching `<url>` in `<absolute path>`.`` (`*` when `url` is omitted) |
 | A `responses[].bodyPath` can't be read | FAIL | ``Couldn't read `bodyPath` `<absolute path>`.`` |
