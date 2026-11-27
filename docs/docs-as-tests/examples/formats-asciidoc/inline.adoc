@@ -1,0 +1,49 @@
+= Create a user
+
+// (test {testId: formats-asciidoc, detectSteps: false})
+
+To create a user, send this request:
+
+[source,http]
+----
+POST http://localhost:8092/api/users
+Content-Type: application/json
+
+{"name": "Grace"}
+----
+
+////
+(step {
+  "httpRequest": {
+    "url": "http://localhost:8092/api/users",
+    "method": "post",
+    "request": {"body": {"name": "Grace"}},
+    "response": {"body": {"name": "Grace"}}
+  }
+})
+////
+
+To send the same request from a terminal, run:
+
+[source,bash,testIgnore]
+----
+curl -X POST -H "Content-Type: application/json" -d '{"name": "Grace"}' http://localhost:8092/api/users
+----
+
+// (test ignore start)
+
+To rename the user later, send this request:
+
+[source,http]
+----
+PUT http://localhost:8092/api/users/grace
+Content-Type: application/json
+
+{"name": "Grace Hopper"}
+----
+
+// (step {"httpRequest":{"url":"http://localhost:8092/api/users/grace","method":"put","request":{"body":{"name":"Grace Hopper"}}}})
+
+// (test ignore end)
+
+// (test end)
