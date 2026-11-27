@@ -3,7 +3,7 @@ title: mockRequest
 description: Answer matching browser requests with a fixed response until the test ends.
 ---
 
-The `mockRequest` action answers matching browser requests with a fixed response. The request never reaches the server. Use it to show stable data in screenshots, such as a fixed date or balance. You can also test how a page handles an error response.
+The `mockRequest` action answers matching browser requests with a fixed response, a sequence of responses, or the responses recorded in a HAR file. The request never reaches the server. Use it to show stable data in screenshots, such as a fixed date or balance. You can also test how a page handles an error response.
 
 A mock starts at its step and lasts until the test ends. Doc Detective then removes every mock the test set.
 
@@ -11,29 +11,39 @@ A mock starts at its step and lasts until the test ends. Doc Detective then remo
 
 Set `mockRequest` to an object with these fields:
 
-- `url`: (Required) A glob for the request URLs to answer. `*` matches any characters.
+- `url`: (Required unless you set `harPath`) A glob for the request URLs to answer. `*` matches any characters.
   - A pattern that starts with `http` matches the whole URL, such as `https://api.example.com/user`.
   - Any other pattern matches the URL's path, such as `**/api/invoices*`.
-- `method`: (Optional) The HTTP method to answer, such as `GET` or `POST`. Omit it to answer every method.
+  - With `harPath`, it keeps only the recorded requests whose URL matches.
+- `method`: (Optional) The HTTP method to answer, such as `GET` or `POST`. Omit it to answer every method. With `harPath`, it keeps only the recorded requests with this method.
 - `response`: (Optional) The response to send. Omit it to send an empty `200` response.
   - `statusCode`: The HTTP status code. Defaults to `200`.
   - `headers`: Response headers, as header names and string values.
   - `body`: The response body. A string goes as is. An object or array goes as JSON.
   - `bodyPath`: A file to send as the body, relative to the spec file. Binary files work too.
+- `responses`: (Optional) A list of responses to send in order, each with the same fields as `response`. The first matching request gets the first entry, and the next request gets the next one. The last entry answers every later request.
+- `harPath`: (Optional) A HAR file to replay, relative to the spec file. See [Replay recorded responses](#replay-recorded-responses).
 
-Set `body` or `bodyPath`, not both. Setting both is a validation error.
+Set one of `response`, `responses`, or `harPath`. In each response, set `body` or `bodyPath`, not both. Breaking either rule is a validation error.
 
 A later `mockRequest` for the same `url` and `method` replaces the earlier one. A mock with a different `url` or `method` runs alongside it.
 
-**Outputs.** The step sets `outputs.matched`. It's the number of requests already answered for that `url` and `method`, counting the mocks it replaced. To reuse it, set the step's `variables` object to `$$matched`.
+**Outputs.** The step sets `outputs.matched`. It's the number of requests already answered for that `url` and `method`, counting the mocks it replaced. With `harPath`, it's the total for every request in the file. To reuse it, set the step's `variables` object to `$$matched`.
 
-**Failures.** A `bodyPath` that Doc Detective can't read fails the step. For example: ``Couldn't read `bodyPath` `/abs/fixtures/user.json`.``
+**Failures.** These fail the step:
+
+- A `bodyPath` that Doc Detective can't read. For example: ``Couldn't read `bodyPath` `/abs/fixtures/user.json`.``
+- A `harPath` that Doc Detective can't read: ``Couldn't read `harPath` `/abs/fixtures/app.har`.``
+- A `harPath` file that isn't HAR JSON: ``Couldn't parse `harPath` `/abs/fixtures/app.har`: it isn't HAR JSON.``
+- With `harPath`, a `url` that isn't a valid pattern, such as one with an unclosed `(`: ``Couldn't parse `url` pattern `**/api/(`.``
+- A HAR file with a recorded URL that isn't absolute: ``Couldn't parse a URL in `harPath` `/abs/fixtures/app.har`.``
+- A HAR file with no request that matches `url`: ``Couldn't find HAR entries matching `**/api/**` in `/abs/fixtures/app.har`.`` With `method` set, the message names it too: ``Couldn't find HAR entries matching `**/api/**` with method `POST` in `/abs/fixtures/app.har`.``
 
 > For every field, see the [`mockRequest`](/reference/schemas/mockrequest) reference.
 
 ## Examples
 
-The docs tests run the first two examples in headless Chrome against a local test page.
+The docs tests run the first two examples and the sequence example in headless Chrome against a local test page.
 
 ### Answer with a JSON body
 
@@ -108,6 +118,50 @@ This example sends `fixtures/user.json` as the body of one exact URL. The path r
       "headers": { "content-type": "application/json" },
       "bodyPath": "fixtures/user.json"
     }
+  }
+}
+```
+
+### Answer in sequence
+
+This example answers a job's status as `running` on the first request and `done` on every later one. Use it to take screenshots of a page that polls, both before and after the work finishes.
+
+{/* test {"testId":"mockrequest-sequence","detectSteps":false,"runOn":[{"platforms":["linux","windows","mac"],"browsers":[{"name":"chrome","headless":true}]}]} */}
+
+```json
+{
+  "description": "Report the job as running, then done.",
+  "mockRequest": {
+    "url": "**/api/jobs/1",
+    "responses": [
+      { "body": { "status": "running" } },
+      { "body": { "status": "done" } }
+    ]
+  }
+}
+```
+
+{/* step {"stepId":"mockrequest-sequence-mock","description":"Report the job as running, then done","mockRequest":{"url":"/api/jobs/1","responses":[{"body":{"status":"running"}},{"body":{"status":"done"}}]}} */}
+{/* step {"stepId":"mockrequest-sequence-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"mockrequest-sequence-check","description":"Poll three times and check each answer","runBrowserScript":{"script":"const get = () => fetch('/api/jobs/1').then((r) => r.json()).then((d) => d.status); return get().then((a) => get().then((b) => get().then((c) => [a, b, c].join(' '))));","output":"running done done"}} */}
+{/* test end */}
+
+### Replay recorded responses
+
+A HAR file records a browser session's requests and responses. Browser developer tools can save one from the Network panel. Set `harPath` to replay it:
+
+- Doc Detective answers each recorded URL and method exactly, query string included.
+- It answers a request recorded more than once in recorded order. The last recording answers every later request.
+- Requests that aren't in the file reach the network.
+
+This example replays only the API requests from `fixtures/app.har`:
+
+```json
+{
+  "description": "Replay the recorded API responses.",
+  "mockRequest": {
+    "harPath": "fixtures/app.har",
+    "url": "**/api/**"
   }
 }
 ```

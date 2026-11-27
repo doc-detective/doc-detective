@@ -1429,6 +1429,40 @@ import { schemas } from "../dist/index.js";
         expect(result.valid).to.be.false;
         expect(result.errors).to.include("set `body` or `bodyPath`, not both.");
       });
+
+      // ADR 01242: answer in sequence, or replay a HAR file.
+      it("accepts a responses sequence", function () {
+        const result = check({ url: "**/jobs/1", responses: [{ body: { status: "running" } }, { statusCode: 404, bodyPath: "done.json" }] });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      it("accepts a harPath with or without a url filter and a method", function () {
+        expect(check({ harPath: "app.har" }).valid).to.be.true;
+        expect(check({ harPath: "app.har", url: "**/api/**", method: "GET" }).valid).to.be.true;
+      });
+
+      it("rejects an empty responses list and a bad entry", function () {
+        expect(check({ url: "**/x", responses: [] }).valid).to.be.false;
+        expect(check({ url: "**/x", responses: [{ body: "a", bodyPath: "a.json" }] }).valid).to.be.false;
+      });
+
+      it("rejects more than one of response, responses, and harPath", function () {
+        for (const mock of [
+          { url: "**/x", response: {}, responses: [{}] },
+          { url: "**/x", response: {}, harPath: "a.har" },
+          { url: "**/x", responses: [{}], harPath: "a.har" },
+        ]) {
+          const result = check(mock);
+          expect(result.valid).to.be.false;
+          expect(result.errors).to.include("set one of `response`, `responses`, or `harPath`.");
+        }
+      });
+
+      it("rejects a step with neither url nor harPath", function () {
+        const result = check({ responses: [{ body: "x" }] });
+        expect(result.valid).to.be.false;
+        expect(result.errors).to.include("set `url` or `harPath`.");
+      });
     });
 
     // ADR 01231: checkFile waits for a finished file or download.
