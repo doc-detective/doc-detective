@@ -65,6 +65,9 @@ Chosen option 1.
   names the source: "the response schema" or "the OpenAPI schema".
 * **Formats are enforced** through `ajv-formats` for both sources. This includes `uuid`, `email`,
   `date-time`, `uri`, and the other `ajv-formats` formats.
+* A schema that isn't valid JSON Schema, such as `"minimum": "x"`, FAILs the step with
+  ``Couldn't check the response against the <source> schema because the schema isn't valid JSON
+  Schema: <AJV error>.`` It doesn't crash the run.
 * `response.schema` composes with `response.body`, `response.required`, and
   `allowAdditionalFields`. Each keeps its own assertion.
 
