@@ -27409,6 +27409,10 @@
   ],
   "shared:locator.elementAria": [
     {
+      "example": "nav-dita-controls",
+      "page": "/reference/docs-as-tests/navigation-interaction#enter-text-in-a-dita-task"
+    },
+    {
       "example": "nav-find-elementaria",
       "page": "/reference/docs-as-tests/navigation-interaction#elementaria"
     },
@@ -31887,10 +31891,6 @@
       "page": "/reference/docs-as-tests/navigation-interaction#click-count-clicks"
     },
     {
-      "example": "nav-dita-controls",
-      "page": "/reference/docs-as-tests/navigation-interaction#enter-text-in-a-dita-task"
-    },
-    {
       "example": "nav-find-elements",
       "page": "/reference/docs-as-tests/navigation-interaction#fill-in-a-form-by-element-attributes"
     },
@@ -35427,6 +35427,10 @@
       "page": "/reference/docs-as-tests/data-control-flow#element"
     },
     {
+      "example": "nav-dita-controls",
+      "page": "/reference/docs-as-tests/navigation-interaction#enter-text-in-a-dita-task"
+    },
+    {
       "example": "nav-find-elements",
       "page": "/reference/docs-as-tests/navigation-interaction#fill-in-a-form-by-element-attributes"
     },
@@ -35591,10 +35595,6 @@
     {
       "example": "formats-markdown",
       "page": "/reference/docs-as-tests/formats#echo-text-in-md-and-mdx-files"
-    },
-    {
-      "example": "nav-dita-controls",
-      "page": "/reference/docs-as-tests/navigation-interaction#enter-text-in-a-dita-task"
     },
     {
       "example": "nav-find-elements",
@@ -42055,6 +42055,10 @@
     {
       "example": "data-variables-element",
       "page": "/reference/docs-as-tests/data-control-flow#element"
+    },
+    {
+      "example": "nav-dita-controls",
+      "page": "/reference/docs-as-tests/navigation-interaction#enter-text-in-a-dita-task"
     },
     {
       "example": "nav-find-elements",
