@@ -1,4 +1,4 @@
-# Every phrase in the built-in Gherkin step vocabulary (ADR 01232), against the
+# Every phrase in the built-in Gherkin step vocabulary (ADR 01233), against the
 # 8092 test server. run-feature.cjs runs this file with step detection on.
 Feature: Step phrases
 

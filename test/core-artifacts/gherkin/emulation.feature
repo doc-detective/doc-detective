@@ -1,4 +1,4 @@
-# Emulation steps (ADR 01232, ADR 01223) set the test's browser emulation
+# Emulation steps (ADR 01233, ADR 01223) set the test's browser emulation
 # instead of running. Each scenario checks what the page sees with inline
 # statements, so it also runs with step detection off.
 Feature: Emulation

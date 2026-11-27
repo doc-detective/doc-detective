@@ -52,8 +52,8 @@ Chosen option: **A**, `parseGherkin()` in `src/common/src/detect/gherkin.ts`.
 
 ### A scenario implies its test boundaries
 
-For every Scenario, and for every Examples row of an Outline, the parser emits a `comment` node with
-the content `test <JSON>`, then the steps, then a `comment` node with `test end`. The existing
+The parser handles every Scenario, and every Examples row of an Outline, the same way. It emits a
+`comment` node with the content `test <JSON>`, then the steps, then a `comment` node with `test end`. The existing
 inline-statement handling in `parseContent` then opens and closes the test. Nothing in
 `parseContent` knows about Gherkin.
 
@@ -79,8 +79,8 @@ without adding test boundaries to `collectStatements`:
 - `unmatched?: string`: a warning. When step detection is on and no markup definition produced a
   step from the node, `collectStatements` warns with it, once per message.
 
-For each test, the parser lays out an ordered list: the test-start comment, the Background steps
-and comments, the scenario's steps and comments, and the test-end comment. Item `i` of `N` gets
+For each test, the parser lays out an ordered list. It holds the test-start comment, the Background
+steps and comments, the scenario's steps and comments, and the test-end comment. Item `i` of `N` gets
 `sortIndex = anchor + (i + 1) / (N + 2)`, where the anchor is the Scenario line's start offset, or
 the Examples row's start offset for an Outline. Every test's statements then sort inside
 `[anchor, anchor + 1)`, which no other node occupies. That's how a Background replays inside every
@@ -106,9 +106,9 @@ The parser rewrites a few steps before markup sees them, because a template can'
   becomes `$PAGE_DOWN$`, the `type` action's special-key syntax.
 - `the response status should be <n>` (or `is <n>`) right after an `I send a ... request` step
   appends ` and the response status should be <n>` to that step, and emits no node of its own. The
-  request definitions then fill `statusCodes`. An attribute can't carry it: a missing attribute
-  resolves to `""`, which isn't a valid `statusCodes`, while a regex group that didn't take part
-  drops the field.
+  request definitions then fill `statusCodes`. An attribute can't carry it. A missing attribute
+  resolves to `""`, which isn't a valid `statusCodes`. A regex group that didn't take part drops
+  the field.
 - A data table after `I fill in:` (selector, value) becomes one `I type "<value>" into "<selector>"`
   step per row, and one after `I should see:` becomes one `I should see "<x>"` per row. Each row
   keeps its own span.
@@ -190,8 +190,8 @@ row. An Outline with no Examples emits no test and warns:
   Outline rows, tags, the merged `# test` comment, `detectSteps: false`, the warnings, tables,
   emulation, and every phrase. `validate.test.js` covers the schema enums.
 - `test/core-artifacts/gherkin/` runs every phrase and construct through the real CLI. The fixture
-  jobs' config turns step detection off, so `gherkin.spec.json` runs `run-feature.cjs`, which runs
-  each `.feature` file with detection on and checks each test's result and the warnings. Run
+  jobs' config turns step detection off, so `gherkin.spec.json` runs `run-feature.cjs`. That script
+  runs each `.feature` file with detection on and checks each test's result and the warnings. Run
   directly, the `.feature` files also cover detection off. Every spec resolves to PASS or SKIPPED.
 
 ## Pros and Cons of the Options

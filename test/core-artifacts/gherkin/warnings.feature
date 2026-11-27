@@ -1,4 +1,4 @@
-# Warnings (ADR 01232): an unmapped step warns and the rest of the scenario
+# Warnings (ADR 01233): an unmapped step warns and the rest of the scenario
 # still runs, an Outline with no Examples warns and emits no test, and a
 # scenario with no steps emits no test.
 Feature: Warnings
