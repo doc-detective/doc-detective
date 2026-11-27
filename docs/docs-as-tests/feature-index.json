@@ -6903,6 +6903,10 @@
   ],
   "context.retries": [
     {
+      "example": "data-service-retry",
+      "page": "/reference/docs-as-tests/data-control-flow#wait-for-a-service-then-echo-text-through-it"
+    },
+    {
       "example": "sessions-runon-fallback-explicit",
       "page": "/reference/docs-as-tests/sessions-surfaces#browserfallback-explicit-with-retries-0"
     },
@@ -37535,6 +37539,10 @@
     {
       "example": "data-route-test-onpass-stop-spec",
       "page": "/reference/docs-as-tests/data-control-flow#onpass-stop-spec"
+    },
+    {
+      "example": "data-service-retry",
+      "page": "/reference/docs-as-tests/data-control-flow#wait-for-a-service-then-echo-text-through-it"
     },
     {
       "example": "http-checkfile-download",
