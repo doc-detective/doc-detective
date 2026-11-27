@@ -48,9 +48,10 @@ rewrite of ADR 01225's mechanism that this feature alone doesn't justify.
 ### The spike
 
 Chrome 158.0.8127.88, chromedriver 158.0.8127.88, webdriverio 10.2.0, through `getRunner()`, against
-the 8092 test server. A raw `network.addIntercept` at `beforeRequestSent` for `/api/patched`, with a
-handler that copies the request's headers and cookies, fetches it from Node, merge-patches
-`{ "plan": "pro", "removed": null }` into the JSON, and calls `network.provideResponse`.
+the 8092 test server. The spike added a raw `network.addIntercept` at `beforeRequestSent` for
+`/api/patched`. Its handler copies the request's headers and cookies and fetches the request from
+Node. It then merge-patches `{ "plan": "pro", "removed": null }` into the JSON and calls
+`network.provideResponse`.
 
 | Run | Patched request | webdriverio mock | Pass-through request |
 |---|---|---|---|
