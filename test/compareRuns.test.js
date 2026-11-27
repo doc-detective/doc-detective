@@ -1,4 +1,4 @@
-// Compare a run with an earlier one (ADR 01216): each failing context reads as
+// Compare a run with an earlier one (ADR 01233): each failing context reads as
 // new or already failing, and each pass that failed before reads as fixed.
 import assert from "node:assert/strict";
 import fs from "node:fs";
