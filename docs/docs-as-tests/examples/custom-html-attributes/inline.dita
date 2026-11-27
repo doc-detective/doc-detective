@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="custom-html-attributes">
+  <title>Echo text back</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"custom-html-attributes","detectSteps":false}'/>
+    <context><image href="http://localhost:8092/find-image-target.svg" outputclass="hosted"><alt>A target icon</alt></image>
+      <data name="doc-detective" value='step {"checkLink":"http://localhost:8092/find-image-target.svg"}'/></context>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
+      <step><cmd>Click <ph outputclass="ui">Type here:</ph>.</cmd>
+        <info><data name="doc-detective" value='step {"click":"Type here:"}'/></info></step>
+      <step><cmd>Type "Hello, Doc Detective".</cmd>
+        <info><data name="doc-detective" value='step {"type":"Hello, Doc Detective"}'/>
+          <data name="doc-detective" value='step {"wait":500}'/></info></step>
+      <step><cmd>Check that the page shows Hello, Doc Detective below the field.</cmd>
+        <info><data name="doc-detective" value='step {"find":{"elementText":"Hello, Doc Detective","timeout":5000}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

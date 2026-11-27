@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Create and list users</title></head>
+<body>
+<!-- test {"testId":"http-api","detectSteps":true} -->
+<h1>Create and list users</h1>
+<p>Check that the API is up: send a <code>GET</code> request to <code>http://localhost:8092/api/health</code>.</p>
+<!-- step {"httpRequest":"http://localhost:8092/api/health"} -->
+<p>To create a user, send a <code>POST</code> request with the user as JSON:</p>
+<pre><code class="language-http">POST http://localhost:8093/api/users HTTP/1.1
+Content-Type: application/json
+
+{"name": "Ada", "job": "engineer"}</code></pre>
+<p>The response echoes the user you sent.</p>
+<p>To list the second page of users, send a <code>GET</code> request with the <code>page</code> parameter:</p>
+<pre><code>GET http://localhost:8092/api/users?page=2
+X-Test: docs</code></pre>
+<p>The response echoes the <code>page</code> parameter, and its <code>x-echo-test</code> header repeats the <code>X-Test</code> header you sent.</p>
+<p>To create several users at once, send them as a JSON array:</p>
+<pre><code class="language-http">POST http://localhost:8093/api/users/batch HTTP/1.1
+Content-Type: application/json
+
+[{"name": "Ada"}, {"name": "Grace"}]</code></pre>
+<p>The response echoes the array.</p>
+<!-- test end -->
+</body>
+</html>

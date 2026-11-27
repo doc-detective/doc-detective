@@ -66,6 +66,32 @@
           }
         }
       ]
+    },
+    {
+      "testId": "process-surface-unset",
+      "description": "Unset in a context that only types into a background process: no session to record, so the automatic recording is SKIPPED or never added, and the context passes.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs process-surface-unset",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "process-surface-strict",
+      "description": "autoRecord true in a context that only types into a background process: the automatic recording is SKIPPED with its reason, and the context passes.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/cli/auto-capture.cjs process-surface-strict",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,45 @@
+---
+title: Docs as tests
+sidebar-title: Overview
+description: Worked examples that turn the same documented procedure into detected tests, inline tests, and standalone specs, in every supported format, for every Doc Detective feature.
+---
+
+These pages show how documentation becomes tests. Each example takes one procedure and shows it four ways:
+
+| Tab | What the file holds |
+|---|---|
+| Prose | The documentation as a reader sees it, with no test statements. |
+| Detected | The same prose inside a `test` statement. Default detection turns links, bold text, quoted text, images, and code blocks into steps. A `step` statement covers anything detection can't find. |
+| Inline | The same prose with a `step` statement after each instruction, and detection off. |
+| Standalone | A spec file, in JSON or YAML, with no documentation source. |
+
+Each text tab holds Markdown, MDX, AsciiDoc, HTML, reStructuredText, and DITA, unless a format can't express the feature. The page then says why. Every file is real, and Doc Detective runs each one. A check confirms that the inline and standalone variants resolve to the same steps, and that the detected variants agree with each other.
+
+For how each mode works, see [Detected tests](/docs/test-docs/detected), [Inline tests](/docs/test-docs/inline), and [Standalone tests](/docs/test-docs/standalone).
+
+## Find an example
+
+| To see | Go to |
+|---|---|
+| Opening pages, finding elements, clicking, typing, dragging, swiping, waiting, and checking links | [Navigation and interaction](/reference/docs-as-tests/navigation-interaction) |
+| HTTP requests, OpenAPI operations, stubbed requests, shell commands, code blocks, and browser scripts | [HTTP and code](/reference/docs-as-tests/http-code) |
+| Screenshots, crops, annotations, and recordings | [Screenshots and recordings](/reference/docs-as-tests/capture) |
+| Cookies, browser state, tabs, windows, processes, apps, and where a test runs | [Sessions and surfaces](/reference/docs-as-tests/sessions-surfaces) |
+| Variables, expressions, assertions, conditions, retries, and routing | [Data and control flow](/reference/docs-as-tests/data-control-flow) |
+| IDs, several tests in a file, setup, cleanup, ignore blocks, last-verified dates, includes, and DITA maps | [Test structure](/reference/docs-as-tests/structure) |
+| Every statement syntax and default detection rule, by format | [Formats](/reference/docs-as-tests/formats) |
+| Your own detection rules and statement syntax, from `fileTypes` | [Custom detection](/reference/docs-as-tests/custom-detection) |
+
+## What each mode can express
+
+| Feature | Detected | Inline | Standalone |
+|---|---|---|---|
+| Open, check, click, find, and type from links, bold text, and quoted text | From the prose | A `step` statement | A step |
+| Screenshots from an image with the `screenshot` class | From the prose | A `step` statement | A step |
+| HTTP requests from an `http` code block, and code from a `bash`, `python`, or `javascript` code block | From the prose | A `step` statement | A step |
+| DITA `<uicontrol>`, `<wintitle>`, `<xref>`, and `<link>` | From the prose, DITA only | A `step` statement | A step |
+| Every other action and option, such as `wait`, `record`, `startSurface`, and `dragAndDrop` | A `step` statement | A `step` statement | A step |
+| Test fields, such as `runOn`, `if`, `onFail`, and `publicVariables` | The `test` statement | The `test` statement | The test |
+| Test `before` and `after` | Not available | Not available | The test |
+
+With your own `fileTypes` rules, detection can produce any step from the prose. See [Custom detection](/reference/docs-as-tests/custom-detection).

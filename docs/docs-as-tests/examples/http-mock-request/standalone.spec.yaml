@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: http-mock-request
+    runOn:
+      - platforms:
+          - mac
+          - linux
+        browsers:
+          - name: chrome
+            headless: true
+    steps:
+      - mockRequest:
+          url: "**/api/invoices*"
+          method: GET
+          response:
+            statusCode: 200
+            headers:
+              x-mock: docs
+            bodyPath: invoices.json
+      - mockRequest:
+          url: http://localhost:8092/api/invoices
+          method: POST
+          response:
+            statusCode: 201
+            body:
+              id: inv-2
+      - mockRequest:
+          url: "**/api/notices"
+          response:
+            body:
+              - Invoices are due on the 3rd of each month.
+      - mockRequest:
+          url: "**/api/status"
+          response:
+            body: OK
+      - goTo: http://localhost:8092/
+      - runBrowserScript:
+          surface: chrome
+          script: return fetch(arguments[0]).then(async (r) => r.headers.get('x-mock') + ' ' + JSON.stringify(await r.json()));
+          args:
+            - /api/invoices?page=1
+          output: /^docs .*inv-1/
+          timeout: 10000
+      - runBrowserScript:
+          script: "return fetch('/api/invoices', { method: 'POST' }).then(async (r) => r.status + ' ' + (await r.json()).id);"
+          output: 201 inv-2
+      - runBrowserScript:
+          surface:
+            browser: chrome
+          script: return fetch('/api/notices').then((r) => r.json());
+          output: due on the 3rd
+          path: notices.json
+          directory: output
+          maxVariation: 0
+          overwrite: "false"
+      - runBrowserScript:
+          script: return fetch('/api/status').then((r) => r.text());
+          output: OK
+      - runBrowserScript: return document.title;

@@ -407,6 +407,30 @@ describe("spawnPtyBackgroundCommand (PTY)", function () {
     }
   });
 
+  // `args` are quoted for the shell and appended to the command string. On
+  // Windows that string reaches cmd.exe through node-pty, which must not
+  // re-escape the quotes (`\"`, which cmd doesn't understand), or the
+  // interpreter gets a mangled argv and exits 1. runCode passes its temp
+  // script this way.
+  it("passes quoted args through the platform shell intact", async function () {
+    if (!ptyAvailable) this.skip();
+    const probe = writeProbe(
+      "process.stdout.write('ARGV:'+JSON.stringify(process.argv.slice(2))+':END')"
+    );
+    const bg = await spawnPtyBackgroundCommand("node", [probe, "a b", "c"]);
+    try {
+      await waitForStdio(bg, "/ARGV:.*:END/", { deadline: Date.now() + 15000 }).catch(() => {});
+      assert.match(
+        bg.getCombined(),
+        /ARGV:\["a b","c"\]:END/,
+        `got: ${JSON.stringify(bg.getCombined().slice(-300))}`
+      );
+    } finally {
+      await bg.kill();
+      fs.rmSync(probe, { force: true });
+    }
+  });
+
   it("round-trips write + readiness over the PTY (node -i)", async function () {
     if (!ptyAvailable) this.skip();
     // Use the bare `node -i` command (no quoted exe path): under Windows
@@ -1253,6 +1277,43 @@ describe("runShell/runCode background (integration)", function () {
         processRegistry: registry,
       });
       if (tempPath) assert.equal(fs.existsSync(tempPath), false, "temp script removed on stop");
+    }
+  });
+
+  // A non-bash runCode runs through cmd.exe on Windows; under `tty` the temp
+  // script path must survive that shell, or node can't find the script.
+  it("runCode with background.tty runs a non-bash script to readiness", async function () {
+    // Skip before runCode when node-pty isn't installed: runCode would
+    // otherwise JIT-install it, which takes far longer than this suite allows.
+    const { loadHeavyDep } = await import("../dist/runtime/loader.js");
+    try {
+      await loadHeavyDep("@homebridge/node-pty-prebuilt-multiarch", { autoInstall: false });
+    } catch {
+      this.skip();
+    }
+    const registry = new Map();
+    try {
+      const result = await runCode({
+        config: {},
+        step: {
+          runCode: {
+            language: "javascript",
+            code: "console.log('tty-ready'); setInterval(() => {}, 1000);",
+            background: { name: "tty-js", tty: true, waitUntil: { stdio: "tty-ready" } },
+            timeout: 15000,
+          },
+        },
+        processRegistry: registry,
+      });
+      if (result.status === "SKIPPED") this.skip(); // PTY can't be created here
+      assert.equal(result.status, "PASS", result.description);
+    } finally {
+      if (registry.has("tty-js"))
+        await closeSurface({
+          config: {},
+          step: { closeSurface: "tty-js" },
+          processRegistry: registry,
+        });
     }
   });
 });

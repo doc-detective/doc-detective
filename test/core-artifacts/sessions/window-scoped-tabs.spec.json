@@ -1,0 +1,166 @@
+{
+  "specId": "window-scoped-tabs",
+  "description": "A tab the page opens (target=_blank link, window.open) belongs to the window of the tab that opened it, so `window` and `tab` selectors compose on it: integer and { index } forms, -1, title criteria, type, and closeSurface. A page-opened tab in a named window is filed under that window, not window 0.",
+  "tests": [
+    {
+      "testId": "page-opened-tabs-in-window-0",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "description": "A target=_blank link opens a tab in window 0.",
+          "click": {
+            "selector": "#open-link"
+          }
+        },
+        {
+          "description": "Integer window and tab selectors reach the page-opened tab.",
+          "find": {
+            "elementText": "PAGE linked",
+            "surface": {
+              "browser": "firefox",
+              "window": 0,
+              "tab": 1
+            }
+          }
+        },
+        {
+          "description": "window.open opens a second tab, from the home tab.",
+          "click": {
+            "selector": "#open-window",
+            "surface": {
+              "browser": "firefox",
+              "window": 0,
+              "tab": 0
+            }
+          }
+        },
+        {
+          "description": "-1 inside window 0 is the newest page-opened tab.",
+          "find": {
+            "elementText": "PAGE opened",
+            "surface": {
+              "browser": "firefox",
+              "window": 0,
+              "tab": -1
+            }
+          }
+        },
+        {
+          "description": "Title criteria inside an { index } window selector.",
+          "find": {
+            "elementText": "PAGE linked",
+            "surface": {
+              "browser": "firefox",
+              "window": {
+                "index": 0
+              },
+              "tab": {
+                "title": "Child linked"
+              }
+            }
+          }
+        },
+        {
+          "click": {
+            "selector": "#echo-input",
+            "surface": {
+              "browser": "firefox",
+              "window": 0,
+              "tab": 1
+            }
+          }
+        },
+        {
+          "description": "type reaches the page-opened tab through window and tab selectors.",
+          "type": {
+            "keys": "hi",
+            "surface": {
+              "browser": "firefox",
+              "window": 0,
+              "tab": 1
+            }
+          }
+        },
+        {
+          "find": {
+            "selector": "#echo-out",
+            "elementText": "hi",
+            "surface": {
+              "browser": "firefox",
+              "window": 0,
+              "tab": 1
+            }
+          }
+        },
+        {
+          "description": "closeSurface with { index } selectors closes the page-opened tab.",
+          "closeSurface": {
+            "browser": "firefox",
+            "window": {
+              "index": 0
+            },
+            "tab": {
+              "index": 1
+            }
+          }
+        },
+        {
+          "description": "The linked tab is gone, so tab 1 of window 0 is now the window.open tab.",
+          "find": {
+            "elementText": "PAGE opened",
+            "surface": {
+              "browser": "firefox",
+              "window": 0,
+              "tab": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "testId": "page-opened-tab-in-named-window",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab.html",
+            "newWindow": {
+              "name": "admin"
+            }
+          }
+        },
+        {
+          "description": "The link opens its tab from the admin window.",
+          "click": {
+            "selector": "#open-link"
+          }
+        },
+        {
+          "find": {
+            "elementText": "PAGE linked",
+            "surface": {
+              "browser": "firefox",
+              "window": "admin",
+              "tab": 1
+            }
+          }
+        },
+        {
+          "description": "Window 0 didn't gain the tab: its newest tab is still the home page.",
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": {
+              "browser": "firefox",
+              "window": 0,
+              "tab": -1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
