@@ -575,7 +575,7 @@ export function walkResults(results: any): WalkData {
           if (context?.viewportFloored === true) {
             data.viewportFloored = true;
           }
-          // A generated testId is `<specId>~<hash>` (ADR 01216).
+          // A generated testId is `<specId>~<hash>` (ADR 01233).
           if (context?.failureStatus === "new" && String(test?.testId ?? "").includes("~")) {
             data.newFailureWithGeneratedTestId = true;
           }

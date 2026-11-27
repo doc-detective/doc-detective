@@ -9,7 +9,7 @@ export { present, nonPassItems, existingFile, mediaPath, environmentLine, writeR
 
 const NON_PASS = ["FAIL", "WARNING", "SKIPPED"];
 
-// How a failed item reads against an earlier run (ADR 01216).
+// How a failed item reads against an earlier run (ADR 01233).
 const FAILURE_TAGS: Record<string, string> = { new: "new", existing: "already failing" };
 
 // A report's lists have holes: `contexts` is pre-allocated and filled as contexts
