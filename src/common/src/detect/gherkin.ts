@@ -134,7 +134,8 @@ export function parseGherkin(content: string, filePath = "", warn: (message: str
       if (!ignoring && emulate(text, emulation)) continue;
       const status = /^the response status (?:should be|is) (\d+)$/.exec(text);
       if (status && request) {
-        request.content += ` and the response status should be ${status[1]}`;
+        // An ignored status is dropped, and the request stays open for a later one.
+        if (!ignoring) request.content += ` and the response status should be ${status[1]}`;
         continue;
       }
       const table = /^I (fill in|should see):$/.exec(text);

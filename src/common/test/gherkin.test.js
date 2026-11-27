@@ -353,6 +353,22 @@ describe("gherkin", function () {
       expect(tests[0].steps).to.deep.equal([{ goTo: "http://x.test" }]);
     });
 
+    it("doesn't fold an ignored response status into the request before it", async function () {
+      const { tests } = await detect(
+        [
+          "Feature: Ignore",
+          "  Scenario: S",
+          '    When I send a GET request to "https://x.test"',
+          "    # test ignore start",
+          "    Then the response status should be 404",
+          "    # test ignore end",
+          "    And the response status should be 200",
+        ].join("\n")
+      );
+      expect(tests[0].steps).to.have.length(1);
+      expect(tests[0].steps[0].httpRequest.statusCodes).to.equal("200");
+    });
+
     it("keeps double quotes in a fill-in selector", async function () {
       const { tests, warnings } = await detect(
         ["Feature: Quotes", "  Scenario: S", "    When I fill in:", '      | [name="email"] | ada@example.com |'].join("\n")
