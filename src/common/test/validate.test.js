@@ -1501,16 +1501,16 @@ import { schemas } from "../dist/index.js";
         });
       }
 
-      it("accepts values from a file (ADR 01233)", function () {
+      it("accepts values from a file (ADR 01235)", function () {
         expect(check({ matrix: { page: { file: "pages.json" }, url: { file: "sitemap.xml" } } }).valid).to.be.true;
       });
 
-      it("rejects a file object with another key, or an empty path (ADR 01233)", function () {
+      it("rejects a file object with another key, or an empty path (ADR 01235)", function () {
         expect(check({ matrix: { page: { file: "pages.json", url: "x" } } }).valid).to.be.false;
         expect(check({ matrix: { page: { file: "" } } }).valid).to.be.false;
       });
 
-      it("accepts a goTo URL that starts with a matrix reference (ADR 01233)", function () {
+      it("accepts a goTo URL that starts with a matrix reference (ADR 01235)", function () {
         for (const goTo of ["$$matrix.url", { url: "$$matrix.url" }]) {
           const result = validate({ schemaKey: "step_v3", object: { goTo } });
           expect(result.valid, result.errors).to.be.true;

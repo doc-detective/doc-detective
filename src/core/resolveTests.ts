@@ -25,7 +25,7 @@ import {
 } from "../common/src/matrix.js";
 import { loadMatrixValues } from "../common/src/matrixFile.js";
 
-// A matrix with each `{ file }` key replaced by its values (ADR 01233). Each
+// A matrix with each `{ file }` key replaced by its values (ADR 01235). Each
 // file is read once per run; resolvePaths already made its path absolute.
 function loadMatrixFiles(matrix: any, config: any) {
   if (!matrix) return matrix;
@@ -467,7 +467,7 @@ async function resolveTests({ config, detectedTests }: { config: any; detectedTe
   // per resolveTests call so a config reused across runs never serves a stale
   // description.
   config._openApiDescriptionCache = new Map();
-  // Same for `matrix` files (ADR 01233).
+  // Same for `matrix` files (ADR 01235).
   config._matrixFileCache = new Map();
 
   log(config, "info", "Resolving test specs.");
