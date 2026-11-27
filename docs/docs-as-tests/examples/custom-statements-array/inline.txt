@@ -1,10 +1,10 @@
 Check the field label
 
-@test {"testId":"custom-statements-array","detectSteps":false}
+Test {"testId":"custom-statements-array","detectSteps":false}
 
 Open the type echo page at http://localhost:8092/type-echo.html.
-@step {"goTo":"http://localhost:8092/type-echo.html"}
+Step {"goTo":"http://localhost:8092/type-echo.html"}
 Check that the page shows Type here:.
-@step {"find":"Type here:"}
+Step {"find":"Type here:"}
 
-@end
+End test

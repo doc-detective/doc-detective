@@ -18,15 +18,15 @@
       "inlineStatements": {
         "testStart": [
           "(?:^|\\n)TEST (\\{.*\\})",
-          "(?:^|\\n)@test (\\{.*\\})"
+          "(?:^|\\n)Test (\\{.*\\})"
         ],
         "testEnd": [
           "(?:^|\\n)END TEST",
-          "(?:^|\\n)@end"
+          "(?:^|\\n)End test"
         ],
         "step": [
           "(?:^|\\n)STEP (\\{.*\\})",
-          "(?:^|\\n)@step (\\{.*\\})"
+          "(?:^|\\n)Step (\\{.*\\})"
         ]
       },
       "markup": [

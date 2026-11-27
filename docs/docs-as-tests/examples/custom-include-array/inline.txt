@@ -6,6 +6,7 @@ Open the type echo page at http://localhost:8092/type-echo.html.
 STEP {"goTo":"http://localhost:8092/type-echo.html"}
 INCLUDE check-label.txt
 STEP {"find":"Type here:"}
+Then check the heading.
 #include "check-heading.txt"
 STEP {"find":"Type Echo Test Page"}
 

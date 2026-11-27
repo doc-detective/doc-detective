@@ -894,21 +894,21 @@ The plain-text examples change the form of the regex statement keys. The others 
 
 ### Regex keys as arrays
 
-**Varies:** `inlineStatements.testStart` · **Value:** `["…TEST…", "…@test…"]` · **Effect:** each key holds several patterns, so `TEST` and `@test` both start a test. The detected variant uses the `@` forms.
+**Varies:** `inlineStatements.testStart` · **Value:** `["…TEST…", "…Test…"]` · **Effect:** each key holds several patterns, so `TEST` and `Test` both start a test. The detected and inline variants use the `Test`, `Step`, and `End test` forms.
 
 ```json
 {
   "testStart": [
     "(?:^|\\n)TEST (\\{.*\\})",
-    "(?:^|\\n)@test (\\{.*\\})"
+    "(?:^|\\n)Test (\\{.*\\})"
   ],
   "testEnd": [
     "(?:^|\\n)END TEST",
-    "(?:^|\\n)@end"
+    "(?:^|\\n)End test"
   ],
   "step": [
     "(?:^|\\n)STEP (\\{.*\\})",
-    "(?:^|\\n)@step (\\{.*\\})"
+    "(?:^|\\n)Step (\\{.*\\})"
   ]
 }
 ```
