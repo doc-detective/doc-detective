@@ -723,13 +723,13 @@ export interface Config {
    */
   output?: string;
   /**
-   * Path of the folder that holds the run folder and the html, junit, and markdown reports.
+   * Path of the folder that holds the run folder and the html, junit, markdown, and cucumber reports.
    */
   outputDir?: string;
   /**
-   * Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), and `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.
+   * Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file), and `cucumber` (Cucumber JSON for test-management tools such as Xray and Allure, written as `cucumber.json` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.
    */
-  reporters?: ("terminal" | "json" | "html" | "runFolder" | "junit" | "markdown")[];
+  reporters?: ("terminal" | "json" | "html" | "runFolder" | "junit" | "markdown" | "cucumber")[];
   /**
    * Regex patterns (case-insensitive) applied to each spec's `specId`. If set, only specs whose `specId` matches at least one pattern are run. Equivalent to `--spec` on the CLI. Each entry must contain at least one non-whitespace character.
    */

@@ -7961,7 +7961,8 @@
               "html",
               "runFolder",
               "junit",
-              "markdown"
+              "markdown",
+              "cucumber"
             ]
           },
           "default": [
@@ -16614,7 +16615,8 @@
               "html",
               "runFolder",
               "junit",
-              "markdown"
+              "markdown",
+              "cucumber"
             ]
           }
         },
