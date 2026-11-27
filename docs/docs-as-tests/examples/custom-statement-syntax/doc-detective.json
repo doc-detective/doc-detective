@@ -1,0 +1,58 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": false,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "beforeAll": "../../../test-setup/start-server.spec.json",
+  "afterAll": "../../../test-setup/stop-server.spec.json",
+  "telemetry": {
+    "send": false
+  },
+  "fileTypes": [
+    {
+      "name": "markdown-statements",
+      "extends": "markdown",
+      "inlineStatements": {
+        "testStart": ["<!--\\s*dd-test\\s+(\\{[\\s\\S]*?\\})\\s*-->", "<!--\\s*doc-detective-test\\s+(\\{[\\s\\S]*?\\})\\s*-->"],
+        "testEnd": ["<!--\\s*dd-end\\s*-->", "<!--\\s*doc-detective-end\\s*-->"],
+        "ignoreStart": ["<!--\\s*dd-skip\\s*-->", "<!--\\s*doc-detective-skip\\s*-->"],
+        "ignoreEnd": ["<!--\\s*dd-resume\\s*-->", "<!--\\s*doc-detective-resume\\s*-->"],
+        "step": ["<!--\\s*dd-step\\s+(\\{[\\s\\S]*?\\})\\s*-->", "<!--\\s*doc-detective-step\\s+(\\{[\\s\\S]*?\\})\\s*-->"],
+        "in": [
+          "comment",
+          { "comment": { "excludes": "^\\s*draft\\b" }, "regex": ["^dd:\\s*([\\s\\S]*)$", "^doc-detective:\\s*([\\s\\S]*)$"] },
+          { "codeBlock": "dd" },
+          { "codeBlock": { "language": ["doc-detective"], "metaExcludes": "\\bdraft\\b", "excludes": "^\\s*$" } },
+          { "link": { "url": "^#dd$", "attributes": { "class": "^dd$" }, "precededBy": "^\\s*$", "excludes": "\\S" }, "value": "title" },
+          { "image": { "src": "^#dd$", "attributes": { "class": "^dd$" }, "precededBy": "^\\s*$", "excludes": "^\\s*$" } },
+          { "strong": { "precededBy": "\\bTest:\\s*$", "excludes": "^\\s*$" } },
+          { "emphasis": { "precededBy": "\\bTest:\\s*$", "excludes": "^\\s*$" } },
+          { "text": { "excludes": "^(?!\\s*Test step:)" }, "regex": "^\\s*Test step:\\s*(step\\b[\\s\\S]*)$" },
+          { "element": "dd-statement" },
+          { "element": { "tag": ["span"], "precededBy": "^\\s*$", "excludes": "\\S" }, "value": "attributes.data-dd" }
+        ]
+      },
+      "markup": [
+        {
+          "name": "runCode",
+          "codeBlock": "bash",
+          "actions": ["runShell"]
+        },
+        {
+          "name": "runShellUnlessNoRun",
+          "codeBlock": { "language": ["sh", "shell"], "metaExcludes": "\\bno-run\\b" },
+          "actions": ["runShell"]
+        },
+        {
+          "name": "findOnscreenText",
+          "strong": { "excludes": "^(?:step|test)\\b" },
+          "actions": ["find"]
+        }
+      ]
+    },
+    "asciidoc",
+    "html",
+    "dita",
+    "rst"
+  ]
+}
