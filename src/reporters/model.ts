@@ -4,13 +4,13 @@ import path from "node:path";
 // Never import src/utils.ts here: it imports this file.
 import { log } from "../core/utils.js";
 
+// How a failed item reads against an earlier run (ADR 01233).
+const FAILURE_TAGS: Record<string, string> = { new: "new", existing: "already failing" };
+
 export { verdict } from "../cliOutput.js";
 export { present, nonPassItems, existingFile, mediaPath, environmentLine, writeReport, fixedPaths, comparisonLine, FAILURE_TAGS };
 
 const NON_PASS = ["FAIL", "WARNING", "SKIPPED"];
-
-// How a failed item reads against an earlier run (ADR 01233).
-const FAILURE_TAGS: Record<string, string> = { new: "new", existing: "already failing" };
 
 // A report's lists have holes: `contexts` is pre-allocated and filled as contexts
 // finish (ADR 01092). Each node comes with its 1-based position, for fallback IDs.
