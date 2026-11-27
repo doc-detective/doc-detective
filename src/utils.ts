@@ -574,7 +574,7 @@ async function setConfig({
   } else if (args.compareTo === false) {
     config.compareTo = false;
   }
-  // ADR 01217.
+  // ADR 01234.
   if (typeof args.failOn === "string") config.failOn = args.failOn;
   if (config.failOn === "new" && config.compareTo === false) {
     throw new Error("`failOn: new` needs a comparison. Remove `compareTo: false` or `--no-compare-to`.");

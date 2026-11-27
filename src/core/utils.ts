@@ -1664,7 +1664,7 @@ function configErrorMessage(source: string, errorObjects: ErrorObject[] | undefi
 // The CLI's exit code for a finished run (ADR 01146). `0` passed, `1` a spec
 // failed, `2` nothing was tested, which includes every spec skipping.
 // exitOnFail: false relaxes the last two. failOn: new exits 1 only for a new
-// failure, when there was a comparison (ADR 01217).
+// failure, when there was a comparison (ADR 01234).
 function runExitCode(results: any, config: any = {}): number {
   if (config.exitOnFail === false) return 0;
   const specs = results?.summary?.specs;
