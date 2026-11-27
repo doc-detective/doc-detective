@@ -192,7 +192,9 @@ Not every custom file type contains inline tests or markup patterns. Sometimes t
 An executable file type needs only two properties:
 
 - `extensions`: The file extensions to run with this command.
-- `runShell`: The [`runShell`](/docs/actions/runshell) step to perform. Use `$1` as a placeholder for the absolute path of the matched file. On Windows, the path uses forward slashes, such as `C:/docs/example.js`, so it works unquoted in the default shell. Quote it as `'$1'` if your paths can contain spaces.
+- `runShell`: The [`runShell`](/docs/actions/runshell) step to perform. Use `$1` as a placeholder for the absolute path of the matched file. On Windows, the path uses forward slashes, such as `C:/docs/example.js`, so it works unquoted in the default shell.
+
+Quote `$1` if your paths can contain spaces, as the examples below do with `node '$1'`. Commands run in [`bash` by default](/docs/actions/runshell#shell-selection), Windows included, so the same quoting works on every platform. Quote `$1` in `args` entries too, because Doc Detective joins `command` and `args` into one command line. If you set `shell` to `cmd` or `powershell`, use that shell's quoting instead.
 
 For example, this configuration runs every `.js` file with Node.js, every `.py` file with Python, and runs Jupyter notebooks through `jupyter nbconvert`:
 
@@ -203,14 +205,14 @@ For example, this configuration runs every `.js` file with Node.js, every `.py` 
       "name": "JavaScript",
       "extensions": "js",
       "runShell": {
-        "command": "node $1"
+        "command": "node '$1'"
       }
     },
     {
       "name": "Python",
       "extensions": "py",
       "runShell": {
-        "command": "python $1"
+        "command": "python '$1'"
       }
     },
     {
@@ -218,7 +220,7 @@ For example, this configuration runs every `.js` file with Node.js, every `.py` 
       "extensions": "ipynb",
       "runShell": {
         "command": "jupyter",
-        "args": ["nbconvert", "--to", "script", "--execute", "$1", "--stdout"]
+        "args": ["nbconvert", "--to", "script", "--execute", "'$1'", "--stdout"]
       }
     }
   ]

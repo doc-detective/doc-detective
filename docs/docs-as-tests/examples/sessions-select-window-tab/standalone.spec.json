@@ -1,0 +1,35 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-select-window-tab",
+      "runOn": [
+        {
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          },
+          "browserFallback": "off"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "click": "Open child in new tab"
+        },
+        {
+          "find": {
+            "elementText": "PAGE linked",
+            "surface": {
+              "browser": "firefox",
+              "window": 0,
+              "tab": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

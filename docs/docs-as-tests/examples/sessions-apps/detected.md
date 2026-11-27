@@ -13,6 +13,7 @@
    <!-- step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":"Character Map"}}} -->
    <!-- step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":{"name":"Character Map"}}}} -->
    <!-- step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":-1}}} -->
+   <!-- step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":{"index":-1}}}} -->
    <!-- step {"find":{"elementText":"Copy","surface":{"app":"charmap"}}} -->
 5. Close Character Map.
    <!-- step {"closeSurface":{"app":"charmap"}} -->

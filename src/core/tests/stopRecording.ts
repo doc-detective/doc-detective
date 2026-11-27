@@ -291,6 +291,10 @@ async function endRecording({
           await driver.switchToWindow(pickReturnHandle(remainingHandles));
         }
         await syncHandles(driver);
+        // The capture is over, so the sharing bar is gone: shrink the window
+        // that startRecording grew to make room for it.
+        const size = recording.restoreWindow;
+        if (size) await driver.setWindowSize(size.width, size.height).catch(() => {});
       };
 
       // Switch to recording tab
