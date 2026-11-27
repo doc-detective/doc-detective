@@ -1,6 +1,6 @@
 {
   "specId": "recording-headless-chrome",
-  "description": "Headless Chrome recording (ADR 01176): the browser engine captures the tab by title, sized to the viewport, with no display, so it runs on Windows, macOS, and Linux alike. Covers the auto engine, the explicit browser engine, a recording across a goTo navigation, a cursor restored from a position outside the viewport, headed Chrome, and headless Firefox, which stays SKIPPED. Chrome's tab-sharing bar would shorten the page while a tab is captured, so the runner grows the window by the bar's height (ADR 01227), and the video is the viewport's size, never tab capture's 800x600 default. Headless Chrome renders at a device pixel ratio of 1, so the viewport's CSS size is the video's pixel size; headed Chrome on a high-DPI screen records at device pixels, so its permutation asserts no size.",
+  "description": "Headless Chrome recording (ADR 01176): the browser engine captures the tab by title, sized to the viewport, with no display, so it runs on Windows, macOS, and Linux alike. Covers the auto engine, the explicit browser engine, a recording across a goTo navigation, a cursor restored from a position outside the viewport, headed Chrome, and headless Firefox, which stays SKIPPED. Chrome's tab-sharing bar would shorten the page while a tab is captured, so the runner grows the window by the bar's height (ADR 01228), and the video is the viewport's size, never tab capture's 800x600 default. Headless Chrome renders at a device pixel ratio of 1, so the viewport's CSS size is the video's pixel size; headed Chrome on a high-DPI screen records at device pixels, so its permutation asserts no size.",
   "tests": [
     {
       "testId": "headless-chrome-auto-engine",
@@ -122,7 +122,7 @@
     },
     {
       "testId": "headless-chrome-viewport-held",
-      "description": "An 800x600 viewport stays 800x600 while the sharing bar shows and after the recording stops, and the video is 800x600 (ADR 01227).",
+      "description": "An 800x600 viewport stays 800x600 while the sharing bar shows and after the recording stops, and the video is 800x600 (ADR 01228).",
       "runOn": [
         {
           "platforms": [
