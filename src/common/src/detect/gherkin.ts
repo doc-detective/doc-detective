@@ -3,7 +3,7 @@
  * Examples row of an Outline, becomes a `test <JSON>` comment, its steps, and a `test end`
  * comment, so the inline-statement handling in parseContent opens and closes each test. Each of
  * those nodes has a `sortIndex` inside the scenario's anchor, so Background steps replay inside
- * every test while keeping their real source spans (ADR 01233).
+ * every test while keeping their real source spans (ADR 01235).
  *
  * - A step is an `element` node with tag `step`. Its content is the text after the keyword.
  * - `#` comments are comment nodes. A `# test {...}` above a Scenario merges into its test, and

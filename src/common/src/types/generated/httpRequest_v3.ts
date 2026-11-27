@@ -54,7 +54,7 @@ export type HTTPRequestDetailed = {
   overwrite?: "true" | "false" | "aboveVariation";
 };
 /**
- * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.
  */
 export type TargetURL = string;
 /**

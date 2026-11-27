@@ -1,4 +1,4 @@
-# Step detection off for one test (ADR 01233): only inline `# step`
+# Step detection off for one test (ADR 01235): only inline `# step`
 # statements run, and unmapped steps don't warn.
 # test {"detectSteps": false}
 Feature: Step detection off

@@ -1,0 +1,62 @@
+{
+  "specId": "matrix-emulation",
+  "description": "Object `matrix` values drive Chrome's page emulation (ADR 01240, ADR 01223). Each of the four combinations asserts what the page sees, and writes its own screenshot through a path that references every key.",
+  "tests": [
+    {
+      "testId": "object-values-drive-emulation",
+      "description": "`locale` × `variant` gives four contexts. `deviceScaleFactor` gets a number through a whole-string reference.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true,
+              "colorScheme": "$$matrix.variant.theme",
+              "deviceScaleFactor": "$$matrix.variant.dpr",
+              "locale": "$$matrix.locale"
+            }
+          ],
+          "matrix": {
+            "locale": [
+              "en-US",
+              "de-DE"
+            ],
+            "variant": [
+              {
+                "theme": "light",
+                "dpr": 1
+              },
+              {
+                "theme": "dark",
+                "dpr": 2
+              }
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return [matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', devicePixelRatio, navigator.language].join(' ');",
+            "output": "/^$$matrix.variant.theme $$matrix.variant.dpr $$matrix.locale$/"
+          }
+        },
+        {
+          "screenshot": {
+            "path": "emulation-$$matrix.locale-$$matrix.variant.theme.png",
+            "directory": "output",
+            "overwrite": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -295,6 +295,15 @@ async function resolvePaths({
   }
 
   for (const property of Object.keys(object)) {
+    // A `matrix` key can be named like a path key, such as `path`, but its
+    // values are data, not paths (ADR 01240). Only a `{ file }` source is a
+    // path, resolved against the file that declares it (ADR 01241).
+    if (property === "matrix") {
+      for (const source of Object.values(object.matrix ?? {}) as any[]) {
+        if (typeof source?.file === "string") source.file = resolve(relativePathBase, source.file, filePath);
+      }
+      continue;
+    }
     if (Array.isArray(object[property])) {
       // A mock's `responses` hold user payloads; their `bodyPath` resolves below.
       if (objectType === "spec" && specNoResolve.includes(property)) continue;
