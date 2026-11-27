@@ -9,7 +9,7 @@ Run this JavaScript with Node.js:
 
 Run the same greeting in Python:
 
-.. code-block:: python
+.. code-block:: py
 
    print("Hello from Python")
 

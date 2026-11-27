@@ -16,8 +16,15 @@ Content-Type: application/json
     <p>To list the second page of users, send a <codeph>GET</codeph> request with the <codeph>page</codeph> parameter:</p>
     <codeblock>GET http://localhost:8092/api/users?page=2
 X-Test: docs</codeblock>
-    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/users","method":"get","request":{"headers":{"X-Test":"docs"},"parameters":{"page":"2"}},"timeout":10000,"response":{"headers":{"x-echo-test":"docs"},"body":{"page":"2"},"required":["page"]},"path":"users-page-2.json","maxVariation":0.1,"overwrite":"aboveVariation"}}'/>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8092/api/users","method":"get","request":{"headers":{"X-Test":"docs"},"parameters":{"page":"2"}},"statusCodes":200,"timeout":10000,"response":{"headers":{"x-echo-test":"docs"},"body":{"page":"2"},"required":["page"]},"path":"users-page-2.json","directory":"responses","maxVariation":0.1,"overwrite":"aboveVariation"}}'/>
     <p>The response echoes the <codeph>page</codeph> parameter, and its <codeph>x-echo-test</codeph> header repeats the <codeph>X-Test</codeph> header you sent.</p>
+    <p>To create several users at once, send them as a JSON array:</p>
+    <codeblock outputclass="language-http">POST http://localhost:8093/api/users/batch HTTP/1.1
+Content-Type: application/json
+
+[{"name": "Ada"}, {"name": "Grace"}]</codeblock>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8093/api/users/batch","method":"post","request":{"headers":{"Content-Type":"application/json"},"body":[{"name":"Ada"},{"name":"Grace"}]},"response":{"body":[{"name":"Ada"},{"name":"Grace"}]}}}'/>
+    <p>The response echoes the array.</p>
     <data name="doc-detective" value="test end"/>
   </body>
 </topic>

@@ -254,7 +254,7 @@ From the folder that holds this page, print the folder's name. The output matche
 node -e "console.log(require('path').basename(process.cwd()))"
 ```
 
-<!-- step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}} -->
+<!-- step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}} -->
 
 Start a preview process, and wait until it prints `Preview ready`:
 
@@ -309,7 +309,7 @@ From the folder that holds this page, print the folder's name. The output matche
 node -e "console.log(require('path').basename(process.cwd()))"
 ```
 
-{/* step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}} */}
+{/* step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}} */}
 
 Start a preview process, and wait until it prints `Preview ready`:
 
@@ -368,7 +368,7 @@ From the folder that holds this page, print the folder's name. The output matche
 node -e "console.log(require('path').basename(process.cwd()))"
 ----
 
-// (step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}})
+// (step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}})
 
 Start a preview process, and wait until it prints `Preview ready`:
 
@@ -407,7 +407,7 @@ Stop the preview process when you're done.
 <!-- step {"runShell":{"command":"node -e \"process.exit(1)\"","shell":"bash","exitCodes":[1],"timeout":10000}} -->
 <p>From the folder that holds this page, print the folder's name. The output matches the saved copy in <code>folder-name.txt</code>:</p>
 <pre><code class="language-shell">node -e "console.log(require('path').basename(process.cwd()))"</code></pre>
-<!-- step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}} -->
+<!-- step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}} -->
 <p>Start a preview process, and wait until it prints <code>Preview ready</code>:</p>
 <pre><code class="language-shell">node -e "console.log('Preview ready'); setInterval(() =&gt; {}, 1000)"</code></pre>
 <!-- step {"runShell":{"command":"node -e \"console.log('Preview ready'); setInterval(() => {}, 1000)\"","background":{"name":"http-shell-preview","waitUntil":{"stdio":"Preview ready","delayMs":250}},"timeout":15000}} -->
@@ -457,7 +457,7 @@ From the folder that holds this page, print the folder's name. The output matche
 
    node -e "console.log(require('path').basename(process.cwd()))"
 
-.. step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}}
+.. step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}}
 
 Start a preview process, and wait until it prints ``Preview ready``:
 
@@ -495,7 +495,7 @@ Stop the preview process when you're done.
     <data name="doc-detective" value='step {"runShell":{"command":"node -e \"process.exit(1)\"","shell":"bash","exitCodes":[1],"timeout":10000}}'/>
     <p>From the folder that holds this page, print the folder's name. The output matches the saved copy in <codeph>folder-name.txt</codeph>:</p>
     <codeblock outputclass="language-shell">node -e "console.log(require('path').basename(process.cwd()))"</codeblock>
-    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(require(&apos;path&apos;).basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}}'/>
+    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(require(&apos;path&apos;).basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}}'/>
     <p>Start a preview process, and wait until it prints <codeph>Preview ready</codeph>:</p>
     <codeblock outputclass="language-shell">node -e "console.log('Preview ready'); setInterval(() =&gt; {}, 1000)"</codeblock>
     <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(&apos;Preview ready&apos;); setInterval(() => {}, 1000)\"","background":{"name":"http-shell-preview","waitUntil":{"stdio":"Preview ready","delayMs":250}},"timeout":15000}}'/>
@@ -548,7 +548,7 @@ From the folder that holds this page, print the folder's name. The output matche
 node -e "console.log(require('path').basename(process.cwd()))"
 ```
 
-<!-- step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}} -->
+<!-- step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}} -->
 
 Start a preview process, and wait until it prints `Preview ready`:
 
@@ -603,7 +603,7 @@ From the folder that holds this page, print the folder's name. The output matche
 node -e "console.log(require('path').basename(process.cwd()))"
 ```
 
-{/* step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}} */}
+{/* step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}} */}
 
 Start a preview process, and wait until it prints `Preview ready`:
 
@@ -662,7 +662,7 @@ From the folder that holds this page, print the folder's name. The output matche
 node -e "console.log(require('path').basename(process.cwd()))"
 ----
 
-// (step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}})
+// (step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}})
 
 Start a preview process, and wait until it prints `Preview ready`:
 
@@ -701,7 +701,7 @@ Stop the preview process when you're done.
 <!-- step {"runShell":{"command":"node -e \"process.exit(1)\"","shell":"bash","exitCodes":[1],"timeout":10000}} -->
 <p>From the folder that holds this page, print the folder's name. The output matches the saved copy in <code>folder-name.txt</code>:</p>
 <pre><code class="language-shell">node -e "console.log(require('path').basename(process.cwd()))"</code></pre>
-<!-- step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}} -->
+<!-- step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}} -->
 <p>Start a preview process, and wait until it prints <code>Preview ready</code>:</p>
 <pre><code class="language-shell">node -e "console.log('Preview ready'); setInterval(() =&gt; {}, 1000)"</code></pre>
 <!-- step {"runShell":{"command":"node -e \"console.log('Preview ready'); setInterval(() => {}, 1000)\"","background":{"name":"http-shell-preview","waitUntil":{"stdio":"Preview ready","delayMs":250}},"timeout":15000}} -->
@@ -751,7 +751,7 @@ From the folder that holds this page, print the folder's name. The output matche
 
    node -e "console.log(require('path').basename(process.cwd()))"
 
-.. step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}}
+.. step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}}
 
 Start a preview process, and wait until it prints ``Preview ready``:
 
@@ -789,7 +789,7 @@ Stop the preview process when you're done.
     <data name="doc-detective" value='step {"runShell":{"command":"node -e \"process.exit(1)\"","shell":"bash","exitCodes":[1],"timeout":10000}}'/>
     <p>From the folder that holds this page, print the folder's name. The output matches the saved copy in <codeph>folder-name.txt</codeph>:</p>
     <codeblock outputclass="language-shell">node -e "console.log(require('path').basename(process.cwd()))"</codeblock>
-    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(require(&apos;path&apos;).basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}}'/>
+    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(require(&apos;path&apos;).basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}}'/>
     <p>Start a preview process, and wait until it prints <codeph>Preview ready</codeph>:</p>
     <codeblock outputclass="language-shell">node -e "console.log('Preview ready'); setInterval(() =&gt; {}, 1000)"</codeblock>
     <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(&apos;Preview ready&apos;); setInterval(() => {}, 1000)\"","background":{"name":"http-shell-preview","waitUntil":{"stdio":"Preview ready","delayMs":250}},"timeout":15000}}'/>
@@ -842,6 +842,7 @@ Stop the preview process when you're done.
             "workingDirectory": ".",
             "stdio": "http-run-shell",
             "path": "folder-name.txt",
+            "directory": "output",
             "maxVariation": 0.1,
             "overwrite": "aboveVariation"
           }
@@ -893,6 +894,7 @@ tests:
           workingDirectory: .
           stdio: http-run-shell
           path: folder-name.txt
+          directory: output
           maxVariation: 0.1
           overwrite: aboveVariation
       - runShell:

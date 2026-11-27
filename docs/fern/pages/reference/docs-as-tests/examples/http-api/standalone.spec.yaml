@@ -25,6 +25,7 @@ tests:
               X-Test: docs
             parameters:
               page: "2"
+          statusCodes: 200
           timeout: 10000
           response:
             headers:
@@ -34,5 +35,19 @@ tests:
             required:
               - page
           path: users-page-2.json
+          directory: responses
           maxVariation: 0.1
           overwrite: aboveVariation
+      - httpRequest:
+          url: http://localhost:8093/api/users/batch
+          method: post
+          request:
+            headers:
+              Content-Type: application/json
+            body:
+              - name: Ada
+              - name: Grace
+          response:
+            body:
+              - name: Ada
+              - name: Grace

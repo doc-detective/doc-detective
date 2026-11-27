@@ -33,7 +33,7 @@ From the folder that holds this page, print the folder's name. The output matche
 
    node -e "console.log(require('path').basename(process.cwd()))"
 
-.. step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","maxVariation":0.1,"overwrite":"aboveVariation"}}
+.. step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}}
 
 Start a preview process, and wait until it prints ``Preview ready``:
 

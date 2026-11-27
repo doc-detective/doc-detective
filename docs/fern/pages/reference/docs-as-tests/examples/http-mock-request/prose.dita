@@ -5,9 +5,13 @@
   <body>
     <p>Stub the invoices endpoint so that every <codeph>GET</codeph> request returns the invoices in <codeph>invoices.json</codeph>.</p>
     <p>Stub invoice creation too, so that a <codeph>POST</codeph> request returns a new invoice ID.</p>
+    <p>Stub the notices endpoint with one billing notice.</p>
+    <p>Stub the status endpoint so that it reports <codeph>OK</codeph>.</p>
     <p>Open the test site at <codeph>http://localhost:8092/</codeph>.</p>
     <p>In the browser console, fetch <codeph>/api/invoices?page=1</codeph>. The response lists invoice <codeph>inv-1</codeph>.</p>
-    <p>Send a <codeph>POST</codeph> request to <codeph>/api/invoices</codeph>. The response status is <codeph>201</codeph>.</p>
+    <p>Send a <codeph>POST</codeph> request to <codeph>/api/invoices</codeph>. The response status is <codeph>201</codeph>, and the body is the new ID, <codeph>inv-2</codeph>.</p>
+    <p>Fetch <codeph>/api/notices</codeph>. The notice says when invoices are due, and matches the copy saved in <codeph>output/notices.json</codeph>.</p>
+    <p>Fetch <codeph>/api/status</codeph>. The response is the text <codeph>OK</codeph>.</p>
     <p>Check the page title by evaluating <codeph>document.title</codeph> in the console.</p>
   </body>
 </topic>

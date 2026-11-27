@@ -6,7 +6,7 @@
     <p>Run this JavaScript with Node.js:</p>
     <codeblock outputclass="language-javascript">console.log("Hello from JavaScript");</codeblock>
     <p>Run the same greeting in Python:</p>
-    <codeblock outputclass="language-python">print("Hello from Python")</codeblock>
+    <codeblock outputclass="language-py">print("Hello from Python")</codeblock>
     <p>Or in Bash:</p>
     <codeblock outputclass="language-bash">echo "Hello from Bash"</codeblock>
     <p>To install the greeter for every project on your machine, run:</p>

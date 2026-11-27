@@ -2,11 +2,11 @@
 <html lang="en">
 <head><title>Create a user from the API description</title></head>
 <body>
-<!-- test {"testId":"http-openapi","detectSteps":true,"openApi":[{"name":"users","descriptionPath":"users.openapi.json","validateAgainstSchema":"both","headers":{"X-Test":"docs"}}]} -->
+<!-- test {"testId":"http-openapi","detectSteps":true,"openApi":[{"name":"users","descriptionPath":"users.openapi.json","validateAgainstSchema":"both","headers":"X-Test: docs"}]} -->
 <h1>Create a user from the API description</h1>
 <p>The Users API description, <code>users.openapi.json</code>, defines each operation with an example.</p>
 <p>Call the <code>createUser</code> operation with its example request. The response matches the example user, Ada.</p>
-<!-- step {"httpRequest":{"openApi":{"name":"users","operationId":"createUser","useExample":"both","server":"http://localhost:8093/api","statusCode":200}}} -->
+<!-- step {"httpRequest":{"openApi":{"name":"users","operationId":"createUser","headers":{"X-Request-Source":"docs"},"useExample":"both","server":"http://localhost:8093/api","statusCode":200}}} -->
 <p>Call <code>createUser</code> again with your own user. The response includes the <code>name</code> and <code>job</code> fields.</p>
 <!-- step {"httpRequest":{"openApi":"createUser","request":{"body":{"name":"Grace","job":"admiral"}},"response":{"body":{"name":"Grace"},"required":["name","job"]}}} -->
 <p>The <code>getUser</code> operation isn't live yet, so preview its response from the description's <code>ada</code> example.</p>

@@ -3,10 +3,10 @@
 <topic id="http-openapi">
   <title>Create a user from the API description</title>
   <body>
-    <data name="doc-detective" value='test {"testId":"http-openapi","detectSteps":true,"openApi":[{"name":"users","descriptionPath":"users.openapi.json","validateAgainstSchema":"both","headers":{"X-Test":"docs"}}]}'/>
+    <data name="doc-detective" value='test {"testId":"http-openapi","detectSteps":true,"openApi":[{"name":"users","descriptionPath":"users.openapi.json","validateAgainstSchema":"both","headers":"X-Test: docs"}]}'/>
     <p>The Users API description, <codeph>users.openapi.json</codeph>, defines each operation with an example.</p>
     <p>Call the <codeph>createUser</codeph> operation with its example request. The response matches the example user, Ada.</p>
-    <data name="doc-detective" value='step {"httpRequest":{"openApi":{"name":"users","operationId":"createUser","useExample":"both","server":"http://localhost:8093/api","statusCode":200}}}'/>
+    <data name="doc-detective" value='step {"httpRequest":{"openApi":{"name":"users","operationId":"createUser","headers":{"X-Request-Source":"docs"},"useExample":"both","server":"http://localhost:8093/api","statusCode":200}}}'/>
     <p>Call <codeph>createUser</codeph> again with your own user. The response includes the <codeph>name</codeph> and <codeph>job</codeph> fields.</p>
     <data name="doc-detective" value='step {"httpRequest":{"openApi":"createUser","request":{"body":{"name":"Grace","job":"admiral"}},"response":{"body":{"name":"Grace"},"required":["name","job"]}}}'/>
     <p>The <codeph>getUser</codeph> operation isn't live yet, so preview its response from the description's <codeph>ada</codeph> example.</p>

@@ -8,8 +8,13 @@ tests:
           stdio: Hello from JavaScript
           exitCodes:
             - 0
+          workingDirectory: .
+          timeout: 10000
+          path: output/greeting.txt
+          maxVariation: 0
+          overwrite: "false"
       - runCode:
-          language: python
+          language: py
           code: print("Hello from Python")
           stdio: /^Hello from Python/
       - runCode:

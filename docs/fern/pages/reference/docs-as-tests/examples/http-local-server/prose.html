@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Run a local server</title></head>
+<body>
+<h1>Run a local server</h1>
+<p>Start the sample API server. It takes the port as an argument and prints <code>Listening</code> when it's ready:</p>
+<pre><code class="language-js">const http = require("http");
+const port = Number(process.argv[2]);
+http.createServer((req, res) =&gt; res.end("ok")).listen(port, () =&gt; console.log("Listening"));</code></pre>
+<p>Check the server's health endpoint at <code>http://localhost:8231/health</code>. It returns <code>ok</code>.</p>
+<p>Stop the server when you're done.</p>
+<p>To start a quick server from your shell instead, run:</p>
+<pre><code class="language-shell">node -e "require('http').createServer((q, r) =&gt; r.end('ok')).listen(8232)"</code></pre>
+<p>Stop it the same way.</p>
+<p>Terminal apps size their output to the terminal. To see the size an app gets in a 100-by-40 terminal, run:</p>
+<pre><code class="language-shell">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</code></pre>
+<p>Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:</p>
+<pre><code class="language-bash">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</code></pre>
+<p>Stop that process, then run the script again in an 80-by-24 terminal.</p>
+<p>Stop that process too.</p>
+</body>
+</html>

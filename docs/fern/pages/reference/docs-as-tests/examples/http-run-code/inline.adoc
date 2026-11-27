@@ -9,16 +9,16 @@ Run this JavaScript with Node.js:
 console.log("Hello from JavaScript");
 ----
 
-// (step {"runCode":{"language":"javascript","code":"console.log(\"Hello from JavaScript\");","stdio":"Hello from JavaScript","exitCodes":[0]}})
+// (step {"runCode":{"language":"javascript","code":"console.log(\"Hello from JavaScript\");","stdio":"Hello from JavaScript","exitCodes":[0],"workingDirectory":".","timeout":10000,"path":"output/greeting.txt","maxVariation":0,"overwrite":"false"}})
 
 Run the same greeting in Python:
 
-[source,python]
+[source,py]
 ----
 print("Hello from Python")
 ----
 
-// (step {"runCode":{"language":"python","code":"print(\"Hello from Python\")","stdio":"/^Hello from Python/"}})
+// (step {"runCode":{"language":"py","code":"print(\"Hello from Python\")","stdio":"/^Hello from Python/"}})
 
 Or in Bash:
 

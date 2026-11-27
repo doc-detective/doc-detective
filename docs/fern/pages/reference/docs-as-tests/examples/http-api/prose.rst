@@ -20,3 +20,14 @@ To list the second page of users, send a ``GET`` request with the ``page`` param
    X-Test: docs
 
 The response echoes the ``page`` parameter, and its ``x-echo-test`` header repeats the ``X-Test`` header you sent.
+
+To create several users at once, send them as a JSON array:
+
+.. code-block:: http
+
+   POST http://localhost:8093/api/users/batch HTTP/1.1
+   Content-Type: application/json
+
+   [{"name": "Ada"}, {"name": "Grace"}]
+
+The response echoes the array.

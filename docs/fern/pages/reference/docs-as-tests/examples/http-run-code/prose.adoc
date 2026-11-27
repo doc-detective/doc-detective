@@ -9,7 +9,7 @@ console.log("Hello from JavaScript");
 
 Run the same greeting in Python:
 
-[source,python]
+[source,py]
 ----
 print("Hello from Python")
 ----

@@ -19,6 +19,7 @@ tests:
           workingDirectory: .
           stdio: http-run-shell
           path: folder-name.txt
+          directory: output
           maxVariation: 0.1
           overwrite: aboveVariation
       - runShell:
