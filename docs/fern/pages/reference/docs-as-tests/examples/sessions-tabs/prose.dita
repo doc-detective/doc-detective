@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-tabs">
+  <title>Compare pages in tabs, windows, and sessions</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd></step>
+      <step><cmd>Click the Open child in new tab link. The child page opens in a new tab.</cmd></step>
+      <step><cmd>In the newest tab, check that the page reads "PAGE linked".</cmd></step>
+      <step><cmd>In a new tab named <codeph>report</codeph>, load <xref href="http://localhost:8092/multi-tab-child.html?page=report" scope="external" format="html">the report page</xref>.</cmd></step>
+      <step><cmd>In a new window named <codeph>settings</codeph>, load <xref href="http://localhost:8092/multi-tab-child.html?page=settings" scope="external" format="html">the settings page</xref>.</cmd></step>
+      <step><cmd>Start a second Firefox session named <codeph>reviewer</codeph>, with an 800 by 600 viewport, and load <xref href="http://localhost:8092/multi-tab-child.html?page=review" scope="external" format="html">the review page</xref> in it.</cmd></step>
+      <step><cmd>In the first tab of the first session, check that the page still reads "MULTI-TAB HOME".</cmd></step>
+      <step><cmd>Close the child tab, the <codeph>report</codeph> tab, the <codeph>settings</codeph> window, and the <codeph>reviewer</codeph> session.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

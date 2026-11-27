@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-state">
+  <title>Reuse a signed-in browser state</title>
+  <taskbody>
+    <context><p>Run these steps in Firefox and in Chrome.</p></context>
+    <data name="doc-detective" value='test {"testId":"sessions-state","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"browsers":[{"name":"firefox","headless":true,"window":{"width":1280,"height":900},"viewport":{"width":1200,"height":800}}],"browserFallback":"off","retries":2},{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true}}]}'/>
+    <steps>
+      <step><cmd>Sign in at <xref href="http://localhost:8092/cookies/set/sessions_state/signed-in" scope="external" format="html">the sign-in page</xref>. The server sets the <codeph>sessions_state</codeph> cookie.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"}'/></info></step>
+      <step><cmd>Save the browser state to <codeph>sessions-state.json</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"saveState":{"path":"sessions-state.json","overwrite":true}}'/></info></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies/set/sessions_state/signed-out" scope="external" format="html">the sign-out page</xref>, which replaces the cookie.</cmd></step>
+      <step><cmd>Load the browser state from <codeph>sessions-state.json</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"loadState":"sessions-state.json"}'/></info></step>
+      <step><cmd>Go to <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookie report</xref>, and check that it shows <b>sessions_state=signed-in</b>.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

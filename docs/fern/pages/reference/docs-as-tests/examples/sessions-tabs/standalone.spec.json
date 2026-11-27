@@ -1,0 +1,94 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-tabs",
+      "runOn": [
+        {
+          "browsers": {
+            "name": "firefox",
+            "headless": true
+          },
+          "browserFallback": "off"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/multi-tab.html"
+        },
+        {
+          "click": "Open child in new tab"
+        },
+        {
+          "find": {
+            "elementText": "PAGE linked",
+            "surface": {
+              "browser": "firefox",
+              "tab": -1
+            }
+          }
+        },
+        {
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=report",
+            "newTab": "report"
+          }
+        },
+        {
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=settings",
+            "newWindow": "settings"
+          }
+        },
+        {
+          "startSurface": {
+            "browser": "firefox",
+            "name": "reviewer",
+            "headless": true,
+            "viewport": {
+              "width": 800,
+              "height": 600
+            }
+          }
+        },
+        {
+          "goTo": {
+            "url": "http://localhost:8092/multi-tab-child.html?page=review",
+            "surface": {
+              "browser": "firefox",
+              "name": "reviewer"
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "MULTI-TAB HOME",
+            "surface": {
+              "browser": "firefox",
+              "tab": 0
+            }
+          }
+        },
+        {
+          "closeSurface": [
+            {
+              "browser": "firefox",
+              "tab": {
+                "title": "Child linked"
+              }
+            },
+            {
+              "browser": "firefox",
+              "tab": "report"
+            },
+            {
+              "browser": "firefox",
+              "window": "settings"
+            },
+            "reviewer"
+          ]
+        }
+      ]
+    }
+  ]
+}

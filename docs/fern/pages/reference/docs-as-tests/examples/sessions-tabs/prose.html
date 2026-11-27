@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Compare pages in tabs, windows, and sessions</title></head>
+<body>
+<h1>Compare pages in tabs, windows, and sessions</h1>
+<ol>
+  <li>Start at <a href="http://localhost:8092/multi-tab.html">the multi-tab page</a>.</li>
+  <li>Click the Open child in new tab link. The child page opens in a new tab.</li>
+  <li>In the newest tab, check that the page reads "PAGE linked".</li>
+  <li>In a new tab named <code>report</code>, load <a href="http://localhost:8092/multi-tab-child.html?page=report">the report page</a>.</li>
+  <li>In a new window named <code>settings</code>, load <a href="http://localhost:8092/multi-tab-child.html?page=settings">the settings page</a>.</li>
+  <li>Start a second Firefox session named <code>reviewer</code>, with an 800 by 600 viewport, and load <a href="http://localhost:8092/multi-tab-child.html?page=review">the review page</a> in it.</li>
+  <li>In the first tab of the first session, check that the page still reads "MULTI-TAB HOME".</li>
+  <li>Close the child tab, the <code>report</code> tab, the <code>settings</code> window, and the <code>reviewer</code> session.</li>
+</ol>
+</body>
+</html>

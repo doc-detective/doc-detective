@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dita PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
+<dita>
+  <topic id="sessions-apps">
+    <title>Open a built-in app</title>
+  </topic>
+  <task id="sessions-apps-windows">
+    <title>Windows: Character Map</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"sessions-apps-windows","detectSteps":true,"runOn":[{"platforms":"windows"}]}'/>
+      <steps>
+        <step><cmd>Open Character Map, and wait for its Select button.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":{"app":"C:\\Windows\\System32\\charmap.exe","name":"charmap","timeout":120000,"waitUntil":{"find":{"elementText":"Select"}}}}'/></info></step>
+        <step><cmd>Click <uicontrol>Select</uicontrol>.</cmd></step>
+        <step><cmd>Check that the window shows the <b>Copy</b> button.</cmd></step>
+        <step><cmd>Close Character Map.</cmd>
+          <info><data name="doc-detective" value='step {"closeSurface":{"app":"charmap"}}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+  <task id="sessions-apps-mac">
+    <title>macOS: Calculator</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"sessions-apps-mac","detectSteps":true,"runOn":[{"platforms":"mac"}]}'/>
+      <steps>
+        <step><cmd>Open Calculator, and wait for its <codeph>1</codeph> button.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":{"app":"/System/Applications/Calculator.app","name":"calculator","timeout":180000,"waitUntil":{"find":{"elementAria":"1"}}}}'/></info></step>
+        <step><cmd>Press the <codeph>1</codeph> button.</cmd>
+          <info><data name="doc-detective" value='step {"click":{"elementAria":"1"}}'/></info></step>
+        <step><cmd>Close Calculator.</cmd>
+          <info><data name="doc-detective" value='step {"closeSurface":"calculator"}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+  <task id="sessions-apps-android">
+    <title>Android: Settings</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"sessions-apps-android","detectSteps":true,"runOn":[{"platforms":"android"}]}'/>
+      <steps>
+        <step><cmd>Open the Settings app, and wait for the Network &amp; internet entry.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":{"app":"com.android.settings","name":"settings","timeout":180000,"waitUntil":{"find":{"elementText":"Network &amp; internet"}}}}'/></info></step>
+        <step><cmd>Tap the Network &amp; internet entry.</cmd>
+          <info><data name="doc-detective" value='step {"click":"Network &amp; internet"}'/></info></step>
+        <step><cmd>Check that the screen shows <b>Internet</b>.</cmd></step>
+        <step><cmd>Close the Settings app.</cmd>
+          <info><data name="doc-detective" value='step {"closeSurface":{"app":"settings"}}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+  <task id="sessions-apps-ios">
+    <title>iOS: Settings</title>
+    <taskbody>
+      <data name="doc-detective" value='test {"testId":"sessions-apps-ios","detectSteps":true,"runOn":[{"platforms":"ios","device":{"name":"sessions-iphone","deviceType":"phone"}}]}'/>
+      <steps>
+        <step><cmd>On an iPhone simulator named <codeph>sessions-iphone</codeph>, open the Settings app, and wait for the General entry.</cmd>
+          <info><data name="doc-detective" value='step {"startSurface":{"app":"com.apple.Preferences","name":"preferences","timeout":180000,"waitUntil":{"find":{"elementText":"General"}}}}'/></info></step>
+        <step><cmd>Tap the General entry.</cmd>
+          <info><data name="doc-detective" value='step {"click":"General"}'/></info></step>
+        <step><cmd>Check that the screen shows <b>About</b>.</cmd></step>
+        <step><cmd>Close the Settings app.</cmd>
+          <info><data name="doc-detective" value='step {"closeSurface":{"app":"preferences"}}'/></info></step>
+      </steps>
+      <data name="doc-detective" value="test end"/>
+    </taskbody>
+  </task>
+</dita>

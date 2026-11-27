@@ -1,0 +1,104 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-process-surface",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ],
+          "requires": "node"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "process": "node",
+            "args": [
+              "-i"
+            ],
+            "name": "sessions-repl",
+            "waitUntil": {
+              "stdio": "/>/"
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "40 + 2",
+              "$ENTER$"
+            ],
+            "surface": "sessions-repl",
+            "waitUntil": {
+              "stdio": "/42/"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "closeSurface": {
+            "process": "sessions-repl"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "sessions-process-background",
+      "autoRecord": false,
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ],
+          "requires": {
+            "commands": [
+              "node"
+            ],
+            "env": [
+              "PATH"
+            ]
+          }
+        }
+      ],
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -i",
+            "background": {
+              "name": "sessions-bg-repl",
+              "waitUntil": {
+                "stdio": "/>/"
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        {
+          "type": {
+            "keys": [
+              "Math.pow(2, 10)",
+              "$ENTER$"
+            ],
+            "surface": {
+              "process": "sessions-bg-repl"
+            },
+            "waitUntil": {
+              "stdio": "/1024/"
+            },
+            "timeout": 10000
+          }
+        },
+        {
+          "closeSurface": "sessions-bg-repl"
+        }
+      ]
+    }
+  ]
+}

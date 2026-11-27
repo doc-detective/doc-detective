@@ -1,0 +1,138 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-apps-windows",
+      "runOn": [
+        {
+          "platforms": "windows"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "C:\\Windows\\System32\\charmap.exe",
+            "name": "charmap",
+            "timeout": 120000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Select"
+              }
+            }
+          }
+        },
+        {
+          "click": "Select"
+        },
+        {
+          "find": "Copy"
+        },
+        {
+          "closeSurface": {
+            "app": "charmap"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "sessions-apps-mac",
+      "runOn": [
+        {
+          "platforms": "mac"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "/System/Applications/Calculator.app",
+            "name": "calculator",
+            "timeout": 180000,
+            "waitUntil": {
+              "find": {
+                "elementAria": "1"
+              }
+            }
+          }
+        },
+        {
+          "click": {
+            "elementAria": "1"
+          }
+        },
+        {
+          "closeSurface": "calculator"
+        }
+      ]
+    },
+    {
+      "testId": "sessions-apps-android",
+      "runOn": [
+        {
+          "platforms": "android"
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.android.settings",
+            "name": "settings",
+            "timeout": 180000,
+            "waitUntil": {
+              "find": {
+                "elementText": "Network & internet"
+              }
+            }
+          }
+        },
+        {
+          "click": "Network & internet"
+        },
+        {
+          "find": "Internet"
+        },
+        {
+          "closeSurface": {
+            "app": "settings"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "sessions-apps-ios",
+      "runOn": [
+        {
+          "platforms": "ios",
+          "device": {
+            "name": "sessions-iphone",
+            "deviceType": "phone"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "startSurface": {
+            "app": "com.apple.Preferences",
+            "name": "preferences",
+            "timeout": 180000,
+            "waitUntil": {
+              "find": {
+                "elementText": "General"
+              }
+            }
+          }
+        },
+        {
+          "click": "General"
+        },
+        {
+          "find": "About"
+        },
+        {
+          "closeSurface": {
+            "app": "preferences"
+          }
+        }
+      ]
+    }
+  ]
+}

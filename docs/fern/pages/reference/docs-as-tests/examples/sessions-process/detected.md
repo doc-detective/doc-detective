@@ -1,0 +1,27 @@
+# Evaluate expressions in the Node.js REPL
+
+## Start the REPL as a surface
+
+<!-- test {"testId":"sessions-process-surface","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]} -->
+
+1. Start `node -i` as a process named `sessions-repl`, and wait for the `>` prompt.
+   <!-- step {"startSurface":{"process":"node","args":["-i"],"name":"sessions-repl","waitUntil":{"stdio":"/>/"},"timeout":30000}} -->
+2. In the REPL, enter `40 + 2` and press Enter. Wait for the REPL to print `42`.
+   <!-- step {"type":{"keys":["40 + 2","$ENTER$"],"surface":"sessions-repl","waitUntil":{"stdio":"/42/"},"timeout":10000}} -->
+3. Close the REPL.
+   <!-- step {"closeSurface":{"process":"sessions-repl"}} -->
+
+<!-- test end -->
+
+## Run the REPL in the background
+
+<!-- test {"testId":"sessions-process-background","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]} -->
+
+1. Run `node -i` in the background as a process named `sessions-bg-repl`, and wait for the `>` prompt.
+   <!-- step {"runShell":{"command":"node -i","background":{"name":"sessions-bg-repl","waitUntil":{"stdio":"/>/"}},"timeout":30000}} -->
+2. In the REPL, enter `Math.pow(2, 10)` and press Enter. Wait for the REPL to print `1024`.
+   <!-- step {"type":{"keys":["Math.pow(2, 10)","$ENTER$"],"surface":{"process":"sessions-bg-repl"},"waitUntil":{"stdio":"/1024/"},"timeout":10000}} -->
+3. Close the REPL.
+   <!-- step {"closeSurface":"sessions-bg-repl"} -->
+
+<!-- test end -->

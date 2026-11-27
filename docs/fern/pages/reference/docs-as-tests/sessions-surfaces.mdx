@@ -1,0 +1,117 @@
+---
+title: Sessions and surfaces, written as tests
+sidebar-title: Sessions and surfaces
+description: Procedures that keep cookies and browser state, work across tabs, windows, browser sessions, processes, and apps, and choose where they run, shown as plain prose, detected tests, inline tests, and standalone specs in every supported format.
+---
+
+Each example shows one procedure as prose, as detected tests, as inline tests, and as a standalone spec. For what each tab holds, see [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).
+
+In a detected variant, a `step` statement holds each step that default detection can't produce, such as `saveCookie` or `startSurface`. Each of those statements also works on its own, because a run with detection off reads only the statements.
+
+## Keep a session cookie
+
+This procedure uses [`saveCookie`](/docs/actions/savecookie) and [`loadCookie`](/docs/actions/loadcookie) in their name, file path, and object forms, with [`goTo`](/docs/actions/goto) and [`find`](/docs/actions/find).
+
+<Markdown src="examples/sessions-cookies/_variants.mdx" />
+
+### Forms in this example
+
+| Step | Form | What it does |
+|---|---|---|
+| `"saveCookie": "sessions_demo"` | Cookie name | Saves the cookie to the `sessions_demo` environment variable. |
+| `"saveCookie": { "name", "path", "overwrite" }` | Object | Saves the cookie to `sessions_demo.txt` in `outputDir`, replacing an earlier file. |
+| `"loadCookie": "sessions_demo.txt"` | File path | Loads the cookie named for the file from `outputDir`. |
+| `"loadCookie": { "name", "variable" }` | Object | Loads the cookie from an environment variable. |
+
+`"loadCookie": "sessions_demo"`, a bare cookie name, loads from the environment variable of that name, like the object form here.
+
+### What detection finds
+
+Each link becomes a `checkLink` step, and each link after "Go to" also becomes a `goTo` step. The bold `sessions_demo=signed-in` becomes a `find` step. The first link comes after `Sign in at`, which isn't a navigation verb, so detection only checks it, and a `goTo` statement opens it. No default rule produces `saveCookie` or `loadCookie`, so those are statements in every detected variant.
+
+## Reuse a signed-in browser state in two browsers
+
+This procedure uses [`saveState`](/docs/actions/savestate) and [`loadState`](/docs/actions/loadstate), and runs in two [contexts](/reference/schemas/context): headless Firefox with a set `window` and `viewport`, and headless Chrome.
+
+<Markdown src="examples/sessions-state/_variants.mdx" />
+
+### Where the contexts live
+
+The test statement carries `runOn` in the detected and inline variants, so it applies to that test. The standalone specs set `runOn` on the [spec](/reference/schemas/specification), where it applies to every test in the file. A test's own `runOn` overrides the spec's. Both shapes resolve to the same two contexts here.
+
+The Firefox context sets `browserFallback` to `off`, so a run without a working Firefox skips that context rather than running it in another browser. It also sets `retries` to `2`, so a session that breaks mid-run gets two fresh attempts. To set the fallback for every context, use the [config](/reference/schemas/config) key instead:
+
+```json title=".doc-detective.json"
+{
+  "browserFallback": "explicit"
+}
+```
+
+The platforms that don't match the host report `SKIPPED`, never `FAIL`.
+
+### What detection finds
+
+As in the cookie example, each link becomes a `checkLink` step, the "Go to" links also become `goTo` steps, and the bold text becomes a `find` step. `saveState` and `loadState` are statements.
+
+## Compare pages in tabs, windows, and sessions
+
+This procedure uses [`goTo`](/docs/actions/goto) with `newTab`, `newWindow`, and `surface`, [`startSurface`](/docs/actions/startsurface) with a [browser descriptor](/reference/schemas/browser-descriptor), [`find`](/docs/actions/find) with a [browser surface](/reference/schemas/browser-surface), and [`closeSurface`](/docs/actions/closesurface) with an array of surfaces.
+
+<Markdown src="examples/sessions-tabs/_variants.mdx" />
+
+### Surfaces in this example
+
+| Selector | Picks |
+|---|---|
+| `{ "browser": "firefox", "tab": -1 }` | The newest tab, by index. |
+| `{ "browser": "firefox", "tab": 0 }` | The first tab of the default Firefox session. |
+| `{ "browser": "firefox", "tab": "report" }` | The tab that `newTab` named. |
+| `{ "browser": "firefox", "tab": { "title": "Child linked" } }` | The tab whose title matches. |
+| `{ "browser": "firefox", "window": "settings" }` | The window that `newWindow` named. |
+| `"reviewer"` | The session that `startSurface` named. |
+
+Browser surface selectors name the engine, so the test pins its context to headless Firefox with `browserFallback` set to `off`. Without Firefox, the test skips rather than addressing an engine that isn't running.
+
+### What detection finds
+
+Each link becomes a `checkLink` step. None of the links follows a navigation verb, so detection opens no pages, and statements hold every navigation, click, and surface step.
+
+## Evaluate expressions in the Node.js REPL
+
+These procedures start the REPL two ways: [`startSurface`](/docs/actions/startsurface) with a [process descriptor](/reference/schemas/process-descriptor), and [`runShell`](/docs/actions/runshell) with `background`. Each then sends keys with [`type`](/docs/actions/type) to a [process surface](/reference/schemas/process-surface) and closes it with [`closeSurface`](/docs/actions/closesurface). The contexts use [`requires`](/reference/schemas/requirements) to skip the test where `node` isn't installed.
+
+<Markdown src="examples/sessions-process/_variants.mdx" />
+
+### Forms in this example
+
+- `requires` takes a command name (`"node"`), or an object that lists `commands`, `files`, and `env` variables. An array of command names, such as `["node", "npm"]`, works too.
+- `type` addresses the process by its name (`"sessions-repl"`) or with the object form (`{ "process": "sessions-bg-repl" }`).
+- `closeSurface` takes the same two forms.
+- The background test sets `autoRecord` to `false`. Its context drives no browser or app, so there's nothing to record.
+
+### What detection finds
+
+The prose has no links, bold text, or quoted text after `Type`, so detection adds no steps. Code spans aren't detected, which keeps `40 + 2` from turning into a `type` step without a surface.
+
+## Open a built-in app
+
+These procedures use [`startSurface`](/docs/actions/startsurface) with an [app descriptor](/reference/schemas/app-descriptor), [`click`](/docs/actions/click), [`find`](/docs/actions/find), and [`closeSurface`](/docs/actions/closesurface) with an [app surface](/reference/schemas/app-surface), on Windows, macOS, Android, and iOS. Each test's `runOn` names one platform, and the iOS context names a simulator with `device`, a [device descriptor](/reference/schemas/device-descriptor).
+
+<Markdown src="examples/sessions-apps/_variants.mdx" />
+
+### Where each test runs
+
+| Test | Runs on | Elsewhere |
+|---|---|---|
+| Character Map | Windows | `SKIPPED` |
+| Calculator | macOS, with Accessibility permission for the process that runs Doc Detective | `SKIPPED` |
+| Android Settings | A host with the Android toolchain (`doc-detective install android`) | `SKIPPED` |
+| iOS Settings | macOS with Xcode and Simulator tooling | `SKIPPED` |
+
+For setup on each platform, see the native app guides, starting with [Native Windows apps](/docs/test-docs/native-windows-apps).
+
+### What detection finds
+
+On Windows, `Click **Select**` becomes a `click` step and a `find` step for `Select`, and the bold `Copy` and `Internet` and `About` become `find` steps. The mobile procedures say `Tap`, and a statement holds that click, because after the tap the screen no longer shows the entry's label. A detected `find` for the label would fail.
+
+In DITA, `<uicontrol>` marks the control to click, as in [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).

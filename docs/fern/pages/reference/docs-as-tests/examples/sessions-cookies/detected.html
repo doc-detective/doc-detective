@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Keep a session cookie</title></head>
+<body>
+<!-- test {"testId":"sessions-cookies","detectSteps":true} -->
+<h1>Keep a session cookie</h1>
+<ol>
+  <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_demo/signed-in">the sign-in page</a>. The server sets the <code>sessions_demo</code> cookie.
+    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_demo/signed-in"} --></li>
+  <li>Save the <code>sessions_demo</code> cookie to an environment variable of the same name, and to the file <code>sessions_demo.txt</code>.
+    <!-- step {"saveCookie":"sessions_demo"} -->
+    <!-- step {"saveCookie":{"name":"sessions_demo","path":"sessions_demo.txt","overwrite":true}} --></li>
+  <li>Go to <a href="http://localhost:8092/cookies/set/sessions_demo/signed-out">the sign-out page</a>, which replaces the cookie.</li>
+  <li>Load the cookie from <code>sessions_demo.txt</code>.
+    <!-- step {"loadCookie":"sessions_demo.txt"} --></li>
+  <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_demo=signed-in</strong>.</li>
+  <li>Go to <a href="http://localhost:8092/cookies/set/sessions_demo/signed-out">the sign-out page</a> again, and load the cookie from the <code>sessions_demo</code> environment variable.
+    <!-- step {"loadCookie":{"name":"sessions_demo","variable":"sessions_demo"}} --></li>
+  <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a> again, and check that it still shows <strong>sessions_demo=signed-in</strong>.</li>
+</ol>
+<!-- test end -->
+</body>
+</html>

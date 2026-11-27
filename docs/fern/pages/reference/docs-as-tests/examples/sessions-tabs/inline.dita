@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-tabs">
+  <title>Compare pages in tabs, windows, and sessions</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-tabs","detectSteps":false,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]}'/>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/multi-tab.html"}'/></info></step>
+      <step><cmd>Click the Open child in new tab link. The child page opens in a new tab.</cmd>
+        <info><data name="doc-detective" value='step {"click":"Open child in new tab"}'/></info></step>
+      <step><cmd>In the newest tab, check that the page reads "PAGE linked".</cmd>
+        <info><data name="doc-detective" value='step {"find":{"elementText":"PAGE linked","surface":{"browser":"firefox","tab":-1}}}'/></info></step>
+      <step><cmd>In a new tab named <codeph>report</codeph>, load <xref href="http://localhost:8092/multi-tab-child.html?page=report" scope="external" format="html">the report page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=report","newTab":"report"}}'/></info></step>
+      <step><cmd>In a new window named <codeph>settings</codeph>, load <xref href="http://localhost:8092/multi-tab-child.html?page=settings" scope="external" format="html">the settings page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=settings","newWindow":"settings"}}'/></info></step>
+      <step><cmd>Start a second Firefox session named <codeph>reviewer</codeph>, with an 800 by 600 viewport, and load <xref href="http://localhost:8092/multi-tab-child.html?page=review" scope="external" format="html">the review page</xref> in it.</cmd>
+        <info><data name="doc-detective" value='step {"startSurface":{"browser":"firefox","name":"reviewer","headless":true,"viewport":{"width":800,"height":600}}}'/><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=review","surface":{"browser":"firefox","name":"reviewer"}}}'/></info></step>
+      <step><cmd>In the first tab of the first session, check that the page still reads "MULTI-TAB HOME".</cmd>
+        <info><data name="doc-detective" value='step {"find":{"elementText":"MULTI-TAB HOME","surface":{"browser":"firefox","tab":0}}}'/></info></step>
+      <step><cmd>Close the child tab, the <codeph>report</codeph> tab, the <codeph>settings</codeph> window, and the <codeph>reviewer</codeph> session.</cmd>
+        <info><data name="doc-detective" value='step {"closeSurface":[{"browser":"firefox","tab":{"title":"Child linked"}},{"browser":"firefox","tab":"report"},{"browser":"firefox","window":"settings"},"reviewer"]}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

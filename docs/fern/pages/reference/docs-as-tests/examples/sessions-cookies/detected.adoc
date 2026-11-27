@@ -1,0 +1,23 @@
+= Keep a session cookie
+
+// (test {"testId":"sessions-cookies","detectSteps":true})
+
+. Sign in at http://localhost:8092/cookies/set/sessions_demo/signed-in[the sign-in page]. The server sets the `sessions_demo` cookie.
++
+// (step {"goTo":"http://localhost:8092/cookies/set/sessions_demo/signed-in"})
+. Save the `sessions_demo` cookie to an environment variable of the same name, and to the file `sessions_demo.txt`.
++
+// (step {"saveCookie":"sessions_demo"})
++
+// (step {"saveCookie":{"name":"sessions_demo","path":"sessions_demo.txt","overwrite":true}})
+. Go to http://localhost:8092/cookies/set/sessions_demo/signed-out[the sign-out page], which replaces the cookie.
+. Load the cookie from `sessions_demo.txt`.
++
+// (step {"loadCookie":"sessions_demo.txt"})
+. Go to http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_demo=signed-in*.
+. Go to http://localhost:8092/cookies/set/sessions_demo/signed-out[the sign-out page] again, and load the cookie from the `sessions_demo` environment variable.
++
+// (step {"loadCookie":{"name":"sessions_demo","variable":"sessions_demo"}})
+. Go to http://localhost:8092/cookies[the cookie report] again, and check that it still shows *sessions_demo=signed-in*.
+
+// (test end)

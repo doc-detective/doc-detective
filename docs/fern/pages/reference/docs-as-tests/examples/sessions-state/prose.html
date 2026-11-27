@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Reuse a signed-in browser state</title></head>
+<body>
+<h1>Reuse a signed-in browser state</h1>
+<p>Run these steps in Firefox and in Chrome.</p>
+<ol>
+  <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_state/signed-in">the sign-in page</a>. The server sets the <code>sessions_state</code> cookie.</li>
+  <li>Save the browser state to <code>sessions-state.json</code>.</li>
+  <li>Go to <a href="http://localhost:8092/cookies/set/sessions_state/signed-out">the sign-out page</a>, which replaces the cookie.</li>
+  <li>Load the browser state from <code>sessions-state.json</code>.</li>
+  <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_state=signed-in</strong>.</li>
+</ol>
+</body>
+</html>

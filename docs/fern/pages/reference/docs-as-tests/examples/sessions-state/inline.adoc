@@ -1,0 +1,25 @@
+= Reuse a signed-in browser state
+
+// (test {"testId":"sessions-state","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"browsers":[{"name":"firefox","headless":true,"window":{"width":1280,"height":900},"viewport":{"width":1200,"height":800}}],"browserFallback":"off","retries":2},{"platforms":["linux","mac","windows"],"browsers":{"name":"chrome","headless":true}}]})
+
+Run these steps in Firefox and in Chrome.
+
+. Sign in at http://localhost:8092/cookies/set/sessions_state/signed-in[the sign-in page]. The server sets the `sessions_state` cookie.
++
+// (step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-in"})
+. Save the browser state to `sessions-state.json`.
++
+// (step {"saveState":{"path":"sessions-state.json","overwrite":true}})
+. Go to http://localhost:8092/cookies/set/sessions_state/signed-out[the sign-out page], which replaces the cookie.
++
+// (step {"goTo":"http://localhost:8092/cookies/set/sessions_state/signed-out"})
+. Load the browser state from `sessions-state.json`.
++
+// (step {"loadState":"sessions-state.json"})
+. Go to http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_state=signed-in*.
++
+// (step {"goTo":"http://localhost:8092/cookies"})
++
+// (step {"find":"sessions_state=signed-in"})
+
+// (test end)

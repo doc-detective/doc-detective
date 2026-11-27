@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Open a built-in app</title></head>
+<body>
+<h1>Open a built-in app</h1>
+<h2>Windows: Character Map</h2>
+<!-- test {"testId":"sessions-apps-windows","detectSteps":false,"runOn":[{"platforms":"windows"}]} -->
+<ol>
+  <li>Open Character Map, and wait for its Select button.
+    <!-- step {"startSurface":{"app":"C:\\Windows\\System32\\charmap.exe","name":"charmap","timeout":120000,"waitUntil":{"find":{"elementText":"Select"}}}} --></li>
+  <li>Click <strong>Select</strong>.
+    <!-- step {"click":"Select"} --></li>
+  <li>Check that the window shows the <strong>Copy</strong> button.
+    <!-- step {"find":"Copy"} --></li>
+  <li>Close Character Map.
+    <!-- step {"closeSurface":{"app":"charmap"}} --></li>
+</ol>
+<!-- test end -->
+<h2>macOS: Calculator</h2>
+<!-- test {"testId":"sessions-apps-mac","detectSteps":false,"runOn":[{"platforms":"mac"}]} -->
+<ol>
+  <li>Open Calculator, and wait for its <code>1</code> button.
+    <!-- step {"startSurface":{"app":"/System/Applications/Calculator.app","name":"calculator","timeout":180000,"waitUntil":{"find":{"elementAria":"1"}}}} --></li>
+  <li>Press the <code>1</code> button.
+    <!-- step {"click":{"elementAria":"1"}} --></li>
+  <li>Close Calculator.
+    <!-- step {"closeSurface":"calculator"} --></li>
+</ol>
+<!-- test end -->
+<h2>Android: Settings</h2>
+<!-- test {"testId":"sessions-apps-android","detectSteps":false,"runOn":[{"platforms":"android"}]} -->
+<ol>
+  <li>Open the Settings app, and wait for the Network &amp; internet entry.
+    <!-- step {"startSurface":{"app":"com.android.settings","name":"settings","timeout":180000,"waitUntil":{"find":{"elementText":"Network & internet"}}}} --></li>
+  <li>Tap the Network &amp; internet entry.
+    <!-- step {"click":"Network & internet"} --></li>
+  <li>Check that the screen shows <strong>Internet</strong>.
+    <!-- step {"find":"Internet"} --></li>
+  <li>Close the Settings app.
+    <!-- step {"closeSurface":{"app":"settings"}} --></li>
+</ol>
+<!-- test end -->
+<h2>iOS: Settings</h2>
+<!-- test {"testId":"sessions-apps-ios","detectSteps":false,"runOn":[{"platforms":"ios","device":{"name":"sessions-iphone","deviceType":"phone"}}]} -->
+<ol>
+  <li>On an iPhone simulator named <code>sessions-iphone</code>, open the Settings app, and wait for the General entry.
+    <!-- step {"startSurface":{"app":"com.apple.Preferences","name":"preferences","timeout":180000,"waitUntil":{"find":{"elementText":"General"}}}} --></li>
+  <li>Tap the General entry.
+    <!-- step {"click":"General"} --></li>
+  <li>Check that the screen shows <strong>About</strong>.
+    <!-- step {"find":"About"} --></li>
+  <li>Close the Settings app.
+    <!-- step {"closeSurface":{"app":"preferences"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>
