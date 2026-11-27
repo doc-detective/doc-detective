@@ -1588,6 +1588,17 @@ describe("httpRequest coverage (stubbed axios)", function () {
         assert.match(result.description, /Response data matched the response schema/);
       });
 
+      it("FAILs cleanly when the inline schema itself is invalid", async function () {
+        stubResponse({ status: 200, data: { id: UUID } });
+        const result = await httpRequest({
+          config,
+          step: plainStep({ type: "object", properties: { n: { minimum: "x" } } }),
+        });
+        assert.equal(result.status, "FAIL");
+        assert.equal(result.outputs.responseSchemaValid, false);
+        assert.match(result.description, /Couldn't check the response against the response schema/);
+      });
+
       it("FAILs on a type mismatch and names the response schema", async function () {
         stubResponse({ status: 200, data: { id: 7, email: "a@b.co", code: "INV-42" } });
         const result = await httpRequest({ config, step: plainStep(inlineSchema) });

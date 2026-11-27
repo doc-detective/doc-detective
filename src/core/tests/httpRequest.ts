@@ -403,14 +403,30 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     });
     // Without formats, strictSchema: false silently ignores `format`.
     addFormats(ajv);
-    const validateFn = ajv.compile(responseSchema);
-    const valid = validateFn(response.data);
+    // An author-written schema can be invalid (`minimum: "x"`), which makes
+    // compile throw. Report that as a FAIL rather than crashing the step.
+    let validateFn: any;
+    try {
+      validateFn = ajv.compile(responseSchema);
+    } catch {
+      validateFn = undefined;
+    }
+    const valid = validateFn ? validateFn(response.data) : false;
     result.outputs.responseSchemaValid = !!valid;
     specs.push({
       statement: `$$outputs.responseSchemaValid == true`,
       severity: "fail",
     });
-    if (valid) {
+    if (!validateFn) {
+      const fix = inlineResponseSchema
+        ? "Fix `response.schema`."
+        : "Fix the response schema in the OpenAPI description.";
+      descriptions.push(
+        `Couldn't check the response against the ${schemaName} schema because the schema isn't valid JSON Schema: ${ajv.errorsText(
+          ajv.errors
+        )}. ${fix}`
+      );
+    } else if (valid) {
       descriptions.push(`Response data matched the ${schemaName} schema.`);
     } else {
       descriptions.push(
