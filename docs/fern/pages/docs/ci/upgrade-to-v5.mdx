@@ -717,7 +717,7 @@ These still work, and each prints a warning on stderr. Rename them when you can.
 | Files | Action `@v2` |
 |---|---|
 | The results file | A temporary path, through `--output`. |
-| Reports, the run folder, screenshots, and recordings | Your config's `outputDir`. The Action adds `.doc-detective/`, `junit.xml`, `doc-detective-summary.md`, and `testResults-*` to `.git/info/exclude`. Files from `screenshot: true` aren't excluded, so they compare across runs and reach `create_pr_on_change` pull requests. The new `pr_paths` input limits what those pull requests stage. |
+| Reports, the run folder, screenshots, and recordings | Your config's `outputDir`. The Action adds `.doc-detective/`, `junit.xml`, `cucumber.json` (from v2.2.2), `doc-detective-summary.md`, and `testResults-*` to `.git/info/exclude`. Files from `screenshot: true` aren't excluded, so they compare across runs and reach `create_pr_on_change` pull requests. The new `pr_paths` input limits what those pull requests stage. |
 
 Action `@v2` drops the undocumented `issueUrl` output, so read `issue_url` instead.
 
