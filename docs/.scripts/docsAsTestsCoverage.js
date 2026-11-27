@@ -163,13 +163,17 @@ function walkSchema(entries, load, keep = () => true) {
   }
   const fields = {};
   const boundaries = {};
+  const via = Object.fromEntries(Object.keys(walked).map((key) => [key, []]));
   for (const [key, root] of Object.entries(walked)) {
     // An array's items count as a field of their own only when they take more than one form.
     for (const [p, set] of Object.entries(root.itemTypes)) if (set.size > 1) root.fields[p] = set;
     fields[key] = Object.fromEntries(Object.entries(root.fields).map(([p, set]) => [p, [...set].sort()]));
     boundaries[key] = root.boundaries;
+    for (const [p, nexts] of Object.entries(root.boundaries)) {
+      for (const next of nexts) if (next !== key && !entries.some((f) => rootKey({ file: f }) === next)) via[next].push(p === "" || p.startsWith("[]") ? key + p : join(key, p));
+    }
   }
-  return { fields, boundaries };
+  return { fields, boundaries, via };
 }
 
 /**
@@ -292,7 +296,7 @@ function corpusUsage(boundaries, problems) {
 
 function main() {
   const problems = [];
-  const { fields, boundaries } = schemaFields();
+  const { fields, boundaries, via } = schemaFields();
   const { usage, docs } = corpusUsage(boundaries, problems);
   const coverage = findGaps(fields, usage);
   const features = YAML.parse(fs.readFileSync(featuresFile, "utf8")).features || [];
@@ -301,13 +305,15 @@ function main() {
 
   if (process.argv.includes("--json")) {
     console.log(JSON.stringify({
-      fields: { total: coverage.total, covered: coverage.covered, gaps: coverage.gaps },
+      fields: { total: coverage.total, covered: coverage.covered, gaps: coverage.gaps, via },
       features: { total: features.length, covered: features.length - missing.length, gaps: missing },
       problems,
     }, null, 2));
   } else {
     for (const [root, gaps] of Object.entries(coverage.gaps)) {
-      console.log(`${root} (${gaps.length} not shown):`);
+      // A shared schema collects usage from every field that reaches it.
+      const from = via[root]?.length ? `, reached from ${via[root].join(", ")}` : "";
+      console.log(`${root} (${gaps.length} not shown${from}):`);
       for (const gap of gaps) console.log(`  ${gap}`);
     }
     if (missing.length) {

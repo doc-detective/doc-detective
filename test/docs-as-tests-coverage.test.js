@@ -63,6 +63,10 @@ describe("docs-as-tests coverage: schema walk", function () {
     assert.deepEqual(walked.boundaries, { step: { go: ["go"], "inner[]": ["test"] }, go: {}, test: {} });
   });
 
+  it("names the fields each reached schema is reached from, so a gap can be traced to its action", function () {
+    assert.deepEqual(walked.via, { step: [], go: ["step.go"], test: ["step.inner[]"] });
+  });
+
   it("gives an object and an array of the same objects one set of field paths", function () {
     const ctx = {
       "context_v3.schema.json": {
