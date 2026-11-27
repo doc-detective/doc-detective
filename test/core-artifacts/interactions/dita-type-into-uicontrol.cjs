@@ -57,7 +57,7 @@ try {
 } catch {}
 
 const failures = [];
-if (run.error) failures.push(`the run finished (${run.error.message})`);
+if (run.error) failures.push(`Couldn't finish the CLI run: ${run.error.message}.`);
 if (run.status !== 0) failures.push(`the run exited 0 (got ${run.status})`);
 let steps = [];
 try {
