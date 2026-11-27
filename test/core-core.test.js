@@ -88,6 +88,39 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("Page emulation a browser can't do SKIPs the context before any browser starts (ADR 01223)", async () => {
+    const platform = { win32: "windows", darwin: "mac" }[process.platform] ?? "linux";
+    const spec = {
+      tests: [
+        {
+          testId: "firefox-clock",
+          runOn: [
+            {
+              platforms: platform,
+              browsers: { name: "firefox", clock: "2026-12-03T09:00:00Z" },
+            },
+          ],
+          steps: [{ goTo: "http://localhost:8092" }],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "emulation-skip-"));
+    const tempFilePath = path.join(tempDir, "emulation-skip.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "error" });
+      const contexts = result.specs[0].tests[0].contexts;
+      assert.equal(contexts.length, 1);
+      assert.equal(contexts[0].result, "SKIPPED");
+      assert.equal(
+        contexts[0].resultDescription,
+        "Skipped: `firefox` can't set `clock`."
+      );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("An unmet context `requires` gate SKIPs the context with the unmet-requirements reason (and a met gate runs)", async () => {
     // Two tests: one gated on a command that cannot exist (context must land
     // SKIPPED with a reason naming the missing command — never FAIL), and one
@@ -739,6 +772,48 @@ describe("Run tests successfully", function () {
         miss.durationMs >= 5000,
         `shorthand miss returned after ${miss.durationMs}ms; it must poll the full 5s timeout`
       );
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("saveState's string form won't replace a file, and loadState before goTo FAILs (sessions/state.spec.json's expected FAILs)", async () => {
+    // These FAIL by design, so the PASS/SKIPPED fixture gate can't carry them.
+    // A fresh outputDir lets the string-form save run first and then hit its
+    // own file.
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "state-fails-"));
+    const spec = {
+      tests: [
+        {
+          steps: [
+            { goTo: "http://localhost:8092/cookies/set/dd_state_fail/1" },
+            { saveState: "auth.json" },
+            { saveState: "auth.json" },
+          ],
+        },
+        { steps: [{ loadState: "seeded.json" }] },
+      ],
+    };
+    fs.writeFileSync(
+      path.join(tempDir, "seeded.json"),
+      JSON.stringify({ cookies: [{ name: "sid", value: "1", domain: "localhost", path: "/" }], origins: [] })
+    );
+    const tempFilePath = path.join(tempDir, "state-fails.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, outputDir: tempDir, logLevel: "debug", ...NO_AUTO_CAPTURE });
+      const ran = (test) => test.contexts.find((c) => c.steps && c.steps.length);
+      const file = path.join(tempDir, "auth.json");
+
+      const [, saved, again] = ran(result.specs[0].tests[0]).steps;
+      assert.equal(saved.result, "PASS", saved.resultDescription);
+      assert.equal(saved.outputs.path, file);
+      assert.equal(again.result, "FAIL");
+      assert.equal(again.resultDescription, `Couldn't save state: \`${file}\` exists. Set \`overwrite\` to \`true\` to replace it.`);
+
+      const [load] = ran(result.specs[0].tests[1]).steps;
+      assert.equal(load.result, "FAIL");
+      assert.equal(load.resultDescription, "Couldn't load state: no site is open. Use `goTo` first.");
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

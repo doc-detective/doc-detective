@@ -283,6 +283,7 @@
     "visit": {},
     "durationMs": {},
     "startedAt": {},
+    "checkFile": {},
     "checkLink": {},
     "click": {},
     "find": {},
@@ -301,12 +302,34 @@
     "loadVariables": {},
     "dragAndDrop": {},
     "loadCookie": {},
+    "mockRequest": {},
     "swipe": {},
     "wait": {},
-    "annotate": {}
+    "annotate": {},
+    "saveState": {},
+    "loadState": {}
   },
   "additionalProperties": false,
   "oneOf": [
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": [
+            "checkFile"
+          ],
+          "properties": {
+            "checkFile": {
+              "$ref": "checkFile_v3.schema.json#"
+            }
+          },
+          "title": "checkFile"
+        }
+      ]
+    },
     {
       "allOf": [
         {
@@ -655,6 +678,25 @@
           "$ref": "#/components/schemas/common"
         },
         {
+          "title": "mockRequest",
+          "type": "object",
+          "required": [
+            "mockRequest"
+          ],
+          "properties": {
+            "mockRequest": {
+              "$ref": "mockRequest_v3.schema.json#"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
           "title": "swipe",
           "type": "object",
           "required": [
@@ -705,6 +747,44 @@
           "title": "annotate"
         }
       ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "title": "saveState",
+          "type": "object",
+          "required": [
+            "saveState"
+          ],
+          "properties": {
+            "saveState": {
+              "$ref": "saveState_v3.schema.json#"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "title": "loadState",
+          "type": "object",
+          "required": [
+            "loadState"
+          ],
+          "properties": {
+            "loadState": {
+              "$ref": "loadState_v3.schema.json#"
+            }
+          }
+        }
+      ]
     }
   ],
   "examples": [
@@ -722,6 +802,16 @@
     {
       "stepId": "path-only",
       "checkLink": "/search"
+    },
+    {
+      "checkFile": {
+        "$ref": "checkFile_v3.schema.json#/examples/0"
+      }
+    },
+    {
+      "checkFile": {
+        "$ref": "checkFile_v3.schema.json#/examples/2"
+      }
     },
     {
       "stepId": "status-code",
@@ -875,10 +965,29 @@
       "loadCookie": "session_token"
     },
     {
+      "saveState": "auth.json"
+    },
+    {
+      "loadState": {
+        "path": "auth.json",
+        "directory": "../.auth"
+      }
+    },
+    {
       "loadCookie": {
         "name": "auth_cookie",
         "path": "auth-session.txt",
         "directory": "./test-data"
+      }
+    },
+    {
+      "mockRequest": {
+        "$ref": "mockRequest_v3.schema.json#/examples/0"
+      }
+    },
+    {
+      "mockRequest": {
+        "$ref": "mockRequest_v3.schema.json#/examples/1"
       }
     },
     {

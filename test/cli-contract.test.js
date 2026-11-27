@@ -268,7 +268,7 @@ describe("CLI contract", function () {
       });
     }
 
-    // ADR 01216.
+    // ADR 01233.
     for (const { name, args, line } of [
       { name: '--compare-to ""', args: ["--compare-to", ""], line: "`--compare-to` needs a path or `previous`." },
       {
@@ -299,7 +299,7 @@ describe("CLI contract", function () {
       });
     }
 
-    // ADR 01217.
+    // ADR 01234.
     const failOnNeedsComparison = "`failOn: new` needs a comparison. Remove `compareTo: false` or `--no-compare-to`.";
     for (const { name, args, config } of [
       { name: "--fail-on new --no-compare-to", args: ["--fail-on", "new", "--no-compare-to"] },

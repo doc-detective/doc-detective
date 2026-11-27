@@ -41,11 +41,22 @@ With [step detection](/docs/test-docs/detected) on, each built-in detects these 
 | `type` | Quoted text after "Type", "Enter", or "Press" in prose, as in `Type "kittens"` |
 | `screenshot` | An image with the `screenshot` class. The image's source is the file to save |
 | `httpRequest` | A code block tagged `http`, or with no language, that holds a request such as `GET https://example.com` |
-| `runCode` | A code block tagged `bash`, `python`, `py`, `javascript`, or `js`, unless `testIgnore` follows the language. These steps are unsafe, so they run only with `allowUnsafeSteps` |
+| `runCode` | A code block tagged `bash`, `python`, `py`, `javascript`, or `js`. These steps are unsafe, so they run only with `allowUnsafeSteps`. To skip one, see [Show code without running it](#show-code-without-running-it) |
 
 DITA also clicks, finds, and types into `<uicontrol>` elements, finds `<wintitle>` elements, and checks `<link>` elements. See [DITA](dita).
 
 Each format writes links, bold text, images, and code blocks its own way. The [Selectors](selectors#kinds) page lists the syntax each format uses.
+
+### Show code without running it
+
+To show a command without running it, mark the code block or wrap it in an [ignore block](/docs/test-docs/inline#comment-patterns-by-file-type). The marker depends on the format:
+
+| Format | Marker |
+|---|---|
+| Markdown | `testIgnore` after the language, as in ` ```bash testIgnore ` |
+| AsciiDoc | `testIgnore` after the language, as in `[source,bash,testIgnore]` |
+| reStructuredText | `:class: testIgnore` on the directive |
+| HTML and DITA | None. Wrap the block in an ignore block |
 
 ## Default configurations
 

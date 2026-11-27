@@ -1,0 +1,29 @@
+= Check your Node.js version
+
+. Print the Node.js version:
++
+[source,shell]
+----
+node --version
+----
++
+The output starts with `+v+` and the major version, such as `+v22.11.0+`. You need version 18 or later.
+. If Node.js printed a version, print the npm version:
++
+[source,shell]
+----
+npm --version
+----
+. Find the Node.js executable. On Windows, run:
++
+[source,shell]
+----
+where node
+----
++
+On macOS and Linux, run:
++
+[source,shell]
+----
+command -v node
+----

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Manage users</title></head>
+<body>
+<h1>Manage users</h1>
+
+<h2>Create a user</h2>
+<p>To create a user, send a <code>POST</code> request to <code>/api/users</code>:</p>
+<pre><code class="language-http">POST http://localhost:8092/api/users
+Content-Type: application/json
+
+{"name": "Ada"}</code></pre>
+
+<h2>Look up a user</h2>
+<p>To look up a user by name, send a <code>GET</code> request with a <code>name</code> parameter:</p>
+<pre><code class="language-http">GET http://localhost:8092/api/users?name=Ada</code></pre>
+
+<h2>Delete a user</h2>
+<p>To delete a user, send a <code>DELETE</code> request:</p>
+<pre><code class="language-http">DELETE http://localhost:8092/api/users/ada</code></pre>
+</body>
+</html>

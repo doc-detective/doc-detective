@@ -449,7 +449,7 @@ async function runTestsAndReport(config: any, options: any) {
     results = await runSpecs({ resolvedTests });
   }
   // Compare with an earlier run before any reporter reads the results (ADR
-  // 01216). A run that matched nothing has no runId and nothing to compare.
+  // 01233). A run that matched nothing has no runId and nothing to compare.
   if (results?.runId) compareWithEarlierRun(resolvedTests.config ?? config, results);
   // The full results tree is a debug-only dump — the reporters (terminal
   // summary, json/runFolder files) already render results for the user, and at

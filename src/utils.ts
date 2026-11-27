@@ -563,7 +563,7 @@ async function setConfig({
     const other = modes.find(([on]) => on)?.[1];
     if (other) throw new Error(`set \`${other}\` or \`--plain\`, not both.`);
   }
-  // Comparison with an earlier run (ADR 01216). The flag resolves against the
+  // Comparison with an earlier run (ADR 01233). The flag resolves against the
   // working directory; `previous` stays a keyword.
   if (args.compareToConflict) throw new Error("set `--compare-to` or `--no-compare-to`, not both.");
   if (typeof args.compareTo === "string") {
@@ -574,7 +574,7 @@ async function setConfig({
   } else if (args.compareTo === false) {
     config.compareTo = false;
   }
-  // ADR 01217.
+  // ADR 01234.
   if (typeof args.failOn === "string") config.failOn = args.failOn;
   if (config.failOn === "new" && config.compareTo === false) {
     throw new Error("`failOn: new` needs a comparison. Remove `compareTo: false` or `--no-compare-to`.");
@@ -620,6 +620,7 @@ async function setConfig({
   }
   if (typeof args.browserFallback === "string") config.browserFallback = args.browserFallback;
   if (typeof args.shell === "string") config.shell = args.shell;
+  if (typeof args.overwriteScreenshots === "string") config.overwriteScreenshots = args.overwriteScreenshots;
   // `auto` and `true` both mean one runner per CPU core, as in config.
   if (typeof args.concurrentRunners === "string") {
     config.concurrentRunners =
@@ -878,7 +879,7 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
       // The same items, in the same order, as every other reporter (ADR 01180).
       const items = nonPassItems(results);
       const withStatus = (status: string) => items.filter((item) => item.status === status);
-      // What an earlier run failed and this one passed (ADR 01216).
+      // What an earlier run failed and this one passed (ADR 01233).
       const fixed = fixedPaths(results).map((idPath) => ({ idPath }));
       for (const [listed, heading, color] of [
         [withStatus("FAIL"), "Failed", colors.red],

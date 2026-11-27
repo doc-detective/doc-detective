@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "checkFile",
+  "description": "Wait for a finished file, and optionally check its text. A file is finished once it has no `.crdownload` or `.part` suffix, no in-progress sibling of the same name with one of those suffixes, and its size stays the same for 250 ms. Outputs `filePath`, `fileName`, and `fileSize`.",
+  "anyOf": [
+    {
+      "$ref": "#/components/schemas/string"
+    },
+    {
+      "$ref": "#/components/schemas/object"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "string": {
+        "title": "Check file (simple)",
+        "description": "Glob for the file to wait for. A relative path resolves against the spec file.",
+        "type": "string",
+        "minLength": 1
+      },
+      "object": {
+        "title": "Check file (detailed)",
+        "type": "object",
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": ["path"]
+          },
+          {
+            "required": ["download"]
+          }
+        ],
+        "not": {
+          "required": ["path", "download"]
+        },
+        "errorMessage": {
+          "not": "set `path` or `download`, not both."
+        },
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Glob for the file to wait for. A relative path resolves against the spec file. When several files match, the newest finished one counts."
+          },
+          "download": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Glob for a file name in the context's download folder. Each `checkFile` returns the oldest finished download that no earlier `checkFile` in the context returned. Needs a desktop Chrome or Firefox context opened by an earlier step. In other contexts, the step is skipped."
+          },
+          "content": {
+            "type": "string",
+            "description": "Text the file must contain, read as UTF-8. A value that starts and ends with `/` is a regular expression."
+          },
+          "timeout": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 30000,
+            "description": "Maximum time in milliseconds to wait for a finished match."
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    "out/report.txt",
+    {
+      "path": "out/*.log",
+      "content": "/build \\d+ passed/"
+    },
+    {
+      "download": "*.csv"
+    },
+    {
+      "download": "invoice-*.csv",
+      "content": "Invoice",
+      "timeout": 60000
+    }
+  ]
+}

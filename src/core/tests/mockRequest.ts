@@ -1,0 +1,140 @@
+import fs from "node:fs";
+import path from "node:path";
+import { validate } from "../../common/src/validate.js";
+import { log, invalidStepMessage } from "../utils.js";
+
+export { mockRequest, restoreMocks };
+
+// One live mock per `url` and `method` (ADR 01225). `answered` carries the
+// count of the mocks it replaced, so `outputs.matched` covers that key.
+type MockEntry = { mock: any; answered: number };
+
+/**
+ * Answer matching browser requests with a fixed response until the test ends.
+ * Uses webdriverio `browser.mock()`, which needs the BiDi socket, so it runs
+ * only where `hasBidi(browserName)` is true (ADR 01219).
+ */
+async function mockRequest({
+  config,
+  step,
+  driver,
+  browserName,
+  hasBidi,
+}: {
+  config: any;
+  step: any;
+  driver: any;
+  browserName?: string;
+  hasBidi: (browserName: string | undefined) => boolean;
+}) {
+  const result: any = { status: "PASS", description: "Mocked requests.", outputs: {} };
+
+  const isValidStep = validate({ schemaKey: "step_v3", object: step });
+  if (!isValidStep.valid) {
+    result.status = "FAIL";
+    result.description = invalidStepMessage(step);
+    return result;
+  }
+  const { url, method, response = {} } = isValidStep.object.mockRequest;
+
+  // User-facing text names the browser, never the protocol.
+  const name = browserName === "webkit" ? "safari" : browserName || "this browser";
+  if (!hasBidi(browserName)) {
+    result.status = "SKIPPED";
+    result.description = `Skipped: \`${name}\` can't mock requests.`;
+    return result;
+  }
+
+  // Defensive: every session of a BiDi browser has the socket (ADR 01219).
+  // Checked before the bodyPath read, so this cause wins over a file error.
+  if (!driver?.isBidi) {
+    result.status = "FAIL";
+    result.description = `Couldn't mock requests to \`${url}\` in \`${name}\`.`;
+    return result;
+  }
+
+  let body = response.body;
+  if (typeof response.bodyPath === "string") {
+    // Detection resolved a spec's bodyPath against the spec file; a step from
+    // getRunner() has none, so resolve against the working directory.
+    const file = path.resolve(response.bodyPath);
+    try {
+      // Bytes, which webdriverio sends as base64, so a binary file survives.
+      body = fs.readFileSync(file);
+    } catch {
+      result.status = "FAIL";
+      result.description = `Couldn't read \`bodyPath\` \`${file}\`.`;
+      return result;
+    }
+  }
+
+  const filter = method ? { method } : {};
+  const key = `${method ?? "*"} ${url}`;
+  keepPassThroughHeaders(driver);
+  if (!(driver.state.mocks instanceof Map)) driver.state.mocks = new Map();
+  const mocks: Map<string, MockEntry> = driver.state.mocks;
+  const replaced = mocks.get(key);
+  const entry: MockEntry = {
+    mock: undefined,
+    answered: replaced ? replaced.answered : 0,
+  };
+
+  try {
+    // webdriverio restores an earlier mock with the same url and filter itself.
+    entry.mock = await driver.mock(url, filter);
+    // webdriverio emits "overwrite" each time this mock answers a request with
+    // its own response. It doesn't mean another mock replaced this one.
+    entry.mock.on("overwrite", () => {
+      entry.answered += 1;
+    });
+    entry.mock.respond(body ?? "", {
+      statusCode: response.statusCode ?? 200,
+      ...(response.headers ? { headers: response.headers } : {}),
+      // Answer before the request is sent: the server never sees it.
+      fetchResponse: false,
+    });
+  } catch (error: any) {
+    result.status = "FAIL";
+    // The driver's error names protocol internals, so it goes to the debug log
+    // and the user sees the cause in words.
+    log(config, "debug", `mockRequest ${key}: ${error?.message ?? error}`);
+    result.description = `Couldn't mock requests to \`${url}\` in \`${name}\`. The browser refused the request intercept.`;
+    return result;
+  }
+  mocks.set(key, entry);
+  log(config, "debug", `Mocking ${key}.`);
+
+  result.outputs.matched = entry.answered;
+  return result;
+}
+
+// webdriverio 10.2.0 releases a paused response that no mock answers with a
+// bare `network.provideResponse({ request })`. A glob mock's intercept has no
+// path, so it pauses every response, and Chrome then delivers each one with
+// no headers. `network.continueResponse` releases it unchanged. Only that bare
+// form is redirected: a provideResponse with any field is a mock's answer.
+// Installed once per session, before the first mock exists.
+function keepPassThroughHeaders(driver: any) {
+  if (driver.state.keepsPassThroughHeaders) return;
+  driver.overwriteCommand("networkProvideResponse", (provide: any, params: any) =>
+    params && Object.keys(params).length === 1 && "request" in params
+      ? driver.networkContinueResponse(params)
+      : provide(params)
+  );
+  driver.state.keepsPassThroughHeaders = true;
+}
+
+// Restore every mock a driver holds. Called when the test ends, before the
+// session closes. Best-effort: a restore failure never fails the test.
+async function restoreMocks(driver: any) {
+  const mocks: Map<string, MockEntry> | undefined = driver?.state?.mocks;
+  if (!(mocks instanceof Map)) return;
+  for (const { mock } of mocks.values()) {
+    try {
+      await mock.restore();
+    } catch {
+      // The session may already be gone.
+    }
+  }
+  mocks.clear();
+}

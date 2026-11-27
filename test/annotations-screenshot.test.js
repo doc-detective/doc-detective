@@ -565,6 +565,39 @@ describe("live annotate blurs in a screenshot", function () {
     }
   });
 
+  it("keeps each frame's scroll, so whole-page blurs cover where the capture drew them", async function () {
+    // A blur fixed in the viewport at y 50 while the page scrolls to 400 for
+    // the captured frame and back to 0 before the read: in the document it was
+    // drawn at y 50 and at y 450, so it must cover both.
+    const { watchBlurRegions, readBlurRegions } = await import("../dist/core/annotations/domAdapter.js");
+    const blur = {
+      getBoundingClientRect: () => ({ left: 50, top: 50, right: 150, bottom: 150 }),
+      getAttribute: () => "14",
+    };
+    const layer = { isConnected: true, shadowRoot: { querySelectorAll: () => [blur] } };
+    const frames = [];
+    const saved = ["document", "window", "requestAnimationFrame", "cancelAnimationFrame"].map((key) => [key, global[key]]);
+    const win = { innerWidth: 400, scrollX: 0, scrollY: 0 };
+    Object.assign(global, {
+      document: { querySelector: () => layer },
+      window: win,
+      requestAnimationFrame: (fn) => frames.push(fn),
+      cancelAnimationFrame: () => frames.splice(0),
+    });
+    const driver = { execute: async (fn, ...args) => fn(...args) };
+    try {
+      await watchBlurRegions(driver);
+      win.scrollY = 400;
+      frames.shift()();
+      win.scrollY = 0;
+      const page = await readBlurRegions(driver);
+      assert.deepEqual(page.documentRegions, [{ x: 50, y: 50, width: 100, height: 500, intensity: 14 }]);
+      assert.deepEqual(page.regions, [{ x: 50, y: 50, width: 100, height: 100, intensity: 14 }]);
+    } finally {
+      for (const [key, value] of saved) global[key] = value;
+    }
+  });
+
   it("FAILs rather than save the capture unblurred when the page changes before the read", async function () {
     const capture = await makeStripedPng(400, 300);
     const driver = liveBlurDriver(capture, {

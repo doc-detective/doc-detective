@@ -31,7 +31,7 @@ describe("runExitCode", function () {
     });
   }
 
-  // ADR 01217: failOn new exits 1 only for a new failure.
+  // ADR 01234: failOn new exits 1 only for a new failure.
   const compared = (specs, summary) => ({ ...results(specs), comparison: { summary } });
   const onlyExisting = { new: 0, existing: 2, fixed: 0 };
   for (const [name, res, config, expected] of [

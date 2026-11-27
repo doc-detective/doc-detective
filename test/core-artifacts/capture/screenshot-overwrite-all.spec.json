@@ -1,0 +1,45 @@
+{
+  "specId": "screenshot-overwrite-all",
+  "description": "Run-wide `overwriteScreenshots` (ADR 01222), through the real CLI. It's run-level config, so each test runs one case of overwrite-all.cjs, which writes a reference and a spec to .tmp/overwrite-all/<case>/, runs doc-detective there with the config and flags the case names, and checks the screenshot step and the reference. The nested run browses the 8092 test server in headless Chrome.",
+  "tests": [
+    {
+      "testId": "config-false-keeps-reference",
+      "description": "Config `overwriteScreenshots: \"false\"` beats a step's `overwrite: \"true\"`: the step is SKIPPED and the reference is unchanged.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/capture/overwrite-all.cjs config-false-keeps-reference",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "flag-true-replaces-reference",
+      "description": "The bare `--overwrite-screenshots` flag means `true` and beats both config `\"false\"` and a step's `overwrite: \"false\"`: the step passes and the reference is replaced.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/capture/overwrite-all.cjs flag-true-replaces-reference",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "config-above-variation-replaces-drifted",
+      "description": "Config `overwriteScreenshots: \"aboveVariation\"` beats a step's `overwrite: \"false\"`: a capture that drifts past `maxVariation` returns WARNING and replaces the reference. The outer step asserts that inside the nested run, so this spec itself resolves PASS.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/capture/overwrite-all.cjs config-above-variation-replaces-drifted",
+            "workingDirectory": "../../..",
+            "timeout": 300000
+          }
+        }
+      ]
+    }
+  ]
+}

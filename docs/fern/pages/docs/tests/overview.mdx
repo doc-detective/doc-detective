@@ -11,6 +11,7 @@ Tests tell Doc Detective what actions to perform, how, and where. Tests are made
 
   Each step can perform an action, which is a command that tells Doc Detective what to do. Actions can have additional properties that further define the action. A key that isn't part of the step or action schema makes the spec invalid, so check spelling against each action's reference.
 
+  - [**checkFile**](/docs/actions/checkfile): Wait for a finished file or browser download, and check its text.
   - [**checkLink**](/docs/actions/checklink): Check if a URL returns an acceptable status code from a GET request.
   - [**click**](/docs/actions/click): Click or tap an element.
   - [**dragAndDrop**](/docs/actions/draganddrop): Drag an element and drop it on a target.
@@ -20,6 +21,8 @@ Tests tell Doc Detective what actions to perform, how, and where. Tests are made
   - [**loadVariables**](/docs/actions/loadvariables): Load environment variables from a `.env` file.
   - [**saveCookie**](/docs/actions/savecookie): Save a specific browser cookie to a file or environment variable for later reuse.
   - [**loadCookie**](/docs/actions/loadcookie): Load a specific cookie from a file or environment variable into the browser.
+  - [**saveState**](/docs/actions/savestate) and [**loadState**](/docs/actions/loadstate): Save the open site's cookies and `localStorage` to a file, and load them in a later test to reuse a sign-in.
+  - [**mockRequest**](/docs/actions/mockrequest): Answer matching browser requests with a fixed response until the test ends, for example to show stable data in screenshots. Works in Chrome. Other browsers skip the step.
   - [**record**](/docs/actions/record) and [**stopRecord**](/docs/actions/stoprecord): Capture a video of test execution.
   - [**runCode**](/docs/actions/runcode): Assemble and run code.
   - [**runShell**](/docs/actions/runshell): Perform a native shell command.

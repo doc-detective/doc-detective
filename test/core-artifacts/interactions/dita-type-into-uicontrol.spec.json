@@ -1,0 +1,21 @@
+{
+  "specId": "dita-type-into-uicontrol",
+  "description": "A DITA `Type <userinput>` sentence types into the field its `<uicontrol>` labels, by accessible name (ADR 01227). The fixture jobs run with detectSteps off, so dita-type-into-uicontrol.cjs runs the DITA task through the real CLI with detection on, against the 8092 test server, and checks the detected type step and that every step passed.",
+  "tests": [
+    {
+      "testId": "dita-type-into-uicontrol",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/interactions/dita-type-into-uicontrol.cjs",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "timeout": 300000
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Users API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8093/api"
+    }
+  ],
+  "paths": {
+    "/users": {
+      "post": {
+        "operationId": "createUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/user"
+              },
+              "example": {
+                "name": "Ada",
+                "job": "engineer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The user you sent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/user"
+                },
+                "example": {
+                  "name": "Ada",
+                  "job": "engineer"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "operationId": "getUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The user with this ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/user"
+                },
+                "examples": {
+                  "ada": {
+                    "value": {
+                      "name": "Ada",
+                      "job": "engineer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "user": {
+        "type": "object",
+        "required": ["name", "job"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "job": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

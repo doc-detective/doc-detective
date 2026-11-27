@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: structure-verified
+    steps:
+      - goTo: http://localhost:8092/index.html
+      - find: Common HTML Elements

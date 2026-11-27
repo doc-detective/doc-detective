@@ -7,6 +7,7 @@ import {
   parseTests,
   generateSpecId,
   skipInvalidSpec,
+  substituteFilePath,
 } from "../dist/core/detectTests.js";
 import { setConfig } from "../dist/core/config.js";
 import { validate } from "../dist/common/src/index.js";
@@ -292,6 +293,37 @@ describe("detectTests coverage", function () {
       // 1 before + 1 original + 1 after = 3 steps merged.
       assert.equal(specs[0].tests[0].steps.length, 3);
     });
+
+    it("merges before/after files into an inline test statement's steps", async function () {
+      write(
+        "setup.spec.json",
+        JSON.stringify({ tests: [{ steps: [{ runShell: { command: "echo", args: ["before"] } }] }] })
+      );
+      write(
+        "cleanup.spec.json",
+        JSON.stringify({ tests: [{ steps: [{ runShell: { command: "echo", args: ["after"] } }] }] })
+      );
+      const md = write(
+        "doc.md",
+        [
+          '<!-- test {"testId":"t","before":"setup.spec.json","after":"cleanup.spec.json"} -->',
+          '<!-- step {"goTo": "https://example.com"} -->',
+          "<!-- test end -->",
+          "",
+        ].join("\n")
+      );
+      const config = await makeConfig({ input: [md], relativePathBase: "file" });
+      const specs = await parseTests({ config, files: [md] });
+      assert.equal(specs.length, 1);
+      const steps = specs[0].tests[0].steps;
+      assert.deepEqual(
+        steps.map((s) => s.runShell?.args?.[0] ?? s.goTo),
+        ["before", "https://example.com", "after"]
+      );
+      // The cleanup marker reaches the runner; the setup marker doesn't.
+      assert.equal(steps[2]._fromAfter, true);
+      assert.equal("_fromBefore" in steps[0], false);
+    });
   });
 
   describe("parseTests text/markdown branches", function () {
@@ -340,6 +372,52 @@ describe("detectTests coverage", function () {
       config.fileTypes = [{ name: "task", extensions: ["task"], runShell: {} }];
       const specs = await parseTests({ config, files: [script] });
       assert.deepEqual(specs, []);
+    });
+
+    it("matches a fileType whose `extensions` is a string, by whole extension", async function () {
+      // Without `extends`. A string must not substring-match: "cjs" isn't "js".
+      write("run.cjs", "");
+      write("run.js", "");
+      const config = await makeConfig({
+        input: [tmpDir],
+        fileTypes: [
+          { name: "cjs", extensions: "cjs", runShell: { command: "echo", args: ["cjs"] } },
+          { name: "js", extensions: "js", runShell: { command: "echo", args: ["js"] } },
+        ],
+      });
+      const specs = await detectTests({ config });
+      const ran = Object.fromEntries(
+        specs.map((s) => [path.basename(s.contentPath), s.tests[0].steps[0].runShell.args[0]])
+      );
+      assert.deepEqual(ran, { "run.cjs": "cjs", "run.js": "js" });
+    });
+
+    it("substitutes a path with backslashes into a runShell fileType's `$1`", async function () {
+      // On Windows this is sub\run.task; elsewhere a file named `sub\run.task`.
+      const script = write("sub\\run.task", "");
+      const config = await makeConfig({
+        input: [script],
+        fileTypes: [{ name: "task", extensions: ["task"], runShell: { command: "echo", args: ["$1"] } }],
+      });
+      const specs = await parseTests({ config, files: [script] });
+      assert.equal(specs.length, 1);
+      const expected = process.platform === "win32" ? script.replace(/\\/g, "/") : script;
+      assert.equal(specs[0].tests[0].steps[0].runShell.args[0], expected);
+    });
+
+    it("substitutes `$1` with forward slashes on Windows and keeps quotes", function () {
+      const step = { command: "node $1", args: ["'$1'", '"$1"'], exitCodes: [0] };
+      assert.deepEqual(substituteFilePath(step, "C:\\docs\\a.cjs", "win32"), {
+        command: "node C:/docs/a.cjs",
+        args: ["'C:/docs/a.cjs'", '"C:/docs/a.cjs"'],
+        exitCodes: [0],
+      });
+    });
+
+    it("leaves `$1`'s path untouched on other platforms", function () {
+      assert.deepEqual(substituteFilePath({ command: "node $1" }, "/docs/a\\b.cjs", "linux"), {
+        command: "node /docs/a\\b.cjs",
+      });
     });
   });
 

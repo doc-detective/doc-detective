@@ -383,6 +383,26 @@ export async function parseContent({
   let testId = nextPendingTestId();
   let ignore = false;
 
+  // A statement that isn't JSON, YAML, or key=value attributes would otherwise
+  // vanish, and its steps would land in some other test. A `test end` or
+  // `test ignore` comment also matches most `testStart` patterns, so a match
+  // that another statement covers isn't reported.
+  const keywordSpans = statements
+    .filter((s: any) => s.type !== "testStart" && s.type !== "step" && s.type !== "detectedStep")
+    .map((s: any) => [s._startIndex, s._endIndex]);
+  // The message names the statement by line, not by its text, which can hold a
+  // secret and isn't masked on the way to the log.
+  const reportUnparsed = (kind: "test" | "step", statement: any) => {
+    if (ignore) return;
+    if (keywordSpans.some(([start, end]) => statement._startIndex < end && start < statement._endIndex)) return;
+    const reason =
+      `Couldn't parse the inline \`${kind}\` statement on line ${statement._line}. ` +
+      "Write it as JSON, as YAML with more than one key inside braces (`{key: value, key: value}`), " +
+      "or as `key=value` attributes.";
+    log(config, "warn", `${filePath}: ${reason}`);
+    onInvalid?.(reason);
+  };
+
   statements.forEach((statement) => {
     let test: DetectedTest | undefined;
     let statementContent = "";
@@ -392,7 +412,10 @@ export async function parseContent({
       case "testStart": {
         statementContent = statement[1] || statement[0];
         const parsedTest = parseObject({ stringifiedObject: statementContent });
-        if (!parsedTest || typeof parsedTest !== 'object') break;
+        if (!parsedTest || typeof parsedTest !== 'object') {
+          reportUnparsed("test", statement);
+          break;
+        }
 
         test = parsedTest as DetectedTest;
 
@@ -482,7 +505,8 @@ export async function parseContent({
           break;
         }
         if (statement?.markup?.actions) {
-          statement.markup.actions.forEach((action: string | Record<string, any>) => {
+          // The schema allows a single action as a string.
+          [statement.markup.actions].flat().forEach((action: string | Record<string, any>) => {
             let step: Record<string, any> = {};
             if (typeof action === "string") {
               if (action === "runCode") return;
@@ -584,7 +608,10 @@ export async function parseContent({
         test = findTest({ tests, testId });
         statementContent = statement[1] || statement[0];
         const parsedStep = parseObject({ stringifiedObject: statementContent });
-        if (!parsedStep || typeof parsedStep !== 'object') break;
+        if (!parsedStep || typeof parsedStep !== 'object') {
+          reportUnparsed("step", statement);
+          break;
+        }
 
         let step = parsedStep;
 

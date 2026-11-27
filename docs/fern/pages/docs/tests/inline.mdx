@@ -13,7 +13,7 @@ Inline tests also make maintenance easier. You update them alongside the content
 
 Inline tests use specially formatted comments with JSON or YAML objects to declare the tests and steps. Doc Detective reads the input file, line by line, and extracts the tests and steps from the comments. You can declare multiple tests and steps in a single file, using your config's test start, test end, step, and ignore patterns.
 
-> All test and step comments must be on a single line. Doc Detective doesn't support multi-line comments.
+> A statement can span several lines, as long as it stays inside one comment. In AsciiDoc, a `//` comment ends with its line, so put a longer statement in a `////` comment block.
 
 When you declare a test, you can specify any of the test properties available in the standalone JSON format, though `steps` is normally omitted. See [`test`](/reference/schemas/test).
 
@@ -48,7 +48,7 @@ Inline tests offer several advantages:
 - **Documentation as code**: Tests become part of the documentation source, ensuring that documentation and testing evolve together.
 - **Quick validation**: Small, focused tests can be quickly added to validate specific instructions or procedures.
 
-Combine inline tests with [detected tests](/docs/test-docs/detected) to create comprehensive test coverage with minimal manual test definition.
+Combine inline tests with [detected tests](/docs/test-docs/detected) to create comprehensive test coverage with minimal manual test definition. To compare the same procedure written as detected, inline, and standalone tests in every format, see [Docs as tests](/reference/docs-as-tests/overview).
 
 ## Comment patterns by file type
 
@@ -62,6 +62,7 @@ Doc Detective reads statements from comments only. A statement inside a code blo
 - HTML comments: `<!-- test { "testId": "my-test-2" } -->`
 - Markdown link comments: `[comment]: # (test { "testId": "my-test-3" })`
 - Step comments: `{/* step { "goTo": "https://example.com" } */}`
+- XML attribute statements in HTML comments: `<!-- step find="Buttons" -->`. Values convert as described in the XML attribute format for DITA files, below.
 - Test end: `{/* test end */}`, `<!-- test end -->`, or `[comment]: # (test end)`
 - Ignore blocks: `{/* test ignore start */}` and `{/* test ignore end */}`
 
@@ -71,6 +72,7 @@ Doc Detective reads statements from comments only. A statement inside a code blo
 
 - Test comments: `<!-- test { "testId": "my-test-4" } -->`
 - Step comments: `<!-- step { "goTo": "https://example.com" } -->`
+- XML attribute statements: `<!-- step find="Buttons" -->`. Values convert as described in the XML attribute format for DITA files, below.
 - Test end: `<!-- test end -->`
 - Ignore blocks: `<!-- test ignore start -->` and `<!-- test ignore end -->`
 
@@ -80,6 +82,16 @@ Doc Detective reads statements from comments only. A statement inside a code blo
 - Step comments: `// (step { "goTo": "https://example.com" })`
 - Test end: `// (test end)`
 - Ignore blocks: `// (test ignore start)` and `// (test ignore end)`
+
+A `//` comment holds one line. For a longer statement, use a `////` comment block, with the statement in parentheses:
+
+```asciidoc
+////
+(step {
+  "goTo": "https://example.com"
+})
+////
+```
 
 **DITA XML files** (`.dita`, `.ditamap`, `.xml`):
 
@@ -192,7 +204,7 @@ To search for American Shorthair kittens,
 
 2. In the search bar, enter "American Shorthair kittens", then press Enter.
 
-   {/* step find: selector: "[title=Search]" click: true */} {/* step type: - "American Shorthair kittens" - "$ENTER$" */} {/* step wait: 5000 */}
+   {/* step find: {selector: "[title=Search]", click: true} */} {/* step type: ["American Shorthair kittens", "$ENTER$"] */} {/* step wait: 5000 */}
 
 ![Search results](search-results.png)
 

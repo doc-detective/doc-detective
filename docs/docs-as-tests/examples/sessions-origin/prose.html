@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Test pages on your own site</title></head>
+<body>
+<h1>Test pages on your own site</h1>
+<p>These steps use paths, not full URLs. The run's config sets the site's origin.</p>
+<ol>
+  <li>Go to <code>/cookies/set/sessions_origin/visited</code>.</li>
+  <li>Go to <code>/cookies</code>, and check that the page shows <code>sessions_origin=visited</code>.</li>
+  <li>Go to <code>/api/echo</code>, and check that the response echoes the <code>from</code> parameter that the config adds: <code>"from":"docs"</code>.</li>
+</ol>
+</body>
+</html>

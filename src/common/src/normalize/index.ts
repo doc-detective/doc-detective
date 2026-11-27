@@ -17,6 +17,7 @@
 // value, such as "goTo": "$URL", never reaches the normalizer before
 // substitution (normalizeStep).
 import annotate from "./annotate.js";
+import checkFile from "./checkFile.js";
 import checkLink from "./checkLink.js";
 import click from "./click.js";
 import closeSurface from "./closeSurface.js";
@@ -25,12 +26,15 @@ import find from "./find.js";
 import goTo from "./goTo.js";
 import httpRequest from "./httpRequest.js";
 import loadCookie from "./loadCookie.js";
+import loadState from "./loadState.js";
 import loadVariables from "./loadVariables.js";
+import mockRequest from "./mockRequest.js";
 import record from "./record.js";
 import runBrowserScript from "./runBrowserScript.js";
 import runCode from "./runCode.js";
 import runShell from "./runShell.js";
 import saveCookie from "./saveCookie.js";
+import saveState from "./saveState.js";
 import screenshot from "./screenshot.js";
 import startSurface from "./startSurface.js";
 import stopRecord from "./stopRecord.js";
@@ -46,6 +50,7 @@ export { NormalizeError } from "./helpers.js";
 // whole step, read-only: a capture names its file for `stepId`.
 export const normalizers: Record<string, (value: any, path: string, literal: boolean, step: any) => any> = {
   annotate,
+  checkFile,
   checkLink,
   click,
   closeSurface,
@@ -54,12 +59,15 @@ export const normalizers: Record<string, (value: any, path: string, literal: boo
   goTo,
   httpRequest,
   loadCookie,
+  loadState,
   loadVariables,
+  mockRequest,
   record,
   runBrowserScript,
   runCode,
   runShell,
   saveCookie,
+  saveState,
   screenshot,
   startSurface,
   stopRecord,

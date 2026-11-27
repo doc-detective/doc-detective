@@ -48,6 +48,21 @@ Content to ignore
 // (test ignore end)
 ```
 
+**Block comments:**
+
+A `//` comment holds one line. For a statement that's easier to read across several lines, use a `////` comment block. The statement goes in parentheses, as in a line comment:
+
+```asciidoc
+////
+(step {
+  "httpRequest": {
+    "url": "https://example.com/api/users",
+    "method": "post"
+  }
+})
+////
+```
+
 ## Example
 
 Here's a complete example of an AsciiDoc file with inline tests:
@@ -105,16 +120,18 @@ AsciiDoc inline tests support both JSON and YAML syntax:
 
 **YAML syntax:**
 ```asciidoc
-// (test testId: my-test description: Test description)
+// (test {testId: my-test, description: Test description})
 // (step goTo: https://example.com)
 ```
+
+A YAML statement with more than one key goes inside braces, with commas between the keys. Without them, Doc Detective can't parse the statement and reports it.
 
 Both formats work identically. Choose the format that's most readable for your team.
 
 ## Best practices
 
 - Use parentheses in comments to distinguish test statements from regular comments
-- Keep test comments on a single line
+- Use a `////` comment block for a statement that spans several lines
 - Use descriptive test IDs to identify tests in results
 - Combine inline tests with [detected tests](#detected-tests) so links, bold text, and listings become steps without extra comments
 - Use YAML syntax for simpler, more readable inline tests

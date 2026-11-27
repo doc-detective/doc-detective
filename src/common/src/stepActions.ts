@@ -7,6 +7,7 @@
 /** Every step action key, sorted. A step carries exactly one. */
 export const stepActions = [
   "annotate",
+  "checkFile",
   "checkLink",
   "click",
   "closeSurface",
@@ -15,12 +16,15 @@ export const stepActions = [
   "goTo",
   "httpRequest",
   "loadCookie",
+  "loadState",
   "loadVariables",
+  "mockRequest",
   "record",
   "runBrowserScript",
   "runCode",
   "runShell",
   "saveCookie",
+  "saveState",
   "screenshot",
   "startSurface",
   "stopRecord",

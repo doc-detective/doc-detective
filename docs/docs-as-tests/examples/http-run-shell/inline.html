@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check your Node.js setup</title></head>
+<body>
+<!-- test {"testId":"http-run-shell","detectSteps":false} -->
+<h1>Check your Node.js setup</h1>
+<p>Print the Node.js version. The output starts with <code>v</code> and the major version:</p>
+<pre><code class="language-shell">node --version</code></pre>
+<!-- step {"runShell":{"command":"node","args":["--version"],"stdio":"/^v\\d+\\./"}} -->
+<p>Confirm that Node.js runs a script:</p>
+<pre><code class="language-shell">node -e "console.log('ready')"</code></pre>
+<!-- step {"runShell":"node -e \"console.log('ready')\""} -->
+<p>A script that calls <code>process.exit(1)</code> exits with code <code>1</code>:</p>
+<pre><code class="language-shell">node -e "process.exit(1)"</code></pre>
+<!-- step {"runShell":{"command":"node -e \"process.exit(1)\"","shell":"bash","exitCodes":[1],"timeout":10000}} -->
+<p>From the folder that holds this page, print the folder's name. The output matches the saved copy in <code>folder-name.txt</code>:</p>
+<pre><code class="language-shell">node -e "console.log(require('path').basename(process.cwd()))"</code></pre>
+<!-- step {"runShell":{"command":"node -e \"console.log(require('path').basename(process.cwd()))\"","workingDirectory":".","stdio":"http-run-shell","path":"folder-name.txt","directory":"output","maxVariation":0.1,"overwrite":"aboveVariation"}} -->
+<p>Start a preview process, and wait until it prints <code>Preview ready</code>:</p>
+<pre><code class="language-shell">node -e "console.log('Preview ready'); setInterval(() =&gt; {}, 1000)"</code></pre>
+<!-- step {"runShell":{"command":"node -e \"console.log('Preview ready'); setInterval(() => {}, 1000)\"","background":{"name":"http-shell-preview","waitUntil":{"stdio":"Preview ready","delayMs":250}},"timeout":15000}} -->
+<p>Stop the preview process when you're done.</p>
+<!-- step {"closeSurface":"http-shell-preview"} -->
+<!-- test end -->
+</body>
+</html>

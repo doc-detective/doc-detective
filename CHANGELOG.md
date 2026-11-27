@@ -1,3 +1,31 @@
+## [5.7.0](https://github.com/doc-detective/doc-detective/compare/v5.6.3...v5.7.0) (2026-11-26)
+
+### Features
+
+* add a mockRequest step that answers browser requests ([c4fd8ec](https://github.com/doc-detective/doc-detective/commit/c4fd8ec6991d3ba159da9a18e3ad90a9410063ab))
+* add saveState and loadState actions for reusing a sign-in ([1f46609](https://github.com/doc-detective/doc-detective/commit/1f46609298d88fe03169f1fccae8b07e6b27fef0))
+* add totp() expression for one-time codes ([df1ff46](https://github.com/doc-detective/doc-detective/commit/df1ff46b14d8368d818e26d5e8c64e5bdd320e7e))
+* **bidi:** enable the BiDi socket for every Chrome session ([a845930](https://github.com/doc-detective/doc-detective/commit/a845930dcdc8766f52f6b5e3cc1fd0a0eab4747e))
+* **bidi:** run Chrome element commands over BiDi ([5fbd192](https://github.com/doc-detective/doc-detective/commit/5fbd1924ec63d2d7cbeebed9214fd14594c01365))
+* **contexts:** emulate color scheme, locale, timezone, pixel density, motion and clock ([db1904a](https://github.com/doc-detective/doc-detective/commit/db1904a7c658422477e6df8fb72df48b47f17861))
+
+### Bug Fixes
+
+* **bidi:** correct the BIDI_BROWSERS comment and test mixed-case names ([ce6f7bd](https://github.com/doc-detective/doc-detective/commit/ce6f7bd0c8447cb2a9a4e00fe50a2c02cf0a3368))
+* **bidi:** keep driver state out of webdriverio's BiDi clone ([8661904](https://github.com/doc-detective/doc-detective/commit/8661904fe1c09fe11084da1a83802144a3966cd1))
+* **cookie:** publish cookie files atomically with owner-only permissions ([62ee260](https://github.com/doc-detective/doc-detective/commit/62ee2603f7a78bff1efde651560c62a6f32c19e9))
+* **cookies:** keep httpOnly and sameSite in cookie files, restyle messages ([8eba591](https://github.com/doc-detective/doc-detective/commit/8eba591a5a7afca4c6449842fac5d9c33f505b0f))
+* **emulation:** drop opposing motion flags and merge blink settings under driverOptions ([9fd356a](https://github.com/doc-detective/doc-detective/commit/9fd356a7cc6b4174ac0e9b59efc9c60d04e98754))
+* **emulation:** fail an unparseable clock and build the open error from one helper ([269fdf3](https://github.com/doc-detective/doc-detective/commit/269fdf3e486758acb48461fe6a591ae9505596ff))
+* **emulation:** keep emulation through driverOptions, Date subclasses and the open page ([6c65230](https://github.com/doc-detective/doc-detective/commit/6c6523062fccac28b4f53697436313422bf82610))
+* **emulation:** skip timezone in Firefox on every platform ([b63623a](https://github.com/doc-detective/doc-detective/commit/b63623a501befdaed58dd9ff152aae35ce6951a0))
+* **expressions:** keep function names whole and reject partial base32 groups ([d1f5dcf](https://github.com/doc-detective/doc-detective/commit/d1f5dcfb2f032cba090c03013cf3d2fc9203dabf))
+* **mock:** check for BiDi before reading bodyPath ([c5e808b](https://github.com/doc-detective/doc-detective/commit/c5e808b7765bbd55cb64a58262b7cc7c5e114a76))
+* **mock:** name the cause when the browser refuses an intercept ([5b688ba](https://github.com/doc-detective/doc-detective/commit/5b688bab12ad5ed14a865a5c7eba1be7ecc6243c))
+* **state:** harden saveState and loadState, and keep cookie files curl-readable ([89b6d3f](https://github.com/doc-detective/doc-detective/commit/89b6d3f4f4e5510541a781c7d35f8944bc34793c))
+* **state:** own temp files only after opening them ([4aa52d5](https://github.com/doc-detective/doc-detective/commit/4aa52d554debbf7d8ba0857a5cb13697d633a9bf))
+* **state:** publish state files atomically and guard cookie restore ([b07cac1](https://github.com/doc-detective/doc-detective/commit/b07cac1231ad7628a6b12ae3b81d4c9561619b89))
+
 ## [5.6.3](https://github.com/doc-detective/doc-detective/compare/v5.6.2...v5.6.3) (2026-11-20)
 
 ### Bug Fixes

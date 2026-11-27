@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: nav-search-icons
+    steps:
+      - goTo:
+          url: http://localhost:8092/find-image.html
+          waitUntil:
+            find:
+              elementImage:
+                base64: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMxYTVmYjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNSAzaDExbDUgNXYxMWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJ6Ii8+PHBhdGggZD0iTTE3IDIxdi04SDd2OCIvPjxwYXRoIGQ9Ik03IDN2NWg4Ii8+PC9zdmc+Cg==
+                threshold: 0.9
+      - click:
+          elementImage:
+            path: search.svg
+            color: "#444444"
+          elementId: search-icon
+      - type:
+          - doc detective
+          - $ENTER$
+      - find:
+          selector: "#echo"
+          elementText: doc detective
+      - type:
+          keys: -docs
+          selector: "#query"
+          inputDelay: 100
+      - find:
+          selector: "#echo"
+          elementText: doc detective-docs
+      - find:
+          elementImage: save.svg
+          click:
+            button: right
+            duration: 500
+      - find:
+          selector: "#log"
+          elementText: /^click button=2/

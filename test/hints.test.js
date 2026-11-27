@@ -1984,7 +1984,7 @@ describe("useMobilePlatforms hint", function () {
   });
 });
 
-// ADR 01216: editing a test without a `testId` changes its generated ID, so the
+// ADR 01233: editing a test without a `testId` changes its generated ID, so the
 // comparison reads its failure as new.
 describe("setStableTestIds hint", function () {
   const run = (testId, failureStatus) => ({
@@ -2656,6 +2656,18 @@ describe("hints/hints (registry)", function () {
         })
       )
     ).to.equal(false);
+    // Already using loadState -> skip.
+    expect(
+      h.when(
+        fakeCtx({
+          usedBrowserContexts: new Set(["chrome"]),
+          usedStepTypes: new Set(["loadVariables", "type", "click", "loadState"]),
+        })
+      )
+    ).to.equal(false);
+    // It suggests the whole login, in a step that validates.
+    expect(h.markdown).to.include('{ "saveState": "auth.json" }');
+    expect(h.markdown).to.include('{ "loadState": "auth.json" }');
     // No browser -> skip (not a login-driven flow).
     expect(
       h.when(

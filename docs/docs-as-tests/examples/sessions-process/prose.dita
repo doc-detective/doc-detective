@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dita PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
+<dita>
+  <topic id="sessions-process">
+    <title>Evaluate expressions in the Node.js REPL</title>
+  </topic>
+  <task id="sessions-process-surface">
+    <title>Start the REPL as a surface</title>
+    <taskbody>
+      <steps>
+        <step><cmd>Start <codeph>node -i</codeph> in a terminal as a process named <codeph>sessions-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd></step>
+        <step><cmd>In the REPL, enter <codeph>40 + 2</codeph> and press Enter. Wait for the REPL to print <codeph>42</codeph>.</cmd></step>
+        <step><cmd>Close the REPL.</cmd></step>
+      </steps>
+    </taskbody>
+  </task>
+  <task id="sessions-process-background">
+    <title>Run the REPL in the background</title>
+    <taskbody>
+      <steps>
+        <step><cmd>Run <codeph>node -i</codeph> in the background as a process named <codeph>sessions-bg-repl</codeph>, and wait for the <codeph>&gt;</codeph> prompt.</cmd></step>
+        <step><cmd>In the REPL, enter <codeph>Math.pow(2, 10)</codeph> and press Enter. Wait at least half a second, and until the REPL prints <codeph>1024</codeph>.</cmd></step>
+        <step><cmd>Close the REPL.</cmd></step>
+      </steps>
+    </taskbody>
+  </task>
+  <task id="sessions-process-server">
+    <title>Start a server and a REPL together</title>
+    <taskbody>
+      <steps>
+        <step><cmd>From the <codeph>docs/actions</codeph> folder, start <codeph>node simple-json-server.cjs</codeph> as <codeph>sessions-api</codeph>, and wait until port <codeph>8087</codeph> answers. At the same time, start <codeph>node -i</codeph> in a 100 by 30 terminal as <codeph>sessions-client</codeph>, and give it a second to start.</cmd></step>
+        <step><cmd>In the REPL, fetch the server's root URL, and wait for it to print <codeph>ok</codeph>.</cmd></step>
+        <step><cmd>Close the REPL and the server.</cmd></step>
+      </steps>
+    </taskbody>
+  </task>
+</dita>

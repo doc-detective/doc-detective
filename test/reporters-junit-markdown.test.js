@@ -581,7 +581,7 @@ describe("junit and markdown reporters", function () {
       assert.equal(buildMarkdown(noDir, file).includes("Run artifacts"), false);
     });
 
-    // ADR 01216. Without a comparison, the summary is what it was before.
+    // ADR 01233. Without a comparison, the summary is what it was before.
     describe("with a comparison", function () {
       const compared = (comparison) => ({
         summary: { tests: counts(1, 1, 0, 0) },
