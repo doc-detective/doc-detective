@@ -58962,21 +58962,56 @@
                                       "mockRequest": {
                                         "$schema": "http://json-schema.org/draft-07/schema#",
                                         "title": "mockRequest",
-                                        "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
+                                        "description": "Answer matching browser requests with a fixed response, a sequence of responses, or the responses recorded in a HAR file, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                                         "type": "object",
                                         "additionalProperties": false,
-                                        "required": [
-                                          "url"
+                                        "anyOf": [
+                                          {
+                                            "required": [
+                                              "url"
+                                            ]
+                                          },
+                                          {
+                                            "required": [
+                                              "harPath"
+                                            ]
+                                          }
                                         ],
+                                        "not": {
+                                          "anyOf": [
+                                            {
+                                              "required": [
+                                                "response",
+                                                "responses"
+                                              ]
+                                            },
+                                            {
+                                              "required": [
+                                                "response",
+                                                "harPath"
+                                              ]
+                                            },
+                                            {
+                                              "required": [
+                                                "responses",
+                                                "harPath"
+                                              ]
+                                            }
+                                          ]
+                                        },
+                                        "errorMessage": {
+                                          "anyOf": "set `url` or `harPath`.",
+                                          "not": "set one of `response`, `responses`, or `harPath`."
+                                        },
                                         "properties": {
                                           "url": {
                                             "type": "string",
                                             "minLength": 1,
-                                            "description": "Glob for the request URLs to answer. `*` matches any characters. A pattern that starts with `http` matches the whole URL, such as `https://api.example.com/user`. Any other pattern matches the URL's path, such as `**/api/invoices*`."
+                                            "description": "Glob for the request URLs to answer. `*` matches any characters. A pattern that starts with `http` matches the whole URL, such as `https://api.example.com/user`. Any other pattern matches the URL's path, such as `**/api/invoices*`. Required unless `harPath` is set. With `harPath`, keeps only the HAR entries whose URL matches."
                                           },
                                           "method": {
                                             "type": "string",
-                                            "description": "HTTP method to answer. Omit to answer every method.",
+                                            "description": "HTTP method to answer. Omit to answer every method. With `harPath`, keeps only the HAR entries with this method.",
                                             "enum": [
                                               "GET",
                                               "POST",
@@ -58988,50 +59023,165 @@
                                             ]
                                           },
                                           "response": {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "description": "The response to send. Omit to send an empty `200` response.",
-                                            "not": {
-                                              "required": [
-                                                "body",
-                                                "bodyPath"
-                                              ]
-                                            },
-                                            "errorMessage": {
-                                              "not": "set `body` or `bodyPath`, not both."
-                                            },
-                                            "properties": {
-                                              "statusCode": {
-                                                "type": "integer",
-                                                "description": "HTTP status code of the response. Omit to send `200`.",
-                                                "minimum": 100,
-                                                "maximum": 599
-                                              },
-                                              "headers": {
+                                            "allOf": [
+                                              {
                                                 "type": "object",
-                                                "description": "Response headers, as header names and string values.",
-                                                "additionalProperties": {
-                                                  "type": "string"
-                                                }
-                                              },
-                                              "body": {
-                                                "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
-                                                "anyOf": [
-                                                  {
-                                                    "type": "string"
+                                                "additionalProperties": false,
+                                                "description": "A response to send.",
+                                                "not": {
+                                                  "required": [
+                                                    "body",
+                                                    "bodyPath"
+                                                  ]
+                                                },
+                                                "errorMessage": {
+                                                  "not": "set `body` or `bodyPath`, not both."
+                                                },
+                                                "properties": {
+                                                  "statusCode": {
+                                                    "type": "integer",
+                                                    "description": "HTTP status code of the response. Omit to send `200`.",
+                                                    "minimum": 100,
+                                                    "maximum": 599
                                                   },
-                                                  {
-                                                    "type": "object"
+                                                  "headers": {
+                                                    "type": "object",
+                                                    "description": "Response headers, as header names and string values.",
+                                                    "additionalProperties": {
+                                                      "type": "string"
+                                                    }
                                                   },
-                                                  {
-                                                    "type": "array"
+                                                  "body": {
+                                                    "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "object"
+                                                      },
+                                                      {
+                                                        "type": "array"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "bodyPath": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
                                                   }
+                                                }
+                                              }
+                                            ],
+                                            "description": "The response to send. Omit to send an empty `200` response. Set one of `response`, `responses`, or `harPath`."
+                                          },
+                                          "responses": {
+                                            "type": "array",
+                                            "minItems": 1,
+                                            "description": "Responses to send in order. The first matching request gets the first entry, the next request gets the next entry, and the last entry answers every later request. Set one of `response`, `responses`, or `harPath`.",
+                                            "items": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "description": "A response to send.",
+                                              "not": {
+                                                "required": [
+                                                  "body",
+                                                  "bodyPath"
                                                 ]
                                               },
-                                              "bodyPath": {
-                                                "type": "string",
-                                                "minLength": 1,
-                                                "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                              "errorMessage": {
+                                                "not": "set `body` or `bodyPath`, not both."
+                                              },
+                                              "properties": {
+                                                "statusCode": {
+                                                  "type": "integer",
+                                                  "description": "HTTP status code of the response. Omit to send `200`.",
+                                                  "minimum": 100,
+                                                  "maximum": 599
+                                                },
+                                                "headers": {
+                                                  "type": "object",
+                                                  "description": "Response headers, as header names and string values.",
+                                                  "additionalProperties": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "body": {
+                                                  "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "object"
+                                                    },
+                                                    {
+                                                      "type": "array"
+                                                    }
+                                                  ]
+                                                },
+                                                "bodyPath": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                                }
+                                              }
+                                            }
+                                          },
+                                          "harPath": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "description": "HAR 1.2 file whose recorded responses answer matching requests, relative to the spec file. Each recorded URL and method is matched exactly, query string included. Repeated requests are answered in recorded order. Requests that aren't in the file reach the network. Set one of `response`, `responses`, or `harPath`."
+                                          }
+                                        },
+                                        "components": {
+                                          "schemas": {
+                                            "response": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "description": "A response to send.",
+                                              "not": {
+                                                "required": [
+                                                  "body",
+                                                  "bodyPath"
+                                                ]
+                                              },
+                                              "errorMessage": {
+                                                "not": "set `body` or `bodyPath`, not both."
+                                              },
+                                              "properties": {
+                                                "statusCode": {
+                                                  "type": "integer",
+                                                  "description": "HTTP status code of the response. Omit to send `200`.",
+                                                  "minimum": 100,
+                                                  "maximum": 599
+                                                },
+                                                "headers": {
+                                                  "type": "object",
+                                                  "description": "Response headers, as header names and string values.",
+                                                  "additionalProperties": {
+                                                    "type": "string"
+                                                  }
+                                                },
+                                                "body": {
+                                                  "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                  "anyOf": [
+                                                    {
+                                                      "type": "string"
+                                                    },
+                                                    {
+                                                      "type": "object"
+                                                    },
+                                                    {
+                                                      "type": "array"
+                                                    }
+                                                  ]
+                                                },
+                                                "bodyPath": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                                }
                                               }
                                             }
                                           }
@@ -59055,6 +59205,25 @@
                                               },
                                               "bodyPath": "fixtures/user.json"
                                             }
+                                          },
+                                          {
+                                            "url": "**/api/jobs/1",
+                                            "responses": [
+                                              {
+                                                "body": {
+                                                  "status": "running"
+                                                }
+                                              },
+                                              {
+                                                "body": {
+                                                  "status": "done"
+                                                }
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "harPath": "fixtures/app.har",
+                                            "url": "**/api/**"
                                           }
                                         ]
                                       }
@@ -126597,21 +126766,56 @@
                                             "mockRequest": {
                                               "$schema": "http://json-schema.org/draft-07/schema#",
                                               "title": "mockRequest",
-                                              "description": "Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
+                                              "description": "Answer matching browser requests with a fixed response, a sequence of responses, or the responses recorded in a HAR file, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped.",
                                               "type": "object",
                                               "additionalProperties": false,
-                                              "required": [
-                                                "url"
+                                              "anyOf": [
+                                                {
+                                                  "required": [
+                                                    "url"
+                                                  ]
+                                                },
+                                                {
+                                                  "required": [
+                                                    "harPath"
+                                                  ]
+                                                }
                                               ],
+                                              "not": {
+                                                "anyOf": [
+                                                  {
+                                                    "required": [
+                                                      "response",
+                                                      "responses"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "response",
+                                                      "harPath"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "required": [
+                                                      "responses",
+                                                      "harPath"
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              "errorMessage": {
+                                                "anyOf": "set `url` or `harPath`.",
+                                                "not": "set one of `response`, `responses`, or `harPath`."
+                                              },
                                               "properties": {
                                                 "url": {
                                                   "type": "string",
                                                   "minLength": 1,
-                                                  "description": "Glob for the request URLs to answer. `*` matches any characters. A pattern that starts with `http` matches the whole URL, such as `https://api.example.com/user`. Any other pattern matches the URL's path, such as `**/api/invoices*`."
+                                                  "description": "Glob for the request URLs to answer. `*` matches any characters. A pattern that starts with `http` matches the whole URL, such as `https://api.example.com/user`. Any other pattern matches the URL's path, such as `**/api/invoices*`. Required unless `harPath` is set. With `harPath`, keeps only the HAR entries whose URL matches."
                                                 },
                                                 "method": {
                                                   "type": "string",
-                                                  "description": "HTTP method to answer. Omit to answer every method.",
+                                                  "description": "HTTP method to answer. Omit to answer every method. With `harPath`, keeps only the HAR entries with this method.",
                                                   "enum": [
                                                     "GET",
                                                     "POST",
@@ -126623,50 +126827,165 @@
                                                   ]
                                                 },
                                                 "response": {
-                                                  "type": "object",
-                                                  "additionalProperties": false,
-                                                  "description": "The response to send. Omit to send an empty `200` response.",
-                                                  "not": {
-                                                    "required": [
-                                                      "body",
-                                                      "bodyPath"
-                                                    ]
-                                                  },
-                                                  "errorMessage": {
-                                                    "not": "set `body` or `bodyPath`, not both."
-                                                  },
-                                                  "properties": {
-                                                    "statusCode": {
-                                                      "type": "integer",
-                                                      "description": "HTTP status code of the response. Omit to send `200`.",
-                                                      "minimum": 100,
-                                                      "maximum": 599
-                                                    },
-                                                    "headers": {
+                                                  "allOf": [
+                                                    {
                                                       "type": "object",
-                                                      "description": "Response headers, as header names and string values.",
-                                                      "additionalProperties": {
-                                                        "type": "string"
-                                                      }
-                                                    },
-                                                    "body": {
-                                                      "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
-                                                      "anyOf": [
-                                                        {
-                                                          "type": "string"
+                                                      "additionalProperties": false,
+                                                      "description": "A response to send.",
+                                                      "not": {
+                                                        "required": [
+                                                          "body",
+                                                          "bodyPath"
+                                                        ]
+                                                      },
+                                                      "errorMessage": {
+                                                        "not": "set `body` or `bodyPath`, not both."
+                                                      },
+                                                      "properties": {
+                                                        "statusCode": {
+                                                          "type": "integer",
+                                                          "description": "HTTP status code of the response. Omit to send `200`.",
+                                                          "minimum": 100,
+                                                          "maximum": 599
                                                         },
-                                                        {
-                                                          "type": "object"
+                                                        "headers": {
+                                                          "type": "object",
+                                                          "description": "Response headers, as header names and string values.",
+                                                          "additionalProperties": {
+                                                            "type": "string"
+                                                          }
                                                         },
-                                                        {
-                                                          "type": "array"
+                                                        "body": {
+                                                          "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                          "anyOf": [
+                                                            {
+                                                              "type": "string"
+                                                            },
+                                                            {
+                                                              "type": "object"
+                                                            },
+                                                            {
+                                                              "type": "array"
+                                                            }
+                                                          ]
+                                                        },
+                                                        "bodyPath": {
+                                                          "type": "string",
+                                                          "minLength": 1,
+                                                          "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
                                                         }
+                                                      }
+                                                    }
+                                                  ],
+                                                  "description": "The response to send. Omit to send an empty `200` response. Set one of `response`, `responses`, or `harPath`."
+                                                },
+                                                "responses": {
+                                                  "type": "array",
+                                                  "minItems": 1,
+                                                  "description": "Responses to send in order. The first matching request gets the first entry, the next request gets the next entry, and the last entry answers every later request. Set one of `response`, `responses`, or `harPath`.",
+                                                  "items": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "description": "A response to send.",
+                                                    "not": {
+                                                      "required": [
+                                                        "body",
+                                                        "bodyPath"
                                                       ]
                                                     },
-                                                    "bodyPath": {
-                                                      "type": "string",
-                                                      "minLength": 1,
-                                                      "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                                    "errorMessage": {
+                                                      "not": "set `body` or `bodyPath`, not both."
+                                                    },
+                                                    "properties": {
+                                                      "statusCode": {
+                                                        "type": "integer",
+                                                        "description": "HTTP status code of the response. Omit to send `200`.",
+                                                        "minimum": 100,
+                                                        "maximum": 599
+                                                      },
+                                                      "headers": {
+                                                        "type": "object",
+                                                        "description": "Response headers, as header names and string values.",
+                                                        "additionalProperties": {
+                                                          "type": "string"
+                                                        }
+                                                      },
+                                                      "body": {
+                                                        "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "string"
+                                                          },
+                                                          {
+                                                            "type": "object"
+                                                          },
+                                                          {
+                                                            "type": "array"
+                                                          }
+                                                        ]
+                                                      },
+                                                      "bodyPath": {
+                                                        "type": "string",
+                                                        "minLength": 1,
+                                                        "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                "harPath": {
+                                                  "type": "string",
+                                                  "minLength": 1,
+                                                  "description": "HAR 1.2 file whose recorded responses answer matching requests, relative to the spec file. Each recorded URL and method is matched exactly, query string included. Repeated requests are answered in recorded order. Requests that aren't in the file reach the network. Set one of `response`, `responses`, or `harPath`."
+                                                }
+                                              },
+                                              "components": {
+                                                "schemas": {
+                                                  "response": {
+                                                    "type": "object",
+                                                    "additionalProperties": false,
+                                                    "description": "A response to send.",
+                                                    "not": {
+                                                      "required": [
+                                                        "body",
+                                                        "bodyPath"
+                                                      ]
+                                                    },
+                                                    "errorMessage": {
+                                                      "not": "set `body` or `bodyPath`, not both."
+                                                    },
+                                                    "properties": {
+                                                      "statusCode": {
+                                                        "type": "integer",
+                                                        "description": "HTTP status code of the response. Omit to send `200`.",
+                                                        "minimum": 100,
+                                                        "maximum": 599
+                                                      },
+                                                      "headers": {
+                                                        "type": "object",
+                                                        "description": "Response headers, as header names and string values.",
+                                                        "additionalProperties": {
+                                                          "type": "string"
+                                                        }
+                                                      },
+                                                      "body": {
+                                                        "description": "Response body. A string is sent as is. An object or array is sent as JSON. Set `body` or `bodyPath`, not both.",
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "string"
+                                                          },
+                                                          {
+                                                            "type": "object"
+                                                          },
+                                                          {
+                                                            "type": "array"
+                                                          }
+                                                        ]
+                                                      },
+                                                      "bodyPath": {
+                                                        "type": "string",
+                                                        "minLength": 1,
+                                                        "description": "File to send as the response body, relative to the spec file. Set `body` or `bodyPath`, not both."
+                                                      }
                                                     }
                                                   }
                                                 }
@@ -126690,6 +127009,25 @@
                                                     },
                                                     "bodyPath": "fixtures/user.json"
                                                   }
+                                                },
+                                                {
+                                                  "url": "**/api/jobs/1",
+                                                  "responses": [
+                                                    {
+                                                      "body": {
+                                                        "status": "running"
+                                                      }
+                                                    },
+                                                    {
+                                                      "body": {
+                                                        "status": "done"
+                                                      }
+                                                    }
+                                                  ]
+                                                },
+                                                {
+                                                  "harPath": "fixtures/app.har",
+                                                  "url": "**/api/**"
                                                 }
                                               ]
                                             }
