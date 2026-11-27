@@ -1,10 +1,12 @@
 ---
 title: Run an existing Karate suite from Doc Detective
 sidebar-title: Karate suites
-description: Run a Karate API test suite from a Doc Detective test, check its exit code, and reuse numbers from its JSON summary report in later steps.
+description: Run a Karate 2.x API test suite from a Doc Detective test, check its exit code, and reuse numbers from its run summary in later steps.
 ---
 
 Your team already covers its API contracts with [Karate](https://github.com/karatelabs/karate). Your docs still need their own tests: the procedures readers follow, the screenshots they compare against, and the recordings they watch. You don't have to choose between the two or port one suite into the other. A Doc Detective test can run the Karate suite as a shell command, fail when Karate fails, and carry Karate's results into later steps.
+
+This page uses Karate 2.x.
 
 ## Decide what goes where
 
@@ -20,62 +22,75 @@ Run Karate from Doc Detective when a docs test depends on the API being healthy.
 Make sure you have the following:
 
 - [Doc Detective installed](/docs/get-started/installation).
-- A Karate suite that runs from the command line, either with the standalone `karate.jar` and Java, or with the `karate` command. The examples assume your feature files are in `src/test/features`.
-- Karate writes its reports to `target/karate-reports/` by default, including the JSON summary `karate-summary-json.txt`.
+- Karate 2.x and a suite that runs with the `karate run` command. The examples assume your feature files are in `src/test/features`.
 
 ## Step 1: Run the suite and check the exit code
 
-Add a [`runShell`](/docs/actions/runshell) step that runs the suite. Karate exits with a non-zero code when a scenario fails, and `runShell` passes only when the exit code is in `exitCodes`, which defaults to `[0]`. So a failing Karate scenario fails this step.
+Add a [`runShell`](/docs/actions/runshell) step that runs the suite. Karate exits with one of these codes:
+
+- `0`: all tests passed.
+- `1`: one or more tests failed.
+- `2`: a configuration error.
+- `3`: a runtime error.
+
+`runShell` passes only when the exit code is in `exitCodes`, which defaults to `[0]`. So any failure, error, or bad configuration fails this step.
 
 ```json
 {
-  "description": "Run the Karate API suite.",
+  "description": "Run the Karate API suite and write its events as JSON Lines.",
   "runShell": {
-    "command": "java -jar karate.jar src/test/features",
+    "command": "karate run -f karate:jsonl src/test/features",
     "exitCodes": [0],
     "timeout": 600000
   }
 }
 ```
 
-If you installed the `karate` command, use `"command": "karate src/test/features"` instead. Raise `timeout`, 60000 milliseconds by default, to fit how long the suite takes.
+The `-f karate:jsonl` option tells Karate to write its run events to `target/karate-reports/karate-json/karate-events.jsonl`, one JSON object per line. Karate doesn't write that file unless you ask for it. The HTML report at `target/karate-reports/karate-summary.html` is still written by default.
 
-## Step 2: Read the summary report into variables
+Raise `timeout`, 60000 milliseconds by default, to fit how long the suite takes.
 
-Karate's JSON summary holds the suite's totals, such as `featuresPassed`, `featuresFailed`, and `scenariosPassed`. Print the file with a second `runShell` step, then save fields with the step-level `variables` object.
+## Step 2: Read the run summary into variables
 
-The command's output, `$$stdio.stdout`, is text, so parse it inside the [`jq()` function](/reference/reference/expressions#function-operators) with `fromjson` before selecting a field:
+The events file ends the run with a line whose `type` is `SUITE_EXIT`. Its `data.summary` object holds the totals:
+
+- `featureCount`, `featuresPassed`, and `featuresFailed`
+- `scenarioCount`, `scenariosPassed`, `scenariosFailed`, and `scenariosSkipped`
+- `passed`, `true` when the whole run passed
+- `durationMillis`
+
+Print the file with a second `runShell` step, then save fields with the step-level `variables` object. Doc Detective's built-in [`jq()` function](/reference/reference/expressions#function-operators) does the parsing, so you don't need to install `jq`. The query splits the output into lines, parses each one, and keeps the `SUITE_EXIT` line:
 
 ```json
 {
-  "description": "Read the Karate summary and capture the totals.",
+  "description": "Read the Karate run summary and save the totals.",
   "runShell": {
-    "command": "cat target/karate-reports/karate-summary-json.txt"
+    "command": "cat target/karate-reports/karate-json/karate-events.jsonl"
   },
   "variables": {
-    "KARATE_SCENARIOS_PASSED": "jq($$stdio.stdout, \"fromjson | .scenariosPassed\")",
-    "KARATE_FEATURES_FAILED": "jq($$stdio.stdout, \"fromjson | .featuresFailed\")"
+    "KARATE_SCENARIOS_PASSED": "jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosPassed')",
+    "KARATE_SCENARIOS_FAILED": "jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosFailed')"
   }
 }
 ```
 
-If a `jq()` query in `variables` fails, for example because the file isn't JSON, the step fails rather than storing the query text.
+To save a different total, change the last field name in the query, such as `.featuresFailed` or `.durationMillis`. If a `jq()` query in `variables` fails, for example because a line isn't JSON, the step fails rather than storing the query text.
 
 ## Step 3: Use the saved values
 
-Later steps read the variables as `$KARATE_SCENARIOS_PASSED` and `$KARATE_FEATURES_FAILED`. Use them in a command, a request, or a file you write for your team:
+Later steps read the variables as `$KARATE_SCENARIOS_PASSED` and `$KARATE_SCENARIOS_FAILED`. Use them in a command, a request, or a file you write for your team:
 
 ```json
 {
   "description": "Log the Karate totals.",
   "runShell": {
-    "command": "echo Karate passed $KARATE_SCENARIOS_PASSED scenarios, $KARATE_FEATURES_FAILED features failed",
-    "stdio": "/Karate passed \\d+ scenarios, 0 features failed/"
+    "command": "echo Karate passed $KARATE_SCENARIOS_PASSED scenarios, $KARATE_SCENARIOS_FAILED failed",
+    "stdio": "/Karate passed \\d+ scenarios, 0 failed/"
   }
 }
 ```
 
-The `stdio` pattern doubles as an assertion: the step fails unless no feature failed.
+The `stdio` pattern doubles as an assertion. The step fails unless no scenario failed.
 
 ## Put it together
 
@@ -89,28 +104,28 @@ The complete spec runs the suite, reads its summary, and uses the totals:
     {
       "steps": [
         {
-          "description": "Run the Karate API suite.",
+          "description": "Run the Karate API suite and write its events as JSON Lines.",
           "runShell": {
-            "command": "java -jar karate.jar src/test/features",
+            "command": "karate run -f karate:jsonl src/test/features",
             "exitCodes": [0],
             "timeout": 600000
           }
         },
         {
-          "description": "Read the Karate summary and capture the totals.",
+          "description": "Read the Karate run summary and save the totals.",
           "runShell": {
-            "command": "cat target/karate-reports/karate-summary-json.txt"
+            "command": "cat target/karate-reports/karate-json/karate-events.jsonl"
           },
           "variables": {
-            "KARATE_SCENARIOS_PASSED": "jq($$stdio.stdout, \"fromjson | .scenariosPassed\")",
-            "KARATE_FEATURES_FAILED": "jq($$stdio.stdout, \"fromjson | .featuresFailed\")"
+            "KARATE_SCENARIOS_PASSED": "jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosPassed')",
+            "KARATE_SCENARIOS_FAILED": "jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosFailed')"
           }
         },
         {
           "description": "Log the Karate totals.",
           "runShell": {
-            "command": "echo Karate passed $KARATE_SCENARIOS_PASSED scenarios, $KARATE_FEATURES_FAILED features failed",
-            "stdio": "/Karate passed \\d+ scenarios, 0 features failed/"
+            "command": "echo Karate passed $KARATE_SCENARIOS_PASSED scenarios, $KARATE_SCENARIOS_FAILED failed",
+            "stdio": "/Karate passed \\d+ scenarios, 0 failed/"
           }
         }
       ]
@@ -119,14 +134,14 @@ The complete spec runs the suite, reads its summary, and uses the totals:
 }
 ```
 
-{/* step {"stepId":"karate-suite-run-stub","description":"STUB, not Karate: the docs suite doesn't install Java or Karate, so this stands in for 'java -jar karate.jar src/test/features' with a command that prints a Karate-style line and exits 0, the exit code a passing suite returns","runShell":{"command":"node -e \"console.log('Karate stub: scenarios: 3 | passed: 3 | failed: 0')\"","exitCodes":[0]}} */}
-{/* step {"stepId":"karate-suite-read-stub","description":"STUB, not Karate: prints a Karate-shaped summary (the fields of karate-summary-json.txt this page reads) instead of reading a real report, then captures the totals exactly as the documented step does","runShell":{"command":"node -e \"console.log(JSON.stringify({featuresPassed:2,featuresFailed:0,featuresSkipped:0,scenariosPassed:3,elapsedTime:1234.5}))\""},"variables":{"KARATE_SCENARIOS_PASSED":"jq($$stdio.stdout, \"fromjson | .scenariosPassed\")","KARATE_FEATURES_FAILED":"jq($$stdio.stdout, \"fromjson | .featuresFailed\")"}} */}
-{/* step {"stepId":"karate-suite-use-values","description":"Use the saved totals, matching the exact values from the stub summary so an unsubstituted variable fails the step","runShell":{"command":"echo Karate passed $KARATE_SCENARIOS_PASSED scenarios, $KARATE_FEATURES_FAILED features failed","stdio":"Karate passed 3 scenarios, 0 features failed"}} */}
+{/* step {"stepId":"karate-suite-run-stub","description":"STUB, not Karate: the docs suite doesn't install Java or Karate, so this stands in for 'karate run -f karate:jsonl src/test/features' with a command that exits 0, the code Karate returns when all tests pass","runShell":{"command":"node --version","exitCodes":[0]}} */}
+{/* step {"stepId":"karate-suite-read-stub","description":"STUB, not Karate: karate-events-stub.cjs next to this page prints a Karate 2.x SUITE_EXIT line in place of reading a real karate-events.jsonl. The variables use the same jq() queries as the documented step","runShell":{"command":"node karate-events-stub.cjs","workingDirectory":"."},"variables":{"KARATE_SCENARIOS_PASSED":"jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosPassed')","KARATE_SCENARIOS_FAILED":"jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosFailed')"}} */}
+{/* step {"stepId":"karate-suite-use-values","description":"Use the saved totals, matching the exact values from the stub summary so an unsubstituted variable fails the step","runShell":{"command":"echo Karate passed $KARATE_SCENARIOS_PASSED scenarios, $KARATE_SCENARIOS_FAILED failed","stdio":"Karate passed 3 scenarios, 0 failed"}} */}
 {/* test end */}
 
 ## Step 4: Run the test
 
-Run the spec where Java and your Karate suite are available, such as the CI image that already runs Karate.
+Run the spec where Karate and your suite are available, such as the CI image that already runs Karate.
 
 ```bash
 npx doc-detective --input karate.spec.json
@@ -134,15 +149,15 @@ npx doc-detective --input karate.spec.json
 
 ## Verify it works
 
-Each step reports `PASS`. If a Karate scenario fails, the first step reports `FAIL` with the exit code, and the steps after it don't run. To see where results land, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
+Each step reports `PASS`. If Karate exits with a non-zero code, the first step reports `FAIL` with that code, and the steps after it don't run. To see where results land, see [Reporters and artifacts](/docs/ci/reporters-and-artifacts).
 
 ## Troubleshooting
 
 ### The summary step fails with a `jq` error
 
-**Cause:** The command printed something other than the JSON summary, such as an error that the file doesn't exist. Karate writes the report to the output folder of the run, which you can change with its `-o` option.
+**Cause:** The command printed something other than the events file, such as an error that the file doesn't exist. Karate writes `karate-events.jsonl` only when the run includes `-f karate:jsonl`, and its `-o` option moves the output to a different folder.
 
-**Solution:** Point the `cat` command at the folder the suite writes to, and make sure the suite step runs first in the same test.
+**Solution:** Add `-f karate:jsonl` to the suite command. If you set `-o`, point the `cat` command at the `karate-json/karate-events.jsonl` file under that folder.
 
 ### The suite step fails on a timeout
 
