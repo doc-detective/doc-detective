@@ -241,6 +241,12 @@ Each example opens a test-server page and takes one screenshot. The pages whose 
 
 <Markdown src="examples/capture-screenshot-mask-object/_variants.mdx" />
 
+### `mask` with `elementClass`
+
+**Varies:** `screenshot.mask` · **Value:** `[{ "elementClass": "stamp" }, "#clock"]` · **Effect:** hides every element with the `stamp` class, and the first match of the string. A mask object takes the same locator fields as `find`.
+
+<Markdown src="examples/capture-screenshot-mask-elementclass/_variants.mdx" />
+
 ### `stable: true`
 
 **Varies:** `screenshot.stable` · **Value:** `true` · **Effect:** takes screenshots until two in a row match, so the loading bar has finished.
@@ -512,6 +518,14 @@ Each example records typing in a field. The `browser` engine runs in headless Ch
 **Varies:** `record.verify.resolution` · **Value:** `true` · **Effect:** fails the stop step if the video's size doesn't match what Doc Detective expected to record.
 
 <Markdown src="examples/capture-record-verify-resolution/_variants.mdx" />
+
+### `verify` with `resolution` as an object
+
+**Varies:** `record.verify.resolution` · **Value:** `{ "width": 800, "height": 600 }` · **Effect:** fails the stop step unless the video is exactly 800 by 600 pixels, the size of the test's headless Chrome viewport.
+
+<Markdown src="examples/capture-record-verify-resolution-object/_variants.mdx" />
+
+The test's `runOn` runs it on headless Chrome only, where the video matches the viewport. Headed Chrome on a display smaller than the window can record a shorter video, and the run warns.
 
 ### `checkpoints: true`
 
