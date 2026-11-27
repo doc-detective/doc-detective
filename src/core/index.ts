@@ -44,18 +44,14 @@ async function detectAndResolveFromConfig(config: any, { strictSpecs = false } =
   // Non-enumerable, so it stays out of serialized payloads.
   Object.defineProperty(config, "_strictSpecs", { value: strictSpecs, enumerable: false, configurable: true });
   const detectedTests = await detectTests({ config });
-  if (strictSpecs && config._invalidSpecs?.length) {
-    throw new Error(
-      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs
-        .map(({ path, reason }: { path: string; reason: string }) => `${displayPath(path)}\n${reason}`)
-        .join("\n")}\nFix them, or skip them with \`--no-exit-on-fail\` or \`exitOnFail: false\`.`
-    );
-  }
+  rejectInvalidSpecs(config, strictSpecs);
   if (!detectedTests || detectedTests.length === 0) {
     log(config, "warning", "No tests detected.");
     return null;
   }
   const resolvedTests = await resolveTests({ config, detectedTests });
+  // Resolving can find more, such as a `matrix` mistake (ADR 01227).
+  rejectInvalidSpecs(config, strictSpecs);
   // Carry the full qualified input set forward so the verification
   // write-back can reach prose-only files that produced no spec (see
   // qualifyFiles' `config._qualifiedFiles`).
@@ -68,6 +64,16 @@ async function detectAndResolveFromConfig(config: any, { strictSpecs = false } =
     });
   }
   return resolvedTests;
+}
+
+function rejectInvalidSpecs(config: any, strictSpecs: boolean) {
+  if (strictSpecs && config._invalidSpecs?.length) {
+    throw new Error(
+      `Invalid test specifications, so nothing ran:\n${config._invalidSpecs
+        .map(({ path, reason }: { path: string; reason: string }) => `${displayPath(path)}\n${reason}`)
+        .join("\n")}\nFix them, or skip them with \`--no-exit-on-fail\` or \`exitOnFail: false\`.`
+    );
+  }
 }
 
 // Run tests defined in specifications and documentation source files. Returns

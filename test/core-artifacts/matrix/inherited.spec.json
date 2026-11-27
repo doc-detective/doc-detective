@@ -1,0 +1,41 @@
+{
+  "specId": "matrix-inherited",
+  "description": "A spec-level `runOn` `matrix` reaches every test without a `runOn` of its own, and multiplies only the tests that reference it (ADR 01227).",
+  "runOn": [
+    {
+      "matrix": {
+        "n": [
+          "1",
+          "2",
+          "3"
+        ]
+      }
+    }
+  ],
+  "tests": [
+    {
+      "testId": "references-the-key",
+      "description": "Runs three times, once per value.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo n=$$matrix.n",
+            "stdio": "/n=$$matrix.n/"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "ignores-the-key",
+      "description": "References nothing, so it runs once, with no `matrix` on its context.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "echo once",
+            "stdio": "/once/"
+          }
+        }
+      ]
+    }
+  ]
+}

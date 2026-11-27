@@ -32,7 +32,7 @@ function loadParseContent() {
 // detection order and results are unchanged regardless of this value.
 const DETECTION_PARSE_CONCURRENCY = 8;
 
-export { detectTests, parseTests, generateSpecId, skipInvalidSpec };
+export { detectTests, parseTests, generateSpecId, skipInvalidSpec, noteInvalidSpec };
 
 /**
  * Detects tests from files based on config.
