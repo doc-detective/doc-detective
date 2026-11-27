@@ -166,7 +166,7 @@ function respondWith(mock: any, responses: any[]) {
     });
     return;
   }
-  // A sequence (ADR 01233). webdriverio's respondOnce can't queue ahead of a
+  // A sequence (ADR 01242). webdriverio's respondOnce can't queue ahead of a
   // sticky respond: each call replaces the other. So one sticky respond reads
   // a counter. webdriverio calls body, then headers, then statusCode,
   // synchronously per request, so all three see the entry the body picked.

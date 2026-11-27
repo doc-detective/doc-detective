@@ -179,7 +179,7 @@ const HAR_WIRE_HEADERS = new Set(["content-length", "content-encoding", "transfe
 
 /**
  * Turn a HAR 1.2 log into mocks, one per exact URL and method, each with its
- * responses in file order (ADR 01233). `url` is a webdriverio-style glob: `**`
+ * responses in file order (ADR 01242). `url` is a webdriverio-style glob: `**`
  * collapses to `*`, a pattern starting `http` matches the whole URL, any other
  * pattern matches the path. Returns `undefined` when `har` isn't HAR JSON.
  */
