@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-describe("matrix values from a file (ADR 01228)", function () {
+describe("matrix values from a file (ADR 01233)", function () {
   let dir;
   before(function () {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-file-"));
