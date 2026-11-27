@@ -52,7 +52,7 @@ The annotations cover every annotation type, and each type's target as a selecto
 | `arrow` | A selector string with a `position` point (`x` and `y`), and a target that's only a point in the image. |
 | `text` | A selector string with the named `position` `bottom`, and a target that's only a named region. |
 
-`annotationDefaults` on the test sets the color for every annotation type and the badge colors, and an annotation's own `style` wins over it. The example's detected run also sets `annotationDefaults` and `overwriteScreenshots` in its [config](/reference/schemas/config), in `examples/capture-screenshots/doc-detective.json`. A test's theme wins over the config's, and `overwriteScreenshots` replaces every step's `overwrite`.
+`annotationDefaults` on the test sets the color for every annotation type and the badge colors, and an annotation's own `style` wins over it. The example's detected run also sets `annotationDefaults` and `overwriteScreenshots` in its [config](/reference/schemas/config), in `docs/docs-as-tests/examples/capture-screenshots/doc-detective.json`. A test's theme wins over the config's, and `overwriteScreenshots` replaces every step's `overwrite`.
 
 The test sets `autoScreenshot` to `true`, so Doc Detective also saves a screenshot after every step to the run folder. The standalone specs set it on the [spec](/reference/schemas/specification), where it applies to every test in the file. A test's own `autoScreenshot` overrides the spec's.
 

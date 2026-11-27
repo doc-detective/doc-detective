@@ -8,14 +8,14 @@
 ````markdown title="prose.md"
 # Create an account with an API token
 
-Keep the API address and your token in a `.env` file next to this page:
+Keep the API address and your token in an `api.env` file next to this page:
 
 ```text
 API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token
 ```
 
-1. Load the variables from your `.env` file.
+1. Load the variables from your `api.env` file.
 2. Send a `POST` request to `$API_URL/accounts` with the header `Authorization: Bearer $API_TOKEN` and this body:
 
    ```json
@@ -32,14 +32,14 @@ API_TOKEN=your-api-token
 ````mdx title="prose.mdx"
 # Create an account with an API token
 
-Keep the API address and your token in a `.env` file next to this page:
+Keep the API address and your token in an `api.env` file next to this page:
 
 ```text
 API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token
 ```
 
-1. Load the variables from your `.env` file.
+1. Load the variables from your `api.env` file.
 2. Send a `POST` request to `$API_URL/accounts` with the header `Authorization: Bearer $API_TOKEN` and this body:
 
    ```json
@@ -56,7 +56,7 @@ API_TOKEN=your-api-token
 ```asciidoc title="prose.adoc"
 = Create an account with an API token
 
-Keep the API address and your token in a `+.env+` file next to this page:
+Keep the API address and your token in an `+api.env+` file next to this page:
 
 [source,text]
 ----
@@ -64,7 +64,7 @@ API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token
 ----
 
-. Load the variables from your `+.env+` file.
+. Load the variables from your `+api.env+` file.
 . Send a `+POST+` request to `+$API_URL/accounts+` with the header `+Authorization: Bearer $API_TOKEN+` and this body:
 +
 [source,json]
@@ -85,13 +85,13 @@ The API returns status `+200+` and the new account, with `+plan+` set to `+team+
 <head><title>Create an account with an API token</title></head>
 <body>
 <h1>Create an account with an API token</h1>
-<p>Keep the API address and your token in a <code>.env</code> file next to this page:</p>
+<p>Keep the API address and your token in an <code>api.env</code> file next to this page:</p>
 
 <pre><code class="language-text">API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token</code></pre>
 
 <ol>
-  <li>Load the variables from your <code>.env</code> file.</li>
+  <li>Load the variables from your <code>api.env</code> file.</li>
   <li>Send a <code>POST</code> request to <code>$API_URL/accounts</code> with the header <code>Authorization: Bearer $API_TOKEN</code> and this body:
     <pre><code class="language-json">{"name": "Wren", "plan": "team", "seats": 5, "roles": ["admin", "billing"]}</code></pre>
     <p>The API returns status <code>200</code> and the new account, with <code>plan</code> set to <code>team</code>. Note the account's <code>name</code>, its <code>seats</code>, and its first role.</p></li>
@@ -108,14 +108,14 @@ API_TOKEN=your-api-token</code></pre>
 Create an account with an API token
 ===================================
 
-Keep the API address and your token in a ``.env`` file next to this page:
+Keep the API address and your token in an ``api.env`` file next to this page:
 
 .. code-block:: text
 
    API_URL=http://localhost:8092/api
    API_TOKEN=your-api-token
 
-#. Load the variables from your ``.env`` file.
+#. Load the variables from your ``api.env`` file.
 
 #. Send a ``POST`` request to ``$API_URL/accounts`` with the header ``Authorization: Bearer $API_TOKEN`` and this body:
 
@@ -138,12 +138,12 @@ Keep the API address and your token in a ``.env`` file next to this page:
   <title>Create an account with an API token</title>
   <taskbody>
     <context>
-      <p>Keep the API address and your token in a <codeph>.env</codeph> file next to this page:</p>
+      <p>Keep the API address and your token in an <codeph>api.env</codeph> file next to this page:</p>
       <codeblock outputclass="language-text">API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token</codeblock>
     </context>
     <steps>
-      <step><cmd>Load the variables from your <codeph>.env</codeph> file.</cmd></step>
+      <step><cmd>Load the variables from your <codeph>api.env</codeph> file.</cmd></step>
       <step><cmd>Send a <codeph>POST</codeph> request to <codeph>$API_URL/accounts</codeph> with the header <codeph>Authorization: Bearer $API_TOKEN</codeph> and this body:</cmd>
         <info><codeblock outputclass="language-json">{"name": "Wren", "plan": "team", "seats": 5, "roles": ["admin", "billing"]}</codeblock>
           <p>The API returns status <codeph>200</codeph> and the new account, with <codeph>plan</codeph> set to <codeph>team</codeph>. Note the account's <codeph>name</codeph>, its <codeph>seats</codeph>, and its first role.</p></info></step>
@@ -165,15 +165,15 @@ API_TOKEN=your-api-token</codeblock>
 
 # Create an account with an API token
 
-Keep the API address and your token in a `.env` file next to this page:
+Keep the API address and your token in an `api.env` file next to this page:
 
 ```text
 API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token
 ```
 
-1. Load the variables from your `.env` file.
-   <!-- step {"loadVariables":".env"} -->
+1. Load the variables from your `api.env` file.
+   <!-- step {"loadVariables":"api.env"} -->
 2. Send a `POST` request to `$API_URL/accounts` with the header `Authorization: Bearer $API_TOKEN` and this body:
 
    ```json
@@ -196,15 +196,15 @@ API_TOKEN=your-api-token
 
 # Create an account with an API token
 
-Keep the API address and your token in a `.env` file next to this page:
+Keep the API address and your token in an `api.env` file next to this page:
 
 ```text
 API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token
 ```
 
-1. Load the variables from your `.env` file.
-   {/* step {"loadVariables":".env"} */}
+1. Load the variables from your `api.env` file.
+   {/* step {"loadVariables":"api.env"} */}
 2. Send a `POST` request to `$API_URL/accounts` with the header `Authorization: Bearer $API_TOKEN` and this body:
 
    ```json
@@ -227,7 +227,7 @@ API_TOKEN=your-api-token
 
 // (test {"testId":"data-api-token","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["ACCOUNT_*"],"detectSteps":true})
 
-Keep the API address and your token in a `+.env+` file next to this page:
+Keep the API address and your token in an `+api.env+` file next to this page:
 
 [source,text]
 ----
@@ -235,9 +235,9 @@ API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token
 ----
 
-. Load the variables from your `+.env+` file.
+. Load the variables from your `+api.env+` file.
 +
-// (step {"loadVariables":".env"})
+// (step {"loadVariables":"api.env"})
 . Send a `+POST+` request to `+$API_URL/accounts+` with the header `+Authorization: Bearer $API_TOKEN+` and this body:
 +
 [source,json]
@@ -265,14 +265,14 @@ The API returns status `+200+` and the new account, with `+plan+` set to `+team+
 <body>
 <!-- test {"testId":"data-api-token","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["ACCOUNT_*"],"detectSteps":true} -->
 <h1>Create an account with an API token</h1>
-<p>Keep the API address and your token in a <code>.env</code> file next to this page:</p>
+<p>Keep the API address and your token in an <code>api.env</code> file next to this page:</p>
 
 <pre><code class="language-text">API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token</code></pre>
 
 <ol>
-  <li>Load the variables from your <code>.env</code> file.
-    <!-- step {"loadVariables":".env"} --></li>
+  <li>Load the variables from your <code>api.env</code> file.
+    <!-- step {"loadVariables":"api.env"} --></li>
   <li>Send a <code>POST</code> request to <code>$API_URL/accounts</code> with the header <code>Authorization: Bearer $API_TOKEN</code> and this body:
     <pre><code class="language-json">{"name": "Wren", "plan": "team", "seats": 5, "roles": ["admin", "billing"]}</code></pre>
     <p>The API returns status <code>200</code> and the new account, with <code>plan</code> set to <code>team</code>. Note the account's <code>name</code>, its <code>seats</code>, and its first role.</p>
@@ -294,16 +294,16 @@ Create an account with an API token
 
 .. test {"testId":"data-api-token","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["ACCOUNT_*"],"detectSteps":true}
 
-Keep the API address and your token in a ``.env`` file next to this page:
+Keep the API address and your token in an ``api.env`` file next to this page:
 
 .. code-block:: text
 
    API_URL=http://localhost:8092/api
    API_TOKEN=your-api-token
 
-#. Load the variables from your ``.env`` file.
+#. Load the variables from your ``api.env`` file.
 
-   .. step {"loadVariables":".env"}
+   .. step {"loadVariables":"api.env"}
 
 #. Send a ``POST`` request to ``$API_URL/accounts`` with the header ``Authorization: Bearer $API_TOKEN`` and this body:
 
@@ -333,13 +333,13 @@ Keep the API address and your token in a ``.env`` file next to this page:
   <taskbody>
     <data name="doc-detective" value='test {"testId":"data-api-token","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["ACCOUNT_*"],"detectSteps":true}'/>
     <context>
-      <p>Keep the API address and your token in a <codeph>.env</codeph> file next to this page:</p>
+      <p>Keep the API address and your token in an <codeph>api.env</codeph> file next to this page:</p>
       <codeblock outputclass="language-text">API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token</codeblock>
     </context>
     <steps>
-      <step><cmd>Load the variables from your <codeph>.env</codeph> file.</cmd>
-        <info><data name="doc-detective" value='step {"loadVariables":".env"}'/></info></step>
+      <step><cmd>Load the variables from your <codeph>api.env</codeph> file.</cmd>
+        <info><data name="doc-detective" value='step {"loadVariables":"api.env"}'/></info></step>
       <step><cmd>Send a <codeph>POST</codeph> request to <codeph>$API_URL/accounts</codeph> with the header <codeph>Authorization: Bearer $API_TOKEN</codeph> and this body:</cmd>
         <info><codeblock outputclass="language-json">{"name": "Wren", "plan": "team", "seats": 5, "roles": ["admin", "billing"]}</codeblock>
           <p>The API returns status <codeph>200</codeph> and the new account, with <codeph>plan</codeph> set to <codeph>team</codeph>. Note the account's <codeph>name</codeph>, its <codeph>seats</codeph>, and its first role.</p>
@@ -364,15 +364,15 @@ API_TOKEN=your-api-token</codeblock>
 
 # Create an account with an API token
 
-Keep the API address and your token in a `.env` file next to this page:
+Keep the API address and your token in an `api.env` file next to this page:
 
 ```text
 API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token
 ```
 
-1. Load the variables from your `.env` file.
-   <!-- step {"loadVariables":".env"} -->
+1. Load the variables from your `api.env` file.
+   <!-- step {"loadVariables":"api.env"} -->
 2. Send a `POST` request to `$API_URL/accounts` with the header `Authorization: Bearer $API_TOKEN` and this body:
 
    ```json
@@ -395,15 +395,15 @@ API_TOKEN=your-api-token
 
 # Create an account with an API token
 
-Keep the API address and your token in a `.env` file next to this page:
+Keep the API address and your token in an `api.env` file next to this page:
 
 ```text
 API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token
 ```
 
-1. Load the variables from your `.env` file.
-   {/* step {"loadVariables":".env"} */}
+1. Load the variables from your `api.env` file.
+   {/* step {"loadVariables":"api.env"} */}
 2. Send a `POST` request to `$API_URL/accounts` with the header `Authorization: Bearer $API_TOKEN` and this body:
 
    ```json
@@ -426,7 +426,7 @@ API_TOKEN=your-api-token
 
 // (test {"testId":"data-api-token","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["ACCOUNT_*"],"detectSteps":false})
 
-Keep the API address and your token in a `+.env+` file next to this page:
+Keep the API address and your token in an `+api.env+` file next to this page:
 
 [source,text]
 ----
@@ -434,9 +434,9 @@ API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token
 ----
 
-. Load the variables from your `+.env+` file.
+. Load the variables from your `+api.env+` file.
 +
-// (step {"loadVariables":".env"})
+// (step {"loadVariables":"api.env"})
 . Send a `+POST+` request to `+$API_URL/accounts+` with the header `+Authorization: Bearer $API_TOKEN+` and this body:
 +
 [source,json]
@@ -464,14 +464,14 @@ The API returns status `+200+` and the new account, with `+plan+` set to `+team+
 <body>
 <!-- test {"testId":"data-api-token","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["ACCOUNT_*"],"detectSteps":false} -->
 <h1>Create an account with an API token</h1>
-<p>Keep the API address and your token in a <code>.env</code> file next to this page:</p>
+<p>Keep the API address and your token in an <code>api.env</code> file next to this page:</p>
 
 <pre><code class="language-text">API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token</code></pre>
 
 <ol>
-  <li>Load the variables from your <code>.env</code> file.
-    <!-- step {"loadVariables":".env"} --></li>
+  <li>Load the variables from your <code>api.env</code> file.
+    <!-- step {"loadVariables":"api.env"} --></li>
   <li>Send a <code>POST</code> request to <code>$API_URL/accounts</code> with the header <code>Authorization: Bearer $API_TOKEN</code> and this body:
     <pre><code class="language-json">{"name": "Wren", "plan": "team", "seats": 5, "roles": ["admin", "billing"]}</code></pre>
     <p>The API returns status <code>200</code> and the new account, with <code>plan</code> set to <code>team</code>. Note the account's <code>name</code>, its <code>seats</code>, and its first role.</p>
@@ -493,16 +493,16 @@ Create an account with an API token
 
 .. test {"testId":"data-api-token","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["ACCOUNT_*"],"detectSteps":false}
 
-Keep the API address and your token in a ``.env`` file next to this page:
+Keep the API address and your token in an ``api.env`` file next to this page:
 
 .. code-block:: text
 
    API_URL=http://localhost:8092/api
    API_TOKEN=your-api-token
 
-#. Load the variables from your ``.env`` file.
+#. Load the variables from your ``api.env`` file.
 
-   .. step {"loadVariables":".env"}
+   .. step {"loadVariables":"api.env"}
 
 #. Send a ``POST`` request to ``$API_URL/accounts`` with the header ``Authorization: Bearer $API_TOKEN`` and this body:
 
@@ -532,13 +532,13 @@ Keep the API address and your token in a ``.env`` file next to this page:
   <taskbody>
     <data name="doc-detective" value='test {"testId":"data-api-token","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["ACCOUNT_*"],"detectSteps":false}'/>
     <context>
-      <p>Keep the API address and your token in a <codeph>.env</codeph> file next to this page:</p>
+      <p>Keep the API address and your token in an <codeph>api.env</codeph> file next to this page:</p>
       <codeblock outputclass="language-text">API_URL=http://localhost:8092/api
 API_TOKEN=your-api-token</codeblock>
     </context>
     <steps>
-      <step><cmd>Load the variables from your <codeph>.env</codeph> file.</cmd>
-        <info><data name="doc-detective" value='step {"loadVariables":".env"}'/></info></step>
+      <step><cmd>Load the variables from your <codeph>api.env</codeph> file.</cmd>
+        <info><data name="doc-detective" value='step {"loadVariables":"api.env"}'/></info></step>
       <step><cmd>Send a <codeph>POST</codeph> request to <codeph>$API_URL/accounts</codeph> with the header <codeph>Authorization: Bearer $API_TOKEN</codeph> and this body:</cmd>
         <info><codeblock outputclass="language-json">{"name": "Wren", "plan": "team", "seats": 5, "roles": ["admin", "billing"]}</codeblock>
           <p>The API returns status <codeph>200</codeph> and the new account, with <codeph>plan</codeph> set to <codeph>team</codeph>. Note the account's <codeph>name</codeph>, its <codeph>seats</codeph>, and its first role.</p>
@@ -573,7 +573,7 @@ API_TOKEN=your-api-token</codeblock>
       ],
       "steps": [
         {
-          "loadVariables": ".env"
+          "loadVariables": "api.env"
         },
         {
           "httpRequest": {
@@ -642,7 +642,7 @@ tests:
     publicVariables:
       - ACCOUNT_*
     steps:
-      - loadVariables: .env
+      - loadVariables: api.env
       - httpRequest:
           url: $API_URL/accounts
           method: post

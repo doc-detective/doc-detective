@@ -4,10 +4,12 @@
 
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const require = createRequire(import.meta.url);
-const { findMismatches, groupByConfig } = require("../docs/.scripts/checkDocsAsTests.js");
+const { findMismatches, groupByConfig, findPlatformContexts } = require("../docs/.scripts/checkDocsAsTests.js");
 
 const spec = (file, steps) => ({
   contentPath: `/repo/examples/echo/${file}`,
@@ -79,5 +81,23 @@ describe("docs-as-tests config groups", function () {
       [p("shared.json"), [p("a", "detected.md"), p("a", "inline.md")]],
       [own, [p("b", "detected.md")]],
     ]));
+  });
+});
+
+describe("docs-as-tests required platform", function () {
+  it("counts a platform's contexts that ran and lists the skipped ones", function () {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dat-platform-"));
+    const file = path.join(dir, "results.json");
+    fs.writeFileSync(file, JSON.stringify({ specs: [{ specId: "s", tests: [{ testId: "t", contexts: [
+      { platform: "windows", result: "PASS" },
+      { platform: "windows", result: "SKIPPED", resultDescription: "Skipped: no app." },
+      { platform: "linux", result: "SKIPPED" },
+    ] }] }] }));
+    try {
+      assert.deepEqual(findPlatformContexts(file, "windows"), { ran: 1, skipped: ["t (s): Skipped: no app."] });
+      assert.deepEqual(findPlatformContexts(path.join(dir, "missing.json"), "windows"), { ran: 0, skipped: [] });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

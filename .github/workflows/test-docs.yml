@@ -55,11 +55,11 @@ jobs:
           npm run docs:check-docs-as-tests
           npm run docs:coverage-docs-as-tests -- --check
 
-      # The run below uses the docs config, which turns detection off, so it runs
-      # the examples' inline and standalone files but not the detected ones. A
-      # test can't turn detection back on (ADR 00088), so run those here with
-      # the examples' own config.
-      - name: Run the docs-as-tests detected examples
+      # The examples live in docs/docs-as-tests/examples, outside the docs run's
+      # input, so the docs run's capture settings don't slow them down. Run
+      # every detected, inline, and standalone file here with the examples' own
+      # configs.
+      - name: Run the docs-as-tests examples
         run: npm run docs:check-docs-as-tests -- --run
 
       - name: Run Doc Detective on the docs
@@ -171,6 +171,16 @@ jobs:
             for (const row of skipped) console.error(`  ${row}`);
             process.exit(1);
           }
+
+      # The docs-as-tests examples aren't in the docs run's input, so run them
+      # here too, so the Windows-only examples run on Windows. The configs'
+      # beforeAll starts the test servers. --require-platform fails the step
+      # when a Windows context is skipped, like the gate above.
+      - name: Run the docs-as-tests examples
+        if: ${{ !cancelled() }}
+        env:
+          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: '1'
+        run: npm run docs:check-docs-as-tests -- --run --require-platform windows
 
       - if: always()
         continue-on-error: true

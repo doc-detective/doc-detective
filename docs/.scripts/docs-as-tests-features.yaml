@@ -2,8 +2,7 @@
 # schemas: statement syntaxes, detection rules, expressions, and enum values
 # that change behavior. docsAsTestsCoverage.js reports each entry whose
 # `needle` appears in no example file under
-# fern/pages/reference/docs-as-tests/examples/ (generated _variants.mdx files
-# excluded).
+# docs-as-tests/examples/.
 #
 # - id: a stable kebab-case name.
 # - since: the release that added the form, from docs/fern/changelog/.

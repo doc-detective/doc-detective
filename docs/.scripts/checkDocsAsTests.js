@@ -1,5 +1,5 @@
 // Checks the docs-as-tests reference examples in
-// fern/pages/reference/docs-as-tests/examples/<example>/. Each example shows
+// docs-as-tests/examples/<example>/. Each example shows
 // one procedure as prose.*, detected.*, inline.*, and standalone.spec.*.
 // The page promises those variants say the same thing, so this resolves
 // them with `doc-detective run --dry-run` and compares their steps:
@@ -14,14 +14,19 @@
 // doc-detective.json in its folder; the rest use examples/.doc-detective.json.
 //
 // Run with `npm run docs:check-docs-as-tests` after `npm run build`. Add
-// `-- --run` to run the detected variants for real instead.
+// `-- --run` to run every detected, inline, and standalone file for real
+// instead. The docs run doesn't see these files, since they live outside
+// fern/pages, so this is the only place they run. Add
+// `--require-platform <platform>` to also fail when a context for that
+// platform is skipped, so a runner regression can't hide behind skips.
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const { execFileSync } = require("child_process");
 
 const repoRoot = path.resolve(__dirname, "../..");
-const examplesDir = path.resolve(__dirname, "../fern/pages/reference/docs-as-tests/examples");
+const examplesDir = path.resolve(__dirname, "../docs-as-tests/examples");
 
 // Fields that differ between variants of the same step without changing it.
 const IGNORED_STEP_KEYS = ["stepId", "description", "location"];
@@ -110,6 +115,23 @@ function dryRun(inputs, configPath) {
   );
 }
 
+/** Counts a results file's contexts for `platform`: how many ran, and a row per skipped one. */
+function findPlatformContexts(resultsFile, platform) {
+  const out = { ran: 0, skipped: [] };
+  if (!fs.existsSync(resultsFile)) return out;
+  for (const spec of JSON.parse(fs.readFileSync(resultsFile, "utf8")).specs || []) {
+    for (const test of spec.tests || []) {
+      for (const context of test.contexts || []) {
+        if (context?.platform !== platform) continue;
+        if (context.result === "SKIPPED") {
+          out.skipped.push(`${test.testId} (${spec.specId}): ${context.resultDescription || "no reason given"}`);
+        } else out.ran++;
+      }
+    }
+  }
+  return out;
+}
+
 /** Every file in the named example folders, or in all of them when `only` is empty. */
 function listExampleFiles(only = []) {
   return fs
@@ -124,7 +146,7 @@ function main() {
     process.exit(1);
   }
   // Bare arguments name the examples to check; none means all of them.
-  const only = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+  const only = process.argv.slice(2).filter((arg, i, all) => !arg.startsWith("--") && all[i - 1] !== "--require-platform");
   const files = listExampleFiles(only);
   if (!files.length) {
     console.error(`Couldn't find examples to check in ${examplesDir}.`);
@@ -135,19 +157,33 @@ function main() {
 
   const sharedConfig = path.join(examplesDir, ".doc-detective.json");
   if (process.argv.includes("--run")) {
-    // Run the detected variants for real. The docs run covers inline and
-    // standalone with the site config, which turns detection off and has no
-    // file type for plain text, so `inline.txt` runs here too.
-    const detected = tested.filter((f) => /^(detected\.|inline\.txt$)/.test(path.basename(f)));
+    const platformArg = process.argv.indexOf("--require-platform");
+    const platform = platformArg === -1 ? null : process.argv[platformArg + 1];
+    const resultsDir = fs.mkdtempSync(path.join(os.tmpdir(), "docs-as-tests-"));
     let failed = false;
-    for (const [config, inputs] of groupByConfig(detected, sharedConfig)) {
+    let ran = 0;
+    const skipped = [];
+    let batchNumber = 0;
+    for (const [config, inputs] of groupByConfig(tested, sharedConfig)) {
       for (const batch of batches(inputs)) {
+        const results = path.join(resultsDir, `${batchNumber++}.json`);
         try {
-          runCli(batch, config, [], { stdio: "inherit" });
+          runCli(batch, config, ["-o", results], { stdio: "inherit" });
         } catch {
           failed = true;
         }
+        if (!platform) continue;
+        const found = findPlatformContexts(results, platform);
+        ran += found.ran;
+        skipped.push(...found.skipped);
       }
+    }
+    fs.rmSync(resultsDir, { recursive: true, force: true });
+    if (platform) {
+      console.log(`Ran ${ran} ${platform} contexts.`);
+      for (const row of skipped) console.error(`Skipped ${platform} context: ${row}`);
+      if (!ran && !skipped.length) console.error(`Couldn't find a ${platform} context in the results.`);
+      if (skipped.length || !ran) failed = true;
     }
     process.exit(failed ? 1 : 0);
   }
@@ -171,4 +207,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { findMismatches, normalizeSteps, groupByConfig, dryRun, listExampleFiles, examplesDir };
+module.exports = { findMismatches, normalizeSteps, groupByConfig, dryRun, listExampleFiles, findPlatformContexts, examplesDir };

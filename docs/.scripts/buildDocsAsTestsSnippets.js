@@ -1,5 +1,7 @@
 // Generates fern/pages/reference/docs-as-tests/examples/<example>/_variants.mdx
-// from the example's files (prose.*, detected.*, inline.*, standalone.spec.*).
+// from the example's files (prose.*, detected.*, inline.*, standalone.spec.*)
+// in docs-as-tests/examples/<example>/. The sources live outside fern/pages so
+// the docs run doesn't pick them up; checkDocsAsTests.js runs them.
 // Pages include it with <Markdown src="examples/<example>/_variants.mdx" />.
 // The snippets are GENERATED — edit the example files, then run
 // `npm run docs:build-docs-as-tests`. `--check` fails if a snippet is stale.
@@ -11,7 +13,8 @@
 const fs = require("fs");
 const path = require("path");
 
-const examplesDir = path.resolve(__dirname, "../fern/pages/reference/docs-as-tests/examples");
+const examplesDir = path.resolve(__dirname, "../docs-as-tests/examples");
+const pagesDir = path.resolve(__dirname, "../fern/pages/reference/docs-as-tests/examples");
 const OUTPUT = "_variants.mdx";
 
 const MODES = [
@@ -77,12 +80,15 @@ function main() {
       .readdirSync(exampleDir)
       .filter((name) => /^(prose|detected|inline|standalone)\./.test(name))
       .map((name) => ({ name, content: fs.readFileSync(path.join(exampleDir, name), "utf8").replace(/\r\n/g, "\n") }));
-    const outFile = path.join(exampleDir, OUTPUT);
+    const outFile = path.join(pagesDir, dir.name, OUTPUT);
     const rendered = renderVariants(files);
     const current = fs.existsSync(outFile) ? fs.readFileSync(outFile, "utf8").replace(/\r\n/g, "\n") : null;
     if (current === rendered) continue;
-    if (check) stale.push(path.relative(examplesDir, outFile));
-    else fs.writeFileSync(outFile, rendered);
+    if (check) stale.push(path.relative(pagesDir, outFile));
+    else {
+      fs.mkdirSync(path.dirname(outFile), { recursive: true });
+      fs.writeFileSync(outFile, rendered);
+    }
   }
   if (stale.length) {
     console.error(`Stale snippets (run npm run docs:build-docs-as-tests):\n  ${stale.join("\n  ")}`);

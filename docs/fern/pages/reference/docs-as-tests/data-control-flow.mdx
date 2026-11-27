@@ -6,13 +6,13 @@ description: Procedures that load variables, pass values from one step to the ne
 
 Each example on this page shows one procedure as prose, detected tests, inline tests, and a standalone spec. For what each tab holds, see [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).
 
-## Call an API with a token from a `.env` file
+## Call an API with a token from an environment file
 
 This procedure uses [`loadVariables`](/docs/actions/loadvariables) and [`httpRequest`](/docs/actions/httprequest), with the step fields [`variables` and `assertions`](/reference/schemas/step), the [`jq()` function](/reference/expressions#function-operators), and [`publicVariables`](/reference/schemas/test) on the test and the [spec](/reference/schemas/specification).
 
-The example folder holds the `.env` file the steps load:
+The example folder holds the `api.env` file the steps load:
 
-```text title=".env"
+```text title="api.env"
 API_URL=http://localhost:8092/api
 API_TOKEN=docs-example-token
 ```
@@ -21,7 +21,7 @@ API_TOKEN=docs-example-token
 
 ### How the values flow
 
-- `$API_URL` and `$API_TOKEN` come from the `.env` file. Doc Detective substitutes them into the URL and the `Authorization` header.
+- `$API_URL` and `$API_TOKEN` come from the `api.env` file. Doc Detective substitutes them into the URL and the `Authorization` header.
 - The first request's `variables` field sets `ACCOUNT_NAME` from `$$response.body.name`, and `ACCOUNT_SEATS` from `jq($$response.body, ".seats")`. It sets `ACCOUNT_ROLE` from `$$response.body.roles[0]`, the first item of the `roles` array. The second request uses all three in its URL, and its assertion reads `$ACCOUNT_SEATS` too.
 - `assertions` adds custom checks to a step. Each check is an [expression](/reference/expressions) over the step's `$$outputs`, given as one string or as an array whose checks must all pass.
 - Doc Detective masks every value it loads or substitutes as `***NAME***` in logs and reports. `publicVariables` lists the names to show: `ACCOUNT_*` on the test, and `API_URL` on the spec. A name listed in the config, any spec, or any test is public for the whole run. See [Keep secrets out of logs](/docs/ci/secrets).
@@ -30,12 +30,12 @@ API_TOKEN=docs-example-token
 
 The prose has no links, bold text, or HTTP code blocks, so detection finds no steps. All three steps come from `step` statements.
 
-The detected run also loads the `.env` file before any test starts. The example's own `doc-detective.json` sets the config-level [`loadVariables`](/reference/schemas/config) field, and lists `API_URL` in the config-level `publicVariables`:
+The detected run also loads the `api.env` file before any test starts. The example's own `doc-detective.json` sets the config-level [`loadVariables`](/reference/schemas/config) field, and lists `API_URL` in the config-level `publicVariables`:
 
 ```json title="doc-detective.json"
 {
   "detectSteps": true,
-  "loadVariables": ".env",
+  "loadVariables": "api.env",
   "publicVariables": ["API_URL"]
 }
 ```

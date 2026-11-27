@@ -1,5 +1,5 @@
 // Reports which authoring features the docs-as-tests reference examples in
-// fern/pages/reference/docs-as-tests/examples/ don't show yet.
+// docs-as-tests/examples/ don't show yet.
 //
 // It walks the v3 schemas for every field a user can write: spec, test,
 // context, and step fields, each action and its options, routing, and
@@ -337,7 +337,7 @@ function schemaFields() {
 const RESOLVER_TEST_KEYS = ["contexts", "runOn", "openApi", "contentPath", "location"];
 
 function corpusUsage(boundaries, problems) {
-  // Generated `_variants.mdx` files repeat the examples, and folders hold run output.
+  // `_` partials repeat what the variants that include them show, and folders hold run output.
   const files = listExampleFiles().filter((f) => !path.basename(f).startsWith("_") && fs.statSync(f).isFile());
   const usage = {};
 
