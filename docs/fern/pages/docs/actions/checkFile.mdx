@@ -56,18 +56,19 @@ Set `checkFile` to a string, which is shorthand for `path`, or to an object with
 
 - `path`: a glob for the file to wait for. Set `path` or `download`.
 - `download`: a glob for a file name in the context's download folder. Set `path` or `download`.
-- `content`: (Optional) Text the file must contain, read as UTF-8. A value that starts and ends with `/` is a regular expression, as in `runShell`'s `stdio`.
+- `content`: (Optional) Text the file must contain, read as UTF-8. A value that starts and ends with `/` is a regular expression, as in `runShell`'s `stdio`. `content` checks raw text, so it suits text formats such as CSV, JSON, or logs, not PDF files. A `download` check returns its file even when `content` doesn't match, so a later check moves on to the next download.
 - `timeout`: (Optional) How long to wait for a finished match, in milliseconds. Defaults to `30000`.
 
 Set `path` or `download`, not both. Setting both is a validation error.
 
 **Outputs.** The step sets `outputs.filePath` (the absolute path), `outputs.fileName`, and `outputs.fileSize` (in bytes). To use them in later steps, set the step's `variables` object, for example to `$$filePath`.
 
-**Failures.** The step fails when no finished file matches within `timeout`, or when the file doesn't contain `content`. For example:
+**Failures.** The step fails when no finished file matches within `timeout`, or when Doc Detective can't read the file, or the file doesn't contain `content`. For example:
 
 - ``Couldn't find a finished download matching `*.csv` within 30000 ms.``
 - ``Couldn't find a finished file matching `/abs/out/*.log` within 30000 ms.``
-- ``Couldn't find `Invoice` in `/abs/out/invoice.txt`.``
+- ``Couldn't find `Invoice` in `/abs/out/invoice.csv`.``
+- ``Couldn't read `/abs/out/invoice.csv`.``
 
 > For every field, see the [`checkFile`](/reference/schemas/checkfile) reference.
 
@@ -75,12 +76,12 @@ Set `path` or `download`, not both. Setting both is a validation error.
 
 ### Check the text of a download
 
-This example waits up to a minute for an invoice PDF and checks that it contains the word `Invoice`.
+This example waits up to a minute for an invoice export in CSV format and checks that it contains the word `Invoice`.
 
 ```json
 {
   "checkFile": {
-    "download": "invoice-*.pdf",
+    "download": "invoice-*.csv",
     "content": "Invoice",
     "timeout": 60000
   }

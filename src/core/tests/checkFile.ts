@@ -141,11 +141,13 @@ async function checkFile({
     fileSize: found.size,
   };
   if (content !== undefined) {
-    let text = "";
+    let text: string;
     try {
       text = fs.readFileSync(found.file, "utf8");
     } catch {
-      // An unreadable file contains nothing.
+      result.status = "FAIL";
+      result.description = `Couldn't read \`${found.file}\`.`;
+      return result;
     }
     if (!matchesExpectedOutput(text, content)) {
       result.status = "FAIL";

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "checkFile",
-  "description": "Wait for a finished file, and optionally check its text. A file is finished once it has no `.crdownload` or `.part` suffix and its size stays the same for 250 ms. Outputs `filePath`, `fileName`, and `fileSize`.",
+  "description": "Wait for a finished file, and optionally check its text. A file is finished once it has no `.crdownload` or `.part` suffix, no in-progress sibling of the same name with one of those suffixes, and its size stays the same for 250 ms. Outputs `filePath`, `fileName`, and `fileSize`.",
   "anyOf": [
     {
       "$ref": "#/components/schemas/string"
@@ -71,7 +71,7 @@
       "download": "*.csv"
     },
     {
-      "download": "invoice-*.pdf",
+      "download": "invoice-*.csv",
       "content": "Invoice",
       "timeout": 60000
     }

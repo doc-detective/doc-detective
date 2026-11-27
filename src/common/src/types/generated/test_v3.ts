@@ -579,7 +579,7 @@ export type StepRouting3 = (
  */
 export type Condition10 = string | [string, ...string[]];
 /**
- * Wait for a finished file, and optionally check its text. A file is finished once it has no `.crdownload` or `.part` suffix and its size stays the same for 250 ms. Outputs `filePath`, `fileName`, and `fileSize`.
+ * Wait for a finished file, and optionally check its text. A file is finished once it has no `.crdownload` or `.part` suffix, no in-progress sibling of the same name with one of those suffixes, and its size stays the same for 250 ms. Outputs `filePath`, `fileName`, and `fileSize`.
  */
 export type CheckFile1 = CheckFileSimple | CheckFileDetailed;
 /**
@@ -8307,7 +8307,7 @@ export type StepRouting103 = {
  */
 export type Condition160 = string | [string, ...string[]];
 /**
- * Wait for a finished file, and optionally check its text. A file is finished once it has no `.crdownload` or `.part` suffix and its size stays the same for 250 ms. Outputs `filePath`, `fileName`, and `fileSize`.
+ * Wait for a finished file, and optionally check its text. A file is finished once it has no `.crdownload` or `.part` suffix, no in-progress sibling of the same name with one of those suffixes, and its size stays the same for 250 ms. Outputs `filePath`, `fileName`, and `fileSize`.
  */
 export type CheckFile3 = CheckFileSimple1 | CheckFileDetailed1;
 /**

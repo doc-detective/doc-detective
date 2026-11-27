@@ -5,7 +5,7 @@
  */
 
 /**
- * Wait for a finished file, and optionally check its text. A file is finished once it has no `.crdownload` or `.part` suffix and its size stays the same for 250 ms. Outputs `filePath`, `fileName`, and `fileSize`.
+ * Wait for a finished file, and optionally check its text. A file is finished once it has no `.crdownload` or `.part` suffix, no in-progress sibling of the same name with one of those suffixes, and its size stays the same for 250 ms. Outputs `filePath`, `fileName`, and `fileSize`.
  */
 export type CheckFile = CheckFileSimple | CheckFileDetailed;
 /**

@@ -63,7 +63,7 @@ transcoding, but no browser downloads into it any more.
 { "checkFile": "out/report.txt" }
 { "checkFile": { "path": "out/*.log", "content": "/build \\d+ passed/" } }
 { "checkFile": { "download": "*.csv" } }
-{ "checkFile": { "download": "invoice-*.pdf", "content": "Invoice", "timeout": 60000 } }
+{ "checkFile": { "download": "invoice-*.csv", "content": "Invoice", "timeout": 60000 } }
 ```
 
 | Key | Type | Default | Required | Effect |
@@ -83,6 +83,7 @@ be read as `$$path` in step `variables`, which collides with the `PATH` environm
 | `path` times out | FAIL | ``Couldn't find a finished file matching `<absolute glob>` within 30000 ms.`` |
 | `download` times out | FAIL | ``Couldn't find a finished download matching `*.csv` within 30000 ms.`` |
 | `content` doesn't match | FAIL | ``Couldn't find `Invoice` in `<absolute path>`.`` |
+| The matched file can't be read for `content` | FAIL | ``Couldn't read `<absolute path>`.`` |
 | `download` on Safari | SKIPPED | ``Skipped: `safari` can't save downloads to a known folder.`` |
 | `download` on mobile, app, or no-browser contexts | SKIPPED | ``Skipped: `download` needs a desktop Chrome or Firefox context.`` |
 | Both `path` and `download`, or neither | spec invalid, exit `2` | ``set `path` or `download`, not both.`` |
@@ -102,7 +103,11 @@ be read as `$$path` in step `variables`, which collides with the `PATH` environm
 * `path` works in every context: browser, app, process, or none. It needs no browser, so it
   doesn't start one. `download` doesn't start a browser either: it checks the folder of the
   browser a previous step opened, and skips when the context has none.
-* `content` reuses the runner's `stdio` matcher. A malformed `/regex/` is a mismatch.
+* `content` reuses the runner's `stdio` matcher. A malformed `/regex/` is a mismatch. A `download`
+  check returns its file even when `content` doesn't match, so the queue moves on.
+* A shorthand that starts with `$` isn't joined to the spec folder at detection. It resolves
+  after substitution, so a variable holding an absolute path works. The `screenshot` and `record`
+  shorthands share this rule.
 * For checks beyond `content`, export `$$filePath` with step `variables` and read it in
   `runShell` or `runCode` through `process.env`.
 

@@ -94,6 +94,24 @@ describe("checkFile", function () {
       assert.equal(miss.description, `Couldn't find \`Invoice\` in \`${file}\`.`);
     });
 
+    it("fails, naming the read, when the file can't be read", async function () {
+      // Stub the read so it throws, as a permission error or a file that
+      // vanished after the stat would.
+      const file = write("gone.txt", "");
+      const realRead = fs.readFileSync;
+      fs.readFileSync = (p, ...rest) => {
+        if (p === file) throw Object.assign(new Error("EACCES"), { code: "EACCES" });
+        return realRead(p, ...rest);
+      };
+      try {
+        const result = await run({ path: file, content: "/^$/" });
+        assert.equal(result.status, "FAIL");
+        assert.equal(result.description, `Couldn't read \`${file}\`.`);
+      } finally {
+        fs.readFileSync = realRead;
+      }
+    });
+
     it("works with no browser", async function () {
       const file = write("x.txt");
       const result = await run(file, { driver: undefined });
@@ -175,6 +193,11 @@ describe("checkFile", function () {
       assert.equal(await resolveStep("out/*.txt"), path.resolve("/specs/sub/out/*.txt"));
       assert.equal((await resolveStep({ path: "out/a.txt" })).path, path.resolve("/specs/sub/out/a.txt"));
       assert.equal((await resolveStep({ download: "*.csv" })).download, "*.csv");
+    });
+
+    it("leaves a shorthand that starts with an environment variable for substitution", async function () {
+      assert.equal(await resolveStep("$CHECK_PATH"), "$CHECK_PATH");
+      assert.equal(await resolveStep("$OUT/report.txt"), "$OUT/report.txt");
     });
   });
 });

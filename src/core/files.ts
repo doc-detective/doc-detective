@@ -358,10 +358,12 @@ async function resolvePaths({
       ) {
         continue;
       }
-      if (
-        pathProperties!.includes(property) ||
-        (isStep && stepShorthandPathProperties.includes(property))
-      ) {
+      // A shorthand that starts with an environment variable resolves after
+      // substitution, at run time; joining `$VAR` into a spec path first would
+      // break an absolute value.
+      const shorthand = isStep && stepShorthandPathProperties.includes(property);
+      if (shorthand && object[property].startsWith("$")) continue;
+      if (pathProperties!.includes(property) || shorthand) {
         if (property === "path" && object.directory) {
           const directory = path.isAbsolute(object.directory)
             ? object.directory
