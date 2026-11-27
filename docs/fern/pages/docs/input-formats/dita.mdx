@@ -115,7 +115,7 @@ With step detection on, DITA files detect the steps listed in [What gets detecte
 | Definition | DITA that matches | Step |
 |---|---|---|
 | `clickUiControl` | `Click the <uicontrol>Submit</uicontrol> button`, or after "Tap", "Select", "Press", or "Choose" | `click` |
-| `typeIntoUiControl` | `Type <userinput>testuser</userinput> into the <uicontrol>Username</uicontrol> field`, or after "Enter" or "Input" | `type` into the control |
+| `typeIntoUiControl` | `Type <userinput>testuser</userinput> into the <uicontrol>Username</uicontrol> field`, or after "Enter" or "Input" | `type` into the field whose accessible name is the `<uicontrol>` text, through `elementAria` |
 | `goToUrl` | `Navigate to <xref href="https://example.com">Example</xref>`, and the other navigation verbs | `goTo` |
 | `findUiControl` | Any `<uicontrol>` | `find` |
 | `verifyWindowTitle` | Any `<wintitle>` | `find` |
@@ -130,7 +130,7 @@ With step detection on, DITA files detect the steps listed in [What gets detecte
 
 A `<codeblock>` takes its language from a `language-x` value in `outputclass`, as DITA-OT's syntax highlighting does. Statements and tags inside `<codeblock>`, `<codeph>`, `<pre>`, `<screen>`, and `<msgblock>` aren't read.
 
-The verb patterns match the source right before the element, inline tags included, from the start of its block, such as `<cmd>` or `<p>`. A `<uicontrol>` after "Click the" gets both a `click` and a `find` step. A `<uicontrol>` after a `Type <userinput>` phrase gets both a `type` and a `find` step.
+The verb patterns match the source right before the element, inline tags included, from the start of its block, such as `<cmd>` or `<p>`. A `<uicontrol>` after "Click the" gets both a `click` and a `find` step. A `<uicontrol>` after a `Type <userinput>` phrase gets both a `type` and a `find` step. The `type` step finds the field by its accessible name, which is usually its `<label>` or `aria-label`, so the `<uicontrol>` text should match the label the reader sees.
 
 Best practices:
 
@@ -192,9 +192,9 @@ Other elements, such as `<menucascade>`, `<systemoutput>`, and `<cmdname>`, don'
         { "checkLink": "https://app.example.com/login" },
         { "click": "Sign In" },
         { "find": "Sign In" },
-        { "type": { "keys": "admin@example.com", "selector": "Username" } },
+        { "type": { "keys": "admin@example.com", "elementAria": "Username" } },
         { "find": "Username" },
-        { "type": { "keys": "password123", "selector": "Password" } },
+        { "type": { "keys": "password123", "elementAria": "Password" } },
         { "find": "Password" },
         { "find": "Create User" }
       ]
