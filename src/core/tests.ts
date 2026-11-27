@@ -82,7 +82,7 @@ import {
   resolveCheckpointsConfig,
   captureRecordingCheckpoints,
 } from "./tests/recordingCheckpoints.js";
-import { startRecording } from "./tests/startRecording.js";
+import { startRecording, NO_SESSION_SKIP } from "./tests/startRecording.js";
 import { stopRecording, defaultedStopSkip } from "./tests/stopRecording.js";
 import {
   browserCaptureTitle,
@@ -6366,12 +6366,11 @@ async function runStep({
       }
       delete actionResult.recording;
       if (step.__autoRecord) {
-        // A context that drives only shell and process surfaces has no
-        // session to record. Unset or `true`, a recording the host can't
-        // make is SKIPPED (ADR 01177); an authored `record` still FAILs.
+        // Backstop for a handle startRecording returns without spawning (a
+        // phantom span): with no session, the automatic recording is SKIPPED
+        // (ADR 01177); an authored `record` still FAILs.
         actionResult.status = "SKIPPED";
-        actionResult.description =
-          "Skipped: the context has no browser, app, or device session to record. Set `autoRecord: false` to turn off automatic recording.";
+        actionResult.description = NO_SESSION_SKIP;
       } else {
         actionResult.status = "FAIL";
         actionResult.description =

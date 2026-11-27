@@ -37,7 +37,10 @@ import fs from "node:fs";
 import os from "node:os";
 import { RECORDER_SETTLE_MS } from "./timing.js";
 
-export { startRecording };
+export { startRecording, NO_SESSION_SKIP };
+
+const NO_SESSION_SKIP =
+  "Skipped: the context has no browser, app, or device session to record. Set `autoRecord: false` to turn off automatic recording.";
 
 // How a headless browser's name reads in a message. Safari has no headless
 // mode, so it never needs one.
@@ -108,6 +111,7 @@ async function beginRecording({
     description: "Started recording.",
   };
 
+  const autoRecordStep = Boolean(step?.__autoRecord);
   // Validate step payload
   // `__autoRecord` and `__autoRecordDefaulted` are the runner's own markers,
   // and step_v3 rejects unknown keys.
@@ -402,6 +406,16 @@ async function beginRecording({
   if (skipped) {
     result.status = "SKIPPED";
     result.description = skipped;
+    return result;
+  }
+
+  // A context that drives only shell and process surfaces has no session to
+  // own the capture. Unset or `true`, autoRecord can't record it, so SKIP
+  // before spawning: a capture started and then killed can linger and hold
+  // the screen (ADR 01177).
+  if (autoRecordStep && !stateHolder) {
+    result.status = "SKIPPED";
+    result.description = NO_SESSION_SKIP;
     return result;
   }
 
