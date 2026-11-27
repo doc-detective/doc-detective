@@ -202,7 +202,7 @@ For setup on each platform, see the native app guides, starting with [Native Win
 
 ### Forms in this example
 
-- An app `window` selector takes a title as a string, `{ "title" }` or `{ "name" }` criteria, `-1` for the newest window, or a position such as `{ "index": 0 }`. Positions from the start work on macOS only.
+- An app `window` selector takes a title as a string, `{ "title" }` or `{ "name" }` criteria, `-1` or `{ "index": -1 }` for the newest window, or a position such as `{ "index": 0 }`. Positions from the start work on macOS only.
 - `env` sets environment variables for a macOS app.
 - `install`, `activity`, and `driverOptions` install an Android app, open one of its activities, and pass options to the automation driver.
 - `device` on `startSurface` names the device as a string, or describes it as a [device descriptor](/reference/schemas/device-descriptor) with `platform`, `name`, `deviceType`, `osVersion`, and `headless`. The context's own `device` takes the same two forms and sets the default for the context.
@@ -440,6 +440,12 @@ In DITA, `<uicontrol>` marks the control to click, as in [Navigation and interac
 **Varies:** `surface.window.title` · **Value:** `"Child second"` · **Effect:** the `title` key selects the window whose active tab has that title.
 
 <Markdown src="examples/sessions-select-window-title/_variants.mdx" />
+
+### `"window": 0, "tab": 1` on a tab the page opened
+
+**Varies:** `surface.window and surface.tab` · **Value:** `{ "window": 0, "tab": 1 }` · **Effect:** a tab that a link opens belongs to the window of the tab that opened it, so `window` and `tab` selectors together reach it.
+
+<Markdown src="examples/sessions-select-window-tab/_variants.mdx" />
 
 ## `startSurface` and `closeSurface` permutations
 

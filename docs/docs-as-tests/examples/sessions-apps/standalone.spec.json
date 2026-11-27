@@ -71,6 +71,17 @@
           "find": {
             "elementText": "Copy",
             "surface": {
+              "app": "charmap",
+              "window": {
+                "index": -1
+              }
+            }
+          }
+        },
+        {
+          "find": {
+            "elementText": "Copy",
+            "surface": {
               "app": "charmap"
             }
           }

@@ -5987,6 +5987,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -6209,6 +6213,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -6465,6 +6473,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -6683,6 +6695,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -8641,6 +8657,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -10355,6 +10375,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -11881,6 +11905,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -13659,6 +13687,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -15323,6 +15355,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -16911,6 +16947,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -18581,6 +18621,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -20377,6 +20421,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -20548,6 +20596,10 @@
     }
   ],
   "features.surface-newest-index": [
+    {
+      "example": "sessions-apps",
+      "page": "/reference/docs-as-tests/sessions-surfaces#open-a-built-in-app"
+    },
     {
       "example": "sessions-select-tab-index",
       "page": "/reference/docs-as-tests/sessions-surfaces#tab-index--1"
@@ -22321,6 +22373,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -27709,6 +27765,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -28219,6 +28279,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -28273,6 +28337,10 @@
     {
       "example": "sessions-select-tab-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#tab-0"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-tabs",
@@ -28363,6 +28431,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-tabs",
@@ -30155,6 +30227,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -31547,6 +31623,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -31915,6 +31995,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#open-a-built-in-app"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-tabs",
       "page": "/reference/docs-as-tests/sessions-surfaces#compare-pages-in-tabs-windows-and-sessions"
     },
@@ -32217,6 +32301,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -33671,6 +33759,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -35909,6 +36001,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -37817,6 +37913,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -38425,6 +38525,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -40059,6 +40163,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -41841,6 +41949,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
