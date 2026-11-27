@@ -294,6 +294,9 @@ async function resolvePaths({
   }
 
   for (const property of Object.keys(object)) {
+    // A `matrix` key can be named like a path key, such as `path`, but its
+    // values are data, not paths (ADR 01227).
+    if (property === "matrix") continue;
     if (Array.isArray(object[property])) {
       for (let i = 0; i < object[property].length; i++) {
         const item = object[property][i];

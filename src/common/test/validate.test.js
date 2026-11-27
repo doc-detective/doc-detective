@@ -1464,6 +1464,59 @@ import { schemas } from "../dist/index.js";
       });
     });
 
+    describe("runOn matrix (ADR 01227)", function () {
+      const check = (context) => validate({ schemaKey: "context_v3", object: context });
+
+      it("accepts scalar and object values, and references in emulation fields", function () {
+        const result = check({
+          browsers: {
+            name: "chrome",
+            colorScheme: "$matrix.variant.theme",
+            deviceScaleFactor: "$matrix.variant.dpr",
+            locale: "$matrix.locale",
+            timezone: "$matrix.tz",
+            reducedMotion: "$matrix.motion",
+            clock: "$matrix.clock",
+          },
+          matrix: {
+            locale: ["en-US", "de-DE"],
+            n: [1, 2],
+            flag: [true, false],
+            variant: [{ theme: "light", dpr: 1 }, { theme: "dark", dpr: 2 }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+
+      for (const [name, matrix] of [
+        ["an empty array", { a: [] }],
+        ["duplicate items", { a: ["x", "x"] }],
+        ["mixed scalars and objects", { a: ["x", { b: 1 }] }],
+        ["a nested array", { a: [["x"]] }],
+        ["an object with a non-scalar leaf", { a: [{ b: [1] }] }],
+        ["a key with a dot", { "a.b": ["x"] }],
+      ]) {
+        it(`rejects ${name}`, function () {
+          expect(check({ matrix }).valid).to.be.false;
+        });
+      }
+
+      it("still rejects a bad emulation value that isn't a reference", function () {
+        expect(check({ browsers: { name: "chrome", colorScheme: "$matrix" } }).valid).to.be.false;
+      });
+
+      it("accepts a resolved context's combination in a test", function () {
+        const result = validate({
+          schemaKey: "test_v3",
+          object: {
+            steps: [{ goTo: "https://example.com" }],
+            contexts: [{ contextId: "default~a=1", matrix: { a: 1, v: { t: "x" } }, steps: [] }],
+          },
+        });
+        expect(result.valid, result.errors).to.be.true;
+      });
+    });
+
     describe("checkLink timeout", function () {
       it("should accept a positive integer timeout", function () {
         const result = validate({
