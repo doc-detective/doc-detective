@@ -180,7 +180,6 @@ async function resolvePaths({
     "apiKeyFile",
     "apiTokenFile",
     "mediaDirectory",
-    "downloadDirectory",
     "descriptionPath",
     "path",
   ];
@@ -220,7 +219,7 @@ async function resolvePaths({
   // `path`/`directory` handling above; only the bare-string form needs this
   // separate list. Scoped to `isStep` so a coincidentally-named field nested
   // inside request/response data (not a step) is never mistaken for one.
-  const stepShorthandPathProperties = ["screenshot", "record"];
+  const stepShorthandPathProperties = ["screenshot", "record", "checkFile"];
 
   function resolve(baseType: string, relativePath: string, filePath: string) {
     // If the path is an http:// or https:// URL, or a heretto: URI, return it
@@ -367,10 +366,12 @@ async function resolvePaths({
       ) {
         continue;
       }
-      if (
-        pathProperties!.includes(property) ||
-        (isStep && stepShorthandPathProperties.includes(property))
-      ) {
+      // A shorthand that starts with an environment variable resolves after
+      // substitution, at run time; joining `$VAR` into a spec path first would
+      // break an absolute value.
+      const shorthand = isStep && stepShorthandPathProperties.includes(property);
+      if (shorthand && object[property].startsWith("$")) continue;
+      if (pathProperties!.includes(property) || shorthand) {
         if (property === "path" && object.directory) {
           const directory = path.isAbsolute(object.directory)
             ? object.directory

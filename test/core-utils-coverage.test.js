@@ -58,7 +58,7 @@ describe("invalidStepMessage", function () {
   it("names a missing action", function () {
     assert.equal(
       invalidStepMessage({ description: "no action" }),
-      "Couldn't run the step: its definition isn't valid. No action, such as checkLink, click, find."
+      "Couldn't run the step: its definition isn't valid. No action, such as checkFile, checkLink, click."
     );
   });
 });

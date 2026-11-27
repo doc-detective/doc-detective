@@ -55,6 +55,16 @@ function createServer(options = {}) {
     res.type("text").send(req.headers.cookie || "");
   });
 
+  // Download fixture (ADR 01231): a small CSV sent as an attachment, so the
+  // browser saves it instead of showing it. `name` becomes the file name.
+  app.get("/download/:name", (req, res) => {
+    if (!/^[\w.-]+$/.test(req.params.name)) {
+      return res.status(400).json({ error: "Invalid file name" });
+    }
+    res.attachment(req.params.name);
+    res.type("text/csv").send(`id,name\n1,${req.params.name}\n`);
+  });
+
   // Endpoint for testing DOC_DETECTIVE_API - returns resolved tests
   // IMPORTANT: Must be registered before the catch-all /api/:path route
   app.get("/api/resolved-tests", (req, res) => {

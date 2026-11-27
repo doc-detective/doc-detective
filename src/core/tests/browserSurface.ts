@@ -24,6 +24,7 @@ export {
   ensureSurfaceState,
   syncHandles,
   seedWindowLead,
+  windowLeadOf,
   deregisterHandle,
   registerOpenedHandle,
   resolveWindowTarget,
@@ -109,8 +110,9 @@ export interface WindowEntry {
   // True for the seeded initial window and windows opened via goTo
   // newWindow. A lead represents both the window and its first tab.
   isWindowLead: boolean;
-  // Lead handle of the window this tab was opened in (goTo newTab). Absent
-  // for page-opened tabs — the W3C handle model has no parent grouping.
+  // Lead handle of the window this tab was opened in: the focused tab's
+  // window for goTo newTab and for page-opened tabs. Absent when that tab's
+  // window is unknown.
   parentWindow?: string;
   windowName?: string;
   tabName?: string;
@@ -132,6 +134,13 @@ function ensureSurfaceState(driver: any): SurfaceState {
   return driver.state.surfaces;
 }
 
+// The window lead a tab belongs to: itself when it is a lead, else its
+// recorded parent. Undefined for an unknown or parentless handle.
+function windowLeadOf(state: SurfaceState, handle: string | null): string | undefined {
+  const entry = state.windows.find((w) => w.handle === handle);
+  return entry?.parentWindow ?? (entry?.isWindowLead ? entry.handle : undefined);
+}
+
 // Reconcile the registry with the live handle list: register unknown
 // (page-opened) handles in the order the enumeration first sees them, and
 // prune entries whose handle has closed. Ordinals are never reused.
@@ -141,14 +150,25 @@ async function syncHandles(driver: any): Promise<SurfaceState> {
   const liveSet = new Set(live);
   state.windows = state.windows.filter((w) => liveSet.has(w.handle));
   const known = new Set(state.windows.map((w) => w.handle));
+  let opener: string | undefined | null = null;
   for (const handle of live) {
     if (known.has(handle)) continue;
+    // The very first handle we ever see is the context's initial window.
+    if (state.windows.length === 0) {
+      state.windows.push({ handle, order: state.nextOrder++, isWindowLead: true });
+      continue;
+    }
+    // Later unknowns are page-opened (target=_blank, window.open). Focus never
+    // follows a page-opened tab, so the focused tab is the one whose page
+    // opened it: file the new tab under that tab's window (ADR 01016 amended).
+    // ponytail: a window.open popup with window features lands here too, as a
+    // tab of its opener's window; W3C can't tell a popup from a tab.
+    if (opener === null) opener = windowLeadOf(state, await currentHandleSafe(driver));
     state.windows.push({
       handle,
       order: state.nextOrder++,
-      // The very first handle we ever see is the context's initial window.
-      // Later unknowns are page-opened and parentless.
-      isWindowLead: state.windows.length === 0,
+      isWindowLead: false,
+      ...(opener ? { parentWindow: opener } : {}),
     });
   }
   return state;
@@ -211,7 +231,9 @@ function registerOpenedHandle(
   }
   const existing = state.windows.find((w) => w.handle === entry.handle);
   if (existing) {
-    // A sync raced us to the handle — upgrade it with our metadata.
+    // A sync raced us to the handle — upgrade it with our metadata, which
+    // replaces the parent the sync guessed.
+    delete existing.parentWindow;
     Object.assign(existing, entry);
     return existing;
   }
@@ -403,8 +425,8 @@ async function resolveWindowTarget(
     const allTabs = userTabs(state);
 
     // Window scope: leads only. A window selector narrows the tab search to
-    // that window's lead + the tabs opened in it. Page-opened tabs have no
-    // parent and are only reachable without a window selector.
+    // that window's lead + the tabs opened in it, including tabs its pages
+    // opened.
     let tabScope = allTabs;
     let windowLead: WindowEntry | null = null;
     let notFoundMessage: string | null = null;

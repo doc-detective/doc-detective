@@ -101,6 +101,7 @@ export {
   getRunOutputDir,
   reportOutputDir,
   runArchivesArtifacts,
+  stepsCheckDownloads,
   replaceEnvs,
   spawnCommand,
   spawnBackgroundCommand,
@@ -656,8 +657,12 @@ async function spawnPtyBackgroundCommand(
     ? " " + args.map((arg) => quoteShellArg(arg, quoteStyle)).join(" ")
     : "";
   const fullCommand = cmd + argstr;
+  // cmd.exe gets a pre-escaped command line (node-pty takes a string on
+  // Windows), built the way Node builds it for `{ shell }`: `/d /s /c "<cmd>"`.
+  // As an argv array, node-pty would re-escape the quoted args as `\"`, which
+  // cmd doesn't understand, so the program got a mangled argv.
   const shellArgs = isCmdShell
-    ? ["/d", "/s", "/c", fullCommand]
+    ? `/d /s /c "${fullCommand}"`
     : ["-c", fullCommand];
 
   let ptyProcess: any;
@@ -3536,6 +3541,11 @@ function getRunOutputDir(
 // switch lowercases) and the internal `runFolderReporter` key matches verbatim
 // (its default branch passes the token straight to the reporters map);
 // non-string (e.g. function) reporters are not the runFolder reporter.
+// Whether any step is a `checkFile` `download` check (ADR 01231).
+function stepsCheckDownloads(steps: any): boolean {
+  return Array.isArray(steps) && steps.some((step: any) => step?.checkFile?.download !== undefined);
+}
+
 function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
   const list = Array.isArray(specs) ? specs : [];
   if (list.length > 0) {
@@ -3553,6 +3563,15 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
       )
     );
     if (writesArtifact) return true;
+    // Downloads land in the run folder too (ADR 01231).
+    const checksDownload = list.some((spec: any) =>
+      (spec?.tests ?? []).some(
+        (test: any) =>
+          stepsCheckDownloads(test?.steps) ||
+          (test?.contexts ?? []).some((context: any) => stepsCheckDownloads(context?.steps))
+      )
+    );
+    if (checksDownload) return true;
   } else if (config?.autoScreenshot !== false || config?.autoRecord !== false) {
     return true;
   }

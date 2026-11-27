@@ -17,6 +17,7 @@ import {
   syncHandles,
   registerOpenedHandle,
   ensureSurfaceState,
+  windowLeadOf,
 } from "./browserSurface.js";
 import { RENDER_SETTLE_MS } from "./timing.js";
 
@@ -127,14 +128,10 @@ async function goTo({ config, step, driver }: { config: any; step: any; driver: 
         return result;
       }
       // Record the parent window (the current tab's window lead) for tabs we
-      // open, so `window`-scoped selectors can find them later. A page-opened
-      // current tab has no recorded parent — the new tab is then parentless too.
-      let parentWindow: string | undefined;
-      if (newTab) {
-        const current = await driver.getWindowHandle();
-        const entry = state.windows.find((w) => w.handle === current);
-        parentWindow = entry?.parentWindow ?? (entry?.isWindowLead ? entry.handle : undefined);
-      }
+      // open, so `window`-scoped selectors can find them later.
+      const parentWindow = newTab
+        ? windowLeadOf(state, await driver.getWindowHandle())
+        : undefined;
       const created = await driver.createWindow(newTab ? "tab" : "window");
       registerOpenedHandle(
         driver,

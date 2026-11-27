@@ -1,0 +1,76 @@
+{
+  "specId": "check-file",
+  "description": "checkFile `path` (ADR 01231): one test per permutation. Relative paths resolve against this spec file. Needs no browser, so every test runs and PASSes on every platform.",
+  "tests": [
+    {
+      "testId": "check-file-shorthand",
+      "description": "The string shorthand checks this spec file itself.",
+      "steps": [
+        {
+          "checkFile": "check-file.spec.json"
+        }
+      ]
+    },
+    {
+      "testId": "check-file-glob-and-content",
+      "description": "A glob, a `content` string, and a `content` regex.",
+      "steps": [
+        {
+          "checkFile": {
+            "path": "check-file.spec.*"
+          }
+        },
+        {
+          "checkFile": {
+            "path": "check-file.spec.json",
+            "content": "check-file-glob-and-content"
+          }
+        },
+        {
+          "checkFile": {
+            "path": "check-file.spec.json",
+            "content": "/\"specId\": \"check-\\w+\"/",
+            "timeout": 1000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "check-file-written-by-run-shell",
+      "description": "Waits for a file a background command writes after a delay, then reads its outputs through process.env.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs');const d='.tmp/fixture-check-file';fs.rmSync(d,{recursive:true,force:true});fs.mkdirSync(d,{recursive:true})\"",
+            "workingDirectory": "../../.."
+          }
+        },
+        {
+          "runShell": {
+            "command": "node -e \"setTimeout(()=>require('fs').writeFileSync('.tmp/fixture-check-file/report.txt','build 7 passed'),1000)\"",
+            "workingDirectory": "../../..",
+            "background": {
+              "name": "check-file-writer"
+            }
+          }
+        },
+        {
+          "checkFile": {
+            "path": "../../../.tmp/fixture-check-file/*.txt",
+            "content": "/build \\d+ passed/",
+            "timeout": 15000
+          },
+          "variables": {
+            "CHECK_FILE_PATH": "$$filePath",
+            "CHECK_FILE_NAME": "$$fileName",
+            "CHECK_FILE_SIZE": "$$fileSize"
+          }
+        },
+        {
+          "description": "The outputs name the file and its size.",
+          "runShell": "node -e \"const e=process.env;const ok=require('fs').existsSync(e.CHECK_FILE_PATH)&&e.CHECK_FILE_NAME==='report.txt'&&e.CHECK_FILE_SIZE==='14';if(!ok){console.error(JSON.stringify([e.CHECK_FILE_PATH,e.CHECK_FILE_NAME,e.CHECK_FILE_SIZE]));process.exit(1)}\""
+        }
+      ]
+    }
+  ]
+}

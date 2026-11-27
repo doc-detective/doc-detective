@@ -200,7 +200,7 @@ describe("summarizeSchemaErrors with unknown keys", function () {
 
   it("doesn't mistake assertions for an action", function () {
     expect(summarize(spec({ stepId: "s", assertions: [] }))).to.equal(
-      "tests[0].steps[0]: no action, such as checkLink, click, find."
+      "tests[0].steps[0]: no action, such as checkFile, checkLink, click."
     );
   });
 

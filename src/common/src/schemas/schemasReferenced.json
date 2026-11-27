@@ -4325,6 +4325,7 @@
         "visit": {},
         "durationMs": {},
         "startedAt": {},
+        "checkFile": {},
         "checkLink": {},
         "click": {},
         "find": {},
@@ -4352,6 +4353,24 @@
       },
       "additionalProperties": false,
       "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "checkFile"
+              ],
+              "properties": {
+                "checkFile": {
+                  "$ref": "checkFile_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
         {
           "allOf": [
             {
@@ -7409,6 +7428,69 @@
         }
       },
       "$id": "checkLink_v3.schema.json"
+    },
+    "checkFile_v3": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "checkFile_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "checkFile_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "minLength": 1
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "path"
+                ]
+              },
+              {
+                "required": [
+                  "download"
+                ]
+              }
+            ],
+            "not": {
+              "required": [
+                "path",
+                "download"
+              ]
+            },
+            "errorMessage": {
+              "not": "set `path` or `download`, not both."
+            },
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "download": {
+                "type": "string",
+                "minLength": 1
+              },
+              "content": {
+                "type": "string"
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 30000
+              }
+            }
+          }
+        }
+      },
+      "$id": "checkFile_v3.schema.json"
     },
     "routing_v3": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -13103,6 +13185,7 @@
         "visit": {},
         "durationMs": {},
         "startedAt": {},
+        "checkFile": {},
         "checkLink": {},
         "click": {},
         "find": {},
@@ -13130,6 +13213,24 @@
       },
       "additionalProperties": false,
       "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "step_v3.nodefaults.schema.json#/components/schemas/common"
+            },
+            {
+              "type": "object",
+              "required": [
+                "checkFile"
+              ],
+              "properties": {
+                "checkFile": {
+                  "$ref": "checkFile_v3.nodefaults.schema.json#"
+                }
+              }
+            }
+          ]
+        },
         {
           "allOf": [
             {
@@ -16130,6 +16231,68 @@
         }
       },
       "$id": "checkLink_v3.nodefaults.schema.json"
+    },
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "anyOf": [
+        {
+          "$ref": "checkFile_v3.nodefaults.schema.json#/components/schemas/string"
+        },
+        {
+          "$ref": "checkFile_v3.nodefaults.schema.json#/components/schemas/object"
+        }
+      ],
+      "components": {
+        "schemas": {
+          "string": {
+            "type": "string",
+            "minLength": 1
+          },
+          "object": {
+            "type": "object",
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "path"
+                ]
+              },
+              {
+                "required": [
+                  "download"
+                ]
+              }
+            ],
+            "not": {
+              "required": [
+                "path",
+                "download"
+              ]
+            },
+            "errorMessage": {
+              "not": "set `path` or `download`, not both."
+            },
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "download": {
+                "type": "string",
+                "minLength": 1
+              },
+              "content": {
+                "type": "string"
+              },
+              "timeout": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      },
+      "$id": "checkFile_v3.nodefaults.schema.json"
     },
     {
       "$schema": "http://json-schema.org/draft-07/schema#",

@@ -1465,6 +1465,39 @@ import { schemas } from "../dist/index.js";
       });
     });
 
+    // ADR 01231: checkFile waits for a finished file or download.
+    describe("checkFile step", function () {
+      const check = (checkFile) => validate({ schemaKey: "step_v3", object: { checkFile } });
+
+      it("normalizes the string shorthand to path, with the 30000 ms timeout", function () {
+        const result = check("out/report.txt");
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.checkFile).to.deep.equal({ path: "out/report.txt", timeout: 30000 });
+      });
+
+      it("accepts path with content, and download with content and timeout", function () {
+        expect(check({ path: "out/*.log", content: "/build \\d+ passed/" }).valid).to.be.true;
+        const result = check({ download: "invoice-*.pdf", content: "Invoice", timeout: 60000 });
+        expect(result.valid, result.errors).to.be.true;
+        expect(result.object.checkFile.timeout).to.equal(60000);
+      });
+
+      it("rejects both path and download, and neither", function () {
+        const both = check({ path: "a.txt", download: "*.csv" });
+        expect(both.valid).to.be.false;
+        expect(both.errors).to.include("set `path` or `download`, not both.");
+        expect(check({ content: "x" }).valid).to.be.false;
+      });
+
+      it("rejects empty strings, a zero timeout, and unknown keys", function () {
+        expect(check("").valid).to.be.false;
+        expect(check({ path: "" }).valid).to.be.false;
+        expect(check({ download: "" }).valid).to.be.false;
+        expect(check({ path: "a", timeout: 0 }).valid).to.be.false;
+        expect(check({ path: "a", bogus: true }).valid).to.be.false;
+      });
+    });
+
     describe("checkLink timeout", function () {
       it("should accept a positive integer timeout", function () {
         const result = validate({
