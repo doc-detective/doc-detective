@@ -162,7 +162,7 @@ describe("browserSurface: registry seeding and sync", function () {
     assert.equal(state.windows[0].isWindowLead, true);
   });
 
-  it("registers page-opened handles in first-seen order as parentless tabs", async function () {
+  it("registers page-opened handles in first-seen order as tabs of the focused tab's window", async function () {
     const driver = stubDriver();
     await syncHandles(driver);
     pageOpens(driver, "p1");
@@ -174,7 +174,43 @@ describe("browserSurface: registry seeding and sync", function () {
       [["h0", 0], ["p1", 1], ["p2", 2]]
     );
     assert.equal(state.windows[1].isWindowLead, false);
-    assert.equal(state.windows[1].parentWindow, undefined);
+    // The page that opened them is in h0's window (focus was on h0).
+    assert.equal(state.windows[1].parentWindow, "h0");
+    assert.equal(state.windows[2].parentWindow, "h0");
+  });
+
+  it("files a tab opened from a page-opened tab under that tab's window", async function () {
+    const driver = stubDriver();
+    await syncHandles(driver);
+    pageOpens(driver, "p1");
+    await syncHandles(driver);
+    await driver.switchToWindow("p1");
+    pageOpens(driver, "p2");
+    await syncHandles(driver);
+    const state = ensureSurfaceState(driver);
+    assert.equal(state.windows.find((w) => w.handle === "p2").parentWindow, "h0");
+  });
+
+  it("leaves a page-opened tab parentless when focus can't be read", async function () {
+    const driver = stubDriver();
+    await syncHandles(driver);
+    driver._current = "gone";
+    pageOpens(driver, "p1");
+    await syncHandles(driver);
+    const state = ensureSurfaceState(driver);
+    assert.equal(state.windows.find((w) => w.handle === "p1").parentWindow, undefined);
+  });
+
+  it("drops a synced parent when registerOpenedHandle upgrades the handle to a window lead", async function () {
+    const driver = stubDriver();
+    await syncHandles(driver);
+    pageOpens(driver, "w1");
+    await syncHandles(driver);
+    registerOpenedHandle(driver, { handle: "w1", isWindowLead: true, windowName: "admin" });
+    const state = ensureSurfaceState(driver);
+    const w1 = state.windows.find((w) => w.handle === "w1");
+    assert.equal(w1.isWindowLead, true);
+    assert.equal(w1.parentWindow, undefined);
   });
 
   it("prunes closed handles and never reuses ordinals", async function () {
@@ -387,6 +423,32 @@ describe("browserSurface: resolveWindowTarget", function () {
     assert.match(noWindow.message, /missing/);
   });
 
+  it("reaches a page-opened tab through its window's selector", async function () {
+    const driver = stubDriver();
+    await syncHandles(driver);
+    pageOpens(driver, "p1", { title: "Child" });
+    for (const [window, tab] of [
+      [0, 1],
+      [0, -1],
+      [{ index: 0 }, { index: 1 }],
+      [0, { title: "Child" }],
+    ]) {
+      const res = await resolveWindowTarget(
+        driver,
+        parseSurfaceRef({ browser: "firefox", window, tab }),
+        { maxWaitMs: 0 }
+      );
+      assert.equal(res.ok, true, JSON.stringify({ window, tab }));
+      assert.equal(res.handle, "p1", JSON.stringify({ window, tab }));
+    }
+    const close = await resolveCloseTargets(
+      driver,
+      parseSurfaceRef({ browser: "firefox", window: { index: 0 }, tab: { index: 1 } }),
+      { maxWaitMs: 0 }
+    );
+    assert.deepEqual(close, { ok: true, handles: ["p1"] });
+  });
+
   it("FAILs an engine mismatch (no session registry) with goTo guidance", async function () {
     const driver = stubDriver({ engine: "chrome" });
     await syncHandles(driver);
@@ -467,10 +529,22 @@ describe("browserSurface: closeHandle", function () {
     const driver = await twoTabs();
     pageOpens(driver, "t2");
     await syncHandles(driver);
+    // A tab whose window is unknown (focus couldn't be read when it appeared).
+    delete ensureSurfaceState(driver).windows.find((w) => w.handle === "t1").parentWindow;
     await driver.switchToWindow("t1");
     const res = await closeHandle(driver, "t1");
     assert.equal(res.ok, true);
     assert.equal(driver._current, "t2");
+  });
+
+  it("closing an active page-opened tab focuses its window's lead", async function () {
+    const driver = await twoTabs();
+    pageOpens(driver, "t2");
+    await syncHandles(driver);
+    await driver.switchToWindow("t1");
+    const res = await closeHandle(driver, "t1");
+    assert.equal(res.ok, true);
+    assert.equal(driver._current, "h0");
   });
 
   it("closing a non-active tab restores the previously active tab", async function () {

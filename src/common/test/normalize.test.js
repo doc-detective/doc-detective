@@ -257,6 +257,7 @@ describe("normalization", function () {
     // objects included. Each sample takes the paths that rewrite or fill.
     const AUTHORED = {
       annotate: { text: "Hi", target: { elementText: "Save" } },
+      checkFile: "out/report.txt",
       checkLink: { url: "https://x.com", statusCodes: 200 },
       click: { elementText: "Save", elementClass: "primary" },
       closeSurface: ["chrome"],
@@ -694,8 +695,8 @@ describe("normalization", function () {
       (key) => !(key in schemas.step_v3.components.schemas.common.properties)
     );
 
-    it("has one normalizer for each of the 24 actions", function () {
-      expect(actions).to.have.lengthOf(24);
+    it("has one normalizer for each of the 25 actions", function () {
+      expect(actions).to.have.lengthOf(25);
       expect(Object.keys(normalizers)).to.have.members(actions);
     });
 
@@ -706,6 +707,7 @@ describe("normalization", function () {
     // An action whose object form isn't `components.schemas.object` names the
     // component its minimal step belongs to.
     const MINIMAL = {
+      checkFile: { path: "out/report.txt" },
       checkLink: { url: "https://example.com" },
       goTo: { url: "https://example.com" },
       httpRequest: { url: "https://example.com" },

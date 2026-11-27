@@ -35,7 +35,7 @@ In Markdown, for example:
 - **httpRequestFormat**: A code block tagged `http` that holds a request generates an `httpRequest` step.
 - **runCode**: A code block tagged `bash`, `python`, `py`, `javascript`, or `js` generates a `runCode` step.
 
-DITA also uses its semantic elements. `<cmd>Click the <uicontrol>Submit</uicontrol> button</cmd>` generates `click` and `find` steps, and `<cmd>Type <userinput>text</userinput> into the <uicontrol>Field</uicontrol></cmd>` generates a `type` step into that field.
+DITA also uses its semantic elements. `<cmd>Click the <uicontrol>Submit</uicontrol> button</cmd>` generates `click` and `find` steps, and `<cmd>Type <userinput>text</userinput> into the <uicontrol>Field</uicontrol></cmd>` generates a `type` step that finds the field by its accessible name, such as its `<label>`, through `elementAria`.
 
 For each format's syntax, see [Markdown](/docs/test-docs/input-formats/markdown), [HTML](/docs/test-docs/input-formats/html), [AsciiDoc](/docs/test-docs/input-formats/asciidoc), [DITA](/docs/test-docs/input-formats/dita), and [reStructuredText](/docs/test-docs/input-formats/rst).
 

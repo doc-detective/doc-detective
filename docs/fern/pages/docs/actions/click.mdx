@@ -153,12 +153,18 @@ The docs tests run the two string shorthand examples and the object-format examp
             "elementText": "Download",
             "button": "left"
           }
+        },
+        {
+          "description": "Check that the download finished.",
+          "checkFile": { "download": "*" }
         }
       ]
     }
   ]
 }
 ```
+
+To check the file a click downloads, follow the click with a [`checkFile`](/docs/actions/checkfile#check-a-download) step that sets `download`.
 
 ### Click by ID, test ID, or accessible name
 

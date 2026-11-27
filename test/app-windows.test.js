@@ -272,6 +272,35 @@ describe("appWindows: Windows (switch-then-act)", function () {
     assert.equal(driver.state.current, "0xB");
   });
 
+  it("resolves { index: -1 } exactly like -1, and combines it with title criteria", async function () {
+    const driver = fakeWinDriver([{ handle: "0xA", title: "Main", pid: 100 }]);
+    const entry = winEntry(driver);
+    await snapshotAppWindows(entry);
+    driver.windows.push({ handle: "0xB", title: "Dialog", pid: 100 });
+    const res = await resolveAppWindow({ entry, selector: { index: -1 }, timeoutMs: 1000 });
+    assert.equal(res.ok, true);
+    assert.equal(driver.state.current, "0xB");
+
+    const both = await resolveAppWindow({ entry, selector: { index: -2, title: "Main" }, timeoutMs: 1000 });
+    assert.equal(both.ok, true);
+    assert.equal(driver.state.current, "0xA");
+
+    const mismatch = await resolveAppWindow({ entry, selector: { index: -1, title: "Main" }, timeoutMs: 300 });
+    assert.equal(mismatch.ok, false);
+    assert.match(mismatch.message, /No app window matched/);
+  });
+
+  it("closes the newest window selected as { index: -1 }", async function () {
+    const driver = fakeWinDriver([{ handle: "0xA", title: "Main", pid: 100 }]);
+    const entry = winEntry(driver);
+    await snapshotAppWindows(entry);
+    driver.windows.push({ handle: "0xB", title: "Dialog", pid: 100 });
+    await resolveAppWindow({ entry, selector: -1, timeoutMs: 1000 });
+    const res = await closeAppWindow({ entry, selector: { index: -1 } });
+    assert.deepEqual(res, { ok: true, closed: true });
+    assert.equal(driver.windows.find((w) => w.handle === "0xB").closed, true);
+  });
+
   it("FAILs non-negative index selectors with title/-1 guidance", async function () {
     const driver = fakeWinDriver([{ handle: "0xA", title: "Main", pid: 100 }]);
     const entry = winEntry(driver);
@@ -444,6 +473,29 @@ describe("appWindows: macOS (window-as-element)", function () {
     const byIndex = await resolveAppWindow({ entry, selector: 1, timeoutMs: 500 });
     assert.equal(byIndex.ok, true);
     assert.equal(byIndex.target.element.elementId, "w2");
+
+    const byObjectIndex = await resolveAppWindow({ entry, selector: { index: 1 }, timeoutMs: 500 });
+    assert.equal(byObjectIndex.ok, true);
+    assert.equal(byObjectIndex.target.element.elementId, "w2");
+
+    const indexAndTitle = await resolveAppWindow({
+      entry,
+      selector: { index: 0, title: "Untitled 2" },
+      timeoutMs: 300,
+    });
+    assert.equal(indexAndTitle.ok, false);
+  });
+
+  it("resolves { index: -1 } like -1: the window that's new since the baseline", async function () {
+    const driver = fakeMacDriver([
+      { id: "w1", title: "Untitled", rect: { x: 0, y: 0, width: 1, height: 1 } },
+    ]);
+    const entry = macEntry(driver);
+    await snapshotAppWindows(entry);
+    driver.windows.push({ id: "w2", title: "Untitled 2", rect: { x: 9, y: 9, width: 3, height: 3 } });
+    const res = await resolveAppWindow({ entry, selector: { index: -1 }, timeoutMs: 500 });
+    assert.equal(res.ok, true);
+    assert.equal(res.target.element.elementId, "w2");
   });
 
   it("resolves -1 to the window that's new since the baseline", async function () {

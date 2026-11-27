@@ -45,6 +45,7 @@ import {
   createAppiumPool,
   getRunOutputDir,
   runArchivesArtifacts,
+  stepsCheckDownloads,
   sanitizeFilesystemName,
   hasVariable,
   evaluateContextRequirements,
@@ -82,11 +83,10 @@ import {
   resolveCheckpointsConfig,
   captureRecordingCheckpoints,
 } from "./tests/recordingCheckpoints.js";
-import { startRecording } from "./tests/startRecording.js";
+import { startRecording, NO_SESSION_SKIP } from "./tests/startRecording.js";
 import { stopRecording, defaultedStopSkip } from "./tests/stopRecording.js";
 import {
   browserCaptureTitle,
-  browserDownloadDir,
   jobIsFfmpegRecording,
   computeEffectiveConcurrency,
   jobExclusiveResources,
@@ -109,6 +109,7 @@ import { loadVariables } from "./tests/loadVariables.js";
 import { saveCookie } from "./tests/saveCookie.js";
 import { loadCookie } from "./tests/loadCookie.js";
 import { mockRequest, restoreMocks } from "./tests/mockRequest.js";
+import { checkFile } from "./tests/checkFile.js";
 import { saveState } from "./tests/saveState.js";
 import { loadState } from "./tests/loadState.js";
 import { httpRequest } from "./tests/httpRequest.js";
@@ -494,6 +495,16 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
             "UEsDBBQAAAAIAKm6lldWzDiRbgAAAKUAAAAlAAAAZmlyZWZveF9wcm9maWxlL2Nocm9tZS91c2VyQ2hyb21lLmNzc3XMQQrCMBBG4X1O8Yu7QqhrPYOHiGbaDpqZMBmJIN7dgu6K28fHC+OAc7oRLuquBVc1IWvQCb6s1bQ3MnSWrB1VWZwyhjHsS2KJv/4KWAeWyeL3E+80ebSU+dGOONQndlyqmifx0wYbz8t//Q4fUEsBAhQDFAAAAAgAqbqWV1bMOJFuAAAApQAAACUAAAAAAAAAAAAAAKSBAAAAAGZpcmVmb3hfcHJvZmlsZS9jaHJvbWUvdXNlckNocm9tZS5jc3NQSwUGAAAAAAEAAQBTAAAAsQAAAAAA",
           prefs: {
             "toolkit.legacyUserProfileCustomizations.stylesheets": true, // Enable userChrome.css and userContent.css
+            // Save downloads, with no prompt, to the context's download
+            // folder (ADR 01231).
+            ...(options.downloadDir
+              ? {
+                  "browser.download.folderList": 2,
+                  "browser.download.dir": options.downloadDir,
+                  "browser.download.useDownloadDir": true,
+                  "browser.download.always_ask_before_handling_new_types": false,
+                }
+              : {}),
             ...emulation.prefs,
           },
           binary: firefox.path,
@@ -580,9 +591,11 @@ function getDriverCapabilities({ runnerDetails, name, options }: { runnerDetails
             // Reference: https://chromedriver.chromium.org/capabilities#h.p_ID_102
             args,
             prefs: {
-              // Per-context download dir keeps concurrent recordings from
-              // colliding on the same .webm filename in a shared temp dir.
-              "download.default_directory": options.downloadDir || os.tmpdir(),
+              // Save downloads, with no prompt, to the context's download
+              // folder (ADR 01231).
+              ...(options.downloadDir
+                ? { "download.default_directory": options.downloadDir }
+                : {}),
               "download.prompt_for_download": false,
               "download.directory_upgrade": true,
               ...emulation.prefs,
@@ -4163,16 +4176,32 @@ function plannedRecordingEngines({
 
 // A context's `screenshots/` folder in the run folder, which creates the run
 // folder. Auto screenshots and URL-reference captures (ADR 01173) land here.
-function contextScreenshotsDir({ config, spec, test, context }: { config: any; spec: any; test: any; context: any }) {
+function contextScreenshotsDir(ids: { config: any; spec: any; test: any; context: any }) {
+  return contextArtifactDir(ids, "screenshots");
+}
+
+// A context's `downloads/` folder in the run folder (ADR 01231). Resolving it
+// doesn't create the run folder: the browser creates the folder when it saves
+// a file, and a run with a `checkFile` `download` step reserves the run folder
+// up front (runArchivesArtifacts).
+function contextDownloadsDir(ids: { config: any; spec: any; test: any; context: any }) {
+  return contextArtifactDir(ids, "downloads", { create: false });
+}
+
+function contextArtifactDir(
+  { config, spec, test, context }: { config: any; spec: any; test: any; context: any },
+  leaf: string,
+  { create = true }: { create?: boolean } = {}
+) {
   return path.join(
-    getRunOutputDir(config),
+    getRunOutputDir(config, { create }),
     "specs",
     capPathSegment(sanitizeFilesystemName(String(spec.specId ?? ""), "spec")),
     "tests",
     capPathSegment(sanitizeFilesystemName(String(test.testId ?? ""), "test")),
     "contexts",
     capPathSegment(sanitizeFilesystemName(String(context.contextId ?? ""), "context")),
-    "screenshots"
+    leaf
   );
 }
 
@@ -5026,11 +5055,15 @@ async function runContext({
         }
       }
 
-      // Per-context recording identifiers so concurrent Chrome recordings
-      // auto-select their own window and download to their own dir.
+      // Per-context recording title, so concurrent Chrome recordings
+      // auto-select their own window, and the context's download folder
+      // (ADR 01231). A context that checks a download gets the folder up
+      // front; otherwise the browser creates it when it saves a file.
+      const downloadDir = contextDownloadsDir({ config, spec, test, context });
+      if (stepsCheckDownloads(context.steps)) fs.mkdirSync(downloadDir, { recursive: true });
       const recordOptions = {
         captureSourceTitle: browserCaptureTitle(context.contextId),
-        downloadDir: browserDownloadDir(context.contextId),
+        downloadDir,
       };
 
       // Start a session for one engine, headed first then (on failure) headless.
@@ -5614,6 +5647,7 @@ async function runContext({
             openApiDefinitions: context.openApi || [],
             annotationTheme,
             screenshotsDir: () => contextScreenshotsDir({ config, spec, test, context }),
+            downloadsDir: () => contextDownloadsDir({ config, spec, test, context }),
           },
           processRegistry: processRegistry,
           appSession: appSession,
@@ -6272,7 +6306,13 @@ async function runStep({
   step: any;
   driver: any;
   metaValues?: any;
-  options?: any;
+  // The context's artifact folders, resolved lazily. Without `downloadsDir`,
+  // a `checkFile` `download` step skips (ADR 01231).
+  options?: {
+    screenshotsDir?: () => string;
+    downloadsDir?: () => string;
+    [key: string]: any;
+  };
   processRegistry?: Map<string, any>;
   appSession?: AppSessionState;
   surfaceTracker?: ActiveSurfaceTracker;
@@ -6302,6 +6342,14 @@ async function runStep({
     });
   } else if (typeof step.checkLink !== "undefined") {
     actionResult = await checkLink({ config: config, step: step });
+  } else if (typeof step.checkFile !== "undefined") {
+    actionResult = await checkFile({
+      config,
+      step,
+      driver,
+      context,
+      downloadsDir: options?.downloadsDir,
+    });
   } else if (typeof step.find !== "undefined") {
     actionResult = await findElement({ config: config, step: step, driver, appSession, processRegistry, surfaceTracker });
   } else if (typeof step.stopRecord !== "undefined") {
@@ -6372,9 +6420,17 @@ async function runStep({
         // best-effort
       }
       delete actionResult.recording;
-      actionResult.status = "FAIL";
-      actionResult.description =
-        "A recording started with no driver session or app session to own it; it was stopped. This context cannot record.";
+      if (step.__autoRecord) {
+        // Backstop for a handle startRecording returns without spawning (a
+        // phantom span): with no session, the automatic recording is SKIPPED
+        // (ADR 01177); an authored `record` still FAILs.
+        actionResult.status = "SKIPPED";
+        actionResult.description = NO_SESSION_SKIP;
+      } else {
+        actionResult.status = "FAIL";
+        actionResult.description =
+          "A recording started with no driver session or app session to own it; it was stopped. This context cannot record.";
+      }
     } else if (actionResult.recording) {
       if (!Array.isArray(recordingHost.state.recordings))
         recordingHost.state.recordings = [];
