@@ -356,6 +356,12 @@ navigation:
           - page: Hand off failures
             path: pages/docs/get-started/self-healing.mdx
             slug: hand-off-failures
+          # Hidden: reachable by URL and served to agents, but kept out of the
+          # sidebar. See docs/content-strategy/information-architecture.md.
+          - page: Doc Detective vs. Playwright
+            path: pages/ai/doc-detective-vs-playwright.mdx
+            slug: doc-detective-vs-playwright
+            hidden: true
 
   - tab: reference
     layout:
