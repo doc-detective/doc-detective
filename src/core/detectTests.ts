@@ -32,7 +32,26 @@ function loadParseContent() {
 // detection order and results are unchanged regardless of this value.
 const DETECTION_PARSE_CONCURRENCY = 8;
 
-export { detectTests, parseTests, generateSpecId, skipInvalidSpec };
+export { detectTests, parseTests, generateSpecId, skipInvalidSpec, substituteFilePath };
+
+/**
+ * Replaces `$1` in a runShell fileType's strings with the file's path.
+ * Substitutes into the strings, not the JSON text, so backslashes aren't read
+ * as JSON escapes. On Windows the path takes forward slashes: the default
+ * shell is bash, which strips backslashes from an unquoted path (ADR 01232).
+ */
+function substituteFilePath(value: any, file: string, platform: string = process.platform): any {
+  const filePath = platform === "win32" ? file.replace(/\\/g, "/") : file;
+  const substitute = (v: any): any =>
+    typeof v === "string"
+      ? v.replace(/\$1/g, () => filePath)
+      : Array.isArray(v)
+        ? v.map(substitute)
+        : v && typeof v === "object"
+          ? Object.fromEntries(Object.entries(v).map(([key, x]) => [key, substitute(x)]))
+          : v;
+  return substitute(value);
+}
 
 /**
  * Detects tests from files based on config.
@@ -927,17 +946,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
 
       // Process executables
       if (fileType?.runShell) {
-        // Substitute into the strings, not the JSON text: a Windows path's
-        // backslashes would read as JSON escapes.
-        const substitute = (value: any): any =>
-          typeof value === "string"
-            ? value.replace(/\$1/g, () => file)
-            : Array.isArray(value)
-              ? value.map(substitute)
-              : value && typeof value === "object"
-                ? Object.fromEntries(Object.entries(value).map(([key, v]) => [key, substitute(v)]))
-                : value;
-        const runShell = substitute(fileType.runShell);
+        const runShell = substituteFilePath(fileType.runShell, file);
 
         const test = {
           steps: [

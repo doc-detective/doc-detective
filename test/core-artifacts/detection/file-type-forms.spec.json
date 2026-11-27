@@ -19,7 +19,7 @@
     },
     {
       "testId": "runshell-path",
-      "description": "A runShell fileType's `$1` takes the file's absolute path, including a Windows path's backslashes, and the command runs.",
+      "description": "A runShell fileType's `$1` takes the file's absolute path, with forward slashes on Windows, and the command runs with `$1` quoted or unquoted.",
       "steps": [
         {
           "runShell": {

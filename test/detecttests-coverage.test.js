@@ -7,6 +7,7 @@ import {
   parseTests,
   generateSpecId,
   skipInvalidSpec,
+  substituteFilePath,
 } from "../dist/core/detectTests.js";
 import { setConfig } from "../dist/core/config.js";
 import { validate } from "../dist/common/src/index.js";
@@ -369,7 +370,23 @@ describe("detectTests coverage", function () {
       });
       const specs = await parseTests({ config, files: [script] });
       assert.equal(specs.length, 1);
-      assert.equal(specs[0].tests[0].steps[0].runShell.args[0], script);
+      const expected = process.platform === "win32" ? script.replace(/\\/g, "/") : script;
+      assert.equal(specs[0].tests[0].steps[0].runShell.args[0], expected);
+    });
+
+    it("substitutes `$1` with forward slashes on Windows and keeps quotes", function () {
+      const step = { command: "node $1", args: ["'$1'", '"$1"'], exitCodes: [0] };
+      assert.deepEqual(substituteFilePath(step, "C:\\docs\\a.cjs", "win32"), {
+        command: "node C:/docs/a.cjs",
+        args: ["'C:/docs/a.cjs'", '"C:/docs/a.cjs"'],
+        exitCodes: [0],
+      });
+    });
+
+    it("leaves `$1`'s path untouched on other platforms", function () {
+      assert.deepEqual(substituteFilePath({ command: "node $1" }, "/docs/a\\b.cjs", "linux"), {
+        command: "node /docs/a\\b.cjs",
+      });
     });
   });
 
