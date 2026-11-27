@@ -32,7 +32,7 @@ function loadParseContent() {
 // detection order and results are unchanged regardless of this value.
 const DETECTION_PARSE_CONCURRENCY = 8;
 
-export { detectTests, parseTests, generateSpecId, skipInvalidSpec, substituteFilePath };
+export { detectTests, parseTests, generateSpecId, skipInvalidSpec, noteInvalidSpec, substituteFilePath };
 
 /**
  * Replaces `$1` in a runShell fileType's strings with the file's path.

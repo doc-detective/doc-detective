@@ -88,6 +88,54 @@ describe("Run tests successfully", function () {
     }
   });
 
+  it("A `matrix` runs one context per value, each reporting its ID and values (ADR 01227)", async () => {
+    const spec = {
+      tests: [
+        {
+          testId: "matrix-ran",
+          runOn: [{ matrix: { word: ["alpha", "beta"] } }],
+          steps: [{ runShell: { command: "echo $$matrix.word", stdio: "$$matrix.word" } }],
+        },
+        {
+          testId: "matrix-skipped",
+          runOn: [{ requires: "doc-detective-no-such-binary-xyz", matrix: { n: [1, 2] } }],
+          steps: [{ runShell: "echo $$matrix.n" }],
+        },
+      ],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-report-"));
+    const tempFilePath = path.join(tempDir, "matrix.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      const result = await runTests({ input: tempFilePath, logLevel: "error" });
+      const [ran, skipped] = result.specs[0].tests;
+      assert.deepEqual(ran.contexts.map((c) => c.contextId), ["default~word=alpha", "default~word=beta"]);
+      assert.deepEqual(ran.contexts.map((c) => c.matrix), [{ word: "alpha" }, { word: "beta" }]);
+      assert.deepEqual(ran.contexts.map((c) => c.result), ["PASS", "PASS"]);
+      assert.deepEqual(skipped.contexts.map((c) => [c.result, c.matrix]), [["SKIPPED", { n: 1 }], ["SKIPPED", { n: 2 }]]);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  it("A `matrix` mistake rejects the run before anything runs (ADR 01227)", async () => {
+    const spec = {
+      tests: [{ testId: "t", runOn: [{ matrix: { theme: ["a", "b"] } }], steps: [{ runShell: "echo hi" }] }],
+    };
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-invalid-"));
+    const tempFilePath = path.join(tempDir, "matrix.spec.json");
+    fs.writeFileSync(tempFilePath, JSON.stringify(spec, null, 2));
+    try {
+      await assert.rejects(runTests({ input: tempFilePath, logLevel: "error" }), (error) => {
+        assert.match(error.message, /^Invalid test specifications, so nothing ran:/);
+        assert.match(error.message, /tests\[0\]: `matrix` key `theme` isn't used\. Reference it as `\$\$matrix\.theme` or remove it\./);
+        return true;
+      });
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("Page emulation a browser can't do SKIPs the context before any browser starts (ADR 01223)", async () => {
     const platform = { win32: "windows", darwin: "mac" }[process.platform] ?? "linux";
     const spec = {

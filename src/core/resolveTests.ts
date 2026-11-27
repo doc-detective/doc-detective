@@ -6,7 +6,7 @@
 
 import crypto from "node:crypto";
 import { log, logLevelEnabled } from "./utils.js";
-import { generateSpecId } from "./detectTests.js";
+import { generateSpecId, noteInvalidSpec } from "./detectTests.js";
 import { contentHash } from "../common/src/textUtils.js";
 import { loadDescription } from "./openapi.js";
 // Single source of truth for browser/driver-requiring step keys.
@@ -15,6 +15,55 @@ import {
   stepOpensBrowserSurface,
 } from "../runtime/browserStepKeys.js";
 import { isMobileTargetPlatform } from "./tests/mobilePlatform.js";
+import {
+  matrixReferences,
+  matrixCombinations,
+  substituteMatrix,
+  matrixIdSuffix,
+  checkMatrixPaths,
+} from "../common/src/matrix.js";
+
+// Expand one static context over its `matrix` (ADR 01227): one context per
+// combination of the keys its own fields or the test's steps reference, with
+// the combination substituted into the context and its copy of the steps.
+// `authoredOnTest` makes an unreferenced key an error: there it can only be dead.
+// Throws a message without its `tests[<i>]: ` prefix.
+function expandMatrix({ staticContext, matrix, test, authoredOnTest }: { staticContext: any; matrix: any; test: any; authoredOnTest: boolean }) {
+  const { matrix: _definition, ...fields } = staticContext;
+  const name = staticContext.contextId || [staticContext.platform, staticContext.browser?.name].filter(Boolean).join("-") || "default";
+  const ownReferences = matrixReferences(fields);
+  const stepReferences = matrixReferences(test.steps);
+  const referenced = new Set([...ownReferences, ...stepReferences]);
+  const keys = Object.keys(matrix ?? {});
+  for (const key of referenced) {
+    if (!keys.includes(key)) throw new Error(`\`$$matrix.${key}\` names no \`matrix\` key in context \`${name}\`.`);
+  }
+  if (authoredOnTest) {
+    const unused = keys.find((key) => !referenced.has(key));
+    if (unused) throw new Error(`\`matrix\` key \`${unused}\` isn't used. Reference it as \`$$matrix.${unused}\` or remove it.`);
+  }
+  if (referenced.size === 0) return [fields];
+  const expanding = keys.filter((key) => referenced.has(key));
+  const [pathProblem] = checkMatrixPaths(test.steps, matrix, expanding);
+  if (pathProblem) throw new Error(pathProblem);
+  const seen = new Map<string, any>();
+  return matrixCombinations(matrix, referenced).map((combination) => {
+    const suffix = matrixIdSuffix(combination);
+    const clash = seen.get(suffix);
+    if (clash) {
+      const differing = expanding.find((key) => JSON.stringify(clash[key]) !== JSON.stringify(combination[key]))!;
+      const show = (value: any) => (typeof value === "object" ? JSON.stringify(value) : String(value));
+      throw new Error(`\`matrix\` values \`${show(clash[differing])}\` and \`${show(combination[differing])}\` give the same context ID.`);
+    }
+    seen.set(suffix, combination);
+    return {
+      ...substituteMatrix(fields, combination),
+      matrix: combination,
+      matrixIdSuffix: suffix,
+      steps: substituteMatrix(test.steps, combination),
+    };
+  });
+}
 
 function isDriverRequired({ test }: { test: any }) {
   let driverRequired = false;
@@ -122,18 +171,24 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         });
       }
     });
+    // A matrix is a third expansion axis (ADR 01227).
+    const expandedContexts = staticContexts.flatMap((staticContext) =>
+      expandMatrix({ staticContext, matrix: context.matrix, test, authoredOnTest: Boolean(test.runOn) })
+    );
     // For each static context, check if a matching object already exists in
     // resolvedContexts. `requires` participates in identity: two entries that
     // differ only in their capability gate must stay distinct, or one gate
-    // would silently swallow the other.
-    staticContexts.forEach((staticContext) => {
+    // would silently swallow the other. So does the matrix combination.
+    expandedContexts.forEach((staticContext) => {
       const existingContext = resolvedContexts.find((resolvedContext) => {
         return (
           resolvedContext.platform === staticContext.platform &&
           JSON.stringify(resolvedContext.browser) ===
             JSON.stringify(staticContext.browser) &&
           JSON.stringify(resolvedContext.requires) ===
-            JSON.stringify(staticContext.requires)
+            JSON.stringify(staticContext.requires) &&
+          JSON.stringify(resolvedContext.matrix) ===
+            JSON.stringify(staticContext.matrix)
         );
       });
       if (!existingContext) {
@@ -144,7 +199,7 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
 
   // If no contexts are defined, use default contexts
   if (resolvedContexts.length === 0) {
-    resolvedContexts.push({});
+    resolvedContexts.push(...expandMatrix({ staticContext: {}, matrix: undefined, test, authoredOnTest: false }));
   }
 
   if (logLevelEnabled(config, "debug")) log(config, "debug", `Resolved contexts for test ${test.testId}:\n${JSON.stringify(resolvedContexts, null, 2)}`);
@@ -225,11 +280,11 @@ function uniqueId(base: string, usedIds: Set<string>): string {
 // browser) instead of a random UUID. Same inputs → same IDs on every run,
 // which is what makes run-over-run result comparison possible. Explicitly
 // declared IDs always win.
-function deriveContextId({ context, usedIds }: { context: any; usedIds: Set<string> }) {
+function deriveContextId({ context, suffix = "", usedIds }: { context: any; suffix?: string; usedIds: Set<string> }) {
   const base =
     [context.platform, context.browser?.name].filter(Boolean).join("-") ||
     "default";
-  return uniqueId(base, usedIds);
+  return uniqueId(`${base}${suffix}`, usedIds);
 }
 
 async function resolveContext({ config, test, context, usedContextIds, openApi }: { config: any; test: any; context: any; usedContextIds: Set<string>; openApi?: any[] }) {
@@ -239,21 +294,26 @@ async function resolveContext({ config, test, context, usedContextIds, openApi }
   // `platforms`/`browsers` arrays expands into several contexts that all carry
   // the same authored `contextId`, so the 2nd+ must be suffixed or they'd
   // collide in `metaValues` and other contextId-keyed structures.
+  // A matrix combination's `~key=value` suffix keeps each combination's ID
+  // distinct, authored or derived (ADR 01227).
+  const suffix = context.matrixIdSuffix ?? "";
   context.contextId = context.contextId
-    ? uniqueId(context.contextId, usedContextIds)
-    : deriveContextId({ context, usedIds: usedContextIds });
+    ? uniqueId(`${context.contextId}${suffix}`, usedContextIds)
+    : deriveContextId({ context, suffix, usedIds: usedContextIds });
   const contextId = context.contextId;
   usedContextIds.add(contextId);
   if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVING CONTEXT ID ${contextId}:\n${JSON.stringify(context, null, 2)}`);
+  const { matrixIdSuffix: _suffix, ...contextFields } = context;
   const resolvedContext = {
-    ...context,
+    ...contextFields,
     unsafe: test.unsafe || false,
     // Prefer the caller's description-loaded set (resolvedTest.openApi, which
     // merges spec + test and attaches each `definition`). The raw
     // `test.openApi` carries no loaded definition and omits spec-level entries,
     // so httpRequest would receive an empty openApiDefinitions. See ADR 01044.
     openApi: openApi ?? test.openApi ?? [],
-    steps: [...test.steps],
+    // A matrix context carries its own substituted copy (ADR 01227).
+    steps: context.steps ?? [...test.steps],
     contextId: contextId,
   };
   if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED CONTEXT ${contextId}:\n${JSON.stringify(resolvedContext, null, 2)}`);
@@ -278,11 +338,18 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
   };
   delete resolvedTest.steps;
 
-  const testContexts = resolveContexts({
-    test: test,
-    contexts: resolvedTest.runOn,
-    config: config,
-  });
+  let testContexts: any[];
+  try {
+    testContexts = resolveContexts({
+      test: test,
+      contexts: resolvedTest.runOn,
+      config: config,
+    });
+  } catch (error: any) {
+    // A `matrix` mistake makes the spec invalid (ADR 01227).
+    error.invalidSpec = true;
+    throw error;
+  }
 
   const usedContextIds = new Set<string>();
   for (const context of testContexts) {
@@ -318,13 +385,28 @@ async function resolveSpec({ config, spec }: { config: any; spec: any }) {
     }),
     tests: [] as any[],
   };
-  for (const test of spec.tests) {
-    const resolvedTest = await resolveTest({
-      config,
-      spec: resolvedSpec,
-      test,
-    });
-    resolvedSpec.tests.push(resolvedTest);
+  const problems: string[] = [];
+  for (const [index, test] of spec.tests.entries()) {
+    try {
+      const resolvedTest = await resolveTest({
+        config,
+        spec: resolvedSpec,
+        test,
+      });
+      resolvedSpec.tests.push(resolvedTest);
+    } catch (error: any) {
+      if (!error.invalidSpec) throw error;
+      problems.push(`tests[${index}]: ${error.message}`);
+    }
+  }
+  // An invalid spec runs none of its tests, like one that fails its schema
+  // check (ADR 01199): a strict run stops, any other run skips it with a warning.
+  if (problems.length) {
+    const source = spec.contentPath ?? specId;
+    const reason = problems.join("\n");
+    noteInvalidSpec(config, source, reason);
+    if (!config._strictSpecs) log(config, "warning", `Skipped: \`${source}\` has tests that aren't valid.\n${reason}`);
+    return null;
   }
   if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED SPEC ${specId}:\n${JSON.stringify(resolvedSpec, null, 2)}`);
   return resolvedSpec;
@@ -356,7 +438,7 @@ async function resolveTests({ config, detectedTests }: { config: any; detectedTe
   log(config, "info", "Resolving test specs.");
   for (const spec of detectedTests) {
     const resolvedSpec = await resolveSpec({ config, spec });
-    resolvedTests.specs.push(resolvedSpec);
+    if (resolvedSpec) resolvedTests.specs.push(resolvedSpec);
   }
 
   if (logLevelEnabled(config, "debug")) log(config, "debug", `RESOLVED TEST SPECS:\n${JSON.stringify(resolvedTests, null, 2)}`);
