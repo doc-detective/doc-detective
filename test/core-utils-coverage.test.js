@@ -1474,6 +1474,25 @@ describe("core/utils coverage", function () {
       );
     });
 
+    it("retries a primary still on `about:blank` when no goTo targeted it", async function () {
+      // A Chrome session with a BiDi socket (ADR 01219) starts on about:blank,
+      // not `data:,`. A goTo that never left it, like a navigation Chrome left
+      // paused under a request mock, retries on a fresh session (ADR 01233).
+      assert.equal(
+        await classifyContextRetry([alive("about:blank")], { aboutBlankIsInitial: true }),
+        "unnavigated"
+      );
+      // A context that navigated to about:blank on purpose keeps its FAIL.
+      assert.equal(await classifyContextRetry([alive("about:blank")]), null);
+      assert.equal(
+        await classifyContextRetry([alive("about:blank")], {
+          navigated: false,
+          aboutBlankIsInitial: true,
+        }),
+        null
+      );
+    });
+
     it("prefers a dead session over an unnavigated primary", async function () {
       // A dead session is the stronger, more actionable signal; both retry, but
       // only one of them is worth logging as 'never navigated'.

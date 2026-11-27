@@ -1050,10 +1050,17 @@ const INITIAL_BLANK_DOCUMENT = /^data:,?$/i;
 // but the browser is still on its initial blank document, which no correctly
 // loaded page under test ever is. App/mobile sessions have no URL, and a thrown
 // `getUrl` (dead session, already caught by isSessionAlive) both yield false.
-async function isPageUnnavigated(driver: any): Promise<boolean> {
+async function isPageUnnavigated(
+  driver: any,
+  { aboutBlankIsInitial = false }: { aboutBlankIsInitial?: boolean } = {}
+): Promise<boolean> {
   if (!driver || typeof driver.getUrl !== "function") return false;
   try {
-    return isInitialBlankDocument(await driver.getUrl());
+    const url = await driver.getUrl();
+    return (
+      isInitialBlankDocument(url) ||
+      (aboutBlankIsInitial && String(url ?? "").trim().toLowerCase() === "about:blank")
+    );
   } catch {
     return false;
   }
@@ -1182,15 +1189,24 @@ export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
 // See adrs/01082-retries-mid-session-context-retry.md,
 // adrs/01084-retry-unnavigated-context.md and
 // adrs/01119-no-unnavigated-retry-without-navigation.md.
+//
+//   • `aboutBlankIsInitial`: the caller found no goTo that targeted
+//     `about:blank`, so a primary still on it never left its initial document.
+//     A Chrome session with a BiDi socket (ADR 01219) starts there, not on
+//     `data:,` (ADR 01233).
 async function classifyContextRetry(
   probeDrivers: any[],
-  { navigated = true }: { navigated?: boolean } = {}
+  {
+    navigated = true,
+    aboutBlankIsInitial = false,
+  }: { navigated?: boolean; aboutBlankIsInitial?: boolean } = {}
 ): Promise<ContextRetryReason | null> {
   for (const probeDriver of probeDrivers) {
     if (!(await isSessionAlive(probeDriver))) return "session-died";
     if (await isPageBroken(probeDriver)) return "page-broken";
   }
-  if (navigated && (await isPageUnnavigated(probeDrivers[0]))) return "unnavigated";
+  if (navigated && (await isPageUnnavigated(probeDrivers[0], { aboutBlankIsInitial })))
+    return "unnavigated";
   return null;
 }
 

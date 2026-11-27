@@ -5875,10 +5875,12 @@ async function runContext({
       // retry warning the wrapper already logs. The alive-but-unusable cases do,
       // because "the session responded and we retried anyway" is otherwise
       // surprising in a log.
+      const goToUrls = contextReport.steps
+        .filter((s: any) => s.goTo !== undefined && s.result !== "SKIPPED")
+        .map((s: any) => String(s.goTo?.url ?? s.goTo).trim().toLowerCase());
       const retryReason = await classifyContextRetry(probeDrivers, {
-        navigated: contextReport.steps.some(
-          (s: any) => s.goTo !== undefined && s.result !== "SKIPPED"
-        ),
+        navigated: goToUrls.length > 0,
+        aboutBlankIsInitial: !goToUrls.includes("about:blank"),
       });
       if (retryReason) {
         sessionDiedMidRun = true;
