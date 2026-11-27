@@ -1,0 +1,23 @@
+= Record a walkthrough
+
+== Record the browser tab
+
+. Go to http://localhost:8092/type-echo.html[the type echo page].
+. Start recording the tab.
+. Click *Type here:*.
+. Type "Hello, Doc Detective".
+. Wait a moment, then stop the recording.
+. Record a few seconds more with the default settings.
+
+== Record the screen
+
+. Go to http://localhost:8092/type-echo.html[the type echo page].
+. Start a screen recording.
+. Click *Type here:*.
+. Type "Recorded on screen".
+. Wait a moment, then stop the recording.
+. Record only the browser window.
+. Record only the page, and compare each step with the last run.
+. Record the screen again with the default ffmpeg settings.
+. Record a short clip of the result.
+. Wait a second, then stop the clip.
