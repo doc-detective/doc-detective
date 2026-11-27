@@ -86,7 +86,70 @@ const sharedMarkup: MarkupDefinition[] = [
   runCode,
 ];
 
-const xrefSelector = (precededBy?: string) => ({ tag: ["xref"], attributes: { href: "^https?://" }, ...(precededBy && { precededBy }) });
+const METHODS = "GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS";
+// The parser folds a following `the response status should be <n>` into the request step's text.
+const STATUS = "(?: and the response status should be (\\d+))?";
+const gherkinStep = (name: string, regex: string, actions: MarkupDefinition["actions"], captures?: string[]): MarkupDefinition => ({
+  name,
+  element: { tag: ["step"] },
+  regex: [regex],
+  ...(captures && { captures }),
+  actions,
+});
+
+/**
+ * The Gherkin step vocabulary. Each regex runs on a step's text, without its keyword. Exported so
+ * every surface that reads Gherkin uses the same phrases.
+ */
+export const gherkinMarkup: MarkupDefinition[] = [
+  gherkinStep("goTo", '^I (?:go to|open) "([^"]+)"$', ["goTo"]),
+  gherkinStep("click", '^I click "([^"]+)"$', ["click"]),
+  gherkinStep("find", '^I (?:should )?see "([^"]+)"$', ["find"]),
+  // find has no absence check, so the page's text is checked in the browser.
+  gherkinStep("findAbsent", '^I should not see "([^"]+)"$', [
+    { runBrowserScript: { script: "return !document.body.innerText.includes(arguments[0])", args: ["$1"], output: "true" } },
+  ]),
+  gherkinStep("type", '^I type "([^"]+)"$', ["type"]),
+  gherkinStep("typeInto", '^I type "([^"]+)" into "([^"]+)"$', [{ type: { keys: "$1", selector: "$2" } }]),
+  // The parser uppercases the key, so `"Page Down"` arrives as `"PAGE_DOWN"`.
+  gherkinStep("press", '^I press "([^"]+)"$', [{ type: "$$1$" }]),
+  gherkinStep("hover", '^I hover over "([^"]+)"$', [{ find: { elementText: "$1", moveTo: true } }]),
+  gherkinStep("scrollTo", '^I scroll to "([^"]+)"$', [{ find: { elementText: "$1", moveTo: true } }]),
+  gherkinStep("drag", '^I drag "([^"]+)" to "([^"]+)"$', [{ dragAndDrop: { source: "$1", target: "$2" } }]),
+  gherkinStep("swipe", "^I swipe (up|down|left|right)$", [{ swipe: "$1" }]),
+  gherkinStep("checkLink", '^the link "([^"]+)" works$', ["checkLink"]),
+  gherkinStep("screenshot", '^I take a screenshot "([^"]+)"$', ["screenshot"]),
+  gherkinStep("screenshotElement", '^I take a screenshot of "([^"]+)" as "([^"]+)"$', [{ screenshot: { path: "$2", crop: "$1" } }]),
+  gherkinStep("startRecording", '^I start recording "([^"]+)"$', ["record"]),
+  gherkinStep("stopRecording", "^I stop recording$", [{ stopRecord: true }]),
+  gherkinStep("saveSession", '^I save the session as "([^"]+)"$', [{ saveState: "$1" }]),
+  gherkinStep("restoreSession", '^I restore the session "([^"]+)"$', [{ loadState: "$1" }]),
+  gherkinStep("runShell", '^I run (?:the command |the script )?"([^"]+)"$', ["runShell"]),
+  gherkinStep("runCode", "^I run:$", [{ unsafe: true, runCode: { language: "$1", code: "$2" } }], ["attributes.mediaType", "attributes.docString"]),
+  // The parser turns `I wait <n> seconds` into milliseconds.
+  gherkinStep("wait", "^I wait (\\d+(?:\\.\\d+)?) milliseconds?$", [{ wait: "$1" }]),
+  gherkinStep("loadVariables", '^the variables in "([^"]+)"$', ["loadVariables"]),
+  gherkinStep("httpRequest", `^I send an? (${METHODS}) request to "([^"]+)"${STATUS}$`, [
+    { httpRequest: { method: "$1", url: "$2", statusCodes: "$3" } },
+  ]),
+  gherkinStep(
+    "httpRequestWithBody",
+    `^I send an? (${METHODS}) request to "([^"]+)" with:${STATUS}$`,
+    [{ httpRequest: { method: "$1", url: "$2", statusCodes: "$3", request: { body: "$4" } } }],
+    ["match.1", "match.2", "match.3", "attributes.docString"]
+  ),
+  gherkinStep("mockRequestFile", `^the API "(?:(${METHODS}) )?([^"]+)" returns "([^"]+)"$`, [
+    { mockRequest: { method: "$1", url: "$2", response: { bodyPath: "$3" } } },
+  ]),
+  gherkinStep(
+    "mockRequestBody",
+    `^the API "(?:(${METHODS}) )?([^"]+)" returns:$`,
+    [{ mockRequest: { method: "$1", url: "$2", response: { body: "$3" } } }],
+    ["match.1", "match.2", "attributes.docString"]
+  ),
+];
+
+const xrefSelector =(precededBy?: string) => ({ tag: ["xref"], attributes: { href: "^https?://" }, ...(precededBy && { precededBy }) });
 
 const defaultFileTypesBase: Record<string, FileType> = {
   asciidoc_1_0: {
@@ -158,6 +221,12 @@ const defaultFileTypesBase: Record<string, FileType> = {
     inlineStatements: { in: ["comment"] },
     markup: structuredClone(sharedMarkup),
   },
+  gherkin_1_0: {
+    name: "gherkin",
+    extensions: ["feature"],
+    inlineStatements: { in: ["comment"] },
+    markup: structuredClone(gherkinMarkup),
+  },
 };
 
 /**
@@ -172,6 +241,7 @@ export const defaultFileTypes: Record<string, FileType> = {
     html: defaultFileTypesBase.html_1_0,
     dita: defaultFileTypesBase.dita_1_0,
     rst: defaultFileTypesBase.rst_1_0,
+    gherkin: defaultFileTypesBase.gherkin_1_0,
 };
 
 /**

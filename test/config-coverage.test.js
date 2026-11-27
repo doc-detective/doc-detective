@@ -606,7 +606,7 @@ describe("config.ts — setConfig", function () {
         logLevel: "silent",
         dryRun: true,
         input: ["./README.md"],
-        fileTypes: ["markdown", "asciidoc", "html", "dita", "rst"],
+        fileTypes: ["markdown", "asciidoc", "html", "dita", "rst", "gherkin"],
       },
     });
     assert.deepEqual(config.fileTypes, [
@@ -615,6 +615,7 @@ describe("config.ts — setConfig", function () {
       defaultFileTypes.html,
       defaultFileTypes.dita,
       defaultFileTypes.rst,
+      defaultFileTypes.gherkin,
     ]);
   });
 
@@ -981,7 +982,7 @@ describe("config.ts — setConfig", function () {
             fileTypes: [{ extends: "nope-nope", extensions: ["z"] }],
           },
         }),
-      /fileTypes\[0\]\.extends: must be one of markdown, asciidoc, html, dita, rst \(got "nope-nope"\)\./
+      /fileTypes\[0\]\.extends: must be one of markdown, asciidoc, html, dita, rst, gherkin \(got "nope-nope"\)\./
     );
   });
 
