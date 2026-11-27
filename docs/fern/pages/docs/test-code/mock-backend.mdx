@@ -43,7 +43,7 @@ Set more than one, and the step waits for all of them. `timeout` caps the wait, 
 
 ## Step 2: Point requests at the mock
 
-Send each [`httpRequest`](/docs/actions/httprequest) step to the mock server's address. Assert on the response the same way you would against the real API.
+Send each [`httpRequest`](/docs/actions/httprequest) step to the mock server's address. Assert on the response the same way you would against the real API. `response.body` checks only the fields you list, so extra fields in the response, such as a `role` field, don't fail the step.
 
 ```json
 {

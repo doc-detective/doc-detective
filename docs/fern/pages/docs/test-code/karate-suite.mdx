@@ -23,6 +23,7 @@ Make sure you have the following:
 
 - [Doc Detective installed](/docs/get-started/installation).
 - Karate 2.x and a suite that runs with the `karate run` command. The examples assume your feature files are in `src/test/features`.
+- A POSIX shell for the `cat` command in Step 2. `runShell` uses Bash by default on every platform, with Git Bash on Windows, so the command works as written. If you set [`shell`](/docs/actions/runshell#shell-selection) to `cmd`, use `type` with backslash paths instead: `type target\karate-reports\karate-json\karate-events.jsonl`.
 
 ## Step 1: Run the suite and check the exit code
 
