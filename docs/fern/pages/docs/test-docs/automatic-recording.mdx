@@ -26,7 +26,8 @@ With no setting at all, Doc Detective records each context from its first step t
 | Headless Firefox | Runs headed so the `ffmpeg` engine can record it, when the host can capture the screen. On Linux with Xvfb installed, it runs on an Xvfb display, so no window appears. With only `DISPLAY`, the window opens on that display. Otherwise it stays headless and isn't recorded. |
 | A native app on Windows or macOS | The `ffmpeg` engine records the whole display. |
 | An Android or iOS app, or mobile web | The device records its own screen. |
-| No browser, app, or device steps | Not recorded. |
+| Types into a [background process](/docs/actions/type#type-to-a-background-process), with no browser, app, or device steps | Skipped. Its `autoRecording` is SKIPPED, the context still passes, and reporters list the skip. To leave it out, set `autoRecord` to `false`. See [Where the recording shows up](#where-the-recording-shows-up). |
+| Any other context with no browser, app, or device steps, such as one with only `runShell` or `httpRequest` steps | Not recorded. The context has no `autoRecording` field. |
 
 When Doc Detective runs headless Firefox headed, it says so once per run: `Running 2 headless Firefox contexts headed so autoRecord can record them. Set \`autoRecord: false\` to keep them headless.`
 
@@ -90,9 +91,11 @@ A `FAIL` or `WARNING` sets the context's `result`, the way a step's does. `PASS`
 The field is absent when Doc Detective didn't try to record the context. That means one of these is true:
 
 - `autoRecord` is `false`.
-- The context drives no browser, app, or device.
+- The context drives no browser, app, or device, and doesn't type into a background process.
 - A headless Chrome context has its own `record` step.
 - `autoRecord` is unset and the host check below failed.
+
+A context that [types into a background process](/docs/actions/type#type-to-a-background-process) with `"surface": { "process": "<name>" }` drives no browser, app, or device, so there's nothing to record. Doc Detective still tries, so its `autoRecording` is SKIPPED with `Skipped: the context has no browser, app, or device session to record. Set \`autoRecord: false\` to turn off automatic recording.` The context still passes. Like any recording that didn't pass, it's listed as an item of its own in the `terminal`, `markdown`, and `junit` reports. To leave it out, set `autoRecord` to `false` on those tests, or at the spec or config level.
 
 Each reporter points at the video its own way:
 
