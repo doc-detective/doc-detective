@@ -37,10 +37,10 @@ import fs from "node:fs";
 import os from "node:os";
 import { RECORDER_SETTLE_MS } from "./timing.js";
 
-export { startRecording, NO_SESSION_SKIP };
-
 const NO_SESSION_SKIP =
   "Skipped: the context has no browser, app, or device session to record. Set `autoRecord: false` to turn off automatic recording.";
+
+export { startRecording, NO_SESSION_SKIP };
 
 // How a headless browser's name reads in a message. Safari has no headless
 // mode, so it never needs one.
