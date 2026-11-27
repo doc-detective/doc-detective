@@ -69,8 +69,8 @@ Print the file with a second `runShell` step, then save fields with the step-lev
     "command": "cat target/karate-reports/karate-json/karate-events.jsonl"
   },
   "variables": {
-    "KARATE_SCENARIOS_PASSED": "jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosPassed')",
-    "KARATE_SCENARIOS_FAILED": "jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosFailed')"
+    "KARATE_SCENARIOS_PASSED": "jq($$stdio.stdout, '[split(\"\\n\")[] | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosPassed')",
+    "KARATE_SCENARIOS_FAILED": "jq($$stdio.stdout, '[split(\"\\n\")[] | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosFailed')"
   }
 }
 ```
@@ -118,8 +118,8 @@ The complete spec runs the suite, reads its summary, and uses the totals:
             "command": "cat target/karate-reports/karate-json/karate-events.jsonl"
           },
           "variables": {
-            "KARATE_SCENARIOS_PASSED": "jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosPassed')",
-            "KARATE_SCENARIOS_FAILED": "jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosFailed')"
+            "KARATE_SCENARIOS_PASSED": "jq($$stdio.stdout, '[split(\"\\n\")[] | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosPassed')",
+            "KARATE_SCENARIOS_FAILED": "jq($$stdio.stdout, '[split(\"\\n\")[] | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosFailed')"
           }
         },
         {
@@ -136,7 +136,7 @@ The complete spec runs the suite, reads its summary, and uses the totals:
 ```
 
 {/* step {"stepId":"karate-suite-run-stub","description":"STUB, not Karate: the docs suite doesn't install Java or Karate, so this stands in for 'karate run -f karate:jsonl src/test/features' with a command that exits 0, the code Karate returns when all tests pass","runShell":{"command":"node --version","exitCodes":[0]}} */}
-{/* step {"stepId":"karate-suite-read-stub","description":"STUB, not Karate: karate-events-stub.cjs next to this page prints a Karate 2.x SUITE_EXIT line in place of reading a real karate-events.jsonl. The variables use the same jq() queries as the documented step","runShell":{"command":"node karate-events-stub.cjs","workingDirectory":"."},"variables":{"KARATE_SCENARIOS_PASSED":"jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosPassed')","KARATE_SCENARIOS_FAILED":"jq($$stdio.stdout, '[splits(\"\\n\") | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosFailed')"}} */}
+{/* step {"stepId":"karate-suite-read-stub","description":"STUB, not Karate: karate-events-stub.cjs next to this page prints a Karate 2.x SUITE_EXIT line in place of reading a real karate-events.jsonl. The variables use the same jq() queries as the documented step","runShell":{"command":"node karate-events-stub.cjs","workingDirectory":"."},"variables":{"KARATE_SCENARIOS_PASSED":"jq($$stdio.stdout, '[split(\"\\n\")[] | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosPassed')","KARATE_SCENARIOS_FAILED":"jq($$stdio.stdout, '[split(\"\\n\")[] | select(length > 0) | fromjson | select(.type == \"SUITE_EXIT\")][0].data.summary.scenariosFailed')"}} */}
 {/* step {"stepId":"karate-suite-use-values","description":"Use the saved totals, matching the exact values from the stub summary so an unsubstituted variable fails the step","runShell":{"command":"echo Karate passed $KARATE_SCENARIOS_PASSED scenarios, $KARATE_SCENARIOS_FAILED failed","stdio":"Karate passed 3 scenarios, 0 failed"}} */}
 {/* test end */}
 

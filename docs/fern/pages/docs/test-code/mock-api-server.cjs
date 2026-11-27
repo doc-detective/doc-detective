@@ -8,7 +8,8 @@ const examples = {
 
 require('http')
   .createServer((req, res) => {
-    if (!/^\/users\/\d+$/.test(req.url)) {
+    const { pathname } = new URL(req.url, 'http://127.0.0.1');
+    if (!/^\/users\/\d+$/.test(pathname)) {
       res.writeHead(404).end();
       return;
     }
