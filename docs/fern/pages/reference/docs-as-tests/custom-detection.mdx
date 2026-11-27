@@ -744,6 +744,20 @@ Each example uses a bold phrase or an italic phrase and changes only the form of
 
 <Markdown src="examples/custom-actions-name/_variants.mdx" />
 
+### An action name as a string
+
+**Varies:** `markup.actions` · **Value:** `"click"` · **Effect:** a single action can skip the array. Detection clicks the bold phrase, as with `["click"]`.
+
+```json
+{
+  "name": "clickBold",
+  "strong": {},
+  "actions": "click"
+}
+```
+
+<Markdown src="examples/custom-actions-string/_variants.mdx" />
+
 ### A step template
 
 **Varies:** `markup.actions` · **Value:** `[{ "find": { "elementText": "$1", "timeout": 5000 } }]` · **Effect:** `$1` fills a field of a full step, so the `find` sets its own `timeout`.
@@ -837,6 +851,51 @@ Both examples use the same procedure and the same definition, which finds italic
 ```
 
 <Markdown src="examples/custom-filetype-scratch/_variants.mdx" />
+
+## `runShell` file type permutations
+
+A file type with `runShell` doesn't detect steps. Each matching file becomes one test with one [`runShell`](/docs/actions/runshell) step, and `$1` is the file's absolute path. These examples run a Node.js check that fails when a release-notes file still says `TODO`. The detected variant is the whole file, so prose and detected are the same text. The examples leave out the other formats and the inline variant, because the file type runs every `.txt` file it matches.
+
+### `runShell` as a string
+
+**Varies:** `fileTypes.runShell` · **Value:** `"node -e \"…\" $1"` · **Effect:** runs the command with `$1` unquoted. On Windows, `$1` uses forward slashes, so Bash reads the path intact.
+
+```json title="doc-detective.json (fileTypes)"
+{
+  "fileTypes": [
+    {
+      "name": "release-notes",
+      "extensions": ["txt"],
+      "runShell": "node -e \"process.exit(require('fs').readFileSync(process.argv[1], 'utf8').includes('TODO') ? 1 : 0)\" $1"
+    }
+  ]
+}
+```
+
+<Markdown src="examples/custom-filetype-runshell-string/_variants.mdx" />
+
+### `runShell` as an object
+
+**Varies:** `fileTypes.runShell` · **Value:** `{ "command": "node -e \"…\" '$1'", "timeout": 10000 }` · **Effect:** takes any `runShell` field, here a `timeout`. Quoting `'$1'` keeps a path with spaces in one argument.
+
+```json title="doc-detective.json (fileTypes)"
+{
+  "fileTypes": [
+    {
+      "name": "release-notes",
+      "extensions": ["txt"],
+      "runShell": {
+        "command": "node -e \"process.exit(require('fs').readFileSync(process.argv[1], 'utf8').includes('TODO') ? 1 : 0)\" '$1'",
+        "timeout": 10000
+      }
+    }
+  ]
+}
+```
+
+<Markdown src="examples/custom-filetype-runshell-object/_variants.mdx" />
+
+The standalone variants run the same check on `detected.txt`, with `workingDirectory` set to the folder that holds the spec.
 
 ## Replace or add a definition
 

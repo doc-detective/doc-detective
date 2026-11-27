@@ -199,13 +199,7 @@ features:
 # `shared:locator`, `features`) and the gap line under it, without a shared
 # key's "— in …" suffix. `--check` fails on a gap not listed here, and on a
 # listed gap that examples now cover, so remove an entry once it's shown.
-knownGaps:
-  - key: config.fileTypes.runShell (object)
-    reason: Fails on Windows, where backslashes in the substituted path break JSON parsing.
-  - key: config.fileTypes.runShell (string)
-    reason: Fails on Windows, where backslashes in the substituted path break JSON parsing.
-  - key: config.fileTypes.markup.actions (string)
-    reason: Crashes detection.
+knownGaps: []
 
 # Out of scope: CLI, install, reporting, and runtime behavior that no
 # example file can show. Grouped by changelog item.

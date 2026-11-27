@@ -615,12 +615,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -989,12 +1001,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -1319,12 +1343,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -1659,12 +1695,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -1987,12 +2035,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -2281,12 +2341,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -2481,8 +2553,20 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -2643,6 +2727,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -2807,6 +2895,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -2959,6 +3051,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -3067,6 +3163,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -3165,6 +3265,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -3267,6 +3371,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -3447,6 +3555,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -3579,6 +3691,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -3671,6 +3787,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -3785,6 +3905,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -3979,6 +4103,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -4265,6 +4393,12 @@
     {
       "example": "custom-statements-string",
       "page": "/reference/docs-as-tests/custom-detection#regex-keys-as-strings"
+    }
+  ],
+  "config.fileTypes.markup.actions (string)": [
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     }
   ],
   "config.fileTypes.markup.actions[] (object)": [
@@ -4765,6 +4899,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -4947,6 +5085,10 @@
       "page": "/reference/docs-as-tests/custom-detection#an-action-name"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -5033,8 +5175,20 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -5157,6 +5311,18 @@
       "page": "/reference/docs-as-tests/custom-detection#regex-keys-as-strings"
     }
   ],
+  "config.fileTypes.runShell (object)": [
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    }
+  ],
+  "config.fileTypes.runShell (string)": [
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
+    }
+  ],
   "config.fileTypes[] (object)": [
     {
       "example": "custom-actions-name",
@@ -5167,12 +5333,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -5451,12 +5629,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -7307,6 +7497,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -8731,6 +8925,10 @@
       "page": "/reference/docs-as-tests/custom-detection#an-action-name"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-markdown-extend",
       "page": "/reference/docs-as-tests/custom-detection#extend-markdown-with-your-own-conventions"
     },
@@ -8919,6 +9117,10 @@
     {
       "example": "custom-actions-name",
       "page": "/reference/docs-as-tests/custom-detection#an-action-name"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -10543,6 +10745,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -12293,6 +12499,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -13945,6 +14155,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -15537,6 +15751,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -17217,6 +17435,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -18819,12 +19041,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -20753,12 +20987,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -26001,6 +26247,14 @@
   ],
   "runShell.command": [
     {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
+    },
+    {
       "example": "http-checkfile",
       "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
     },
@@ -26185,6 +26439,10 @@
   ],
   "runShell.timeout": [
     {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
     },
@@ -26222,6 +26480,14 @@
     }
   ],
   "runShell.workingDirectory": [
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
+    },
     {
       "example": "http-checkfile",
       "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
@@ -28549,12 +28815,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -31541,6 +31819,10 @@
       "page": "/reference/docs-as-tests/custom-detection#an-action-name"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-html-attributes",
       "page": "/reference/docs-as-tests/custom-detection#mark-up-controls-with-attributes"
     },
@@ -32865,6 +33147,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -34329,6 +34615,14 @@
   ],
   "step.runShell (object)": [
     {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
+    },
+    {
       "example": "http-checkfile",
       "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
     },
@@ -34426,6 +34720,10 @@
     }
   ],
   "step.runShell (string)": [
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
+    },
     {
       "example": "custom-kind-codeblock",
       "page": "/reference/docs-as-tests/custom-detection#codeblock"
@@ -36189,6 +36487,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -38423,12 +38725,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -40193,12 +40507,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
