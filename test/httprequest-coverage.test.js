@@ -1588,6 +1588,27 @@ describe("httpRequest coverage (stubbed axios)", function () {
         assert.match(result.description, /Response data matched the response schema/);
       });
 
+      it("doesn't add schema defaults to the response (allowAdditionalFields: false)", async function () {
+        stubResponse({ status: 200, data: { id: 1 } });
+        const result = await httpRequest({
+          config,
+          step: {
+            httpRequest: {
+              url: "http://api.example.com/",
+              method: "get",
+              statusCodes: [200],
+              allowAdditionalFields: false,
+              response: {
+                body: { id: 1 },
+                schema: { type: "object", properties: { flag: { type: "boolean", default: false } } },
+              },
+            },
+          },
+        });
+        assert.equal(result.status, "PASS", result.description);
+        assert.deepEqual(result.outputs.response.body, { id: 1 });
+      });
+
       it("FAILs cleanly when the inline schema itself is invalid", async function () {
         stubResponse({ status: 200, data: { id: UUID } });
         const result = await httpRequest({

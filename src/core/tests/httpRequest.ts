@@ -405,7 +405,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     addFormats(ajv);
     // An author-written schema can be invalid (`minimum: "x"`), which makes
     // compile throw. Report that as a FAIL rather than crashing the step.
-    let validateFn: any;
+    let validateFn: ReturnType<typeof ajv.compile> | undefined;
     let compileError = "";
     try {
       validateFn = ajv.compile(responseSchema);
@@ -415,7 +415,9 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
         ? ajv.errorsText(ajv.errors)
         : String(error?.message ?? error);
     }
-    const valid = validateFn ? validateFn(response.data) : false;
+    // useDefaults fills schema defaults into the data it validates. Validate a
+    // copy so the response, and the checks after this one, stay untouched.
+    const valid = validateFn ? validateFn(structuredClone(response.data)) : false;
     result.outputs.responseSchemaValid = !!valid;
     specs.push({
       statement: `$$outputs.responseSchemaValid == true`,
