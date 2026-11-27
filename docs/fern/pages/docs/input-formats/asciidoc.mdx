@@ -120,9 +120,11 @@ AsciiDoc inline tests support both JSON and YAML syntax:
 
 **YAML syntax:**
 ```asciidoc
-// (test testId: my-test description: Test description)
+// (test {testId: my-test, description: Test description})
 // (step goTo: https://example.com)
 ```
+
+A YAML statement with more than one key goes inside braces, with commas between the keys. Without them, Doc Detective can't parse the statement and reports it.
 
 Both formats work identically. Choose the format that's most readable for your team.
 
