@@ -195,6 +195,29 @@ features:
     since: v5.5.0
     needle: '/^import \w+ from [''"][^''"]+\.mdx?[''"]/m'
 
+# Gaps no example can close yet, each with the reason. A key is
+# `<group>.<gap>`: the report's group header (`step`, `config`,
+# `shared:locator`, `features`) and the gap line under it, without a shared
+# key's "— in …" suffix. `--check` fails on a gap not listed here, and on a
+# listed gap that examples now cover, so remove an entry once it's shown.
+knownGaps:
+  - key: step.saveState (string)
+    reason: The string form never overwrites, so repeated runs into one output folder fail; the object form with `overwrite` is shown.
+  - key: config.fileTypes.runShell (object)
+    reason: Fails on Windows, where backslashes in the substituted path break JSON parsing.
+  - key: config.fileTypes.runShell (string)
+    reason: Fails on Windows, where backslashes in the substituted path break JSON parsing.
+  - key: config.fileTypes.markup.actions (string)
+    reason: Crashes detection.
+  - key: runCode.directory
+    reason: Doubles the path when set with `path`; fixed in doc-detective/doc-detective#1055.
+  - key: record.verify.resolution (object)
+    reason: Headless recordings are shorter than the viewport, so no correct size can be asserted.
+  - key: record.verify.resolution.width
+    reason: Headless recordings are shorter than the viewport, so no correct size can be asserted.
+  - key: record.verify.resolution.height
+    reason: Headless recordings are shorter than the viewport, so no correct size can be asserted.
+
 # Out of scope: CLI, install, reporting, and runtime behavior that no
 # example file can show. Grouped by changelog item.
 #

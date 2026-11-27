@@ -271,6 +271,30 @@ function findGaps(fieldsByRoot, usage, canon = () => null) {
   return { total, covered, gaps, shared };
 }
 
+/**
+ * Splits `gaps` by the `known` list ({ key, reason }), whose keys read
+ * `<group>.<gap>` as the report prints them, without a shared key's
+ * `— in …` suffix. Returns the `unknown` gaps by group, the `known` entries
+ * still open, and the `stale` entries whose gap is now covered.
+ */
+function splitKnownGaps(gaps, known) {
+  const keys = new Set(known.map((k) => k.key));
+  const open = new Set();
+  const unknown = {};
+  for (const [group, list] of Object.entries(gaps)) {
+    for (const gap of list) {
+      const key = `${group}.${gap.replace(/ — in .*$/, "")}`;
+      if (keys.has(key)) open.add(key);
+      else (unknown[group] ||= []).push(gap);
+    }
+  }
+  return {
+    unknown,
+    known: known.filter((k) => open.has(k.key)),
+    stale: known.filter((k) => !open.has(k.key)),
+  };
+}
+
 function needleMatcher(needle) {
   const m = /^\/(.*)\/([a-z]*)$/s.exec(needle);
   if (m) {
@@ -359,18 +383,28 @@ function main() {
   const { fields, boundaries, via } = schemaFields();
   const { usage, docs } = corpusUsage(boundaries, problems);
   const coverage = findGaps(fields, usage, (root, p) => canonicalKey(root, p, fields[root]));
-  const features = YAML.parse(fs.readFileSync(featuresFile, "utf8")).features || [];
+  const list = YAML.parse(fs.readFileSync(featuresFile, "utf8"));
+  const features = list.features || [];
   const missing = findMissingNeedles(features, docs);
-  const gapCount = coverage.total - coverage.covered + missing.length;
+  // Features join the field gaps as `features.<id>`, so knownGaps can list them too.
+  const allGaps = { ...coverage.gaps, ...(missing.length ? { features: missing.map((f) => f.id) } : {}) };
+  const split = splitKnownGaps(allGaps, list.knownGaps || []);
+  const unknownCount = Object.values(split.unknown).flat().length;
+  for (const k of split.stale) {
+    problems.push(`Couldn't find known gap \`${k.key}\`: examples cover it now. Remove it from \`knownGaps\` in ${featuresFile}.`);
+  }
 
   if (process.argv.includes("--json")) {
     console.log(JSON.stringify({
       fields: { total: coverage.total, covered: coverage.covered, gaps: coverage.gaps, shared: coverage.shared, via },
       features: { total: features.length, covered: features.length - missing.length, gaps: missing },
+      unknownGaps: split.unknown,
+      knownGaps: split.known,
       problems,
     }, null, 2));
   } else {
-    for (const [root, gaps] of Object.entries(coverage.gaps)) {
+    for (const [root, gaps] of Object.entries(split.unknown)) {
+      if (root === "features") continue;
       // A shared schema collects usage from every field that reaches it.
       const from = via[root]?.length ? `, reached from ${via[root].join(", ")}` : "";
       // Keys collapsed onto a shared key are reported once under shared:*.
@@ -378,19 +412,27 @@ function main() {
       console.log(`${root} (${gaps.length} not shown${collapsed}${from}):`);
       for (const gap of gaps) console.log(`  ${gap}`);
     }
-    if (missing.length) {
-      console.log(`features (${missing.length} not shown):`);
-      for (const f of missing) console.log(`  ${f.id} (${f.since}): ${f.needle}`);
+    const newFeatures = missing.filter((f) => (split.unknown.features || []).includes(f.id));
+    if (newFeatures.length) {
+      console.log(`features (${newFeatures.length} not shown):`);
+      for (const f of newFeatures) console.log(`  ${f.id} (${f.since}): ${f.needle}`);
+    }
+    if (split.known.length) {
+      console.log(`known gaps (${split.known.length}, listed in knownGaps):`);
+      for (const k of split.known) console.log(`  ${k.key}: ${k.reason}`);
     }
     for (const problem of problems) console.error(problem);
     console.log(
       `Examples show ${coverage.covered} of ${coverage.total} schema fields and forms, ` +
-        `and ${features.length - missing.length} of ${features.length} features.`
+        `and ${features.length - missing.length} of ${features.length} features. ` +
+        `${unknownCount} gaps aren't in knownGaps.`
     );
   }
-  if (process.argv.includes("--check") && (gapCount || problems.length)) process.exit(1);
+  if (process.argv.includes("--check") && (unknownCount || problems.length)) process.exit(1);
 }
 
 if (require.main === module) main();
 
-module.exports = { walkSchema, collectUsage, findGaps, findMissingNeedles, canonicalKey, AUTHORING_CONFIG_KEYS };
+module.exports = {
+  walkSchema, collectUsage, findGaps, findMissingNeedles, canonicalKey, splitKnownGaps, AUTHORING_CONFIG_KEYS,
+};

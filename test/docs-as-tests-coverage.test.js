@@ -12,6 +12,7 @@ const {
   findGaps,
   findMissingNeedles,
   canonicalKey,
+  splitKnownGaps,
 } = require("../docs/.scripts/docsAsTestsCoverage.js");
 
 // A tiny two-file schema set: a step whose `go` action is a string or an
@@ -163,6 +164,25 @@ describe("docs-as-tests coverage: shared keys", function () {
       "shared:surface": ["surface (string) — in click, swipe"],
     });
     assert.deepEqual(result.shared, { click: 2, find: 1, swipe: 1 });
+  });
+});
+
+describe("docs-as-tests coverage: known gaps", function () {
+  it("separates listed gaps, keyed `<group>.<gap>`, from new ones, and flags listed gaps that are now covered", function () {
+    const gaps = {
+      step: ["saveState (string)", "wait (boolean)"],
+      "shared:locator": ["elementClass (string) — in click, find"],
+    };
+    const known = [
+      { key: "step.saveState (string)", reason: "Never overwrites." },
+      { key: "shared:locator.elementClass (string)", reason: "Example pending." },
+      { key: "runCode.directory", reason: "Fixed upstream." },
+    ];
+    assert.deepEqual(splitKnownGaps(gaps, known), {
+      unknown: { step: ["wait (boolean)"] },
+      known: known.slice(0, 2),
+      stale: [known[2]],
+    });
   });
 });
 

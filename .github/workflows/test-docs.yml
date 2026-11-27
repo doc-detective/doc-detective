@@ -53,6 +53,7 @@ jobs:
         run: |
           npm run docs:build-docs-as-tests -- --check
           npm run docs:check-docs-as-tests
+          npm run docs:coverage-docs-as-tests -- --check
 
       # The run below uses the docs config, which turns detection off, so it runs
       # the examples' inline and standalone files but not the detected ones. A
