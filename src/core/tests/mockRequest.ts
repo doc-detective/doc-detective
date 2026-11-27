@@ -71,7 +71,13 @@ async function mockRequest({
     } catch {
       // harToMocks turns the undefined into the parse error below.
     }
-    const found = harToMocks(har, { url, method });
+    let found: ReturnType<typeof harToMocks>;
+    try {
+      found = harToMocks(har, { url, method });
+    } catch {
+      // URLPattern rejects a malformed `url` glob, such as an unclosed `(`.
+      return fail(result, `Couldn't parse \`url\` pattern \`${url}\`.`);
+    }
     if (!found) return fail(result, `Couldn't parse \`harPath\` \`${file}\`: it isn't HAR JSON.`);
     if (found.length === 0) {
       return fail(result, `Couldn't find HAR entries matching \`${url ?? "*"}\` in \`${file}\`.`);
