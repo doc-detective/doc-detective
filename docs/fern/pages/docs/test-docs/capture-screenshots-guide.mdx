@@ -161,7 +161,7 @@ Doc Detective jumps each finite CSS or Web Animation to its end and stops each l
 
 ## Capture dark-mode and localized screenshots
 
-To screenshot a page in dark mode, another language, or at a fixed date, set emulation keys on the context's browser. Each variant gets its own test, with its own `runOn` and its own screenshot `path`.
+To screenshot a page in dark mode, another language, or at a fixed date, set emulation keys on the context's browser:
 
 {/* test {"testId":"capture-guide-dark","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true,"colorScheme":"dark","locale":"de-DE"}}]} */}
 
@@ -218,6 +218,44 @@ Skipped: `safari` can't set `colorScheme`.
 ```
 
 For every browser key, see [Page emulation](/docs/test-docs/platforms-and-browsers#page-emulation).
+
+### Screenshot every variant from one test
+
+To take a screenshot of the same page in each theme and language, list the values in a `matrix` on the `runOn` entry, and reference them as `$$matrix.<key>`. Doc Detective runs the test once per combination. Each combination is its own context, with its own browser, results, and artifact folder.
+
+{/* test {"testId":"capture-guide-matrix","detectSteps":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true,"colorScheme":"$$matrix.theme","locale":"$$matrix.locale"},"matrix":{"theme":["light","dark"],"locale":["en-US","de-DE"]}}]} */}
+
+```json
+{
+  "testId": "billing-variants",
+  "runOn": [
+    {
+      "browsers": {
+        "name": "chrome",
+        "colorScheme": "$$matrix.theme",
+        "locale": "$$matrix.locale"
+      },
+      "matrix": {
+        "theme": ["light", "dark"],
+        "locale": ["en-US", "de-DE"]
+      }
+    }
+  ],
+  "steps": [
+    { "goTo": "https://example.com/billing" },
+    { "screenshot": "billing-$$matrix.theme-$$matrix.locale.png" }
+  ]
+}
+```
+
+{/* step {"stepId":"capture-guide-matrix-goto","description":"Open the local test server","goTo":"http://localhost:8092"} */}
+{/* step {"stepId":"capture-guide-matrix-check","description":"The page sees this combination's theme and language","runBrowserScript":{"script":"return (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') + ' ' + navigator.language;","output":"/^$$matrix.theme $$matrix.locale$/"}} */}
+{/* step {"stepId":"capture-guide-matrix-shot","description":"Capture each combination to its own file in a gitignored output folder","screenshot":{"path":"guide-$$matrix.theme-$$matrix.locale.png","directory":"./.dd-output"}} */}
+{/* test end */}
+
+This test runs four times and writes four files, such as `billing-dark-de-DE.png`. The screenshot `path` must reference every key that has more than one value. Otherwise each combination would overwrite the same file, so Doc Detective rejects the spec before anything runs.
+
+For object values and the rules for references, see [Run once per value with `matrix`](/docs/test-docs/platforms-and-browsers#run-once-per-value-with-matrix).
 
 ## Show stable data in screenshots
 
