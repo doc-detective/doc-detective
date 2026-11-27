@@ -16,7 +16,8 @@ const {
 
 // Directories under test/core-artifacts/ that are NOT fixture-gate groups:
 // they hold specs/data consumed by the mocha suite, not this matrix.
-const NON_GROUP_DIRS = new Set(["ordering", "output"]);
+// cucumber-recipe is the sample suite that docs/fern/pages/docs/ci/cucumber.mdx runs.
+const NON_GROUP_DIRS = new Set(["ordering", "output", "cucumber-recipe"]);
 
 describe("select-fixture-bundles", function () {
   describe("selectBundles (names)", function () {
