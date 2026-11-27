@@ -205,6 +205,7 @@ async function resolvePaths({
   const specNoResolve = [
     "request",
     "response",
+    "responses",
     "requestData",
     "responseData",
     "requestHeaders",
@@ -295,6 +296,8 @@ async function resolvePaths({
 
   for (const property of Object.keys(object)) {
     if (Array.isArray(object[property])) {
+      // A mock's `responses` hold user payloads; their `bodyPath` resolves below.
+      if (objectType === "spec" && specNoResolve.includes(property)) continue;
       for (let i = 0; i < object[property].length; i++) {
         const item = object[property][i];
 
