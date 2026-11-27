@@ -17,14 +17,18 @@
       </Tab>
       <Tab title="MDX">
 
+<Template data={{ lt: "<" }}>
+
 ```mdx title="prose.mdx"
 # Open the elements demo
 
-<Markdown src="./_check-status.md" />
+{{ lt }}Markdown src="./_check-status.md" />
 
 1. Open [the elements demo](http://localhost:8092/index.html).
 2. Check that the page shows **Text Inputs**.
 ```
+
+</Template>
 
       </Tab>
       <Tab title="AsciiDoc">
@@ -92,10 +96,12 @@ Open the elements demo
       </Tab>
       <Tab title="MDX">
 
+<Template data={{ lt: "<" }}>
+
 ```mdx title="detected.mdx"
 # Open the elements demo
 
-<Markdown src="./_check-status.md" />
+{{ lt }}Markdown src="./_check-status.md" />
 
 {/* test {"testId":"structure-includes","detectSteps":true} */}
 
@@ -104,6 +110,8 @@ Open the elements demo
 
 {/* test end */}
 ```
+
+</Template>
 
       </Tab>
       <Tab title="AsciiDoc">
@@ -183,10 +191,12 @@ Open the elements demo
       </Tab>
       <Tab title="MDX">
 
+<Template data={{ lt: "<" }}>
+
 ```mdx title="inline.mdx"
 # Open the elements demo
 
-<Markdown src="./_check-status.md" />
+{{ lt }}Markdown src="./_check-status.md" />
 
 {/* test {"testId":"structure-includes","detectSteps":false} */}
 
@@ -197,6 +207,8 @@ Open the elements demo
 
 {/* test end */}
 ```
+
+</Template>
 
       </Tab>
       <Tab title="AsciiDoc">

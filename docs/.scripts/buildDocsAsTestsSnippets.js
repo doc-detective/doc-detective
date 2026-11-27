@@ -36,8 +36,17 @@ const FORMATS = [
 function fence(name, language, content) {
   const longestRun = Math.max(0, ...(content.match(/`+/g) || []).map((run) => run.length));
   const ticks = "`".repeat(Math.max(3, longestRun + 1));
-  return `${ticks}${language} title="${name}"\n${content.replace(/\n$/, "")}\n${ticks}`;
+  const block = `${ticks}${language} title="${name}"\n${content.replace(/\n$/, "")}\n${ticks}`;
+  if (!FERN_INCLUDE.test(block)) return block;
+  // Fern inlines every `<Markdown src>`, even inside a fenced block, so a shown
+  // include tag would turn into the included file. Write its `<` as a
+  // <Template> variable instead: Fern's code block (and its copy button) puts
+  // the `<` back. The spaces keep Fern's snippet-property check off `lt`.
+  // ponytail: <Template> is an undocumented Fern component; if Fern drops it,
+  // readers see `{{ lt }}Markdown` and this needs another escape.
+  return `<Template data={{ lt: "<" }}>\n\n${block.replace(/<Markdown(?=\s)/g, "{{ lt }}Markdown")}\n\n</Template>`;
 }
+const FERN_INCLUDE = /<Markdown\s/;
 
 /** Renders mode tabs, each holding format tabs of titled fenced blocks. */
 function renderVariants(files) {
@@ -62,7 +71,7 @@ function renderVariants(files) {
 function main() {
   const check = process.argv.includes("--check");
   const stale = [];
-  for (const dir of fs.readdirSync(examplesDir, { withFileTypes: true }).filter((d) => d.isDirectory())) {
+  for (const dir of fs.readdirSync(examplesDir, { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith("."))) {
     const exampleDir = path.join(examplesDir, dir.name);
     const files = fs
       .readdirSync(exampleDir)

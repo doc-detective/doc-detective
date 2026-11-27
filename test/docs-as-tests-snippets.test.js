@@ -27,6 +27,17 @@ describe("docs-as-tests snippets", function () {
     assert.match(out, /````markdown title="prose\.md"\n```bash\nls\n```\n````/);
   });
 
+  // Fern inlines every `<Markdown src>` it finds, even inside a fenced block,
+  // so a shown include tag would be replaced by the included file.
+  it("hides a Fern include tag in a block from Fern's snippet inliner", function () {
+    const out = renderVariants([{ name: "prose.mdx", content: '# Hi\n\n<Markdown src="./_x.md" />\n' }]);
+    assert.doesNotMatch(out, /<Markdown\s/);
+    assert.match(
+      out,
+      /<Template data=\{\{ lt: "<" \}\}>\n\n```mdx title="prose\.mdx"\n# Hi\n\n\{\{ lt \}\}Markdown src="\.\/_x\.md" \/>\n```\n\n<\/Template>/
+    );
+  });
+
   it("leaves out modes and formats that the example doesn't have", function () {
     const out = renderVariants([{ name: "inline.rst", content: "x\n" }]);
     assert.doesNotMatch(out, /Prose|Detected|Standalone|Markdown/);
