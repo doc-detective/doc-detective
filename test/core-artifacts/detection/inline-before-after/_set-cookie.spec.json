@@ -1,0 +1,13 @@
+{
+  "specId": "detection-inline-before-target",
+  "description": "Setup spec that inline-before-after.md names in its test statement's `before`. It also runs on its own, so its steps stand alone and pass.",
+  "tests": [
+    {
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/cookies/set/inline-before/abc123"
+        }
+      ]
+    }
+  ]
+}

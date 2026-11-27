@@ -32,7 +32,26 @@ function loadParseContent() {
 // detection order and results are unchanged regardless of this value.
 const DETECTION_PARSE_CONCURRENCY = 8;
 
-export { detectTests, parseTests, generateSpecId, skipInvalidSpec };
+export { detectTests, parseTests, generateSpecId, skipInvalidSpec, substituteFilePath };
+
+/**
+ * Replaces `$1` in a runShell fileType's strings with the file's path.
+ * Substitutes into the strings, not the JSON text, so backslashes aren't read
+ * as JSON escapes. On Windows the path takes forward slashes: the default
+ * shell is bash, which strips backslashes from an unquoted path (ADR 01232).
+ */
+function substituteFilePath(value: any, file: string, platform: string = process.platform): any {
+  const filePath = platform === "win32" ? file.replace(/\\/g, "/") : file;
+  const substitute = (v: any): any =>
+    typeof v === "string"
+      ? v.replace(/\$1/g, () => filePath)
+      : Array.isArray(v)
+        ? v.map(substitute)
+        : v && typeof v === "object"
+          ? Object.fromEntries(Object.entries(v).map(([key, x]) => [key, substitute(x)]))
+          : v;
+  return substitute(value);
+}
 
 /**
  * Detects tests from files based on config.
@@ -581,6 +600,120 @@ function expandAll(config: any, files: string[]) {
   return expansions;
 }
 
+// Setup steps need no marker past detection; cleanup steps keep theirs. The
+// spec-file branch reads `_fromBefore` for step locations first, so this runs
+// after that, not inside mergeBeforeAfter.
+function dropBeforeMarkers(content: any): void {
+  for (const test of content?.tests ?? []) {
+    if (!Array.isArray(test?.steps)) continue;
+    for (const step of test.steps) {
+      if (step && typeof step === "object") delete step._fromBefore;
+    }
+  }
+}
+
+// Merge a test's `before` and `after` files into its steps, tracking which
+// steps came from which, then validate each step. JSON/YAML specs and inline
+// test statements both route through here. It edits `content` in place.
+async function mergeBeforeAfter(config: any, file: string, content: any): Promise<void> {
+  for (let t = 0; t < content.tests.length; t++) {
+    const test = content.tests[t];
+    // Scrub the internal routing markers from authored steps: they're set
+    // only by the before/after merge below. Without this, a spec could
+    // forge `_fromAfter: true` (the validation clone strips it, so it would
+    // survive to runtime) and bypass skip-on-failure / the cascade guard
+    // outside the `after` mechanism.
+    if (Array.isArray(test.steps)) {
+      for (const step of test.steps) {
+        if (step && typeof step === "object") {
+          delete step._fromBefore;
+          delete step._fromAfter;
+        }
+      }
+    }
+    if (test.before) {
+      const setup: any = await readFile({ fileURLOrPath: test.before });
+      if (setup?.tests?.[0]?.steps) {
+        // Tag before-steps with a non-enumerable marker, which spec_v3
+        // doesn't see. Scrub any forged _fromAfter from these authored
+        // steps first.
+        for (const step of setup.tests[0].steps) {
+          if (step && typeof step === "object") delete step._fromAfter;
+          Object.defineProperty(step, "_fromBefore", {
+            value: true,
+            enumerable: false,
+            writable: true,
+            configurable: true,
+          });
+        }
+        test.steps = setup.tests[0].steps.concat(test.steps);
+      }
+    }
+    if (test.after) {
+      const cleanup: any = await readFile({ fileURLOrPath: test.after });
+      if (cleanup?.tests?.[0]?.steps) {
+        // Tag cleanup steps so the runner hard-routes them: they execute
+        // after the test even when an earlier step failed, and a failing
+        // cleanup step doesn't cascade-skip later cleanup steps. Unlike
+        // _fromBefore (deleted at detection time), _fromAfter must reach
+        // runtime. Defined non-enumerable so it's invisible to contentHash
+        // (stepId stays identical to the unmarked step), object spreads, and
+        // JSON — it never affects hashing or the report.
+        for (const step of cleanup.tests[0].steps) {
+          if (step && typeof step === "object") delete step._fromBefore;
+          Object.defineProperty(step, "_fromAfter", {
+            value: true,
+            enumerable: false,
+            writable: true,
+            configurable: true,
+          });
+        }
+        test.steps = test.steps.concat(cleanup.tests[0].steps);
+      }
+    }
+  }
+  // Validate each step
+  for (const test of content.tests) {
+    if (!Array.isArray(test.steps)) continue;
+    test.steps = test.steps.flatMap((step: any) => {
+      // The spread leaves out the non-enumerable routing markers.
+      const stepForValidation = { ...step };
+      const validation = validate({
+        schemaKey: `step_v3`,
+        object: stepForValidation,
+        addDefaults: false,
+        structuredErrors: true,
+      });
+      if (!validation.valid) {
+        log(
+          config,
+          "warning",
+          `Step ${shortJson(step)} isn't a valid step. Skipping.`
+        );
+        noteInvalidSpec(
+          config,
+          file,
+          `Step ${shortJson(stepForValidation)}: ${summarizeSchemaErrors(validation.errorObjects, stepForValidation, "step_v3")}`
+        );
+        return [];
+      }
+      // A v2 step from a before or after file has to be upgraded, or spec_v3
+      // rejects the merged test. The test's own steps stay as written, so a
+      // whole v2 spec still upgrades as one through validate() below.
+      const marker = ["_fromBefore", "_fromAfter"].find((name) => step[name]);
+      if (!marker) return [step];
+      const validStep = validation.object;
+      Object.defineProperty(validStep, marker, {
+        value: true,
+        enumerable: false,
+        writable: true,
+        configurable: true,
+      });
+      return [validStep];
+    });
+  }
+}
+
 async function parseTests({ config, files }: { config: any; files: string[] }) {
   const expansions = expandAll(config, files);
   // A file another input includes runs inside that input, not on its own.
@@ -753,102 +886,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
         objectType: "spec",
       });
 
-      // Merge before/after steps, tracking which steps came from before-specs.
-      for (let t = 0; t < content.tests.length; t++) {
-        const test = content.tests[t];
-        // Scrub the internal routing markers from authored steps: they're set
-        // only by the before/after merge below. Without this, a spec could
-        // forge `_fromAfter: true` (the validation clone strips it, so it would
-        // survive to runtime) and bypass skip-on-failure / the cascade guard
-        // outside the `after` mechanism.
-        if (Array.isArray(test.steps)) {
-          for (const step of test.steps) {
-            if (step && typeof step === "object") {
-              delete step._fromBefore;
-              delete step._fromAfter;
-            }
-          }
-        }
-        if (test.before) {
-          const setup: any = await readFile({ fileURLOrPath: test.before });
-          if (setup?.tests?.[0]?.steps) {
-            // Tag before-steps with a non-enumerable marker, which spec_v3
-            // doesn't see. Scrub any forged _fromAfter from these authored
-            // steps first.
-            for (const step of setup.tests[0].steps) {
-              if (step && typeof step === "object") delete step._fromAfter;
-              Object.defineProperty(step, "_fromBefore", {
-                value: true,
-                enumerable: false,
-                writable: true,
-                configurable: true,
-              });
-            }
-            test.steps = setup.tests[0].steps.concat(test.steps);
-          }
-        }
-        if (test.after) {
-          const cleanup: any = await readFile({ fileURLOrPath: test.after });
-          if (cleanup?.tests?.[0]?.steps) {
-            // Tag cleanup steps so the runner hard-routes them: they execute
-            // after the test even when an earlier step failed, and a failing
-            // cleanup step doesn't cascade-skip later cleanup steps. Unlike
-            // _fromBefore (deleted at detection time), _fromAfter must reach
-            // runtime. Defined non-enumerable so it's invisible to contentHash
-            // (stepId stays identical to the unmarked step), object spreads, and
-            // JSON — it never affects hashing or the report.
-            for (const step of cleanup.tests[0].steps) {
-              if (step && typeof step === "object") delete step._fromBefore;
-              Object.defineProperty(step, "_fromAfter", {
-                value: true,
-                enumerable: false,
-                writable: true,
-                configurable: true,
-              });
-            }
-            test.steps = test.steps.concat(cleanup.tests[0].steps);
-          }
-        }
-      }
-      // Validate each step
-      for (const test of content.tests) {
-        test.steps = test.steps.flatMap((step: any) => {
-          // The spread leaves out the non-enumerable routing markers.
-          const stepForValidation = { ...step };
-          const validation = validate({
-            schemaKey: `step_v3`,
-            object: stepForValidation,
-            addDefaults: false,
-            structuredErrors: true,
-          });
-          if (!validation.valid) {
-            log(
-              config,
-              "warning",
-              `Step ${shortJson(step)} isn't a valid step. Skipping.`
-            );
-            noteInvalidSpec(
-              config,
-              file,
-              `Step ${shortJson(stepForValidation)}: ${summarizeSchemaErrors(validation.errorObjects, stepForValidation, "step_v3")}`
-            );
-            return [];
-          }
-          // A v2 step from a before or after file has to be upgraded, or spec_v3
-          // rejects the merged test. The test's own steps stay as written, so a
-          // whole v2 spec still upgrades as one through validate() below.
-          const marker = ["_fromBefore", "_fromAfter"].find((name) => step[name]);
-          if (!marker) return [step];
-          const validStep = validation.object;
-          Object.defineProperty(validStep, marker, {
-            value: true,
-            enumerable: false,
-            writable: true,
-            configurable: true,
-          });
-          return [validStep];
-        });
-      }
+      await mergeBeforeAfter(config, file, content);
       const validation = validate({
         schemaKey: "spec_v3",
         object: content,
@@ -901,16 +939,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
 
       // Clean up _fromBefore markers from all tests/steps, even if
       // stepLocations is empty (e.g., AST parse failed).
-      if (content?.tests) {
-        for (const test of content.tests) {
-          if (!test?.steps) continue;
-          for (const step of test.steps) {
-            if (step && "_fromBefore" in step) {
-              delete step._fromBefore;
-            }
-          }
-        }
-      }
+      dropBeforeMarkers(content);
 
       return content;
     } else {
@@ -927,17 +956,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
 
       // Process executables
       if (fileType?.runShell) {
-        // Substitute into the strings, not the JSON text: a Windows path's
-        // backslashes would read as JSON escapes.
-        const substitute = (value: any): any =>
-          typeof value === "string"
-            ? value.replace(/\$1/g, () => file)
-            : Array.isArray(value)
-              ? value.map(substitute)
-              : value && typeof value === "object"
-                ? Object.fromEntries(Object.entries(value).map(([key, v]) => [key, substitute(v)]))
-                : value;
-        const runShell = substitute(fileType.runShell);
+        const runShell = substituteFilePath(fileType.runShell, file);
 
         const test = {
           steps: [
@@ -1038,6 +1057,29 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
           // Detection only resolves specs — skip the discovery probe (3.1).
           objectType: "spec",
         });
+        // An inline test statement can name `before` and `after` files too.
+        // resolvePaths above made their paths absolute.
+        if (spec.tests.some((test: any) => test.before || test.after)) {
+          await mergeBeforeAfter(config, file, spec);
+          const merged = validate({
+            schemaKey: "spec_v3",
+            object: spec,
+            addDefaults: false,
+            structuredErrors: true,
+          });
+          if (!merged.valid) {
+            skipInvalidSpec(
+              config,
+              file,
+              `After applying setup and cleanup steps, ${file} isn't a valid test specification. Skipping.`,
+              merged,
+              spec
+            );
+            return null;
+          }
+          spec = await resolvePaths({ config, object: merged.object, filePath: pathBase, objectType: "spec" });
+          dropBeforeMarkers(spec);
+        }
         // Re-stamp the phase: resolvePaths isn't guaranteed to preserve unknown
         // keys, so a text/markdown file referenced by beforeAll/afterAll would
         // otherwise silently fall back to "main". Mirrors the JSON/YAML branch.

@@ -1,0 +1,117 @@
+---
+title: Navigation and interaction, written as tests
+sidebar-title: Navigation and interaction
+description: One procedure that opens a page, clicks, types, and checks the result, shown as plain prose, as detected tests, as inline tests, and as a standalone spec, in every supported format.
+---
+
+Each example on this page shows one documented procedure four ways:
+
+| Tab | What the file holds |
+|---|---|
+| Prose | The documentation as a reader sees it, with no test statements. |
+| Detected | The same prose inside a `test` statement. Doc Detective's default detection turns the links, bold text, and quoted text into steps. |
+| Inline | The same prose with a `step` statement after each instruction, and detection off. |
+| Standalone | A spec file, in JSON or YAML, with no documentation source. |
+
+Every variant is a real file that Doc Detective runs, and a check confirms that the variants resolve to the same steps. For how each mode works, see [Detected tests](/docs/test-docs/detected), [Inline tests](/docs/test-docs/inline), and [Standalone tests](/docs/test-docs/standalone).
+
+## Open a page, type, and check the result
+
+This procedure uses [`goTo`](/docs/actions/goto), [`click`](/docs/actions/click), [`type`](/docs/actions/type), and [`find`](/docs/actions/find).
+
+<Markdown src="examples/type-echo/_variants.mdx" />
+
+### What detection finds
+
+In every format, default detection resolves the prose to six steps:
+
+| Prose | Detected steps |
+|---|---|
+| Go to a link | `goTo` the URL, then `checkLink` the same URL |
+| Click a bold phrase | `click` the phrase, then `find` the same phrase |
+| `Type "…"` | `type` the quoted text |
+| A bold phrase | `find` the phrase |
+
+Detection matches each link and bold phrase against every default rule. A link after "Go to" is both opened and checked, and a bold phrase after "Click" is both clicked and found. The inline and standalone variants list only the four steps the procedure needs.
+
+In DITA, the quoted text and the `<b>` element follow the shared rules, so DITA detects the same steps as the other formats. A `<uicontrol>` element is DITA's own way to mark the control to click.
+
+## Wait for a slow page to load
+
+This procedure uses the object form of [`goTo`](/docs/actions/goto) with `origin`, a relative `url`, `params`, `surface`, `timeout`, and every [`waitUntil`](/reference/schemas/goto) condition. It also uses [`find`](/docs/actions/find) with a `/regex/` in `elementText`, and [`wait`](/docs/actions/wait) with a number.
+
+Two [`checkLink`](/docs/actions/checklink) steps show both shapes of each option. The first sets `statusCodes` as a list and `headers` as an object, with a `timeout`. The second sets `origin`, `params`, a single status code, and `headers` as a string with one `Name: value` header per line.
+
+<Markdown src="examples/nav-wait-load/_variants.mdx" />
+
+### What detection finds
+
+No default rule detects a pause, so every detected variant carries a `step` statement for the `wait`. Detection resolves the rest of the prose to the string forms:
+
+| Prose | Detected steps |
+|---|---|
+| Go to a link | `goTo` the URL, then `checkLink` the same URL |
+| A bold phrase | `find` the phrase |
+| Click a bold phrase | `click` the phrase, then `find` the same phrase |
+| Any other link | `checkLink` the URL with the default status codes |
+
+Detected steps can't set `waitUntil`, query parameters, a regular expression, or accepted status codes. Write a `step` statement, as the inline variants do, when a page loads slowly or a link returns a status outside the defaults.
+
+## Fill in a form by element attributes
+
+This procedure locates elements by their attributes, not only by a CSS selector: `elementText`, `elementId`, `elementTestId`, `elementAria`, `elementClass` (as a string and as a list), and `elementAttribute`. It uses them on three actions:
+
+- [`find`](/docs/actions/find) with `moveTo`, `timeout`, `surface`, `click` as `true` and as a button name, and `type` as an object, a list, and a string.
+- [`type`](/docs/actions/type) with a `surface` and a `waitUntil` that waits for the network and the DOM to go idle and for an element to appear.
+- [`click`](/docs/actions/click) with `timeout`, and `surface` as an engine name and as an object.
+
+For every field, see the [`find`](/reference/schemas/find), [`type`](/reference/schemas/type), and [`click`](/reference/schemas/click) schemas.
+
+<Markdown src="examples/nav-find-elements/_variants.mdx" />
+
+### What detection finds
+
+Detection matches a bold phrase by its visible text, so it finds **Submit by ID** and **Submit Order**. It can't check an ID, a test ID, a class, or an attribute. Each `Type "…"` becomes a `type` step with no target, because the fields have no visible label to bold. The inline variants find each field by its attributes and type into it.
+
+## Search with toolbar icons
+
+This procedure finds icons by a picture of them, with `elementImage` on the `waitUntil.find` of [`goTo`](/docs/actions/goto), on [`click`](/docs/actions/click), and on [`find`](/docs/actions/find). The picture comes as `base64` with a `threshold`, as a `path` with a `color`, and as a path string. The `find` step sets `click` to an object with `button` and `duration`. It also uses [`type`](/docs/actions/type) with an array that ends in the `$ENTER$` key, and with an object that sets `keys`, `selector`, and `inputDelay`.
+
+<Markdown src="examples/nav-search-icons/_variants.mdx" />
+
+The icon pictures, `search.svg` and `save.svg`, sit in the example's folder, and the `base64` value is `save.svg` encoded. A relative `elementImage` path resolves against the file that holds the step. See [Find elements by image](/docs/test-docs/find-elements-by-image).
+
+### What detection finds
+
+No default rule matches an icon by its picture, so every detected variant carries `step` statements for the two icon steps. It also carries a `goTo` statement, so those steps open the page even when detection is off. Detection turns each `Type "…"` into a `type` step and each bold phrase into a `find` step. The detected `type` steps send the quoted text only, without the `$ENTER$` key or the input delay.
+
+## Drag widgets and scroll the page
+
+This procedure uses [`dragAndDrop`](/docs/actions/draganddrop) twice. The first drag sets a text `source`, an object `target` with a `timeout`, and a `duration`. The second sets an object `source` located by text, class, and attributes, a selector string `target`, and a `surface`. It also uses [`click`](/docs/actions/click) with `selector`, `button`, and a `duration` that holds the press. [`swipe`](/docs/actions/swipe) appears in all three forms: a direction, an object with `direction`, `distance`, and `duration`, and a point-to-point object with `from` and `to`. The two object forms also name the `surface` to swipe.
+
+<Markdown src="examples/nav-drag-swipe/_variants.mdx" />
+
+### What detection finds
+
+No default rule detects a drag, a press and hold, or a swipe, so every detected variant carries `step` statements for them. A `goTo` statement opens the page even when detection is off. Detection adds a `find` step for each bold phrase. Those steps confirm that **Table**, **Drop Zone 1**, **Chart**, and **Drop Zone 2** are on the page before the steps that use them.
+
+## Enter text in a DITA task
+
+This procedure uses DITA's own detection rules. They turn an `<xref>` into [`goTo`](/docs/actions/goto) and [`checkLink`](/docs/actions/checklink) steps, a `<uicontrol>` after "Click" into a [`click`](/docs/actions/click) step, a `<wintitle>` into a [`find`](/docs/actions/find) step, and a `<link>` into a `checkLink` step.
+
+<Markdown src="examples/nav-dita-controls/_variants.mdx" />
+
+This example is DITA only, plus the standalone spec, because `<wintitle>`, `<uicontrol>`, and `<link>` have no equivalent in the other formats.
+
+### What detection finds
+
+| DITA source | Detected steps |
+|---|---|
+| `<xref>` after "Open" | `goTo` the URL, then `checkLink` the same URL |
+| `<wintitle>` | `find` the title text on the page |
+| `<uicontrol>` after "Click" | `click` the control, then `find` the same control |
+| `Type "…"` | `type` the quoted text |
+| `<b>` | `find` the text |
+| `<link>` in `<related-links>` | `checkLink` the URL |
+
+The `<related-links>` section comes after `<taskbody>`, so the test has no `test end` statement and runs to the end of the topic. That way the detected test includes the related link. The inline variant can't place a `step` statement after the link, so the inline and standalone variants leave it out.

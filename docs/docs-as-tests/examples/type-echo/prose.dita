@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="type-echo">
+  <title>Echo text back</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd></step>
+      <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
+      <step><cmd>Type "Hello, Doc Detective".</cmd></step>
+      <step><cmd>Check that the page shows <b>Hello, Doc Detective</b> below the field.</cmd></step>
+    </steps>
+  </taskbody>
+</task>
