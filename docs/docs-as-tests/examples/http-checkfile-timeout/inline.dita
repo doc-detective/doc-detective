@@ -9,6 +9,7 @@
     <data name="doc-detective" value='step {"runShell":{"command":"node -e \"const fs=require(&apos;fs&apos;);fs.mkdirSync(&apos;output&apos;,{recursive:true});setTimeout(()=>fs.writeFileSync(&apos;output/late.txt&apos;,&apos;done&apos;),1000)\"","workingDirectory":".","background":{"name":"late-writer"}}}'/>
     <p>Wait up to 15 seconds for <codeph>output/late.txt</codeph>.</p>
     <data name="doc-detective" value='step {"checkFile":{"path":"output/late.txt","timeout":15000}}'/>
+    <data name="doc-detective" value='step {"closeSurface":"late-writer"}'/>
     <data name="doc-detective" value="test end"/>
   </body>
 </topic>

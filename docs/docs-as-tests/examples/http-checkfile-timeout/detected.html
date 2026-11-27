@@ -9,6 +9,8 @@
 <!-- step {"runShell":{"command":"node -e \"const fs=require('fs');fs.mkdirSync('output',{recursive:true});setTimeout(()=>fs.writeFileSync('output/late.txt','done'),1000)\"","workingDirectory":".","background":{"name":"late-writer"}}} -->
 <p>Wait up to 15 seconds for <code>output/late.txt</code>.</p>
 <!-- step {"checkFile":{"path":"output/late.txt","timeout":15000}} -->
+
+<!-- step {"closeSurface":"late-writer"} -->
 <!-- test end -->
 </body>
 </html>
