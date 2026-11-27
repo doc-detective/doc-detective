@@ -48,6 +48,7 @@ A file that can't load makes its spec invalid, so the CLI exits `2`:
 
 - ``tests[<i>]: Couldn't read `matrix` file `<absolute path>`.``
 - ``tests[<i>]: Couldn't load `matrix` key `page`: `<absolute path>` isn't a JSON array.``
+- ``tests[<i>]: Couldn't load `matrix` key `page`: `<absolute path>` has no values.``
 - ``tests[<i>]: Couldn't load `matrix` key `page`: `<absolute path>` has values `matrix` doesn't accept.``
 - ``tests[<i>]: Couldn't load `matrix` key `url`: `<absolute path>` has no `<loc>` entries.``
 - ``tests[<i>]: Couldn't load `matrix` key `page`: `<absolute path>` must be `.json` or `.xml`.``

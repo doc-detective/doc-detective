@@ -177,6 +177,19 @@ describe("resolveTests with a matrix (ADR 01227)", function () {
     assert.equal(ignores.contexts[0].matrix, undefined);
   });
 
+  it("keeps the runner's hidden `after` marker on substituted steps", async function () {
+    const cleanup = { runShell: "echo bye $$matrix.a" };
+    Object.defineProperty(cleanup, "_fromAfter", { value: true, enumerable: false, writable: true, configurable: true });
+    const { resolved } = await resolve([
+      spec([{ testId: "t", runOn: [{ matrix: { a: [1, 2] } }], steps: [{ runShell: "echo $$matrix.a" }, cleanup] }]),
+    ]);
+    for (const context of resolved.specs[0].tests[0].contexts) {
+      const step = context.steps[1];
+      assert.equal(step._fromAfter, true);
+      assert.equal(Object.keys(step).includes("_fromAfter"), false);
+    }
+  });
+
   it("keeps combinations distinct in the duplicate check", async function () {
     const { resolved } = await resolve([
       spec([

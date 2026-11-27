@@ -34,10 +34,21 @@ function loadMatrixFiles(matrix: any, config: any) {
     Object.entries(matrix).map(([key, source]: [string, any]) => {
       if (typeof source?.file !== "string") return [key, source];
       const file = path.resolve(source.file);
-      if (!cache.has(file)) cache.set(file, loadMatrixValues(key, { file }, process.cwd()));
+      if (!cache.has(file)) cache.set(file, loadMatrixValues(key, { file }, path.dirname(file)));
       return [key, cache.get(file)];
     })
   );
+}
+
+// Detection tags `before`/`after` steps with non-enumerable markers the runner
+// reads (`_fromAfter` hard-routes cleanup). Substitution copies only
+// enumerable keys, so carry the markers over.
+function keepMarkers(original: any, copy: any) {
+  for (const marker of ["_fromBefore", "_fromAfter"]) {
+    const descriptor = Object.getOwnPropertyDescriptor(original ?? {}, marker);
+    if (descriptor) Object.defineProperty(copy, marker, descriptor);
+  }
+  return copy;
 }
 
 // Expand one static context over its `matrix` (ADR 01227): one context per
@@ -78,7 +89,7 @@ function expandMatrix({ staticContext, matrix, test, authoredOnTest }: { staticC
       ...substituteMatrix(fields, combination),
       matrix: combination,
       matrixIdSuffix: suffix,
-      steps: substituteMatrix(test.steps, combination),
+      steps: test.steps.map((step: any) => keepMarkers(step, substituteMatrix(step, combination))),
     };
   });
 }
