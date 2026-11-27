@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: nav-drag-swipe
+    steps:
+      - goTo: http://localhost:8092/drag-drop-test.html
+      - dragAndDrop:
+          source: Table
+          target:
+            selector: .drop-zone
+            elementText: Drop Zone 1
+            timeout: 5000
+          duration: 500
+      - find:
+          selector: .drop-zone .dropped-item
+          elementText: Table (dropped)
+      - click:
+          selector: .draggable[data-widget="chart"]
+          button: left
+          duration: 1000
+      - dragAndDrop:
+          source:
+            elementText: Chart
+            elementClass: draggable
+            elementAttribute:
+              data-widget: chart
+              draggable: "true"
+            timeout: 5000
+          target: .drop-zone[data-drop="zone2"]
+          surface: chrome
+      - find:
+          selector: .drop-zone[data-drop="zone2"] .dropped-item
+          elementText: Chart (dropped)
+      - swipe: up
+      - swipe:
+          direction: down
+          distance: 0.3
+          duration: 300
+          surface: chrome
+      - swipe:
+          from:
+            x: 400
+            y: 400
+          to:
+            x: 400
+            y: 250
+          duration: 300
+          surface:
+            browser: chrome

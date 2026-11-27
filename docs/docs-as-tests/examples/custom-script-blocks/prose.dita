@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="custom-script-blocks">
+  <title>Print a greeting with Node.js</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Define the name to greet:</cmd>
+        <info><codeblock outputclass="language-javascript">const name = "Doc Detective";</codeblock>
+          <p>Don't declare <codeph>name</codeph> a second time. A script that does throws a <codeph>SyntaxError</codeph>:</p>
+          <codeblock outputclass="language-javascript">// Don't run: this redeclares name.
+const name = "someone else";</codeblock></info></step>
+      <step><cmd>Print the greeting:</cmd>
+        <info><codeblock outputclass="language-javascript">console.log(`Hello, ${name}!`);</codeblock></info>
+        <stepresult>The script prints <codeph>Hello, Doc Detective!</codeph>.</stepresult></step>
+    </steps>
+  </taskbody>
+</task>

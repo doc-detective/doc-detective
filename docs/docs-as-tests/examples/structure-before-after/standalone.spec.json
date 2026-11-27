@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "structure-before-after",
+      "description": "Check the session cookie while signed in.",
+      "before": "sign-in.spec.json",
+      "after": "sign-out.spec.json",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "structure-session=signed-in"
+        }
+      ]
+    }
+  ]
+}

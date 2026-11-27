@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+specId: structure-users
+description: Create a user, then look it up by name.
+tests:
+  - testId: structure-users-create
+    description: Create a user.
+    steps:
+      - stepId: create-user
+        description: Create the user Ada.
+        httpRequest:
+          url: http://localhost:8092/api/users
+          method: post
+          request:
+            headers:
+              Content-Type: application/json
+            body:
+              name: Ada
+          response:
+            body:
+              name: Ada
+          statusCodes: [200]
+  - description: Look up a user by name.
+    steps:
+      - stepId: find-user
+        description: Look up Ada by name.
+        httpRequest:
+          url: http://localhost:8092/api/users
+          method: get
+          request:
+            parameters:
+              name: Ada
+          response:
+            body:
+              name: Ada

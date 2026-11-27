@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "structure-before-after-sign-out",
+      "description": "Sign out by replacing the session cookie.",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/cookies/set/structure-session/signed-out"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "structure-session=signed-out"
+        }
+      ]
+    }
+  ]
+}

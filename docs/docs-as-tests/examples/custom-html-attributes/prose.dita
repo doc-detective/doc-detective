@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="custom-html-attributes">
+  <title>Echo text back</title>
+  <taskbody>
+    <context><image href="http://localhost:8092/find-image-target.svg" outputclass="hosted"><alt>A target icon</alt></image></context>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd></step>
+      <step><cmd>Click <ph outputclass="ui">Type here:</ph>.</cmd></step>
+      <step><cmd>Type "Hello, Doc Detective".</cmd></step>
+      <step><cmd>Check that the page shows Hello, Doc Detective below the field.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

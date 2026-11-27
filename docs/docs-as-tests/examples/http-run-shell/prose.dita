@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-run-shell">
+  <title>Check your Node.js setup</title>
+  <body>
+    <p>Print the Node.js version. The output starts with <codeph>v</codeph> and the major version:</p>
+    <codeblock outputclass="language-shell">node --version</codeblock>
+    <p>Confirm that Node.js runs a script:</p>
+    <codeblock outputclass="language-shell">node -e "console.log('ready')"</codeblock>
+    <p>A script that calls <codeph>process.exit(1)</codeph> exits with code <codeph>1</codeph>:</p>
+    <codeblock outputclass="language-shell">node -e "process.exit(1)"</codeblock>
+    <p>From the folder that holds this page, print the folder's name. The output matches the saved copy in <codeph>folder-name.txt</codeph>:</p>
+    <codeblock outputclass="language-shell">node -e "console.log(require('path').basename(process.cwd()))"</codeblock>
+    <p>Start a preview process, and wait until it prints <codeph>Preview ready</codeph>:</p>
+    <codeblock outputclass="language-shell">node -e "console.log('Preview ready'); setInterval(() =&gt; {}, 1000)"</codeblock>
+    <p>Stop the preview process when you're done.</p>
+  </body>
+</topic>

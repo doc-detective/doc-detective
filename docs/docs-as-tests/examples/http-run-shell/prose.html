@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check your Node.js setup</title></head>
+<body>
+<h1>Check your Node.js setup</h1>
+<p>Print the Node.js version. The output starts with <code>v</code> and the major version:</p>
+<pre><code class="language-shell">node --version</code></pre>
+<p>Confirm that Node.js runs a script:</p>
+<pre><code class="language-shell">node -e "console.log('ready')"</code></pre>
+<p>A script that calls <code>process.exit(1)</code> exits with code <code>1</code>:</p>
+<pre><code class="language-shell">node -e "process.exit(1)"</code></pre>
+<p>From the folder that holds this page, print the folder's name. The output matches the saved copy in <code>folder-name.txt</code>:</p>
+<pre><code class="language-shell">node -e "console.log(require('path').basename(process.cwd()))"</code></pre>
+<p>Start a preview process, and wait until it prints <code>Preview ready</code>:</p>
+<pre><code class="language-shell">node -e "console.log('Preview ready'); setInterval(() =&gt; {}, 1000)"</code></pre>
+<p>Stop the preview process when you're done.</p>
+</body>
+</html>

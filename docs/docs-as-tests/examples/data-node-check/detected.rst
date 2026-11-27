@@ -1,0 +1,40 @@
+Check your Node.js version
+==========================
+
+.. test {"testId":"data-node-check","if":["$$platform oneOf [linux, mac, windows]"],"publicVariables":["NODE_MAJOR"],"detectSteps":true}
+
+#. Print the Node.js version:
+
+   .. code-block:: shell
+
+      node --version
+
+   The output starts with ``v`` and the major version, such as ``v22.11.0``. You need version 18 or later.
+
+   .. step {"stepId":"node-version","runShell":"node --version","assertions":"$$outputs.stdio.stdout matches /^v[0-9]+\\./","variables":{"NODE_MAJOR":"extract($$stdio.stdout, \"v([0-9]+)\")"}}
+
+#. If Node.js printed a version, print the npm version:
+
+   .. code-block:: shell
+
+      npm --version
+
+   .. step {"if":["$$steps.node-version.outputs.exitCode == 0","$$steps.node-version.outputs.stdio.stdout matches /^v/"],"runShell":"npm --version","assertions":["$$outputs.exitCode == 0","$NODE_MAJOR >= 18"]}
+
+#. Find the Node.js executable. On Windows, run:
+
+   .. code-block:: shell
+
+      where node
+
+   On macOS and Linux, run:
+
+   .. code-block:: shell
+
+      command -v node
+
+   .. step {"if":"$$platform == windows","runShell":"where node","onSkip":[{"continue":true}]}
+
+   .. step {"if":"$$platform != windows","runShell":"command -v node","onFail":[{"stop":"test"}]}
+
+.. test end

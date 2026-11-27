@@ -1,0 +1,28 @@
+= Create a user
+
+To create a user, send this request:
+
+[source,http]
+----
+POST http://localhost:8092/api/users
+Content-Type: application/json
+
+{"name": "Grace"}
+----
+
+To send the same request from a terminal, run:
+
+[source,bash,testIgnore]
+----
+curl -X POST -H "Content-Type: application/json" -d '{"name": "Grace"}' http://localhost:8092/api/users
+----
+
+To rename the user later, send this request:
+
+[source,http]
+----
+PUT http://localhost:8092/api/users/grace
+Content-Type: application/json
+
+{"name": "Grace Hopper"}
+----
