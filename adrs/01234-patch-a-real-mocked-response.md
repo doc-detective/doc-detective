@@ -6,7 +6,7 @@ decision-makers: hawkeyexl
 
 # Patch a real response with `mockRequest` `response.patch`
 
-Builds on [ADR 01225](01225-mock-requests.md) and [ADR 01229](01229-mock-request-sequences-and-har-replay.md).
+Builds on [ADR 01225](01225-mock-requests.md) and [ADR 01233](01233-mock-request-sequences-and-har-replay.md).
 
 ## Context and Problem Statement
 
