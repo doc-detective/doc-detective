@@ -384,6 +384,9 @@ navigation:
           - page: Navigation and interaction
             path: pages/reference/docs-as-tests/navigation-interaction.mdx
             slug: navigation-interaction
+          - page: HTTP and code
+            path: pages/reference/docs-as-tests/http-code.mdx
+            slug: http-code
       - folder: pages/reference/schemas
         title: Schemas
 
