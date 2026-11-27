@@ -355,7 +355,7 @@ A key can read its list from a file instead, so a page list or sitemap your site
 - A relative path resolves against the spec or config file that declares the `runOn`, or against the working directory with `relativePathBase: "cwd"`.
 - Doc Detective reads each file once, before any test runs. For each test a `matrix` expands, the log says how many contexts it made, such as `login: 12 contexts from matrix.`
 
-A file that doesn't load stops the run, and the CLI exits `2`:
+A file that doesn't load makes its spec invalid, the same as the other [`matrix` errors](#errors), so the CLI exits `2`:
 
 ```text
 tests[0]: Couldn't read `matrix` file `/docs/pages.json`.
@@ -372,7 +372,7 @@ tests[0]: Couldn't load `matrix` key `page`: `/docs/pages.txt` must be `.json` o
 - A whole-string reference becomes the value, with its type. In the example, `deviceScaleFactor` gets the number `2`.
 - Doc Detective splices a reference inside a longer string in as text. An object value without a field splices in its values joined with `-`, such as `dark-2`.
 - A reference ends at the first character that isn't a letter, digit, `_`, or `.`. After a string, number, or boolean value, a `.` starts plain text again, so `$$matrix.locale.png` is the locale followed by `.png`. After an object value, a `.` names a field.
-- References work in the context's own fields and in every step, including the steps a `before` or `after` file adds. The `before` and `after` paths themselves, and a test's own `if` and `description`, take no references. The page emulation keys on a browser take a reference in place of a value. So does the URL of a `goTo`, `checkLink`, or `httpRequest` step, which can start with a reference.
+- References work in the context's own fields and in every step, including the steps a `before` or `after` file adds. The `before` and `after` paths themselves, and a test's own `if` and `description`, take no references. The page emulation keys on a browser take a reference in place of a whole value. The URL of a `goTo`, `checkLink`, or `httpRequest` step can start with a reference, such as `$$matrix.url`, or hold one later on, such as `http://localhost:3000/$$matrix.locale/login`.
 - Doc Detective substitutes each combination's values into that context's copy of the steps. Combinations never see each other's values, even when they run at the same time.
 
 ### Which tests a `matrix` multiplies
