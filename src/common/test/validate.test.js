@@ -1430,7 +1430,7 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.include("set `body` or `bodyPath`, not both.");
       });
 
-      // ADR 01229: answer in sequence, or replay a HAR file.
+      // ADR 01233: answer in sequence, or replay a HAR file.
       it("accepts a responses sequence", function () {
         const result = check({ url: "**/jobs/1", responses: [{ body: { status: "running" } }, { statusCode: 404, bodyPath: "done.json" }] });
         expect(result.valid, result.errors).to.be.true;
