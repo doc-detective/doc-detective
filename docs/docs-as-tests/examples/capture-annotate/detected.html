@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Point out the controls on a toolbar</title></head>
+<body>
+<!-- test {"testId":"capture-annotate","detectSteps":true,"autoScreenshot":false,"annotationDefaults":{"fontSize":14,"background":"#1E293B","opacity":0.9,"radius":6,"padding":4,"maxWidth":240,"intensity":16,"callout":{"background":"#0F172A","color":"#FDE047"},"transition":{"enter":"fade","exit":"fade","durationMs":250}}} -->
+<h1>Point out the controls on a toolbar</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/find-image.html">the toolbar page</a>.
+    <!-- step {"goTo":"http://localhost:8092/find-image.html"} --></li>
+  <li>Find the save button, marked 1, and the green check icon, outlined.
+    <!-- step {"annotate":{"add":[{"id":"save-badge","badge":"#save","label":"1"},{"id":"check-outline","outline":{"elementImage":{"path":"check-icon.svg","threshold":0.9},"timeout":10000},"track":true,"transition":{"enter":"draw","durationMs":300}},{"id":"hint","callout":{"elementId":"save"},"label":"Saves your work","position":"bottom","transition":{"enter":"fade","exit":"fade","durationMs":200}},{"id":"banner","text":{"position":"top-right"},"label":"Sample toolbar","duration":3000}]}} --></li>
+  <li>The status line at the top is hidden, because it changes on every visit.
+    <!-- step {"annotate":{"add":[{"id":"redact","blur":{"selector":"#status span"},"all":true,"transition":{"enter":"none"}}]}} --></li>
+  <li>Compare your toolbar with the screenshot.
+    <!-- step {"screenshot":{"path":"capture-toolbar.png","directory":".dd-output","overwrite":"true"}} --></li>
+  <li>Next, find the check icon, now marked 2.
+    <!-- step {"annotate":{"update":[{"id":"save-badge","badge":"#check","label":"2"}]}} -->
+    <!-- step {"annotate":{"clear":["hint"]}} --></li>
+  <li>That's every control on the toolbar.
+    <!-- step {"annotate":{"clear":true}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

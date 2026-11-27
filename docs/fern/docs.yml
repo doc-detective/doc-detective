@@ -387,6 +387,9 @@ navigation:
           - page: HTTP and code
             path: pages/reference/docs-as-tests/http-code.mdx
             slug: http-code
+          - page: Screenshots and recordings
+            path: pages/reference/docs-as-tests/capture.mdx
+            slug: capture
       - folder: pages/reference/schemas
         title: Schemas
 

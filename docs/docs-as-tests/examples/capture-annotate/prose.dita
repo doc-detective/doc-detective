@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-annotate">
+  <title>Point out the controls on a toolbar</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/find-image.html" scope="external" format="html">the toolbar page</xref>.</cmd></step>
+      <step><cmd>Find the save button, marked 1, and the green check icon, outlined.</cmd></step>
+      <step><cmd>The status line at the top is hidden, because it changes on every visit.</cmd></step>
+      <step><cmd>Compare your toolbar with the screenshot.</cmd></step>
+      <step><cmd>Next, find the check icon, now marked 2.</cmd></step>
+      <step><cmd>That's every control on the toolbar.</cmd></step>
+    </steps>
+  </taskbody>
+</task>
