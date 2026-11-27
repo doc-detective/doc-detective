@@ -230,6 +230,20 @@ describe("runArchivesArtifacts", function () {
     expect(runArchivesArtifacts({ reporters: ["junit"], ...OFF })).to.equal(false);
   });
 
+  // ADR 01231: downloads land in the run folder, so a test that checks one
+  // reserves the folder even when nothing else writes to it.
+  it("is true when a test checks a download, and false for a path check", function () {
+    const off = { reporters: ["terminal"], ...OFF };
+    const withStep = (checkFile) => [
+      { tests: [{ contexts: [{ steps: [{ checkFile }] }] }] },
+    ];
+    expect(runArchivesArtifacts(off, withStep({ download: "*.csv" }))).to.equal(true);
+    expect(runArchivesArtifacts(off, withStep({ path: "a.txt" }))).to.equal(false);
+    expect(
+      runArchivesArtifacts(off, [{ tests: [{ steps: [{ checkFile: { download: "*.csv" } }] }] }])
+    ).to.equal(true);
+  });
+
   it("is true when autoRecord is on even without the runFolder reporter", function () {
     // autoRecord videos land in the run folder, so it must be archived too.
     expect(

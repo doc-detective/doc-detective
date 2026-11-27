@@ -28,6 +28,7 @@ async function dereferenceSchemas() {
     "annotation_v3.schema.json",
     "annotationDefaults_v3.schema.json",
     "assertion_v3.schema.json",
+    "checkFile_v3.schema.json",
     "checkLink_v3.schema.json",
     "click_v3.schema.json",
     "closeSurface_v3.schema.json",

@@ -283,6 +283,7 @@
     "visit": {},
     "durationMs": {},
     "startedAt": {},
+    "checkFile": {},
     "checkLink": {},
     "click": {},
     "find": {},
@@ -310,6 +311,25 @@
   },
   "additionalProperties": false,
   "oneOf": [
+    {
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/common"
+        },
+        {
+          "type": "object",
+          "required": [
+            "checkFile"
+          ],
+          "properties": {
+            "checkFile": {
+              "$ref": "checkFile_v3.schema.json#"
+            }
+          },
+          "title": "checkFile"
+        }
+      ]
+    },
     {
       "allOf": [
         {
@@ -782,6 +802,16 @@
     {
       "stepId": "path-only",
       "checkLink": "/search"
+    },
+    {
+      "checkFile": {
+        "$ref": "checkFile_v3.schema.json#/examples/0"
+      }
+    },
+    {
+      "checkFile": {
+        "$ref": "checkFile_v3.schema.json#/examples/2"
+      }
     },
     {
       "stepId": "status-code",
