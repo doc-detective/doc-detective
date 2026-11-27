@@ -1,6 +1,6 @@
 // The `cucumber` reporter writes Cucumber JSON (an array of features) from the
 // same results object the `json` reporter serializes, for Xray, Allure, and
-// other tools that ingest Cucumber runs. See adrs/01228-cucumber-reporter.md.
+// other tools that ingest Cucumber runs. See adrs/01236-cucumber-reporter.md.
 
 import assert from "node:assert/strict";
 import path from "node:path";
