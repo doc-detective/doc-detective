@@ -393,6 +393,9 @@ navigation:
           - page: Sessions and surfaces
             path: pages/reference/docs-as-tests/sessions-surfaces.mdx
             slug: sessions-surfaces
+          - page: Data and control flow
+            path: pages/reference/docs-as-tests/data-control-flow.mdx
+            slug: data-control-flow
       - folder: pages/reference/schemas
         title: Schemas
 
