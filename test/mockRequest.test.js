@@ -431,6 +431,17 @@ describe("mockRequest harPath", function () {
     assert.equal(result.description, `Couldn't find HAR entries matching \`*\` in \`${file}\`.`);
   });
 
+  it("names the method filter when no HAR entry matches it", async function () {
+    const file = writeHar(har([harEntry("GET", "https://x.test/api/a")]));
+    const { result, driver } = await run({ harPath: file, url: "**/api/a", method: "POST" });
+    assert.equal(result.status, "FAIL");
+    assert.equal(
+      result.description,
+      `Couldn't find HAR entries matching \`**/api/a\` with method \`POST\` in \`${file}\`.`
+    );
+    assert.equal(driver.mockCalls.length, 0);
+  });
+
   it("fails, mocking nothing, on a `url` filter that isn't a valid pattern", async function () {
     const file = writeHar(har([harEntry("GET", "https://x.test/api/a")]));
     const { result, driver } = await run({ harPath: file, url: "**/api/(" });

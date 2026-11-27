@@ -37,7 +37,7 @@ A later `mockRequest` for the same `url` and `method` replaces the earlier one. 
 - A `harPath` file that isn't HAR JSON: ``Couldn't parse `harPath` `/abs/fixtures/app.har`: it isn't HAR JSON.``
 - With `harPath`, a `url` that isn't a valid pattern, such as one with an unclosed `(`: ``Couldn't parse `url` pattern `**/api/(`.``
 - A HAR file with a recorded URL that isn't absolute: ``Couldn't parse a URL in `harPath` `/abs/fixtures/app.har`.``
-- A HAR file with no request that matches `url` and `method`: ``Couldn't find HAR entries matching `**/api/**` in `/abs/fixtures/app.har`.``
+- A HAR file with no request that matches `url`: ``Couldn't find HAR entries matching `**/api/**` in `/abs/fixtures/app.har`.`` With `method` set, the message names it too: ``Couldn't find HAR entries matching `**/api/**` with method `POST` in `/abs/fixtures/app.har`.``
 
 > For every field, see the [`mockRequest`](/reference/schemas/mockrequest) reference.
 
