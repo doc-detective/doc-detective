@@ -110,7 +110,7 @@ export const gherkinMarkup: MarkupDefinition[] = [
     { runBrowserScript: { script: "return !document.body.innerText.includes(arguments[0])", args: ["$1"], output: "true" } },
   ]),
   gherkinStep("type", '^I type "([^"]+)"$', ["type"]),
-  gherkinStep("typeInto", '^I type "([^"]+)" into "([^"]+)"$', [{ type: { keys: "$1", selector: "$2" } }]),
+  gherkinStep("typeInto", '^I type "([^"]+)" into "(.+)"$', [{ type: { keys: "$1", selector: "$2" } }]),
   // The parser uppercases the key, so `"Page Down"` arrives as `"PAGE_DOWN"`.
   gherkinStep("press", '^I press "([^"]+)"$', [{ type: "$$1$" }]),
   gherkinStep("hover", '^I hover over "([^"]+)"$', [{ find: { elementText: "$1", moveTo: true } }]),

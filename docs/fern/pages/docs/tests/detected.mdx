@@ -22,7 +22,7 @@ Combine detected tests with [inline tests](/docs/test-docs/inline) for comprehen
 
 ## Default markup patterns
 
-Every built-in format detects the same steps from links, bold text, images, code blocks, and quoted text after `Type`, `Enter`, or `Press`. [What gets detected](/docs/test-docs/input-formats/overview#what-gets-detected) lists them. Doc Detective parses each file first, so text inside code blocks and inline code never becomes a step.
+Every built-in format except Gherkin detects the same steps from links, bold text, images, code blocks, and quoted text after `Type`, `Enter`, or `Press`. Gherkin maps step phrases instead, as [Gherkin](/docs/test-docs/input-formats/gherkin) lists. [What gets detected](/docs/test-docs/input-formats/overview#what-gets-detected) lists them. Doc Detective parses each file first, so text inside code blocks and inline code never becomes a step.
 
 In Markdown, for example:
 

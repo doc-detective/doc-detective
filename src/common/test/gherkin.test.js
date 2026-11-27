@@ -338,6 +338,29 @@ describe("gherkin", function () {
       expect(tests[0].steps).to.deep.equal([{ goTo: "http://x.test" }, { find: "inline" }, { find: "kept" }]);
     });
 
+    it("ignores an emulation step inside an ignore block", async function () {
+      const { tests } = await detect(
+        [
+          "Feature: Ignore",
+          "  Scenario: S",
+          "    # test ignore start",
+          "    Given dark mode",
+          "    # test ignore end",
+          '    Given I go to "http://x.test"',
+        ].join("\n")
+      );
+      expect(tests[0].runOn).to.equal(undefined);
+      expect(tests[0].steps).to.deep.equal([{ goTo: "http://x.test" }]);
+    });
+
+    it("keeps double quotes in a fill-in selector", async function () {
+      const { tests, warnings } = await detect(
+        ["Feature: Quotes", "  Scenario: S", "    When I fill in:", '      | [name="email"] | ada@example.com |'].join("\n")
+      );
+      expect(tests[0].steps).to.deep.equal([{ type: { keys: "ada@example.com", selector: '[name="email"]' } }]);
+      expect(warnings).to.deep.equal([]);
+    });
+
     it("warns once for each step no definition maps", async function () {
       const { tests, warnings } = await detect(
         [

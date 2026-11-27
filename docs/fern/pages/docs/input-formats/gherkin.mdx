@@ -180,7 +180,7 @@ Gherkin comments hold [inline statements](/docs/test-docs/inline):
 
 - `# step {...}` adds a step where it sits in the scenario.
 - `# test {...}` above a scenario, or above its tags, adds settings to that scenario's test. Its keys win over the ones tags set.
-- `# test ignore start` and `# test ignore end` skip the steps between them.
+- `# test ignore start` and `# test ignore end` skip the steps between them, including emulation steps. A block covers steps inside one scenario. To skip steps in several scenarios, put a block in each.
 
 Each scenario is already a test, so it needs no `# test end`. Gherkin statements take JSON only.
 

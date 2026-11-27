@@ -121,13 +121,17 @@ export function parseGherkin(content: string, filePath = "", warn: (message: str
       request = text.startsWith("I send ") ? node : undefined;
       list.push(node);
     };
+    let ignoring = false;
     for (const item of [...featureBackground, ...ruleBackground, ...b.items]) {
       if (!isStep(item)) {
+        if (/^test\s+ignore\s+start\b/.test(item.content ?? "")) ignoring = true;
+        else if (/^test\s+ignore\s+end\b/.test(item.content ?? "")) ignoring = false;
         list.push({ ...item });
         continue;
       }
       const text = sub(item.text);
-      if (emulate(text, emulation)) continue;
+      // An ignored emulation step mustn't change the test's browser.
+      if (!ignoring && emulate(text, emulation)) continue;
       const status = /^the response status (?:should be|is) (\d+)$/.exec(text);
       if (status && request) {
         request.content += ` and the response status should be ${status[1]}`;

@@ -160,7 +160,7 @@ Put a blank line before and after each statement. An RST statement can span line
 - Step comments: `# step {"goTo": "https://example.com"}`
 - Ignore blocks: `# test ignore start` and `# test ignore end`
 
-Each scenario is already a test. A `# test` comment adds its settings to the scenario below it, and a scenario needs no `# test end`. Gherkin test comments take JSON only. See [Gherkin](/docs/test-docs/input-formats/gherkin).
+Each scenario is already a test. A `# test` comment adds its settings to the scenario below it, and a scenario needs no `# test end`. Gherkin test comments take JSON only. An ignore block covers steps inside one scenario, so to skip steps in several scenarios, put an ignore block in each. See [Gherkin](/docs/test-docs/input-formats/gherkin).
 
 ## Examples
 
