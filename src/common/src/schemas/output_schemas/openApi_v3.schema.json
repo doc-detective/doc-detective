@@ -93,6 +93,13 @@
           "title": "Request headers (string)",
           "type": "string"
         }
+      ],
+      "examples": [
+        {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $TOKEN"
+        },
+        "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
       ]
     }
   },

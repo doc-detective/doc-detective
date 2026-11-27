@@ -2842,6 +2842,13 @@
                             "title": "Request headers (string)",
                             "type": "string"
                           }
+                        ],
+                        "examples": [
+                          {
+                            "Content-Type": "application/json",
+                            "Authorization": "Bearer $TOKEN"
+                          },
+                          "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                         ]
                       }
                     },
@@ -6939,6 +6946,13 @@
                               "title": "Request headers (string)",
                               "type": "string"
                             }
+                          ],
+                          "examples": [
+                            {
+                              "Content-Type": "application/json",
+                              "Authorization": "Bearer $TOKEN"
+                            },
+                            "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                           ]
                         }
                       },
@@ -9164,6 +9178,13 @@
                                         "title": "Request headers (string)",
                                         "type": "string"
                                       }
+                                    ],
+                                    "examples": [
+                                      {
+                                        "Content-Type": "application/json",
+                                        "Authorization": "Bearer $TOKEN"
+                                      },
+                                      "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                     ]
                                   }
                                 },
@@ -13590,6 +13611,13 @@
                                                     "title": "Request headers (string)",
                                                     "type": "string"
                                                   }
+                                                ],
+                                                "examples": [
+                                                  {
+                                                    "Content-Type": "application/json",
+                                                    "Authorization": "Bearer $TOKEN"
+                                                  },
+                                                  "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                 ]
                                               }
                                             }
@@ -13686,6 +13714,13 @@
                                                       "title": "Request headers (string)",
                                                       "type": "string"
                                                     }
+                                                  ],
+                                                  "examples": [
+                                                    {
+                                                      "Content-Type": "application/json",
+                                                      "Authorization": "Bearer $TOKEN"
+                                                    },
+                                                    "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                   ]
                                                 }
                                               }
@@ -29574,6 +29609,13 @@
                                                                 "title": "Request headers (string)",
                                                                 "type": "string"
                                                               }
+                                                            ],
+                                                            "examples": [
+                                                              {
+                                                                "Content-Type": "application/json",
+                                                                "Authorization": "Bearer $TOKEN"
+                                                              },
+                                                              "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                             ]
                                                           }
                                                         },
@@ -29730,6 +29772,13 @@
                                                         "title": "Request headers (string)",
                                                         "type": "string"
                                                       }
+                                                    ],
+                                                    "examples": [
+                                                      {
+                                                        "Content-Type": "application/json",
+                                                        "Authorization": "Bearer $TOKEN"
+                                                      },
+                                                      "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                     ]
                                                   },
                                                   "parameters": {
@@ -29738,7 +29787,12 @@
                                                     "additionalProperties": true,
                                                     "default": {},
                                                     "properties": {},
-                                                    "title": "Request parameters"
+                                                    "title": "Request parameters",
+                                                    "examples": [
+                                                      {
+                                                        "page": 2
+                                                      }
+                                                    ]
                                                   },
                                                   "body": {
                                                     "description": "The body of the HTTP request.",
@@ -29748,7 +29802,13 @@
                                                         "description": "JSON object to include as the body of the HTTP request.",
                                                         "type": "object",
                                                         "additionalProperties": true,
-                                                        "properties": {}
+                                                        "properties": {},
+                                                        "examples": [
+                                                          {
+                                                            "name": "Example user",
+                                                            "role": "admin"
+                                                          }
+                                                        ]
                                                       },
                                                       {
                                                         "title": "Request body (array)",
@@ -29765,7 +29825,22 @@
                                                     "default": {}
                                                   }
                                                 },
-                                                "title": "Request"
+                                                "title": "Request",
+                                                "examples": [
+                                                  {
+                                                    "headers": {
+                                                      "Content-Type": "application/json",
+                                                      "Authorization": "Bearer $TOKEN"
+                                                    },
+                                                    "parameters": {
+                                                      "page": 2
+                                                    },
+                                                    "body": {
+                                                      "name": "Example user",
+                                                      "role": "admin"
+                                                    }
+                                                  }
+                                                ]
                                               },
                                               "response": {
                                                 "type": "object",
@@ -29777,7 +29852,12 @@
                                                     "additionalProperties": true,
                                                     "properties": {},
                                                     "default": {},
-                                                    "title": "Response headers"
+                                                    "title": "Response headers",
+                                                    "examples": [
+                                                      {
+                                                        "Content-Type": "application/json"
+                                                      }
+                                                    ]
                                                   },
                                                   "body": {
                                                     "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.",
@@ -29787,7 +29867,13 @@
                                                         "additionalProperties": true,
                                                         "properties": {},
                                                         "title": "Response body object",
-                                                        "description": "JSON key/value pairs expected in the response."
+                                                        "description": "JSON key/value pairs expected in the response.",
+                                                        "examples": [
+                                                          {
+                                                            "id": 42,
+                                                            "name": "Example user"
+                                                          }
+                                                        ]
                                                       },
                                                       {
                                                         "title": "Response body array",
@@ -29811,7 +29897,22 @@
                                                     "default": []
                                                   }
                                                 },
-                                                "title": "Response"
+                                                "title": "Response",
+                                                "examples": [
+                                                  {
+                                                    "headers": {
+                                                      "Content-Type": "application/json"
+                                                    },
+                                                    "body": {
+                                                      "id": 42,
+                                                      "name": "Example user"
+                                                    },
+                                                    "required": [
+                                                      "id",
+                                                      "name"
+                                                    ]
+                                                  }
+                                                ]
                                               },
                                               "allowAdditionalFields": {
                                                 "type": "boolean",
@@ -29872,6 +29973,13 @@
                                                   "title": "Request headers (string)",
                                                   "type": "string"
                                                 }
+                                              ],
+                                              "examples": [
+                                                {
+                                                  "Content-Type": "application/json",
+                                                  "Authorization": "Bearer $TOKEN"
+                                                },
+                                                "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                               ]
                                             },
                                             "object": {
@@ -30011,6 +30119,13 @@
                                                                   "title": "Request headers (string)",
                                                                   "type": "string"
                                                                 }
+                                                              ],
+                                                              "examples": [
+                                                                {
+                                                                  "Content-Type": "application/json",
+                                                                  "Authorization": "Bearer $TOKEN"
+                                                                },
+                                                                "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                               ]
                                                             }
                                                           },
@@ -30167,6 +30282,13 @@
                                                           "title": "Request headers (string)",
                                                           "type": "string"
                                                         }
+                                                      ],
+                                                      "examples": [
+                                                        {
+                                                          "Content-Type": "application/json",
+                                                          "Authorization": "Bearer $TOKEN"
+                                                        },
+                                                        "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                       ]
                                                     },
                                                     "parameters": {
@@ -30175,7 +30297,12 @@
                                                       "additionalProperties": true,
                                                       "default": {},
                                                       "properties": {},
-                                                      "title": "Request parameters"
+                                                      "title": "Request parameters",
+                                                      "examples": [
+                                                        {
+                                                          "page": 2
+                                                        }
+                                                      ]
                                                     },
                                                     "body": {
                                                       "description": "The body of the HTTP request.",
@@ -30185,7 +30312,13 @@
                                                           "description": "JSON object to include as the body of the HTTP request.",
                                                           "type": "object",
                                                           "additionalProperties": true,
-                                                          "properties": {}
+                                                          "properties": {},
+                                                          "examples": [
+                                                            {
+                                                              "name": "Example user",
+                                                              "role": "admin"
+                                                            }
+                                                          ]
                                                         },
                                                         {
                                                           "title": "Request body (array)",
@@ -30202,7 +30335,22 @@
                                                       "default": {}
                                                     }
                                                   },
-                                                  "title": "Request"
+                                                  "title": "Request",
+                                                  "examples": [
+                                                    {
+                                                      "headers": {
+                                                        "Content-Type": "application/json",
+                                                        "Authorization": "Bearer $TOKEN"
+                                                      },
+                                                      "parameters": {
+                                                        "page": 2
+                                                      },
+                                                      "body": {
+                                                        "name": "Example user",
+                                                        "role": "admin"
+                                                      }
+                                                    }
+                                                  ]
                                                 },
                                                 "response": {
                                                   "type": "object",
@@ -30214,7 +30362,12 @@
                                                       "additionalProperties": true,
                                                       "properties": {},
                                                       "default": {},
-                                                      "title": "Response headers"
+                                                      "title": "Response headers",
+                                                      "examples": [
+                                                        {
+                                                          "Content-Type": "application/json"
+                                                        }
+                                                      ]
                                                     },
                                                     "body": {
                                                       "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.",
@@ -30224,7 +30377,13 @@
                                                           "additionalProperties": true,
                                                           "properties": {},
                                                           "title": "Response body object",
-                                                          "description": "JSON key/value pairs expected in the response."
+                                                          "description": "JSON key/value pairs expected in the response.",
+                                                          "examples": [
+                                                            {
+                                                              "id": 42,
+                                                              "name": "Example user"
+                                                            }
+                                                          ]
                                                         },
                                                         {
                                                           "title": "Response body array",
@@ -30248,7 +30407,22 @@
                                                       "default": []
                                                     }
                                                   },
-                                                  "title": "Response"
+                                                  "title": "Response",
+                                                  "examples": [
+                                                    {
+                                                      "headers": {
+                                                        "Content-Type": "application/json"
+                                                      },
+                                                      "body": {
+                                                        "id": 42,
+                                                        "name": "Example user"
+                                                      },
+                                                      "required": [
+                                                        "id",
+                                                        "name"
+                                                      ]
+                                                    }
+                                                  ]
                                                 },
                                                 "allowAdditionalFields": {
                                                   "type": "boolean",
@@ -78681,6 +78855,13 @@
                                               "title": "Request headers (string)",
                                               "type": "string"
                                             }
+                                          ],
+                                          "examples": [
+                                            {
+                                              "Content-Type": "application/json",
+                                              "Authorization": "Bearer $TOKEN"
+                                            },
+                                            "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                           ]
                                         }
                                       },
@@ -82150,6 +82331,13 @@
                                                           "title": "Request headers (string)",
                                                           "type": "string"
                                                         }
+                                                      ],
+                                                      "examples": [
+                                                        {
+                                                          "Content-Type": "application/json",
+                                                          "Authorization": "Bearer $TOKEN"
+                                                        },
+                                                        "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                       ]
                                                     }
                                                   }
@@ -82246,6 +82434,13 @@
                                                             "title": "Request headers (string)",
                                                             "type": "string"
                                                           }
+                                                        ],
+                                                        "examples": [
+                                                          {
+                                                            "Content-Type": "application/json",
+                                                            "Authorization": "Bearer $TOKEN"
+                                                          },
+                                                          "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                         ]
                                                       }
                                                     }
@@ -98134,6 +98329,13 @@
                                                                       "title": "Request headers (string)",
                                                                       "type": "string"
                                                                     }
+                                                                  ],
+                                                                  "examples": [
+                                                                    {
+                                                                      "Content-Type": "application/json",
+                                                                      "Authorization": "Bearer $TOKEN"
+                                                                    },
+                                                                    "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                                   ]
                                                                 }
                                                               },
@@ -98290,6 +98492,13 @@
                                                               "title": "Request headers (string)",
                                                               "type": "string"
                                                             }
+                                                          ],
+                                                          "examples": [
+                                                            {
+                                                              "Content-Type": "application/json",
+                                                              "Authorization": "Bearer $TOKEN"
+                                                            },
+                                                            "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                           ]
                                                         },
                                                         "parameters": {
@@ -98298,7 +98507,12 @@
                                                           "additionalProperties": true,
                                                           "default": {},
                                                           "properties": {},
-                                                          "title": "Request parameters"
+                                                          "title": "Request parameters",
+                                                          "examples": [
+                                                            {
+                                                              "page": 2
+                                                            }
+                                                          ]
                                                         },
                                                         "body": {
                                                           "description": "The body of the HTTP request.",
@@ -98308,7 +98522,13 @@
                                                               "description": "JSON object to include as the body of the HTTP request.",
                                                               "type": "object",
                                                               "additionalProperties": true,
-                                                              "properties": {}
+                                                              "properties": {},
+                                                              "examples": [
+                                                                {
+                                                                  "name": "Example user",
+                                                                  "role": "admin"
+                                                                }
+                                                              ]
                                                             },
                                                             {
                                                               "title": "Request body (array)",
@@ -98325,7 +98545,22 @@
                                                           "default": {}
                                                         }
                                                       },
-                                                      "title": "Request"
+                                                      "title": "Request",
+                                                      "examples": [
+                                                        {
+                                                          "headers": {
+                                                            "Content-Type": "application/json",
+                                                            "Authorization": "Bearer $TOKEN"
+                                                          },
+                                                          "parameters": {
+                                                            "page": 2
+                                                          },
+                                                          "body": {
+                                                            "name": "Example user",
+                                                            "role": "admin"
+                                                          }
+                                                        }
+                                                      ]
                                                     },
                                                     "response": {
                                                       "type": "object",
@@ -98337,7 +98572,12 @@
                                                           "additionalProperties": true,
                                                           "properties": {},
                                                           "default": {},
-                                                          "title": "Response headers"
+                                                          "title": "Response headers",
+                                                          "examples": [
+                                                            {
+                                                              "Content-Type": "application/json"
+                                                            }
+                                                          ]
                                                         },
                                                         "body": {
                                                           "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.",
@@ -98347,7 +98587,13 @@
                                                               "additionalProperties": true,
                                                               "properties": {},
                                                               "title": "Response body object",
-                                                              "description": "JSON key/value pairs expected in the response."
+                                                              "description": "JSON key/value pairs expected in the response.",
+                                                              "examples": [
+                                                                {
+                                                                  "id": 42,
+                                                                  "name": "Example user"
+                                                                }
+                                                              ]
                                                             },
                                                             {
                                                               "title": "Response body array",
@@ -98371,7 +98617,22 @@
                                                           "default": []
                                                         }
                                                       },
-                                                      "title": "Response"
+                                                      "title": "Response",
+                                                      "examples": [
+                                                        {
+                                                          "headers": {
+                                                            "Content-Type": "application/json"
+                                                          },
+                                                          "body": {
+                                                            "id": 42,
+                                                            "name": "Example user"
+                                                          },
+                                                          "required": [
+                                                            "id",
+                                                            "name"
+                                                          ]
+                                                        }
+                                                      ]
                                                     },
                                                     "allowAdditionalFields": {
                                                       "type": "boolean",
@@ -98432,6 +98693,13 @@
                                                         "title": "Request headers (string)",
                                                         "type": "string"
                                                       }
+                                                    ],
+                                                    "examples": [
+                                                      {
+                                                        "Content-Type": "application/json",
+                                                        "Authorization": "Bearer $TOKEN"
+                                                      },
+                                                      "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                     ]
                                                   },
                                                   "object": {
@@ -98571,6 +98839,13 @@
                                                                         "title": "Request headers (string)",
                                                                         "type": "string"
                                                                       }
+                                                                    ],
+                                                                    "examples": [
+                                                                      {
+                                                                        "Content-Type": "application/json",
+                                                                        "Authorization": "Bearer $TOKEN"
+                                                                      },
+                                                                      "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                                     ]
                                                                   }
                                                                 },
@@ -98727,6 +99002,13 @@
                                                                 "title": "Request headers (string)",
                                                                 "type": "string"
                                                               }
+                                                            ],
+                                                            "examples": [
+                                                              {
+                                                                "Content-Type": "application/json",
+                                                                "Authorization": "Bearer $TOKEN"
+                                                              },
+                                                              "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                                             ]
                                                           },
                                                           "parameters": {
@@ -98735,7 +99017,12 @@
                                                             "additionalProperties": true,
                                                             "default": {},
                                                             "properties": {},
-                                                            "title": "Request parameters"
+                                                            "title": "Request parameters",
+                                                            "examples": [
+                                                              {
+                                                                "page": 2
+                                                              }
+                                                            ]
                                                           },
                                                           "body": {
                                                             "description": "The body of the HTTP request.",
@@ -98745,7 +99032,13 @@
                                                                 "description": "JSON object to include as the body of the HTTP request.",
                                                                 "type": "object",
                                                                 "additionalProperties": true,
-                                                                "properties": {}
+                                                                "properties": {},
+                                                                "examples": [
+                                                                  {
+                                                                    "name": "Example user",
+                                                                    "role": "admin"
+                                                                  }
+                                                                ]
                                                               },
                                                               {
                                                                 "title": "Request body (array)",
@@ -98762,7 +99055,22 @@
                                                             "default": {}
                                                           }
                                                         },
-                                                        "title": "Request"
+                                                        "title": "Request",
+                                                        "examples": [
+                                                          {
+                                                            "headers": {
+                                                              "Content-Type": "application/json",
+                                                              "Authorization": "Bearer $TOKEN"
+                                                            },
+                                                            "parameters": {
+                                                              "page": 2
+                                                            },
+                                                            "body": {
+                                                              "name": "Example user",
+                                                              "role": "admin"
+                                                            }
+                                                          }
+                                                        ]
                                                       },
                                                       "response": {
                                                         "type": "object",
@@ -98774,7 +99082,12 @@
                                                             "additionalProperties": true,
                                                             "properties": {},
                                                             "default": {},
-                                                            "title": "Response headers"
+                                                            "title": "Response headers",
+                                                            "examples": [
+                                                              {
+                                                                "Content-Type": "application/json"
+                                                              }
+                                                            ]
                                                           },
                                                           "body": {
                                                             "description": "JSON object expected in the response. If one or more key/value pairs aren't present in the response, the step fails. Omit it to skip the body check.",
@@ -98784,7 +99097,13 @@
                                                                 "additionalProperties": true,
                                                                 "properties": {},
                                                                 "title": "Response body object",
-                                                                "description": "JSON key/value pairs expected in the response."
+                                                                "description": "JSON key/value pairs expected in the response.",
+                                                                "examples": [
+                                                                  {
+                                                                    "id": 42,
+                                                                    "name": "Example user"
+                                                                  }
+                                                                ]
                                                               },
                                                               {
                                                                 "title": "Response body array",
@@ -98808,7 +99127,22 @@
                                                             "default": []
                                                           }
                                                         },
-                                                        "title": "Response"
+                                                        "title": "Response",
+                                                        "examples": [
+                                                          {
+                                                            "headers": {
+                                                              "Content-Type": "application/json"
+                                                            },
+                                                            "body": {
+                                                              "id": 42,
+                                                              "name": "Example user"
+                                                            },
+                                                            "required": [
+                                                              "id",
+                                                              "name"
+                                                            ]
+                                                          }
+                                                        ]
                                                       },
                                                       "allowAdditionalFields": {
                                                         "type": "boolean",
@@ -147129,6 +147463,13 @@
                                           "title": "Request headers (string)",
                                           "type": "string"
                                         }
+                                      ],
+                                      "examples": [
+                                        {
+                                          "Content-Type": "application/json",
+                                          "Authorization": "Bearer $TOKEN"
+                                        },
+                                        "Content-Type: application/json\nAuthorization: Bearer $TOKEN"
                                       ]
                                     }
                                   },

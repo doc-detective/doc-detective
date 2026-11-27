@@ -38,6 +38,10 @@ headers | one of:<br/>- object<br/>- string | Optional. Additional HTTP headers 
     307,
     308
   ],
-  "timeout": 10000
+  "timeout": 10000,
+  "headers": {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer $TOKEN"
+  }
 }
 ```
