@@ -230,15 +230,29 @@ HTML has no include syntax of its own, so the example's config adds Apache-style
     "dita",
     {
       "extends": "html",
+      "extensions": "html",
       "includeStatements": ["<!--#include\\s+file=\"([^\"]+)\"\\s*-->"]
     }
   ]
 }
 ```
 
-Each `includeStatements` entry is a regular expression whose first group is the path to include. A `fileTypes` list replaces the default list, so it names the other formats too.
+Each `includeStatements` entry is a regular expression whose first group is the path to include. `extensions` and `includeStatements` each take a string or a list. A `fileTypes` list replaces the default list, so it names the other formats too.
 
-The example leaves out DITA. DITA reuses content through conrefs and keyrefs, which the next example covers. For every include syntax, see [Test pages that include other files](/docs/test-docs/input-formats/includes).
+The example leaves out DITA. DITA reuses content through conrefs and keyrefs, which a later example covers. For every include syntax, see [Test pages that include other files](/docs/test-docs/input-formats/includes).
+
+## Include a shared check with mdBook or an MDX import
+
+The same procedure, with the shared file included the way mdBook and MDX component frameworks include it. It uses [`httpRequest`](/docs/actions/httprequest), [`goTo`](/docs/actions/goto), [`find`](/docs/actions/find), and the [config](/reference/schemas/config) field `resolveIncludes`.
+
+<Markdown src="examples/structure-include-imports/_variants.mdx" />
+
+| Format | Include |
+|---|---|
+| Markdown | `{{#include _check-status.md}}` (mdBook) |
+| MDX | `import CheckStatus from './_check-status.md';`, then `<CheckStatus />` (Docusaurus, Mintlify) |
+
+Doc Detective knows both forms, so the example's config only turns `resolveIncludes` on. An MDX import counts as an include only where the page renders the component. An `import` with no matching component tag includes nothing.
 
 ## Test the topics in a DITA map
 
@@ -266,7 +280,7 @@ npx doc-detective --input structure.ditamap
 
 Without the `dita` command, Doc Detective logs an error and skips the map. When you pass the topic or a folder, Doc Detective reads the topic as written, with its `keyref` unresolved. The inline steps name their URL, so they run either way.
 
-`processDitaMaps` is `true` by default. To read a map as a plain DITA file instead, without DITA-OT, turn it off:
+`processDitaMaps` is `true` by default, and the example's config sets it explicitly. To read a map as a plain DITA file instead, without DITA-OT, turn it off:
 
 ```json title=".doc-detective.json"
 {

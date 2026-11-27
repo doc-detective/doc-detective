@@ -1,6 +1,7 @@
 = Open the elements demo
 
-// (meta {"verified-by":[{"tool":"doc-detective","check":"structure-verified"}]})
+// (meta sha256-b366b803ea9449127ae3b836e7ebd3fa9130115faad7279cf36ca2fc5f514cf4 {"verified-by":[{"tool":"doc-detective","check":"structure-verified","version":"5.7.0","passed":"2026-11-27"}],"last-verified":"2026-11-27"})
+image:https://img.shields.io/badge/Last_verified-2026--11--27-brightgreen[Last verified 2026-11-27]
 // (test {"testId":"structure-verified","badge":true,"detectSteps":false})
 
 . Open http://localhost:8092/index.html[the elements demo].

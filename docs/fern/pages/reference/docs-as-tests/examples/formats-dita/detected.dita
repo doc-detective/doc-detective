@@ -17,5 +17,5 @@
       <?doc-detective test ignore end?>
     </postreq>
   </taskbody>
-  <data name="doc-detective" value="test end"></data>
+  <!-- test end -->
 </task>

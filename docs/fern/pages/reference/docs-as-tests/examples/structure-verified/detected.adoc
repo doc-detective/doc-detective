@@ -1,6 +1,6 @@
 = Open the elements demo
 
-// (meta {"verified-by":[{"tool":"doc-detective","check":"structure-verified"}]})
+// (meta sha256-4eead6e9abcb406109bd6f86b1ada6469128bf039c5edb5696205b6e84325340 {"verified-by":[{"tool":"doc-detective","check":"structure-verified","version":"5.7.0","passed":"2026-11-27"}],"last-verified":"2026-11-27"})
 // (test {"testId":"structure-verified","badge":true,"detectSteps":true})
 
 . Open http://localhost:8092/index.html[the elements demo].

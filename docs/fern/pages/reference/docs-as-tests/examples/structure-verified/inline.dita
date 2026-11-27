@@ -3,7 +3,8 @@
 <task id="open-elements-demo">
   <title>Open the elements demo</title>
   <taskbody>
-    <data name="manni-meta" value='{"verified-by":[{"tool":"doc-detective","check":"structure-verified"}]}'/>
+    <data name="manni-meta" value='sha256-fb9d69b988d52af10ffdb83f9bfc19634cae5ce90b73cebcbfb8d4df029b5059 {"verified-by":[{"tool":"doc-detective","check":"structure-verified","version":"5.7.0","passed":"2026-11-27"}],"last-verified":"2026-11-27"}'/>
+    <image href="https://img.shields.io/badge/Last_verified-2026--11--27-brightgreen"><alt>Last verified 2026-11-27</alt></image>
     <data name="doc-detective" value='test {"testId":"structure-verified","badge":true,"detectSteps":false}'/>
     <steps>
       <step><cmd>Open <xref href="http://localhost:8092/index.html" scope="external" format="html">the elements demo</xref>.</cmd>
