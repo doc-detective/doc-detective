@@ -88,7 +88,7 @@ describe("Run tests successfully", function () {
     }
   });
 
-  it("A `matrix` runs one context per value, each reporting its ID and values (ADR 01232)", async () => {
+  it("A `matrix` runs one context per value, each reporting its ID and values (ADR 01234)", async () => {
     const spec = {
       tests: [
         {
@@ -118,7 +118,7 @@ describe("Run tests successfully", function () {
     }
   });
 
-  it("A `matrix` mistake rejects the run before anything runs (ADR 01232)", async () => {
+  it("A `matrix` mistake rejects the run before anything runs (ADR 01234)", async () => {
     const spec = {
       tests: [{ testId: "t", runOn: [{ matrix: { theme: ["a", "b"] } }], steps: [{ runShell: "echo hi" }] }],
     };

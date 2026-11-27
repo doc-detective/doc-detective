@@ -295,8 +295,8 @@ async function resolvePaths({
 
   for (const property of Object.keys(object)) {
     // A `matrix` key can be named like a path key, such as `path`, but its
-    // values are data, not paths (ADR 01232). Only a `{ file }` source is a
-    // path, resolved against the file that declares it (ADR 01233).
+    // values are data, not paths (ADR 01234). Only a `{ file }` source is a
+    // path, resolved against the file that declares it (ADR 01235).
     if (property === "matrix") {
       for (const source of Object.values(object.matrix ?? {}) as any[]) {
         if (typeof source?.file === "string") source.file = resolve(relativePathBase, source.file, filePath);

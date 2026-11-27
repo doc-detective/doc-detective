@@ -25,7 +25,7 @@ import {
 } from "../common/src/matrix.js";
 import { loadMatrixValues } from "../common/src/matrixFile.js";
 
-// A matrix with each `{ file }` key replaced by its values (ADR 01233). Each
+// A matrix with each `{ file }` key replaced by its values (ADR 01235). Each
 // file is read once per run; resolvePaths already made its path absolute.
 function loadMatrixFiles(matrix: any, config: any) {
   if (!matrix) return matrix;
@@ -51,7 +51,7 @@ function keepMarkers(original: any, copy: any) {
   return copy;
 }
 
-// Expand one static context over its `matrix` (ADR 01232): one context per
+// Expand one static context over its `matrix` (ADR 01234): one context per
 // combination of the keys its own fields or the test's steps reference, with
 // the combination substituted into the context and its copy of the steps.
 // `authoredOnTest` makes an unreferenced key an error: there it can only be dead.
@@ -200,7 +200,7 @@ function resolveContexts({ contexts, test, config }: { contexts: any[]; test: an
         });
       }
     });
-    // A matrix is a third expansion axis (ADR 01232).
+    // A matrix is a third expansion axis (ADR 01234).
     const matrix = loadMatrixFiles(context.matrix, config);
     const expandedContexts = staticContexts.flatMap((staticContext) =>
       expandMatrix({ staticContext, matrix, test, authoredOnTest: Boolean(test.runOn) })
@@ -325,7 +325,7 @@ async function resolveContext({ config, test, context, usedContextIds, openApi }
   // the same authored `contextId`, so the 2nd+ must be suffixed or they'd
   // collide in `metaValues` and other contextId-keyed structures.
   // A matrix combination's `~key=value` suffix keeps each combination's ID
-  // distinct, authored or derived (ADR 01232).
+  // distinct, authored or derived (ADR 01234).
   const suffix = context.matrixIdSuffix ?? "";
   context.contextId = context.contextId
     ? uniqueId(`${context.contextId}${suffix}`, usedContextIds)
@@ -342,7 +342,7 @@ async function resolveContext({ config, test, context, usedContextIds, openApi }
     // `test.openApi` carries no loaded definition and omits spec-level entries,
     // so httpRequest would receive an empty openApiDefinitions. See ADR 01044.
     openApi: openApi ?? test.openApi ?? [],
-    // A matrix context carries its own substituted copy (ADR 01232).
+    // A matrix context carries its own substituted copy (ADR 01234).
     steps: context.steps ?? [...test.steps],
     contextId: contextId,
   };
@@ -376,7 +376,7 @@ async function resolveTest({ config, spec, test }: { config: any; spec: any; tes
       config: config,
     });
   } catch (error: any) {
-    // A `matrix` mistake makes the spec invalid (ADR 01232).
+    // A `matrix` mistake makes the spec invalid (ADR 01234).
     error.invalidSpec = true;
     throw error;
   }
@@ -467,7 +467,7 @@ async function resolveTests({ config, detectedTests }: { config: any; detectedTe
   // per resolveTests call so a config reused across runs never serves a stale
   // description.
   config._openApiDescriptionCache = new Map();
-  // Same for `matrix` files (ADR 01233).
+  // Same for `matrix` files (ADR 01235).
   config._matrixFileCache = new Map();
 
   log(config, "info", "Resolving test specs.");
