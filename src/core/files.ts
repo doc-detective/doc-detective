@@ -348,7 +348,7 @@ async function resolvePaths({
       });
       if (cookiePath !== undefined) object[property].path = cookiePath;
       // A mock's file paths aren't path properties, so resolve them here,
-      // against the spec (ADR 01225, ADR 01229).
+      // against the spec (ADR 01225, ADR 01233).
       const mock = isStep && property === "mockRequest" ? object[property] : undefined;
       for (const mockResponse of [mock?.response, ...(Array.isArray(mock?.responses) ? mock.responses : [])]) {
         if (typeof mockResponse?.bodyPath === "string") {
