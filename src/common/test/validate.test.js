@@ -1464,7 +1464,7 @@ import { schemas } from "../dist/index.js";
       });
     });
 
-    describe("runOn matrix (ADR 01232)", function () {
+    describe("runOn matrix (ADR 01234)", function () {
       const check = (context) => validate({ schemaKey: "context_v3", object: context });
 
       it("accepts scalar and object values, and references in emulation fields", function () {
