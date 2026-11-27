@@ -1,4 +1,4 @@
-// Load a `matrix` key's values from a file (ADR 01228): a `.json` array, or a
+// Load a `matrix` key's values from a file (ADR 01233): a `.json` array, or a
 // sitemap's `<loc>` entries.
 import fs from "node:fs";
 import path from "node:path";
@@ -34,7 +34,7 @@ export function loadMatrixValues(key: string, definition: { file: string }, base
     throw new Error(`Couldn't read \`matrix\` file \`${file}\`.`);
   }
   // A regular expression, not an XML parser: enough for the `<loc>` entries of
-  // a standard sitemap, with no new dependency (ADR 01228).
+  // a standard sitemap, with no new dependency (ADR 01233).
   if (extension === ".xml") {
     const values = [...text.matchAll(/<loc>\s*([\s\S]*?)\s*<\/loc>/g)].map((match) => decodeXml(match[1]));
     if (values.length === 0) throw cantLoad("has no `<loc>` entries");
