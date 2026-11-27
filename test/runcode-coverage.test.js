@@ -17,6 +17,7 @@
 import assert from "node:assert/strict";
 import os from "node:os";
 import fs from "node:fs";
+import path from "node:path";
 import sinon from "sinon";
 import { runCode } from "../dist/core/tests/runCode.js";
 
@@ -45,26 +46,32 @@ describe("runCode coverage", function () {
     assert.equal(result.status, "PASS", result.description);
   });
 
-  it("forwards a path joined with directory to runShell", async function () {
+  // Spec path resolution (resolvePaths) already folds `directory` into an
+  // absolute `path`, as it does for runShell and httpRequest. runCode must save
+  // to that `path` as-is, not join `directory` onto it a second time (which
+  // doubled the folder: `<dir>/<dir>/out.txt`, or ENOENT on Windows).
+  it("saves output to the resolved path when directory is also set", async function () {
     this.timeout(15000);
-    const result = await runCode({
-      config,
-      step: {
-        runCode: {
-          language: "javascript",
-          code: "process.stdout.write('ok')",
-          // Under .tmp/ (gitignored — see CLAUDE.md "Testing behavior") so
-          // the saved-output artifact can't pollute the worktree or a commit.
-          path: "out.txt",
-          directory: ".tmp/runcode-sub",
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "dd-runcode-dir-"));
+    const outPath = path.join(directory, "out.txt");
+    try {
+      const result = await runCode({
+        config,
+        step: {
+          runCode: {
+            language: "javascript",
+            code: "process.stdout.write('ok')",
+            // The shape resolvePaths hands the runner.
+            path: outPath,
+            directory,
+          },
         },
-      },
-    });
-    // The point is exercising the path+directory join (forwarded to runShell);
-    // the run itself may PASS or FAIL depending on file comparison, but it must
-    // get past step validation (i.e. not the invalid-definition error).
-    assert.equal(typeof result.status, "string");
-    assert.doesNotMatch(result.description || "", /Couldn't run the step: its definition isn't valid\./);
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(fs.readFileSync(outPath, "utf8"), "ok");
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 
   it("retains the temp script and records its path for a background process", async function () {
@@ -180,8 +187,6 @@ describe("runCode coverage", function () {
         },
       },
     });
-    // Exercises the `path` branch without a `directory` (the false arm of the
-    // directory-join ternary).
     assert.equal(typeof result.status, "string");
     assert.doesNotMatch(result.description || "", /Couldn't run the step: its definition isn't valid\./);
   });

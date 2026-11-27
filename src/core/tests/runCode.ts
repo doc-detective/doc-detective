@@ -227,8 +227,9 @@ async function runCode({
     // runCode-level exitCodes/stdio/maxVariation/overwrite/path/timeout/
     // workingDirectory options were silently DROPPED (e.g. `exitCodes:[1]` had
     // no effect and the step FAILed on a non-zero exit). Forward every option
-    // runShell honors so they actually take effect. `directory` (runCode-only)
-    // is resolved into the single `path` runShell expects.
+    // runShell honors so they actually take effect. Spec path resolution
+    // (resolvePaths) already folded `directory` into an absolute `path`, as it
+    // does for runShell, so `path` is forwarded as-is.
     // The script path travels through a shell as part of the command string
     // (runShell joins command + args with spaces): use the separator every
     // shell accepts on Windows (bash strips unquoted backslashes), and quote
@@ -248,11 +249,8 @@ async function runCode({
     };
     if (typeof step.runCode.stdio !== "undefined")
       runShellOptions.stdio = step.runCode.stdio;
-    if (typeof step.runCode.path !== "undefined") {
-      runShellOptions.path = step.runCode.directory
-        ? path.join(step.runCode.directory, step.runCode.path)
-        : step.runCode.path;
-    }
+    if (typeof step.runCode.path !== "undefined")
+      runShellOptions.path = step.runCode.path;
     // Forward the background object (name + waitUntil) so runShell starts and
     // registers the process.
     if (step.runCode.background) {
