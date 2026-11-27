@@ -5484,9 +5484,44 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "url"
+      "anyOf": [
+        {
+          "required": [
+            "url"
+          ]
+        },
+        {
+          "required": [
+            "harPath"
+          ]
+        }
       ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "response",
+              "responses"
+            ]
+          },
+          {
+            "required": [
+              "response",
+              "harPath"
+            ]
+          },
+          {
+            "required": [
+              "responses",
+              "harPath"
+            ]
+          }
+        ]
+      },
+      "errorMessage": {
+        "anyOf": "set `url` or `harPath`.",
+        "not": "set one of `response`, `responses`, or `harPath`."
+      },
       "properties": {
         "url": {
           "type": "string",
@@ -5505,45 +5540,67 @@
           ]
         },
         "response": {
-          "type": "object",
-          "additionalProperties": false,
-          "not": {
-            "required": [
-              "body",
-              "bodyPath"
-            ]
-          },
-          "errorMessage": {
-            "not": "set `body` or `bodyPath`, not both."
-          },
-          "properties": {
-            "statusCode": {
-              "type": "integer",
-              "minimum": 100,
-              "maximum": 599
-            },
-            "headers": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
-            },
-            "body": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "object"
-                },
-                {
-                  "type": "array"
-                }
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/response"
+            }
+          ]
+        },
+        "responses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/components/schemas/response"
+          }
+        },
+        "harPath": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "components": {
+        "schemas": {
+          "response": {
+            "type": "object",
+            "additionalProperties": false,
+            "not": {
+              "required": [
+                "body",
+                "bodyPath"
               ]
             },
-            "bodyPath": {
-              "type": "string",
-              "minLength": 1
+            "errorMessage": {
+              "not": "set `body` or `bodyPath`, not both."
+            },
+            "properties": {
+              "statusCode": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "body": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "type": "array"
+                  }
+                ]
+              },
+              "bodyPath": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         }
@@ -14280,9 +14337,44 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "url"
+      "anyOf": [
+        {
+          "required": [
+            "url"
+          ]
+        },
+        {
+          "required": [
+            "harPath"
+          ]
+        }
       ],
+      "not": {
+        "anyOf": [
+          {
+            "required": [
+              "response",
+              "responses"
+            ]
+          },
+          {
+            "required": [
+              "response",
+              "harPath"
+            ]
+          },
+          {
+            "required": [
+              "responses",
+              "harPath"
+            ]
+          }
+        ]
+      },
+      "errorMessage": {
+        "anyOf": "set `url` or `harPath`.",
+        "not": "set one of `response`, `responses`, or `harPath`."
+      },
       "properties": {
         "url": {
           "type": "string",
@@ -14301,45 +14393,67 @@
           ]
         },
         "response": {
-          "type": "object",
-          "additionalProperties": false,
-          "not": {
-            "required": [
-              "body",
-              "bodyPath"
-            ]
-          },
-          "errorMessage": {
-            "not": "set `body` or `bodyPath`, not both."
-          },
-          "properties": {
-            "statusCode": {
-              "type": "integer",
-              "minimum": 100,
-              "maximum": 599
-            },
-            "headers": {
-              "type": "object",
-              "additionalProperties": {
-                "type": "string"
-              }
-            },
-            "body": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "object"
-                },
-                {
-                  "type": "array"
-                }
+          "allOf": [
+            {
+              "$ref": "mockRequest_v3.nodefaults.schema.json#/components/schemas/response"
+            }
+          ]
+        },
+        "responses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "mockRequest_v3.nodefaults.schema.json#/components/schemas/response"
+          }
+        },
+        "harPath": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "components": {
+        "schemas": {
+          "response": {
+            "type": "object",
+            "additionalProperties": false,
+            "not": {
+              "required": [
+                "body",
+                "bodyPath"
               ]
             },
-            "bodyPath": {
-              "type": "string",
-              "minLength": 1
+            "errorMessage": {
+              "not": "set `body` or `bodyPath`, not both."
+            },
+            "properties": {
+              "statusCode": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "body": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "type": "array"
+                  }
+                ]
+              },
+              "bodyPath": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
         }

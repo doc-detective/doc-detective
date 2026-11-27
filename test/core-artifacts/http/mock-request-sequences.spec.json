@@ -1,0 +1,209 @@
+{
+  "specId": "mock-request-sequences",
+  "description": "mockRequest `responses` and `harPath` (ADR 01229): one test per permutation. The real mocks run on headless Chrome on every OS. Requests go to the 8092 test server's /api echo route, which sets `x-server`, so a response without it came from the mock. Firefox and Safari assert the skip.",
+  "tests": [
+    {
+      "testId": "mock-request-responses-sequence",
+      "description": "Three responses answer three requests in order, and the last one keeps answering.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "**/api/mock-job",
+            "responses": [
+              {
+                "body": {
+                  "status": "running"
+                }
+              },
+              {
+                "statusCode": 202,
+                "headers": {
+                  "x-step": "2"
+                },
+                "body": {
+                  "status": "done"
+                }
+              },
+              {
+                "statusCode": 410,
+                "body": "gone"
+              }
+            ]
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return (async () => { const out = []; for (let i = 0; i < 4; i++) { const r = await fetch('/api/mock-job'); out.push(r.status + ':' + (r.headers.get('x-step') || '-') + ':' + (await r.text())); } return out.join(' '); })();",
+            "output": "200:-:{\"status\":\"running\"} 202:2:{\"status\":\"done\"} 410:-:gone 410:-:gone"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "mock-request-har-replay",
+      "description": "Every entry of a HAR file: a repeated GET answers in recorded order with its last entry sticking, a base64 body is decoded, a POST gets its recorded status, and a URL the HAR doesn't have reaches the server.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "harPath": "mock-request.har"
+          },
+          "variables": {
+            "HAR_MATCHED": "$$matched"
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return (async () => { const job = async () => { const r = await fetch('/api/har-job?id=1'); return (r.headers.get('x-har') || '-') + ':' + (await r.json()).status; }; const a = await job(); const b = await job(); const c = await job(); const post = await fetch('/api/har-order', { method: 'POST' }); const other = await fetch('/api/har-job?id=2'); return [a, b, c, post.status + ':' + (await post.text()), other.headers.get('x-server')].join(' '); })();",
+            "output": "recorded:running -:done -:done 201:order made doc-detective-echo-server"
+          }
+        },
+        {
+          "description": "Nothing was answered before the step ran.",
+          "runShell": "node -e \"process.exit(process.env.HAR_MATCHED === '0' ? 0 : 1)\""
+        }
+      ]
+    },
+    {
+      "testId": "mock-request-har-filter",
+      "description": "With `url` and `method`, only the matching HAR entries answer. The other recorded URL reaches the server.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "chrome",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "harPath": "mock-request.har",
+            "url": "**/api/har-*",
+            "method": "POST"
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/"
+        },
+        {
+          "runBrowserScript": {
+            "script": "return (async () => { const post = await fetch('/api/har-order', { method: 'POST' }); const job = await fetch('/api/har-job?id=1'); return post.status + ':' + (await post.text()) + ' ' + job.headers.get('x-server'); })();",
+            "output": "201:order made doc-detective-echo-server"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "mock-request-sequences-firefox-skip",
+      "description": "Firefox isn't in BIDI_BROWSERS, so `responses` and `harPath` steps are Skipped: `firefox` can't mock requests.",
+      "runOn": [
+        {
+          "platforms": [
+            "windows",
+            "mac",
+            "linux"
+          ],
+          "browsers": [
+            {
+              "name": "firefox",
+              "headless": true
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "**/api/mock-skip",
+            "responses": [
+              {
+                "body": "never"
+              }
+            ]
+          }
+        },
+        {
+          "mockRequest": {
+            "harPath": "mock-request.har"
+          }
+        }
+      ]
+    },
+    {
+      "testId": "mock-request-sequences-safari-skip",
+      "description": "Safari stays on classic WebDriver, so `responses` and `harPath` steps are Skipped: `safari` can't mock requests.",
+      "runOn": [
+        {
+          "platforms": [
+            "mac"
+          ],
+          "browsers": [
+            {
+              "name": "safari"
+            }
+          ]
+        }
+      ],
+      "steps": [
+        {
+          "mockRequest": {
+            "url": "**/api/mock-skip",
+            "responses": [
+              {
+                "body": "never"
+              }
+            ]
+          }
+        },
+        {
+          "mockRequest": {
+            "harPath": "mock-request.har"
+          }
+        }
+      ]
+    }
+  ]
+}
