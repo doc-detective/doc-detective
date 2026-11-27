@@ -3,6 +3,7 @@
 # one on ubuntu-latest and one on windows-latest, each run all tests under
 # docs/fern/pages through the Doc Detective Action and fail on any FAIL
 # (exit_on_fail). The Windows job also fails when a Windows test is skipped.
+# A third, sharded job runs the docs-as-tests reference examples on both.
 #
 # It runs the repo's OWN build (build + `npm link`, then the Action with an empty
 # `version` so bare `npx doc-detective` resolves the linked local build) rather
@@ -53,13 +54,6 @@ jobs:
         run: |
           npm run docs:build-docs-as-tests -- --check
           npm run docs:check-docs-as-tests
-
-      # The examples live in docs/docs-as-tests/examples, outside the docs run's
-      # input, so the docs run's capture settings don't slow them down. Run
-      # every detected, inline, and standalone file here with the examples' own
-      # configs.
-      - name: Run the docs-as-tests examples
-        run: npm run docs:check-docs-as-tests -- --run
 
       - name: Run Doc Detective on the docs
         uses: doc-detective/github-action@55ba39bc460e809c279179421fb26a8c76fc2539 # v2.2.0
@@ -171,16 +165,6 @@ jobs:
             process.exit(1);
           }
 
-      # The docs-as-tests examples aren't in the docs run's input, so run them
-      # here too, so the Windows-only examples run on Windows. The configs'
-      # beforeAll starts the test servers. --require-platform fails the step
-      # when a Windows context is skipped, like the gate above.
-      - name: Run the docs-as-tests examples
-        if: ${{ !cancelled() }}
-        env:
-          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: '1'
-        run: npm run docs:check-docs-as-tests -- --run --require-platform windows
-
       - if: always()
         continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -189,3 +173,61 @@ jobs:
           path: ${{ runner.temp }}/doc-detective-output.json
           retention-days: 3
           if-no-files-found: warn
+
+  # Runs the docs-as-tests examples (docs/docs-as-tests/examples). They live
+  # outside the docs run's input, so the docs run's capture settings don't slow
+  # them down, and they run here with the examples' own configs, whose
+  # beforeAll starts the test servers. Each example runs its standalone spec,
+  # one detected variant, and inline.txt where it has one (see
+  # docs/.scripts/checkDocsAsTests.js), split into shards that run in parallel.
+  # On Windows, --require-platform fails the shard when a Windows context is
+  # skipped, like the gate in the Windows docs job.
+  docs-as-tests:
+    name: Docs as tests (${{ matrix.os }}, shard ${{ matrix.shard }}/6)
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Keep npm's cache on D:, before setup-node restores into it. C: is slow
+      # at small-file I/O (see the dd-cache action).
+      - if: runner.os == 'Windows'
+        shell: bash
+        run: if [ -d D:/ ]; then echo 'npm_config_cache=D:\npm-cache' >> "$GITHUB_ENV"; fi
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # Doc Detective install cache (browsers, drivers, git-bash), shared with
+      # test.yml and fixtures.yml. See docs/maintenance/ci-cache-warming.md.
+      - if: runner.os == 'Windows'
+        uses: ./.github/actions/dd-cache
+        with:
+          node: '24'
+
+      - run: npm ci
+      - run: npm run build
+      - name: Link local build
+        run: npm link
+
+      - name: Run the docs-as-tests examples
+        if: runner.os != 'Windows'
+        run: npm run docs:check-docs-as-tests -- --run --shard ${{ matrix.shard }}/6
+
+      # Windows runners can't boot the Android emulator: turn off the lazy SDK
+      # install so Android tests skip instead of timing out.
+      - name: Run the docs-as-tests examples (Windows)
+        if: runner.os == 'Windows'
+        env:
+          DOC_DETECTIVE_NO_ANDROID_AUTOINSTALL: '1'
+        run: npm run docs:check-docs-as-tests -- --run --shard ${{ matrix.shard }}/6 --require-platform windows

@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 
 const require = createRequire(import.meta.url);
-const { findMismatches, groupByConfig, findPlatformContexts } = require("../docs/.scripts/checkDocsAsTests.js");
+const { findMismatches, groupByConfig, findPlatformContexts, selectRunFiles, shardExamples, parseShard } = require("../docs/.scripts/checkDocsAsTests.js");
 
 const spec = (file, steps) => ({
   contentPath: `/repo/examples/echo/${file}`,
@@ -99,5 +99,38 @@ describe("docs-as-tests required platform", function () {
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("docs-as-tests run selection", function () {
+  const p = (...parts) => path.join("/ex", ...parts);
+
+  it("runs the standalone spec, the first detected format, and inline.txt", function () {
+    const files = ["detected.rst", "detected.mdx", "detected.txt", "inline.md", "inline.txt", "prose.md",
+      "standalone.spec.json", "standalone.spec.yaml", "doc-detective.json"].map((f) => p("a", f));
+    assert.deepEqual(selectRunFiles(files), [p("a", "standalone.spec.json"), p("a", "detected.mdx"), p("a", "inline.txt")]);
+  });
+
+  it("falls back to standalone.spec.yaml and skips a missing detected variant", function () {
+    const files = [p("a", "inline.dita"), p("a", "standalone.spec.yaml"), p("b", "detected.dita"), p("b", "standalone.spec.json")];
+    assert.deepEqual(selectRunFiles(files), [p("a", "standalone.spec.yaml"), p("b", "standalone.spec.json"), p("b", "detected.dita")]);
+  });
+
+  it("runs the first inline or detected file of an example with no standalone spec", function () {
+    assert.deepEqual(selectRunFiles([p("a", "inline.rst"), p("a", "inline.dita"), p("a", "detected.md")]), [p("a", "inline.rst")]);
+    assert.deepEqual(selectRunFiles([p("b", "detected.html"), p("b", "detected.dita")]), [p("b", "detected.html")]);
+  });
+
+  it("splits sorted example names round-robin into shards", function () {
+    const names = ["e", "a", "d", "c", "b"];
+    assert.deepEqual(shardExamples(names, 1, 2), ["a", "c", "e"]);
+    assert.deepEqual(shardExamples(names, 2, 2), ["b", "d"]);
+    assert.deepEqual(shardExamples(names, 3, 3), ["c"]);
+    assert.deepEqual(shardExamples(names, 6, 6), []);
+  });
+
+  it("parses `--shard <i>/<n>` and rejects anything else", function () {
+    assert.deepEqual(parseShard("2/6"), { index: 2, count: 6 });
+    for (const bad of [undefined, "0/6", "7/6", "a/b", "2", "2/0", "1/2x"]) assert.equal(parseShard(bad), null);
   });
 });

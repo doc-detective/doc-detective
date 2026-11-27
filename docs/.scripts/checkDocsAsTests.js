@@ -14,11 +14,21 @@
 // doc-detective.json in its folder; the rest use examples/.doc-detective.json.
 //
 // Run with `npm run docs:check-docs-as-tests` after `npm run build`. Add
-// `-- --run` to run every detected, inline, and standalone file for real
-// instead. The docs run doesn't see these files, since they live outside
-// fern/pages, so this is the only place they run. Add
-// `--require-platform <platform>` to also fail when a context for that
-// platform is skipped, so a runner regression can't hide behind skips.
+// `-- --run` to run the examples for real instead. The docs run doesn't see
+// these files, since they live outside fern/pages, so this is the only place
+// they run. A run takes, per example, the standalone spec
+// (standalone.spec.json, else .yaml), ONE detected variant (the first in
+// FORMATS order), and inline.txt where it exists. The dry-run check above
+// already proves every inline variant equals the standalone spec and every
+// detected variant equals the others, so one of each proves the steps and
+// detection work; running every format repeated the same steps. An example
+// with no standalone spec runs its first inline or detected file instead.
+//
+// Add `--shard <i>/<n>` to check only every n-th example folder (sorted by
+// name, round-robin, starting at the i-th), so CI can run shards in
+// parallel. Add `--require-platform <platform>` to also fail when a context
+// for that platform is skipped, so a runner regression can't hide behind
+// skips.
 
 const fs = require("fs");
 const os = require("os");
@@ -133,11 +143,50 @@ function findPlatformContexts(resultsFile, platform) {
 }
 
 /** Every file in the named example folders, or in all of them when `only` is empty. */
-function listExampleFiles(only = []) {
-  return fs
+function listExampleFiles(only = [], shard = null) {
+  const names = fs
     .readdirSync(examplesDir, { withFileTypes: true })
     .filter((d) => d.isDirectory() && (!only.length || only.includes(d.name)))
-    .flatMap((d) => fs.readdirSync(path.join(examplesDir, d.name)).map((f) => path.join(examplesDir, d.name, f)));
+    .map((d) => d.name);
+  return (shard ? shardExamples(names, shard.index, shard.count) : names).flatMap((name) =>
+    fs.readdirSync(path.join(examplesDir, name)).map((f) => path.join(examplesDir, name, f))
+  );
+}
+
+// Same order as the snippet builder's tabs.
+const FORMATS = ["md", "mdx", "adoc", "html", "rst", "dita", "txt"];
+
+/** The files `--run` runs: see the header comment. Keeps folder order. */
+function selectRunFiles(files) {
+  const folders = new Map();
+  for (const file of files) {
+    const dir = path.dirname(file);
+    if (!folders.has(dir)) folders.set(dir, new Set());
+    folders.get(dir).add(path.basename(file));
+  }
+  const out = [];
+  for (const [dir, names] of folders) {
+    const first = (mode) => FORMATS.map((ext) => `${mode}.${ext}`).find((n) => names.has(n));
+    const standalone = ["standalone.spec.json", "standalone.spec.yaml"].find((n) => names.has(n));
+    const picked = standalone
+      ? [standalone, first("detected"), names.has("inline.txt") && "inline.txt"]
+      : [first("inline") || first("detected")];
+    out.push(...[...new Set(picked.filter(Boolean))].map((n) => path.join(dir, n)));
+  }
+  return out;
+}
+
+/** Shard `index` of `count` (1-based) of the sorted names, dealt round-robin. */
+function shardExamples(names, index, count) {
+  return [...names].sort().filter((_, i) => i % count === index - 1);
+}
+
+/** Parses `<i>/<n>` with 1 <= i <= n, or returns null. */
+function parseShard(value) {
+  const match = /^(\d+)\/(\d+)$/.exec(value ?? "");
+  if (!match) return null;
+  const [index, count] = [Number(match[1]), Number(match[2])];
+  return index >= 1 && index <= count ? { index, count } : null;
 }
 
 function main() {
@@ -146,8 +195,19 @@ function main() {
     process.exit(1);
   }
   // Bare arguments name the examples to check; none means all of them.
-  const only = process.argv.slice(2).filter((arg, i, all) => !arg.startsWith("--") && all[i - 1] !== "--require-platform");
-  const files = listExampleFiles(only);
+  const valueFlags = ["--require-platform", "--shard"];
+  const only = process.argv.slice(2).filter((arg, i, all) => !arg.startsWith("--") && !valueFlags.includes(all[i - 1]));
+  const shardArg = process.argv.indexOf("--shard");
+  const shard = shardArg === -1 ? null : parseShard(process.argv[shardArg + 1]);
+  if (shardArg !== -1 && !shard) {
+    console.error("Couldn't parse `--shard`. Use `--shard <i>/<n>`, such as `--shard 2/6`.");
+    process.exit(2);
+  }
+  const files = listExampleFiles(only, shard);
+  if (!files.length && shard) {
+    console.log(`Skipped: shard ${shard.index}/${shard.count} has no examples.`);
+    process.exit(0);
+  }
   if (!files.length) {
     console.error(`Couldn't find examples to check in ${examplesDir}.`);
     process.exit(1);
@@ -164,7 +224,7 @@ function main() {
     let ran = 0;
     const skipped = [];
     let batchNumber = 0;
-    for (const [config, inputs] of groupByConfig(tested, sharedConfig)) {
+    for (const [config, inputs] of groupByConfig(selectRunFiles(tested), sharedConfig)) {
       for (const batch of batches(inputs)) {
         const results = path.join(resultsDir, `${batchNumber++}.json`);
         try {
@@ -207,4 +267,15 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { findMismatches, normalizeSteps, groupByConfig, dryRun, listExampleFiles, findPlatformContexts, examplesDir };
+module.exports = {
+  findMismatches,
+  normalizeSteps,
+  groupByConfig,
+  dryRun,
+  listExampleFiles,
+  findPlatformContexts,
+  selectRunFiles,
+  shardExamples,
+  parseShard,
+  examplesDir,
+};
