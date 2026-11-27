@@ -11,6 +11,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
+const spacedRoot = /\s/.test(path.resolve(__dirname, "../../.."));
 const shell = (s) => ({ runShell: `echo ${s}` });
 const step = (s) => JSON.stringify(shell(s));
 const fence = (lang, body) => "```" + lang + "\n" + body + "\n```";
@@ -717,12 +718,13 @@ const cases = {
     },
   },
   // `$1` takes the file's absolute path, with forward slashes on Windows
-  // (ADR 01232), so the default bash shell runs it quoted or unquoted.
+  // (ADR 01232), so the default bash shell runs it quoted or unquoted. The
+  // shell splits an unquoted path with spaces, so that file runs only without.
   "runshell-path": {
     file: "doc.cjs",
     input: ".",
     run: true,
-    files: { "bare.js": 'console.log("ran");\n' },
+    files: spacedRoot ? {} : { "bare.js": 'console.log("ran");\n' },
     config: {
       fileTypes: [
         { name: "node", extensions: ["cjs"], runShell: { command: "node", args: ["'$1'"] } },
@@ -733,7 +735,8 @@ const cases = {
     check: (json, dir) => {
       const p = (name) => path.join(dir, name).split(path.sep).join("/");
       const ran = json.specs.map((s) => s.tests[0].contexts[0].steps[0]).map((s) => `${s.result}: ${s.runShell.command} ${s.runShell.args ?? ""}`).sort();
-      const want = [`PASS: node '${p("doc.cjs")}'`, `PASS: node ${p("bare.js")} `].sort();
+      if (spacedRoot) console.log("Skipped: the unquoted `$1` file, because the checkout path contains whitespace.");
+      const want = [`PASS: node '${p("doc.cjs")}'`, ...(spacedRoot ? [] : [`PASS: node ${p("bare.js")} `])].sort();
       return JSON.stringify(ran) === JSON.stringify(want) ? undefined : `steps ${JSON.stringify(ran)}, expected ${JSON.stringify(want)}`;
     },
   },
