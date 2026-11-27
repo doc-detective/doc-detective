@@ -20270,6 +20270,28 @@
                       }
                     }
                   }
+                },
+                {
+                  "url": "https://api.example.com/invoices/42",
+                  "response": {
+                    "schema": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "code"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "code": {
+                          "type": "string",
+                          "pattern": "^INV-\\d+$"
+                        }
+                      }
+                    }
+                  }
                 }
               ]
             }

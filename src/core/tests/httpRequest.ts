@@ -406,10 +406,14 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     // An author-written schema can be invalid (`minimum: "x"`), which makes
     // compile throw. Report that as a FAIL rather than crashing the step.
     let validateFn: any;
+    let compileError = "";
     try {
       validateFn = ajv.compile(responseSchema);
-    } catch {
+    } catch (error: any) {
       validateFn = undefined;
+      compileError = ajv.errors
+        ? ajv.errorsText(ajv.errors)
+        : String(error?.message ?? error);
     }
     const valid = validateFn ? validateFn(response.data) : false;
     result.outputs.responseSchemaValid = !!valid;
@@ -422,9 +426,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
         ? "Fix `response.schema`."
         : "Fix the response schema in the OpenAPI description.";
       descriptions.push(
-        `Couldn't check the response against the ${schemaName} schema because the schema isn't valid JSON Schema: ${ajv.errorsText(
-          ajv.errors
-        )}. ${fix}`
+        `Couldn't check the response against the ${schemaName} schema because the schema isn't valid JSON Schema: ${compileError}. ${fix}`
       );
     } else if (valid) {
       descriptions.push(`Response data matched the ${schemaName} schema.`);
