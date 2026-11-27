@@ -5,10 +5,12 @@
   <body>
     <section>
       <title>Check that the service is ready</title>
-      <data name="doc-detective" value='test {"testId":"data-service-ready","onPass":[{"goToTest":"data-echo-text"}],"onFail":[{"stop":"spec"}],"detectSteps":false}'/>
-      <p>The service can take a few seconds to start. Check that it's ready. If the check fails, check again after a short wait:</p>
+      <data name="doc-detective" value='test {"testId":"data-service-ready","onPass":[{"if":["$$platform oneOf [linux, mac, windows]"],"goToTest":"data-echo-text"}],"onFail":[{"if":"$$platform oneOf [linux, mac, windows]","stop":"spec"}],"detectSteps":false}'/>
+      <p>The service can take a few seconds to start, so wait five seconds before you check it.</p>
+      <data name="doc-detective" value='step {"wait":true}'/>
+      <p>Check that the service is ready. If the check fails, check again after a short wait:</p>
       <codeblock outputclass="language-shell">node -e "const fs=require('fs'),f=require('path').join(require('os').tmpdir(),'doc-detective-docs-ready');if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,'');console.error('Not ready yet.');process.exit(1)}"</codeblock>
-      <data name="doc-detective" value='step {"runShell":"node -e \"const fs=require(&apos;fs&apos;),f=require(&apos;path&apos;).join(require(&apos;os&apos;).tmpdir(),&apos;doc-detective-docs-ready&apos;);if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,&apos;&apos;);console.error(&apos;Not ready yet.&apos;);process.exit(1)}\"","onFail":[{"retry":{"limit":3,"delay":500,"backoff":"exponential"}}]}'/>
+      <data name="doc-detective" value='step {"runShell":"node -e \"const fs=require(&apos;fs&apos;),f=require(&apos;path&apos;).join(require(&apos;os&apos;).tmpdir(),&apos;doc-detective-docs-ready&apos;);if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,&apos;&apos;);console.error(&apos;Not ready yet.&apos;);process.exit(1)}\"","onFail":[{"if":"$$outputs.exitCode == 1","retry":{"limit":3,"delay":500,"backoff":"exponential"}}]}'/>
       <p>This example simulates a service that isn't ready the first time you check.</p>
       <data name="doc-detective" value="test end"/>
     </section>
@@ -22,7 +24,7 @@
     </section>
     <section>
       <title>Echo text</title>
-      <data name="doc-detective" value='test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"detectSteps":false}'/>
+      <data name="doc-detective" value='test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false}'/>
       <ol>
         <li>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.
           <data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></li>
@@ -31,12 +33,12 @@
         <li>Type "Hello, Doc Detective".
           <data name="doc-detective" value='step {"type":"Hello, Doc Detective"}'/></li>
         <li>Check that the page shows <b>Hello, Doc Detective</b> below the field. If it doesn't, type the text again.
-          <data name="doc-detective" value='step {"stepId":"read-echo","find":{"selector":"#echo","elementText":"Hello, Doc Detective"},"variables":{"ECHOED":"$$element.text"},"onPass":[{"goToStep":"send-echo"}],"onFail":[{"retry":{"limit":2,"delay":500}}]}'/>
+          <data name="doc-detective" value='step {"stepId":"read-echo","find":{"selector":"#echo","elementText":"Hello, Doc Detective"},"variables":{"ECHOED":"$$element.text"},"onPass":[{"if":["$$outputs.element.text == \"Hello, Doc Detective\""],"goToStep":"send-echo"}],"onFail":[{"retry":{"limit":2,"delay":500}}]}'/>
           <data name="doc-detective" value='step {"stepId":"retype","type":"Hello, Doc Detective"}'/></li>
         <li>Send the text to the messages API. Send a <codeph>POST</codeph> request to <codeph>http://localhost:8093/api/messages</codeph> with this body:
           <codeblock outputclass="language-json">{"text": "Hello, Doc Detective"}</codeblock>
           <p>The API returns the same text.</p>
-          <data name="doc-detective" value='step {"stepId":"send-echo","if":"$$steps.read-echo.outputs.element.text == \"Hello, Doc Detective\"","httpRequest":{"url":"http://localhost:8093/api/messages","method":"post","request":{"body":{"text":"$ECHOED"}},"response":{"body":{"text":"Hello, Doc Detective"}}},"assertions":"$$outputs.response.body.text == \"$ECHOED\""}'/></li>
+          <data name="doc-detective" value='step {"stepId":"send-echo","if":"$$steps.read-echo.outputs.element.text == \"Hello, Doc Detective\"","httpRequest":{"url":"http://localhost:8093/api/messages","method":"post","request":{"body":{"text":"$ECHOED"}},"response":{"body":{"text":"Hello, Doc Detective"}}},"assertions":"$$outputs.response.body.text == \"$ECHOED\"","onWarning":[{"continue":true}]}'/></li>
       </ol>
       <data name="doc-detective" value="test end"/>
     </section>

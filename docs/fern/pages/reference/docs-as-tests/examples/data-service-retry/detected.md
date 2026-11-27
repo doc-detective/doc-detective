@@ -1,16 +1,20 @@
 # Echo text through the service
 
-<!-- test {"testId":"data-service-ready","onPass":[{"goToTest":"data-echo-text"}],"onFail":[{"stop":"spec"}],"detectSteps":true} -->
+<!-- test {"testId":"data-service-ready","onPass":[{"if":["$$platform oneOf [linux, mac, windows]"],"goToTest":"data-echo-text"}],"onFail":[{"if":"$$platform oneOf [linux, mac, windows]","stop":"spec"}],"detectSteps":true} -->
 
 ## Check that the service is ready
 
-The service can take a few seconds to start. Check that it's ready. If the check fails, check again after a short wait:
+The service can take a few seconds to start, so wait five seconds before you check it.
+
+<!-- step {"wait":true} -->
+
+Check that the service is ready. If the check fails, check again after a short wait:
 
 ```shell
 node -e "const fs=require('fs'),f=require('path').join(require('os').tmpdir(),'doc-detective-docs-ready');if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,'');console.error('Not ready yet.');process.exit(1)}"
 ```
 
-<!-- step {"runShell":"node -e \"const fs=require('fs'),f=require('path').join(require('os').tmpdir(),'doc-detective-docs-ready');if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,'');console.error('Not ready yet.');process.exit(1)}\"","onFail":[{"retry":{"limit":3,"delay":500,"backoff":"exponential"}}]} -->
+<!-- step {"runShell":"node -e \"const fs=require('fs'),f=require('path').join(require('os').tmpdir(),'doc-detective-docs-ready');if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,'');console.error('Not ready yet.');process.exit(1)}\"","onFail":[{"if":"$$outputs.exitCode == 1","retry":{"limit":3,"delay":500,"backoff":"exponential"}}]} -->
 
 This example simulates a service that isn't ready the first time you check.
 
@@ -30,7 +34,7 @@ node -e "console.log('Restarting the service.')"
 
 <!-- test end -->
 
-<!-- test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"detectSteps":true} -->
+<!-- test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true} -->
 
 ## Echo text
 

@@ -5,7 +5,9 @@
 <h1>Echo text through the service</h1>
 <h2>Check that the service is ready</h2>
 
-<p>The service can take a few seconds to start. Check that it's ready. If the check fails, check again after a short wait:</p>
+<p>The service can take a few seconds to start, so wait five seconds before you check it.</p>
+
+<p>Check that the service is ready. If the check fails, check again after a short wait:</p>
 
 <pre><code class="language-shell">node -e "const fs=require('fs'),f=require('path').join(require('os').tmpdir(),'doc-detective-docs-ready');if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,'');console.error('Not ready yet.');process.exit(1)}"</code></pre>
 

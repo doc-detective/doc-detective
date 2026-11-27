@@ -2,7 +2,7 @@
 <html lang="en">
 <head><title>Check your Node.js version</title></head>
 <body>
-<!-- test {"testId":"data-node-check","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["NODE_MAJOR"],"detectSteps":true} -->
+<!-- test {"testId":"data-node-check","if":["$$platform oneOf [linux, mac, windows]"],"publicVariables":["NODE_MAJOR"],"detectSteps":true} -->
 <h1>Check your Node.js version</h1>
 <ol>
   <li>Print the Node.js version:
@@ -11,7 +11,7 @@
     <!-- step {"stepId":"node-version","runShell":"node --version","assertions":"$$outputs.stdio.stdout matches /^v[0-9]+\\./","variables":{"NODE_MAJOR":"extract($$stdio.stdout, \"v([0-9]+)\")"}} --></li>
   <li>If Node.js printed a version, print the npm version:
     <pre><code class="language-shell">npm --version</code></pre>
-    <!-- step {"if":"$$steps.node-version.outputs.exitCode == 0","runShell":"npm --version","assertions":["$$outputs.exitCode == 0","$NODE_MAJOR >= 18"]} --></li>
+    <!-- step {"if":["$$steps.node-version.outputs.exitCode == 0","$$steps.node-version.outputs.stdio.stdout matches /^v/"],"runShell":"npm --version","assertions":["$$outputs.exitCode == 0","$NODE_MAJOR >= 18"]} --></li>
   <li>Find the Node.js executable. On Windows, run:
     <pre><code class="language-shell">where node</code></pre>
     <p>On macOS and Linux, run:</p>

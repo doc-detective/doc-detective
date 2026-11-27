@@ -4,7 +4,9 @@ Echo text through the service
 Check that the service is ready
 -------------------------------
 
-The service can take a few seconds to start. Check that it's ready. If the check fails, check again after a short wait:
+The service can take a few seconds to start, so wait five seconds before you check it.
+
+Check that the service is ready. If the check fails, check again after a short wait:
 
 .. code-block:: shell
 

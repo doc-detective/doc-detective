@@ -1,18 +1,22 @@
 Echo text through the service
 =============================
 
-.. test {"testId":"data-service-ready","onPass":[{"goToTest":"data-echo-text"}],"onFail":[{"stop":"spec"}],"detectSteps":false}
+.. test {"testId":"data-service-ready","onPass":[{"if":["$$platform oneOf [linux, mac, windows]"],"goToTest":"data-echo-text"}],"onFail":[{"if":"$$platform oneOf [linux, mac, windows]","stop":"spec"}],"detectSteps":false}
 
 Check that the service is ready
 -------------------------------
 
-The service can take a few seconds to start. Check that it's ready. If the check fails, check again after a short wait:
+The service can take a few seconds to start, so wait five seconds before you check it.
+
+.. step {"wait":true}
+
+Check that the service is ready. If the check fails, check again after a short wait:
 
 .. code-block:: shell
 
    node -e "const fs=require('fs'),f=require('path').join(require('os').tmpdir(),'doc-detective-docs-ready');if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,'');console.error('Not ready yet.');process.exit(1)}"
 
-.. step {"runShell":"node -e \"const fs=require('fs'),f=require('path').join(require('os').tmpdir(),'doc-detective-docs-ready');if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,'');console.error('Not ready yet.');process.exit(1)}\"","onFail":[{"retry":{"limit":3,"delay":500,"backoff":"exponential"}}]}
+.. step {"runShell":"node -e \"const fs=require('fs'),f=require('path').join(require('os').tmpdir(),'doc-detective-docs-ready');if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,'');console.error('Not ready yet.');process.exit(1)}\"","onFail":[{"if":"$$outputs.exitCode == 1","retry":{"limit":3,"delay":500,"backoff":"exponential"}}]}
 
 This example simulates a service that isn't ready the first time you check.
 
@@ -33,7 +37,7 @@ If the service still isn't ready, restart it:
 
 .. test end
 
-.. test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"detectSteps":false}
+.. test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false}
 
 Echo text
 ---------
@@ -52,7 +56,7 @@ Echo text
 
 #. Check that the page shows **Hello, Doc Detective** below the field. If it doesn't, type the text again.
 
-   .. step {"stepId":"read-echo","find":{"selector":"#echo","elementText":"Hello, Doc Detective"},"variables":{"ECHOED":"$$element.text"},"onPass":[{"goToStep":"send-echo"}],"onFail":[{"retry":{"limit":2,"delay":500}}]}
+   .. step {"stepId":"read-echo","find":{"selector":"#echo","elementText":"Hello, Doc Detective"},"variables":{"ECHOED":"$$element.text"},"onPass":[{"if":["$$outputs.element.text == \"Hello, Doc Detective\""],"goToStep":"send-echo"}],"onFail":[{"retry":{"limit":2,"delay":500}}]}
 
    .. step {"stepId":"retype","type":"Hello, Doc Detective"}
 
@@ -64,6 +68,6 @@ Echo text
 
    The API returns the same text.
 
-   .. step {"stepId":"send-echo","if":"$$steps.read-echo.outputs.element.text == \"Hello, Doc Detective\"","httpRequest":{"url":"http://localhost:8093/api/messages","method":"post","request":{"body":{"text":"$ECHOED"}},"response":{"body":{"text":"Hello, Doc Detective"}}},"assertions":"$$outputs.response.body.text == \"$ECHOED\""}
+   .. step {"stepId":"send-echo","if":"$$steps.read-echo.outputs.element.text == \"Hello, Doc Detective\"","httpRequest":{"url":"http://localhost:8093/api/messages","method":"post","request":{"body":{"text":"$ECHOED"}},"response":{"body":{"text":"Hello, Doc Detective"}}},"assertions":"$$outputs.response.body.text == \"$ECHOED\"","onWarning":[{"continue":true}]}
 
 .. test end

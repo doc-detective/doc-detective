@@ -1,8 +1,10 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
-if: $$platform oneOf [linux, mac, windows]
+if:
+  - $$platform oneOf [linux, mac, windows]
 tests:
   - testId: data-node-check
-    if: $$platform oneOf [linux, mac, windows]
+    if:
+      - $$platform oneOf [linux, mac, windows]
     publicVariables:
       - NODE_MAJOR
     steps:
@@ -11,7 +13,9 @@ tests:
         assertions: $$outputs.stdio.stdout matches /^v[0-9]+\./
         variables:
           NODE_MAJOR: extract($$stdio.stdout, "v([0-9]+)")
-      - if: $$steps.node-version.outputs.exitCode == 0
+      - if:
+          - $$steps.node-version.outputs.exitCode == 0
+          - $$steps.node-version.outputs.stdio.stdout matches /^v/
         runShell: npm --version
         assertions:
           - $$outputs.exitCode == 0

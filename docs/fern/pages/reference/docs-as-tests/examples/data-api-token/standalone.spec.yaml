@@ -3,6 +3,7 @@ publicVariables:
   - API_URL
 tests:
   - testId: data-api-token
+    if: $$platform oneOf [linux, mac, windows]
     publicVariables:
       - ACCOUNT_*
     steps:
@@ -17,6 +18,9 @@ tests:
               name: Wren
               plan: team
               seats: 5
+              roles:
+                - admin
+                - billing
           response:
             body:
               name: Wren
@@ -26,11 +30,13 @@ tests:
         variables:
           ACCOUNT_NAME: $$response.body.name
           ACCOUNT_SEATS: jq($$response.body, ".seats")
+          ACCOUNT_ROLE: $$response.body.roles[0]
       - httpRequest:
-          url: $API_URL/accounts?name=$ACCOUNT_NAME&seats=$ACCOUNT_SEATS
+          url: $API_URL/accounts?name=$ACCOUNT_NAME&seats=$ACCOUNT_SEATS&role=$ACCOUNT_ROLE
           method: get
           response:
             body:
               name: Wren
               seats: "5"
+              role: admin
         assertions: $$outputs.response.body.seats == $ACCOUNT_SEATS

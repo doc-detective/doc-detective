@@ -11,9 +11,9 @@ API_TOKEN=your-api-token</code></pre>
 <ol>
   <li>Load the variables from your <code>.env</code> file.</li>
   <li>Send a <code>POST</code> request to <code>$API_URL/accounts</code> with the header <code>Authorization: Bearer $API_TOKEN</code> and this body:
-    <pre><code class="language-json">{"name": "Wren", "plan": "team", "seats": 5}</code></pre>
-    <p>The API returns status <code>200</code> and the new account, with <code>plan</code> set to <code>team</code>. Note the account's <code>name</code> and <code>seats</code>.</p></li>
-  <li>Look up the account. Send a <code>GET</code> request to <code>$API_URL/accounts?name=&lt;name&gt;&amp;seats=&lt;seats&gt;</code>. The response shows the same name and seat count.</li>
+    <pre><code class="language-json">{"name": "Wren", "plan": "team", "seats": 5, "roles": ["admin", "billing"]}</code></pre>
+    <p>The API returns status <code>200</code> and the new account, with <code>plan</code> set to <code>team</code>. Note the account's <code>name</code>, its <code>seats</code>, and its first role.</p></li>
+  <li>Look up the account. Send a <code>GET</code> request to <code>$API_URL/accounts?name=&lt;name&gt;&amp;seats=&lt;seats&gt;&amp;role=&lt;role&gt;</code>. The response shows the same name, seat count, and role.</li>
 </ol>
 </body>
 </html>

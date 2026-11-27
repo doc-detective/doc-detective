@@ -1,7 +1,7 @@
 Check your Node.js version
 ==========================
 
-.. test {"testId":"data-node-check","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["NODE_MAJOR"],"detectSteps":false}
+.. test {"testId":"data-node-check","if":["$$platform oneOf [linux, mac, windows]"],"publicVariables":["NODE_MAJOR"],"detectSteps":false}
 
 #. Print the Node.js version:
 
@@ -19,7 +19,7 @@ Check your Node.js version
 
       npm --version
 
-   .. step {"if":"$$steps.node-version.outputs.exitCode == 0","runShell":"npm --version","assertions":["$$outputs.exitCode == 0","$NODE_MAJOR >= 18"]}
+   .. step {"if":["$$steps.node-version.outputs.exitCode == 0","$$steps.node-version.outputs.stdio.stdout matches /^v/"],"runShell":"npm --version","assertions":["$$outputs.exitCode == 0","$NODE_MAJOR >= 18"]}
 
 #. Find the Node.js executable. On Windows, run:
 

@@ -11,9 +11,9 @@ API_TOKEN=your-api-token</codeblock>
     <steps>
       <step><cmd>Load the variables from your <codeph>.env</codeph> file.</cmd></step>
       <step><cmd>Send a <codeph>POST</codeph> request to <codeph>$API_URL/accounts</codeph> with the header <codeph>Authorization: Bearer $API_TOKEN</codeph> and this body:</cmd>
-        <info><codeblock outputclass="language-json">{"name": "Wren", "plan": "team", "seats": 5}</codeblock>
-          <p>The API returns status <codeph>200</codeph> and the new account, with <codeph>plan</codeph> set to <codeph>team</codeph>. Note the account's <codeph>name</codeph> and <codeph>seats</codeph>.</p></info></step>
-      <step><cmd>Look up the account. Send a <codeph>GET</codeph> request to <codeph>$API_URL/accounts?name=&lt;name&gt;&amp;seats=&lt;seats&gt;</codeph>. The response shows the same name and seat count.</cmd></step>
+        <info><codeblock outputclass="language-json">{"name": "Wren", "plan": "team", "seats": 5, "roles": ["admin", "billing"]}</codeblock>
+          <p>The API returns status <codeph>200</codeph> and the new account, with <codeph>plan</codeph> set to <codeph>team</codeph>. Note the account's <codeph>name</codeph>, its <codeph>seats</codeph>, and its first role.</p></info></step>
+      <step><cmd>Look up the account. Send a <codeph>GET</codeph> request to <codeph>$API_URL/accounts?name=&lt;name&gt;&amp;seats=&lt;seats&gt;&amp;role=&lt;role&gt;</codeph>. The response shows the same name, seat count, and role.</cmd></step>
     </steps>
   </taskbody>
 </task>

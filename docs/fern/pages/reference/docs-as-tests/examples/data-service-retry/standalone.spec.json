@@ -1,23 +1,32 @@
 {
   "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "if": "$$platform oneOf [linux, mac, windows]",
   "tests": [
     {
       "testId": "data-service-ready",
       "onPass": [
         {
+          "if": [
+            "$$platform oneOf [linux, mac, windows]"
+          ],
           "goToTest": "data-echo-text"
         }
       ],
       "onFail": [
         {
+          "if": "$$platform oneOf [linux, mac, windows]",
           "stop": "spec"
         }
       ],
       "steps": [
         {
+          "wait": true
+        },
+        {
           "runShell": "node -e \"const fs=require('fs'),f=require('path').join(require('os').tmpdir(),'doc-detective-docs-ready');if(fs.existsSync(f)){fs.rmSync(f)}else{fs.writeFileSync(f,'');console.error('Not ready yet.');process.exit(1)}\"",
           "onFail": [
             {
+              "if": "$$outputs.exitCode == 1",
               "retry": {
                 "limit": 3,
                 "delay": 500,
@@ -51,6 +60,11 @@
           "continue": true
         }
       ],
+      "onSkip": [
+        {
+          "stop": "spec"
+        }
+      ],
       "steps": [
         {
           "goTo": "http://localhost:8092/type-echo.html"
@@ -72,6 +86,9 @@
           },
           "onPass": [
             {
+              "if": [
+                "$$outputs.element.text == \"Hello, Doc Detective\""
+              ],
               "goToStep": "send-echo"
             }
           ],
@@ -105,7 +122,12 @@
               }
             }
           },
-          "assertions": "$$outputs.response.body.text == \"$ECHOED\""
+          "assertions": "$$outputs.response.body.text == \"$ECHOED\"",
+          "onWarning": [
+            {
+              "continue": true
+            }
+          ]
         }
       ]
     }

@@ -1,7 +1,7 @@
 Create an account with an API token
 ===================================
 
-.. test {"testId":"data-api-token","publicVariables":["ACCOUNT_*"],"detectSteps":false}
+.. test {"testId":"data-api-token","if":"$$platform oneOf [linux, mac, windows]","publicVariables":["ACCOUNT_*"],"detectSteps":false}
 
 Keep the API address and your token in a ``.env`` file next to this page:
 
@@ -18,14 +18,14 @@ Keep the API address and your token in a ``.env`` file next to this page:
 
    .. code-block:: json
 
-      {"name": "Wren", "plan": "team", "seats": 5}
+      {"name": "Wren", "plan": "team", "seats": 5, "roles": ["admin", "billing"]}
 
-   The API returns status ``200`` and the new account, with ``plan`` set to ``team``. Note the account's ``name`` and ``seats``.
+   The API returns status ``200`` and the new account, with ``plan`` set to ``team``. Note the account's ``name``, its ``seats``, and its first role.
 
-   .. step {"httpRequest":{"url":"$API_URL/accounts","method":"post","request":{"headers":{"Authorization":"Bearer $API_TOKEN"},"body":{"name":"Wren","plan":"team","seats":5}},"response":{"body":{"name":"Wren"}}},"assertions":["$$outputs.response.statusCode == 200","$$outputs.response.body.plan == \"team\""],"variables":{"ACCOUNT_NAME":"$$response.body.name","ACCOUNT_SEATS":"jq($$response.body, \".seats\")"}}
+   .. step {"httpRequest":{"url":"$API_URL/accounts","method":"post","request":{"headers":{"Authorization":"Bearer $API_TOKEN"},"body":{"name":"Wren","plan":"team","seats":5,"roles":["admin","billing"]}},"response":{"body":{"name":"Wren"}}},"assertions":["$$outputs.response.statusCode == 200","$$outputs.response.body.plan == \"team\""],"variables":{"ACCOUNT_NAME":"$$response.body.name","ACCOUNT_SEATS":"jq($$response.body, \".seats\")","ACCOUNT_ROLE":"$$response.body.roles[0]"}}
 
-#. Look up the account. Send a ``GET`` request to ``$API_URL/accounts?name=<name>&seats=<seats>``. The response shows the same name and seat count.
+#. Look up the account. Send a ``GET`` request to ``$API_URL/accounts?name=<name>&seats=<seats>&role=<role>``. The response shows the same name, seat count, and role.
 
-   .. step {"httpRequest":{"url":"$API_URL/accounts?name=$ACCOUNT_NAME&seats=$ACCOUNT_SEATS","method":"get","response":{"body":{"name":"Wren","seats":"5"}}},"assertions":"$$outputs.response.body.seats == $ACCOUNT_SEATS"}
+   .. step {"httpRequest":{"url":"$API_URL/accounts?name=$ACCOUNT_NAME&seats=$ACCOUNT_SEATS&role=$ACCOUNT_ROLE","method":"get","response":{"body":{"name":"Wren","seats":"5","role":"admin"}}},"assertions":"$$outputs.response.body.seats == $ACCOUNT_SEATS"}
 
 .. test end
