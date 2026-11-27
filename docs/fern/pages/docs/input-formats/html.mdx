@@ -97,7 +97,7 @@ With step detection on, HTML files detect the steps listed in [What gets detecte
 | `screenshot` | `<img src="results.png" class="screenshot">` |
 | `type` | `Type "kittens"` in prose |
 | `httpRequest` | A `<pre>` block tagged `language-http`, or with no language, that holds a request |
-| `runCode` | A `<pre>` block whose `<code>` has the class `language-bash`, `language-python`, `language-py`, `language-javascript`, or `language-js`. These steps are unsafe |
+| `runCode` | A `<pre>` block whose `<code>` has the class `language-bash`, `language-python`, `language-py`, `language-javascript`, or `language-js`. These steps are unsafe. To show one without running it, wrap it in an ignore block |
 
 Statements, tags, and text inside `<pre>`, `<code>`, `<script>`, and `<style>` aren't read. Prose is read as written in the source, so `Type &quot;kittens&quot;` doesn't match the `type` pattern. Write the quotes as `"`.
 
@@ -105,7 +105,7 @@ For a generated site, point Doc Detective at your source files rather than the b
 
 ## JSON and YAML syntax
 
-HTML inline tests support both JSON and YAML syntax:
+HTML inline tests support JSON, YAML, and XML attribute syntax:
 
 **JSON syntax:**
 ```html
@@ -119,11 +119,25 @@ HTML inline tests support both JSON and YAML syntax:
 <!-- step goTo: https://example.com -->
 ```
 
-Both formats work identically. Choose the format that's most readable for your team.
+**XML attribute syntax:**
+```html
+<!-- test testId="my-attribute-test" detectSteps=false -->
+<!-- step find="Buttons" -->
+```
+
+All three formats work identically. Choose the format that's most readable for your team.
+
+A statement can span several lines inside one comment:
+
+```html
+<!--
+  step {"click": "Standard Button"}
+-->
+```
 
 ## Best practices
 
-- Keep test comments on a single line
+- Spread a long statement across several lines inside one comment when that reads better
 - Place test comments near the content they validate
 - Use descriptive test IDs to identify tests in results
 - Combine inline tests with [detected tests](#detected-tests) so links, bold text, and code blocks become steps without extra comments
