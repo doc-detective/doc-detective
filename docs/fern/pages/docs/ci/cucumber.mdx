@@ -31,7 +31,7 @@ const { runTests } = require("doc-detective");
 Then("the docs in {string} pass", { timeout: 10 * 60 * 1000 }, async function (path) {
   const results = await runTests({ input: path });
   const { specs } = results.summary;
-  assert.ok(specs.pass + specs.fail + specs.warning > 0, `Couldn't find any doc tests in ${path}.`);
+  assert.ok(specs.pass + specs.fail + specs.warning + specs.skipped > 0, `Couldn't find any doc tests in ${path}.`);
   assert.strictEqual(specs.fail, 0, `Couldn't pass ${specs.fail} doc specs in ${path}.`);
 });
 ```
@@ -47,7 +47,7 @@ Then("the docs in {string} pass", { timeout: 10 * 60 * 1000 }, async function (p
 }
 ```
 
-The first assertion fails the step when the path holds no tests, so a typo in a path can't pass silently. If the run itself can't start, for example because of a misspelled option, `runTests()` throws, and Cucumber fails the step.
+The first assertion fails the step when the path holds no tests, so a typo in a path can't pass silently. A path whose tests all skip, for example because none run on this platform, still passes. If the run itself can't start, for example because of a misspelled option, `runTests()` throws, and Cucumber fails the step.
 
 If your project's `package.json` sets `"type": "module"`, name the file `docs.steps.cjs`, or use `import` in place of `require()`.
 
