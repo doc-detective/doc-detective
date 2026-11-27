@@ -6365,9 +6365,18 @@ async function runStep({
         // best-effort
       }
       delete actionResult.recording;
-      actionResult.status = "FAIL";
-      actionResult.description =
-        "A recording started with no driver session or app session to own it; it was stopped. This context cannot record.";
+      if (step.__autoRecord) {
+        // A context that drives only shell and process surfaces has no
+        // session to record. Unset or `true`, a recording the host can't
+        // make is SKIPPED (ADR 01177); an authored `record` still FAILs.
+        actionResult.status = "SKIPPED";
+        actionResult.description =
+          "Skipped: the context has no browser, app, or device session to record. Set `autoRecord: false` to turn off automatic recording.";
+      } else {
+        actionResult.status = "FAIL";
+        actionResult.description =
+          "A recording started with no driver session or app session to own it; it was stopped. This context cannot record.";
+      }
     } else if (actionResult.recording) {
       if (!Array.isArray(recordingHost.state.recordings))
         recordingHost.state.recordings = [];

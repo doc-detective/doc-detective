@@ -957,6 +957,28 @@ describe("a context's autoRecording", function () {
       expect(report.steps.map((s) => s.stepId)).to.deep.equal(["shell"]);
     });
 
+    // A context with no browser, app, or device session (shell and process
+    // surfaces only) has nothing to own a started capture. An existing target
+    // with checkpoints on hands back a handle without spawning ffmpeg, so the
+    // no-session branch runs the same on every host (the fixture covers ffmpeg).
+    for (const [label, markers] of [
+      ["unset", { __autoRecordDefaulted: true }],
+      ["strict", {}],
+    ]) {
+      it(`skips the automatic recording of a context with no session to record (${label})`, async function () {
+        fs.mkdirSync(path.dirname(video), { recursive: true });
+        fs.writeFileSync(video, "");
+        const report = await runWith({ path: video, overwrite: "false", checkpoints: true }, markers);
+        expect(report.result).to.equal("PASS");
+        expect(report.autoRecording).to.deep.equal({
+          result: "SKIPPED",
+          resultDescription:
+            "Skipped: the context has no browser, app, or device session to record. Set `autoRecord: false` to turn off automatic recording.",
+        });
+        expect(report.steps.map((s) => [s.stepId, s.result])).to.deep.equal([["shell", "PASS"]]);
+      });
+    }
+
     it("masks the start's description", async function () {
       registerEnvValue("DD_R2A_SECRET", "s3cr3t-value");
       const report = await runWith({ path: path.join(path.dirname(video), "s3cr3t-value", "$DD_R2A_UNSET", "c.mp4") });
