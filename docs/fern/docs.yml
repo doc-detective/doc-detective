@@ -356,10 +356,10 @@ navigation:
           - page: Hand off failures
             path: pages/docs/get-started/self-healing.mdx
             slug: hand-off-failures
-          # Agent-facing pages: out of the sidebar, still in llms.txt and
-          # reachable by URL. Hide the section, not the page. Fern drops a
-          # page with its own `hidden: true` from llms.txt and search, but
-          # keeps the pages of a hidden section indexed for AI. See
+          # Agent-facing pages: out of the sidebar, reachable by URL and as
+          # `.md`. Fern leaves hidden pages, and pages in a hidden section,
+          # out of llms.txt. Agents find them through `<llms-only>` links on
+          # pages/index.mdx and pages/docs/agent-tools/overview.mdx. See
           # docs/content-strategy/information-architecture.md.
           - section: Agent-facing pages
             hidden: true
