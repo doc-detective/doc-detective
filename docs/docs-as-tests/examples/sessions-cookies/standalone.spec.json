@@ -1,0 +1,82 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-cookies",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_demo/signed-in"
+        },
+        {
+          "saveCookie": "sessions_demo"
+        },
+        {
+          "saveCookie": {
+            "name": "sessions_demo",
+            "variable": "SESSIONS_DEMO_COOKIE"
+          }
+        },
+        {
+          "saveCookie": {
+            "name": "sessions_demo",
+            "path": "sessions_demo.txt",
+            "overwrite": true
+          }
+        },
+        {
+          "saveCookie": {
+            "name": "sessions_demo",
+            "path": "sessions_demo.txt",
+            "directory": "tmp",
+            "domain": "localhost",
+            "overwrite": true
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_demo/signed-out"
+        },
+        {
+          "loadCookie": "sessions_demo.txt"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "sessions_demo=signed-in"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_demo/signed-out"
+        },
+        {
+          "loadCookie": {
+            "name": "sessions_demo",
+            "variable": "SESSIONS_DEMO_COOKIE"
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "sessions_demo=signed-in"
+        },
+        {
+          "goTo": "http://localhost:8092/cookies/set/sessions_demo/signed-out"
+        },
+        {
+          "loadCookie": {
+            "name": "sessions_demo",
+            "path": "sessions_demo.txt",
+            "directory": "tmp",
+            "domain": "localhost"
+          }
+        },
+        {
+          "goTo": "http://localhost:8092/cookies"
+        },
+        {
+          "find": "sessions_demo=signed-in"
+        }
+      ]
+    }
+  ]
+}
