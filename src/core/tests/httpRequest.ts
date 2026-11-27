@@ -388,9 +388,10 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   // `outputs.responseSchemaValid`, assert a trivial expression over it.
   const inlineResponseSchema = step.httpRequest.response?.schema;
   const openApiResponseSchema =
-    (step.httpRequest.openApi?.validateAgainstSchema === "response" ||
-      step.httpRequest.openApi?.validateAgainstSchema === "both") &&
-    operation?.schemas?.response;
+    step.httpRequest.openApi?.validateAgainstSchema === "response" ||
+    step.httpRequest.openApi?.validateAgainstSchema === "both"
+      ? operation?.schemas?.response
+      : undefined;
   const responseSchema = inlineResponseSchema ?? openApiResponseSchema;
   if (responseSchema) {
     const schemaName = inlineResponseSchema ? "response" : "OpenAPI";
