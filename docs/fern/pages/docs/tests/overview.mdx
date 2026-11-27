@@ -659,6 +659,12 @@ Doc Detective uses only the `steps` from the first test in the referenced spec. 
 }
 ```
 
+An [inline test](/docs/test-docs/inline) takes `before` and `after` in its `test` statement, and they work the same way. A relative path starts from the document that holds the statement, unless [`relativePathBase`](/reference/schemas/config) is `cwd`:
+
+```markdown
+<!-- test {"testId": "checkout", "before": "setup.spec.json", "after": "cleanup.spec.json"} -->
+```
+
 ### Set up and tear down the whole run
 
 Set `beforeAll` and `afterAll` in your config to run setup and cleanup specs around the entire run:

@@ -229,7 +229,7 @@ A separate spec file works, but a test that sits inside the how-to it checks is 
 
 Doc Detective reads the `test` and `step` comments and runs them in order. The inline test follows the how-to's own steps, so it differs from the spec file in two ways. It clicks **Copy**, as step 3 tells the reader to, instead of only checking that the button exists. It also leaves out the `type` step, because the procedure doesn't ask the reader to type anything.
 
-Each comment must fit on one line. In an MDX file, write the same comments in JSX form, such as `{/* step {...} */}`. Two settings in the `test` comment matter here:
+In an MDX file, write the same comments in JSX form, such as `{/* step {...} */}`. Two settings in the `test` comment matter here:
 
 - `runOn` limits the test to Windows, as in the spec file.
 - `detectSteps: false` tells Doc Detective to run only the steps you wrote. Without it, Doc Detective also infers steps from the Markdown itself. See [Detected tests](/docs/test-docs/detected).
