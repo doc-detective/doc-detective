@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshot-animations-disabled">
+  <title>Save a screenshot of an animated page with animations disabled</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Open the page at <codeph>http://localhost:8092/screenshot-loop.html</codeph>.</cmd></step>
+      <step><cmd>A spinner turns in the middle of the page.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

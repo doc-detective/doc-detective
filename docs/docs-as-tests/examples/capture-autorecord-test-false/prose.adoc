@@ -1,0 +1,5 @@
+= Type text with autoRecord off for one test
+
+. Go to http://localhost:8092/type-echo.html[the type echo page].
+. Click *Type here:*.
+. Type "Hello".

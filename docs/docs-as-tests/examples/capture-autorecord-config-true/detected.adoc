@@ -1,0 +1,11 @@
+= Type text with autoRecord on in config
+
+// (test {"testId":"capture-autorecord-config-true","detectSteps":true,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true}}]})
+
+. Go to http://localhost:8092/type-echo.html[the type echo page].
++
+// (step {"goTo":"http://localhost:8092/type-echo.html"})
+. Click *Type here:*.
+. Type "Hello".
+
+// (test end)

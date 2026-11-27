@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshot-mask-object">
+  <title>Compare a screenshot with an element mask</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/mask.html" scope="external" format="html">the billing page</xref>.</cmd></step>
+      <step><cmd>The page shows the next invoice date and when the account last synced.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

@@ -1,0 +1,10 @@
+<!-- test {"testId":"capture-screenshot-crop-padding-number","detectSteps":false} -->
+
+# Save a screenshot of one button with even padding
+
+1. Go to [the sample form](http://localhost:8092/enhanced-elements.html).
+   <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} -->
+2. The **Submit by ID** button is at the top of the form.
+   <!-- step {"screenshot":{"path":"crop-padding-number.png","directory":".dd-output","overwrite":"true","crop":{"selector":"#submit-button","padding":10}}} -->
+
+<!-- test end -->

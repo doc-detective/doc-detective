@@ -1,0 +1,14 @@
+= Mark an image as a screenshot
+
+// (test {"testId":"capture-detect-screenshot-image","detectSteps":false})
+
+. Go to http://localhost:8092/screenshot-banner.html[the banner page].
++
+// (step {"goTo":"http://localhost:8092/screenshot-banner.html"})
+. The page opens with a cookie banner at the bottom.
++
+image:.dd-output/detected-banner.png[The banner page,role=screenshot]
++
+// (step {"screenshot":".dd-output/detected-banner.png"})
+
+// (test end)

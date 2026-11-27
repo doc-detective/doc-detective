@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-record-checkpoints-object">
+  <title>Record typing in a field</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-record-checkpoints-object","detectSteps":true,"autoRecord":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true}}]}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
+      <step><cmd>Start recording.</cmd>
+        <info><data name="doc-detective" value='step {"record":{"path":"checkpoints-object.webm","directory":".dd-output","overwrite":"true","checkpoints":{"maxVariation":0.5,"directory":".dd-output/typing-checkpoints"}}}'/></info></step>
+      <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
+      <step><cmd>Type "Hello".</cmd></step>
+      <step><cmd>Wait a moment, then stop the recording.</cmd>
+        <info><data name="doc-detective" value='step {"wait":1000}'/>
+          <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>
