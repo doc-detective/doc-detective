@@ -13,8 +13,8 @@ Amends [ADR 01084](01084-retry-unnavigated-context.md). Follows from
 
 On `windows-latest`, a `goTo` after a `mockRequest` step sometimes never finishes:
 ``Couldn't open URL: Command browsingContext.navigate with id 19 timed out after 180000ms!``
-The auto-screenshot before it times out running its script, the page stays on `about:blank`, and
-the context ends with `Context FAILed on a live, non-error-page session (url=about:blank); not
+The auto-screenshot before it times out running its script. The page stays on `about:blank`.
+The context ends with `Context FAILed on a live, non-error-page session (url=about:blank); not
 retried.` It hit `test/core-artifacts/http/mock-request.spec.json` on unrelated PRs and the
 docs-as-tests `mockRequest` examples. The same test passes in another shard.
 
@@ -53,8 +53,9 @@ socket, and those sessions start on `about:blank`, so the retry no longer fires 
 
 ## Decision Outcome
 
-Chosen option 1. When a context FAILs, its primary session is alive and not on an error page, and
-it's still on `about:blank`, the context is retried on a fresh session, as for `data:,`. That
+Chosen option 1. Take a context that FAILs while its primary session is alive and not on an error
+page. If that session is still on `about:blank`, the context retries on a fresh session, as for
+`data:,`. That
 holds only if the context ran a `goTo` and none of its `goTo` steps targeted `about:blank`.
 
 `isPageUnnavigated` takes the flag; `issueNavigation` and `getRunner`'s guard don't pass it, so
