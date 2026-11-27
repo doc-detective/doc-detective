@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check for any log file</title></head>
+<body>
+<h1>Check for any log file</h1>
+<p>Write a log to the <code>output</code> folder next to this page:</p>
+<pre><code class="language-shell">node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/app.log','started')"</code></pre>
+<p>Check that the <code>output</code> folder holds a log file.</p>
+</body>
+</html>

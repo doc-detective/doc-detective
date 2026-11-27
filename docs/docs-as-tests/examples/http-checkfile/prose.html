@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check a build report</title></head>
+<body>
+<h1>Check a build report</h1>
+<p>Write the build report to the <code>output</code> folder next to this page:</p>
+<pre><code class="language-shell">node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/report.txt','build 7 passed')"</code></pre>
+<p>Check that the <code>output</code> folder holds a text file.</p>
+<p>Check that the report says the build passed.</p>
+</body>
+</html>

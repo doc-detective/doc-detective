@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Download a report</title></head>
+<body>
+<!-- test {"testId":"http-checkfile-download","detectSteps":true,"runOn":[{"platforms":["windows","mac","linux"],"browsers":[{"name":"chrome","headless":true}]}]} -->
+<h1>Download a report</h1>
+<p>In Chrome, open <code>http://localhost:8092/download.html</code>.</p>
+<!-- step {"goTo":"http://localhost:8092/download.html"} -->
+<p>Click the first export link.</p>
+<!-- step {"click":"Export first CSV"} -->
+<p>Check that Chrome saved a <code>report-*.csv</code> file.</p>
+<!-- step {"checkFile":{"download":"report-*.csv"}} -->
+<!-- test end -->
+</body>
+</html>
