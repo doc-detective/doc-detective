@@ -2448,8 +2448,17 @@ export async function holdViewportUnderSharingBar(
   if (!Number.isFinite(current.width) || !Number.isFinite(current.height)) return undefined;
   if (current.width === viewport.width && current.height === viewport.height) return undefined;
   const windowSize = await driver.getWindowSize();
-  // Debug: a headed window the display can't grow still records, a bit short.
-  await realizeViewport(driver, viewport, config, "record", "debug");
+  // Debug for the generic mismatch line: the warning below names the cause.
+  const actual = await realizeViewport(driver, viewport, config, "record", "debug");
+  // A headed window the display can't grow still records, just short.
+  const short = Math.round(viewport.height - actual.height);
+  if (short > VIEWPORT_TOLERANCE_PX) {
+    await log(
+      config,
+      "warning",
+      `Couldn't make the window tall enough for Chrome's sharing bar, so the recording is about ${short} pixels shorter than the viewport. Run headless or use a smaller viewport.`
+    );
+  }
   return { width: windowSize.width, height: windowSize.height };
 }
 

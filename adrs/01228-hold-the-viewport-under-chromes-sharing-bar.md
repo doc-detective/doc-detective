@@ -48,7 +48,7 @@ Chosen option: **A**, because it's the only one that gives the configured size w
 - `startRecording` stores that size on the recording handle as `restoreWindow`. `stopRecording` restores it after it
   closes the recorder tab, on every exit path.
 - In headed Chrome, the display can be too small for the taller window. Then the video stays about 58 px short, as
-  before, and the runner logs it at debug level only.
+  before. The runner warns once per recording, with how many pixels short the video is and the fix.
 
 ### Consequences
 
@@ -64,7 +64,8 @@ Chosen option: **A**, because it's the only one that gives the configured size w
 ### Confirmation
 
 - `test/recording-sharing-bar.test.js`: the helper grows the window by the bar's height and returns the size to
-  restore. It does nothing when no bar appears or no viewport is known.
+  restore. It does nothing when no bar appears or no viewport is known. A window that can't grow enough logs one
+  warning, and one that can logs none.
 - Fixture `test/core-artifacts/recording/headless-chrome.spec.json`: `headless-chrome-auto-engine` and
   `headless-chrome-browser-engine` assert a 1024x640 video with `verify.resolution`. `headless-chrome-viewport-held`
   asserts an 800x600 video, and 800x600 screenshots during and after the recording.
