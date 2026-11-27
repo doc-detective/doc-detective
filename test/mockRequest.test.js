@@ -45,6 +45,13 @@ function fakeDriver() {
     driver.mocks.push(mock);
     return mock;
   };
+  // webdriverio's command overrides and the two BiDi release commands.
+  driver.overrides = {};
+  driver.overwriteCommand = (name, fn) => {
+    driver.overrides[name] = fn;
+  };
+  driver.sent = [];
+  driver.networkContinueResponse = async (params) => driver.sent.push(["continueResponse", params]);
   return driver;
 }
 
@@ -177,6 +184,35 @@ describe("mockRequest action", function () {
     assert.equal(other.result.outputs.matched, 0);
     const again = await run({ url: "**/x" }, { driver });
     assert.equal(again.result.outputs.matched, 3);
+  });
+
+  // webdriverio 10.2.0 releases a response no mock answers with a bare
+  // network.provideResponse, which makes Chrome drop the response's headers.
+  it("releases a pass-through response with continueResponse, keeping its headers", async function () {
+    const driver = fakeDriver();
+    await run({ url: "**/api/mocked", response: { body: "x" } }, { driver });
+    const override = driver.overrides.networkProvideResponse;
+    assert.equal(typeof override, "function");
+    const orig = async (params) => driver.sent.push(["provideResponse", params]);
+    await override(orig, { request: "r1" });
+    await override(orig, { request: "r2", statusCode: 200, body: { type: "string", value: "x" } });
+    assert.deepEqual(driver.sent, [
+      ["continueResponse", { request: "r1" }],
+      ["provideResponse", { request: "r2", statusCode: 200, body: { type: "string", value: "x" } }],
+    ]);
+  });
+
+  it("installs the release override once per session", async function () {
+    const driver = fakeDriver();
+    let installs = 0;
+    const overwrite = driver.overwriteCommand;
+    driver.overwriteCommand = (...args) => {
+      installs += 1;
+      return overwrite(...args);
+    };
+    await run({ url: "**/a" }, { driver });
+    await run({ url: "**/b" }, { driver });
+    assert.equal(installs, 1);
   });
 
   it("restoreMocks restores every live mock and forgets them", async function () {
