@@ -1609,6 +1609,32 @@ describe("httpRequest coverage (stubbed axios)", function () {
         assert.deepEqual(result.outputs.response.body, { id: 1 });
       });
 
+      it("doesn't let a schema default satisfy `required`", async function () {
+        stubResponse({ status: 200, data: {} });
+        const result = await httpRequest({
+          config,
+          step: plainStep({
+            type: "object",
+            required: ["id"],
+            properties: { id: { type: "string", default: "generated" } },
+          }),
+        });
+        assert.equal(result.status, "FAIL");
+        assert.equal(result.outputs.responseSchemaValid, false);
+      });
+
+      it("awaits an async (`$async`) schema instead of treating its promise as valid", async function () {
+        const asyncSchema = { $async: true, type: "object", required: ["id"] };
+        stubResponse({ status: 200, data: {} });
+        const bad = await httpRequest({ config, step: plainStep(asyncSchema) });
+        assert.equal(bad.status, "FAIL");
+        assert.equal(bad.outputs.responseSchemaValid, false);
+        assert.match(bad.description, /didn't match the response schema/);
+        stubResponse({ status: 200, data: { id: "x" } });
+        const good = await httpRequest({ config, step: plainStep(asyncSchema) });
+        assert.equal(good.status, "PASS", good.description);
+      });
+
       it("FAILs cleanly when the inline schema itself is invalid", async function () {
         stubResponse({ status: 200, data: { id: UUID } });
         const result = await httpRequest({

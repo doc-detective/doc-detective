@@ -70,6 +70,8 @@ Chosen option 1.
 * A schema that isn't valid JSON Schema, such as `"minimum": "x"`, FAILs the step with
   ``Couldn't check the response against the <source> schema because the schema isn't valid JSON
   Schema: <AJV error>.`` It doesn't crash the run.
+* The check never changes the response. Schema `default` values aren't applied, so a default
+  can't satisfy `required` or show up as an extra field. A `$async` schema is awaited.
 * `response.schema` composes with `response.body`, `response.required`, and
   `allowAdditionalFields`. Each keeps its own assertion.
 

@@ -395,10 +395,12 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
   const responseSchema = inlineResponseSchema ?? openApiResponseSchema;
   if (responseSchema) {
     const schemaName = inlineResponseSchema ? "response" : "OpenAPI";
+    // A check, not a transform: useDefaults would fill a missing field before
+    // `required` runs (a false PASS) and write defaults into the response.
     const ajv = new Ajv({
       strictSchema: false,
       logger: false,
-      useDefaults: true,
+      useDefaults: false,
       allErrors: true,
       allowUnionTypes: true,
       coerceTypes: false,
@@ -417,10 +419,20 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
         ? ajv.errorsText(ajv.errors)
         : String(error?.message ?? error);
     }
-    // useDefaults fills schema defaults into the data it validates. Validate a
-    // copy so the response, and the checks after this one, stay untouched.
-    const valid = validateFn ? validateFn(structuredClone(response.data)) : false;
-    result.outputs.responseSchemaValid = !!valid;
+    // A `$async` schema returns a promise that rejects with the errors, so
+    // await it rather than reading the promise as a pass.
+    let valid = false;
+    let validationErrors: any = null;
+    if (validateFn) {
+      try {
+        valid = !!(await validateFn(response.data));
+        validationErrors = validateFn.errors;
+      } catch (error: any) {
+        valid = false;
+        validationErrors = error?.errors ?? String(error?.message ?? error);
+      }
+    }
+    result.outputs.responseSchemaValid = valid;
     specs.push({
       statement: `$$outputs.responseSchemaValid == true`,
       severity: "fail",
@@ -437,7 +449,7 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     } else {
       descriptions.push(
         `Response data didn't match the ${schemaName} schema. ${JSON.stringify(
-          validateFn.errors,
+          validationErrors,
           null,
           2
         )}`

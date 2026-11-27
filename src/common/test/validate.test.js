@@ -97,22 +97,22 @@ import { schemas } from "../dist/index.js";
       });
 
       it("accepts an inline JSON Schema in httpRequest.response.schema", function () {
+        const schema = {
+          type: "object",
+          properties: { id: { type: "string", format: "uuid" } },
+        };
         const result = validate({
           schemaKey: "step_v3",
           object: {
             httpRequest: {
               url: "https://example.com",
-              response: {
-                schema: {
-                  type: "object",
-                  properties: { id: { type: "string", format: "uuid" } },
-                },
-              },
+              response: { schema: structuredClone(schema) },
             },
           },
         });
 
         expect(result.valid, result.errors).to.be.true;
+        expect(result.object.httpRequest.response.schema).to.deep.equal(schema);
       });
 
       it("rejects a non-object httpRequest.response.schema", function () {
