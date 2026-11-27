@@ -390,11 +390,13 @@ export async function parseContent({
   const keywordSpans = statements
     .filter((s: any) => s.type !== "testStart" && s.type !== "step" && s.type !== "detectedStep")
     .map((s: any) => [s._startIndex, s._endIndex]);
-  const reportUnparsed = (kind: "test" | "step", text: string, statement: any) => {
+  // The message names the statement by line, not by its text, which can hold a
+  // secret and isn't masked on the way to the log.
+  const reportUnparsed = (kind: "test" | "step", statement: any) => {
     if (ignore) return;
     if (keywordSpans.some(([start, end]) => statement._startIndex < end && start < statement._endIndex)) return;
     const reason =
-      `Couldn't parse the inline \`${kind}\` statement \`${text}\`. ` +
+      `Couldn't parse the inline \`${kind}\` statement on line ${statement._line}. ` +
       "Write it as JSON, as YAML with more than one key inside braces (`{key: value, key: value}`), " +
       "or as `key=value` attributes.";
     log(config, "warn", `${filePath}: ${reason}`);
@@ -411,7 +413,7 @@ export async function parseContent({
         statementContent = statement[1] || statement[0];
         const parsedTest = parseObject({ stringifiedObject: statementContent });
         if (!parsedTest || typeof parsedTest !== 'object') {
-          reportUnparsed("test", statementContent, statement);
+          reportUnparsed("test", statement);
           break;
         }
 
@@ -607,7 +609,7 @@ export async function parseContent({
         statementContent = statement[1] || statement[0];
         const parsedStep = parseObject({ stringifiedObject: statementContent });
         if (!parsedStep || typeof parsedStep !== 'object') {
-          reportUnparsed("step", statementContent, statement);
+          reportUnparsed("step", statement);
           break;
         }
 

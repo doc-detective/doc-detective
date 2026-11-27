@@ -38,8 +38,11 @@ A `test` or `step` statement that parses as neither JSON, YAML, nor attributes l
 reaches `onInvalid`:
 
 ```text
-Couldn't parse the inline `test` statement `testId: my-test description: Test description`. Write it as JSON, as YAML with more than one key inside braces (`{key: value, key: value}`), or as `key=value` attributes.
+Couldn't parse the inline `test` statement on line 12. Write it as JSON, as YAML with more than one key inside braces (`{key: value, key: value}`), or as `key=value` attributes.
 ```
+
+The message names the statement's line, not its text. A statement can hold a secret, and the log
+doesn't mask it. The warning starts with the file's path, and `validate` groups reasons by file.
 
 So `doc-detective validate` lists the file as invalid. A run that exits on failure stops before it
 runs anything, as it does for other invalid inline tests. A match that a `test end` or `test

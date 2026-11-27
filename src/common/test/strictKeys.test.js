@@ -241,14 +241,17 @@ describe("unknown keys", function () {
         (reason) => reasons.push(reason)
       );
       expect(reasons).to.have.lengthOf(1);
-      expect(reasons[0]).to.include("Couldn't parse the inline `test` statement `testId: two description: Two keys`.");
+      expect(reasons[0]).to.include("Couldn't parse the inline `test` statement on line 1.");
+      // The statement's text can hold a secret, so it stays out of the message.
+      expect(reasons[0]).not.to.include("Two keys");
     });
 
     it("reports a step statement it can't parse", async function () {
       const reasons = [];
-      await detect('<!-- step find: selector: "#a" click: true -->', (reason) => reasons.push(reason));
+      await detect('text\n\n<!-- step find: selector: "#a" click: true -->', (reason) => reasons.push(reason));
       expect(reasons).to.have.lengthOf(1);
-      expect(reasons[0]).to.include("Couldn't parse the inline `step` statement");
+      expect(reasons[0]).to.include("Couldn't parse the inline `step` statement on line 3.");
+      expect(reasons[0]).not.to.include("#a");
     });
 
     it("parses a YAML flow mapping and doesn't report it", async function () {
