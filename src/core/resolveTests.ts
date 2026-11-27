@@ -34,7 +34,7 @@ function loadMatrixFiles(matrix: any, config: any) {
     Object.entries(matrix).map(([key, source]: [string, any]) => {
       if (typeof source?.file !== "string") return [key, source];
       const file = path.resolve(source.file);
-      if (!cache.has(file)) cache.set(file, loadMatrixValues(key, { file }, process.cwd()));
+      if (!cache.has(file)) cache.set(file, loadMatrixValues(key, { file }, path.dirname(file)));
       return [key, cache.get(file)];
     })
   );

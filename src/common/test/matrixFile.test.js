@@ -42,6 +42,7 @@ describe("loadMatrixValues (ADR 01228)", function () {
     ["another extension", "pages.txt", "a", "Couldn't load `matrix` key `k`: `<file>` must be `.json` or `.xml`."],
     ["JSON that doesn't parse", "bad.json", "{", "Couldn't load `matrix` key `k`: `<file>` isn't a JSON array."],
     ["JSON that isn't an array", "obj.json", "{}", "Couldn't load `matrix` key `k`: `<file>` isn't a JSON array."],
+    ["an empty JSON array", "empty.json", "[]", "Couldn't load `matrix` key `k`: `<file>` has no values."],
     ["values matrix doesn't accept", "mixed.json", '["a", {"b": 1}]', "Couldn't load `matrix` key `k`: `<file>` has values `matrix` doesn't accept."],
     ["a sitemap with no <loc>", "empty.xml", "<urlset/>", "Couldn't load `matrix` key `k`: `<file>` has no `<loc>` entries."],
   ];
