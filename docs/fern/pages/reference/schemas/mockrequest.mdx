@@ -15,7 +15,7 @@ description: "Reference for the `mockRequest` schema."
 
 Field | Type | Description | Default
 :-- | :-- | :-- | :--
-mockRequest | object([mockRequest](/reference/schemas/mockrequest)) | Required. Answer matching browser requests with a fixed response, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped. | —
+mockRequest | object([mockRequest](/reference/schemas/mockrequest)) | Required. Answer matching browser requests with a fixed response, a sequence of responses, or the responses recorded in a HAR file, from this step until the test ends. A later `mockRequest` for the same `url` and `method` replaces the earlier one. Runs only in Chrome. In other browsers, the step is skipped. | —
 
 ## Examples
 
@@ -44,6 +44,35 @@ mockRequest | object([mockRequest](/reference/schemas/mockrequest)) | Required. 
       },
       "bodyPath": "fixtures/user.json"
     }
+  }
+}
+```
+
+```json
+{
+  "mockRequest": {
+    "url": "**/api/jobs/1",
+    "responses": [
+      {
+        "body": {
+          "status": "running"
+        }
+      },
+      {
+        "body": {
+          "status": "done"
+        }
+      }
+    ]
+  }
+}
+```
+
+```json
+{
+  "mockRequest": {
+    "harPath": "fixtures/app.har",
+    "url": "**/api/**"
   }
 }
 ```
