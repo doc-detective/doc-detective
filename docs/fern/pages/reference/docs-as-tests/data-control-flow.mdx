@@ -8,7 +8,7 @@ Each example on this page shows one procedure as prose, detected tests, inline t
 
 ## Call an API with a token from an environment file
 
-This procedure uses [`loadVariables`](/docs/actions/loadvariables) and [`httpRequest`](/docs/actions/httprequest), with the step fields [`variables` and `assertions`](/reference/schemas/step), the [`jq()` function](/reference/expressions#function-operators), and [`publicVariables`](/reference/schemas/test) on the test and the [spec](/reference/schemas/specification).
+This procedure uses [`loadVariables`](/docs/actions/loadvariables) and [`httpRequest`](/docs/actions/httprequest), with the step fields [`variables` and `assertions`](/reference/schemas/step), the [`jq()` function](/reference/reference/expressions#function-operators), and [`publicVariables`](/reference/schemas/test) on the test and the [spec](/reference/schemas/specification).
 
 The example folder holds the `api.env` file the steps load:
 
@@ -23,8 +23,8 @@ API_TOKEN=docs-example-token
 
 - `$API_URL` and `$API_TOKEN` come from the `api.env` file. Doc Detective substitutes them into the URL and the `Authorization` header.
 - The first request's `variables` field sets `ACCOUNT_NAME` from `$$response.body.name`, and `ACCOUNT_SEATS` from `jq($$response.body, ".seats")`. It sets `ACCOUNT_ROLE` from `$$response.body.roles[0]`, the first item of the `roles` array. The second request uses all three in its URL, and its assertion reads `$ACCOUNT_SEATS` too.
-- `assertions` adds custom checks to a step. Each check is an [expression](/reference/expressions) over the step's `$$outputs`, given as one string or as an array whose checks must all pass.
-- Doc Detective masks every value it loads or substitutes as `***NAME***` in logs and reports. `publicVariables` lists the names to show: `ACCOUNT_*` on the test, and `API_URL` on the spec. A name listed in the config, any spec, or any test is public for the whole run. See [Keep secrets out of logs](/docs/ci/secrets).
+- `assertions` adds custom checks to a step. Each check is an [expression](/reference/reference/expressions) over the step's `$$outputs`, given as one string or as an array whose checks must all pass.
+- Doc Detective masks each value it loads or substitutes as `***NAME***` in logs and reports. It doesn't mask a value shorter than 4 characters, or `true`, `false`, or `null`. `publicVariables` lists the names to show: `ACCOUNT_*` on the test, and `API_URL` on the spec. A name listed in the config, any spec, or any test is public for the whole run. See [Keep secrets out of logs](/docs/ci/secrets).
 
 ### What detection finds
 
@@ -44,7 +44,7 @@ A config-level file only fills variables that aren't already set, while a `loadV
 
 ## Check your Node.js version
 
-This procedure uses [`runShell`](/docs/actions/runshell), the step and test [`if`](/reference/schemas/test) conditions, the [`extract()` function](/reference/expressions#function-operators), and the [`onSkip` and `onFail` step routing](/reference/schemas/step-routing) entries `continue` and `stop`.
+This procedure uses [`runShell`](/docs/actions/runshell), the step and test [`if`](/reference/schemas/test) conditions, the [`extract()` function](/reference/reference/expressions#function-operators), and the [`onSkip` and `onFail` step routing](/reference/schemas/step-routing) entries `continue` and `stop`.
 
 <Markdown src="examples/data-node-check/_variants.mdx" />
 
@@ -61,7 +61,7 @@ The commands sit in `shell` code blocks, and default detection turns only `bash`
 
 ## Wait for a service, then echo text through it
 
-This procedure has three tests. It uses [`wait`](/docs/actions/wait), [`runShell`](/docs/actions/runshell), [`goTo`](/docs/actions/goto), [`click`](/docs/actions/click), [`type`](/docs/actions/type), [`find`](/docs/actions/find), and [`httpRequest`](/docs/actions/httprequest). It routes with the [step routing](/reference/schemas/step-routing) entries `retry` and `goToStep`, and the [test routing](/reference/schemas/routing) entries `goToTest`, `stop: "spec"`, and `continue`. Several routing entries carry an `if` condition, as a string or an array. It also sets the [context](/reference/schemas/context) field `retries`.
+This procedure has three tests. It uses [`wait`](/docs/actions/wait), [`runShell`](/docs/actions/runshell), [`goTo`](/docs/actions/goto), [`click`](/docs/actions/click), [`type`](/docs/actions/type), [`find`](/docs/actions/find), and [`httpRequest`](/docs/actions/httprequest). It routes with the [step routing](/reference/schemas/step-routing) entries `retry` and `goToStep`, and the [test routing](/reference/schemas/routing) entries `goToTest`, `stop: "spec"`, and `continue`. Several routing entries carry an `if` condition, as a string or an array. It also sets the [context](/reference/schemas/context) field `retries` in the test's [`runOn`](/reference/schemas/test). Set it there, not in the test's `contexts`: Doc Detective fills in `contexts` when it resolves the test and replaces anything you write there.
 
 <Markdown src="examples/data-service-retry/_variants.mdx" />
 
@@ -83,7 +83,7 @@ The rest of the routing:
 - In `data-echo-text`, the `read-echo` step saves the element's text from `$$element.text`. When it passes and its text matches the `if` array of its `onPass` entry, `goToStep` jumps over the `retype` step to `send-echo`. When it fails, `retry` runs it again.
 - `send-echo` runs only when `$$steps.read-echo.outputs.element.text` matches, sends the saved `$ECHOED` value, and asserts that the response echoes it. The test's `publicVariables` shows `ECHOED` in output instead of masking it.
 - `onWarning` with `continue: true`, on `send-echo` and on the test, moves on after a warning, which is also the default. The test's `onSkip` entry `stop: "spec"` skips the spec's remaining tests if Doc Detective skips this test.
-- The context's `retries: 2` runs the whole test again on a fresh browser session, up to twice, when the session crashes or never loads a page. A real failure, such as a missing element, doesn't trigger it. A step's `retry` runs one step again on the same session.
+- The `runOn` entry's `retries: 2` runs the whole test again on a fresh browser session, up to twice, when the session crashes or never loads a page. The entry sets no `platforms` or `browsers`, so the test still runs on the current platform with the default browser. A real failure, such as a missing element, doesn't trigger it. A step's `retry` runs one step again on the same session.
 
 A step that `retry` or `goToStep` runs more than once reports `attempts` or `visit` in its result. A test that `goToTest` runs again reports `visit`. Doc Detective sets these fields. Don't set them in a test.
 

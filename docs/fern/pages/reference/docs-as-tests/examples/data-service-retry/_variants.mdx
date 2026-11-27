@@ -296,7 +296,7 @@ node -e "console.log('Restarting the service.')"
 
 <!-- test end -->
 
-<!-- test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true} -->
+<!-- test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true} -->
 
 ## Echo text
 
@@ -356,7 +356,7 @@ node -e "console.log('Restarting the service.')"
 
 {/* test end */}
 
-{/* test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true} */}
+{/* test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true} */}
 
 ## Echo text
 
@@ -418,7 +418,7 @@ node -e "console.log('Restarting the service.')"
 
 // (test end)
 
-// (test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true})
+// (test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true})
 
 == Echo text
 
@@ -473,7 +473,7 @@ The API returns the same text.
 
 <!-- step {"runShell":"node -e \"console.log('Restarting the service.')\""} -->
 <!-- test end -->
-<!-- test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true} -->
+<!-- test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true} -->
 <h2>Echo text</h2>
 
 <ol>
@@ -534,7 +534,7 @@ If the service still isn't ready, restart it:
 
 .. test end
 
-.. test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true}
+.. test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true}
 
 Echo text
 ---------
@@ -590,7 +590,7 @@ Echo text
     </section>
     <section>
       <title>Echo text</title>
-      <data name="doc-detective" value='test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true}'/>
+      <data name="doc-detective" value='test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":true}'/>
       <ol>
         <li>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</li>
         <li>Click <b>Type here:</b>.</li>
@@ -651,7 +651,7 @@ node -e "console.log('Restarting the service.')"
 
 <!-- test end -->
 
-<!-- test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false} -->
+<!-- test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false} -->
 
 ## Echo text
 
@@ -716,7 +716,7 @@ node -e "console.log('Restarting the service.')"
 
 {/* test end */}
 
-{/* test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false} */}
+{/* test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false} */}
 
 ## Echo text
 
@@ -783,7 +783,7 @@ node -e "console.log('Restarting the service.')"
 
 // (test end)
 
-// (test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false})
+// (test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false})
 
 == Echo text
 
@@ -848,7 +848,7 @@ The API returns the same text.
 
 <!-- step {"runShell":"node -e \"console.log('Restarting the service.')\""} -->
 <!-- test end -->
-<!-- test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false} -->
+<!-- test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false} -->
 <h2>Echo text</h2>
 
 <ol>
@@ -914,7 +914,7 @@ If the service still isn't ready, restart it:
 
 .. test end
 
-.. test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false}
+.. test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false}
 
 Echo text
 ---------
@@ -980,7 +980,7 @@ Echo text
     </section>
     <section>
       <title>Echo text</title>
-      <data name="doc-detective" value='test {"testId":"data-echo-text","publicVariables":["ECHOED"],"contexts":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false}'/>
+      <data name="doc-detective" value='test {"testId":"data-echo-text","publicVariables":["ECHOED"],"runOn":[{"retries":2}],"onWarning":[{"continue":true}],"onSkip":[{"stop":"spec"}],"detectSteps":false}'/>
       <ol>
         <li>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.
           <data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></li>
@@ -1062,7 +1062,7 @@ Echo text
       "publicVariables": [
         "ECHOED"
       ],
-      "contexts": [
+      "runOn": [
         {
           "retries": 2
         }
@@ -1177,7 +1177,7 @@ tests:
   - testId: data-echo-text
     publicVariables:
       - ECHOED
-    contexts:
+    runOn:
       - retries: 2
     onWarning:
       - continue: true
