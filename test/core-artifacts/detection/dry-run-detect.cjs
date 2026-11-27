@@ -699,6 +699,38 @@ const cases = {
     exit: 2,
     stderr: "fileTypes[0].markup[0]: unknown key `codeBlok`. Did you mean `codeBlock`?",
   },
+  // The string forms the schema allows for a fileType's lists.
+  "string-extensions": {
+    file: "doc.cjs",
+    input: ".",
+    files: { "doc.js": "" },
+    config: {
+      fileTypes: [
+        { name: "cjs", extensions: "cjs", runShell: "echo cjs" },
+        { name: "js", extensions: "js", runShell: "echo js" },
+      ],
+    },
+    content: "",
+    check: (json) => {
+      const ran = json.specs.map((s) => `${path.basename(s.contentPath)}: ${s.tests[0].contexts[0].steps[0].runShell}`).sort();
+      return JSON.stringify(ran) === JSON.stringify(["doc.cjs: echo cjs", "doc.js: echo js"]) ? undefined : `steps ${JSON.stringify(ran)}`;
+    },
+  },
+  // `$1` takes the file's absolute path, backslashes and all on Windows. Single
+  // quotes keep the default bash shell from reading them as escapes.
+  "runshell-path": {
+    file: "doc.cjs",
+    run: true,
+    config: { fileTypes: [{ name: "node", extensions: ["cjs"], runShell: { command: "node", args: ["'$1'"] } }] },
+    content: 'require("fs").statSync(__filename);\n',
+    expect: ["node"],
+  },
+  "string-actions": {
+    file: "doc.md",
+    config: { fileTypes: [md({ markup: [{ strong: {}, actions: "find" }] })] },
+    content: "Click **Save**.\n",
+    expect: [[{ find: "Save" }]],
+  },
   "reject-bad-pattern": {
     file: "doc.md",
     config: { fileTypes: [md({ markup: [{ link: { url: "(" }, actions: ["find"] }] })] },

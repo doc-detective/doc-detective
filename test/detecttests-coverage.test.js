@@ -372,6 +372,36 @@ describe("detectTests coverage", function () {
       const specs = await parseTests({ config, files: [script] });
       assert.deepEqual(specs, []);
     });
+
+    it("matches a fileType whose `extensions` is a string, by whole extension", async function () {
+      // Without `extends`. A string must not substring-match: "cjs" isn't "js".
+      write("run.cjs", "");
+      write("run.js", "");
+      const config = await makeConfig({
+        input: [tmpDir],
+        fileTypes: [
+          { name: "cjs", extensions: "cjs", runShell: { command: "echo", args: ["cjs"] } },
+          { name: "js", extensions: "js", runShell: { command: "echo", args: ["js"] } },
+        ],
+      });
+      const specs = await detectTests({ config });
+      const ran = Object.fromEntries(
+        specs.map((s) => [path.basename(s.contentPath), s.tests[0].steps[0].runShell.args[0]])
+      );
+      assert.deepEqual(ran, { "run.cjs": "cjs", "run.js": "js" });
+    });
+
+    it("substitutes a path with backslashes into a runShell fileType's `$1`", async function () {
+      // On Windows this is sub\run.task; elsewhere a file named `sub\run.task`.
+      const script = write("sub\\run.task", "");
+      const config = await makeConfig({
+        input: [script],
+        fileTypes: [{ name: "task", extensions: ["task"], runShell: { command: "echo", args: ["$1"] } }],
+      });
+      const specs = await parseTests({ config, files: [script] });
+      assert.equal(specs.length, 1);
+      assert.equal(specs[0].tests[0].steps[0].runShell.args[0], script);
+    });
   });
 
   describe("parseTests JSON/YAML branches", function () {

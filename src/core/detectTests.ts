@@ -933,9 +933,17 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
 
       // Process executables
       if (fileType?.runShell) {
-        let runShell: any = JSON.stringify(fileType.runShell);
-        runShell = runShell.replace(/\$1/g, file);
-        runShell = JSON.parse(runShell);
+        // Substitute into the strings, not the JSON text: a Windows path's
+        // backslashes would read as JSON escapes.
+        const substitute = (value: any): any =>
+          typeof value === "string"
+            ? value.replace(/\$1/g, () => file)
+            : Array.isArray(value)
+              ? value.map(substitute)
+              : value && typeof value === "object"
+                ? Object.fromEntries(Object.entries(value).map(([key, v]) => [key, substitute(v)]))
+                : value;
+        const runShell = substitute(fileType.runShell);
 
         const test = {
           steps: [

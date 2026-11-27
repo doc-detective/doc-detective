@@ -503,7 +503,8 @@ export async function parseContent({
           break;
         }
         if (statement?.markup?.actions) {
-          statement.markup.actions.forEach((action: string | Record<string, any>) => {
+          // The schema allows a single action as a string.
+          [statement.markup.actions].flat().forEach((action: string | Record<string, any>) => {
             let step: Record<string, any> = {};
             if (typeof action === "string") {
               if (action === "runCode") return;
