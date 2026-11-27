@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-config-originparams",
+      "runOn": [
+        {
+          "browsers": "chrome"
+        }
+      ],
+      "steps": [
+        {
+          "goTo": "/api/echo"
+        },
+        {
+          "find": "/\"from\":\"docs\"/"
+        }
+      ]
+    }
+  ]
+}

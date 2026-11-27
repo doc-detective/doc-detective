@@ -8,6 +8,8 @@ Each example shows one procedure as prose, as detected tests, as inline tests, a
 
 In a detected variant, a `step` statement holds each step that default detection can't produce, such as `saveCookie` or `startSurface`. Each of those statements also works on its own, because a run with detection off reads only the statements.
 
+The permutation sections, from [`saveCookie` and `loadCookie` permutations](#savecookie-and-loadcookie-permutations) on, vary one setting each. A **Varies** line names the setting, its value, and its effect.
+
 ## Keep a session cookie
 
 This procedure uses [`saveCookie`](/docs/actions/savecookie) and [`loadCookie`](/docs/actions/loadcookie) in their name, file path, and object forms, with [`goTo`](/docs/actions/goto) and [`find`](/docs/actions/find).
@@ -211,3 +213,284 @@ For setup on each platform, see the native app guides, starting with [Native Win
 On Windows, `Click **Select**` becomes a `click` step and a `find` step for `Select`, and the bold `Copy`, `Internet`, and `About` become `find` steps. The mobile procedures say `Tap`, and a statement holds that click, because after the tap the screen no longer shows the entry's label. A detected `find` for the label would fail.
 
 In DITA, `<uicontrol>` marks the control to click, as in [Navigation and interaction](/reference/docs-as-tests/navigation-interaction).
+
+## `saveCookie` and `loadCookie` permutations
+
+### `"saveCookie": "<name>"`
+
+**Varies:** `saveCookie and loadCookie` · **Value:** `"sessions_pname"` · **Effect:** a bare cookie name saves the cookie to, and loads it from, the environment variable of the same name.
+
+<Markdown src="examples/sessions-cookie-form-name/_variants.mdx" />
+
+### `"saveCookie": "<name>.txt"`
+
+**Varies:** `saveCookie and loadCookie` · **Value:** `"sessions_ptxt.txt"` · **Effect:** a path ending in `.txt` saves the cookie named for the file to that file in `outputDir`, and never overwrites one that exists.
+
+<Markdown src="examples/sessions-cookie-form-txt/_variants.mdx" />
+
+### `"overwrite": true`
+
+**Varies:** `saveCookie.overwrite` · **Value:** `true` · **Effect:** a second save to the same file replaces it, so the later value wins.
+
+<Markdown src="examples/sessions-cookie-overwrite-true/_variants.mdx" />
+
+### `"domain": "localhost"`
+
+**Varies:** `saveCookie.domain and loadCookie.domain` · **Value:** `"localhost"` · **Effect:** saves and loads only the cookie set for that domain.
+
+<Markdown src="examples/sessions-cookie-domain/_variants.mdx" />
+
+### `"variable": "SESSIONS_PVAR"`
+
+**Varies:** `saveCookie.variable and loadCookie.variable` · **Value:** `"SESSIONS_PVAR"` · **Effect:** the cookie goes to an environment variable whose name differs from the cookie's.
+
+<Markdown src="examples/sessions-cookie-variable/_variants.mdx" />
+
+## `saveState` and `loadState` permutations
+
+### `"saveState": "<file>.json"`
+
+**Varies:** `saveState and loadState` · **Value:** `"sessions-pstate.json"` · **Effect:** the string form saves to and loads from `outputDir`, and the save never overwrites a file that exists.
+
+<Markdown src="examples/sessions-state-form-string/_variants.mdx" />
+
+### `"overwrite": true`
+
+**Varies:** `saveState.overwrite` · **Value:** `true` · **Effect:** the object form with `overwrite` replaces an earlier file, so the test can run again into the same `outputDir`.
+
+<Markdown src="examples/sessions-state-overwrite-true/_variants.mdx" />
+
+## `runOn` `platforms` permutations
+
+### `"platforms": "windows"`
+
+**Varies:** `runOn[].platforms` · **Value:** `"windows"` · **Effect:** the test runs on Windows and reports `SKIPPED` on every other platform.
+
+<Markdown src="examples/sessions-runon-platforms-windows/_variants.mdx" />
+
+### `"platforms": ["linux", "mac"]`
+
+**Varies:** `runOn[].platforms` · **Value:** `["linux", "mac"]` · **Effect:** an array runs the test on each listed platform the host matches, and skips the rest.
+
+<Markdown src="examples/sessions-runon-platforms-array/_variants.mdx" />
+
+## `runOn` `browsers` permutations
+
+### `"browsers": "firefox"`
+
+**Varies:** `runOn[].browsers` · **Value:** `"firefox"` · **Effect:** a browser name runs the test in that browser, headless by default.
+
+<Markdown src="examples/sessions-runon-browsers-string/_variants.mdx" />
+
+### `"browsers": ["firefox", "chrome"]`
+
+**Varies:** `runOn[].browsers` · **Value:** `["firefox", "chrome"]` · **Effect:** an array runs the whole test once per browser.
+
+<Markdown src="examples/sessions-runon-browsers-array/_variants.mdx" />
+
+### `"headless": false`
+
+**Varies:** `runOn[].browsers.headless` · **Value:** `false` · **Effect:** the browser opens a visible window, so the context runs only where there's a display, here Windows and macOS.
+
+<Markdown src="examples/sessions-runon-browsers-headed/_variants.mdx" />
+
+## `runOn` browser option permutations
+
+### `"colorScheme": "dark"`
+
+**Varies:** `runOn[].browsers.colorScheme` · **Value:** `"dark"` · **Effect:** the page's `prefers-color-scheme` media query matches `dark`.
+
+<Markdown src="examples/sessions-runon-colorscheme/_variants.mdx" />
+
+### `"locale": "de-DE"`
+
+**Varies:** `runOn[].browsers.locale` · **Value:** `"de-DE"` · **Effect:** `navigator.language` and `Intl` formatting use German.
+
+<Markdown src="examples/sessions-runon-locale/_variants.mdx" />
+
+### `"timezone": "Europe/Berlin"`
+
+**Varies:** `runOn[].browsers.timezone` · **Value:** `"Europe/Berlin"` · **Effect:** `Date` and `Intl` use Berlin time.
+
+<Markdown src="examples/sessions-runon-timezone/_variants.mdx" />
+
+### `"deviceScaleFactor": 2`
+
+**Varies:** `runOn[].browsers.deviceScaleFactor` · **Value:** `2` · **Effect:** `devicePixelRatio` is `2`, as on a high-density display.
+
+<Markdown src="examples/sessions-runon-devicescalefactor/_variants.mdx" />
+
+### `"reducedMotion": "reduce"`
+
+**Varies:** `runOn[].browsers.reducedMotion` · **Value:** `"reduce"` · **Effect:** the page's `prefers-reduced-motion` media query matches `reduce`.
+
+<Markdown src="examples/sessions-runon-reducedmotion/_variants.mdx" />
+
+### `"clock": "2026-12-03T09:00:00Z"`
+
+**Varies:** `runOn[].browsers.clock` · **Value:** `"2026-12-03T09:00:00Z"` · **Effect:** `Date.now()` and `new Date()` stay at that instant.
+
+<Markdown src="examples/sessions-runon-clock/_variants.mdx" />
+
+## `runOn` `requires` permutations
+
+### `"requires": "node"`
+
+**Varies:** `runOn[].requires` · **Value:** `"node"` · **Effect:** a command name must be on `PATH`, or the context is `SKIPPED`.
+
+<Markdown src="examples/sessions-runon-requires-string/_variants.mdx" />
+
+### `"requires": ["node", "npm"]`
+
+**Varies:** `runOn[].requires` · **Value:** `["node", "npm"]` · **Effect:** every command in the array must be on `PATH`.
+
+<Markdown src="examples/sessions-runon-requires-array/_variants.mdx" />
+
+### `"requires": { "commands": [...], "env": [...] }`, unmet
+
+**Varies:** `runOn[].requires` · **Value:** `{ "commands": ["sessions-missing-tool"], "env": ["PATH"] }` · **Effect:** an object checks commands, files, and environment variables together, and one unmet entry skips the context instead of failing it.
+
+<Markdown src="examples/sessions-runon-requires-unmet/_variants.mdx" />
+
+## `runOn` `browserFallback` and `retries` permutations
+
+### `"browserFallback": "auto"`
+
+**Varies:** `runOn[].browserFallback` · **Value:** `"auto"` · **Effect:** without a working Firefox, the context runs in another available browser and reports `WARNING` instead of `PASS`.
+
+<Markdown src="examples/sessions-runon-fallback-auto/_variants.mdx" />
+
+### `"browserFallback": "explicit"` with `"retries": 0`
+
+**Varies:** `runOn[].browserFallback and runOn[].retries` · **Value:** `"explicit", 0` · **Effect:** without a working Firefox, the context is `SKIPPED`, because the test names Firefox. `retries: 0` also turns off re-runs after a broken session.
+
+<Markdown src="examples/sessions-runon-fallback-explicit/_variants.mdx" />
+
+### `"browserFallback": "off"`
+
+**Varies:** `runOn[].browserFallback` · **Value:** `"off"` · **Effect:** the context never falls back to another browser, and is `SKIPPED` without a working Firefox.
+
+<Markdown src="examples/sessions-runon-fallback-off/_variants.mdx" />
+
+## `goTo` `newTab` and `newWindow` permutations
+
+### `"newTab": true`, `"newWindow": true`
+
+**Varies:** `goTo.newTab and goTo.newWindow` · **Value:** `true` · **Effect:** each opens an unnamed tab or window and makes it active.
+
+<Markdown src="examples/sessions-goto-new-boolean/_variants.mdx" />
+
+### `"newTab": "notes"`, `"newWindow": "about"`
+
+**Varies:** `goTo.newTab and goTo.newWindow` · **Value:** `"notes", "about"` · **Effect:** a string names the new tab or window, so later steps can select it by that name.
+
+<Markdown src="examples/sessions-goto-new-string/_variants.mdx" />
+
+### `"newTab": { "name" }`, `"newWindow": { "name", "tab" }`
+
+**Varies:** `goTo.newTab and goTo.newWindow` · **Value:** `{ "name": "report" }, { "name": "settings", "tab": "general" }` · **Effect:** the object form names the tab, or names the window and its first tab.
+
+<Markdown src="examples/sessions-goto-new-object/_variants.mdx" />
+
+## Surface selector permutations
+
+### `"tab": 0`
+
+**Varies:** `surface.tab` · **Value:** `0` · **Effect:** a number selects the tab at that position in creation order, and `-1` selects the newest.
+
+<Markdown src="examples/sessions-select-tab-number/_variants.mdx" />
+
+### `"tab": "second"`
+
+**Varies:** `surface.tab` · **Value:** `"second"` · **Effect:** a string selects the tab with that name.
+
+<Markdown src="examples/sessions-select-tab-string/_variants.mdx" />
+
+### `"tab": { "index": -1 }`
+
+**Varies:** `surface.tab.index` · **Value:** `-1` · **Effect:** the `index` key works like a number, so `-1` selects the newest tab.
+
+<Markdown src="examples/sessions-select-tab-index/_variants.mdx" />
+
+### `"tab": { "title": "Multi-tab home" }`
+
+**Varies:** `surface.tab.title` · **Value:** `"Multi-tab home"` · **Effect:** the `title` key selects the tab whose title matches.
+
+<Markdown src="examples/sessions-select-tab-title/_variants.mdx" />
+
+### `"tab": { "url": "…" }`
+
+**Varies:** `surface.tab.url` · **Value:** `"http://localhost:8092/multi-tab-child.html?page=second"` · **Effect:** the `url` key selects the tab whose URL matches.
+
+<Markdown src="examples/sessions-select-tab-url/_variants.mdx" />
+
+### `"window": -1`
+
+**Varies:** `surface.window` · **Value:** `-1` · **Effect:** a number selects the window at that position in creation order, and `-1` selects the newest.
+
+<Markdown src="examples/sessions-select-window-number/_variants.mdx" />
+
+### `"window": { "name": "second" }`
+
+**Varies:** `surface.window.name` · **Value:** `"second"` · **Effect:** the `name` key, like a bare string, selects the window with that name.
+
+<Markdown src="examples/sessions-select-window-name/_variants.mdx" />
+
+### `"window": { "title": "Child second" }`
+
+**Varies:** `surface.window.title` · **Value:** `"Child second"` · **Effect:** the `title` key selects the window whose active tab has that title.
+
+<Markdown src="examples/sessions-select-window-title/_variants.mdx" />
+
+## `startSurface` and `closeSurface` permutations
+
+### Browser descriptor, closed by object
+
+**Varies:** `startSurface (browser descriptor) and closeSurface (object)` · **Value:** `{ "browser": "firefox", "name": "reviewer" }` · **Effect:** `startSurface` opens a second, named browser session, and `closeSurface` ends it by naming the engine and session.
+
+<Markdown src="examples/sessions-surface-browser/_variants.mdx" />
+
+### Process descriptor, closed by name
+
+**Varies:** `startSurface (process descriptor) and closeSurface (string)` · **Value:** `{ "process": "node", "args": ["-i"], "name": "sessions-prepl" }` · **Effect:** `startSurface` starts a process you can type into, and a bare name closes it.
+
+<Markdown src="examples/sessions-surface-process/_variants.mdx" />
+
+### Array of descriptors, closed by array
+
+**Varies:** `startSurface (array) and closeSurface (array)` · **Value:** `[{ "process": … }, { "process": … }]` · **Effect:** an array starts every surface in one step, and an array closes several at once, by name or by object.
+
+<Markdown src="examples/sessions-surface-array/_variants.mdx" />
+
+## Config `origin` and `originParams` permutations
+
+### `"origin": "http://localhost:8092"`
+
+**Varies:** `config.origin` · **Value:** `"http://localhost:8092"` · **Effect:** steps can give a path, and the config supplies the scheme and host.
+
+The example's own `doc-detective.json` sets:
+
+```json title="doc-detective.json"
+{
+  "origin": "http://localhost:8092"
+}
+```
+
+<Markdown src="examples/sessions-config-origin/_variants.mdx" />
+
+### `"originParams": { "from": "docs" }`
+
+**Varies:** `config.originParams` · **Value:** `{ "from": "docs" }` · **Effect:** every URL built from `origin` gets the query parameters, so the echo endpoint returns `from=docs`.
+
+The example's own `doc-detective.json` sets:
+
+```json title="doc-detective.json"
+{
+  "origin": "http://localhost:8092",
+  "originParams": {
+    "from": "docs"
+  }
+}
+```
+
+<Markdown src="examples/sessions-config-originparams/_variants.mdx" />

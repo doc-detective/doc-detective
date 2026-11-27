@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-select-tab-index">
+  <title>Check a page in another tab or window</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-select-tab-index","detectSteps":false,"runOn":[{"browsers":{"name":"firefox","headless":true},"browserFallback":"off"}]}'/>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/multi-tab.html"}'/></info></step>
+      <step><cmd>Load <xref href="http://localhost:8092/multi-tab-child.html?page=second" scope="external" format="html">the second page</xref> in a new tab named <codeph>second</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=second","newTab":"second"}}'/></info></step>
+      <step><cmd>Check that the selected page reads "PAGE second".</cmd>
+        <info><data name="doc-detective" value='step {"find":{"elementText":"PAGE second","surface":{"browser":"firefox","tab":{"index":-1}}}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

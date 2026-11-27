@@ -1,0 +1,9 @@
+<!-- test {"testId":"sessions-runon-platforms-windows","detectSteps":true,"runOn":[{"platforms":"windows"}]} -->
+
+# Check the page on Windows
+
+1. Start at [the multi-tab page](http://localhost:8092/multi-tab.html).
+   <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} -->
+2. Check that the page reads **MULTI-TAB HOME**.
+
+<!-- test end -->

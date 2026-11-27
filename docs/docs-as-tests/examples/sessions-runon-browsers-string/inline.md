@@ -1,0 +1,10 @@
+<!-- test {"testId":"sessions-runon-browsers-string","detectSteps":false,"runOn":[{"browsers":"firefox"}]} -->
+
+# Check the page in Firefox
+
+1. Start at [the multi-tab page](http://localhost:8092/multi-tab.html).
+   <!-- step {"goTo":"http://localhost:8092/multi-tab.html"} -->
+2. Check that the page reads **MULTI-TAB HOME**.
+   <!-- step {"find":"MULTI-TAB HOME"} -->
+
+<!-- test end -->

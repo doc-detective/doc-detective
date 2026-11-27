@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-requires-unmet">
+  <title>Run a tool only where it's installed</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Run <codeph>sessions-missing-tool --version</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

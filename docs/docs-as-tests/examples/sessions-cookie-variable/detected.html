@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Keep a cookie in a named variable</title></head>
+<body>
+<!-- test {"testId":"sessions-cookie-variable","detectSteps":true} -->
+<h1>Keep a cookie in a named variable</h1>
+<ol>
+  <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_pvar/signed-in">the sign-in page</a>. The server sets the <code>sessions_pvar</code> cookie.
+    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_pvar/signed-in"} --></li>
+  <li>Save the <code>sessions_pvar</code> cookie to the <code>SESSIONS_PVAR</code> environment variable.
+    <!-- step {"saveCookie":{"name":"sessions_pvar","variable":"SESSIONS_PVAR"}} --></li>
+  <li>Sign out at <a href="http://localhost:8092/cookies/set/sessions_pvar/signed-out">the sign-out page</a>, which replaces the cookie.
+    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_pvar/signed-out"} --></li>
+  <li>Load the cookie from <code>SESSIONS_PVAR</code>.
+    <!-- step {"loadCookie":{"name":"sessions_pvar","variable":"SESSIONS_PVAR"}} --></li>
+  <li>Open <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_pvar=signed-in</strong>.</li>
+</ol>
+<!-- test end -->
+</body>
+</html>
