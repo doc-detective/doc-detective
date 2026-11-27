@@ -262,6 +262,9 @@ navigation:
                   - page: reStructuredText
                     path: pages/docs/input-formats/rst.mdx
                     slug: rst
+                  - page: Gherkin
+                    path: pages/docs/input-formats/gherkin.mdx
+                    slug: gherkin
                   - page: Custom
                     path: pages/docs/input-formats/custom.mdx
                     slug: custom

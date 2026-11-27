@@ -709,7 +709,7 @@ const cases = {
     config: { fileTypes: ["restructuredtext"] },
     content: "x\n",
     exit: 2,
-    stderr: 'fileTypes[0]: must be one of markdown, asciidoc, html, dita, rst (got "restructuredtext").',
+    stderr: 'fileTypes[0]: must be one of markdown, asciidoc, html, dita, rst, gherkin (got "restructuredtext").',
   },
   "reject-two-kinds": {
     file: "doc.md",

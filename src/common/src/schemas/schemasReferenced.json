@@ -8182,7 +8182,8 @@
             "asciidoc",
             "html",
             "dita",
-            "rst"
+            "rst",
+            "gherkin"
           ],
           "anyOf": [
             {
@@ -8197,7 +8198,8 @@
                       "asciidoc",
                       "html",
                       "dita",
-                      "rst"
+                      "rst",
+                      "gherkin"
                     ]
                   },
                   {
@@ -8226,7 +8228,8 @@
                           "asciidoc",
                           "html",
                           "dita",
-                          "rst"
+                          "rst",
+                          "gherkin"
                         ]
                       },
                       "extensions": {
@@ -16913,7 +16916,8 @@
                       "asciidoc",
                       "html",
                       "dita",
-                      "rst"
+                      "rst",
+                      "gherkin"
                     ]
                   },
                   {
@@ -16942,7 +16946,8 @@
                           "asciidoc",
                           "html",
                           "dita",
-                          "rst"
+                          "rst",
+                          "gherkin"
                         ]
                       },
                       "extensions": {

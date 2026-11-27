@@ -14,8 +14,9 @@ Doc Detective includes built-in support for:
 - [**HTML**](html): Standard web format with HTML comment syntax
 - [**DITA**](dita): XML-based format with semantic markup for technical documentation
 - [**reStructuredText**](rst): Markup language of Sphinx and docutils projects
+- [**Gherkin**](gherkin): The `.feature` files of Cucumber and other behavior-driven development tools
 
-Every format detects the same steps, written in its own syntax.
+Every format except Gherkin detects the same steps, written in its own syntax. Gherkin detects steps from step phrases, such as `When I click "Submit"`, and runs each scenario as a test.
 
 ## How input formats work
 
@@ -45,6 +46,8 @@ With [step detection](/docs/test-docs/detected) on, each built-in detects these 
 
 DITA also clicks, finds, and types into `<uicontrol>` elements, finds `<wintitle>` elements, and checks `<link>` elements. See [DITA](dita).
 
+Gherkin has its own step phrases. See [Gherkin](gherkin#step-phrases).
+
 Each format writes links, bold text, images, and code blocks its own way. The [Selectors](selectors#kinds) page lists the syntax each format uses.
 
 ### Show code without running it
@@ -64,7 +67,7 @@ Doc Detective includes default configurations for common file types:
 
 ```json
 {
-  "fileTypes": ["markdown", "asciidoc", "html", "dita", "rst"]
+  "fileTypes": ["markdown", "asciidoc", "html", "dita", "rst", "gherkin"]
 }
 ```
 
@@ -77,6 +80,7 @@ Each name loads that format's built-in rules for these extensions:
 | `html` | `html`, `htm` |
 | `dita` | `dita`, `ditamap`, `xml` |
 | `rst` | `rst` |
+| `gherkin` | `feature` |
 
 ## Choosing an input format
 
@@ -87,6 +91,7 @@ The input format you choose depends on your documentation toolchain and team pre
 - Use **HTML** for web-based documentation or when working directly with HTML files
 - Use **DITA** for enterprise documentation with semantic markup requirements
 - Use **reStructuredText** for Sphinx and docutils projects
+- Use **Gherkin** when your specifications are `.feature` files
 
 ## Custom input formats
 
@@ -101,4 +106,5 @@ Learn more about each specific input format:
 - [HTML input format](html)
 - [DITA input format](dita)
 - [reStructuredText input format](rst)
+- [Gherkin input format](gherkin)
 - [Custom input formats](custom)

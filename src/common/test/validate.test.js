@@ -4112,11 +4112,26 @@ import { schemas } from "../dist/index.js";
           expect(result.valid, result.errors).to.be.true;
         }
         const defaults = validate({ schemaKey: "config_v3", object: {} });
-        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst"]);
+        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst", "gherkin"]);
       });
 
       it("rejects restructuredtext as a predefined fileType or extends base", function () {
         for (const fileTypes of [["restructuredtext"], [{ extends: "restructuredtext", extensions: ["txt"] }]]) {
+          expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
+        }
+      });
+    });
+
+    describe("config_v3 gherkin fileType", function () {
+      it("accepts gherkin as a predefined fileType and as an extends base", function () {
+        for (const fileTypes of [["gherkin"], [{ extends: "gherkin", extensions: ["story"] }]]) {
+          const result = validate({ schemaKey: "config_v3", object: { fileTypes } });
+          expect(result.valid, result.errors).to.be.true;
+        }
+      });
+
+      it("rejects cucumber as a predefined fileType or extends base", function () {
+        for (const fileTypes of [["cucumber"], [{ extends: "cucumber", extensions: ["story"] }]]) {
           expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
         }
       });
