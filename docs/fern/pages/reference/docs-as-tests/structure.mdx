@@ -93,7 +93,7 @@ This test uses the [test](/reference/schemas/test) fields `before` and `after`, 
 
 <Markdown src="examples/structure-before-after/_variants.mdx" />
 
-`before` and `after` each name one spec file, relative to the spec that names them. Doc Detective uses the steps of the first test in that file. It runs them in the same context as the test, so the test shares their browser and cookies. The `before` steps run first. The `after` steps run last, even when a step of the test fails.
+`before` and `after` each name one spec file, relative to the file that names them: a spec, or a document with an inline `test` statement. Doc Detective uses the steps of the first test in that file. It runs them in the same context as the test, so the test shares their browser and cookies. The `before` steps run first. The `after` steps run last, even when a step of the test fails.
 
 The setup and cleanup specs:
 
@@ -135,7 +135,9 @@ The setup and cleanup specs:
 }
 ```
 
-This example has only a standalone spec. Doc Detective runs `before` and `after` for tests in spec files. A `before` or `after` field on an inline `test` statement has no effect.
+### What detection finds
+
+Detection adds a `checkLink` step for the link, after the sign-in steps. Code spans aren't detected, so the detected variants carry `goTo` and `find` statements, and they still open the page with detection off.
 
 ## Show when a procedure last passed
 
@@ -289,3 +291,207 @@ Without the `dita` command, Doc Detective logs an error and skips the map. When 
 ```
 
 The example leaves out detected tests. A detected `goTo` comes from a link's `href`, and an unresolved `keyref` has none, so detection depends on whether DITA-OT ran. The example leaves out the other formats, which have no maps.
+
+## `detectSteps` permutations
+
+Each example checks two links. Its config sets `detectSteps`, and its `test` statement sets `detectSteps` or leaves it out. Detection runs only when both allow it. A `test` statement can turn detection off, but it can't turn detection on when the config has it off. When detection runs, each link becomes a `checkLink` step beside the inline step, so the test checks each link twice. These examples have prose and inline variants only.
+
+### `true` in config, unset in the test
+
+**Varies:** `detectSteps` · **Value:** config `true`, test unset · **Effect:** the test inherits detection, so each link gets a detected step and an inline step.
+
+<Markdown src="examples/structure-detectsteps-config-true-test-unset/_variants.mdx" />
+
+### `true` in config, `true` in the test
+
+**Varies:** `detectSteps` · **Value:** config `true`, test `true` · **Effect:** detection runs, so each link gets a detected step and an inline step.
+
+<Markdown src="examples/structure-detectsteps-config-true-test-true/_variants.mdx" />
+
+### `true` in config, `false` in the test
+
+**Varies:** `detectSteps` · **Value:** config `true`, test `false` · **Effect:** the test turns detection off, so only the inline steps run.
+
+<Markdown src="examples/structure-detectsteps-config-true-test-false/_variants.mdx" />
+
+### `false` in config, unset in the test
+
+**Varies:** `detectSteps` · **Value:** config `false`, test unset · **Effect:** the test inherits detection off, so only the inline steps run.
+
+<Markdown src="examples/structure-detectsteps-config-false-test-unset/_variants.mdx" />
+
+### `false` in config, `true` in the test
+
+**Varies:** `detectSteps` · **Value:** config `false`, test `true` · **Effect:** detection stays off, because a test can't turn on what the config turned off.
+
+<Markdown src="examples/structure-detectsteps-config-false-test-true/_variants.mdx" />
+
+### `false` in config, `false` in the test
+
+**Varies:** `detectSteps` · **Value:** config `false`, test `false` · **Effect:** detection stays off, so only the inline steps run.
+
+<Markdown src="examples/structure-detectsteps-config-false-test-false/_variants.mdx" />
+
+## `testId` permutations
+
+### `testId: "structure-testid-set"`
+
+**Varies:** `test.testId` · **Value:** `"structure-testid-set"` · **Effect:** results and `verified-by` entries name the test by this ID.
+
+<Markdown src="examples/structure-testid-set/_variants.mdx" />
+
+### `testId` omitted
+
+**Varies:** `test.testId` · **Value:** omitted · **Effect:** the ID joins the spec ID and a hash of the test, such as `<path>~92b45990`.
+
+<Markdown src="examples/structure-testid-omitted/_variants.mdx" />
+
+## Tests per file permutations
+
+### One test
+
+**Varies:** tests per file · **Value:** one · **Effect:** all three checks run in one test, so a failure stops the checks after it.
+
+<Markdown src="examples/structure-tests-one/_variants.mdx" />
+
+### Several tests
+
+**Varies:** tests per file · **Value:** two · **Effect:** each section runs as its own test, so a failure in one doesn't stop the other.
+
+<Markdown src="examples/structure-tests-several/_variants.mdx" />
+
+## `test end` permutations
+
+### `test end` explicit
+
+**Varies:** `test end` statement · **Value:** present · **Effect:** each test ends where its `test end` statement sits.
+
+<Markdown src="examples/structure-testend-explicit/_variants.mdx" />
+
+### `test end` implied
+
+**Varies:** `test end` statement · **Value:** omitted · **Effect:** the next `test` statement ends the previous test, and the end of the file ends the last one.
+
+<Markdown src="examples/structure-testend-implied/_variants.mdx" />
+
+## Ignore block permutations
+
+### Around a `step` statement
+
+**Varies:** ignore block placement · **Value:** around one `step` statement · **Effect:** the inline variant skips that step, but detection still finds the link before the block.
+
+<Markdown src="examples/structure-ignore-step/_variants.mdx" />
+
+### Around a list item
+
+**Varies:** ignore block placement · **Value:** around the second list item · **Effect:** both variants skip the item's link and step. The items around it still run.
+
+<Markdown src="examples/structure-ignore-list-item/_variants.mdx" />
+
+### Around a whole test
+
+**Varies:** ignore block placement · **Value:** around the second test · **Effect:** the second test has no steps, so Doc Detective drops it.
+
+<Markdown src="examples/structure-ignore-test/_variants.mdx" />
+
+A `test end` statement also ends an open ignore block, so in this example the `test ignore end` statement after it has no effect.
+
+## `before` and `after` permutations
+
+These examples are standalone specs. A `before` or `after` field on an inline `test` statement works the same way. For both fields together, in every format, see [Run setup and cleanup steps around one test](#run-setup-and-cleanup-steps-around-one-test).
+
+### `before` only
+
+**Varies:** `test.before` · **Value:** `"sign-in.spec.json"` · **Effect:** the sign-in steps run first, in the test's own browser, so the test sees the cookie they set.
+
+<Markdown src="examples/structure-test-before/_variants.mdx" />
+
+### `after` only
+
+**Varies:** `test.after` · **Value:** `"sign-out.spec.json"` · **Effect:** the sign-out steps run last, in the test's own browser, even when a step of the test fails.
+
+<Markdown src="examples/structure-test-after/_variants.mdx" />
+
+## `beforeAll` and `afterAll` permutations
+
+Each example's config lists the server setup spec and one spec of its own. The shared config of these examples sets each field to a single path, the string form. For both lists together, see [Create and look up users](#create-and-look-up-users).
+
+### `beforeAll` list
+
+**Varies:** `beforeAll` · **Value:** `["../../../test-setup/start-server.spec.json", "check-api.spec.json"]` · **Effect:** both specs run, in order, before any input.
+
+<Markdown src="examples/structure-beforeall-list/_variants.mdx" />
+
+### `afterAll` list
+
+**Varies:** `afterAll` · **Value:** `["check-api.spec.json", "../../../test-setup/stop-server.spec.json"]` · **Effect:** both specs run, in order, after every input.
+
+<Markdown src="examples/structure-afterall-list/_variants.mdx" />
+
+## `resolveIncludes` permutations
+
+With `resolveIncludes` on, see [Include a shared check in a page](#include-a-shared-check-in-a-page) and [Include a shared check with mdBook or an MDX import](#include-a-shared-check-with-mdbook-or-an-mdx-import). Each page then runs two tests: the shared file's test and its own.
+
+| Include syntax | `resolveIncludes: true` | `resolveIncludes: false` |
+|---|---|---|
+| MkDocs `--8<--` | Shared test runs inside the page | Directive stays text |
+| mdBook `{{#include}}` | Shared test runs inside the page | Directive stays text |
+| Fern `<Markdown src>` | Shared test runs inside the page | Component isn't read |
+| MDX `import` with a component | Shared test runs inside the page | Component isn't read |
+| AsciiDoc `include::` | Shared test runs inside the page | Directive stays text |
+| reStructuredText `.. include::` | Shared test runs inside the page | Directive isn't read |
+| `includeStatements` match | Shared test runs inside the page | Comment isn't read |
+
+### `resolveIncludes: false`, built-in and custom syntax
+
+**Varies:** `resolveIncludes` · **Value:** `false` · **Effect:** each page runs only its own test, and the shared file runs only when it's an input itself.
+
+<Markdown src="examples/structure-includes-resolve-false/_variants.mdx" />
+
+### `resolveIncludes: false`, mdBook and MDX import
+
+**Varies:** `resolveIncludes` · **Value:** `false` · **Effect:** each page runs only its own test, and the shared file runs only when it's an input itself.
+
+<Markdown src="examples/structure-include-imports-resolve-false/_variants.mdx" />
+
+## `badge` permutations
+
+A badge appears only after a passing run that writes back. These examples use the default `verification.write`, `"existing"`.
+
+### `badge: true`
+
+**Varies:** `test.badge` · **Value:** `true` · **Effect:** a passing run writes a "Last verified" badge on the line above the `test` statement.
+
+<Markdown src="examples/structure-badge-true/_variants.mdx" />
+
+In reStructuredText, `badge` has no effect.
+
+### `badge: false`
+
+**Varies:** `test.badge` · **Value:** `false` · **Effect:** a passing run writes no badge, the same as leaving `badge` out.
+
+<Markdown src="examples/structure-badge-false/_variants.mdx" />
+
+## `verification.write` permutations
+
+Each example sets `verification.write` in its config and has a `test` statement with `badge: true`. The examples leave out reStructuredText, because Doc Detective doesn't write into `.rst` files. To try a value without changing your files, run a copy.
+
+### `verification.write: "existing"`
+
+**Varies:** `verification.write` · **Value:** `"existing"` · **Effect:** a passing run fills the `meta` statement and the badge the page already declares.
+
+<Markdown src="examples/structure-verification-write-existing/_variants.mdx" />
+
+### `verification.write: true`
+
+**Varies:** `verification.write` · **Value:** `true` · **Effect:** a passing run adds a `meta` statement and writes the generated `testId` into the `test` statement.
+
+<Markdown src="examples/structure-verification-write-true/_variants.mdx" />
+
+In Markdown and MDX, a passing run also adds a `verified-by` entry to the front matter.
+
+### `verification.write: false`
+
+**Varies:** `verification.write` · **Value:** `false` · **Effect:** a run writes nothing, so the `meta` statement and the badge stay unchanged.
+
+<Markdown src="examples/structure-verification-write-false/_variants.mdx" />

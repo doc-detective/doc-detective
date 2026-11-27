@@ -1,0 +1,4 @@
+= Check the page in German
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
+. Check that the page's language is `de-DE`.

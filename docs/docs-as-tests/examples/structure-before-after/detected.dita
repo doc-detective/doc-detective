@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="structure-before-after">
+  <title>Check the session cookie</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"structure-before-after","description":"Check the session cookie while signed in.","detectSteps":true,"before":"sign-in.spec.json","after":"sign-out.spec.json"}'/>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookies page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/cookies"}'/></info></step>
+      <step><cmd>Check that the page lists <codeph>structure-session=signed-in</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"find":"structure-session=signed-in"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

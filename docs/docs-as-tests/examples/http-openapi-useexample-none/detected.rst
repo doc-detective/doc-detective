@@ -1,0 +1,10 @@
+Call an operation with its examples
+===================================
+
+.. test {"testId":"http-openapi-useexample-none","detectSteps":true,"openApi":[{"name":"users","descriptionPath":"../http-openapi/users.openapi.json"}]}
+
+Call the ``createUser`` operation with Ada as the user.
+
+.. step {"httpRequest":{"openApi":{"operationId":"createUser","useExample":"none"},"request":{"body":{"name":"Ada","job":"engineer"}}}}
+
+.. test end

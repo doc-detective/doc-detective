@@ -1,0 +1,7 @@
+= Keep a cookie in a named variable
+
+. Sign in at http://localhost:8092/cookies/set/sessions_pvar/signed-in[the sign-in page]. The server sets the `sessions_pvar` cookie.
+. Save the `sessions_pvar` cookie to the `SESSIONS_PVAR` environment variable.
+. Sign out at http://localhost:8092/cookies/set/sessions_pvar/signed-out[the sign-out page], which replaces the cookie.
+. Load the cookie from `SESSIONS_PVAR`.
+. Open http://localhost:8092/cookies[the cookie report], and check that it shows *sessions_pvar=signed-in*.

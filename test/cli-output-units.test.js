@@ -190,7 +190,7 @@ describe("summarizeSchemaErrors", function () {
 
   it("drops a branch's missing key when another branch went deeper", function () {
     expect(summarize({ fileTypes: [{ extends: "nope" }] }, "config_v3")).to.equal(
-      'fileTypes[0].extends: must be one of markdown, asciidoc, html, dita, rst (got "nope").'
+      'fileTypes[0].extends: must be one of markdown, asciidoc, html, dita, rst, gherkin (got "nope").'
     );
   });
 

@@ -1,0 +1,8 @@
+= Run an unsafe step
+
+Run this code:
+
+[source,javascript]
+----
+console.log("ready");
+----

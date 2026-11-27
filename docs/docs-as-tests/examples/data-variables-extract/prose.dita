@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-variables-extract">
+  <title>Save the Node.js major version</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Print the Node.js version:</cmd>
+        <info><codeblock outputclass="language-shell">node --version</codeblock></info></step>
+      <step><cmd>Check that the major version is a number:</cmd>
+        <info><codeblock outputclass="language-shell">node -e "process.exit(/^[0-9]+$/.test(process.env.NODE_MAJOR) ? 0 : 1)"</codeblock></info></step>
+    </steps>
+  </taskbody>
+</task>

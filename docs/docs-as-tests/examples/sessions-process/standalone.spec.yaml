@@ -28,7 +28,6 @@ tests:
       - closeSurface:
           process: sessions-repl
   - testId: sessions-process-background
-    autoRecord: false
     runOn:
       - platforms: *a1
         requires:

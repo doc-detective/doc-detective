@@ -23,7 +23,7 @@ Start the REPL as a surface
 Run the REPL in the background
 ------------------------------
 
-.. test {"testId":"sessions-process-background","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}
+.. test {"testId":"sessions-process-background","detectSteps":false,"runOn":[{"platforms":["linux","mac","windows"],"requires":{"commands":["node"],"env":["PATH"]}}]}
 
 #. Run ``node -i`` in the background as a process named ``sessions-bg-repl``, and wait for the ``>`` prompt.
 

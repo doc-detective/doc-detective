@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-shell-string">
+  <title>Run a command</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-shell-string","detectSteps":true}'/>
+    <p>Run this command:</p>
+    <codeblock outputclass="language-shell">node -e "console.log('ready')"</codeblock>
+    <data name="doc-detective" value='step {"runShell":"node -e \"console.log(&apos;ready&apos;)\""}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

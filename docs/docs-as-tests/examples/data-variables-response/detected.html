@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Create an order and look it up</title></head>
+<body>
+<!-- test {"testId":"data-variables-response","detectSteps":true} -->
+<h1>Create an order and look it up</h1>
+<ol>
+  <li>Create an order. Send a <code>POST</code> request to <code>http://localhost:8092/api/orders</code> with this body:
+    <pre><code class="language-json">{"id":"ord-1001"}</code></pre>
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/orders","method":"post","request":{"body":{"id":"ord-1001"}}},"variables":{"ORDER_ID":"$$response.body.id"}} --></li>
+  <li>Look up the order. Send a <code>GET</code> request to <code>http://localhost:8092/api/orders?id=&lt;id&gt;</code>.
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/orders?id=$ORDER_ID","method":"get","response":{"body":{"id":"ord-1001"}}}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

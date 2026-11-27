@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-timeout">
+  <title>Limit the wait for a response</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-request-timeout","detectSteps":false}'/>
+    <p>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8093/api/users?page=2</codeph>. The API answers within 5 seconds.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8093/api/users?page=2","timeout":5000}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

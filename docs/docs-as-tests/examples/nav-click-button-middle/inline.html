@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Middle-click a button</title></head>
+<body>
+<!-- test {"testId":"nav-click-button-middle","detectSteps":false} -->
+<h1>Middle-click a button</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/find-click.html">the click counter page</a>.
+    <!-- step {"goTo":"http://localhost:8092/find-click.html"} --></li>
+  <li>Middle-click <strong>Count clicks</strong>.
+    <!-- step {"click":{"selector":"#counter","button":"middle"}} --></li>
+  <li>Check that the button counted the click.
+    <!-- step {"find":{"selector":"#counter","elementAttribute":{"data-middle":"1"}}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

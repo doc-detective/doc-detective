@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-shell-bg-port",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"require('http').createServer((q, r) => r.end('ok')).listen(8241)\"",
+            "background": {
+              "name": "http-shell-bg-port",
+              "waitUntil": {
+                "port": 8241
+              }
+            },
+            "timeout": 15000
+          }
+        },
+        {
+          "closeSurface": "http-shell-bg-port"
+        }
+      ]
+    }
+  ]
+}

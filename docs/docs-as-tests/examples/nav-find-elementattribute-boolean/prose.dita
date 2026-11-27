@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-find-elementattribute-boolean">
+  <title>Find an element by an attribute's presence</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the element test page</xref>.</cmd></step>
+      <step><cmd>Find the <b>Disabled Button</b> button.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

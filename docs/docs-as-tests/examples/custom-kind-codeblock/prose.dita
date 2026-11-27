@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="custom-kind-codeblock">
+  <title>Check that the page server is up</title>
+  <body>
+    <p>Request the type echo page. The command fails if the server doesn't answer:</p>
+    <codeblock outputclass="language-bash">curl -sf -o /dev/null http://localhost:8092/type-echo.html</codeblock>
+  </body>
+</topic>

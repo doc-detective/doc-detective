@@ -651,6 +651,31 @@ const cases = {
     ]],
   },
 
+  // The documented multi-line form: YAML keys indented under the keyword line.
+  "builtin-dita-indented-yaml": {
+    file: "doc.dita",
+    config: {},
+    content: [
+      '<topic id="t"><title>T</title><body>',
+      "<?doc-detective test",
+      "  testId: dita-indented-yaml",
+      "  detectSteps: false",
+      "?>",
+      '<p>Navigate to <xref href="https://example.com" scope="external">the site</xref>.</p>',
+      "<?doc-detective step",
+      `  runShell: echo pi`,
+      "?>",
+      "<?doc-detective test end?>",
+      "</body></topic>",
+    ].join("\n"),
+    // detectSteps: false leaves the link undetected.
+    expect: [[shell("pi")]],
+    check: (json) => {
+      const ids = json.specs[0].tests.map((t) => t.testId);
+      return JSON.stringify(ids) === JSON.stringify(["dita-indented-yaml"]) ? undefined : `testIds ${JSON.stringify(ids)}, expected ["dita-indented-yaml"]`;
+    },
+  },
+
   "builtin-rst": {
     file: "doc.rst",
     config: {},
@@ -684,7 +709,7 @@ const cases = {
     config: { fileTypes: ["restructuredtext"] },
     content: "x\n",
     exit: 2,
-    stderr: 'fileTypes[0]: must be one of markdown, asciidoc, html, dita, rst (got "restructuredtext").',
+    stderr: 'fileTypes[0]: must be one of markdown, asciidoc, html, dita, rst, gherkin (got "restructuredtext").',
   },
   "reject-two-kinds": {
     file: "doc.md",

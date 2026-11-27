@@ -1,0 +1,10 @@
+<!-- test {"testId":"capture-annotation-text-region","detectSteps":true} -->
+
+# Mark the sign-in form
+
+1. Go to [the sample form](http://localhost:8092/enhanced-elements.html).
+   <!-- step {"goTo":"http://localhost:8092/enhanced-elements.html"} -->
+2. The username field comes first.
+   <!-- step {"screenshot":{"path":"annotation-text-region.png","directory":".dd-output","overwrite":"true","annotations":[{"text":{"position":"top-right"},"label":"Sample data"}]}} -->
+
+<!-- test end -->

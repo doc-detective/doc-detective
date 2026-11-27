@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-checkfile-download">
+  <title>Download a report</title>
+  <body>
+    <p>In Chrome, open <codeph>http://localhost:8092/download.html</codeph>.</p>
+    <p>Click the first export link.</p>
+    <p>Check that Chrome saved a <codeph>report-*.csv</codeph> file.</p>
+  </body>
+</topic>

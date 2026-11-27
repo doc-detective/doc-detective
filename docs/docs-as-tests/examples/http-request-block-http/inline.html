@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Send a raw HTTP request</title></head>
+<body>
+<!-- test {"testId":"http-request-block-http","detectSteps":false} -->
+<h1>Send a raw HTTP request</h1>
+<p>Send this request:</p>
+<pre><code class="language-http">GET http://localhost:8093/api/users?page=2 HTTP/1.1</code></pre>
+<!-- step {"httpRequest":{"url":"http://localhost:8093/api/users?page=2","method":"get"}} -->
+<!-- test end -->
+</body>
+</html>

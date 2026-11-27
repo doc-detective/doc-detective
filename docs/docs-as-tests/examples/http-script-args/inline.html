@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Run a script in the page</title></head>
+<body>
+<!-- test {"testId":"http-script-args","detectSteps":false} -->
+<h1>Run a script in the page</h1>
+<p>Open the test site at <code>http://localhost:8092/</code>.</p>
+<!-- step {"goTo":"http://localhost:8092/"} -->
+<p>Join <code>foo</code> and <code>bar</code> in the console. The result is <code>foobar</code>.</p>
+<!-- step {"runBrowserScript":{"script":"return arguments[0] + arguments[1];","args":["foo","bar"],"output":"foobar"}} -->
+<!-- test end -->
+</body>
+</html>

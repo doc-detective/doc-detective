@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Count the items in a cart</title></head>
+<body>
+<h1>Count the items in a cart</h1>
+<ol>
+  <li>Create a cart. Send a <code>POST</code> request to <code>http://localhost:8092/api/carts</code> with this body:
+    <pre><code class="language-json">{"items":[{"sku":"A1","qty":2},{"sku":"B2","qty":1}]}</code></pre></li>
+  <li>Send the count in a <code>GET</code> request to <code>http://localhost:8092/api/carts?count=&lt;count&gt;</code>.</li>
+</ol>
+</body>
+</html>

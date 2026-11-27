@@ -1,0 +1,8 @@
+= Run a command in PowerShell
+
+Print the PowerShell edition:
+
+[source,shell]
+----
+echo $PSEdition
+----

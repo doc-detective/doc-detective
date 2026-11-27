@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-shell-bg-port">
+  <title>Start a background process</title>
+  <body>
+    <p>Start a server on port 8241:</p>
+    <codeblock outputclass="language-shell">node -e "require('http').createServer((q, r) =&gt; r.end('ok')).listen(8241)"</codeblock>
+    <p>Stop it when you're done.</p>
+  </body>
+</topic>

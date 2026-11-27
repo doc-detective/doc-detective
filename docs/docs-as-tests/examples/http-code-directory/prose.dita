@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-directory">
+  <title>Save a greeting from code</title>
+  <body>
+    <p>Print a greeting with Node.js, and save the output to <filepath>greeting.txt</filepath> in the <filepath>output</filepath> folder:</p>
+    <codeblock outputclass="language-js">console.log('Hello from the output folder');</codeblock>
+  </body>
+</topic>

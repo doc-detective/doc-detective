@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+if:
+  - $$platform oneOf [linux, mac, windows]
+tests:
+  - testId: data-if-spec-array
+    steps:
+      - httpRequest:
+          url: http://localhost:8092/api/health
+          method: get

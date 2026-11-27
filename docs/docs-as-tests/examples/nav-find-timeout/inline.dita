@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-find-timeout">
+  <title>Give a late element more time</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-find-timeout","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/waitUntil-test-late-element.html" scope="external" format="html">the late element page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/waitUntil-test-late-element.html"}'/></info></step>
+      <step><cmd>Wait for the status line to read <b>System operational</b>.</cmd>
+        <info><data name="doc-detective" value='step {"find":{"elementText":"System operational","timeout":10000}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

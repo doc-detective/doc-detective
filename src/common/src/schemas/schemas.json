@@ -13024,12 +13024,12 @@
         "type": "string"
       },
       "outputDir": {
-        "description": "Path of the folder that holds the run folder and the html, junit, and markdown reports.",
+        "description": "Path of the folder that holds the run folder and the html, junit, markdown, and cucumber reports.",
         "type": "string",
         "default": "."
       },
       "reporters": {
-        "description": "Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), and `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.",
+        "description": "Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory), and `cucumber` (Cucumber JSON for test-management tools such as Xray and Allure, written as `cucumber.json` in the output directory). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.",
         "type": "array",
         "items": {
           "type": "string",
@@ -13039,7 +13039,8 @@
             "html",
             "runFolder",
             "junit",
-            "markdown"
+            "markdown",
+            "cucumber"
           ]
         },
         "default": [
@@ -14025,7 +14026,8 @@
           "asciidoc",
           "html",
           "dita",
-          "rst"
+          "rst",
+          "gherkin"
         ],
         "anyOf": [
           {
@@ -14042,7 +14044,8 @@
                     "asciidoc",
                     "html",
                     "dita",
-                    "rst"
+                    "rst",
+                    "gherkin"
                   ]
                 },
                 {
@@ -14083,7 +14086,8 @@
                         "asciidoc",
                         "html",
                         "dita",
-                        "rst"
+                        "rst",
+                        "gherkin"
                       ]
                     },
                     "extensions": {
@@ -35413,12 +35417,12 @@
             "type": "string"
           },
           "outputDir": {
-            "description": "Path of the folder that holds the run folder and the html, junit, and markdown reports.",
+            "description": "Path of the folder that holds the run folder and the html, junit, markdown, and cucumber reports.",
             "type": "string",
             "default": "."
           },
           "reporters": {
-            "description": "Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory, or beside `output` when it names a file), and `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory, or beside `output` when it names a file). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.",
+            "description": "Reporters to use when emitting test results: `terminal`, `json`, `html`, `runFolder`, `junit` (JUnit XML for CI test-summary widgets, written as `junit.xml` in the output directory), `markdown` (a run summary for CI job summaries and merge request comments, written as `doc-detective-summary.md` in the output directory), and `cucumber` (Cucumber JSON for test-management tools such as Xray and Allure, written as `cucumber.json` in the output directory). The `runFolder` reporter (on by default) archives each run's results as `<outputDir>/.doc-detective/runs/<runId>/testResults.json`, beside any screenshots the run captured, in addition to the flat output the `json` reporter writes. Reporters are a CLI feature: the JavaScript API's `runTests()` returns results and ignores this setting.",
             "type": "array",
             "items": {
               "type": "string",
@@ -35428,7 +35432,8 @@
                 "html",
                 "runFolder",
                 "junit",
-                "markdown"
+                "markdown",
+                "cucumber"
               ]
             },
             "default": [
@@ -36414,7 +36419,8 @@
               "asciidoc",
               "html",
               "dita",
-              "rst"
+              "rst",
+              "gherkin"
             ],
             "anyOf": [
               {
@@ -36431,7 +36437,8 @@
                         "asciidoc",
                         "html",
                         "dita",
-                        "rst"
+                        "rst",
+                        "gherkin"
                       ]
                     },
                     {
@@ -36472,7 +36479,8 @@
                             "asciidoc",
                             "html",
                             "dita",
-                            "rst"
+                            "rst",
+                            "gherkin"
                           ]
                         },
                         "extensions": {

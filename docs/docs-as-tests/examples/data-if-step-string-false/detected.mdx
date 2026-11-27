@@ -1,0 +1,18 @@
+{/* test {"testId":"data-if-step-string-false","detectSteps":true} */}
+
+# Show help only when Node.js fails
+
+1. Print the Node.js version:
+
+   ```shell
+   node --version
+   ```
+   {/* step {"runShell":"node --version","stepId":"version"} */}
+2. If that failed, print the help for `node`:
+
+   ```shell
+   node --help
+   ```
+   {/* step {"if":"$$steps.version.outputs.exitCode != 0","runShell":"node --help"} */}
+
+{/* test end */}

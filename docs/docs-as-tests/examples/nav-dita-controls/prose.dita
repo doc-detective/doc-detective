@@ -6,8 +6,7 @@
     <steps>
       <step><cmd>Open <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd></step>
       <step><cmd>Check that the page title reads <wintitle>Type Echo Test Page</wintitle>.</cmd></step>
-      <step><cmd>Click the <uicontrol>Type here:</uicontrol> label.</cmd></step>
-      <step><cmd>Type "Hello, DITA".</cmd></step>
+      <step><cmd>Type <userinput>Hello, DITA</userinput> into the <uicontrol>Type here:</uicontrol> field.</cmd></step>
       <step><cmd>Check that the page shows <b>Hello, DITA</b> below the field.</cmd></step>
     </steps>
   </taskbody>

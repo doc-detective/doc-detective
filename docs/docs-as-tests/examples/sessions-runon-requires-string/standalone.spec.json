@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "sessions-runon-requires-string",
+      "runOn": [
+        {
+          "platforms": [
+            "linux",
+            "mac",
+            "windows"
+          ],
+          "requires": "node"
+        }
+      ],
+      "steps": [
+        {
+          "runShell": "node --version"
+        }
+      ]
+    }
+  ]
+}

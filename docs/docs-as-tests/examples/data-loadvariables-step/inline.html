@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check a service from an environment file</title></head>
+<body>
+<!-- test {"testId":"data-loadvariables-step","detectSteps":false} -->
+<h1>Check a service from an environment file</h1>
+<ol>
+  <li>Load the variables in <code>service.env</code>.
+    <!-- step {"loadVariables":"service.env"} --></li>
+  <li>Check the service. Send a <code>GET</code> request to <code>$SERVICE_URL/health</code>.
+    <!-- step {"httpRequest":{"url":"$SERVICE_URL/health","method":"get"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

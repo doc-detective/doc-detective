@@ -1,0 +1,8 @@
+= Run a command
+
+Run this command:
+
+[source,shell]
+----
+node -e "console.log('ready')"
+----

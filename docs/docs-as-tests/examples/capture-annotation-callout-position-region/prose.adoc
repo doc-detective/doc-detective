@@ -1,0 +1,4 @@
+= Mark the sign-in form
+
+. Go to http://localhost:8092/enhanced-elements.html[the sample form].
+. The username field comes first.

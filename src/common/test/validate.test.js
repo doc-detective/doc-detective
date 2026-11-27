@@ -1430,7 +1430,7 @@ import { schemas } from "../dist/index.js";
         expect(result.errors).to.include("set `body` or `bodyPath`, not both.");
       });
 
-      // ADR 01233: answer in sequence, or replay a HAR file.
+      // ADR 01242: answer in sequence, or replay a HAR file.
       it("accepts a responses sequence", function () {
         const result = check({ url: "**/jobs/1", responses: [{ body: { status: "running" } }, { statusCode: 404, bodyPath: "done.json" }] });
         expect(result.valid, result.errors).to.be.true;
@@ -2493,12 +2493,12 @@ import { schemas } from "../dist/index.js";
       });
     });
 
-    // ADR 01166: config `reporters` takes the six public names, exactly.
+    // ADR 01166: config `reporters` takes the seven public names, exactly.
     describe("config reporters", function () {
       const reporters = (list) => validate({ schemaKey: "config_v3", object: { reporters: list } }).valid;
 
       it("accepts each public reporter name", function () {
-        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown"])).to.be.true;
+        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown", "cucumber"])).to.be.true;
       });
 
       it("rejects other spellings and internal reporters", function () {
@@ -4146,11 +4146,26 @@ import { schemas } from "../dist/index.js";
           expect(result.valid, result.errors).to.be.true;
         }
         const defaults = validate({ schemaKey: "config_v3", object: {} });
-        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst"]);
+        expect(defaults.object.fileTypes).to.deep.equal(["markdown", "asciidoc", "html", "dita", "rst", "gherkin"]);
       });
 
       it("rejects restructuredtext as a predefined fileType or extends base", function () {
         for (const fileTypes of [["restructuredtext"], [{ extends: "restructuredtext", extensions: ["txt"] }]]) {
+          expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
+        }
+      });
+    });
+
+    describe("config_v3 gherkin fileType", function () {
+      it("accepts gherkin as a predefined fileType and as an extends base", function () {
+        for (const fileTypes of [["gherkin"], [{ extends: "gherkin", extensions: ["story"] }]]) {
+          const result = validate({ schemaKey: "config_v3", object: { fileTypes } });
+          expect(result.valid, result.errors).to.be.true;
+        }
+      });
+
+      it("rejects cucumber as a predefined fileType or extends base", function () {
+        for (const fileTypes of [["cucumber"], [{ extends: "cucumber", extensions: ["story"] }]]) {
           expect(validate({ schemaKey: "config_v3", object: { fileTypes } }).valid).to.be.false;
         }
       });

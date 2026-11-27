@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "nav-goto-waituntil-combined",
+      "steps": [
+        {
+          "goTo": {
+            "url": "http://localhost:8092/waitUntil-test-late-element.html",
+            "timeout": 10000,
+            "waitUntil": {
+              "networkIdleTime": 500,
+              "domIdleTime": 1000,
+              "find": {
+                "selector": ".status",
+                "elementText": "/.*operational.*/"
+              }
+            }
+          }
+        },
+        {
+          "find": "System operational"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "capture-annotation-arrow-point",
+      "steps": [
+        {
+          "goTo": "http://localhost:8092/enhanced-elements.html"
+        },
+        {
+          "screenshot": {
+            "path": "annotation-arrow-point.png",
+            "directory": ".dd-output",
+            "overwrite": "true",
+            "annotations": [
+              {
+                "arrow": {
+                  "position": {
+                    "x": 200,
+                    "y": 150
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

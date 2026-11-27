@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-annotate-clear-ids">
+  <title>Remove one mark</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-annotate-clear-ids","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the sample form</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/enhanced-elements.html"}'/></info></step>
+      <step><cmd>The username field is marked 1, with a hint beside it.</cmd>
+        <info><data name="doc-detective" value='step {"annotate":{"add":[{"id":"step","badge":"#username-input","label":"1"},{"id":"hint","callout":"#username-input","label":"Your account name","position":"right"}]}}'/></info></step>
+      <step><cmd>The hint goes away, and the mark stays.</cmd>
+        <info><data name="doc-detective" value='step {"annotate":{"clear":["hint"]}}'/>
+          <data name="doc-detective" value='step {"screenshot":{"path":"annotate-clear-ids.png","directory":".dd-output","overwrite":"true"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

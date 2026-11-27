@@ -1,0 +1,15 @@
+= Show code without running it
+
+Run this code:
+
+[source,bash]
+----
+echo "ready"
+----
+
+To install the tool for every project on your machine, run:
+
+[source,bash]
+----
+npm install --global ./greeter
+----

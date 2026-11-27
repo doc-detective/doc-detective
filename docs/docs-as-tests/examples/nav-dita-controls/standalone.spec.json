@@ -11,10 +11,10 @@
           "find": "Type Echo Test Page"
         },
         {
-          "click": "Type here:"
-        },
-        {
-          "type": "Hello, DITA"
+          "type": {
+            "keys": "Hello, DITA",
+            "elementAria": "Type here:"
+          }
         },
         {
           "find": "Hello, DITA"

@@ -144,6 +144,7 @@ export {
   probeStuckOnBlankDocument,
   guardBlankDocumentNavigation,
   classifyContextRetry,
+  goToTargetOf,
   isTransientProcessInitError,
   matchesFilter,
   selectSpecsForRun,
@@ -178,7 +179,7 @@ const HAR_WIRE_HEADERS = new Set(["content-length", "content-encoding", "transfe
 
 /**
  * Turn a HAR 1.2 log into mocks, one per exact URL and method, each with its
- * responses in file order (ADR 01233). `url` is a webdriverio-style glob: `**`
+ * responses in file order (ADR 01242). `url` is a webdriverio-style glob: `**`
  * collapses to `*`, a pattern starting `http` matches the whole URL, any other
  * pattern matches the path. Returns `undefined` when `har` isn't HAR JSON.
  */
@@ -1097,10 +1098,17 @@ const INITIAL_BLANK_DOCUMENT = /^data:,?$/i;
 // but the browser is still on its initial blank document, which no correctly
 // loaded page under test ever is. App/mobile sessions have no URL, and a thrown
 // `getUrl` (dead session, already caught by isSessionAlive) both yield false.
-async function isPageUnnavigated(driver: any): Promise<boolean> {
+async function isPageUnnavigated(
+  driver: any,
+  { aboutBlankIsInitial = false }: { aboutBlankIsInitial?: boolean } = {}
+): Promise<boolean> {
   if (!driver || typeof driver.getUrl !== "function") return false;
   try {
-    return isInitialBlankDocument(await driver.getUrl());
+    const url = await driver.getUrl();
+    return (
+      isInitialBlankDocument(url) ||
+      (aboutBlankIsInitial && String(url ?? "").trim().toLowerCase() === "about:blank")
+    );
   } catch {
     return false;
   }
@@ -1229,15 +1237,32 @@ export type ContextRetryReason = "session-died" | "page-broken" | "unnavigated";
 // See adrs/01082-retries-mid-session-context-retry.md,
 // adrs/01084-retry-unnavigated-context.md and
 // adrs/01119-no-unnavigated-retry-without-navigation.md.
+// A step report's goTo target, trimmed and lowercased, or null for another
+// action or a skipped goTo. Read it before the report is masked: a target
+// equal to a secret value would otherwise read as the mask (ADR 01233).
+function goToTargetOf(rep: any): string | null {
+  if (rep?.goTo === undefined || rep.result === "SKIPPED") return null;
+  return String(rep.goTo?.url ?? rep.goTo).trim().toLowerCase();
+}
+
+//
+//   • `aboutBlankIsInitial`: the caller found no goTo that targeted
+//     `about:blank`, so a primary still on it never left its initial document.
+//     A Chrome session with a BiDi socket (ADR 01219) starts there, not on
+//     `data:,` (ADR 01233).
 async function classifyContextRetry(
   probeDrivers: any[],
-  { navigated = true }: { navigated?: boolean } = {}
+  {
+    navigated = true,
+    aboutBlankIsInitial = false,
+  }: { navigated?: boolean; aboutBlankIsInitial?: boolean } = {}
 ): Promise<ContextRetryReason | null> {
   for (const probeDriver of probeDrivers) {
     if (!(await isSessionAlive(probeDriver))) return "session-died";
     if (await isPageBroken(probeDriver)) return "page-broken";
   }
-  if (navigated && (await isPageUnnavigated(probeDrivers[0]))) return "unnavigated";
+  if (navigated && (await isPageUnnavigated(probeDrivers[0], { aboutBlankIsInitial })))
+    return "unnavigated";
   return null;
 }
 
@@ -2471,6 +2496,47 @@ export async function realizeViewport(
     await log(config, level, label ? `${label}: ${warning}` : warning);
   }
   return actual;
+}
+
+/**
+ * Keep a page at `viewport` (CSS px) while Chrome's tab-sharing bar shows on
+ * it. The bar appears once a capture starts and shortens the page by its
+ * height, so wait up to `waitMs` for the viewport to change, then resize the
+ * window until the page is `viewport` again. Returns the window size to
+ * restore when the capture stops, or undefined when nothing changed.
+ */
+export async function holdViewportUnderSharingBar(
+  driver: any,
+  viewport: { width: number; height: number } | undefined,
+  config: any = {},
+  waitMs = 1000
+): Promise<{ width: number; height: number } | undefined> {
+  if (!viewport || !(viewport.width > 0) || !(viewport.height > 0)) return undefined;
+  const deadline = Date.now() + waitMs;
+  let current = await readViewport(driver);
+  while (
+    current.width === viewport.width &&
+    current.height === viewport.height &&
+    Date.now() < deadline
+  ) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    current = await readViewport(driver);
+  }
+  if (!Number.isFinite(current.width) || !Number.isFinite(current.height)) return undefined;
+  if (current.width === viewport.width && current.height === viewport.height) return undefined;
+  const windowSize = await driver.getWindowSize();
+  // Debug for the generic mismatch line: the warning below names the cause.
+  const actual = await realizeViewport(driver, viewport, config, "record", "debug");
+  // A headed window the display can't grow still records, just short.
+  const short = Math.round(viewport.height - actual.height);
+  if (short > VIEWPORT_TOLERANCE_PX) {
+    await log(
+      config,
+      "warning",
+      `Couldn't make the window tall enough for Chrome's sharing bar, so the recording is about ${short} pixels shorter than the viewport. Run headless or use a smaller viewport.`
+    );
+  }
+  return { width: windowSize.width, height: windowSize.height };
 }
 
 /**

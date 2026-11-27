@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-goto-new-boolean">
+  <title>Open pages in a new tab and a new window</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd></step>
+      <step><cmd>Load <xref href="http://localhost:8092/multi-tab-child.html?page=tab" scope="external" format="html">the tab page</xref> in a new tab.</cmd></step>
+      <step><cmd>Check that the page reads "PAGE tab".</cmd></step>
+      <step><cmd>Load <xref href="http://localhost:8092/multi-tab-child.html?page=window" scope="external" format="html">the window page</xref> in a new window.</cmd></step>
+      <step><cmd>Check that the page reads "PAGE window".</cmd></step>
+    </steps>
+  </taskbody>
+</task>

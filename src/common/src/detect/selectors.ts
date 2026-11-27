@@ -12,6 +12,7 @@ import { parseMarkdown } from "./markdown.js";
 import { parseMarkup } from "./markup.js";
 import { parseAsciidoc } from "./asciidoc.js";
 import { parseRst } from "./rst.js";
+import { parseGherkin } from "./gherkin.js";
 
 export type Kind =
   | "comment"
@@ -46,6 +47,13 @@ export interface Node {
   attributes?: Record<string, string | true>;
   /** Raw source from the start of the enclosing block to the node. */
   before: string;
+  /**
+   * Where the node's statements sort, when that isn't its source offset. Lets a parser place
+   * one source line in several tests, such as a Gherkin Background. Spans stay the real ones.
+   */
+  sortIndex?: number;
+  /** Warned once when step detection is on and no markup definition matched the node. */
+  unmatched?: string;
 }
 
 const STATEMENT_TYPES = ["testStart", "testEnd", "ignoreStart", "ignoreEnd", "step"] as const;
@@ -59,10 +67,18 @@ export function parseStatementText(text: string | undefined): { type: StatementT
   const s = (text ?? "").trim();
   if (s === "test ignore start") return { type: "ignoreStart", payload: "" };
   if (s === "test ignore end") return { type: "ignoreEnd", payload: "" };
-  const m = /^(test end|test(?:\s+start)?|step)\b\s*([\s\S]*)$/.exec(s);
+  // Only spaces and tabs after the keyword, so a body on the following lines keeps its first line's indent.
+  const m = /^(test end|test(?:\s+start)?|step)\b[ \t]*([\s\S]*)$/.exec(s);
   if (!m) return null;
   const type = m[1] === "test end" ? "testEnd" : m[1] === "step" ? "step" : "testStart";
-  return { type, payload: m[2].trim() };
+  return { type, payload: dedent(m[2]).trim() };
+}
+
+/** Strips the indentation all non-blank lines share, as a YAML block needs. */
+function dedent(text: string): string {
+  const lines = text.split("\n");
+  const indent = Math.min(...lines.filter((l) => l.trim()).map((l) => /^[ \t]*/.exec(l)![0].length));
+  return Number.isFinite(indent) && indent > 0 ? lines.map((l) => l.slice(Math.min(indent, /^[ \t]*/.exec(l)![0].length))).join("\n") : text;
 }
 
 interface Selector {
@@ -183,6 +199,7 @@ const FORMAT_BY_EXTENSION: Record<string, string> = {
   asciidoc: "asciidoc",
   asc: "asciidoc",
   rst: "rst",
+  feature: "gherkin",
 };
 
 /** Parses a file into nodes. The extension picks the parser, else the fileType's `extends` or `name`. */
@@ -192,6 +209,7 @@ function parseFile(content: string, fileType: FileType, filePath: string, warn: 
   if (format === "html" || format === "dita") return parseMarkup(content, format);
   if (format === "asciidoc") return parseAsciidoc(content);
   if (format === "rst") return parseRst(content);
+  if (format === "gherkin") return parseGherkin(content, filePath, warn);
   if (format !== "markdown") {
     const name = fileType.name ? `"${fileType.name}"` : "A fileType";
     warn(`${filePath}: ${name} uses selectors, but no parser handles .${ext}. Set "extends" to a built-in, or use regex definitions.`);
@@ -246,11 +264,12 @@ export function collectStatements({
   // Statements sort at their start plus the length of their first value, as
   // regex statements always have. A capture can come from outside the node,
   // such as a `precededBy` group, so the sort point stays inside the match.
-  const add = (statement: any, startIndex: number, endIndex: number) => {
+  // A node's own `sortIndex` overrides that.
+  const add = (statement: any, startIndex: number, endIndex: number, sortIndex?: number) => {
     statement._startIndex = startIndex;
     statement._endIndex = endIndex;
     statement._line = getLineNumber(content, startIndex, lineStarts);
-    statement.sortIndex = statement[1] ? Math.min(startIndex + statement[1].length, endIndex) : startIndex;
+    statement.sortIndex = sortIndex ?? (statement[1] ? Math.min(startIndex + statement[1].length, endIndex) : startIndex);
     statements.push(statement);
   };
 
@@ -282,7 +301,7 @@ export function collectStatements({
       const parsed = parseStatementText(text);
       if (!parsed) continue;
       const statement = { 0: content.slice(node.startIndex, node.endIndex), 1: parsed.payload, type: parsed.type };
-      add(statement, node.startIndex, node.endIndex);
+      add(statement, node.startIndex, node.endIndex, node.sortIndex);
       fromContainers.add(statement);
     }
   }
@@ -304,9 +323,10 @@ export function collectStatements({
       statement.sortIndex = startIndex;
       return;
     }
-    for (const m of found) add(Object.assign(m, { type: "detectedStep", markup: def }), m.index, m.end);
+    for (const m of found) add(Object.assign(m, { type: "detectedStep", markup: def }), m.index, m.end, m.sortIndex);
   };
 
+  const matched = new Set<Node>();
   for (const def of markup) {
     const selector = selectorOf(def);
     // `batchMatches` combines a selector definition's matches, or each pattern's matches in a regex definition.
@@ -320,7 +340,8 @@ export function collectStatements({
               ? [...match.groups].slice(1)
               : [mainText(match.node)];
           const source = match.groups?.[0] ?? content.slice(match.startIndex, match.endIndex);
-          return Object.assign([source, ...values], { index: match.startIndex, end: match.endIndex });
+          matched.add(match.node);
+          return Object.assign([source, ...values], { index: match.startIndex, end: match.endIndex, sortIndex: match.node.sortIndex });
         })
       );
     } else {
@@ -330,6 +351,14 @@ export function collectStatements({
       }
     }
     for (const found of batches) addMatches(def, found);
+  }
+  if (detectSteps) {
+    const warned = new Set<string>();
+    for (const node of nodes) {
+      if (!node.unmatched || matched.has(node) || warned.has(node.unmatched)) continue;
+      warned.add(node.unmatched);
+      warn(node.unmatched);
+    }
   }
 
   // A regex and a container can find the same statement. Keep the container's,
@@ -342,7 +371,8 @@ export function collectStatements({
   const unique = statements.filter((s) => {
     if (s.type === "detectedStep") return true;
     if (!fromContainers.has(s) && insideContainer(s)) return false;
-    const key = `${s.type} ${s._startIndex} ${s._endIndex}`;
+    // sortIndex too, so a node replayed in several tests keeps each copy.
+    const key = `${s.type} ${s._startIndex} ${s._endIndex} ${s.sortIndex}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

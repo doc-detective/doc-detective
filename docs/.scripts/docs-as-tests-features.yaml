@@ -1,0 +1,245 @@
+# Authoring forms the docs-as-tests coverage check can't see by walking the
+# schemas: statement syntaxes, detection rules, expressions, and enum values
+# that change behavior. docsAsTestsCoverage.js reports each entry whose
+# `needle` appears in no example file under
+# docs-as-tests/examples/.
+#
+# - id: a stable kebab-case name.
+# - since: the release that added the form, from docs/fern/changelog/.
+# - needle: a plain string, or a regular expression written as /pattern/flags.
+# - files: optional regular expression; only file paths that match it
+#   (with forward slashes) are searched.
+#
+# Changelog items that map to a schema field need no entry: the field walk
+# already requires an example of every field and of each type it accepts.
+# Items out of scope are listed at the bottom.
+
+features:
+  # Spec and statement formats
+  - id: yaml-standalone-spec
+    since: v3.0.0
+    needle: '/^tests:/m'
+    files: '\.ya?ml$'
+  - id: yaml-inline-statement
+    since: v3.0.0
+    needle: '/(<!--|\{\/\*|\/\/ \(|\.\.) step [A-Za-z]+:\s/'
+  - id: schema-url
+    since: v3.0.9
+    needle: '"$schema"'
+  - id: markdown-html-comment-statement
+    since: v3.0.0
+    needle: '<!-- test'
+    files: '\.md$'
+  - id: mdx-comment-statement
+    since: v3.0.0
+    needle: '{/* test'
+    files: '\.mdx$'
+  - id: commonmark-comment-statement
+    since: v3.0.0
+    needle: '[comment]: #'
+  - id: commonmark-quoted-statement
+    since: v3.6.2
+    needle: "/\\[comment\\]: # '/"
+  - id: asciidoc-comment-statement
+    since: v3.0.0
+    needle: '// (test'
+    files: '\.adoc$'
+  - id: html-comment-statement
+    since: v3.0.0
+    needle: '<!-- test'
+    files: '\.html?$'
+  - id: dita-processing-instruction
+    since: v3.4.0
+    needle: '<?doc-detective'
+    files: '\.(dita|ditamap|xml)$'
+  - id: dita-xml-comment-statement
+    since: v3.4.0
+    needle: '<!-- test'
+    files: '\.(dita|ditamap|xml)$'
+  - id: rst-comment-statement
+    since: v5.4.0
+    needle: '.. test end'
+    files: '\.rst$'
+  - id: test-ignore-block
+    since: v3.6.2
+    needle: 'test ignore start'
+
+  # Default detection
+  - id: detect-bold-click
+    since: v3.0.3
+    needle: '/\b(Click|Tap|Select|Choose|Check|click|tap|select|choose|check) (\*\*|<b>|<strong>|<uicontrol>)/'
+    files: '/detected\.'
+  - id: detect-bold-find
+    since: v3.0.3
+    needle: '/(^|[^\w*])\*\*[^*]+\*\*/m'
+    files: '/detected\.(md|mdx)$'
+  - id: detect-http-code-block
+    since: v3.0.12
+    needle: '/```http\r?\n[A-Z]+ /'
+    files: '/detected\.(md|mdx)$'
+  - id: detect-untagged-http-code-block
+    since: v3.0.14
+    needle: '/```\r?\n(GET|POST|PUT|PATCH|DELETE) /'
+    files: '/detected\.(md|mdx)$'
+  - id: detect-code-block-run-code
+    since: v3.1.0
+    needle: '/```(bash|python|py|javascript|js)\b/'
+    files: '/detected\.(md|mdx)$'
+  - id: detect-code-block-test-ignore
+    since: v3.1.0
+    needle: 'testIgnore'
+  - id: detect-dita-uicontrol
+    since: v3.4.0
+    needle: '<uicontrol>'
+    files: '/detected\.dita$'
+  - id: detect-dita-xref
+    since: v3.4.0
+    needle: '<xref'
+    files: '/detected\.dita$'
+  - id: detect-rst
+    since: v5.4.0
+    needle: '/detectSteps"?:\s*true/'
+    files: '/detected\.rst$'
+
+  # Expressions
+  - id: expression-output
+    since: v3.0.0
+    needle: '$$'
+  - id: expression-element-output
+    since: v3.1.0
+    needle: '$$element.'
+  - id: expression-array-index
+    since: v3.0.1
+    needle: '/\$\$[\w.]+\[\d+\]/'
+  - id: expression-extract
+    since: v3.0.0
+    needle: 'extract('
+  - id: expression-jq
+    since: v3.0.0
+    needle: 'jq('
+
+  # Value forms and enum values
+  - id: element-text-regex
+    since: v3.0.0
+    needle: '/elementText"?:\s*"\//'
+  - id: screenshot-path-url
+    since: v4.1.0
+    needle: '/path"?:\s*"https?:\/\/[^"]+\.png"/'
+  - id: record-engine-browser
+    since: v4.11.0
+    needle: '/engine"?:\s*"?browser/'
+  - id: record-engine-ffmpeg
+    since: v4.11.0
+    needle: '/engine"?:\s*"?ffmpeg/'
+  - id: record-target-display
+    since: v4.11.0
+    needle: '/target"?:\s*"?display/'
+  - id: record-target-window
+    since: v4.11.0
+    needle: '/target"?:\s*"?window/'
+  - id: record-target-viewport
+    since: v4.11.0
+    needle: '/target"?:\s*"?viewport/'
+  - id: record-overwrite-above-variation
+    since: v4.33.0
+    needle: 'aboveVariation'
+  - id: surface-newest-index
+    since: v4.18.0
+    needle: '/index"?:\s*-1/'
+  - id: type-special-keys
+    since: v4.24.0
+    needle: '/\$[A-Z_]+\$/'
+  - id: run-code-short-language
+    since: v5.0.0
+    needle: '/language"?:\s*"?(py|js)\b/'
+  - id: run-shell-shell-option
+    since: v4.27.0
+    needle: '/shell"?:\s*"?(bash|cmd|powershell)/'
+  - id: config-shell-default
+    since: v4.27.0
+    needle: '/"shell":\s*"(bash|cmd|powershell)"/'
+    files: '/doc-detective\.json$'
+  - id: platform-android
+    since: v4.21.0
+    needle: '"android"'
+  - id: platform-ios
+    since: v4.22.0
+    needle: '"ios"'
+
+  # Last verified
+  - id: verified-by-front-matter
+    since: v4.41.0
+    needle: 'verified-by'
+  - id: inline-meta-statement
+    since: v4.41.0
+    needle: '/(<!--|\{\/\*|\/\/ \(|\.\.) meta /'
+
+  # Includes
+  - id: include-asciidoc
+    since: v5.5.0
+    needle: '/^include::/m'
+  - id: include-rst
+    since: v5.5.0
+    needle: '.. include::'
+  - id: include-mkdocs-snippet
+    since: v5.5.0
+    needle: '--8<--'
+  - id: include-mdbook
+    since: v5.5.0
+    needle: '{{#include'
+  - id: include-fern-markdown
+    since: v5.5.0
+    needle: '<Markdown src='
+  - id: include-mdx-import
+    since: v5.5.0
+    needle: '/^import \w+ from [''"][^''"]+\.mdx?[''"]/m'
+
+# Gaps no example can close yet, each with the reason. A key is
+# `<group>.<gap>`: the report's group header (`step`, `config`,
+# `shared:locator`, `features`) and the gap line under it, without a shared
+# key's "— in …" suffix. `--check` fails on a gap not listed here, and on a
+# listed gap that examples now cover, so remove an entry once it's shown.
+knownGaps: []
+
+# Out of scope: CLI, install, reporting, and runtime behavior that no
+# example file can show. Grouped by changelog item.
+#
+# - v3.0.0 run summary, v3.0.6 no-tests warning, v3.0.17 validation messages,
+#   v3.6.0 skip log level, v4.3.0 empty-run warning, v4.29.1/v4.40.4 log output:
+#   terminal output.
+# - v3.0.1 default contexts, v3.1.0 skip after failure, v3.5.0 element polling,
+#   v4.8.0 skipped/failed contexts, v4.16.0 driver repair and fallback result,
+#   v4.20.0/v4.36.0 no browser for app-only tests, v4.36.0 active surface,
+#   v4.23.0/v4.26.0 mobile and app guards, v4.24.0 mobile scrolling,
+#   v4.27.0 bash default, v4.41.2 screenshot resize and default viewport:
+#   runtime behavior, not something an author writes.
+# - v3.0.4 --input list, v4.0.0 --version, v4.3.0 filters, v4.4.0 --dry-run,
+#   v4.37.0 --exit-on-fail, v5.0.0 run command and output flags,
+#   v5.2.0 validate, v4.7.0/v4.12.0 debug command: CLI.
+# - v3.0.17 parse by extension: covered by the YAML and JSON spec needles.
+# - v3.1.0/v3.4.1 DOC_DETECTIVE and DOC_DETECTIVE_CONFIG, v5.0.0 user config
+#   and .env: config sources, not authoring.
+# - v3.2.0 debug log level, v4.42.0/v4.43.x upgrade warnings: logging.
+# - v3.4.1 Orchestration API, v4.5.0 runner command, v3.6.3/v4.42.0 Heretto,
+#   v3.4.1 integrations.openApi: integrations config, outside the authoring
+#   config keys.
+# - v4.0.0 location, v4.9.0 deterministic IDs, v4.29.0 warm phase,
+#   v4.31.0/v4.32.0 step outputs, v4.37.0/v4.42.0 report timings,
+#   v5.0.0 resultCode: result fields.
+# - v4.0.0 TypeScript types, v4.0.0 detectTests API: programmatic API.
+# - v4.1.0/v4.2.0/v4.6.0 agents and install, v4.6.0 cacheDir, autoUpdate,
+#   Node.js versions, v4.21.0/v4.22.0/v4.27.0/v4.28.0/v4.39.0/v5.6.0 Android,
+#   iOS, and Git Bash installs, v5.3.0 browser updates, v4.40.x/v5.2.1 driver
+#   updates: install.
+# - v4.1.0/v4.9.0/v4.10.0/v4.17.0/v4.38.0/v5.0.0 reporters and run folders,
+#   v4.6.0/v4.15.0/v4.35.0 hints: reporting.
+# - v4.1.0 checkLink retries, v4.5.0 Appium port, v4.11.0/v4.15.0 recording
+#   concurrency, v4.13.0 recording name conflict and engine switch,
+#   v4.8.0 concurrentRunners: runtime and concurrency.
+# - v4.30.0/v5.0.0 language server: editor tooling.
+# - v4.41.0 verification.write, write-back formats: write-back is a run
+#   option; the verified-by and meta needles cover what authors write.
+# - v4.42.0 local URL guard: network policy.
+# - v4.42.0 boolean click failure: a usage error, not a feature to show.
+# - v5.1.0 elementImage scales and on-demand install: runtime.
+# - v5.5.0 include locations, missing includes: runtime.

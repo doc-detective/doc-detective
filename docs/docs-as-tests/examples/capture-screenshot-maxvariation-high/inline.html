@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Compare a screenshot with high tolerance</title></head>
+<body>
+<!-- test {"testId":"capture-screenshot-maxvariation-high","detectSteps":false} -->
+<h1>Compare a screenshot with high tolerance</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/screenshot-banner.html">the banner page</a>.
+    <!-- step {"goTo":"http://localhost:8092/screenshot-banner.html"} --></li>
+  <li>The page opens with a cookie banner at the bottom.
+    <!-- step {"screenshot":{"path":"maxvariation-high.png","directory":".dd-output","maxVariation":0.5,"overwrite":"aboveVariation"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

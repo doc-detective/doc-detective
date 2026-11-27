@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-runon-browsers-string">
+  <title>Check the page in Firefox</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-runon-browsers-string","detectSteps":false,"runOn":[{"browsers":"firefox"}]}'/>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/multi-tab.html" scope="external" format="html">the multi-tab page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/multi-tab.html"}'/></info></step>
+      <step><cmd>Check that the page reads <b>MULTI-TAB HOME</b>.</cmd>
+        <info><data name="doc-detective" value='step {"find":"MULTI-TAB HOME"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

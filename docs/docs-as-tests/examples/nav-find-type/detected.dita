@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="nav-find-type">
+  <title>Find a field and type in it</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"nav-find-type","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
+      <step><cmd>Find the <b>Type here:</b> field, click it, and type <codeph>Hello</codeph>.</cmd>
+        <info><data name="doc-detective" value='step {"find":{"selector":"#type-input","click":true,"type":"Hello"}}'/></info></step>
+      <step><cmd>Check that the page shows <b>Hello</b> below the field.</cmd></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

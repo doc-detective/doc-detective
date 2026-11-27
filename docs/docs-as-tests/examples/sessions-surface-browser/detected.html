@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Review a page in a second browser session</title></head>
+<body>
+<!-- test {"testId":"sessions-surface-browser","detectSteps":true} -->
+<h1>Review a page in a second browser session</h1>
+<ol>
+  <li>Start a headless Firefox session named <code>reviewer</code>.
+    <!-- step {"startSurface":{"browser":"firefox","name":"reviewer","headless":true}} --></li>
+  <li>In that session, load <a href="http://localhost:8092/multi-tab-child.html?page=review">the review page</a>.
+    <!-- step {"goTo":{"url":"http://localhost:8092/multi-tab-child.html?page=review","surface":{"browser":"firefox","name":"reviewer"}}} --></li>
+  <li>Check that the page reads "PAGE review".
+    <!-- step {"find":{"elementText":"PAGE review","surface":{"browser":"firefox","name":"reviewer"}}} --></li>
+  <li>Close the <code>reviewer</code> session.
+    <!-- step {"closeSurface":{"browser":"firefox","name":"reviewer"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

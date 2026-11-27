@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Mark an image as a screenshot</title></head>
+<body>
+<!-- test {"testId":"capture-detect-screenshot-image","detectSteps":false} -->
+<h1>Mark an image as a screenshot</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/screenshot-banner.html">the banner page</a>.
+    <!-- step {"goTo":"http://localhost:8092/screenshot-banner.html"} --></li>
+  <li>The page opens with a cookie banner at the bottom.
+    <img src=".dd-output/detected-banner.png" alt="The banner page" class="screenshot">
+    <!-- step {"screenshot":".dd-output/detected-banner.png"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

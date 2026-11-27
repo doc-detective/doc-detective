@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-config-origin">
+  <title>Open a page by its path</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"sessions-config-origin","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Go to <codeph>/multi-tab.html</codeph> on the site.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"/multi-tab.html"}'/></info></step>
+      <step><cmd>Check that the page reads "MULTI-TAB HOME".</cmd>
+        <info><data name="doc-detective" value='step {"find":"MULTI-TAB HOME"}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

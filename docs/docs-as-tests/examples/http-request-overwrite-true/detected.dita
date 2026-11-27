@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-request-overwrite-true">
+  <title>Save a response</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-request-overwrite-true","detectSteps":true}'/>
+    <p>Send a <codeph>GET</codeph> request to <codeph>http://localhost:8093/api/users?page=2</codeph>, and save the response to <codeph>page-2.json</codeph>.</p>
+    <data name="doc-detective" value='step {"httpRequest":{"url":"http://localhost:8093/api/users?page=2","path":"page-2.json","overwrite":"true"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

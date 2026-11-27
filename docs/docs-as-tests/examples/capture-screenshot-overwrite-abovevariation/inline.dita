@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshot-overwrite-abovevariation">
+  <title>Save a screenshot with overwrite aboveVariation</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-screenshot-overwrite-abovevariation","detectSteps":false}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/screenshot-banner.html" scope="external" format="html">the banner page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/screenshot-banner.html"}'/></info></step>
+      <step><cmd>The page opens with a cookie banner at the bottom.</cmd>
+        <info><data name="doc-detective" value='step {"screenshot":{"path":"overwrite-aboveVariation.png","directory":".dd-output","overwrite":"aboveVariation"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

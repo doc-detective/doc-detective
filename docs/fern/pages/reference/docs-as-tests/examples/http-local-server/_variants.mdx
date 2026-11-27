@@ -34,13 +34,13 @@ Terminal apps size their output to the terminal. To see the size an app gets in 
 node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
 ```
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
-```bash
-node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+```js
+console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 ```
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 Stop that process too.
 ````
@@ -77,13 +77,13 @@ Terminal apps size their output to the terminal. To see the size an app gets in 
 node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
 ```
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
-```bash
-node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+```js
+console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 ```
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 Stop that process too.
 ````
@@ -123,14 +123,14 @@ Terminal apps size their output to the terminal. To see the size an app gets in 
 node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
 ----
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
-[source,bash]
+[source,js]
 ----
-node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 ----
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 Stop that process too.
 ```
@@ -155,9 +155,9 @@ http.createServer((req, res) =&gt; res.end("ok")).listen(port, () =&gt; console.
 <p>Stop it the same way.</p>
 <p>Terminal apps size their output to the terminal. To see the size an app gets in a 100-by-40 terminal, run:</p>
 <pre><code class="language-shell">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</code></pre>
-<p>Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:</p>
-<pre><code class="language-bash">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</code></pre>
-<p>Stop that process, then run the script again in an 80-by-24 terminal.</p>
+<p>Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:</p>
+<pre><code class="language-js">console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);</code></pre>
+<p>Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.</p>
 <p>Stop that process too.</p>
 </body>
 </html>
@@ -196,13 +196,13 @@ Terminal apps size their output to the terminal. To see the size an app gets in 
 
    node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
-.. code-block:: bash
+.. code-block:: js
 
-   node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+   console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 Stop that process too.
 ```
@@ -227,9 +227,9 @@ http.createServer((req, res) =&gt; res.end("ok")).listen(port, () =&gt; console.
     <p>Stop it the same way.</p>
     <p>Terminal apps size their output to the terminal. To see the size an app gets in a 100-by-40 terminal, run:</p>
     <codeblock outputclass="language-shell">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</codeblock>
-    <p>Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:</p>
-    <codeblock outputclass="language-bash">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</codeblock>
-    <p>Stop that process, then run the script again in an 80-by-24 terminal.</p>
+    <p>Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:</p>
+    <codeblock outputclass="language-js">console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);</codeblock>
+    <p>Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.</p>
     <p>Stop that process too.</p>
   </body>
 </topic>
@@ -285,17 +285,17 @@ node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdou
 
 <!-- step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}} -->
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
 <!-- step {"closeSurface":"http-local-tty"} -->
 
-```bash testIgnore
-node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+```js testIgnore
+console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 ```
 
-<!-- step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} -->
+<!-- step {"runCode":{"language":"js","code":"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} -->
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 <!-- step {"closeSurface":"http-local-tty-code"} -->
 
@@ -354,17 +354,17 @@ node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdou
 
 {/* step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}} */}
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
 {/* step {"closeSurface":"http-local-tty"} */}
 
-```bash testIgnore
-node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+```js testIgnore
+console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 ```
 
-{/* step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} */}
+{/* step {"runCode":{"language":"js","code":"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} */}
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 {/* step {"closeSurface":"http-local-tty-code"} */}
 
@@ -426,18 +426,18 @@ node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdou
 
 // (step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}})
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
 // (step {"closeSurface":"http-local-tty"})
 
-[source,bash,testIgnore]
+[source,js,testIgnore]
 ----
-node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 ----
 
-// (step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}})
+// (step {"runCode":{"language":"js","code":"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}})
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 // (step {"closeSurface":"http-local-tty-code"})
 
@@ -479,13 +479,13 @@ http.createServer((req, res) =&gt; res.end("ok")).listen(port, () =&gt; console.
 <p>Terminal apps size their output to the terminal. To see the size an app gets in a 100-by-40 terminal, run:</p>
 <pre><code class="language-shell">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</code></pre>
 <!-- step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}} -->
-<p>Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:</p>
+<p>Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:</p>
 <!-- step {"closeSurface":"http-local-tty"} -->
 <!-- test ignore start -->
-<pre><code class="language-bash">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</code></pre>
+<pre><code class="language-js">console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);</code></pre>
 <!-- test ignore end -->
-<!-- step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} -->
-<p>Stop that process, then run the script again in an 80-by-24 terminal.</p>
+<!-- step {"runCode":{"language":"js","code":"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} -->
+<p>Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.</p>
 <!-- step {"closeSurface":"http-local-tty-code"} -->
 <!-- step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-small","tty":{"cols":80,"rows":24},"waitUntil":{"stdio":"Terminal: 80x24"}},"timeout":30000}} -->
 <p>Stop that process too.</p>
@@ -543,18 +543,18 @@ Terminal apps size their output to the terminal. To see the size an app gets in 
 
 .. step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}}
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
 .. step {"closeSurface":"http-local-tty"}
 
-.. code-block:: bash
+.. code-block:: js
    :class: testIgnore
 
-   node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+   console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 
-.. step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}
+.. step {"runCode":{"language":"js","code":"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 .. step {"closeSurface":"http-local-tty-code"}
 
@@ -596,13 +596,13 @@ http.createServer((req, res) =&gt; res.end("ok")).listen(port, () =&gt; console.
     <p>Terminal apps size their output to the terminal. To see the size an app gets in a 100-by-40 terminal, run:</p>
     <codeblock outputclass="language-shell">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</codeblock>
     <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(&apos;Terminal: &apos; + process.stdout.columns + &apos;x&apos; + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}}'/>
-    <p>Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:</p>
+    <p>Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:</p>
     <data name="doc-detective" value='step {"closeSurface":"http-local-tty"}'/>
     <data name="doc-detective" value="test ignore start"/>
-    <codeblock outputclass="language-bash">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</codeblock>
+    <codeblock outputclass="language-js">console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);</codeblock>
     <data name="doc-detective" value="test ignore end"/>
-    <data name="doc-detective" value='step {"runCode":{"language":"bash","code":"node -e \"console.log(&apos;Terminal: &apos; + process.stdout.columns + &apos;x&apos; + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}'/>
-    <p>Stop that process, then run the script again in an 80-by-24 terminal.</p>
+    <data name="doc-detective" value='step {"runCode":{"language":"js","code":"console.log(&apos;Terminal: &apos; + process.stdout.columns + &apos;x&apos; + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}'/>
+    <p>Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.</p>
     <data name="doc-detective" value='step {"closeSurface":"http-local-tty-code"}'/>
     <data name="doc-detective" value='step {"runCode":{"language":"bash","code":"node -e \"console.log(&apos;Terminal: &apos; + process.stdout.columns + &apos;x&apos; + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-small","tty":{"cols":80,"rows":24},"waitUntil":{"stdio":"Terminal: 80x24"}},"timeout":30000}}'/>
     <p>Stop that process too.</p>
@@ -662,17 +662,17 @@ node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdou
 
 <!-- step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}} -->
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
 <!-- step {"closeSurface":"http-local-tty"} -->
 
-```bash
-node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+```js
+console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 ```
 
-<!-- step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} -->
+<!-- step {"runCode":{"language":"js","code":"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} -->
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 <!-- step {"closeSurface":"http-local-tty-code"} -->
 
@@ -731,17 +731,17 @@ node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdou
 
 {/* step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}} */}
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
 {/* step {"closeSurface":"http-local-tty"} */}
 
-```bash
-node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+```js
+console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 ```
 
-{/* step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} */}
+{/* step {"runCode":{"language":"js","code":"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} */}
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 {/* step {"closeSurface":"http-local-tty-code"} */}
 
@@ -803,18 +803,18 @@ node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdou
 
 // (step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}})
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
 // (step {"closeSurface":"http-local-tty"})
 
-[source,bash]
+[source,js]
 ----
-node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 ----
 
-// (step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}})
+// (step {"runCode":{"language":"js","code":"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}})
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 // (step {"closeSurface":"http-local-tty-code"})
 
@@ -854,11 +854,11 @@ http.createServer((req, res) =&gt; res.end("ok")).listen(port, () =&gt; console.
 <p>Terminal apps size their output to the terminal. To see the size an app gets in a 100-by-40 terminal, run:</p>
 <pre><code class="language-shell">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</code></pre>
 <!-- step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}} -->
-<p>Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:</p>
+<p>Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:</p>
 <!-- step {"closeSurface":"http-local-tty"} -->
-<pre><code class="language-bash">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</code></pre>
-<!-- step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} -->
-<p>Stop that process, then run the script again in an 80-by-24 terminal.</p>
+<pre><code class="language-js">console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);</code></pre>
+<!-- step {"runCode":{"language":"js","code":"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}} -->
+<p>Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.</p>
 <!-- step {"closeSurface":"http-local-tty-code"} -->
 <!-- step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-small","tty":{"cols":80,"rows":24},"waitUntil":{"stdio":"Terminal: 80x24"}},"timeout":30000}} -->
 <p>Stop that process too.</p>
@@ -915,17 +915,17 @@ Terminal apps size their output to the terminal. To see the size an app gets in 
 
 .. step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}}
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
 .. step {"closeSurface":"http-local-tty"}
 
-.. code-block:: bash
+.. code-block:: js
 
-   node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+   console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 
-.. step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}
+.. step {"runCode":{"language":"js","code":"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 .. step {"closeSurface":"http-local-tty-code"}
 
@@ -965,11 +965,11 @@ http.createServer((req, res) =&gt; res.end("ok")).listen(port, () =&gt; console.
     <p>Terminal apps size their output to the terminal. To see the size an app gets in a 100-by-40 terminal, run:</p>
     <codeblock outputclass="language-shell">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</codeblock>
     <data name="doc-detective" value='step {"runShell":{"command":"node -e \"console.log(&apos;Terminal: &apos; + process.stdout.columns + &apos;x&apos; + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}}'/>
-    <p>Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:</p>
+    <p>Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:</p>
     <data name="doc-detective" value='step {"closeSurface":"http-local-tty"}'/>
-    <codeblock outputclass="language-bash">node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);"</codeblock>
-    <data name="doc-detective" value='step {"runCode":{"language":"bash","code":"node -e \"console.log(&apos;Terminal: &apos; + process.stdout.columns + &apos;x&apos; + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}'/>
-    <p>Stop that process, then run the script again in an 80-by-24 terminal.</p>
+    <codeblock outputclass="language-js">console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);</codeblock>
+    <data name="doc-detective" value='step {"runCode":{"language":"js","code":"console.log(&apos;Terminal: &apos; + process.stdout.columns + &apos;x&apos; + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}'/>
+    <p>Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.</p>
     <data name="doc-detective" value='step {"closeSurface":"http-local-tty-code"}'/>
     <data name="doc-detective" value='step {"runCode":{"language":"bash","code":"node -e \"console.log(&apos;Terminal: &apos; + process.stdout.columns + &apos;x&apos; + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-small","tty":{"cols":80,"rows":24},"waitUntil":{"stdio":"Terminal: 80x24"}},"timeout":30000}}'/>
     <p>Stop that process too.</p>
@@ -1062,8 +1062,8 @@ http.createServer((req, res) =&gt; res.end("ok")).listen(port, () =&gt; console.
         },
         {
           "runCode": {
-            "language": "bash",
-            "code": "node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"",
+            "language": "js",
+            "code": "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);",
             "background": {
               "name": "http-local-tty-code",
               "tty": true,
@@ -1155,8 +1155,8 @@ tests:
           timeout: 30000
       - closeSurface: http-local-tty
       - runCode:
-          language: bash
-          code: "node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\""
+          language: js
+          code: "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
           background:
             name: http-local-tty-code
             tty: true

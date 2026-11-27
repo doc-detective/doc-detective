@@ -1,0 +1,8 @@
+= Run a command with arguments
+
+Print the Node.js version:
+
+[source,shell]
+----
+node --version
+----

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Keep a cookie in an environment variable</title></head>
+<body>
+<!-- test {"testId":"sessions-cookie-form-name","detectSteps":false} -->
+<h1>Keep a cookie in an environment variable</h1>
+<ol>
+  <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_pname/signed-in">the sign-in page</a>. The server sets the <code>sessions_pname</code> cookie.
+    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_pname/signed-in"} --></li>
+  <li>Save the <code>sessions_pname</code> cookie to the <code>sessions_pname</code> environment variable.
+    <!-- step {"saveCookie":"sessions_pname"} --></li>
+  <li>Sign out at <a href="http://localhost:8092/cookies/set/sessions_pname/signed-out">the sign-out page</a>, which replaces the cookie.
+    <!-- step {"goTo":"http://localhost:8092/cookies/set/sessions_pname/signed-out"} --></li>
+  <li>Load the cookie from the <code>sessions_pname</code> environment variable.
+    <!-- step {"loadCookie":"sessions_pname"} --></li>
+  <li>Open <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_pname=signed-in</strong>.
+    <!-- step {"goTo":"http://localhost:8092/cookies"} -->
+    <!-- step {"find":"sessions_pname=signed-in"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

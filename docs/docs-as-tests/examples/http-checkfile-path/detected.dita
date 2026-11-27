@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-checkfile-path">
+  <title>Check for any log file</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-checkfile-path","detectSteps":true}'/>
+    <p>Write a log to the <codeph>output</codeph> folder next to this page:</p>
+    <codeblock outputclass="language-shell">node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/app.log','started')"</codeblock>
+    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"const fs=require(&apos;fs&apos;);fs.mkdirSync(&apos;output&apos;,{recursive:true});fs.writeFileSync(&apos;output/app.log&apos;,&apos;started&apos;)\"","workingDirectory":"."}}'/>
+    <p>Check that the <codeph>output</codeph> folder holds a log file.</p>
+    <data name="doc-detective" value='step {"checkFile":{"path":"output/*.log"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

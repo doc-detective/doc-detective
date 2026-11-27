@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="sessions-config-origin">
+  <title>Open a page by its path</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <codeph>/multi-tab.html</codeph> on the site.</cmd></step>
+      <step><cmd>Check that the page reads "MULTI-TAB HOME".</cmd></step>
+    </steps>
+  </taskbody>
+</task>

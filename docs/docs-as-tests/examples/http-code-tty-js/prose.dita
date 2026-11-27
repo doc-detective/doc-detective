@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-code-tty-js">
+  <title>Check the terminal size from code</title>
+  <body>
+    <p>Print the size of the terminal the code runs in:</p>
+    <codeblock outputclass="language-js">console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() =&gt; {}, 1000);</codeblock>
+    <p>Stop it when you're done.</p>
+  </body>
+</topic>

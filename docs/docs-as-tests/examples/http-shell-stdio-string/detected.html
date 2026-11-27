@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Check command output</title></head>
+<body>
+<!-- test {"testId":"http-shell-stdio-string","detectSteps":true} -->
+<h1>Check command output</h1>
+<p>Run this command. It prints <code>ready</code>:</p>
+<pre><code class="language-shell">node -e "console.log('ready')"</code></pre>
+<!-- step {"runShell":{"command":"node -e \"console.log('ready')\"","stdio":"ready"}} -->
+<!-- test end -->
+</body>
+</html>

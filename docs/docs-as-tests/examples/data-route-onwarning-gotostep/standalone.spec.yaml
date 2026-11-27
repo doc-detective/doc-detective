@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: data-route-onwarning-gotostep
+    steps:
+      - runShell: node --version
+        onWarning:
+          - goToStep: path
+      - stepId: npm
+        runShell: npm --version
+      - stepId: path
+        runShell: command -v node

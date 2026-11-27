@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Create an account and check the response</title></head>
+<body>
+<!-- test {"testId":"data-assertions-array","detectSteps":false} -->
+<h1>Create an account and check the response</h1>
+<ol>
+  <li>Create an account. Send a <code>POST</code> request to <code>http://localhost:8092/api/accounts</code> with this body:
+    <pre><code class="language-json">{"name":"Wren","plan":"team"}</code></pre>
+    <!-- step {"httpRequest":{"url":"http://localhost:8092/api/accounts","method":"post","request":{"body":{"name":"Wren","plan":"team"}}},"assertions":["$$outputs.response.statusCode == 200","$$outputs.response.body.plan == \"team\""]} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

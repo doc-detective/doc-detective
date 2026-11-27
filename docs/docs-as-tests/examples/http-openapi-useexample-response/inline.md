@@ -1,0 +1,9 @@
+<!-- test {"testId":"http-openapi-useexample-response","detectSteps":false,"openApi":[{"name":"users","descriptionPath":"../http-openapi/users.openapi.json"}]} -->
+
+# Call an operation with its examples
+
+Call the `createUser` operation with Ada as the user.
+
+<!-- step {"httpRequest":{"openApi":{"operationId":"createUser","useExample":"response"},"request":{"body":{"name":"Ada","job":"engineer"}}}} -->
+
+<!-- test end -->

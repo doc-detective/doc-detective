@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-screenshot-fullpage-false">
+  <title>Save a screenshot of a long page with fullPage false</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Open the page at <codeph>http://localhost:8092/screenshot-tall.html</codeph>.</cmd></step>
+      <step><cmd>The page ends with a red box at the bottom.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

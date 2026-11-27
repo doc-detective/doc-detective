@@ -1,0 +1,14 @@
+= Expect a failing exit code
+
+// (test {"testId":"http-shell-exitcodes","detectSteps":false})
+
+This script exits with code `1`:
+
+[source,shell]
+----
+node -e "process.exit(1)"
+----
+
+// (step {"runShell":{"command":"node -e \"process.exit(1)\"","exitCodes":[1]}})
+
+// (test end)

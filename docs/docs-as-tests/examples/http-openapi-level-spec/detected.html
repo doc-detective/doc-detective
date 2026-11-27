@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Share a description across tests</title></head>
+<body>
+<!-- test {"testId":"http-openapi-level-spec","detectSteps":true,"openApi":[{"name":"users","descriptionPath":"../http-openapi/users.openapi.json"}]} -->
+<h1>Share a description across tests</h1>
+<p>Call the <code>createUser</code> operation with Ada as the user.</p>
+<!-- step {"httpRequest":{"openApi":"createUser","request":{"body":{"name":"Ada","job":"engineer"}}}} -->
+<!-- test end -->
+</body>
+</html>

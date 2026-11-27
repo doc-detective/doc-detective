@@ -1,6 +1,6 @@
 {
   "specId": "mock-request-sequences",
-  "description": "mockRequest `responses` and `harPath` (ADR 01233): one test per permutation. The real mocks run on headless Chrome on every OS. Requests go to the 8092 test server's /api echo route, which sets `x-server`, so a response without it came from the mock. Firefox and Safari assert the skip.",
+  "description": "mockRequest `responses` and `harPath` (ADR 01242): one test per permutation. The real mocks run on headless Chrome on every OS. Requests go to the 8092 test server's /api echo route, which sets `x-server`, so a response without it came from the mock. Firefox and Safari assert the skip.",
   "tests": [
     {
       "testId": "mock-request-responses-sequence",

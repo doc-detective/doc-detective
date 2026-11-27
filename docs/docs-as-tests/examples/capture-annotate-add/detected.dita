@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-annotate-add">
+  <title>Mark a field on the page</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-annotate-add","detectSteps":true}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/enhanced-elements.html" scope="external" format="html">the sample form</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/enhanced-elements.html"}'/></info></step>
+      <step><cmd>The username field is marked 1.</cmd>
+        <info><data name="doc-detective" value='step {"annotate":{"add":[{"id":"step","badge":"#username-input","label":"1"}]}}'/>
+          <data name="doc-detective" value='step {"screenshot":{"path":"annotate-add.png","directory":".dd-output","overwrite":"true"}}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

@@ -1,0 +1,7 @@
+= Open named tabs and windows
+
+. Start at http://localhost:8092/multi-tab.html[the multi-tab page].
+. Load http://localhost:8092/multi-tab-child.html?page=notes[the notes page] in a new tab named `notes`.
+. Check that the `notes` tab reads "PAGE notes".
+. Load http://localhost:8092/multi-tab-child.html?page=about[the about page] in a new window named `about`.
+. Check that the new window reads "PAGE about".

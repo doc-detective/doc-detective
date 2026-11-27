@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="custom-actions-object">
+  <title>Wait for the echo</title>
+  <body>
+    <p>Open the type echo page.</p>
+    <p>Type Hello, Doc Detective.</p>
+    <p>Wait <i>a moment</i> for the echo.</p>
+  </body>
+</topic>

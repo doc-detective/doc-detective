@@ -507,7 +507,7 @@ doc-detective install agents --agent claude,copilot --scope project --yes
 
 ## Reporter names in config
 
-**What changed:** Config `reporters` accepts only `terminal`, `json`, `html`, `runFolder`, `junit`, and `markdown`, spelled exactly. `"JSON"` and internal names such as `"plainReporter"` used to pass. Now they exit `2` with an error that lists the allowed names.
+**What changed:** Config `reporters` accepts only `terminal`, `json`, `html`, `runFolder`, `junit`, `markdown`, and `cucumber`, spelled exactly. `"JSON"` and internal names such as `"plainReporter"` used to pass. Now they exit `2` with an error that lists the allowed names.
 
 An explicit `"reporters": []` now means no reporters. Version 4 fell back to the default reporters. The run still writes a run folder for its automatic screenshots and recordings, unless `autoScreenshot` and `autoRecord` are both `false`.
 

@@ -1,0 +1,19 @@
+= Check the field label
+
+// (test {"testId":"custom-statements-in-codeblock","detectSteps":true})
+
+Open the type echo page.
+
+[source,dd]
+----
+step {"goTo":"http://localhost:8092/type-echo.html"}
+----
+
+The field is labeled Type here:.
+
+[source,dd]
+----
+step {"find":"Type here:"}
+----
+
+// (test end)

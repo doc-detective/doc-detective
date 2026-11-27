@@ -1,0 +1,13 @@
+= Skip a pause
+
+// (test {"testId":"nav-wait-false","detectSteps":true})
+
+. Go to http://localhost:8092/wait-delay.html[the wait delay page].
++
+// (step {"goTo":"http://localhost:8092/wait-delay.html"})
+. Skip the pause.
++
+// (step {"wait":false})
+. Check that the page shows *Loaded after 2 seconds*.
+
+// (test end)

@@ -1,0 +1,13 @@
+<!-- test {"testId":"http-shell-shell-cmd","detectSteps":false,"runOn":[{"platforms":["windows"]}]} -->
+
+# Run a command in cmd
+
+Print the Windows version:
+
+```shell
+ver
+```
+
+<!-- step {"runShell":{"command":"ver","shell":"cmd","stdio":"Windows"}} -->
+
+<!-- test end -->

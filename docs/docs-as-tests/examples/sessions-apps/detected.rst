@@ -24,6 +24,8 @@ Windows: Character Map
 
    .. step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":-1}}}
 
+   .. step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":{"index":-1}}}}
+
    .. step {"find":{"elementText":"Copy","surface":{"app":"charmap"}}}
 
 #. Close Character Map.

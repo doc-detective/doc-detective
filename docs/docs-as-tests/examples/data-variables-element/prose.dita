@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-variables-element">
+  <title>Send the text a page shows</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Open <codeph>http://localhost:8092/type-echo.html</codeph>.</cmd></step>
+      <step><cmd>Type <codeph>Wren</codeph> in the field.</cmd></step>
+      <step><cmd>Check that the page shows <codeph>Wren</codeph> below the field.</cmd></step>
+      <step><cmd>Send the text in a <codeph>POST</codeph> request to <codeph>http://localhost:8093/api/names</codeph>. The API returns it.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

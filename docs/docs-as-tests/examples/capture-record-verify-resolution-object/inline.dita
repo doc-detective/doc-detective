@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="capture-record-verify-resolution-object">
+  <title>Record typing in a field</title>
+  <taskbody>
+    <data name="doc-detective" value='test {"testId":"capture-record-verify-resolution-object","detectSteps":false,"autoRecord":false,"runOn":[{"platforms":["windows","mac","linux"],"browsers":{"name":"chrome","headless":true,"viewport":{"width":800,"height":600}}}]}'/>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd>
+        <info><data name="doc-detective" value='step {"goTo":"http://localhost:8092/type-echo.html"}'/></info></step>
+      <step><cmd>Start recording.</cmd>
+        <info><data name="doc-detective" value='step {"record":{"path":"verify-resolution-object.webm","directory":".dd-output","overwrite":"true","verify":{"resolution":{"width":800,"height":600}}}}'/></info></step>
+      <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd>
+        <info><data name="doc-detective" value='step {"click":"Type here:"}'/></info></step>
+      <step><cmd>Type "Hello".</cmd>
+        <info><data name="doc-detective" value='step {"type":"Hello"}'/></info></step>
+      <step><cmd>Wait a moment, then stop the recording.</cmd>
+        <info><data name="doc-detective" value='step {"wait":1000}'/>
+          <data name="doc-detective" value='step {"stopRecord":true}'/></info></step>
+    </steps>
+    <data name="doc-detective" value="test end"/>
+  </taskbody>
+</task>

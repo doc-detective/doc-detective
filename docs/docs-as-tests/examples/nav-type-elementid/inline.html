@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Type into a field by its ID</title></head>
+<body>
+<!-- test {"testId":"nav-type-elementid","detectSteps":false} -->
+<h1>Type into a field by its ID</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/type-echo.html">the type echo page</a>.
+    <!-- step {"goTo":"http://localhost:8092/type-echo.html"} --></li>
+  <li>Type <code>Hello</code> into the <strong>Type here:</strong> field.
+    <!-- step {"type":{"keys":["Hello"],"elementId":"type-input"}} --></li>
+  <li>Check that the page shows <strong>Hello</strong> below the field.
+    <!-- step {"find":"Hello"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

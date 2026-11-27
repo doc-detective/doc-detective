@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="structure-testend-implied">
+  <title>Check the demo pages</title>
+  <body>
+    <section>
+      <title>Pages</title>
+      <data name="doc-detective" value='test {"testId":"structure-testend-implied-pages","detectSteps":false}'/>
+      <ol>
+        <li>Check that <xref href="http://localhost:8092/index.html" scope="external" format="html">the elements demo</xref> loads.
+          <data name="doc-detective" value='step {"checkLink":"http://localhost:8092/index.html"}'/></li>
+      </ol>
+    </section>
+    <section>
+      <title>API</title>
+      <data name="doc-detective" value='test {"testId":"structure-testend-implied-api","detectSteps":false}'/>
+      <ol>
+        <li>Check that <xref href="http://localhost:8092/status/200" scope="external" format="html">the status endpoint</xref> answers.
+          <data name="doc-detective" value='step {"checkLink":"http://localhost:8092/status/200"}'/></li>
+      </ol>
+    </section>
+  </body>
+</topic>

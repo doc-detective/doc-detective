@@ -1,0 +1,43 @@
+{
+  "detectSteps": true,
+  "resolveIncludes": false,
+  "autoScreenshot": false,
+  "autoRecord": false,
+  "outputDir": ".dd-output",
+  "beforeAll": "../../../test-setup/start-server.spec.json",
+  "afterAll": "../../../test-setup/stop-server.spec.json",
+  "telemetry": {
+    "send": false
+  },
+  "fileTypes": [
+    {
+      "name": "plain-text",
+      "extensions": [
+        "txt"
+      ],
+      "inlineStatements": {
+        "testStart": [
+          "(?:^|\\n)TEST (\\{.*\\})",
+          "(?:^|\\n)Test (\\{.*\\})"
+        ],
+        "testEnd": [
+          "(?:^|\\n)END TEST",
+          "(?:^|\\n)End test"
+        ],
+        "step": [
+          "(?:^|\\n)STEP (\\{.*\\})",
+          "(?:^|\\n)Step (\\{.*\\})"
+        ]
+      },
+      "markup": [
+        {
+          "name": "findShown",
+          "regex": "\\bthe page shows (.+?)\\.(?=\\s|$)",
+          "actions": [
+            "find"
+          ]
+        }
+      ]
+    }
+  ]
+}

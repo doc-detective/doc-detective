@@ -1,0 +1,9 @@
+= Accept one status code
+
+// (test {"testId":"nav-checklink-statuscodes-number","detectSteps":false})
+
+. Check that http://localhost:8092/enhanced-elements.html[the element test page] responds.
++
+// (step {"checkLink":{"url":"http://localhost:8092/enhanced-elements.html","statusCodes":200}})
+
+// (test end)

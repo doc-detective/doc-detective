@@ -1,0 +1,9 @@
+= Check Node.js, if it's installed
+
+// (test {"testId":"sessions-runon-requires-string","detectSteps":true,"runOn":[{"platforms":["linux","mac","windows"],"requires":"node"}]})
+
+. Run `node --version`.
++
+// (step {"runShell":"node --version"})
+
+// (test end)

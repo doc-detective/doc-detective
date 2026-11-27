@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Compare a screenshot with string masks</title></head>
+<body>
+<!-- test {"testId":"capture-screenshot-mask-string","detectSteps":true} -->
+<h1>Compare a screenshot with string masks</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/mask.html">the billing page</a>.
+    <!-- step {"goTo":"http://localhost:8092/mask.html"} --></li>
+  <li>The page shows the next invoice date and when the account last synced.
+    <!-- step {"screenshot":{"path":"mask-string.png","directory":".dd-output","maxVariation":0.001,"overwrite":"aboveVariation","mask":["#clock","#stamps"]}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Skip a pause</title></head>
+<body>
+<!-- test {"testId":"nav-wait-false","detectSteps":false} -->
+<h1>Skip a pause</h1>
+<ol>
+  <li>Go to <a href="http://localhost:8092/wait-delay.html">the wait delay page</a>.
+    <!-- step {"goTo":"http://localhost:8092/wait-delay.html"} --></li>
+  <li>Skip the pause.
+    <!-- step {"wait":false} --></li>
+  <li>Check that the page shows <strong>Loaded after 2 seconds</strong>.
+    <!-- step {"find":"Loaded after 2 seconds"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>
