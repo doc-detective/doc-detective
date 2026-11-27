@@ -661,6 +661,12 @@ const reporters: Record<string, (config: any, outputPath: any, results: any, opt
     return markdownReporter(config, outputPath, results, options);
   },
 
+  // Cucumber reporter: writes `cucumber.json` for Xray, Allure, and other Cucumber JSON consumers
+  cucumberReporter: async (config: any, outputPath: any, results: any, options: any = {}) => {
+    const { cucumberReporter } = await import("./reporters/cucumberReporter.js");
+    return cucumberReporter(config, outputPath, results, options);
+  },
+
   // JSON reporter: outputs results to a JSON file
   // `--json`: the results, and nothing else, on stdout.
   jsonStdoutReporter: async (_config: any, _outputPath: any, results: any) => {
@@ -973,6 +979,7 @@ function reporterKey(reporter: string): string {
     terminal: "terminalReporter",
     junit: "junitReporter",
     markdown: "markdownReporter",
+    cucumber: "cucumberReporter",
   };
   return shorthand[reporter.toLowerCase()] ?? reporter;
 }

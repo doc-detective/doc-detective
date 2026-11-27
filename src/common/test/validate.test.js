@@ -2459,12 +2459,12 @@ import { schemas } from "../dist/index.js";
       });
     });
 
-    // ADR 01166: config `reporters` takes the six public names, exactly.
+    // ADR 01166: config `reporters` takes the seven public names, exactly.
     describe("config reporters", function () {
       const reporters = (list) => validate({ schemaKey: "config_v3", object: { reporters: list } }).valid;
 
       it("accepts each public reporter name", function () {
-        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown"])).to.be.true;
+        expect(reporters(["terminal", "json", "html", "runFolder", "junit", "markdown", "cucumber"])).to.be.true;
       });
 
       it("rejects other spellings and internal reporters", function () {
