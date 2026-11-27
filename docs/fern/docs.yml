@@ -402,6 +402,9 @@ navigation:
           - page: Formats
             path: pages/reference/docs-as-tests/formats.mdx
             slug: formats
+          - page: Custom detection
+            path: pages/reference/docs-as-tests/custom-detection.mdx
+            slug: custom-detection
       - folder: pages/reference/schemas
         title: Schemas
 
