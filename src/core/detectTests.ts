@@ -581,10 +581,22 @@ function expandAll(config: any, files: string[]) {
   return expansions;
 }
 
+// Setup steps need no marker past detection; cleanup steps keep theirs. The
+// spec-file branch reads `_fromBefore` for step locations first, so this runs
+// after that, not inside mergeBeforeAfter.
+function dropBeforeMarkers(content: any): void {
+  for (const test of content?.tests ?? []) {
+    if (!Array.isArray(test?.steps)) continue;
+    for (const step of test.steps) {
+      if (step && typeof step === "object") delete step._fromBefore;
+    }
+  }
+}
+
 // Merge a test's `before` and `after` files into its steps, tracking which
 // steps came from which, then validate each step. JSON/YAML specs and inline
-// test statements both route through here.
-async function mergeBeforeAfter(config: any, file: string, content: any) {
+// test statements both route through here. It edits `content` in place.
+async function mergeBeforeAfter(config: any, file: string, content: any): Promise<void> {
   for (let t = 0; t < content.tests.length; t++) {
     const test = content.tests[t];
     // Scrub the internal routing markers from authored steps: they're set
@@ -643,6 +655,7 @@ async function mergeBeforeAfter(config: any, file: string, content: any) {
   }
   // Validate each step
   for (const test of content.tests) {
+    if (!Array.isArray(test.steps)) continue;
     test.steps = test.steps.flatMap((step: any) => {
       // The spread leaves out the non-enumerable routing markers.
       const stepForValidation = { ...step };
@@ -907,16 +920,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
 
       // Clean up _fromBefore markers from all tests/steps, even if
       // stepLocations is empty (e.g., AST parse failed).
-      if (content?.tests) {
-        for (const test of content.tests) {
-          if (!test?.steps) continue;
-          for (const step of test.steps) {
-            if (step && "_fromBefore" in step) {
-              delete step._fromBefore;
-            }
-          }
-        }
-      }
+      dropBeforeMarkers(content);
 
       return content;
     } else {
@@ -1065,10 +1069,7 @@ async function parseTests({ config, files }: { config: any; files: string[] }) {
             return null;
           }
           spec = await resolvePaths({ config, object: merged.object, filePath: pathBase, objectType: "spec" });
-          // Setup steps need no marker past detection; cleanup steps keep theirs.
-          for (const test of spec.tests) {
-            for (const step of test.steps) delete step._fromBefore;
-          }
+          dropBeforeMarkers(spec);
         }
         // Re-stamp the phase: resolvePaths isn't guaranteed to preserve unknown
         // keys, so a text/markdown file referenced by beforeAll/afterAll would
