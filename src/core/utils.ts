@@ -209,6 +209,7 @@ function harToMocks(
     const key = `${entryMethod} ${entryUrl}`;
     if (!mocks.has(key)) mocks.set(key, { url: entryUrl, method: entryMethod, responses: [] });
     mocks.get(key)!.responses.push({
+      // `||`, not `??`: browsers record status 0 for a request with no response.
       statusCode: entry.response?.status || 200,
       headers,
       body: content.encoding === "base64" ? Buffer.from(text, "base64") : text,

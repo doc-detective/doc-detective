@@ -381,6 +381,29 @@ describe("mockRequest harPath", function () {
     ({ result } = await run({ harPath: writeHar(har([])) }));
     assert.equal(result.description, `Couldn't find HAR entries matching \`*\` in \`${file}\`.`);
   });
+
+  it("fails, mocking nothing, on a relative or malformed recorded URL", async function () {
+    for (const bad of ["/api/relative", "http://[bad"]) {
+      const file = writeHar(har([harEntry("GET", "https://x.test/ok"), harEntry("GET", bad)]));
+      const { result, driver } = await run({ harPath: file });
+      assert.equal(result.status, "FAIL");
+      assert.equal(result.description, `Couldn't parse a URL in \`harPath\` \`${file}\`.`);
+      assert.equal(driver.mockCalls.length, 0);
+    }
+  });
+
+  it("counts answers that arrive while later HAR mocks register", async function () {
+    const file = writeHar(har([harEntry("GET", "https://x.test/a"), harEntry("GET", "https://x.test/b")]));
+    const driver = fakeDriver();
+    const mock = driver.mock;
+    driver.mock = async (...args) => {
+      // The first mock answers a request while the second registers.
+      driver.mocks[0]?.answer();
+      return mock(...args);
+    };
+    const { result } = await run({ harPath: file }, { driver });
+    assert.equal(result.outputs.matched, 1);
+  });
 });
 
 describe("mockRequest bodyPath resolution", function () {
@@ -416,6 +439,12 @@ describe("mockRequest bodyPath resolution", function () {
     assert.equal(mock.harPath, path.resolve("/specs/sub/fixtures/app.har"));
     assert.equal(mock.responses[1].bodyPath, path.resolve("/specs/sub/b.json"));
     assert.equal(mock.responses[0].body, "a");
+  });
+
+  it("leaves a responses entry's body alone, even when it has path-like keys", async function () {
+    const body = { path: "report.csv", directory: "out" };
+    const mock = await resolveSpec({ url: "**/u", responses: [{ body }] });
+    assert.deepEqual(mock.responses[0].body, { path: "report.csv", directory: "out" });
   });
 });
 

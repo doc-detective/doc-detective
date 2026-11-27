@@ -76,8 +76,10 @@ async function mockRequest({
     if (found.length === 0) {
       return fail(result, `Couldn't find HAR entries matching \`${url ?? "*"}\` in \`${file}\`.`);
     }
-    plans = found.map((m) => ({
-      pattern: literalPattern(m.url),
+    const patterns = found.map((m) => literalPattern(m.url));
+    if (patterns.includes(null)) return fail(result, `Couldn't parse a URL in \`harPath\` \`${file}\`.`);
+    plans = found.map((m, i) => ({
+      pattern: patterns[i],
       method: m.method,
       // Its own namespace: a glob that spells the same URL is a different mock.
       key: `${m.method} har:${m.url}`,
@@ -104,7 +106,7 @@ async function mockRequest({
 
   if (!(driver.state.mocks instanceof Map)) driver.state.mocks = new Map();
   const mocks: Map<string, MockEntry> = driver.state.mocks;
-  let matched = 0;
+  const registered: MockEntry[] = [];
   for (const plan of plans) {
     const replaced = mocks.get(plan.key);
     const entry: MockEntry = {
@@ -130,11 +132,12 @@ async function mockRequest({
       );
     }
     mocks.set(plan.key, entry);
-    matched += entry.answered;
+    registered.push(entry);
     log(config, "debug", `Mocking ${plan.key}.`);
   }
 
-  result.outputs.matched = matched;
+  // Summed after every await, so answers that arrived meanwhile count.
+  result.outputs.matched = registered.reduce((sum, entry) => sum + entry.answered, 0);
   return result;
 }
 
@@ -175,9 +178,11 @@ function respondWith(mock: any, responses: any[]) {
 }
 
 // A URLPattern that matches one URL exactly: `?`, `:` and `*` match themselves.
-// The same escaping webdriverio uses for its own literal patterns.
+// The same escaping webdriverio uses for its own literal patterns. `null` for
+// a URL that isn't absolute or doesn't parse.
 function literalPattern(url: string) {
   const escape = (value: string) => value.replace(/[*:(){}?+\\]/g, "\\$&");
+  if (!URL.canParse(url)) return null;
   const { protocol, hostname, port, pathname, search } = new URL(url);
   return new URLPattern({
     protocol: protocol.slice(0, -1),
