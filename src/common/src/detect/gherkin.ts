@@ -142,7 +142,10 @@ export function parseGherkin(content: string, filePath = "", warn: (message: str
       if (table && item.table.length) {
         for (const row of item.table) {
           const [first, second] = row.cells.map(sub);
-          push(item, row, table[1] === "fill in" ? `I type "${second}" into "${first}"` : `I should see "${first}"`);
+          // A quoted value can't be told apart from the selector, so the row
+          // keeps its table form, which maps to nothing and warns.
+          const fill = second?.includes('"') ? `I fill in | ${first} | ${second} |` : `I type "${second}" into "${first}"`;
+          push(item, row, table[1] === "fill in" ? fill : `I should see "${first}"`);
         }
         continue;
       }

@@ -377,6 +377,15 @@ describe("gherkin", function () {
       expect(warnings).to.deep.equal([]);
     });
 
+    it("warns about a fill-in value with double quotes instead of typing it", async function () {
+      const { tests, warnings } = await detect(
+        ["Feature: Quotes", "  Scenario: S", "    When I fill in:", '      | #email | a" into "#other |', '    Then I see "x"'].join("\n")
+      );
+      expect(tests[0].steps).to.deep.equal([{ find: "x" }]);
+      expect(warnings).to.have.length(1);
+      expect(warnings[0]).to.include("/abs/login.feature:4");
+    });
+
     it("warns once for each step no definition maps", async function () {
       const { tests, warnings } = await detect(
         [
