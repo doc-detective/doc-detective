@@ -80,7 +80,8 @@ async function mockRequest({
     }
     if (!found) return fail(result, `Couldn't parse \`harPath\` \`${file}\`: it isn't HAR JSON.`);
     if (found.length === 0) {
-      return fail(result, `Couldn't find HAR entries matching \`${url ?? "*"}\` in \`${file}\`.`);
+      const withMethod = method ? ` with method \`${method}\`` : "";
+      return fail(result, `Couldn't find HAR entries matching \`${url ?? "*"}\`${withMethod} in \`${file}\`.`);
     }
     const patterns = found.map((m) => literalPattern(m.url));
     if (patterns.includes(null)) return fail(result, `Couldn't parse a URL in \`harPath\` \`${file}\`.`);
