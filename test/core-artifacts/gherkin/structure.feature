@@ -1,4 +1,4 @@
-# Gherkin structure (ADR 01233): Background, Rule, Outline, data tables, and
+# Gherkin structure (ADR 01235): Background, Rule, Outline, data tables, and
 # inline statements. When the fixture job runs this directory directly, with
 # detection off, only the inline `# step` statements run.
 @firefox @headless

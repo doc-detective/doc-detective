@@ -9,7 +9,7 @@ export { cucumberReporter, buildCucumberJson };
 
 // WARNING is `passed`: Cucumber has no warning state, and a warning must not
 // fail the run in Xray or Allure. Its text goes to the step's `output` instead
-// (ADR 01228).
+// (ADR 01236).
 const STATUS: Record<string, string> = { PASS: "passed", FAIL: "failed", SKIPPED: "skipped", WARNING: "passed" };
 
 // `goTo: https://example.com`: the action key and its main value.
