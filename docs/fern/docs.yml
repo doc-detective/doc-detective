@@ -390,6 +390,9 @@ navigation:
           - page: Screenshots and recordings
             path: pages/reference/docs-as-tests/capture.mdx
             slug: capture
+          - page: Sessions and surfaces
+            path: pages/reference/docs-as-tests/sessions-surfaces.mdx
+            slug: sessions-surfaces
       - folder: pages/reference/schemas
         title: Schemas
 

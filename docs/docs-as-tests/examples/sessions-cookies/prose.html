@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Keep a session cookie</title></head>
+<body>
+<h1>Keep a session cookie</h1>
+<ol>
+  <li>Sign in at <a href="http://localhost:8092/cookies/set/sessions_demo/signed-in">the sign-in page</a>. The server sets the <code>sessions_demo</code> cookie.</li>
+  <li>Save the <code>sessions_demo</code> cookie four ways. Save it to the <code>sessions_demo</code> and <code>SESSIONS_DEMO_COOKIE</code> environment variables, and to <code>sessions_demo.txt</code> in the output folder. Save it to <code>sessions_demo.txt</code> in a <code>tmp</code> folder next to this file, keeping only the <code>localhost</code> cookie.</li>
+  <li>Go to <a href="http://localhost:8092/cookies/set/sessions_demo/signed-out">the sign-out page</a>, which replaces the cookie.</li>
+  <li>Load the cookie from <code>sessions_demo.txt</code> in the output folder.</li>
+  <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a>, and check that it shows <strong>sessions_demo=signed-in</strong>.</li>
+  <li>Go to <a href="http://localhost:8092/cookies/set/sessions_demo/signed-out">the sign-out page</a> again, and load the cookie from the <code>SESSIONS_DEMO_COOKIE</code> environment variable.</li>
+  <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a> again, and check that it shows <strong>sessions_demo=signed-in</strong>.</li>
+  <li>Go to <a href="http://localhost:8092/cookies/set/sessions_demo/signed-out">the sign-out page</a> once more, and load the <code>localhost</code> cookie from <code>tmp/sessions_demo.txt</code>.</li>
+  <li>Go to <a href="http://localhost:8092/cookies">the cookie report</a> a last time, and check that it shows <strong>sessions_demo=signed-in</strong>.</li>
+</ol>
+</body>
+</html>

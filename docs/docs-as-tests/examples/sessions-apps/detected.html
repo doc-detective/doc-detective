@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Open a built-in app</title></head>
+<body>
+<h1>Open a built-in app</h1>
+<h2>Windows: Character Map</h2>
+<!-- test {"testId":"sessions-apps-windows","detectSteps":true,"runOn":[{"platforms":"windows"}]} -->
+<ol>
+  <li>Open Character Map, and wait for its Select button.
+    <!-- step {"startSurface":{"app":"C:\\Windows\\System32\\charmap.exe","name":"charmap","timeout":120000,"waitUntil":{"find":{"elementText":"Select"}}}} --></li>
+  <li>Click <strong>Select</strong>.</li>
+  <li>Check that the window shows the <strong>Copy</strong> button.</li>
+  <li>Check the Copy button again, picking the window by its title, by name, and as the newest window.
+    <!-- step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":{"title":"Character Map"}}}} -->
+    <!-- step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":"Character Map"}}} -->
+    <!-- step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":{"name":"Character Map"}}}} -->
+    <!-- step {"find":{"elementText":"Copy","surface":{"app":"charmap","window":-1}}} -->
+    <!-- step {"find":{"elementText":"Copy","surface":{"app":"charmap"}}} --></li>
+  <li>Close Character Map.
+    <!-- step {"closeSurface":{"app":"charmap"}} --></li>
+</ol>
+<!-- test end -->
+<h2>macOS: Calculator</h2>
+<!-- test {"testId":"sessions-apps-mac","detectSteps":true,"runOn":[{"platforms":"mac"}]} -->
+<ol>
+  <li>Open Calculator with <code>SESSIONS_DOCS=1</code> in its environment, and wait for its <code>1</code> button.
+    <!-- step {"startSurface":{"app":"/System/Applications/Calculator.app","name":"calculator","env":{"SESSIONS_DOCS":"1"},"timeout":180000,"waitUntil":{"find":{"elementAria":"1"}}}} --></li>
+  <li>In the first window, press the <code>1</code> button.
+    <!-- step {"click":{"elementAria":"1","surface":{"app":"calculator","window":{"index":0}}}} --></li>
+  <li>Close Calculator.
+    <!-- step {"closeSurface":"calculator"} --></li>
+</ol>
+<!-- test end -->
+<h2>Android: Settings</h2>
+<!-- test {"testId":"sessions-apps-android","detectSteps":true,"runOn":[{"platforms":"android"}]} -->
+<ol>
+  <li>Open the Settings app, and wait for the Network &amp; internet entry.
+    <!-- step {"startSurface":{"app":"com.android.settings","name":"settings","timeout":180000,"waitUntil":{"find":{"elementText":"Network & internet"}}}} --></li>
+  <li>Tap the Network &amp; internet entry.
+    <!-- step {"click":"Network & internet"} --></li>
+  <li>Check that the screen shows <strong>Internet</strong>.</li>
+  <li>Close the Settings app.
+    <!-- step {"closeSurface":{"app":"settings"}} --></li>
+</ol>
+<!-- test end -->
+<h2>Android: your own app</h2>
+<!-- test {"testId":"sessions-apps-android-install","detectSteps":true,"runOn":[{"platforms":"android","device":"sessions-pixel","requires":{"files":["build/sessions-demo.apk"]}}]} -->
+<ol>
+  <li>Install <code>build/sessions-demo.apk</code> on a headless Android 14 phone emulator named <code>sessions-pixel</code>, open its main activity, and wait for the Welcome screen.
+    <!-- step {"startSurface":{"app":"com.example.sessionsdemo","name":"demo","install":"build/sessions-demo.apk","activity":".MainActivity","device":{"platform":"android","name":"sessions-pixel","deviceType":"phone","osVersion":"14","headless":true},"driverOptions":{"appium:newCommandTimeout":300},"timeout":300000,"waitUntil":{"find":{"elementText":"Welcome"}}}} --></li>
+  <li>Close the app.
+    <!-- step {"closeSurface":{"app":"demo"}} --></li>
+</ol>
+<!-- test end -->
+<h2>iOS: Settings</h2>
+<!-- test {"testId":"sessions-apps-ios","detectSteps":true,"runOn":[{"platforms":"ios","device":{"platform":"ios","name":"sessions-iphone","deviceType":"phone","osVersion":"18.0","headless":true}}]} -->
+<ol>
+  <li>On the iPhone simulator named <code>sessions-iphone</code>, open the Settings app, and wait for the General entry.
+    <!-- step {"startSurface":{"app":"com.apple.Preferences","name":"preferences","device":"sessions-iphone","timeout":180000,"waitUntil":{"find":{"elementText":"General"}}}} --></li>
+  <li>Tap the General entry.
+    <!-- step {"click":"General"} --></li>
+  <li>Check that the screen shows <strong>About</strong>.</li>
+  <li>Close the Settings app.
+    <!-- step {"closeSurface":{"app":"preferences"}} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>
