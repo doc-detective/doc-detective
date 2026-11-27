@@ -12,7 +12,7 @@ const variant = [
   { theme: "dark", dpr: 2 },
 ];
 
-describe("matrix helpers (ADR 01227)", function () {
+describe("matrix helpers (ADR 01232)", function () {
   describe("matrixReferences", function () {
     it("collects keys from every string, at any depth", function () {
       const refs = matrixReferences({

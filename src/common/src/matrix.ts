@@ -1,4 +1,4 @@
-// Pure helpers for `runOn[].matrix` (ADR 01227): find `$$matrix.<key>`
+// Pure helpers for `runOn[].matrix` (ADR 01232): find `$$matrix.<key>`
 // references, cross the referenced keys into combinations, substitute one
 // combination into a value, and name it in a context ID. No I/O, no
 // process.env, so the LSP and Online can reuse them.

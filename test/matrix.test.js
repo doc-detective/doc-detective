@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { resolveTests } from "../dist/core/resolveTests.js";
 import { resolvePaths } from "../dist/core/files.js";
 
-describe("resolvePaths leaves `matrix` values alone (ADR 01227)", function () {
+describe("resolvePaths leaves `matrix` values alone (ADR 01232)", function () {
   for (const objectType of ["spec", "config"]) {
     it(`doesn't treat a ${objectType} matrix key named like a path key as paths`, async function () {
       const object = {
@@ -25,7 +25,7 @@ const variant = [
   { theme: "dark", dpr: 2 },
 ];
 
-describe("resolveTests with a matrix (ADR 01227)", function () {
+describe("resolveTests with a matrix (ADR 01232)", function () {
   const config = { logLevel: "silent" };
   const spec = (tests, extra = {}) => ({ specId: "s", contentPath: "/abs/s.spec.json", openApi: [], tests, ...extra });
   const resolve = async (specs) => {
