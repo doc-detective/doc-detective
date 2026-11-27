@@ -101,6 +101,7 @@ export {
   getRunOutputDir,
   reportOutputDir,
   runArchivesArtifacts,
+  stepsCheckDownloads,
   replaceEnvs,
   spawnCommand,
   spawnBackgroundCommand,
@@ -3489,6 +3490,11 @@ function getRunOutputDir(
 // switch lowercases) and the internal `runFolderReporter` key matches verbatim
 // (its default branch passes the token straight to the reporters map);
 // non-string (e.g. function) reporters are not the runFolder reporter.
+// Whether any step is a `checkFile` `download` check (ADR 01231).
+function stepsCheckDownloads(steps: any): boolean {
+  return Array.isArray(steps) && steps.some((step: any) => step?.checkFile?.download !== undefined);
+}
+
 function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
   const list = Array.isArray(specs) ? specs : [];
   if (list.length > 0) {
@@ -3506,6 +3512,15 @@ function runArchivesArtifacts(config: any = {}, specs: any[] = []): boolean {
       )
     );
     if (writesArtifact) return true;
+    // Downloads land in the run folder too (ADR 01231).
+    const checksDownload = list.some((spec: any) =>
+      (spec?.tests ?? []).some(
+        (test: any) =>
+          stepsCheckDownloads(test?.steps) ||
+          (test?.contexts ?? []).some((context: any) => stepsCheckDownloads(context?.steps))
+      )
+    );
+    if (checksDownload) return true;
   } else if (config?.autoScreenshot !== false || config?.autoRecord !== false) {
     return true;
   }

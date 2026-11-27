@@ -1,0 +1,125 @@
+---
+title: checkFile
+description: Wait for a finished file or browser download, and check its text.
+---
+
+The `checkFile` action waits for a finished file and, optionally, checks its text. Use it when a procedure ends with a file: an export a user downloads, or a report a command writes.
+
+A file counts as finished once two things are true. It's no longer an in-progress download, such as a `.crdownload` or `.part` file. Its size also stays the same for 250 ms.
+
+## Check a download
+
+In Chrome and Firefox, Doc Detective saves every download to the context's own download folder, with no prompt. To check a download, set `download` to a glob for its file name, after the step that starts it:
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "goTo": "https://example.com/reports" },
+        { "click": "Export CSV" },
+        { "checkFile": { "download": "*.csv" } }
+      ]
+    }
+  ]
+}
+```
+
+{/* test {"testId":"checkfile-download","detectSteps":false,"runOn":[{"platforms":["linux","windows","mac"],"browsers":[{"name":"chrome","headless":true}]}]} */}
+{/* step {"stepId":"checkfile-download-goto","description":"Open the local download page","goTo":"http://localhost:8092/download.html"} */}
+{/* step {"stepId":"checkfile-download-click","description":"Start a download","click":"Export first CSV"} */}
+{/* step {"stepId":"checkfile-download-check","description":"Check the downloaded CSV","checkFile":{"download":"*.csv","content":"/^id,name/"}} */}
+{/* test end */}
+
+Each `checkFile` with `download` returns the oldest finished download that no earlier `checkFile` in the same context returned. Two exports followed by two checks return two different files. A download that finished before the step runs still counts.
+
+The download folder is in the run folder, next to the context's screenshots: `.doc-detective/runs/<runId>/specs/<specId>/tests/<testId>/contexts/<contextId>/downloads/`. Downloads never land in your own Downloads folder.
+
+> On Windows, Chrome can't save a file whose full path is longer than 260 characters, and the step then times out. If a download never arrives, set `outputDir` to a shorter folder, or shorten the spec and test IDs.
+
+`download` needs a desktop Chrome or Firefox context, and a browser that an earlier step opened, such as `goTo`. Elsewhere, the step reports `SKIPPED`:
+
+- In Safari: ``Skipped: `safari` can't save downloads to a known folder.``
+- On mobile, in an app, or with no browser open: ``Skipped: `download` needs a desktop Chrome or Firefox context.``
+
+## Check a file
+
+To check any other file, set `path` to a glob, or set `checkFile` to the glob as a string. A relative path resolves against the spec file. When several files match, the newest finished one counts. `path` works in every context and needs no browser.
+
+```json
+{ "checkFile": "out/report.txt" }
+```
+
+## Fields
+
+Set `checkFile` to a string, which is shorthand for `path`, or to an object with these fields:
+
+- `path`: a glob for the file to wait for. Set `path` or `download`.
+- `download`: a glob for a file name in the context's download folder. Set `path` or `download`.
+- `content`: (Optional) Text the file must contain, read as UTF-8. A value that starts and ends with `/` is a regular expression, as in `runShell`'s `stdio`.
+- `timeout`: (Optional) How long to wait for a finished match, in milliseconds. Defaults to `30000`.
+
+Set `path` or `download`, not both. Setting both is a validation error.
+
+**Outputs.** The step sets `outputs.filePath` (the absolute path), `outputs.fileName`, and `outputs.fileSize` (in bytes). To use them in later steps, set the step's `variables` object, for example to `$$filePath`.
+
+**Failures.** The step fails when no finished file matches within `timeout`, or when the file doesn't contain `content`. For example:
+
+- ``Couldn't find a finished download matching `*.csv` within 30000 ms.``
+- ``Couldn't find a finished file matching `/abs/out/*.log` within 30000 ms.``
+- ``Couldn't find `Invoice` in `/abs/out/invoice.txt`.``
+
+> For every field, see the [`checkFile`](/reference/schemas/checkfile) reference.
+
+## Examples
+
+### Check the text of a download
+
+This example waits up to a minute for an invoice PDF and checks that it contains the word `Invoice`.
+
+```json
+{
+  "checkFile": {
+    "download": "invoice-*.pdf",
+    "content": "Invoice",
+    "timeout": 60000
+  }
+}
+```
+
+### Check a command's output file
+
+This example checks that a build log reports a passing build.
+
+```json
+{
+  "checkFile": {
+    "path": "out/*.log",
+    "content": "/build \\d+ passed/"
+  }
+}
+```
+
+### Check more than the text
+
+For checks beyond `content`, save the file's path to an environment variable and read it in `runShell` or `runCode`. Read it through `process.env`, so Windows paths stay intact.
+
+```json
+{
+  "tests": [
+    {
+      "steps": [
+        { "goTo": "https://example.com/reports" },
+        { "click": "Export CSV" },
+        {
+          "checkFile": { "download": "report-*.csv", "content": "/^id,name/" },
+          "variables": { "CSV": "$$filePath" }
+        },
+        {
+          "runShell": "node -e \"const rows = require('fs').readFileSync(process.env.CSV, 'utf8').trim().split('\\n'); if (rows.length < 2) process.exit(1)\""
+        }
+      ]
+    }
+  ]
+}
+```

@@ -17,6 +17,7 @@
 // value, such as "goTo": "$URL", never reaches the normalizer before
 // substitution (normalizeStep).
 import annotate from "./annotate.js";
+import checkFile from "./checkFile.js";
 import checkLink from "./checkLink.js";
 import click from "./click.js";
 import closeSurface from "./closeSurface.js";
@@ -49,6 +50,7 @@ export { NormalizeError } from "./helpers.js";
 // whole step, read-only: a capture names its file for `stepId`.
 export const normalizers: Record<string, (value: any, path: string, literal: boolean, step: any) => any> = {
   annotate,
+  checkFile,
   checkLink,
   click,
   closeSurface,
