@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "http-checkfile",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node -e \"const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/report.txt','build 7 passed')\"",
+            "workingDirectory": "."
+          }
+        },
+        {
+          "checkFile": "output/*.txt"
+        },
+        {
+          "checkFile": {
+            "path": "output/report.txt",
+            "content": "/build [0-9]+ passed/",
+            "timeout": 10000
+          }
+        }
+      ]
+    }
+  ]
+}

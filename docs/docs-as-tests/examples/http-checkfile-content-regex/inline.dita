@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-checkfile-content-regex">
+  <title>Match a build number in a file</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-checkfile-content-regex","detectSteps":false}'/>
+    <p>Write the build result to the <codeph>output</codeph> folder next to this page:</p>
+    <codeblock outputclass="language-shell">node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/build.txt','build 42 passed')"</codeblock>
+    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"const fs=require(&apos;fs&apos;);fs.mkdirSync(&apos;output&apos;,{recursive:true});fs.writeFileSync(&apos;output/build.txt&apos;,&apos;build 42 passed&apos;)\"","workingDirectory":"."}}'/>
+    <p>Check that the result names a passing build.</p>
+    <data name="doc-detective" value='step {"checkFile":{"path":"output/build.txt","content":"/build [0-9]+ passed/"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

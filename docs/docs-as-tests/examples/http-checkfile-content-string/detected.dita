@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-checkfile-content-string">
+  <title>Check a status file's text</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-checkfile-content-string","detectSteps":true}'/>
+    <p>Write the deploy status to the <codeph>output</codeph> folder next to this page:</p>
+    <codeblock outputclass="language-shell">node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/status.txt','deploy succeeded')"</codeblock>
+    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"const fs=require(&apos;fs&apos;);fs.mkdirSync(&apos;output&apos;,{recursive:true});fs.writeFileSync(&apos;output/status.txt&apos;,&apos;deploy succeeded&apos;)\"","workingDirectory":"."}}'/>
+    <p>Check that the status file says <codeph>succeeded</codeph>.</p>
+    <data name="doc-detective" value='step {"checkFile":{"path":"output/status.txt","content":"succeeded"}}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

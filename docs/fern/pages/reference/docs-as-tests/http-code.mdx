@@ -81,6 +81,58 @@ This procedure uses [`runShell`](/docs/actions/runshell) as a command string and
 - The fourth step sets `workingDirectory` to `.`, the folder that holds the test file, and saves its output to `folder-name.txt` in the `output` folder there.
 - The fifth step starts a background process and returns once the process prints `Preview ready` and 250 milliseconds pass. Its `timeout` limits how long it waits for both.
 
+## Check files a command writes
+
+This procedure writes a file with [`runShell`](/docs/actions/runshell), then checks it with [`checkFile`](/docs/actions/checkfile) as a glob string and as an object with `path`, `content`, and `timeout`. See the [`checkFile`](/reference/schemas/checkfile) reference.
+
+<Markdown src="examples/http-checkfile/_variants.mdx" />
+
+### Notes
+
+- Detection finds no steps here. The code block is tagged `shell`, and no detection rule makes a `checkFile` step, so each variant carries its steps in statements.
+- The command runs in the folder that holds the test file. A relative `checkFile` path resolves against that file, so both point at the same `output` folder.
+- A `content` value between slashes, such as `/build [0-9]+ passed/`, is a regular expression.
+
+## `checkFile` permutations
+
+### `checkFile` as a string
+
+**Varies:** `checkFile` · **Value:** `"output/notes.txt"` · **Effect:** waits for the file, with a relative path resolved against the test file.
+
+<Markdown src="examples/http-checkfile-string/_variants.mdx" />
+
+### `path` as a glob
+
+**Varies:** `checkFile.path` · **Value:** `"output/*.log"` · **Effect:** waits for any matching file, and the newest finished match counts.
+
+<Markdown src="examples/http-checkfile-path/_variants.mdx" />
+
+### `content` as a string
+
+**Varies:** `checkFile.content` · **Value:** `"succeeded"` · **Effect:** fails unless the file's text contains the string.
+
+<Markdown src="examples/http-checkfile-content-string/_variants.mdx" />
+
+### `content` as a regular expression
+
+**Varies:** `checkFile.content` · **Value:** `"/build [0-9]+ passed/"` · **Effect:** fails unless the file's text matches the regular expression.
+
+<Markdown src="examples/http-checkfile-content-regex/_variants.mdx" />
+
+### `timeout: 15000`
+
+**Varies:** `checkFile.timeout` · **Value:** `15000` · **Effect:** waits up to 15 seconds for a background job to write the file, instead of the default 30 seconds.
+
+<Markdown src="examples/http-checkfile-timeout/_variants.mdx" />
+
+### `download`
+
+**Varies:** `checkFile.download` · **Value:** `"report-*.csv"` · **Effect:** waits for a browser download in the context's download folder, so it needs an earlier step to open Chrome or Firefox.
+
+<Markdown src="examples/http-checkfile-download/_variants.mdx" />
+
+The test's [`runOn`](/reference/schemas/test) runs it on headless Chrome on every platform. In Safari, or in a test with no browser, the `download` step is skipped.
+
 ## Run code blocks
 
 This procedure uses [`runCode`](/docs/actions/runcode) with `language` set to `javascript`, `py`, and `bash`, along with `code`, `stdio`, `exitCodes`, `workingDirectory`, `timeout`, `path`, `maxVariation`, and `overwrite`. `py` runs as `python`, and `js` runs as `javascript`. Default detection makes the same steps from the code blocks. See the [`runCode`](/reference/schemas/runcode) reference.

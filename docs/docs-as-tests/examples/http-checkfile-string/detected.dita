@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
+<topic id="http-checkfile-string">
+  <title>Check that a file exists</title>
+  <body>
+    <data name="doc-detective" value='test {"testId":"http-checkfile-string","detectSteps":true}'/>
+    <p>Write the release notes to the <codeph>output</codeph> folder next to this page:</p>
+    <codeblock outputclass="language-shell">node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/notes.txt','release notes')"</codeblock>
+    <data name="doc-detective" value='step {"runShell":{"command":"node -e \"const fs=require(&apos;fs&apos;);fs.mkdirSync(&apos;output&apos;,{recursive:true});fs.writeFileSync(&apos;output/notes.txt&apos;,&apos;release notes&apos;)\"","workingDirectory":"."}}'/>
+    <p>Check that <codeph>output/notes.txt</codeph> exists.</p>
+    <data name="doc-detective" value='step {"checkFile":"output/notes.txt"}'/>
+    <data name="doc-detective" value="test end"/>
+  </body>
+</topic>

@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json
+tests:
+  - testId: http-checkfile-download
+    runOn:
+      - platforms:
+          - windows
+          - mac
+          - linux
+        browsers:
+          - name: chrome
+            headless: true
+    steps:
+      - goTo: http://localhost:8092/download.html
+      - click: Export first CSV
+      - checkFile:
+          download: report-*.csv

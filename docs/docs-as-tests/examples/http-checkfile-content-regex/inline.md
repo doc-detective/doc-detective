@@ -1,0 +1,17 @@
+<!-- test {"testId":"http-checkfile-content-regex","detectSteps":false} -->
+
+# Match a build number in a file
+
+Write the build result to the `output` folder next to this page:
+
+```shell
+node -e "const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/build.txt','build 42 passed')"
+```
+
+<!-- step {"runShell":{"command":"node -e \"const fs=require('fs');fs.mkdirSync('output',{recursive:true});fs.writeFileSync('output/build.txt','build 42 passed')\"","workingDirectory":"."}} -->
+
+Check that the result names a passing build.
+
+<!-- step {"checkFile":{"path":"output/build.txt","content":"/build [0-9]+ passed/"}} -->
+
+<!-- test end -->
