@@ -82,7 +82,7 @@ import {
   resolveCheckpointsConfig,
   captureRecordingCheckpoints,
 } from "./tests/recordingCheckpoints.js";
-import { startRecording } from "./tests/startRecording.js";
+import { startRecording, NO_SESSION_SKIP } from "./tests/startRecording.js";
 import { stopRecording, defaultedStopSkip } from "./tests/stopRecording.js";
 import {
   browserCaptureTitle,
@@ -6365,9 +6365,17 @@ async function runStep({
         // best-effort
       }
       delete actionResult.recording;
-      actionResult.status = "FAIL";
-      actionResult.description =
-        "A recording started with no driver session or app session to own it; it was stopped. This context cannot record.";
+      if (step.__autoRecord) {
+        // Backstop for a handle startRecording returns without spawning (a
+        // phantom span): with no session, the automatic recording is SKIPPED
+        // (ADR 01177); an authored `record` still FAILs.
+        actionResult.status = "SKIPPED";
+        actionResult.description = NO_SESSION_SKIP;
+      } else {
+        actionResult.status = "FAIL";
+        actionResult.description =
+          "A recording started with no driver session or app session to own it; it was stopped. This context cannot record.";
+      }
     } else if (actionResult.recording) {
       if (!Array.isArray(recordingHost.state.recordings))
         recordingHost.state.recordings = [];
