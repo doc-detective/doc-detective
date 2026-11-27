@@ -1635,6 +1635,16 @@ describe("httpRequest coverage (stubbed axios)", function () {
         assert.equal(good.status, "PASS", good.description);
       });
 
+      it("PASSes a valid falsy body against an async schema", async function () {
+        stubResponse({ status: 200, data: 0 });
+        const result = await httpRequest({
+          config,
+          step: plainStep({ $async: true, type: "integer" }),
+        });
+        assert.equal(result.status, "PASS", result.description);
+        assert.equal(result.outputs.responseSchemaValid, true);
+      });
+
       it("FAILs cleanly when the inline schema itself is invalid", async function () {
         stubResponse({ status: 200, data: { id: UUID } });
         const result = await httpRequest({

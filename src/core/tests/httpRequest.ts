@@ -425,7 +425,10 @@ async function httpRequest({ config, step, openApiDefinitions = [] }: { config: 
     let validationErrors: any = null;
     if (validateFn) {
       try {
-        valid = !!(await validateFn(response.data));
+        const outcome = await validateFn(response.data);
+        // An async validator resolves with the data itself (maybe `0` or
+        // `false`), so resolving at all means valid.
+        valid = (validateFn as any).$async ? true : !!outcome;
         validationErrors = validateFn.errors;
       } catch (error: any) {
         valid = false;
