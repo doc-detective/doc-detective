@@ -1,0 +1,118 @@
+{
+  "specId": "gherkin",
+  "description": "The built-in gherkin fileType through the real CLI (ADR 01227). The group config turns step detection off, so each test runs one case of run-feature.cjs, which copies this folder to .tmp/fixture-gherkin/<case>/, runs doc-detective on one .feature file with detection on, and checks each test's result and the warnings. Run directly with the group config, the .feature files here also run their inline `# step` statements on their own.",
+  "tests": [
+    {
+      "testId": "gherkin-phrases",
+      "description": "Every phrase in the step vocabulary, through the real runner: navigation, find and absence, click, typing and special keys, hover and scroll, drag, swipe, links, screenshots (whole page and cropped), shell and code, waits in seconds and milliseconds, variables, HTTP requests with merged status checks, mocked requests from a doc string and a file, recording, and saved and restored sessions.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/gherkin/run-feature.cjs phrases",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "gherkin-structure",
+      "description": "Background replay, a Rule's own Background, an Outline over two Examples blocks with Examples tags, data tables, a merged `# test` comment, an `@id:` tag, an ignore block, and an inline `# step`.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/gherkin/run-feature.cjs structure",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "gherkin-structure-detect-off",
+      "description": "The same file with `detectSteps: false` in config: only the scenario with an inline `# step` keeps a step.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/gherkin/run-feature.cjs structure-detect-off",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "timeout": 120000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "gherkin-tags",
+      "description": "`@skip` and `@wip` skip, browser tags, `@headless`, `@record` records, and platform tags skip on other hosts.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/gherkin/run-feature.cjs tags",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "gherkin-emulation",
+      "description": "Emulation steps set viewport, color scheme, locale, and timezone. An untagged scenario emulates in Chrome, and a key Firefox can't set skips its context.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/gherkin/run-feature.cjs emulation",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "timeout": 300000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "gherkin-warnings",
+      "description": "An unmapped step warns and the scenario still passes. An Outline with no Examples warns and emits no test. A scenario with no steps emits no test.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/gherkin/run-feature.cjs warnings",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "timeout": 120000
+          }
+        }
+      ]
+    },
+    {
+      "testId": "gherkin-detect-off",
+      "description": "A `# test {\"detectSteps\": false}` comment above the Feature: only inline `# step` statements run, with no unmapped-step warning.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/gherkin/run-feature.cjs detect-off",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ],
+            "timeout": 120000
+          }
+        }
+      ]
+    }
+  ]
+}
