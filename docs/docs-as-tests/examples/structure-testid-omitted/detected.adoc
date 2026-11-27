@@ -1,0 +1,8 @@
+= Check the demo pages
+
+// (test {"detectSteps":true})
+
+. Check that http://localhost:8092/index.html[the elements demo] loads.
+. Check that http://localhost:8092/type-echo.html[the type echo page] loads.
+
+// (test end)

@@ -1,0 +1,18 @@
+{
+  "tests": [
+    {
+      "testId": "structure-afterall-list-check-api",
+      "description": "Check that the API still answers after every test runs.",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/status/200",
+            "statusCodes": [
+              200
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

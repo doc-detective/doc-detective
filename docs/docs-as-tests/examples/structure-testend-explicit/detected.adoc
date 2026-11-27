@@ -1,0 +1,17 @@
+= Check the demo pages
+
+== Pages
+
+// (test {"testId":"structure-testend-explicit-pages","detectSteps":true})
+
+. Check that http://localhost:8092/index.html[the elements demo] loads.
+
+// (test end)
+
+== API
+
+// (test {"testId":"structure-testend-explicit-api","detectSteps":true})
+
+. Check that http://localhost:8092/status/200[the status endpoint] answers.
+
+// (test end)
