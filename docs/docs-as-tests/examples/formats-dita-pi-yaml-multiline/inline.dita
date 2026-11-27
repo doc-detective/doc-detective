@@ -4,9 +4,9 @@
   <title>Check the demo pages</title>
   <body>
     <?doc-detective test
-testId: formats-dita-pi-yaml-multiline
-detectSteps: false
-?>
+      testId: formats-dita-pi-yaml-multiline
+      detectSteps: false
+    ?>
     <ol>
       <li>Check that <xref href="http://localhost:8092/index.html" scope="external" format="html">the elements demo</xref> loads.
         <?doc-detective step

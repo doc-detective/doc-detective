@@ -93,7 +93,7 @@ This test uses the [test](/reference/schemas/test) fields `before` and `after`, 
 
 <Markdown src="examples/structure-before-after/_variants.mdx" />
 
-`before` and `after` each name one spec file, relative to the spec that names them. Doc Detective uses the steps of the first test in that file. It runs them in the same context as the test, so the test shares their browser and cookies. The `before` steps run first. The `after` steps run last, even when a step of the test fails.
+`before` and `after` each name one spec file, relative to the file that names them: a spec, or a document with an inline `test` statement. Doc Detective uses the steps of the first test in that file. It runs them in the same context as the test, so the test shares their browser and cookies. The `before` steps run first. The `after` steps run last, even when a step of the test fails.
 
 The setup and cleanup specs:
 
@@ -135,7 +135,9 @@ The setup and cleanup specs:
 }
 ```
 
-This example has only a standalone spec. Doc Detective runs `before` and `after` for tests in spec files. A `before` or `after` field on an inline `test` statement has no effect.
+### What detection finds
+
+Detection adds a `checkLink` step for the link, after the sign-in steps. Code spans aren't detected, so the detected variants carry `goTo` and `find` statements, and they still open the page with detection off.
 
 ## Show when a procedure last passed
 
@@ -396,7 +398,7 @@ A `test end` statement also ends an open ignore block, so in this example the `t
 
 ## `before` and `after` permutations
 
-These examples are standalone specs. Doc Detective runs `before` and `after` for tests in spec files. A `before` or `after` field on an inline `test` statement has no effect. For both fields together, see [Run setup and cleanup steps around one test](#run-setup-and-cleanup-steps-around-one-test).
+These examples are standalone specs. A `before` or `after` field on an inline `test` statement works the same way. For both fields together, in every format, see [Run setup and cleanup steps around one test](#run-setup-and-cleanup-steps-around-one-test).
 
 ### `before` only
 

@@ -1,0 +1,10 @@
+<!-- test {"testId":"capture-screenshot-mask-elementclass","detectSteps":true} -->
+
+# Compare a screenshot with an element mask
+
+1. Go to [the billing page](http://localhost:8092/mask.html).
+   <!-- step {"goTo":"http://localhost:8092/mask.html"} -->
+2. The page shows the next invoice date and when the account last synced.
+   <!-- step {"screenshot":{"path":"mask-elementclass.png","directory":".dd-output","maxVariation":0.001,"overwrite":"aboveVariation","mask":[{"elementClass":"stamp"},"#clock"]}} -->
+
+<!-- test end -->

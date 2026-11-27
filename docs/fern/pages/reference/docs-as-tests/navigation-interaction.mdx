@@ -29,7 +29,6 @@ In every format, default detection resolves the prose to six steps:
 |---|---|
 | Go to a link | `goTo` the URL, then `checkLink` the same URL |
 | Click a bold phrase | `click` the phrase, then `find` the same phrase |
-| `Type "…"` | `type` the quoted text |
 | A bold phrase | `find` the phrase |
 
 Detection matches each link and bold phrase against every default rule. A link after "Go to" is both opened and checked, and a bold phrase after "Click" is both clicked and found. The inline and standalone variants list only the four steps the procedure needs.
@@ -97,11 +96,11 @@ No default rule detects a drag, a press and hold, or a swipe, so every detected 
 
 ## Enter text in a DITA task
 
-This procedure uses DITA's own detection rules. They turn an `<xref>` into [`goTo`](/docs/actions/goto) and [`checkLink`](/docs/actions/checklink) steps, a `<uicontrol>` after "Click" into a [`click`](/docs/actions/click) step, a `<wintitle>` into a [`find`](/docs/actions/find) step, and a `<link>` into a `checkLink` step.
+This procedure uses DITA's own detection rules. They turn an `<xref>` into [`goTo`](/docs/actions/goto) and [`checkLink`](/docs/actions/checklink) steps, a `<userinput>` typed into a `<uicontrol>` into a [`type`](/docs/actions/type) step, a `<wintitle>` into a [`find`](/docs/actions/find) step, and a `<link>` into a `checkLink` step.
 
 <Markdown src="examples/nav-dita-controls/_variants.mdx" />
 
-This example is DITA only, plus the standalone spec, because `<wintitle>`, `<uicontrol>`, and `<link>` have no equivalent in the other formats.
+This example is DITA only, plus the standalone spec, because `<wintitle>`, `<userinput>`, `<uicontrol>`, and `<link>` have no equivalent in the other formats.
 
 ### What detection finds
 
@@ -109,8 +108,7 @@ This example is DITA only, plus the standalone spec, because `<wintitle>`, `<uic
 |---|---|
 | `<xref>` after "Open" | `goTo` the URL, then `checkLink` the same URL |
 | `<wintitle>` | `find` the title text on the page |
-| `<uicontrol>` after "Click" | `click` the control, then `find` the same control |
-| `Type "…"` | `type` the quoted text |
+| `Type <userinput>…</userinput> into the <uicontrol>…</uicontrol>` | `type` the `<userinput>` text into the field whose accessible name is the `<uicontrol>` text, with `elementAria`, then `find` the control |
 | `<b>` | `find` the text |
 | `<link>` in `<related-links>` | `checkLink` the URL |
 

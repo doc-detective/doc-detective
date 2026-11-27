@@ -615,12 +615,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -989,12 +1001,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -1319,12 +1343,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -1659,12 +1695,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -1987,12 +2035,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -2281,12 +2341,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -2481,8 +2553,20 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -2643,6 +2727,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -2807,6 +2895,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -2959,6 +3051,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -3067,6 +3163,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -3165,6 +3265,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -3267,6 +3371,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -3447,6 +3555,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -3579,6 +3691,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -3671,6 +3787,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -3785,6 +3905,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -3979,6 +4103,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -4265,6 +4393,12 @@
     {
       "example": "custom-statements-string",
       "page": "/reference/docs-as-tests/custom-detection#regex-keys-as-strings"
+    }
+  ],
+  "config.fileTypes.markup.actions (string)": [
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     }
   ],
   "config.fileTypes.markup.actions[] (object)": [
@@ -4765,6 +4899,10 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -4947,6 +5085,10 @@
       "page": "/reference/docs-as-tests/custom-detection#an-action-name"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
@@ -5033,8 +5175,20 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -5157,6 +5311,18 @@
       "page": "/reference/docs-as-tests/custom-detection#regex-keys-as-strings"
     }
   ],
+  "config.fileTypes.runShell (object)": [
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    }
+  ],
+  "config.fileTypes.runShell (string)": [
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
+    }
+  ],
   "config.fileTypes[] (object)": [
     {
       "example": "custom-actions-name",
@@ -5167,12 +5333,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -5451,12 +5629,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -5797,6 +5987,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -5929,6 +6123,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -6015,6 +6213,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -6147,6 +6349,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -6265,6 +6471,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -6363,6 +6573,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -6483,6 +6697,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -6517,17 +6735,29 @@
   ],
   "context.browsers.viewport": [
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "sessions-state",
       "page": "/reference/docs-as-tests/sessions-surfaces#reuse-a-signed-in-browser-state-in-two-browsers"
     }
   ],
   "context.browsers.viewport.height": [
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "sessions-state",
       "page": "/reference/docs-as-tests/sessions-surfaces#reuse-a-signed-in-browser-state-in-two-browsers"
     }
   ],
   "context.browsers.viewport.width": [
+    {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
     {
       "example": "sessions-state",
       "page": "/reference/docs-as-tests/sessions-surfaces#reuse-a-signed-in-browser-state-in-two-browsers"
@@ -6689,6 +6919,10 @@
     {
       "example": "capture-record-verify-resolution",
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
+    },
+    {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
     },
     {
       "example": "capture-recording",
@@ -7179,6 +7413,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -7221,6 +7459,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -7269,6 +7511,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -7719,6 +7965,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -7749,6 +7999,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -8403,6 +8657,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -8445,6 +8703,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -8675,12 +8937,20 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
     {
       "example": "custom-actions-name",
       "page": "/reference/docs-as-tests/custom-detection#an-action-name"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-markdown-extend",
@@ -8845,6 +9115,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -8867,6 +9141,10 @@
     {
       "example": "custom-actions-name",
       "page": "/reference/docs-as-tests/custom-detection#an-action-name"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -9247,6 +9525,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -9277,6 +9559,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -9329,6 +9615,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -9339,6 +9629,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-local-server",
@@ -9437,6 +9731,10 @@
     {
       "example": "capture-record-verify-resolution",
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
+    },
+    {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
     },
     {
       "example": "capture-recording",
@@ -9641,6 +9939,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -9667,6 +9969,10 @@
     {
       "example": "capture-screenshot-form-true",
       "page": "/reference/docs-as-tests/capture#true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -10073,6 +10379,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -10107,6 +10417,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -10365,6 +10679,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -10407,6 +10725,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -10455,6 +10777,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -10897,6 +11223,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -10927,6 +11257,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -11581,6 +11915,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -11623,6 +11961,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -12097,6 +12439,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -12139,6 +12485,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -12187,6 +12537,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -12653,6 +13007,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -12683,6 +13041,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -13337,6 +13699,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -13379,6 +13745,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -13733,6 +14103,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -13775,6 +14149,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -13823,6 +14201,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -14297,6 +14679,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -14327,6 +14713,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -14981,6 +15371,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -15023,6 +15417,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -15311,6 +15709,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -15353,6 +15755,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -15401,6 +15807,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -15867,6 +16277,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -15897,6 +16311,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -16551,6 +16969,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -16593,6 +17015,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -16732,6 +17158,10 @@
     }
   ],
   "features.record-overwrite-above-variation": [
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
+    },
     {
       "example": "capture-screenshot-mask-object",
       "page": "/reference/docs-as-tests/capture#mask-with-an-element-object"
@@ -16969,6 +17399,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -17011,6 +17445,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -17059,6 +17497,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -17513,6 +17955,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -17543,6 +17989,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -18197,6 +18647,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -18239,6 +18693,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -18323,6 +18781,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -18337,6 +18799,10 @@
     {
       "example": "http-code-stdio-regex",
       "page": "/reference/docs-as-tests/http-code#stdio-as-a-regular-expression"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-local-server",
@@ -18547,6 +19013,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -18589,6 +19059,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -18639,12 +19113,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -19267,6 +19753,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -19297,6 +19787,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -19955,6 +20449,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -20127,6 +20625,10 @@
   ],
   "features.surface-newest-index": [
     {
+      "example": "sessions-apps",
+      "page": "/reference/docs-as-tests/sessions-surfaces#open-a-built-in-app"
+    },
+    {
       "example": "sessions-select-tab-index",
       "page": "/reference/docs-as-tests/sessions-surfaces#tab-index--1"
     },
@@ -20169,6 +20671,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -20179,6 +20685,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-local-server",
@@ -20457,6 +20967,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -20499,6 +21013,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -20549,12 +21067,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -21177,6 +21707,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -21207,6 +21741,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -21863,6 +22401,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -24447,6 +24989,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     }
@@ -24557,6 +25103,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     }
@@ -24611,6 +25161,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     }
@@ -24627,6 +25181,10 @@
     {
       "example": "capture-record-verify-resolution",
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
+    },
+    {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
     },
     {
       "example": "capture-recording",
@@ -24671,6 +25229,24 @@
     {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
+    }
+  ],
+  "record.verify.resolution (object)": [
+    {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    }
+  ],
+  "record.verify.resolution.height": [
+    {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    }
+  ],
+  "record.verify.resolution.width": [
+    {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
     }
   ],
   "routing.continue": [
@@ -25185,6 +25761,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
+    },
+    {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
     }
@@ -25195,11 +25775,19 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
+    },
+    {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
     }
   ],
   "runCode.background.tty (boolean)": [
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
+    },
     {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
@@ -25227,6 +25815,10 @@
     {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-local-server",
@@ -25257,6 +25849,10 @@
   ],
   "runCode.background.waitUntil.stdio": [
     {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
+    },
+    {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
     }
@@ -25273,6 +25869,10 @@
     {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
+    },
+    {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
     },
     {
       "example": "http-code-exitcodes",
@@ -25307,6 +25907,10 @@
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
     },
     {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
+    },
+    {
       "example": "http-code-unsafe-allowed",
       "page": "/reference/docs-as-tests/http-code#allowunsafesteps-true"
     },
@@ -25317,6 +25921,16 @@
     {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
+    },
+    {
+      "example": "http-run-code",
+      "page": "/reference/docs-as-tests/http-code#run-code-blocks"
+    }
+  ],
+  "runCode.directory": [
+    {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
     },
     {
       "example": "http-run-code",
@@ -25347,6 +25961,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -25377,6 +25995,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -25408,6 +26030,10 @@
     }
   ],
   "runCode.path": [
+    {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
     {
       "example": "http-run-code",
       "page": "/reference/docs-as-tests/http-code#run-code-blocks"
@@ -25455,6 +26081,10 @@
     {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-local-server",
@@ -25701,6 +26331,14 @@
   ],
   "runShell.command": [
     {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
+    },
+    {
       "example": "http-checkfile",
       "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
     },
@@ -25885,6 +26523,10 @@
   ],
   "runShell.timeout": [
     {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
       "example": "http-local-server",
       "page": "/reference/docs-as-tests/http-code#start-and-stop-local-servers"
     },
@@ -25922,6 +26564,14 @@
     }
   ],
   "runShell.workingDirectory": [
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
+    },
     {
       "example": "http-checkfile",
       "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
@@ -26347,6 +26997,10 @@
       "page": "/reference/docs-as-tests/capture#fullpage-true"
     },
     {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
+    },
+    {
       "example": "capture-screenshot-mask-object",
       "page": "/reference/docs-as-tests/capture#mask-with-an-element-object"
     },
@@ -26403,6 +27057,10 @@
   ],
   "screenshot.mask": [
     {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
+    },
+    {
       "example": "capture-screenshot-mask-object",
       "page": "/reference/docs-as-tests/capture#mask-with-an-element-object"
     },
@@ -26417,6 +27075,10 @@
   ],
   "screenshot.mask[] (object)": [
     {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
+    },
+    {
       "example": "capture-screenshot-mask-object",
       "page": "/reference/docs-as-tests/capture#mask-with-an-element-object"
     },
@@ -26426,6 +27088,10 @@
     }
   ],
   "screenshot.mask[] (string)": [
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
+    },
     {
       "example": "capture-screenshot-mask-object",
       "page": "/reference/docs-as-tests/capture#mask-with-an-element-object"
@@ -26446,6 +27112,10 @@
     }
   ],
   "screenshot.maxVariation": [
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
+    },
     {
       "example": "capture-screenshot-mask-object",
       "page": "/reference/docs-as-tests/capture#mask-with-an-element-object"
@@ -26587,6 +27257,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -26751,6 +27425,10 @@
       "page": "/reference/docs-as-tests/capture#fullpage-true"
     },
     {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
+    },
+    {
       "example": "capture-screenshot-mask-object",
       "page": "/reference/docs-as-tests/capture#mask-with-an-element-object"
     },
@@ -26814,6 +27492,10 @@
     }
   ],
   "shared:locator.elementAria": [
+    {
+      "example": "nav-dita-controls",
+      "page": "/reference/docs-as-tests/navigation-interaction#enter-text-in-a-dita-task"
+    },
     {
       "example": "nav-find-elementaria",
       "page": "/reference/docs-as-tests/navigation-interaction#elementaria"
@@ -26888,6 +27570,10 @@
     }
   ],
   "shared:locator.elementClass (string)": [
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
+    },
     {
       "example": "nav-drag-swipe",
       "page": "/reference/docs-as-tests/navigation-interaction#drag-widgets-and-scroll-the-page"
@@ -27105,6 +27791,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -27617,6 +28307,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -27671,6 +28365,10 @@
     {
       "example": "sessions-select-tab-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#tab-0"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-tabs",
@@ -27761,6 +28459,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-tabs",
@@ -28117,6 +28819,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -28159,6 +28865,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -28209,12 +28919,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -28837,6 +29559,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -28867,6 +29593,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -29523,6 +30253,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -30305,6 +31039,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -30331,6 +31069,10 @@
     {
       "example": "capture-screenshot-form-true",
       "page": "/reference/docs-as-tests/capture#true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -30909,6 +31651,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -30943,6 +31689,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -31173,12 +31923,20 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
     {
       "example": "custom-actions-name",
       "page": "/reference/docs-as-tests/custom-detection#an-action-name"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-html-attributes",
@@ -31245,10 +32003,6 @@
       "page": "/reference/docs-as-tests/navigation-interaction#click-count-clicks"
     },
     {
-      "example": "nav-dita-controls",
-      "page": "/reference/docs-as-tests/navigation-interaction#enter-text-in-a-dita-task"
-    },
-    {
       "example": "nav-find-elements",
       "page": "/reference/docs-as-tests/navigation-interaction#fill-in-a-form-by-element-attributes"
     },
@@ -31271,6 +32025,10 @@
     {
       "example": "sessions-apps",
       "page": "/reference/docs-as-tests/sessions-surfaces#open-a-built-in-app"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-tabs",
@@ -31313,6 +32071,10 @@
     {
       "example": "http-code-background",
       "page": "/reference/docs-as-tests/http-code#background"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-local-server",
@@ -31573,6 +32335,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -31673,6 +32439,10 @@
     {
       "example": "capture-record-verify-resolution",
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
+    },
+    {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
     },
     {
       "example": "capture-recording",
@@ -32419,6 +33189,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -32445,6 +33219,10 @@
     {
       "example": "capture-screenshot-form-true",
       "page": "/reference/docs-as-tests/capture#true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -32489,6 +33267,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -33009,6 +33791,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -33783,6 +34569,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     }
@@ -33891,6 +34681,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -33923,6 +34717,10 @@
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
     },
     {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
+    },
+    {
       "example": "http-code-unsafe-allowed",
       "page": "/reference/docs-as-tests/http-code#allowunsafesteps-true"
     },
@@ -33940,6 +34738,14 @@
     }
   ],
   "step.runShell (object)": [
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
+    },
     {
       "example": "http-checkfile",
       "page": "/reference/docs-as-tests/http-code#check-files-a-command-writes"
@@ -34038,6 +34844,10 @@
     }
   ],
   "step.runShell (string)": [
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
+    },
     {
       "example": "custom-kind-codeblock",
       "page": "/reference/docs-as-tests/custom-detection#codeblock"
@@ -34407,6 +35217,10 @@
       "page": "/reference/docs-as-tests/capture#fullpage-true"
     },
     {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
+    },
+    {
       "example": "capture-screenshot-mask-object",
       "page": "/reference/docs-as-tests/capture#mask-with-an-element-object"
     },
@@ -34641,6 +35455,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     }
@@ -34731,6 +35549,10 @@
     {
       "example": "data-variables-element",
       "page": "/reference/docs-as-tests/data-control-flow#element"
+    },
+    {
+      "example": "nav-dita-controls",
+      "page": "/reference/docs-as-tests/navigation-interaction#enter-text-in-a-dita-task"
     },
     {
       "example": "nav-find-elements",
@@ -34859,6 +35681,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -34893,10 +35719,6 @@
     {
       "example": "formats-markdown",
       "page": "/reference/docs-as-tests/formats#echo-text-in-md-and-mdx-files"
-    },
-    {
-      "example": "nav-dita-controls",
-      "page": "/reference/docs-as-tests/navigation-interaction#enter-text-in-a-dita-task"
     },
     {
       "example": "nav-find-elements",
@@ -35063,6 +35885,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -35205,6 +36031,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -35421,12 +36251,12 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
-      "example": "capture-recording",
-      "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
     },
     {
-      "example": "sessions-process",
-      "page": "/reference/docs-as-tests/sessions-surfaces#evaluate-expressions-in-the-nodejs-repl"
+      "example": "capture-recording",
+      "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     }
   ],
   "test.autoScreenshot": [
@@ -35687,6 +36517,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -35729,6 +36563,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -35777,6 +36615,10 @@
     {
       "example": "custom-actions-object",
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
+    },
+    {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
     },
     {
       "example": "custom-actions-template",
@@ -36407,6 +37249,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -36437,6 +37283,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -37095,6 +37945,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -37137,6 +37991,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -37525,6 +38383,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -37699,6 +38561,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -37899,6 +38765,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -37941,6 +38811,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -37991,12 +38865,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -38619,6 +39505,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -38649,6 +39539,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -39305,6 +40199,10 @@
     {
       "example": "sessions-select-window-number",
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
+    },
+    {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
     },
     {
       "example": "sessions-select-window-title",
@@ -39653,6 +40551,10 @@
       "page": "/reference/docs-as-tests/capture#verify-with-resolution-true"
     },
     {
+      "example": "capture-record-verify-resolution-object",
+      "page": "/reference/docs-as-tests/capture#verify-with-resolution-as-an-object"
+    },
+    {
       "example": "capture-recording",
       "page": "/reference/docs-as-tests/capture#record-a-walkthrough"
     },
@@ -39695,6 +40597,10 @@
     {
       "example": "capture-screenshot-fullpage-true",
       "page": "/reference/docs-as-tests/capture#fullpage-true"
+    },
+    {
+      "example": "capture-screenshot-mask-elementclass",
+      "page": "/reference/docs-as-tests/capture#mask-with-elementclass"
     },
     {
       "example": "capture-screenshot-mask-object",
@@ -39745,12 +40651,24 @@
       "page": "/reference/docs-as-tests/custom-detection#a-step-with-no-1"
     },
     {
+      "example": "custom-actions-string",
+      "page": "/reference/docs-as-tests/custom-detection#an-action-name-as-a-string"
+    },
+    {
       "example": "custom-actions-template",
       "page": "/reference/docs-as-tests/custom-detection#a-step-template"
     },
     {
       "example": "custom-filetype-extends",
       "page": "/reference/docs-as-tests/custom-detection#extends"
+    },
+    {
+      "example": "custom-filetype-runshell-object",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-an-object"
+    },
+    {
+      "example": "custom-filetype-runshell-string",
+      "page": "/reference/docs-as-tests/custom-detection#runshell-as-a-string"
     },
     {
       "example": "custom-filetype-scratch",
@@ -40373,6 +41291,10 @@
       "page": "/reference/docs-as-tests/http-code#background"
     },
     {
+      "example": "http-code-directory",
+      "page": "/reference/docs-as-tests/http-code#directory-with-path"
+    },
+    {
       "example": "http-code-exitcodes",
       "page": "/reference/docs-as-tests/http-code#exitcodes"
     },
@@ -40403,6 +41325,10 @@
     {
       "example": "http-code-testignore",
       "page": "/reference/docs-as-tests/http-code#testignore-on-a-code-block"
+    },
+    {
+      "example": "http-code-tty-js",
+      "page": "/reference/docs-as-tests/http-code#backgroundtty-true-with-language-js"
     },
     {
       "example": "http-code-unsafe-allowed",
@@ -41061,6 +41987,10 @@
       "page": "/reference/docs-as-tests/sessions-surfaces#window--1"
     },
     {
+      "example": "sessions-select-window-tab",
+      "page": "/reference/docs-as-tests/sessions-surfaces#window-0-tab-1-on-a-tab-the-page-opened"
+    },
+    {
       "example": "sessions-select-window-title",
       "page": "/reference/docs-as-tests/sessions-surfaces#window-title-child-second"
     },
@@ -41273,6 +42203,10 @@
     {
       "example": "data-variables-element",
       "page": "/reference/docs-as-tests/data-control-flow#element"
+    },
+    {
+      "example": "nav-dita-controls",
+      "page": "/reference/docs-as-tests/navigation-interaction#enter-text-in-a-dita-task"
     },
     {
       "example": "nav-find-elements",

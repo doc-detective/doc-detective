@@ -135,7 +135,7 @@ The test's [`runOn`](/reference/schemas/test) runs it on headless Chrome on ever
 
 ## Run code blocks
 
-This procedure uses [`runCode`](/docs/actions/runcode) with `language` set to `javascript`, `py`, and `bash`, along with `code`, `stdio`, `exitCodes`, `workingDirectory`, `timeout`, `path`, `maxVariation`, and `overwrite`. `py` runs as `python`, and `js` runs as `javascript`. Default detection makes the same steps from the code blocks. See the [`runCode`](/reference/schemas/runcode) reference.
+This procedure uses [`runCode`](/docs/actions/runcode) with `language` set to `javascript`, `py`, and `bash`, along with `code`, `stdio`, `exitCodes`, `workingDirectory`, `timeout`, `path`, `directory`, `maxVariation`, and `overwrite`. `py` runs as `python`, and `js` runs as `javascript`. Default detection makes the same steps from the code blocks. See the [`runCode`](/reference/schemas/runcode) reference.
 
 <Markdown src="examples/http-run-code/_variants.mdx" />
 
@@ -150,7 +150,7 @@ Default detection turns each code block tagged `javascript`, `py`, or `bash` int
 }
 ```
 
-The detected steps don't check output, so they pass when the code exits with code `0`. The inline and standalone variants aren't unsafe, so they run without `allowUnsafeSteps`, and they check each block's output. The JavaScript step also saves its output to `output/greeting.txt` and compares later runs to it.
+The detected steps don't check output, so they pass when the code exits with code `0`. The inline and standalone variants aren't unsafe, so they run without `allowUnsafeSteps`, and they check each block's output. The JavaScript step also saves its output to `greeting.txt` in the `output` folder, and compares later runs to it.
 
 To keep a code block from running, mark it to be ignored. In Markdown, MDX, and AsciiDoc, add `testIgnore` after the language, as in `` ```bash testIgnore `` or `[source,bash,testIgnore]`. In reStructuredText, add `:class: testIgnore` to the directive. HTML and DITA code blocks have no place for it, so wrap the block in `test ignore start` and `test ignore end` statements. The inline variants turn detection off, so they don't need either.
 
@@ -166,6 +166,7 @@ This procedure starts background processes with [`runCode`](/docs/actions/runcod
 - The server step passes the port as `args`. The server is ready once its port accepts connections, its output contains `Listening`, and its health check returns a `2xx` status. The step also waits at least 100 milliseconds.
 - `tty` runs a process in a terminal instead of a pipe, so apps that check for a terminal render.
 - With `tty` set to `true`, the terminal is 120 columns by 30 rows. An object with `cols` and `rows` sets the size.
+- The JavaScript `tty` step runs Node.js in the terminal, and the Bash one runs the same check through a shell script.
 - The shell server also sets `tty` to `true`, and still answers on its port.
 
 ## `httpRequest` permutations
@@ -573,6 +574,18 @@ Default detection turns code blocks tagged `bash`, `python`, `py`, `javascript`,
 **Varies:** `runCode.background` · **Value:** `{"name": "http-code-server", "waitUntil": {"port": 8251}}` · **Effect:** starts the code as a background process and returns once its port accepts connections. The block is marked `testIgnore`, because the server never exits.
 
 <Markdown src="examples/http-code-background/_variants.mdx" />
+
+### `background.tty: true` with `language: "js"`
+
+**Varies:** `runCode.background.tty` · **Value:** `true` · **Effect:** runs the JavaScript with Node.js in a 120-by-30 terminal instead of a pipe. The block is marked `testIgnore`, because the code never exits.
+
+<Markdown src="examples/http-code-tty-js/_variants.mdx" />
+
+### `directory` with `path`
+
+**Varies:** `runCode.directory` · **Value:** `"output"` · **Effect:** saves the output to `greeting.txt` in the `output` folder next to the test file, and creates the folder if it doesn't exist. The block is marked `testIgnore`, because a detected step has no `path`.
+
+<Markdown src="examples/http-code-directory/_variants.mdx" />
 
 ### `testIgnore` on a code block
 

@@ -41,17 +41,17 @@ Terminal apps size their output to the terminal. To see the size an app gets in 
 
 .. step {"runShell":{"command":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty","tty":{"cols":100,"rows":40},"waitUntil":{"stdio":"Terminal: 100x40"}},"timeout":30000}}
 
-Stop it, then run the same check from a Bash script, in the default 120-by-30 terminal:
+Stop it, then run the same check as JavaScript, in the default 120-by-30 terminal:
 
 .. step {"closeSurface":"http-local-tty"}
 
-.. code-block:: bash
+.. code-block:: js
 
-   node -e "console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);"
+   console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);
 
-.. step {"runCode":{"language":"bash","code":"node -e \"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);\"","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}
+.. step {"runCode":{"language":"js","code":"console.log('Terminal: ' + process.stdout.columns + 'x' + process.stdout.rows); setInterval(() => {}, 1000);","background":{"name":"http-local-tty-code","tty":true,"waitUntil":{"stdio":"Terminal: 120x30"}},"timeout":30000}}
 
-Stop that process, then run the script again in an 80-by-24 terminal.
+Stop that process, then run the same check from a Bash script in an 80-by-24 terminal.
 
 .. step {"closeSurface":"http-local-tty-code"}
 

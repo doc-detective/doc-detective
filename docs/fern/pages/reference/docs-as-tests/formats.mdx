@@ -258,11 +258,11 @@ Each example checks two links, with every statement in one form. These examples 
 
 ### `<?doc-detective ?>` with a YAML body across lines
 
-**Varies:** statement body · **Value:** a YAML body across lines in `<?doc-detective test … ?>` · **Effect:** each key sits on its own line.
+**Varies:** statement body · **Value:** a YAML body across lines in `<?doc-detective test … ?>` · **Effect:** each key sits on its own line, indented like the markup around it.
 
 <Markdown src="examples/formats-dita-pi-yaml-multiline/_variants.mdx" />
 
-Start each YAML key at the beginning of its line. Doc Detective trims the first line of the body, so a key indented further than the first one breaks the YAML.
+Indent the body to match the markup around it. Doc Detective removes the indentation that every line of the body shares, so the keys only need to line up with each other.
 
 ### `<?doc-detective ?>` with attributes
 
