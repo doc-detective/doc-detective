@@ -194,7 +194,7 @@ export type CheckLink1 = CheckLinkSimple | CheckLinkDetailed;
  */
 export type CheckLinkSimple = string;
 /**
- * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.
  */
 export type TargetURL = string;
 /**
@@ -1054,7 +1054,7 @@ export type StepRouting15 = {
 export type Condition23 = string | [string, ...string[]];
 export type GoTo1 = GoToURLSimple | GoToURLDetailed;
 /**
- * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.
+ * Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable or a `$$matrix.<key>` reference. A path is joined to `origin` from the config.
  */
 export type GoToURLSimple = string;
 /**
@@ -1191,7 +1191,7 @@ export type ByIndex10 = number;
  */
 export type ByName10 = string;
 /**
- * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.
  */
 export type TargetURL1 = string;
 /**
@@ -1380,7 +1380,7 @@ export type HTTPRequestDetailed = {
   overwrite?: "true" | "false" | "aboveVariation";
 };
 /**
- * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.
+ * An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.
  */
 export type TargetURL2 = string;
 /**
