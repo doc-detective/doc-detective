@@ -1471,12 +1471,12 @@ import { schemas } from "../dist/index.js";
         const result = check({
           browsers: {
             name: "chrome",
-            colorScheme: "$matrix.variant.theme",
-            deviceScaleFactor: "$matrix.variant.dpr",
-            locale: "$matrix.locale",
-            timezone: "$matrix.tz",
-            reducedMotion: "$matrix.motion",
-            clock: "$matrix.clock",
+            colorScheme: "$$matrix.variant.theme",
+            deviceScaleFactor: "$$matrix.variant.dpr",
+            locale: "$$matrix.locale",
+            timezone: "$$matrix.tz",
+            reducedMotion: "$$matrix.motion",
+            clock: "$$matrix.clock",
           },
           matrix: {
             locale: ["en-US", "de-DE"],
@@ -1502,7 +1502,7 @@ import { schemas } from "../dist/index.js";
       }
 
       it("still rejects a bad emulation value that isn't a reference", function () {
-        expect(check({ browsers: { name: "chrome", colorScheme: "$matrix" } }).valid).to.be.false;
+        expect(check({ browsers: { name: "chrome", colorScheme: "$$matrix" } }).valid).to.be.false;
       });
 
       it("accepts a resolved context's combination in a test", function () {
