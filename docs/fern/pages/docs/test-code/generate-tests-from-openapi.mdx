@@ -241,9 +241,9 @@ Each step that resolved its operation, sent the request (or returned a mock), an
 
 ### The response fails schema validation unexpectedly
 
-**Cause:** `validateAgainstSchema` defaults to `both`, so a response that doesn't match the operation's schema fails the step.
+**Cause:** `validateAgainstSchema` defaults to `both`, so a response that doesn't match the operation's schema fails the step. The check enforces [`format` keywords](https://ajv.js.org/packages/ajv-formats.html) too, so an `id` that isn't a UUID fails when the schema declares `format: uuid`. Earlier versions ignored `format`, so a step that passed before an upgrade can fail with a `format` error.
 
-**Solution:** Confirm the response matches the schema, or set `validateAgainstSchema` to `request` or `none` to narrow the check when the description is stricter than the live API.
+**Solution:** Fix the API or the description so the two agree. To check one step against a different shape, set [`httpRequest.response.schema`](/docs/actions/httprequest#check-types-formats-and-patterns) on that step. Doc Detective checks it instead of the operation's response schema. As a last resort, set `validateAgainstSchema` to `request` or `none`, which stops checking the response against the description.
 
 ### The description fails to load with "a public document can't refer to…"
 
