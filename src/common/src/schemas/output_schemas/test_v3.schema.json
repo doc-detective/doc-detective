@@ -1104,8 +1104,23 @@
                   "pattern": "^[A-Za-z0-9_]+$"
                 },
                 "additionalProperties": {
-                  "description": "The values for this key: a non-empty list of unique items, either all scalars (string, number, or boolean) or all objects whose values are scalars.",
+                  "description": "The values for this key: a non-empty list of unique items, either all scalars (string, number, or boolean) or all objects whose values are scalars. Or `{ \"file\": \"<path>\" }` to read the list from a file.",
                   "anyOf": [
+                    {
+                      "type": "object",
+                      "title": "Values from a file",
+                      "required": [
+                        "file"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "file": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Path of a `.json` file that holds the list, or of an `.xml` sitemap whose `<loc>` entries are the values. A relative path resolves against the file that declares this `runOn`, or the working directory with `relativePathBase: \"cwd\"`. Doc Detective reads it before any test runs."
+                        }
+                      }
+                    },
                     {
                       "type": "array",
                       "minItems": 1,
@@ -6134,7 +6149,7 @@
                         "title": "Check link (simple)",
                         "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                         "type": "string",
-                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                         "transform": [
                           "trim"
                         ]
@@ -6150,9 +6165,9 @@
                         "properties": {
                           "url": {
                             "title": "Target URL",
-                            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                             "type": "string",
-                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                             "transform": [
                               "trim"
                             ]
@@ -6230,7 +6245,7 @@
                           "title": "Check link (simple)",
                           "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                           "type": "string",
-                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                           "transform": [
                             "trim"
                           ]
@@ -6246,9 +6261,9 @@
                           "properties": {
                             "url": {
                               "title": "Target URL",
-                              "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                              "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                               "type": "string",
-                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                               "transform": [
                                 "trim"
                               ]
@@ -19863,9 +19878,9 @@
                     "anyOf": [
                       {
                         "title": "Go to URL (simple)",
-                        "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                        "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable or a `$$matrix.<key>` reference. A path is joined to `origin` from the config.",
                         "type": "string",
-                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                         "transform": [
                           "trim"
                         ]
@@ -20108,9 +20123,9 @@
                               },
                               "url": {
                                 "title": "Target URL",
-                                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                 "type": "string",
-                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                 "transform": [
                                   "trim"
                                 ]
@@ -20513,18 +20528,18 @@
                       "schemas": {
                         "url": {
                           "title": "Target URL",
-                          "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                          "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                           "type": "string",
-                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                           "transform": [
                             "trim"
                           ]
                         },
                         "string": {
                           "title": "Go to URL (simple)",
-                          "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                          "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable or a `$$matrix.<key>` reference. A path is joined to `origin` from the config.",
                           "type": "string",
-                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                           "transform": [
                             "trim"
                           ]
@@ -20767,9 +20782,9 @@
                                 },
                                 "url": {
                                   "title": "Target URL",
-                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                   "type": "string",
-                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                   "transform": [
                                     "trim"
                                   ]
@@ -22061,7 +22076,7 @@
                         "title": "HTTP request (simple)",
                         "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                         "type": "string",
-                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                         "transform": [
                           "trim"
                         ]
@@ -22085,9 +22100,9 @@
                         "properties": {
                           "url": {
                             "title": "Target URL",
-                            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                            "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                             "type": "string",
-                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                            "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                             "transform": [
                               "trim"
                             ]
@@ -22481,7 +22496,7 @@
                           "title": "HTTP request (simple)",
                           "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                           "type": "string",
-                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                          "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                           "transform": [
                             "trim"
                           ]
@@ -22522,9 +22537,9 @@
                           "properties": {
                             "url": {
                               "title": "Target URL",
-                              "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                              "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                               "type": "string",
-                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                               "transform": [
                                 "trim"
                               ]
@@ -74748,7 +74763,7 @@
                               "title": "Check link (simple)",
                               "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                               "type": "string",
-                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                               "transform": [
                                 "trim"
                               ]
@@ -74764,9 +74779,9 @@
                               "properties": {
                                 "url": {
                                   "title": "Target URL",
-                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                   "type": "string",
-                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                   "transform": [
                                     "trim"
                                   ]
@@ -74844,7 +74859,7 @@
                                 "title": "Check link (simple)",
                                 "description": "Check that a URL returns an accepted status code to a GET request: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                 "type": "string",
-                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                 "transform": [
                                   "trim"
                                 ]
@@ -74860,9 +74875,9 @@
                                 "properties": {
                                   "url": {
                                     "title": "Target URL",
-                                    "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                    "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                     "type": "string",
-                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                     "transform": [
                                       "trim"
                                     ]
@@ -88477,9 +88492,9 @@
                           "anyOf": [
                             {
                               "title": "Go to URL (simple)",
-                              "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                              "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable or a `$$matrix.<key>` reference. A path is joined to `origin` from the config.",
                               "type": "string",
-                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                               "transform": [
                                 "trim"
                               ]
@@ -88722,9 +88737,9 @@
                                     },
                                     "url": {
                                       "title": "Target URL",
-                                      "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                      "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                       "type": "string",
-                                      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                      "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                       "transform": [
                                         "trim"
                                       ]
@@ -89127,18 +89142,18 @@
                             "schemas": {
                               "url": {
                                 "title": "Target URL",
-                                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                 "type": "string",
-                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                 "transform": [
                                   "trim"
                                 ]
                               },
                               "string": {
                                 "title": "Go to URL (simple)",
-                                "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
+                                "description": "Navigate to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable or a `$$matrix.<key>` reference. A path is joined to `origin` from the config.",
                                 "type": "string",
-                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                 "transform": [
                                   "trim"
                                 ]
@@ -89381,9 +89396,9 @@
                                       },
                                       "url": {
                                         "title": "Target URL",
-                                        "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                        "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                         "type": "string",
-                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                        "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                         "transform": [
                                           "trim"
                                         ]
@@ -90675,7 +90690,7 @@
                               "title": "HTTP request (simple)",
                               "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                               "type": "string",
-                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                              "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                               "transform": [
                                 "trim"
                               ]
@@ -90699,9 +90714,9 @@
                               "properties": {
                                 "url": {
                                   "title": "Target URL",
-                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                  "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                   "type": "string",
-                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                  "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                   "transform": [
                                     "trim"
                                   ]
@@ -91095,7 +91110,7 @@
                                 "title": "HTTP request (simple)",
                                 "description": "Send a GET request to a URL: an absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable. A path is joined to `origin` from the config.",
                                 "type": "string",
-                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                 "transform": [
                                   "trim"
                                 ]
@@ -91136,9 +91151,9 @@
                                 "properties": {
                                   "url": {
                                     "title": "Target URL",
-                                    "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`. A path is joined to `origin`.",
+                                    "description": "An absolute `http://` or `https://` URL, a path that starts with one `/`, or a value that starts with an environment variable, such as `$BASE_URL/docs`, or a `$$matrix.<key>` reference. A path is joined to `origin`.",
                                     "type": "string",
-                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+)",
+                                    "pattern": "^(https?://|/(?!/)|\\$[A-Za-z0-9_]+|\\$\\$matrix\\.[A-Za-z0-9_])",
                                     "transform": [
                                       "trim"
                                     ]
