@@ -1,0 +1,35 @@
+{
+  "$schema": "https://raw.githubusercontent.com/doc-detective/doc-detective/main/src/common/dist/schemas/spec_v3.schema.json",
+  "tests": [
+    {
+      "testId": "data-variables-response",
+      "steps": [
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/orders",
+            "method": "post",
+            "request": {
+              "body": {
+                "id": "ord-1001"
+              }
+            }
+          },
+          "variables": {
+            "ORDER_ID": "$$response.body.id"
+          }
+        },
+        {
+          "httpRequest": {
+            "url": "http://localhost:8092/api/orders?id=$ORDER_ID",
+            "method": "get",
+            "response": {
+              "body": {
+                "id": "ord-1001"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

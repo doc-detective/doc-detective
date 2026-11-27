@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Skip ahead after a version check</title></head>
+<body>
+<!-- test {"testId":"data-route-onpass-gotostep","detectSteps":true} -->
+<h1>Skip ahead after a version check</h1>
+<ol>
+  <li>Print the Node.js version:
+    <pre><code class="language-shell">node --version</code></pre>
+    <!-- step {"runShell":"node --version","onPass":[{"goToStep":"path"}]} --></li>
+  <li>Print the npm version:
+    <pre><code class="language-shell">npm --version</code></pre>
+    <!-- step {"stepId":"npm","runShell":"npm --version"} --></li>
+  <li>Find the Node.js executable:
+    <pre><code class="language-shell">command -v node</code></pre>
+    <!-- step {"stepId":"path","runShell":"command -v node"} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

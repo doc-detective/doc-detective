@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><title>Save the Node.js major version</title></head>
+<body>
+<!-- test {"testId":"data-variables-extract","detectSteps":false} -->
+<h1>Save the Node.js major version</h1>
+<ol>
+  <li>Print the Node.js version:
+    <pre><code class="language-shell">node --version</code></pre>
+    <!-- step {"runShell":"node --version","variables":{"NODE_MAJOR":"extract($$stdio.stdout, \"v([0-9]+)\")"}} --></li>
+  <li>Check that the major version is a number:
+    <pre><code class="language-shell">node -e "process.exit(/^[0-9]+$/.test(process.env.NODE_MAJOR) ? 0 : 1)"</code></pre>
+    <!-- step {"runShell":"node -e \"process.exit(/^[0-9]+$/.test(process.env.NODE_MAJOR) ? 0 : 1)\""} --></li>
+</ol>
+<!-- test end -->
+</body>
+</html>

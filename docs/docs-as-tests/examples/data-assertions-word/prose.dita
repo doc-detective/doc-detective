@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="data-assertions-word">
+  <title>Check the account fields</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Create an account. Send a <codeph>POST</codeph> request to <codeph>http://localhost:8092/api/accounts</codeph> with this body:</cmd>
+        <info><codeblock outputclass="language-json">{"name":"Wren","plan":"team"}</codeblock></info></step>
+    </steps>
+  </taskbody>
+</task>

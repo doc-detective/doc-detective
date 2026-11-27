@@ -1,0 +1,6 @@
+Send a client name in a header
+==============================
+
+#. Load the variables in ``shop.env``.
+
+#. Send a ``GET`` request to ``http://localhost:8092/api/products`` with the header ``X-Test: $SHOP_CLIENT``.
