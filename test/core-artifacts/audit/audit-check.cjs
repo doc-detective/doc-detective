@@ -41,6 +41,16 @@ const cases = {
     check: sources,
     expect: ["tagger", "tagger"],
   },
+  "tier-vote": {
+    files: { "doc.md": "1. Release notes\n2. Open the app.\n3. Bug fixes\n\n<!-- -->\n\n1. Open the app.\n2. Release notes\n3. Bug fixes\n4. New features\n" },
+    check: sources,
+    expect: ["tagger", "tagger", "tagger", "possible", "possible", "possible", "possible"],
+  },
+  "tier-lead-in": {
+    files: { "doc.md": "1. **Create a branch**: run `git checkout -b fix`.\n2. **Commit**: Run `git commit`.\n3. Then push the branch.\n4. (Optional) Open a pull request.\n" },
+    check: sources,
+    expect: ["tagger", "tagger", "tagger", "tagger"],
+  },
   "tier-possible": {
     files: { "doc.md": "1. Release notes\n2. Bug fixes\n" },
     check: (r) => ({ sources: sources(r), possible: r.summary.possibleProcedureSteps.total, headline: r.summary.procedureSteps.total }),

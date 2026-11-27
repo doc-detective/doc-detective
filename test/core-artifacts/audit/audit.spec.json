@@ -49,7 +49,7 @@
     },
     {
       "testId": "audit-tier-tagger",
-      "description": "A list whose first item is an instruction counts through the tagger.",
+      "description": "A list whose items are instructions counts through the tagger.",
       "steps": [
         {
           "runShell": {
@@ -69,6 +69,36 @@
         {
           "runShell": {
             "command": "node test/core-artifacts/audit/audit-check.cjs tier-opener",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-tier-vote",
+      "description": "A list counts when at least a third of its items are instructions, and lands in possible procedures otherwise.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs tier-vote",
+            "workingDirectory": "../../..",
+            "exitCodes": [
+              0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "testId": "audit-tier-lead-in",
+      "description": "A bold lead-in, a sequence word, or (Optional) doesn't hide the instruction.",
+      "steps": [
+        {
+          "runShell": {
+            "command": "node test/core-artifacts/audit/audit-check.cjs tier-lead-in",
             "workingDirectory": "../../..",
             "exitCodes": [
               0
