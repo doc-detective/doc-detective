@@ -174,6 +174,31 @@ describe("runCode coverage", function () {
     assert.equal(typeof result.status, "string");
   });
 
+  // Programmatic callers (getRunner().runStep) skip resolvePaths, so `path`
+  // can still be relative to `directory`.
+  it("joins a relative path onto directory when paths weren't resolved", async function () {
+    this.timeout(15000);
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "dd-runcode-rel-"));
+    try {
+      const result = await runCode({
+        config,
+        step: {
+          runCode: {
+            language: "javascript",
+            code: "process.stdout.write('ok')",
+            path: "rel-out.txt",
+            directory,
+          },
+        },
+      });
+      assert.equal(result.status, "PASS", result.description);
+      assert.equal(fs.readFileSync(path.join(directory, "rel-out.txt"), "utf8"), "ok");
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+      fs.rmSync("rel-out.txt", { force: true });
+    }
+  });
+
   it("forwards a bare path (no directory) unchanged to runShell", async function () {
     this.timeout(15000);
     const result = await runCode({

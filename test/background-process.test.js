@@ -1283,6 +1283,14 @@ describe("runShell/runCode background (integration)", function () {
   // A non-bash runCode runs through cmd.exe on Windows; under `tty` the temp
   // script path must survive that shell, or node can't find the script.
   it("runCode with background.tty runs a non-bash script to readiness", async function () {
+    // Skip before runCode when node-pty isn't installed: runCode would
+    // otherwise JIT-install it, which takes far longer than this suite allows.
+    const { loadHeavyDep } = await import("../dist/runtime/loader.js");
+    try {
+      await loadHeavyDep("@homebridge/node-pty-prebuilt-multiarch", { autoInstall: false });
+    } catch {
+      this.skip();
+    }
     const registry = new Map();
     try {
       const result = await runCode({
@@ -1297,7 +1305,7 @@ describe("runShell/runCode background (integration)", function () {
         },
         processRegistry: registry,
       });
-      if (result.status === "SKIPPED") this.skip(); // no node-pty here
+      if (result.status === "SKIPPED") this.skip(); // PTY can't be created here
       assert.equal(result.status, "PASS", result.description);
     } finally {
       if (registry.has("tty-js"))

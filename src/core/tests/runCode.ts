@@ -229,7 +229,8 @@ async function runCode({
     // no effect and the step FAILed on a non-zero exit). Forward every option
     // runShell honors so they actually take effect. Spec path resolution
     // (resolvePaths) already folded `directory` into an absolute `path`, as it
-    // does for runShell, so `path` is forwarded as-is.
+    // does for runShell, so an absolute `path` is forwarded as-is. A relative
+    // one (programmatic runStep skips resolvePaths) is joined onto `directory`.
     // The script path travels through a shell as part of the command string
     // (runShell joins command + args with spaces): use the separator every
     // shell accepts on Windows (bash strips unquoted backslashes), and quote
@@ -250,7 +251,10 @@ async function runCode({
     if (typeof step.runCode.stdio !== "undefined")
       runShellOptions.stdio = step.runCode.stdio;
     if (typeof step.runCode.path !== "undefined")
-      runShellOptions.path = step.runCode.path;
+      runShellOptions.path =
+        step.runCode.directory && !path.isAbsolute(step.runCode.path)
+          ? path.join(step.runCode.directory, step.runCode.path)
+          : step.runCode.path;
     // Forward the background object (name + waitUntil) so runShell starts and
     // registers the process.
     if (step.runCode.background) {
