@@ -207,6 +207,7 @@ These pages apply equally to UI and CLI/code/API tests; W3 is the CUJ anchor, no
 | CI/CD: GitHub Action recipe | P1 | ★ | |
 | AI issue mentions | P1 | | Authored: `/docs/ci/issue-mentions`. The Action's `issue_mentions` and `issue_prompt` inputs (deprecated aliases `integrations` and `prompt`). Moved from `/docs/test-docs/integrations`, whose title collided with the config's `integrations` key. |
 | CI recipes: other platforms (new) | P1 | | Fills the GitHub-only gap. |
+| Run Doc Detective from a Cucumber suite | P1, D1 | | Authored: `/docs/ci/cucumber`. Calls `runTests()` from a cucumber-js step definition and a `BeforeAll` hook, and points to the CLI's `--reporters` for JUnit or HTML output. Inline tests run the sample in `test/core-artifacts/cucumber-recipe/`. |
 | Reporters & artifacts (new) | P1 | ★ | terminal/json/html/runFolder + run-folder layout. |
 | Docker & headless (new) | P2 | ★ | |
 | Keep secrets out of logs, reports, and captures | P1, D2 | | Authored: `/docs/ci/secrets`. Masking of environment variable values in every output, `publicVariables` at each level, the masked forms, and the limits (ADR 01178). |

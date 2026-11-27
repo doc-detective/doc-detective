@@ -290,6 +290,9 @@ navigation:
           - page: GitHub Action
             path: pages/docs/ci/github-action.mdx
             slug: github-action
+          - page: Cucumber (cucumber-js)
+            path: pages/docs/ci/cucumber.mdx
+            slug: cucumber
           - page: AI issue mentions
             path: pages/docs/ci/issue-mentions.mdx
             slug: issue-mentions
