@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="structure-before-after">
+  <title>Check the session cookie</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Start at <xref href="http://localhost:8092/cookies" scope="external" format="html">the cookies page</xref>.</cmd></step>
+      <step><cmd>Check that the page lists <codeph>structure-session=signed-in</codeph>.</cmd></step>
+    </steps>
+  </taskbody>
+</task>

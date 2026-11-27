@@ -8705,6 +8705,10 @@
       "page": "/reference/docs-as-tests/structure#badge-true"
     },
     {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
+    },
+    {
       "example": "structure-beforeall-list",
       "page": "/reference/docs-as-tests/structure#beforeall-list"
     },
@@ -10415,6 +10419,10 @@
       "page": "/reference/docs-as-tests/structure#badge-true"
     },
     {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
+    },
+    {
       "example": "structure-beforeall-list",
       "page": "/reference/docs-as-tests/structure#beforeall-list"
     },
@@ -11953,6 +11961,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -13735,6 +13747,10 @@
       "page": "/reference/docs-as-tests/structure#badge-true"
     },
     {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
+    },
+    {
       "example": "structure-beforeall-list",
       "page": "/reference/docs-as-tests/structure#beforeall-list"
     },
@@ -15403,6 +15419,10 @@
       "page": "/reference/docs-as-tests/structure#badge-true"
     },
     {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
+    },
+    {
       "example": "structure-beforeall-list",
       "page": "/reference/docs-as-tests/structure#beforeall-list"
     },
@@ -16995,6 +17015,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -18669,6 +18693,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
@@ -31663,6 +31691,10 @@
       "page": "/reference/docs-as-tests/structure#badge-true"
     },
     {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
+    },
+    {
       "example": "structure-beforeall-list",
       "page": "/reference/docs-as-tests/structure#beforeall-list"
     },
@@ -37959,6 +37991,10 @@
     {
       "example": "structure-badge-true",
       "page": "/reference/docs-as-tests/structure#badge-true"
+    },
+    {
+      "example": "structure-before-after",
+      "page": "/reference/docs-as-tests/structure#run-setup-and-cleanup-steps-around-one-test"
     },
     {
       "example": "structure-beforeall-list",
