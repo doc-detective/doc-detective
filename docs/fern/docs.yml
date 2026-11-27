@@ -396,6 +396,12 @@ navigation:
           - page: Data and control flow
             path: pages/reference/docs-as-tests/data-control-flow.mdx
             slug: data-control-flow
+          - page: Test structure
+            path: pages/reference/docs-as-tests/structure.mdx
+            slug: structure
+          - page: Formats
+            path: pages/reference/docs-as-tests/formats.mdx
+            slug: formats
       - folder: pages/reference/schemas
         title: Schemas
 

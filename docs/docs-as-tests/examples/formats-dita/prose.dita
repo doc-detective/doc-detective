@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE task PUBLIC "-//OASIS//DTD DITA Task//EN" "task.dtd">
+<task id="echo-text-dita">
+  <title>Echo text back</title>
+  <taskbody>
+    <steps>
+      <step><cmd>Go to <xref href="http://localhost:8092/type-echo.html" scope="external" format="html">the type echo page</xref>.</cmd></step>
+      <step><cmd>Click <uicontrol>Type here:</uicontrol>.</cmd></step>
+      <step><cmd>Type "Hello, DITA".</cmd></step>
+      <step><cmd>Check that the page shows <b>Hello, DITA</b> below the field.</cmd></step>
+    </steps>
+    <postreq>
+      <p>To fetch the page from a terminal instead, run:</p>
+      <codeblock outputclass="language-bash">curl http://localhost:8092/type-echo.html</codeblock>
+    </postreq>
+  </taskbody>
+</task>

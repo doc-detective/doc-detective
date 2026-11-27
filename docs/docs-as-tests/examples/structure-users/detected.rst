@@ -1,0 +1,44 @@
+Manage users
+============
+
+.. test {"testId":"structure-users-create","description":"Create a user.","detectSteps":true}
+
+Create a user
+-------------
+
+To create a user, send a ``POST`` request to ``/api/users``:
+
+.. code-block:: http
+
+   POST http://localhost:8092/api/users
+   Content-Type: application/json
+
+   {"name": "Ada"}
+
+.. test end
+
+.. test {"description":"Look up a user by name.","detectSteps":true}
+
+Look up a user
+--------------
+
+To look up a user by name, send a ``GET`` request with a ``name`` parameter:
+
+.. code-block:: http
+
+   GET http://localhost:8092/api/users?name=Ada
+
+.. test end
+
+.. test ignore start
+
+Delete a user
+-------------
+
+To delete a user, send a ``DELETE`` request:
+
+.. code-block:: http
+
+   DELETE http://localhost:8092/api/users/ada
+
+.. test ignore end
