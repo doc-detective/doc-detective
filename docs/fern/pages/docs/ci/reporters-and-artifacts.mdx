@@ -172,7 +172,7 @@ The `cucumber` reporter writes `cucumber.json` in Cucumber JSON, which Xray, All
 
 - **Names.** A feature's `uri` is the spec's source file, or its ID when there's no source file. Its `name` is the spec's description or ID. A scenario's `name` is the test's description or ID, then the browser and platform. A step's `name` is its description, or else its action and main value.
 - **Statuses.** `PASS` is `passed`, `FAIL` is `failed`, and `SKIPPED` is `skipped`. Cucumber has no warning state, so a `WARNING` step is `passed`, with the warning in the step's `output`.
-- **Errors.** A failed step's `error_message` is its reason, then its hint when it has one.
+- **Errors.** A failed step's `error_message` is its reason, then its hint when it has one. When a context fails but none of its steps did, such as when its recording fails, the scenario ends with one more failed step, named `context`. Its `error_message` is the recording's reason, or else the context's.
 - **Durations.** `duration` is in nanoseconds, as Cucumber JSON expects.
 - **Embeddings.** The report embeds each step's screenshot as base64 PNG, so it stands on its own. A screenshot-heavy run makes a large file. The context's recording is a `text/plain` embedding on the scenario's last step, holding the recording's absolute path, base64-encoded like every embedding.
 
