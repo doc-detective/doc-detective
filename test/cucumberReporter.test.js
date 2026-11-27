@@ -177,7 +177,7 @@ describe("cucumber reporter", function () {
       const { report, runDir, video } = run();
       const steps = stepsOf(buildCucumberJson(report));
       assert.deepEqual(steps.at(-1).embeddings, [
-        { mime_type: "text/plain", data: path.join(runDir, video) },
+        { mime_type: "text/plain", data: Buffer.from(path.join(runDir, video)).toString("base64") },
       ]);
       assert.equal(steps[0].embeddings, undefined);
     });

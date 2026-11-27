@@ -80,7 +80,8 @@ step's `durationMs`. A missing or negative duration is `0`.
   file that isn't on disk is skipped silently. The image is inlined because importers don't
   resolve paths beside the report.
 * The context's `autoRecording.recordingPath`, when the file exists, is a `text/plain` embedding
-  holding the absolute path, on the scenario's last step. Videos are too large to inline.
+  holding the absolute path, on the scenario's last step. Videos are too large to inline. Like
+  every embedding's `data`, the path is base64-encoded, as the format requires.
 
 ### File and failures
 

@@ -60,7 +60,7 @@ function buildCucumberJson(results: any): any[] {
         const recording = existingFile(context.autoRecording?.recordingPath, runDir);
         if (recording && steps.length > 0) {
           const last = steps[steps.length - 1];
-          last.embeddings = [...(last.embeddings ?? []), { mime_type: "text/plain", data: recording }];
+          last.embeddings = [...(last.embeddings ?? []), { mime_type: "text/plain", data: Buffer.from(recording).toString("base64") }];
         }
         elements.push({
           type: "scenario",
